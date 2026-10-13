@@ -17,7 +17,8 @@ representations the package does not have: rows reversed or shuffled, no indices
 ```swift
 extension Graph {
     func maximalCliques() -> MaximalCliques<Self>        // lazy; each clique in `vertices` order
-    func maximumClique() -> [Vertex]                     // lexicographically least largest, by index; [] when empty
+    func maximumClique() -> [Vertex]                     // a largest clique, the search's; [] when empty
+    func lexicographicallyFirstMaximumClique() -> [Vertex]   // the least largest, by index; [] when empty
     func cliqueNumber() -> Int                           // ω; 0 when empty
     func coreNumbers() -> CoreNumbers<Self>
     func clusteringCoefficients() -> ClusteringCoefficients<Self>

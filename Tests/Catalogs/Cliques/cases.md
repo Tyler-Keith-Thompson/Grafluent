@@ -1,6 +1,7 @@
 # Cliques: case catalog (CQ-001 – CQ-633, 276 cases)
 
-Cases for the Cliques module (api.md): `maximalCliques()`, `maximumClique()`, `cliqueNumber()`,
+Cases for the Cliques module (api.md): `maximalCliques()`, `lexicographicallyFirstMaximumClique()`
+(the generated tests also check `maximumClique()` against its size), `cliqueNumber()`,
 `coreNumbers()` and the `CoreNumbers` value (`degeneracy`, `degeneracyOrdering`, `kCore(_:)`,
 `kShell(_:)`), `clusteringCoefficients()` and the `ClusteringCoefficients` value, and the one-shot
 `triangleCount()`, `triangleCount(of:)`, `clusteringCoefficient(of:)`, `transitivity()`,
@@ -49,7 +50,7 @@ The empty graph, one vertex, isolated vertices, one edge. Every op on each.
 | ID | Graph | Op | Expected | Notes |
 |---|---|---|---|---|
 | CQ-001 | `U: []` | `maximalCliques` | `[]` | Empty graph |
-| CQ-002 | `U: []` | `maximumClique` | `[]` |  |
+| CQ-002 | `U: []` | `lexicographicallyFirstMaximumClique` | `[]` |  |
 | CQ-003 | `U: []` | `cliqueNumber` | `#0` |  |
 | CQ-004 | `U: []` | `coreNumbers` | `[]` |  |
 | CQ-005 | `U: []` | `degeneracy` | `#0` |  |
@@ -59,7 +60,7 @@ The empty graph, one vertex, isolated vertices, one edge. Every op on each.
 | CQ-009 | `U: []` | `transitivity` | `#0.0` |  |
 | CQ-010 | `U: []` | `averageClustering` | `#0.0` |  |
 | CQ-011 | `U: [0]` | `maximalCliques` | `[[0]]` | K₁ |
-| CQ-012 | `U: [0]` | `maximumClique` | `[0]` |  |
+| CQ-012 | `U: [0]` | `lexicographicallyFirstMaximumClique` | `[0]` |  |
 | CQ-013 | `U: [0]` | `cliqueNumber` | `#1` |  |
 | CQ-014 | `U: [0]` | `coreNumbers` | `[0]` |  |
 | CQ-015 | `U: [0]` | `degeneracy` | `#0` |  |
@@ -69,7 +70,7 @@ The empty graph, one vertex, isolated vertices, one edge. Every op on each.
 | CQ-019 | `U: [0]` | `transitivity` | `#0.0` |  |
 | CQ-020 | `U: [0]` | `averageClustering` | `#0.0` |  |
 | CQ-021 | `U: [0] 0-0` | `maximalCliques` | `[[0]]` | K₁ with a self-loop: the loop is ignored by every op |
-| CQ-022 | `U: [0] 0-0` | `maximumClique` | `[0]` |  |
+| CQ-022 | `U: [0] 0-0` | `lexicographicallyFirstMaximumClique` | `[0]` |  |
 | CQ-023 | `U: [0] 0-0` | `cliqueNumber` | `#1` |  |
 | CQ-024 | `U: [0] 0-0` | `coreNumbers` | `[0]` |  |
 | CQ-025 | `U: [0] 0-0` | `degeneracy` | `#0` |  |
@@ -79,7 +80,7 @@ The empty graph, one vertex, isolated vertices, one edge. Every op on each.
 | CQ-029 | `U: [0] 0-0` | `transitivity` | `#0.0` |  |
 | CQ-030 | `U: [0] 0-0` | `averageClustering` | `#0.0` |  |
 | CQ-031 | `U: [0, 1]` | `maximalCliques` | `[[0], [1]]` | Two isolated vertices |
-| CQ-032 | `U: [0, 1]` | `maximumClique` | `[0]` |  |
+| CQ-032 | `U: [0, 1]` | `lexicographicallyFirstMaximumClique` | `[0]` |  |
 | CQ-033 | `U: [0, 1]` | `cliqueNumber` | `#1` |  |
 | CQ-034 | `U: [0, 1]` | `coreNumbers` | `[0, 0]` |  |
 | CQ-035 | `U: [0, 1]` | `degeneracy` | `#0` |  |
@@ -89,7 +90,7 @@ The empty graph, one vertex, isolated vertices, one edge. Every op on each.
 | CQ-039 | `U: [0, 1]` | `transitivity` | `#0.0` |  |
 | CQ-040 | `U: [0, 1]` | `averageClustering` | `#0.0` |  |
 | CQ-041 | `U: 0-1` | `maximalCliques` | `[[0, 1]]` | K₂ |
-| CQ-042 | `U: 0-1` | `maximumClique` | `[0, 1]` |  |
+| CQ-042 | `U: 0-1` | `lexicographicallyFirstMaximumClique` | `[0, 1]` |  |
 | CQ-043 | `U: 0-1` | `cliqueNumber` | `#2` |  |
 | CQ-044 | `U: 0-1` | `coreNumbers` | `[1, 1]` |  |
 | CQ-045 | `U: 0-1` | `degeneracy` | `#1` |  |
@@ -99,7 +100,7 @@ The empty graph, one vertex, isolated vertices, one edge. Every op on each.
 | CQ-049 | `U: 0-1` | `transitivity` | `#0.0` |  |
 | CQ-050 | `U: 0-1` | `averageClustering` | `#0.0` |  |
 | CQ-051 | `U: 0-1, 0-1, 1-0` | `maximalCliques` | `[[0, 1]]` | K₂ as three parallel edges: one edge in the simple graph |
-| CQ-052 | `U: 0-1, 0-1, 1-0` | `maximumClique` | `[0, 1]` |  |
+| CQ-052 | `U: 0-1, 0-1, 1-0` | `lexicographicallyFirstMaximumClique` | `[0, 1]` |  |
 | CQ-053 | `U: 0-1, 0-1, 1-0` | `cliqueNumber` | `#2` |  |
 | CQ-054 | `U: 0-1, 0-1, 1-0` | `coreNumbers` | `[1, 1]` |  |
 | CQ-055 | `U: 0-1, 0-1, 1-0` | `degeneracy` | `#1` |  |
@@ -151,29 +152,30 @@ Each clique in `vertices` order; the sequence in the order of api.md (degeneracy
 
 ## C. Maximum clique and clique number
 
-The lexicographically least largest clique, by vertex index.
+`lexicographicallyFirstMaximumClique`: the lexicographically least largest clique, by vertex
+index. `maximumClique()` returns some largest clique; tests check its size and that it is a clique.
 
 | ID | Graph | Op | Expected | Notes |
 |---|---|---|---|---|
-| CQ-201 | `U: K(0..2), K(3..5)` | `maximumClique` | `[0, 1, 2]` | Two triangles: the first |
+| CQ-201 | `U: K(0..2), K(3..5)` | `lexicographicallyFirstMaximumClique` | `[0, 1, 2]` | Two triangles: the first |
 | CQ-202 | `U: K(0..2), K(3..5)` | `cliqueNumber` | `#3` |  |
-| CQ-203 | `U: [5, 4, 3, 2, 1, 0] K(0..2), K(3..5)` | `maximumClique` | `[5, 4, 3]` | `vertices` reversed: [5, 4, 3] has indices [0, 1, 2] |
+| CQ-203 | `U: [5, 4, 3, 2, 1, 0] K(0..2), K(3..5)` | `lexicographicallyFirstMaximumClique` | `[5, 4, 3]` | `vertices` reversed: [5, 4, 3] has indices [0, 1, 2] |
 | CQ-204 | `U: [5, 4, 3, 2, 1, 0] K(0..2), K(3..5)` | `cliqueNumber` | `#3` |  |
-| CQ-205 | `U: K(3..5), K(0..2)` | `maximumClique` | `[3, 4, 5]` | Edge order does not matter |
+| CQ-205 | `U: K(3..5), K(0..2)` | `lexicographicallyFirstMaximumClique` | `[3, 4, 5]` | Edge order does not matter |
 | CQ-206 | `U: K(3..5), K(0..2)` | `cliqueNumber` | `#3` |  |
-| CQ-207 | `U: [0, 1, 2]` | `maximumClique` | `[0]` | Edgeless: the first vertex (NetworkX `max_weight_clique(weight=None)`: `[2]`, the last) |
+| CQ-207 | `U: [0, 1, 2]` | `lexicographicallyFirstMaximumClique` | `[0]` | Edgeless: the first vertex (NetworkX `max_weight_clique(weight=None)`: `[2]`, the last) |
 | CQ-208 | `U: [0, 1, 2]` | `cliqueNumber` | `#1` |  |
-| CQ-209 | `U: KB(0..2;3..5)` | `maximumClique` | `[0, 3]` | Bipartite: an edge, the least |
+| CQ-209 | `U: KB(0..2;3..5)` | `lexicographicallyFirstMaximumClique` | `[0, 3]` | Bipartite: an edge, the least |
 | CQ-210 | `U: KB(0..2;3..5)` | `cliqueNumber` | `#2` |  |
-| CQ-211 | `U: nx(karate_club)` | `maximumClique` | `[0, 1, 2, 3, 7]` | Two 5-cliques, [0, 1, 2, 3, 7] and [0, 1, 2, 3, 13] (igraph `largest_cliques`: both) |
+| CQ-211 | `U: nx(karate_club)` | `lexicographicallyFirstMaximumClique` | `[0, 1, 2, 3, 7]` | Two 5-cliques, [0, 1, 2, 3, 7] and [0, 1, 2, 3, 13] (igraph `largest_cliques`: both) |
 | CQ-212 | `U: nx(karate_club)` | `cliqueNumber` | `#5` |  |
-| CQ-213 | `U: S(0;1..5), C(1..5)` | `maximumClique` | `[0, 1, 2]` |  |
+| CQ-213 | `U: S(0;1..5), C(1..5)` | `lexicographicallyFirstMaximumClique` | `[0, 1, 2]` |  |
 | CQ-214 | `U: S(0;1..5), C(1..5)` | `cliqueNumber` | `#3` |  |
-| CQ-215 | `U: C(0..4), K(5..8)` | `maximumClique` | `[5, 6, 7, 8]` |  |
+| CQ-215 | `U: C(0..4), K(5..8)` | `lexicographicallyFirstMaximumClique` | `[5, 6, 7, 8]` |  |
 | CQ-216 | `U: C(0..4), K(5..8)` | `cliqueNumber` | `#4` |  |
-| CQ-217 | `U: moon(3)` | `maximumClique` | `[0, 3, 6]` |  |
+| CQ-217 | `U: moon(3)` | `lexicographicallyFirstMaximumClique` | `[0, 3, 6]` |  |
 | CQ-218 | `U: moon(3)` | `cliqueNumber` | `#3` |  |
-| CQ-219 | `U: P(0..3), 3-3, 3-3` | `maximumClique` | `[0, 1]` |  |
+| CQ-219 | `U: P(0..3), 3-3, 3-3` | `lexicographicallyFirstMaximumClique` | `[0, 1]` |  |
 | CQ-220 | `U: P(0..3), 3-3, 3-3` | `cliqueNumber` | `#2` |  |
 
 ## D. Core numbers and degeneracy
@@ -355,13 +357,13 @@ Recursion-free and linear where api.md says so; values from the same model.
 | CQ-620 | `U: K(120)` | `averageClustering` | `#1.0` |  |
 | CQ-621 | `U: moon(8)` | `maximalCliques.count` | `#6561` |  |
 | CQ-622 | `U: moon(8)` | `cliqueNumber` | `#8` |  |
-| CQ-623 | `U: moon(8)` | `maximumClique` | `[0, 3, 6, 9, 12, 15, 18, 21]` |  |
+| CQ-623 | `U: moon(8)` | `lexicographicallyFirstMaximumClique` | `[0, 3, 6, 9, 12, 15, 18, 21]` |  |
 | CQ-624 | `U: moon(8)` | `degeneracy` | `#21` |  |
 | CQ-625 | `U: moon(8)` | `triangleCount` | `#1512` |  |
 | CQ-626 | `U: moon(8)` | `transitivity` | `#0.9` |  |
 | CQ-627 | `U: lcg(2000,20000,7)` | `maximalCliques.count` | `#17618` |  |
 | CQ-628 | `U: lcg(2000,20000,7)` | `cliqueNumber` | `#3` |  |
-| CQ-629 | `U: lcg(2000,20000,7)` | `maximumClique` | `[0, 164, 284]` |  |
+| CQ-629 | `U: lcg(2000,20000,7)` | `lexicographicallyFirstMaximumClique` | `[0, 164, 284]` |  |
 | CQ-630 | `U: lcg(2000,20000,7)` | `degeneracy` | `#14` |  |
 | CQ-631 | `U: lcg(2000,20000,7)` | `triangleCount` | `#1315` |  |
 | CQ-632 | `U: lcg(2000,20000,7)` | `transitivity` | `#0.009915274046110423` |  |

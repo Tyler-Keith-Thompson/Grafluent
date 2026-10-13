@@ -18,13 +18,15 @@ import Testing
 
 @Suite("Covering on large inputs")
 struct CoveringStressTests {
-    @Test("maximumIndependentSet() on the path P₁₀₀₀₀₁ and the even cycle C₁₀₀₀₀₀: the even vertices; the maximal set and the approximations on them", .timeLimit(.minutes(1)))
+    @Test("The maximum independent sets of the path P₁₀₀₀₀₁ and the even cycle C₁₀₀₀₀₀: the even vertices (on the cycle, the least of two); the maximal set and the approximations on them", .timeLimit(.minutes(1)))
     func longPathAndCycle() async {
         await Task {
             let n = 100_000
             let path = UndirectedAdjacencyList(vertices: 0 ... n, edges: (0 ..< n).map { UndirectedEdge($0, $0 + 1) })
             let evens = Array(stride(from: 0, through: n, by: 2))
+            // The path's maximum independent set is unique.
             #expect(path.maximumIndependentSet() == evens)
+            #expect(path.lexicographicallyFirstMaximumIndependentSet() == evens)
             #expect(path.independenceNumber() == n / 2 + 1)
             #expect(path.minimumVertexCover() == Array(stride(from: 1, to: n, by: 2)))
             #expect(path.maximalIndependentSet() == evens)
@@ -33,7 +35,10 @@ struct CoveringStressTests {
             // the last: twice τ = 50,000, the bound met exactly.
             #expect(path.approximateMinimumVertexCover() == Array(0 ..< n))
             let cycle = UndirectedAdjacencyList(vertices: 0 ..< n, edges: (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) })
-            #expect(cycle.maximumIndependentSet() == Array(stride(from: 0, to: n, by: 2)))
+            // The cycle has two, the even vertices and the odd ones.
+            #expect(cycle.lexicographicallyFirstMaximumIndependentSet() == Array(stride(from: 0, to: n, by: 2)))
+            let alternate = cycle.maximumIndependentSet()
+            #expect(alternate == Array(stride(from: 0, to: n, by: 2)) || alternate == Array(stride(from: 1, to: n, by: 2)))
             #expect(cycle.minimumVertexCover().count == n / 2)
             #expect(cycle.maximalIndependentSet(containing: [1]) == Array(stride(from: 1, to: n, by: 2)))
             // The cycle's edges taken alternately cover it exactly: ν = n / 2, so ρ = n / 2.
@@ -63,7 +68,7 @@ struct CoveringStressTests {
         }.value
     }
 
-    @Test("20,000 copies of CV-064's bipartite gadget (120,000 vertices): minimumVertexCover() is each copy's right side, König's cover each copy's left side", .timeLimit(.minutes(1)))
+    @Test("20,000 copies of CV-064's bipartite gadget (120,000 vertices): the least maximum independent set is each copy's left side, so its complement the right side; König's cover each copy's left side", .timeLimit(.minutes(1)))
     func bipartiteGadgets() async throws {
         try await Task {
             let copies = 20_000
@@ -80,8 +85,12 @@ struct CoveringStressTests {
                 let base = 6 * c
                 return [base, base + 1, base + 2]
             }
-            #expect(graph.minimumVertexCover() == right)
-            #expect(graph.maximumIndependentSet() == left)
+            let least = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(least == left)
+            let inLeast = Set(least)
+            #expect((0 ..< 6 * copies).filter { !inLeast.contains($0) } == right)
+            let cover = graph.minimumVertexCover()
+            #expect(cover.count == 3 * copies && graph.isVertexCover(cover))
             let sides = try #require(graph.bipartition())
             #expect(Array(sides.left) == left)
             #expect(graph.minimumVertexCover(bipartition: sides) == left)
@@ -113,7 +122,7 @@ struct CoveringStressTests {
         }.value
     }
 
-    @Test("1,000 copies of the Petersen graph and of P₇: minimumDominatingSet() is each copy's catalog set (CV-141, CV-137) shifted; the greedy approximation on 2,000 stars of ten leaves is the hubs", .timeLimit(.minutes(1)))
+    @Test("1,000 copies of the Petersen graph and of P₇: lexicographicallyFirstMinimumDominatingSet() is each copy's catalog set (CV-141, CV-137) shifted, minimumDominatingSet() as small; the greedy approximation on 2,000 stars of ten leaves is the hubs", .timeLimit(.minutes(1)))
     func dominatingComponents() async {
         await Task {
             // Petersen: outer cycle 0–4, spokes i–(i + 5), inner pentagram.
@@ -127,9 +136,11 @@ struct CoveringStressTests {
             let inPetersens: [Int] = (0 ..< copies).flatMap { (c: Int) -> [Int] in [10 * c, 10 * c + 2, 10 * c + 6] }
             let inPaths: [Int] = (0 ..< copies).flatMap { (c: Int) -> [Int] in [base + 7 * c, base + 7 * c + 2, base + 7 * c + 5] }
             let expected = inPetersens + inPaths
-            let dominating = graph.minimumDominatingSet()
+            let dominating = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(dominating == expected)
             #expect(graph.isDominatingSet(dominating))
+            let found = graph.minimumDominatingSet()
+            #expect(found.count == expected.count && graph.isDominatingSet(found))
             // Petersen's α is 4 per copy (CV-045) and P₇'s is 4.
             #expect(graph.independenceNumber() == 8 * copies)
             let stars = 2_000
@@ -159,6 +170,7 @@ struct CoveringStressTests {
             #expect(graph.isIndependentSet(independent))
             // The planted set: G(60, ½) alone has α near 10, so no other set of 16 is independent.
             #expect(independent == planted.sorted())
+            #expect(graph.lexicographicallyFirstMaximumIndependentSet() == planted.sorted())
             #expect(graph.independenceNumber() == independent.count)
             #expect(graph.minimumVertexCover() == (0 ..< n).filter { !planted.contains($0) })
             // Maximal: every other vertex has a neighbour in it.

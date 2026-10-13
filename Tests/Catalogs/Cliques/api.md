@@ -14,8 +14,9 @@ python3 ref.py`).
 | Entry point | Purpose |
 |---|---|
 | `maximalCliques()` → `MaximalCliques<Self>`, a lazy `Sequence` of `[Vertex]` | The output can be exponential (3^{n/3} cliques on Moon–Moser graphs, CQ-621), so it is lazy, like `simpleCycles()`. A caller can stop early, and memory stays O(n + m) whatever the count |
-| `maximumClique()` → `[Vertex]` | Branch and bound with a colouring bound and core pruning, much faster than enumerating every maximal clique |
-| `cliqueNumber()` → `Int` | Stops as soon as it reaches the degeneracy + 1 upper bound and needs no tie rule, so it can be cheaper than `maximumClique()` |
+| `maximumClique()` → `[Vertex]` | Some largest clique: the one `cliqueNumber()`'s branch and bound (colouring bound, core pruning) finds, much faster than enumerating every maximal clique |
+| `lexicographicallyFirstMaximumClique()` → `[Vertex]` | The least largest clique by vertex index, fixed by a rule; a witness pass after the search, up to one search per vertex and candidate |
+| `cliqueNumber()` → `Int` | Stops as soon as it reaches the degeneracy + 1 upper bound |
 | `coreNumbers()` → `CoreNumbers<Self>` | Batagelj–Zaversnik in O(n + m). One value holds the core numbers, the degeneracy, the degeneracy ordering, and the k-cores and k-shells |
 | `clusteringCoefficients()` → `ClusteringCoefficients<Self>` | One O(m^{3/2}) triangle pass gives each vertex's triangle count and local clustering, plus the transitivity and the average clustering |
 | `triangleCount()`, `transitivity()`, `averageClustering()` | One-shot scalars; `triangleCount()` skips the per-vertex arrays. Each equals the same member of `clusteringCoefficients()` |
@@ -40,8 +41,10 @@ extension Graph {
     /// vertex is a clique of one.
     func maximalCliques() -> MaximalCliques<Self>
 
-    /// The lexicographically least largest clique, by vertex index; [] for the empty graph.
+    /// A largest clique, the one `cliqueNumber()`'s search finds; [] for the empty graph.
     func maximumClique() -> [Vertex]
+    /// The lexicographically least largest clique, by vertex index; [] for the empty graph.
+    func lexicographicallyFirstMaximumClique() -> [Vertex]
     /// The size of a largest clique, ω(G); 0 for the empty graph.
     func cliqueNumber() -> Int
 
@@ -143,10 +146,12 @@ and NetworkX for every case.
 The sequence is not in lexicographic order of the cliques: pivoting can put a smaller clique in
 a later branch.
 
-### `maximumClique()` and `cliqueNumber()`
+### `maximumClique()`, `lexicographicallyFirstMaximumClique()` and `cliqueNumber()`
 
 `cliqueNumber()` is ω, the size of a largest clique: 0 for the empty graph, 1 for an edgeless one,
-at most `degeneracy + 1`. `maximumClique()` is the **lexicographically least** largest clique by
+at most `degeneracy + 1`. `maximumClique()` is some largest clique, in `vertices` order: the one the
+search finds, so tests check only its size and that it is a clique.
+`lexicographicallyFirstMaximumClique()` is the **lexicographically least** largest clique by
 index (CQ-201 – CQ-207: two disjoint triangles give the one with the least index, also when
 `vertices` is reversed, CQ-203). For karate it is `[0, 1, 2, 3, 7]` over `[0, 1, 2, 3, 13]`
 (CQ-211). An edgeless graph gives its first vertex (CQ-207). The rule does not depend on the search
@@ -200,7 +205,7 @@ n vertices, m edges (after merging parallel edges), d = degeneracy, Δ = maximum
 | `coreNumbers()` | O(n + m) | O(n + m) (simple rows, `vert`, `pos`, `bin`, `deg`) |
 | `CoreNumbers` queries | `coreNumber` O(1) after `vertexIndex(of:)`; `degeneracy` O(1); `degeneracyOrdering`, `kCore`, `kShell` O(n) | |
 | `maximalCliques()` | O(n + m) before the first clique; in total O(d · n · 3^{d/3}) (Eppstein–Löffler–Strash), which is optimal in the worst case (Moon–Moser) | O(n + m) plus O(d²/64) words per stack level (bitsets, below) |
-| `cliqueNumber()`, `maximumClique()` | exponential in the worst case, O(n · 3^{d/3}) bounded as above; fast on sparse graphs with core pruning | O(n + m) |
+| `cliqueNumber()`, `maximumClique()`, `lexicographicallyFirstMaximumClique()` | exponential in the worst case, O(n · 3^{d/3}) bounded as above; fast on sparse graphs with core pruning | O(n + m) |
 | `clusteringCoefficients()`, `triangleCount()`, `transitivity()`, `averageClustering()` | O(m^{3/2}) (Latapy's compact-forward; O(m · d) with the degeneracy bound, Chiba–Nishizeki) | O(n + m) |
 | `triangleCount(of:)`, `clusteringCoefficient(of:)` | O(d(v) + Σ_{w ∈ N(v)} d(w)) | O(d(v)), a set of N(v), no n-sized array |
 
@@ -238,7 +243,8 @@ K₁₂₀, `moon(8)` (6 561 cliques) and a 2 000-vertex random multigraph.
   node colours its candidates greedily in that order and branches from the highest colour down,
   pruning when |R| + colour ≤ best. A greedy clique in P seeds best. Stop as soon as best =
   degeneracy + 1, or at a caller's target.
-* **`maximumClique()`**: ω from `cliqueNumber()`, then for each v in σ order with core(v) + 1 ≥ ω,
+* **`maximumClique()`**: `cliqueNumber()`'s clique, sorted by index.
+* **`lexicographicallyFirstMaximumClique()`**: ω from `cliqueNumber()`, then for each v in σ order with core(v) + 1 ≥ ω,
   the least (ω − 1)-clique among its later neighbours (core(v) + 1 ≥ ω) by a witness pass: W =
   any such clique from the engine (skip v if none); walk the candidates u in ascending index with
   C chosen and P their common neighbours left; u ∈ W is taken, any other u is taken exactly when

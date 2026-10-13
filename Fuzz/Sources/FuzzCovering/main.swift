@@ -56,12 +56,16 @@ enum FuzzCovering {
             }
             if cover(s) { bestCoverWeight = min(bestCoverWeight, m.reduce(0) { $0 + weights[$1] }) }
         }
-        let mis = graph.maximumIndependentSet()
-        check(mis == bestIndependent, "maximumIndependentSet \(mis), expected \(bestIndependent) on \(ends)")
+        let least = graph.lexicographicallyFirstMaximumIndependentSet()
+        check(least == bestIndependent, "lexicographicallyFirstMaximumIndependentSet \(least), expected \(bestIndependent) on \(ends)")
         check(graph.independenceNumber() == bestIndependent.count, "independenceNumber")
-        check(graph.minimumVertexCover() == (0 ..< n).filter { !bestIndependent.contains($0) }, "minimumVertexCover is not the complement")
+        let mis = graph.maximumIndependentSet()
+        check(mis.count == bestIndependent.count && mis == mis.sorted() && independent(Set(mis)), "maximumIndependentSet \(mis), α \(bestIndependent.count) on \(ends)")
+        check(graph.minimumVertexCover() == (0 ..< n).filter { !mis.contains($0) }, "minimumVertexCover is not the complement")
+        let leastDominating = graph.lexicographicallyFirstMinimumDominatingSet()
+        check(leastDominating == bestDominating, "lexicographicallyFirstMinimumDominatingSet \(leastDominating), expected \(bestDominating) on \(ends)")
         let mds = graph.minimumDominatingSet()
-        check(mds == bestDominating, "minimumDominatingSet \(mds), expected \(bestDominating) on \(ends)")
+        check(mds.count == bestDominating.count && mds == mds.sorted() && dominating(Set(mds)), "minimumDominatingSet \(mds), γ \(bestDominating.count) on \(ends)")
         let approxCover = graph.approximateMinimumVertexCover { weights[$0] }
         check(cover(Set(approxCover)) && approxCover.reduce(0) { $0 + weights[$1] } <= 2 * bestCoverWeight, "approximate vertex cover \(approxCover) on \(ends) \(weights)")
         let maxDegree = (0 ..< n).map { v in Set(ends.filter { $0.0 == v || $0.1 == v }.map { $0.0 == v ? $0.1 : $0.0 }).subtracting([v]).count }.max() ?? 0

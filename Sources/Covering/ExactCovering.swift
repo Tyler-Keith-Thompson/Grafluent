@@ -73,14 +73,26 @@ func _dominationComponents(_ g: _CompressedRows) -> (order: [Int], starts: [Int]
 
 // MARK: - Independent sets
 
-/// The lexicographically least maximum independent set (flags by vertex number) and its size α.
-/// Looped vertices are left out. Bipartite components go through a maximum matching
-/// (`_bipartiteIndependentSet`), complete ones take their least vertex, and the others go through
-/// `_IndependentSetReduction` (with `lexicographic`) or straight to `_IndependentSetKernel` (for α
-/// alone). The rule composes: the least vertex of a symmetric difference lies in one component,
-/// whose own least set wins there. Without `lexicographic`, only the size is meaningful.
+/// What `_maximumIndependentSet` computes.
+@usableFromInline
+enum _IndependentSetGoal {
+    /// α alone.
+    case independenceNumber
+    /// α and a maximum independent set.
+    case maximumIndependentSet
+    /// α and the lexicographically least maximum independent set.
+    case lexicographicallyFirst
+}
+
+/// A maximum independent set (flags by vertex number) and its size α, for `goal`. Looped vertices
+/// are left out. Bipartite components go through a maximum matching (`_bipartiteIndependentSet`),
+/// complete ones take their least vertex, and the others go through `_IndependentSetReduction` (the
+/// lexicographically least set) or straight to `_IndependentSetKernel` (one solve: α, and a set
+/// unless only α is asked for). The lexicographic rule composes: the least vertex of a symmetric
+/// difference lies in one component, whose own least set wins there. For `.independenceNumber`,
+/// only the size is meaningful.
 @inlinable
-func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], lexicographic: Bool) -> (inSet: [Bool], size: Int) {
+func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], goal: _IndependentSetGoal) -> (inSet: [Bool], size: Int) {
     let n = g.count
     var inSet = [Bool](repeating: false, count: n)
     guard n > 0 else { return (inSet, 0) }
@@ -88,6 +100,7 @@ func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], lexicographic: 
     var side = [Int8](repeating: -1, count: n)
     var size = 0
     var reduction: _IndependentSetReduction?
+    var kernel: _IndependentSetKernel?
     var members: [Int] = []
     for c in bipartite.indices {
         let first = starts[c], end = starts[c + 1]
@@ -111,17 +124,23 @@ func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], lexicographic: 
         members.removeAll(keepingCapacity: true)
         members.append(contentsOf: order[first ..< end])
         members.sort()
-        if reduction == nil { reduction = _IndependentSetReduction(count: n) }
-        if lexicographic {
+        switch goal {
+        case .lexicographicallyFirst:
+            if reduction == nil { reduction = _IndependentSetReduction(count: n) }
             reduction!.solve(g, members, side: &side, into: &inSet)
-        } else {
-            size += reduction!.kernel.solve(g, members, need: Int.max, wantSet: false)
+        case .maximumIndependentSet:
+            if kernel == nil { kernel = _IndependentSetKernel(count: n) }
+            size += kernel!.solve(g, members, need: Int.max, wantSet: true)
+            for u in kernel!.set { inSet[u] = true }
+        case .independenceNumber:
+            if kernel == nil { kernel = _IndependentSetKernel(count: n) }
+            size += kernel!.solve(g, members, need: Int.max, wantSet: false)
         }
     }
     if side.contains(where: { $0 >= 0 }) {
-        size += _bipartiteIndependentSet(g, side: side, lexicographic: lexicographic, into: &inSet)
+        size += _bipartiteIndependentSet(g, side: side, wantSet: goal != .independenceNumber, into: &inSet)
     }
-    if lexicographic {
+    if goal == .lexicographicallyFirst {
         size = 0
         for flag in inSet where flag { size += 1 }
     }
@@ -129,8 +148,8 @@ func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], lexicographic: 
 }
 
 /// The lexicographically least maximum independent set of the bipartite components at once
-/// (`side[v]` is v's colour there, −1 outside them), written into `inSet`; returns its size, the
-/// number of those vertices minus a maximum matching (König).
+/// (`side[v]` is v's colour there, −1 outside them), written into `inSet` when `wantSet`; returns
+/// its size, the number of those vertices minus a maximum matching (König).
 ///
 /// Hopcroft–Karp (Hopcroft and Karp 1973) after a greedy start gives a maximum matching. One
 /// breadth-first search from every free vertex along alternating paths (unmatched edges leaving
@@ -143,7 +162,7 @@ func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], lexicographic: 
 /// undecided is made independent, and the choice propagates forward (left end) or backward (right
 /// end) to undecided pairs. O(m √n) for the matching, O(n + m) for the rest.
 @inlinable
-func _bipartiteIndependentSet(_ g: _CompressedRows, side: [Int8], lexicographic: Bool, into inSet: inout [Bool]) -> Int {
+func _bipartiteIndependentSet(_ g: _CompressedRows, side: [Int8], wantSet: Bool, into inSet: inout [Bool]) -> Int {
     let n = g.count
     var mateSlot = [Int](repeating: -1, count: n), pairRight = [Int](repeating: -1, count: n)
     var left: [Int] = []
@@ -170,7 +189,7 @@ func _bipartiteIndependentSet(_ g: _CompressedRows, side: [Int8], lexicographic:
         mate[w] = v
         matched += 1
     }
-    guard lexicographic else { return count - matched }
+    guard wantSet else { return count - matched }
 
     // Alternating reach from every free vertex; `root[v]` is the side of v's root, −1 unreached.
     var root = [Int8](repeating: -1, count: n)
@@ -510,7 +529,7 @@ struct _IndependentSetKernel {
                     others += 1
                 }
             }
-            if anyBipartite { total += _bipartiteIndependentSet(kernel, side: side, lexicographic: wantSet, into: &found) }
+            if anyBipartite { total += _bipartiteIndependentSet(kernel, side: side, wantSet: wantSet, into: &found) }
             for c in bipartite.indices where !bipartite[c] {
                 part.removeAll(keepingCapacity: true)
                 part.append(contentsOf: order[starts[c] ..< starts[c + 1]])
@@ -1213,17 +1232,18 @@ struct _DominatingSetSearch {
         return front
     }
 
-    /// The least minimum dominating set of the component `members` (ascending numbers, at least
-    /// two, none adjacent to all the others), flagged in `inSet`. The lexicographic rules run first; γ comes from a first `decide` with no budget
-    /// (a greedy descent), then decisions with one fewer until one fails or the 2-packing bound is
-    /// met. The least set is then decided vertex by vertex in ascending number, with a witness W (a
-    /// minimum completion of the choices so far): v is chosen when it is in W, forbidden when it
-    /// dominates nothing new, and otherwise decided on v's part of the problem alone (`gather`),
-    /// whose share of W is its least completion: v is chosen when choosing it still leaves a
-    /// completion of that size there (which becomes W's share), else forbidden. The lexicographic
-    /// rules run after each.
+    /// A minimum dominating set of the component `members` (ascending numbers, at least two, none
+    /// adjacent to all the others), flagged in `inSet`; with `lexicographic`, the least one. The
+    /// rules run first (only the lexicographic ones for the least set); γ comes from a first
+    /// `decide` with no budget (a greedy descent), then decisions with one fewer until one fails or
+    /// the 2-packing bound is met, and the last success is a minimum set. The least set is then
+    /// decided vertex by vertex in ascending number, with a witness W (a minimum completion of the
+    /// choices so far): v is chosen when it is in W, forbidden when it dominates nothing new, and
+    /// otherwise decided on v's part of the problem alone (`gather`), whose share of W is its least
+    /// completion: v is chosen when choosing it still leaves a completion of that size there (which
+    /// becomes W's share), else forbidden. The lexicographic rules run after each.
     @inlinable
-    mutating func solve(_ component: [Int], into inSet: inout [Bool]) {
+    mutating func solve(_ component: [Int], lexicographic: Bool, into inSet: inout [Bool]) {
         members = component
         topDegree = 0
         for (i, v) in component.enumerated() {
@@ -1242,7 +1262,7 @@ struct _DominatingSetSearch {
         trail.removeAll(keepingCapacity: true)
         infeasible = false
         checks.append(contentsOf: component.reversed())
-        reduce(lexicographic: true)
+        reduce(lexicographic: lexicographic)
         if open > 0 {
             _ = decide(budget: Int.max, scoped: false)
             var gamma = chosen + picks.count
@@ -1252,6 +1272,10 @@ struct _DominatingSetSearch {
                 gamma = chosen + picks.count
                 for v in members { witness[v] = false }
                 for v in picks { witness[v] = true }
+            }
+            guard lexicographic else {
+                for v in component where state[v] == 2 || witness[v] { inSet[v] = true }
+                return
             }
             for v in component {
                 guard open > 0 else { break }
@@ -1459,12 +1483,12 @@ struct _DenseDominatingSetSearch {
         return false
     }
 
-    /// The least minimum dominating set of the loaded component, flagged in `inSet`. γ: the greedy
-    /// set (most new coverage, least index) as a start, then decisions with one fewer until one
-    /// fails. The least set is decided vertex by vertex in ascending number, with a witness as in
-    /// `_DominatingSetSearch.solve`.
+    /// A minimum dominating set of the loaded component, flagged in `inSet`; with `lexicographic`,
+    /// the least one. γ: the greedy set (most new coverage, least index) as a start, then decisions
+    /// with one fewer until one fails, the last success a minimum set. The least set is decided
+    /// vertex by vertex in ascending number, with a witness as in `_DominatingSetSearch.solve`.
     @inlinable
-    mutating func solve(into inSet: inout [Bool]) {
+    mutating func solve(lexicographic: Bool, into inSet: inout [Bool]) {
         let p = vertices.count
         dominated = [UInt64](repeating: 0, count: words)
         forbidden = [UInt64](repeating: 0, count: words)
@@ -1488,6 +1512,10 @@ struct _DenseDominatingSetSearch {
             }
             guard witness.count > 1, decide(budget: witness.count - 1) else { break }
             witness = picks
+        }
+        guard lexicographic else {
+            for i in witness { inSet[vertices[i]] = true }
+            return
         }
         var inWitness = [UInt64](repeating: 0, count: words)
         for i in witness { inWitness[i >> 6] |= 1 << UInt64(i & 63) }
@@ -1521,11 +1549,12 @@ struct _DenseDominatingSetSearch {
     }
 }
 
-/// The lexicographically least minimum dominating set, flags by vertex number: per connected
-/// component (loops ignored), isolated vertices and components with a vertex adjacent to all the
-/// others directly, the rest by `_DominatingSetSearch` or, when dense, `_DenseDominatingSetSearch`.
+/// A minimum dominating set, flags by vertex number, with `lexicographic` the least one: per
+/// connected component (loops ignored), isolated vertices and components with a vertex adjacent to
+/// all the others directly, the rest by `_DominatingSetSearch` or, when dense,
+/// `_DenseDominatingSetSearch`.
 @inlinable
-func _minimumDominatingSet(_ g: _CompressedRows) -> [Bool] {
+func _minimumDominatingSet(_ g: _CompressedRows, lexicographic: Bool) -> [Bool] {
     let n = g.count
     var inSet = [Bool](repeating: false, count: n)
     let (order, starts) = _dominationComponents(g)
@@ -1559,10 +1588,10 @@ func _minimumDominatingSet(_ g: _CompressedRows) -> [Bool] {
         if ends * ends > p * p * p * words {
             if dense == nil { dense = _DenseDominatingSetSearch(count: n) }
             dense!.load(g, members)
-            dense!.solve(into: &inSet)
+            dense!.solve(lexicographic: lexicographic, into: &inSet)
         } else {
             if search == nil { search = _DominatingSetSearch(g) }
-            search!.solve(members, into: &inSet)
+            search!.solve(members, lexicographic: lexicographic, into: &inSet)
         }
     }
     return inSet
@@ -1571,76 +1600,109 @@ func _minimumDominatingSet(_ g: _CompressedRows) -> [Bool] {
 // MARK: - Entry points
 
 extension Graph {
-    /// A maximum independent set (exact): of all the largest ones, the lexicographically least by
-    /// vertex index, in `vertices` order; [] for the empty graph. Of two sets of one size, the
-    /// lesser holds the least vertex of their symmetric difference (`maximumClique()`'s rule, so
-    /// on a loop-free graph this is `maximumClique()` of the complement). A vertex with a
-    /// self-loop is never in it; parallel edges count once.
+    /// A maximum independent set (exact), in `vertices` order; [] for the empty graph. A vertex
+    /// with a self-loop is never in it; parallel edges count once. Deterministic, but which
+    /// maximum set it is depends on the search; for one fixed by a rule, see
+    /// `lexicographicallyFirstMaximumIndependentSet()`.
     ///
-    /// Looped vertices are removed and each connected component solved alone, since the rule
-    /// composes across components. A bipartite component costs O(m √n): a maximum matching
-    /// (Hopcroft–Karp), the alternating reach from its free vertices (König), and one greedy pass
-    /// over the perfectly matched core in index order along the Dulmage–Mendelsohn implications.
-    /// A complete component takes its least vertex. Any other component of c vertices is decided
-    /// vertex by vertex in index order against a witness maximum set, shrunk between decisions by
-    /// rules that keep the least set (an isolated vertex is taken; so is a simplicial vertex, such
-    /// as a leaf, less than all its neighbours), with pieces that turn bipartite or complete
-    /// handed to the cases above. Each decision the witness cannot answer computes α of what is
-    /// left of the vertex's component by the degree-0, -1 and -2 reductions (taking a leaf,
-    /// folding a degree-2 vertex) and then, on the kernel's non-bipartite components, branch and
-    /// bound on bitset rows of the complement with a greedy-colouring bound (BBMC; San Segundo et
-    /// al. 2011). So trees with few extra edges, long paths and cycles cost O(c (c + m)) at worst
-    /// and O(c + m) when the rules settle them; the search is exponential in the kernel's size in
-    /// the worst case. Memory O(n + m + k² / 64) words for a kernel component of k vertices.
+    /// Looped vertices are removed and each connected component solved alone. A bipartite
+    /// component costs O(m √n): a maximum matching (Hopcroft–Karp), the alternating reach from its
+    /// free vertices (König), and one pass over the perfectly matched core along the
+    /// Dulmage–Mendelsohn implications. A complete component takes its least vertex. Any other
+    /// component is solved once: the degree-0, -1 and -2 reductions (taking a leaf, folding a
+    /// degree-2 vertex), then, on the kernel's non-bipartite components, branch and bound on bitset
+    /// rows of the complement with a greedy-colouring bound (BBMC; San Segundo et al. 2011). O(n +
+    /// m) plus the search on what the reductions leave, exponential in the kernel's size in the
+    /// worst case. Memory O(n + m + k² / 64) words for a kernel component of k vertices. The search
+    /// does not check for task cancellation.
     @inlinable
     public func maximumIndependentSet() -> [Vertex] {
         let (g, loops) = _coveringGraph(recordsLoops: true)
-        return _coveringVertices(flagged: _maximumIndependentSet(g, loops: loops, lexicographic: true).inSet, _listedVertices())
+        return _coveringVertices(flagged: _maximumIndependentSet(g, loops: loops, goal: .maximumIndependentSet).inSet, _listedVertices())
+    }
+
+    /// The lexicographically first maximum independent set: of all the largest ones, the least by
+    /// vertex index, in `vertices` order; [] for the empty graph. Of two sets of one size, the
+    /// lesser holds the least vertex of their symmetric difference (the rule of
+    /// `lexicographicallyFirstMaximumClique()`, so on a loop-free graph this is that clique of the
+    /// complement). A vertex with a self-loop is never in it; parallel edges count once.
+    ///
+    /// Looped vertices are removed and each connected component solved alone, since the rule
+    /// composes across components. A bipartite component costs O(m √n), as in
+    /// `maximumIndependentSet()`, whose core pass in index order already gives the least set. A
+    /// complete component takes its least vertex. Any other component of c vertices is decided
+    /// vertex by vertex in index order against a witness maximum set, shrunk between decisions by
+    /// rules that keep the least set (an isolated vertex is taken; so is a simplicial vertex, such
+    /// as a leaf, less than all its neighbours), with pieces that turn bipartite or complete handed
+    /// to the cases above. Each decision the witness cannot answer is one solve of
+    /// `maximumIndependentSet()`'s kind on what is left of the vertex's component. So trees with
+    /// few extra edges, long paths and cycles cost O(c (c + m)) at worst and O(c + m) when the rules
+    /// settle them, but a component the rules do not settle can cost up to c exponential searches,
+    /// far more than `maximumIndependentSet()`. Memory O(n + m + k² / 64) words for a kernel
+    /// component of k vertices. The search does not check for task cancellation.
+    @inlinable
+    public func lexicographicallyFirstMaximumIndependentSet() -> [Vertex] {
+        let (g, loops) = _coveringGraph(recordsLoops: true)
+        return _coveringVertices(flagged: _maximumIndependentSet(g, loops: loops, goal: .lexicographicallyFirst).inSet, _listedVertices())
     }
 
     /// The size of a maximum independent set, α: 0 for the empty graph. A bipartite component
     /// contributes its vertex count minus a maximum matching (König), a complete one 1, any other
-    /// the reductions and kernel search of `maximumIndependentSet()` once, without its
-    /// lexicographic pass: O(n + m) plus the search on what the reductions leave.
+    /// the reductions and kernel search of `maximumIndependentSet()`, without building the set:
+    /// O(n + m) plus the search on what the reductions leave.
     @inlinable
     public func independenceNumber() -> Int {
         let (g, loops) = _coveringGraph(recordsLoops: true)
-        return _maximumIndependentSet(g, loops: loops, lexicographic: false).size
+        return _maximumIndependentSet(g, loops: loops, goal: .independenceNumber).size
     }
 
     /// A minimum vertex cover (exact): `vertices` minus `maximumIndependentSet()`, in `vertices`
-    /// order (τ = n − α, Gallai), so the minimum cover avoiding the least vertex of a symmetric
-    /// difference. Every vertex with a self-loop is in it; parallel edges count once. The cost is
-    /// `maximumIndependentSet()`'s: O(m √n) on bipartite components.
+    /// order (τ = n − α, Gallai). Every vertex with a self-loop is in it; parallel edges count
+    /// once. The cost is `maximumIndependentSet()`'s: O(m √n) on bipartite components. For the
+    /// cover fixed by a rule, take the complement of `lexicographicallyFirstMaximumIndependentSet()`.
     @inlinable
     public func minimumVertexCover() -> [Vertex] {
         let (g, loops) = _coveringGraph(recordsLoops: true)
-        var flags = _maximumIndependentSet(g, loops: loops, lexicographic: true).inSet
+        var flags = _maximumIndependentSet(g, loops: loops, goal: .maximumIndependentSet).inSet
         for v in flags.indices { flags[v].toggle() }
         return _coveringVertices(flagged: flags, _listedVertices())
     }
 
-    /// A minimum dominating set (exact): every vertex is in it or adjacent to one in it, and of
-    /// the smallest such sets it is the lexicographically least by vertex index (the rule of
-    /// `maximumIndependentSet()`), in `vertices` order; [] for the empty graph. Self-loops and
-    /// parallel edges do not matter; isolated vertices are in it.
+    /// A minimum dominating set (exact): every vertex is in it or adjacent to one in it, and no
+    /// smaller set is; in `vertices` order, [] for the empty graph. Self-loops and parallel edges do
+    /// not matter; isolated vertices are in it. Deterministic, but which minimum set it is depends
+    /// on the search; for one fixed by a rule, see `lexicographicallyFirstMinimumDominatingSet()`.
     ///
     /// Each connected component is solved alone; a vertex adjacent to all the others of its
     /// component answers alone. Otherwise branch and reduce: after every choice, an undominated
     /// vertex with one possible dominator gets it, and a vertex whose undominated closed
-    /// neighbourhood lies in another's is ruled out (for the lexicographic pass only in favour of
-    /// a lesser vertex, which keeps the least set; this leaf rule settles paths and many trees
-    /// outright). The search branches on the most-coverage dominator of an undominated vertex
-    /// with the fewest left and prunes on the budget, on the largest coverages, and on a greedy
-    /// 2-packing (vertices with no dominator in common, each needing its own; on trees the largest
-    /// 2-packing is γ, Meir and Moon 1975). γ comes from a greedy descent and decisions one
-    /// smaller; the least set of γ vertices is then decided vertex by vertex in index order
-    /// against a witness, each decision searching only the part of the problem the vertex
-    /// touches. Sparse components keep O(n + m) words of state; dense ones (mean degree d with d²
-    /// above c ⌈c / 64⌉) use bitset closed neighbourhoods, under 2m words. Exponential in the
-    /// component size in the worst case.
+    /// neighbourhood lies in another's is ruled out (a leaf rule that settles paths and many trees
+    /// outright). The search branches on the most-coverage dominator of an undominated vertex with
+    /// the fewest left and prunes on the budget, on the largest coverages, and on a greedy 2-packing
+    /// (vertices with no dominator in common, each needing its own; on trees the largest 2-packing
+    /// is γ, Meir and Moon 1975). γ comes from a greedy descent and decisions one smaller, and the
+    /// last set found is the answer. Sparse components keep O(n + m) words of state; dense ones
+    /// (mean degree d with d² above c ⌈c / 64⌉) use bitset closed neighbourhoods, under 2m words.
+    /// Exponential in the component size in the worst case; the search does not check for task
+    /// cancellation.
     @inlinable
     public func minimumDominatingSet() -> [Vertex] {
-        _coveringVertices(flagged: _minimumDominatingSet(_coveringGraph(recordsLoops: false).rows), _listedVertices())
+        _coveringVertices(flagged: _minimumDominatingSet(_coveringGraph(recordsLoops: false).rows, lexicographic: false), _listedVertices())
+    }
+
+    /// The lexicographically first minimum dominating set: of the smallest dominating sets, the
+    /// least by vertex index (the rule of `lexicographicallyFirstMaximumIndependentSet()`), in
+    /// `vertices` order; [] for the empty graph. Self-loops and parallel edges do not matter;
+    /// isolated vertices are in it.
+    ///
+    /// γ is found as in `minimumDominatingSet()`, with the dominated-vertex rule applied only in
+    /// favour of a lesser vertex, which keeps the least set. The least set of γ vertices is then
+    /// decided vertex by vertex in index order against a witness, each decision a search of only
+    /// the part of the problem the vertex touches. Memory as `minimumDominatingSet()`. Exponential
+    /// in the component size in the worst case, and up to one search per vertex, so it can be far
+    /// slower than `minimumDominatingSet()`; the search does not check for task cancellation.
+    @inlinable
+    public func lexicographicallyFirstMinimumDominatingSet() -> [Vertex] {
+        _coveringVertices(flagged: _minimumDominatingSet(_coveringGraph(recordsLoops: false).rows, lexicographic: true), _listedVertices())
     }
 }

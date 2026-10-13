@@ -21,7 +21,8 @@ struct CliqueReviewScaleTests {
             let count = star.maximalCliques().reduce(0) { total, _ in total + 1 }
             #expect(count == n)
             #expect(star.cliqueNumber() == 2)
-            #expect(star.maximumClique() == [0, 1])
+            #expect(star.lexicographicallyFirstMaximumClique() == [0, 1])
+            #expect(star.maximumClique().count == star.cliqueNumber())
             #expect(star.coreNumbers().degeneracy == 1)
         }.value
     }
@@ -42,7 +43,8 @@ struct CliqueReviewScaleTests {
             let count = graph.maximalCliques().reduce(0) { total, _ in total + 1 }
             #expect(count == 5 * cycles)
             #expect(graph.cliqueNumber() == 3)
-            #expect(graph.maximumClique() == [0, 1, 2])
+            #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+            #expect(graph.maximumClique().count == graph.cliqueNumber())
             #expect(graph.triangleCount() == 5 * cycles)
         }.value
     }
@@ -55,7 +57,8 @@ struct CliqueReviewScaleTests {
             for u in 0 ..< n { for v in u + 1 ..< n { edges.append(UndirectedEdge(u, v)) } }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)
             #expect(graph.cliqueNumber() == n)
-            #expect(graph.maximumClique() == Array(0 ..< n))
+            #expect(graph.lexicographicallyFirstMaximumClique() == Array(0 ..< n))
+            #expect(graph.maximumClique().count == graph.cliqueNumber())
             #expect(graph.maximalCliques().reduce(0) { total, _ in total + 1 } == 1)
         }.value
     }
@@ -77,7 +80,8 @@ struct CliqueReviewScaleTests {
             let first = seeded(140, 3, 5, 1)
             #expect(first.edgeCount == 5913)
             #expect(first.cliqueNumber() == 13)
-            #expect(first.maximumClique() == [15, 18, 56, 62, 64, 80, 83, 99, 108, 120, 125, 131, 134])
+            #expect(first.lexicographicallyFirstMaximumClique() == [15, 18, 56, 62, 64, 80, 83, 99, 108, 120, 125, 131, 134])
+            #expect(first.maximumClique().count == first.cliqueNumber())
             #expect(first.coreNumbers().degeneracy == 73)
             #expect(first.triangleCount() == 100_304)
             let second = seeded(260, 3, 10, 2)
@@ -85,7 +89,8 @@ struct CliqueReviewScaleTests {
             let count = second.maximalCliques().reduce(0) { total, _ in total + 1 }
             #expect(count == 51_547)
             #expect(second.cliqueNumber() == 8)
-            #expect(second.maximumClique() == [13, 23, 41, 96, 110, 126, 178, 196])
+            #expect(second.lexicographicallyFirstMaximumClique() == [13, 23, 41, 96, 110, 126, 178, 196])
+            #expect(second.maximumClique().count == second.cliqueNumber())
             #expect(second.coreNumbers().degeneracy == 64)
             #expect(second.triangleCount() == 77_797)
         }.value

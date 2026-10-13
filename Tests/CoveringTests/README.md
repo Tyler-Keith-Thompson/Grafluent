@@ -1,9 +1,10 @@
 # Covering test suite
 
 `Covering` finds vertex covers, independent sets, dominating sets and edge covers of an undirected
-graph: the exact maximum independent set (lexicographically least by vertex index) with
-`independenceNumber()` and its complement `minimumVertexCover()`; König's cover from a maximum
-matching; the greedy maximal independent set; the exact minimum dominating set; the Bar-Yehuda–Even
+graph: the exact maximum independent set (any one, or the lexicographically least by vertex index)
+with `independenceNumber()` and the complement `minimumVertexCover()`; König's cover from a maximum
+matching; the greedy maximal independent set; the exact minimum dominating set (any one, or the
+lexicographically least); the Bar-Yehuda–Even
 and greedy set-cover approximations; the minimum edge cover from a matching; and four checks. The
 API description (`api.md`) is in [`Tests/Catalogs/Covering/`](../Catalogs/Covering/). The suite uses
 only the public API, and each test is self-contained: the brute-force searches, procedures and
@@ -15,14 +16,16 @@ A conformer private to a file models a graph with no vertex or edge indices.
 
 ```swift
 extension Graph {
-    func maximumIndependentSet() -> [Vertex]                                  // lexicographically least, vertices order
+    func maximumIndependentSet() -> [Vertex]                                  // some maximum set, vertices order
+    func lexicographicallyFirstMaximumIndependentSet() -> [Vertex]            // lexicographically least, vertices order
     func independenceNumber() -> Int
     func maximalIndependentSet() -> [Vertex]                                  // greedy in vertex order
     func maximalIndependentSet(containing:) -> [Vertex]?                      // seeds first; nil if not independent
     func minimumVertexCover() -> [Vertex]                                     // vertices − maximumIndependentSet()
-        func minimumVertexCover(bipartition:) -> [Vertex]                         // König's
+    func minimumVertexCover(bipartition:) -> [Vertex]                         // König's
     func approximateMinimumVertexCover(weight:), approximateMinimumVertexCover() -> [Vertex]      // Bar-Yehuda–Even
-    func minimumDominatingSet() -> [Vertex]                                   // lexicographically least
+    func minimumDominatingSet() -> [Vertex]                                   // some minimum set
+    func lexicographicallyFirstMinimumDominatingSet() -> [Vertex]             // lexicographically least
     func approximateMinimumDominatingSet(weight:), approximateMinimumDominatingSet() -> [Vertex]  // W: BinaryInteger or FloatingPoint
     func minimumEdgeCover() -> [Edges.Index]?, minimumEdgeCover(matching:) -> [Edges.Index]?     // positions ascending
     func isVertexCover(_:), isIndependentSet(_:), isDominatingSet(_:), isEdgeCover(_:) -> Bool
@@ -34,10 +37,11 @@ extension Graph {
 | Question | Choice | Cases |
 |---|---|---|
 | Result order | Vertex sets in `vertices` order (not label order, not seed order); edge covers as ascending positions | every row, `verticesOrder`, CV-027, CV-069 |
-| Lexicographic rule | Of two sets of one size, the lesser holds the least vertex index of their symmetric difference; brute force keeps the best mask under that rule | MaximumIS, MinimumVC, MinimumDS rows, `exactIndependentSet`, `dominatingSets` |
+| Lexicographic rule | `lexicographicallyFirst…`: of two sets of one size, the lesser holds the least vertex index of their symmetric difference; brute force keeps the best mask under that rule | MaximumIS, MinimumVC, MinimumDS rows, `exactIndependentSet`, `dominatingSets` |
+| Fast spellings | `maximumIndependentSet()`, `minimumDominatingSet()`: some optimum, so tests assert its size, order and validity, never which set | every MaximumIS, MinimumVC and MinimumDS row, `exactIndependentSet`, `dominatingSets` |
 | Self-loops | Never independent, always in a vertex cover, irrelevant to domination, may be an edge cover's edge | CV-003, CV-006, CV-031, CV-032, CV-052, CV-089, CV-121, CV-131, CV-169, CV-173, CV-191, CV-198 |
 | Parallel edges | Change no vertex set; an edge cover names the copy its rule meets first | CV-007, CV-055, CV-084, CV-091, CV-126, CV-175, CV-212 |
-| `minimumVertexCover()` on bipartite graphs | The complement of the lexicographically least independent set, as large as the maximum matching; König's cover is the other extreme where they differ | CV-062 – CV-066, CV-073 – CV-085, `bipartiteCovers` |
+| Vertex covers on bipartite graphs | `minimumVertexCover()` as large as the maximum matching; the complement of the lexicographically least independent set is one extreme, König's cover the other where they differ | CV-062 – CV-066, CV-073 – CV-085, `bipartiteCovers` |
 | König's cover | (left − Z) ∪ (right ∩ Z) for Z the alternating reach of the free left vertices; the unique minimum cover with the most left vertices | CV-072 – CV-086, `bipartiteCovers`, `koenigOnBipartiteGraph` |
 | Bar-Yehuda–Even | Edges in position order; the lesser-index end on `<=`; the other end's cost reduced; `weight` read once per vertex | CV-087 – CV-111, `approximateVertexCover`, `unitWeights` |
 | Greedy dominating set | Least w / k, the least index on ties; integers by cross-multiplication (exact), floating point by division | CV-148 – CV-166, `dominatingSets`, `exactIntegerRatios` |
@@ -64,7 +68,8 @@ Each row asserts the exact result, the vertex list and the edge count, and then,
 test: the result in `vertices` order with no repeats; validity by the definition (no edge or
 self-loop inside an independent set, an end of every edge and loop in a cover, every vertex
 dominated, every vertex an end of an edge cover's edge) and through the matching check; the other
-entry points' agreement (α is the independent set's size, the cover its complement, n − α); and
+entry points' agreement (α is the independent set's size, the fast spelling as large and valid,
+the cover its complement, n − α); and
 optimality by brute force over every vertex subset (bit i of a mask is the vertex at index i) on
 rows of at most 16 vertices: the lexicographically least maximum independent set, no smaller cover,
 the lexicographically least minimum dominating set, the unique minimum cover with the most left
@@ -76,7 +81,7 @@ force (CV-023, CV-039, CV-041, CV-048, CV-049, CV-067, CV-070, CV-111) assert th
 value, which `ref.py` checked against an oracle that knows nothing of components or matchings and
 against igraph, plus maximality or minimality; CV-111's bound uses the catalog's optimum (40). Rows
 on `BipartiteGraph` also assert the cover's size against `maximumBipartiteMatching()`, and König's
-cover where it differs from the lexicographic one. Edge covers assert the edges the positions name
+cover where it differs from the complement of the lexicographically least independent set. Edge covers assert the edges the positions name
 and n − ν against `maximumMatching()`; their exact positions depend on MatchingModule's documented
 Edmonds and Hopcroft–Karp outputs.
 
@@ -166,7 +171,7 @@ its ID; tests without an ID check conventions, properties or scale that the cata
 
 | Case | Why |
 |---|---|
-| `maximumIndependentSet()` against Cliques' `maximumClique()` on the complement | Cliques is not a dependency of this target (scripts/modules.py lists GraphProtocols, Covering, MatchingModule, BipartiteGraphs and the representations); the same rule is checked against brute force instead |
+| `lexicographicallyFirstMaximumIndependentSet()` against Cliques' `lexicographicallyFirstMaximumClique()` on the complement | Cliques is not a dependency of this target (scripts/modules.py lists GraphProtocols, Covering, MatchingModule, BipartiteGraphs and the representations); the same rule is checked against brute force instead |
 | NetworkX's and igraph's outputs on random graphs (`just diff`) | Not Swift tests; `ref.py` checks every catalog row against them |
 | Integer overflow in the dominating-set cross-multiplication | A precondition (the products w · (Δ + 1) fit), not checked by an exit test |
 | Complexity (O(m √n) bipartite components, O(n + m) approximations, the c² / 64 bitset rows) | Benchmarks; the stress tests bound costs loosely and run on a `Task`'s small stack |

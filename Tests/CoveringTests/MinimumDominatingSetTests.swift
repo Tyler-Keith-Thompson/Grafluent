@@ -1,12 +1,13 @@
-// `minimumDominatingSet()` (catalog §MinimumDS, CV-129 – CV-147): the lexicographically least
-// minimum dominating set, exact; dominating (checked here); the lexicographically least of the
-// smallest dominating subsets by brute force; the greedy approximation's size where the catalog
-// notes it. Graphs are `UndirectedAdjacencyList` built by inserting the row's vertices, then its
-// edges in order, so rows are in position order (a self-loop twice); `multigraph` rows are
-// `ReferencePseudograph`, whose rows are in position order too; `L …; R …` rows are
-// `BipartiteGraph(left:right:edges:)`. Brute force numbers vertices by their index in `vertices`
-// (bit i of a mask is the vertex at index i). Generated from cases.md by swiftgen.py, which
-// re-evaluates each row with ref.py's model; see README.md.
+// `lexicographicallyFirstMinimumDominatingSet()` (catalog §MinimumDS, CV-129 – CV-147): the
+// lexicographically least minimum dominating set, exact; dominating (checked here); the
+// lexicographically least of the smallest dominating subsets by brute force;
+// `minimumDominatingSet()` a dominating set as small, in `vertices` order; the greedy
+// approximation's size where the catalog notes it. Graphs are `UndirectedAdjacencyList` built by
+// inserting the row's vertices, then its edges in order, so rows are in position order (a self-loop
+// twice); `multigraph` rows are `ReferencePseudograph`, whose rows are in position order too; `L …;
+// R …` rows are `BipartiteGraph(left:right:edges:)`. Brute force numbers vertices by their index in
+// `vertices` (bit i of a mask is the vertex at index i). Generated from cases.md by swiftgen.py,
+// which re-evaluates each row with ref.py's model; see README.md.
 
 import AdjacencyListModule
 import Covering
@@ -14,11 +15,11 @@ import GrafluentTestSupport
 import GraphProtocols
 import Testing
 
-@Suite("minimumDominatingSet()")
+@Suite("lexicographicallyFirstMinimumDominatingSet()")
 struct MinimumDominatingSetTests {
     @Test("CV-129 empty graph: []")
     func cv129() {
-        // V []; E []; minimumDominatingSet()
+        // V []; E []; lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = []
         let graph = UndirectedAdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 0)
@@ -27,7 +28,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -38,6 +39,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -56,7 +67,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-130 one vertex: [0]")
     func cv130() {
-        // V [0]; E []; minimumDominatingSet()
+        // V [0]; E []; lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = []
         let graph = UndirectedAdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 0)
@@ -65,7 +76,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -76,6 +87,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -94,7 +115,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-131 self-loop: [0]")
     func cv131() {
-        // V [0]; E [0-0]; minimumDominatingSet()
+        // V [0]; E [0-0]; lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 0)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 1)
@@ -103,7 +124,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -114,6 +135,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -132,7 +163,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-132 two isolated: [0, 1]")
     func cv132() {
-        // V [0, 1]; E []; minimumDominatingSet()
+        // V [0, 1]; E []; lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = []
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 0)
@@ -141,7 +172,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0, 1] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -152,6 +183,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -170,7 +211,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-133 one edge: [0]")
     func cv133() {
-        // V [0, 1]; E [0-1]; minimumDominatingSet()
+        // V [0, 1]; E [0-1]; lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 1)
@@ -179,7 +220,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -190,6 +231,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -208,7 +259,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-134 parallel edges: [1]")
     func cv134() {
-        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; minimumDominatingSet()
+        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
         let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 3)
@@ -217,7 +268,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [1] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -228,6 +279,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -246,7 +307,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-135 P(3): the middle: [1]")
     func cv135() {
-        // P(3); minimumDominatingSet()
+        // P(3); lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 2)
@@ -255,7 +316,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [1] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -266,6 +327,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -284,7 +355,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-136 P(4): [0, 2]")
     func cv136() {
-        // P(4); minimumDominatingSet()
+        // P(4); lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 3)
@@ -293,7 +364,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0, 2] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -304,6 +375,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -322,7 +403,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-137 P(7): [0, 2, 5]")
     func cv137() {
-        // P(7); minimumDominatingSet()
+        // P(7); lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 6)
@@ -331,7 +412,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0, 2, 5] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -342,6 +423,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -360,7 +451,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-138 C(6): [0, 3]")
     func cv138() {
-        // C(6); minimumDominatingSet()
+        // C(6); lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 6)
@@ -369,7 +460,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0, 3] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -380,6 +471,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -398,7 +499,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-139 star(5): the hub: [0]")
     func cv139() {
-        // star(5); minimumDominatingSet()
+        // star(5); lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 5)
@@ -407,7 +508,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -418,6 +519,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -436,7 +547,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-140 K(4): [0]")
     func cv140() {
-        // K(4); minimumDominatingSet()
+        // K(4); lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 6)
@@ -445,7 +556,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -456,6 +567,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -474,7 +595,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-141 Petersen: 3: [0, 2, 6]")
     func cv141() {
-        // nx(petersen_graph); minimumDominatingSet()
+        // nx(petersen_graph); lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 15)
@@ -483,7 +604,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0, 2, 6] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -494,6 +615,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -512,7 +643,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-142 grid(3,3): [0, 2, 7]")
     func cv142() {
-        // grid(3,3); minimumDominatingSet()
+        // grid(3,3); lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 12)
@@ -521,7 +652,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0, 2, 7] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -532,6 +663,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -550,7 +691,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-143 grid(4,4): [1, 7, 8, 14]")
     func cv143() {
-        // grid(4,4); minimumDominatingSet()
+        // grid(4,4); lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (8, 12), (9, 10), (9, 13), (10, 11), (10, 14), (11, 15), (12, 13), (13, 14), (14, 15)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 24)
@@ -559,7 +700,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [1, 7, 8, 14] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -570,6 +711,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -590,7 +741,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-144 mixed components: [0, 4, 6]")
     func cv144() {
-        // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 1-2, 2-0, 3-4, 4-5, 6-6, 6-7]; minimumDominatingSet()
+        // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 1-2, 2-0, 3-4, 4-5, 6-6, 6-7]; lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 7)
@@ -599,7 +750,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [0, 4, 6] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -610,6 +761,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -628,7 +789,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-145 letters: [d, c]")
     func cv145() {
-        // V [d, a, c, b]; E [d-a, a-c, c-b]; minimumDominatingSet()
+        // V [d, a, c, b]; E [d-a, a-c, c-b]; lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
         let graph = UndirectedAdjacencyList<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 3)
@@ -637,7 +798,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == ["d", "c"] as [String])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -648,6 +809,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -666,7 +837,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-146 three branches: [1, 2, 3]")
     func cv146() {
-        // V [0, 1, 2, 3, 4, 5, 6]; E [0-1, 0-2, 0-3, 1-4, 2-5, 3-6, 1-2, 2-3]; minimumDominatingSet()
+        // V [0, 1, 2, 3, 4, 5, 6]; E [0-1, 0-2, 0-3, 1-4, 2-5, 3-6, 1-2, 2-3]; lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 4), (2, 5), (3, 6), (1, 2), (2, 3)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 8)
@@ -675,7 +846,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [1, 2, 3] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -686,6 +857,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1
@@ -704,7 +885,7 @@ struct MinimumDominatingSetTests {
 
     @Test("CV-147 lcg(14,20,10): [1, 2, 3, 12]")
     func cv147() {
-        // lcg(14,20,10); minimumDominatingSet()
+        // lcg(14,20,10); lexicographicallyFirstMinimumDominatingSet()
         let pairs: [(Int, Int)] = [(3, 0), (7, 0), (10, 5), (3, 9), (12, 10), (3, 11), (2, 5), (1, 5), (5, 7), (6, 12), (1, 4), (11, 13), (12, 8), (13, 2), (0, 5), (5, 12), (1, 7), (6, 9), (12, 1), (10, 3)]
         let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.edgeCount == 20)
@@ -713,7 +894,7 @@ struct MinimumDominatingSetTests {
         let n = vertexList.count
         // Edge ends as vertex indices (positions in `vertices`), in position order; a self-loop is (v, v).
         let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }
-        let result = graph.minimumDominatingSet()
+        let result = graph.lexicographicallyFirstMinimumDominatingSet()
         #expect(result == [1, 2, 3, 12] as [Int])
         // In `vertices` order, each vertex once.
         let members = result.map { vertexList.firstIndex(of: $0)! }
@@ -724,6 +905,16 @@ struct MinimumDominatingSetTests {
             #expect(inSet.contains(v) || ends.contains { ($0.0 == v && inSet.contains($0.1)) || ($0.1 == v && inSet.contains($0.0)) }, "\(vertexList[v]) undominated")
         }
         #expect(graph.isDominatingSet(result))
+        // minimumDominatingSet(): a dominating set as small.
+        let other = graph.minimumDominatingSet()
+        let otherMembers = other.map { vertexList.firstIndex(of: $0)! }
+        #expect(otherMembers == otherMembers.sorted() && Set(otherMembers).count == otherMembers.count)
+        let otherSet = Set(otherMembers)
+        // Dominating, checked here: every vertex is in the set or adjacent to a vertex in it.
+        for v in 0 ..< n {
+            #expect(otherSet.contains(v) || ends.contains { ($0.0 == v && otherSet.contains($0.1)) || ($0.1 == v && otherSet.contains($0.0)) }, "\(vertexList[v]) undominated")
+        }
+        #expect(other.count == result.count)
         // Brute force over every subset (bit i is the vertex at index i): of the dominating ones the
         // smallest, and of those the lexicographically least.
         var best = -1

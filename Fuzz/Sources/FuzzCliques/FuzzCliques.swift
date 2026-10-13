@@ -46,7 +46,9 @@ enum FuzzCliques {
         let omega = cliques.map(\.count).max() ?? 0
         FuzzSupport.check(graph.cliqueNumber() == omega, "\(name): cliqueNumber \(graph.cliqueNumber()), expected \(omega)")
         let least = cliques.filter { $0.count == omega }.min { $0.lexicographicallyPrecedes($1) } ?? []
-        FuzzSupport.check(graph.maximumClique() == least, "\(name): maximumClique \(graph.maximumClique()), expected \(least)")
+        FuzzSupport.check(graph.lexicographicallyFirstMaximumClique() == least, "\(name): lexicographicallyFirstMaximumClique \(graph.lexicographicallyFirstMaximumClique()), expected \(least)")
+        let anyLargest = graph.maximumClique()
+        FuzzSupport.check(anyLargest.count == omega && anyLargest == anyLargest.sorted() && isClique(anyLargest), "\(name): maximumClique \(anyLargest), ω \(omega)")
 
         // Cores by peeling the least-degree vertex.
         var core = [Int](repeating: 0, count: n)

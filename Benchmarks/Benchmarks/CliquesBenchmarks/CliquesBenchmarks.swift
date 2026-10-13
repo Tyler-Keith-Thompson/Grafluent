@@ -104,11 +104,17 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Cliques: maximumClique(), G(2000, 2·10⁴)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(dense.maximumClique()) }
     }
+    Benchmark("Cliques: lexicographicallyFirstMaximumClique(), G(2000, 2·10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(dense.lexicographicallyFirstMaximumClique()) }
+    }
     Benchmark("Cliques: cliqueNumber(), G(150, 0.9)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(packed.cliqueNumber()) }
     }
     Benchmark("Cliques: maximumClique(), G(120, 0.9)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(packedSmall.maximumClique()) }
+    }
+    Benchmark("Cliques: lexicographicallyFirstMaximumClique(), G(120, 0.9)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(packedSmall.lexicographicallyFirstMaximumClique()) }
     }
     // CQ-B03: triangles and clustering.
     Benchmark("Cliques: BASELINE hand-written node-iterator triangles, G(10⁵, 5·10⁵)") { benchmark in

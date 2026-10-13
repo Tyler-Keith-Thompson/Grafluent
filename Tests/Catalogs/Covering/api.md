@@ -4,18 +4,20 @@ Vertex covers, independent sets, dominating sets and edge covers of an undirecte
 result is a plain array: vertices in `vertices` order (as Cliques' `maximumClique()`), edge
 positions ascending (as `Matching.edges`).
 
-* **Independent sets.** The exact maximum independent set (`maximumIndependentSet()`, with
-  `independenceNumber()`), the lexicographically least one by vertex index, the same tie rule as
-  `maximumClique()`. The greedy maximal independent set in vertex order
+* **Independent sets.** The exact maximum independent set from one solve
+  (`maximumIndependentSet()`, with `independenceNumber()`), and the lexicographically least one by
+  vertex index (`lexicographicallyFirstMaximumIndependentSet()`, the same tie rule as Cliques'
+  `lexicographicallyFirstMaximumClique()`), as ColoringModule splits `minimumColoring()` from
+  `lexicographicallyFirstMinimumColoring()`. The greedy maximal independent set in vertex order
   (`maximalIndependentSet()`, optionally `containing:` seed vertices).
 * **Vertex covers.** The exact minimum vertex cover (`minimumVertexCover()`), defined as the
   complement of `maximumIndependentSet()`. On bipartite graphs and on every bipartite component of
   any graph it runs in O(m √n) from a maximum matching (König). König's own cover is
   `minimumVertexCover(bipartition:)`. The Bar-Yehuda–Even 2-approximation, weighted or not
   (`approximateMinimumVertexCover(weight:)`).
-* **Dominating sets.** The exact minimum dominating set (`minimumDominatingSet()`,
-  lexicographically least) and the greedy (1 + ln Δ)-approximation, weighted or not
-  (`approximateMinimumDominatingSet(weight:)`).
+* **Dominating sets.** The exact minimum dominating set (`minimumDominatingSet()`, and the
+  lexicographically least, `lexicographicallyFirstMinimumDominatingSet()`) and the greedy (1 + ln
+  Δ)-approximation, weighted or not (`approximateMinimumDominatingSet(weight:)`).
 * **Edge covers.** The minimum edge cover from a maximum matching (`minimumEdgeCover()`, Gallai's
   construction), or from a matching the caller already has (`minimumEdgeCover(matching:)`).
 * **Checks**: `isVertexCover`, `isIndependentSet`, `isDominatingSet`, `isEdgeCover`.
@@ -38,13 +40,15 @@ it).
 
 | Entry point | Purpose |
 |---|---|
-| `maximumIndependentSet()` | Exact: bipartite components in polynomial time, the rest by branch and bound |
-| `independenceNumber()` | α(G), without the lexicographic pass |
+| `maximumIndependentSet()` | Exact, one solve: bipartite components in polynomial time, the rest by reductions and branch and bound |
+| `lexicographicallyFirstMaximumIndependentSet()` | Exact and fixed by a rule: the least set, decided vertex by vertex, up to one solve per vertex |
+| `independenceNumber()` | α(G), the same solve without building the set |
 | `maximalIndependentSet()`, `maximalIndependentSet(containing:)` | Deterministic: vertex order, not a random choice |
 | `minimumVertexCover()` | The complement of `maximumIndependentSet()` (Gallai: τ + α = n) |
 | `minimumVertexCover(bipartition:)` | König's construction from a maximum matching; a different minimum cover from `minimumVertexCover()` (Semantics) |
 | `approximateMinimumVertexCover()`, `approximateMinimumVertexCover(weight:)` | Bar-Yehuda–Even local ratio. O(n + m), at most twice the least weight |
-| `minimumDominatingSet()` | Exact, branch and bound |
+| `minimumDominatingSet()` | Exact, branch and bound: γ and the last set found |
+| `lexicographicallyFirstMinimumDominatingSet()` | Exact and fixed by a rule: the least set of γ vertices, decided vertex by vertex |
 | `approximateMinimumDominatingSet()`, `approximateMinimumDominatingSet(weight:)` | Chvátal's greedy set cover. At most H(Δ + 1) ≤ 1 + ln(Δ + 1) times the least weight |
 | `minimumEdgeCover()`, `minimumEdgeCover(matching:)` | Gallai: ρ = n − ν |
 | `isVertexCover`, `isIndependentSet`, `isDominatingSet`, `isEdgeCover` | Definitions, O(n + m) |
@@ -66,14 +70,19 @@ import MatchingModule
 extension Graph {
     // Independent sets: no edge, and no self-loop, has both ends in the set.
 
-    /// A maximum independent set (exact): of all the largest ones, the lexicographically least by
-    /// vertex index, in `vertices` order. Of two sets of one size, the lesser is the one that
-    /// holds the least vertex of their symmetric difference (`maximumClique()`'s rule). A vertex
-    /// with a self-loop is never in it; parallel edges count once. Bipartite components cost
-    /// O(m √n); the rest are searched by branch and bound, exponential in the worst case.
+    /// A maximum independent set (exact), in `vertices` order, from one solve; which one depends
+    /// on the search. A vertex with a self-loop is never in it; parallel edges count once.
+    /// Bipartite components cost O(m √n); the rest are reduced and searched by branch and bound,
+    /// exponential in the worst case.
     public func maximumIndependentSet() -> [Vertex]
 
-    /// The size of a maximum independent set, α. The same search without the lexicographic pass.
+    /// The lexicographically first maximum independent set: of all the largest ones, the least by
+    /// vertex index, in `vertices` order. Of two sets of one size, the lesser is the one that
+    /// holds the least vertex of their symmetric difference (`lexicographicallyFirstMaximumClique()`'s
+    /// rule). Up to one exponential solve per vertex.
+    public func lexicographicallyFirstMaximumIndependentSet() -> [Vertex]
+
+    /// The size of a maximum independent set, α. The same solve without building the set.
     public func independenceNumber() -> Int
 
     /// A maximal independent set: each vertex in `vertices` order joins when it has no self-loop and no neighbour in the set
@@ -109,9 +118,13 @@ extension Graph {
 
     // Dominating sets: every vertex is in the set or adjacent to one in it.
 
-    /// A minimum dominating set (exact), the lexicographically least. Self-loops and parallel
+    /// A minimum dominating set (exact); which one depends on the search. Self-loops and parallel
     /// edges do not matter; isolated vertices are in it. Exponential in the worst case.
     public func minimumDominatingSet() -> [Vertex]
+
+    /// The lexicographically first minimum dominating set: of the smallest, the least by vertex
+    /// index. Up to one search per vertex after γ is found.
+    public func lexicographicallyFirstMinimumDominatingSet() -> [Vertex]
 
     /// A dominating set of at most H(Δ + 1) times the least weight (Chvátal's greedy set cover):
     /// repeatedly the vertex with the least
@@ -152,10 +165,12 @@ weight; `weight` is called once per vertex and its values are not kept.
 
 `minimumVertexCover()` finds the bipartite components itself and solves them from a maximum
 matching, so it is polynomial on every bipartite input with no `BipartiteGraph` overload. König's
-cover, which favours one side, is `minimumVertexCover(bipartition:)`; the two differ (CV-064:
-`[3, 4, 5]` against König's `[0, 1, 2]`). `maximumIndependentSet()` decides the cover, so
-`g.maximumIndependentSet()` equals `maximumClique()` of the complement, and `minimumVertexCover()`
-is the lexicographically greatest minimum cover.
+cover, which favours one side, is `minimumVertexCover(bipartition:)`; it can differ from the
+complement of the lexicographically least independent set (CV-064: `[3, 4, 5]` against König's
+`[0, 1, 2]`). `g.lexicographicallyFirstMaximumIndependentSet()` equals Cliques'
+`lexicographicallyFirstMaximumClique()` of the complement, and its complement is the
+lexicographically greatest minimum cover. There is no lexicographic cover entry point; take that
+complement.
 
 The integer dominating-set overload cross-multiplies, so it compares ratios exactly; the
 floating-point overload divides (CV-165). The vertex-cover approximation only subtracts, so
@@ -179,10 +194,17 @@ floating-point overload divides (CV-165). The vertex-cover approximation only su
   empty graph has empty results everywhere, including an empty edge cover (CV-001, CV-050, CV-129,
   CV-167).
 
-### `maximumIndependentSet()`, `independenceNumber()`, `minimumVertexCover()`
+### Independent sets, `independenceNumber()`, `minimumVertexCover()`
 
-* **Result**: the lexicographically least maximum independent set by vertex index. The rule is
-  `maximumClique()`'s: of equal-size sets, the first sorted index tuple. Examples: P(4) gives {0, 2}
+* **`maximumIndependentSet()`**: some maximum independent set, from one solve: the bipartite
+  components as below (whose pass gives their least set), complete components their least vertex,
+  and each other component one run of the reductions and kernel search below, whose set is
+  whatever the search finds. `minimumVertexCover()` is its complement, so MinimumVC rows give τ,
+  with the complement of the least set in the Checked column. Tests assert size, order and
+  validity, never which set.
+* **`lexicographicallyFirstMaximumIndependentSet()`**: the lexicographically least maximum
+  independent set by vertex index. The rule is Cliques' `lexicographicallyFirstMaximumClique()`'s:
+  of equal-size sets, the first sorted index tuple. Examples: P(4) gives {0, 2}
   over {0, 3} and {1, 3} (CV-011); vertex order, not label order, decides (CV-027).
 * **Decomposition, all of which keeps the rule.** Looped vertices are dropped (they are in every
   cover). The rest splits into connected components, and the lexicographically least set of the
@@ -214,10 +236,13 @@ floating-point overload divides (CV-165). The vertex-cover approximation only su
   set found (Cliques' `search(exact:)`). Odd cycles, wheels, Petersen (CV-015, CV-017, CV-019 –
   CV-021) and random graphs (CV-037 – CV-039) are the rows here. Mixed graphs combine both methods
   (CV-026, CV-030, CV-032, CV-068).
+* **Fast spelling.** `maximumIndependentSet()` runs the α computation once with the set kept:
+  the reductions, then the search on the kernel's non-bipartite components, the folds undone at
+  the end. No vertex-by-vertex pass.
 * **Witness.** `minimumVertexCover()` has no certificate in general. On a bipartite graph its size
   equals `maximumBipartiteMatching().edges.count` (König), which tests assert (CV-062 – CV-066).
-* `independenceNumber()` skips the lexicographic search; on bipartite components it is
-  n − |matching| with no further pass.
+* `independenceNumber()` is `maximumIndependentSet()`'s solve without the set; on bipartite
+  components it is n − |matching| with no further pass.
 
 ### `minimumVertexCover(bipartition:)` (König)
 
@@ -264,10 +289,13 @@ floating-point overload divides (CV-165). The vertex-cover approximation only su
 * Every maximal independent set is a minimal dominating set on a loop-free graph, so this is also
   a cheap dominating set.
 
-### `minimumDominatingSet()`
+### `minimumDominatingSet()`, `lexicographicallyFirstMinimumDominatingSet()`
 
-* **Result**: the lexicographically least minimum dominating set (CV-129 – CV-147), checked as the
-  first subset of size γ in combinations order. Components decompose as for independent sets
+* **`minimumDominatingSet()`**: γ by the branch and reduce below, with every reduction rule; the
+  last set the γ search found is the answer, so which set depends on the search. Tests assert
+  size, order and validity.
+* **`lexicographicallyFirstMinimumDominatingSet()`**: the lexicographically least minimum
+  dominating set (CV-129 – CV-147), checked as the first subset of size γ in combinations order. Components decompose as for independent sets
   (checked: the per-component union agrees on every row).
 * **Procedure** (the result does not depend on it): per component, γ by branch and bound
   (branch on an undominated vertex with the fewest possible dominators, over its closed
@@ -310,18 +338,20 @@ MatchingModule's checks.
 
 | Entry point | Which result | Tests assert |
 |---|---|---|
-| `maximumIndependentSet()`, `minimumVertexCover()` | Lexicographically least maximum independent set (and its complement) | Exact; brute force; Cliques' `maximumClique()` on the complement; König size on bipartite graphs |
+| `lexicographicallyFirstMaximumIndependentSet()` | Lexicographically least maximum independent set | Exact; brute force; Cliques' `lexicographicallyFirstMaximumClique()` on the complement |
+| `maximumIndependentSet()`, `minimumVertexCover()` | Some maximum independent set (and its complement), from one solve | Size, order, validity; the cover is the set's complement; König size on bipartite graphs |
 | `independenceNumber()` | α | Exact |
 | `minimumVertexCover(bipartition:)` | König's cover: the minimum cover with the most left vertices | Exact |
 | `approximateMinimumVertexCover` | Bar-Yehuda–Even, positions, lesser index on ties | Exact; ≤ 2 · optimum |
 | `maximalIndependentSet` | Greedy in vertex order, seeds first | Exact; independent and maximal |
-| `minimumDominatingSet()` | Lexicographically least minimum dominating set | Exact; brute force |
+| `lexicographicallyFirstMinimumDominatingSet()` | Lexicographically least minimum dominating set | Exact; brute force |
+| `minimumDominatingSet()` | Some minimum dominating set | Size, order, validity |
 | `approximateMinimumDominatingSet` | Least ratio, least index on ties | Exact; ≤ H(Δ + 1) · optimum |
 | `minimumEdgeCover` | Matching edges, then each uncovered vertex's first edge | Exact; size n − ν |
 | Checks | Definitions | Exact |
 
-The exact optima are defined by a property (lexicographic least), not by a procedure, so the
-search can change without changing results. The approximations and the greedy sets are defined by
+The lexicographically first optima are defined by a property, not by a procedure, so the search
+can change without changing them; the fast spellings return whichever optimum the search finds. The approximations and the greedy sets are defined by
 their procedure, as `maximalMatching()` is.
 
 ## Complexity
@@ -331,11 +361,13 @@ left after removing looped vertices.
 
 | Entry point | Time | Extra memory |
 |---|---|---|
-| `maximumIndependentSet`, `independenceNumber`, `minimumVertexCover` | O(n + m) to split; O(m √n) for bipartite components; exponential in c for the rest | O(n + m), plus c² / 64 words of bitset rows (the complement of one component) |
+| `maximumIndependentSet`, `independenceNumber`, `minimumVertexCover` | O(n + m) to split and reduce; O(m √n) for bipartite components; one search, exponential in the kernel's size, for the rest | O(n + m), plus k² / 64 words of bitset rows (the complement of one kernel component of k vertices) |
+| `lexicographicallyFirstMaximumIndependentSet` | as above, plus up to one such solve per vertex of a component the rules do not settle | the same |
 | `minimumVertexCover(bipartition:)` | O(m √n) | O(n) |
 | `approximateMinimumVertexCover` | O(n + m) | n costs and marks |
 | `maximalIndependentSet` | O(n + m) | n marks |
 | `minimumDominatingSet` | exponential | O(n + m) per search level, iterative |
+| `lexicographicallyFirstMinimumDominatingSet` | exponential, up to one search per vertex after γ | the same |
 | `approximateMinimumDominatingSet` | O((n + m) log n) | heap of n, counts, marks |
 | `minimumEdgeCover()` | O(n · m · α(n)) (Edmonds) | O(n) |
 | `minimumEdgeCover(matching:)` | O(n + m) | n marks |

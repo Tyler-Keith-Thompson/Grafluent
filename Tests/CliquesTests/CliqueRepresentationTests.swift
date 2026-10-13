@@ -127,7 +127,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [])
+        #expect(graph.maximumClique().count == 0)
         #expect(graph.cliqueNumber() == 0)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = []
@@ -167,7 +168,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0]
@@ -208,7 +210,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0]
@@ -249,7 +252,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0]
@@ -290,7 +294,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -331,7 +336,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -372,7 +378,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 1]
@@ -413,7 +420,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3]
@@ -454,7 +462,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 4])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 4])
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [4, 4, 4, 4, 4]
@@ -495,7 +504,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2]
@@ -536,7 +546,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -577,7 +588,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1, 1]
@@ -618,7 +630,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1, 1]
@@ -659,7 +672,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [4, 0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [4, 0])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1, 1]
@@ -700,7 +714,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -741,7 +756,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2]
@@ -782,7 +798,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -826,7 +843,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -867,7 +885,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -908,7 +927,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [3, 4, 5])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [3, 4, 5])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0, 2, 2, 2]
@@ -949,7 +969,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [1, 2])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 1, 1]
@@ -990,7 +1011,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2]
@@ -1031,7 +1053,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == ["a", "b", "c"])
+        #expect(graph.lexicographicallyFirstMaximumClique() == ["a", "b", "c"])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -1072,7 +1095,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == ["e", "d", "c"])
+        #expect(graph.lexicographicallyFirstMaximumClique() == ["e", "d", "c"])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -1119,7 +1143,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
@@ -1176,7 +1201,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [
@@ -1235,7 +1261,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3, 3]
@@ -1297,7 +1324,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3, 6, 9])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3, 6, 9])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
@@ -1338,7 +1366,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2]
@@ -1379,7 +1408,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [5, 4, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [5, 4, 3])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2]
@@ -1420,7 +1450,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [3, 4, 5])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [3, 4, 5])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2]
@@ -1461,7 +1492,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0]
@@ -1504,7 +1536,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [5, 6, 7, 8])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [5, 6, 7, 8])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 2, 2, 2, 2, 2]
@@ -1554,7 +1587,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3, 6])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3, 6])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [6, 6, 6, 6, 6, 6, 6, 6, 6]
@@ -1595,7 +1629,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1]
@@ -1636,7 +1671,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 2, 2, 2]
@@ -1683,7 +1719,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
@@ -1724,7 +1761,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -1765,7 +1803,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -1806,7 +1845,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2]
@@ -1847,7 +1887,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0, 0]
@@ -1888,7 +1929,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1]
@@ -1929,7 +1971,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1]
@@ -1970,7 +2013,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [])
+        #expect(graph.maximumClique().count == 0)
         #expect(graph.cliqueNumber() == 0)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = []
@@ -2010,7 +2054,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0]
@@ -2051,7 +2096,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0]
@@ -2092,7 +2138,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0]
@@ -2133,7 +2180,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -2174,7 +2222,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -2215,7 +2264,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 1]
@@ -2256,7 +2306,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3]
@@ -2297,7 +2348,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 4])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 4])
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [4, 4, 4, 4, 4]
@@ -2338,7 +2390,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2]
@@ -2379,7 +2432,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -2420,7 +2474,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1, 1]
@@ -2461,7 +2516,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1, 1]
@@ -2502,7 +2558,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [4, 0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [4, 0])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1, 1]
@@ -2543,7 +2600,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -2584,7 +2642,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2]
@@ -2625,7 +2684,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -2669,7 +2729,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -2710,7 +2771,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -2751,7 +2813,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [3, 4, 5])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [3, 4, 5])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0, 2, 2, 2]
@@ -2792,7 +2855,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [1, 2])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 1, 1]
@@ -2833,7 +2897,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2]
@@ -2874,7 +2939,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == ["a", "b", "c"])
+        #expect(graph.lexicographicallyFirstMaximumClique() == ["a", "b", "c"])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -2915,7 +2981,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == ["e", "d", "c"])
+        #expect(graph.lexicographicallyFirstMaximumClique() == ["e", "d", "c"])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -2962,7 +3029,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
@@ -3019,7 +3087,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [
@@ -3078,7 +3147,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3, 3]
@@ -3140,7 +3210,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3, 6, 9])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3, 6, 9])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
@@ -3181,7 +3252,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2]
@@ -3222,7 +3294,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [5, 4, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [5, 4, 3])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2]
@@ -3263,7 +3336,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [3, 4, 5])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [3, 4, 5])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2]
@@ -3304,7 +3378,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0]
@@ -3347,7 +3422,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [5, 6, 7, 8])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [5, 6, 7, 8])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 2, 2, 2, 2, 2]
@@ -3397,7 +3473,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3, 6])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3, 6])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [6, 6, 6, 6, 6, 6, 6, 6, 6]
@@ -3438,7 +3515,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1]
@@ -3479,7 +3557,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 2, 2, 2]
@@ -3526,7 +3605,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
@@ -3567,7 +3647,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -3608,7 +3689,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -3649,7 +3731,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2]
@@ -3690,7 +3773,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0, 0]
@@ -3731,7 +3815,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1]
@@ -3772,7 +3857,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1]
@@ -3813,7 +3899,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [])
+        #expect(graph.maximumClique().count == 0)
         #expect(graph.cliqueNumber() == 0)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = []
@@ -3853,7 +3940,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0]
@@ -3894,7 +3982,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0]
@@ -3935,7 +4024,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0]
@@ -3976,7 +4066,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -4017,7 +4108,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -4058,7 +4150,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 1]
@@ -4099,7 +4192,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3]
@@ -4140,7 +4234,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 4])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 4])
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [4, 4, 4, 4, 4]
@@ -4181,7 +4276,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2]
@@ -4222,7 +4318,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -4263,7 +4360,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1, 1]
@@ -4304,7 +4402,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1, 1]
@@ -4345,7 +4444,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -4386,7 +4486,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2]
@@ -4427,7 +4528,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -4471,7 +4573,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -4512,7 +4615,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [3, 4, 5])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [3, 4, 5])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0, 2, 2, 2]
@@ -4553,7 +4657,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [1, 2])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 1, 1]
@@ -4594,7 +4699,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2]
@@ -4641,7 +4747,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
@@ -4698,7 +4805,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [
@@ -4757,7 +4865,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3, 3]
@@ -4819,7 +4928,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3, 6, 9])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3, 6, 9])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
@@ -4860,7 +4970,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2]
@@ -4901,7 +5012,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0]
@@ -4951,7 +5063,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3, 6])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3, 6])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [6, 6, 6, 6, 6, 6, 6, 6, 6]
@@ -4992,7 +5105,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1]
@@ -5033,7 +5147,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 2, 2, 2]
@@ -5080,7 +5195,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
@@ -5121,7 +5237,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -5162,7 +5279,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -5203,7 +5321,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2]
@@ -5244,7 +5363,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0, 0]
@@ -5285,7 +5405,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1]
@@ -5326,7 +5447,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1]
@@ -5367,7 +5489,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [])
+        #expect(graph.maximumClique().count == 0)
         #expect(graph.cliqueNumber() == 0)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = []
@@ -5407,7 +5530,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0]
@@ -5448,7 +5572,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0]
@@ -5489,7 +5614,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0]
@@ -5530,7 +5656,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -5571,7 +5698,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -5612,7 +5740,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 1]
@@ -5653,7 +5782,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3]
@@ -5694,7 +5824,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 4])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 4])
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [4, 4, 4, 4, 4]
@@ -5735,7 +5866,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2]
@@ -5776,7 +5908,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -5817,7 +5950,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1, 1]
@@ -5858,7 +5992,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1, 1]
@@ -5899,7 +6034,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -5940,7 +6076,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2]
@@ -5981,7 +6118,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -6025,7 +6163,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -6066,7 +6205,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [3, 4, 5])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [3, 4, 5])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0, 2, 2, 2]
@@ -6107,7 +6247,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [1, 2])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 1, 1]
@@ -6148,7 +6289,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2]
@@ -6195,7 +6337,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
@@ -6252,7 +6395,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [
@@ -6311,7 +6455,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3, 3]
@@ -6373,7 +6518,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3, 6, 9])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3, 6, 9])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]
@@ -6414,7 +6560,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2]
@@ -6455,7 +6602,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0]
@@ -6505,7 +6653,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3, 6])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3, 6])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [6, 6, 6, 6, 6, 6, 6, 6, 6]
@@ -6546,7 +6695,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1]
@@ -6587,7 +6737,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 2, 2, 2]
@@ -6634,7 +6785,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
@@ -6675,7 +6827,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -6716,7 +6869,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1]
@@ -6757,7 +6911,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2]
@@ -6798,7 +6953,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0])
+        #expect(graph.maximumClique().count == 1)
         #expect(graph.cliqueNumber() == 1)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 0, 0, 0]
@@ -6839,7 +6995,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1]
@@ -6880,7 +7037,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [1, 1, 1, 1]
@@ -6937,7 +7095,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [
@@ -6993,7 +7152,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == ["e", "d", "c"])
+        #expect(graph.lexicographicallyFirstMaximumClique() == ["e", "d", "c"])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -7034,7 +7194,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [1, 2])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 1, 1]
@@ -7075,7 +7236,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2]
@@ -7116,7 +7278,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -7160,7 +7323,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -7201,7 +7365,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 2, 2, 2]
@@ -7258,7 +7423,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [
@@ -7314,7 +7480,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == ["e", "d", "c"])
+        #expect(graph.lexicographicallyFirstMaximumClique() == ["e", "d", "c"])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -7355,7 +7522,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [1, 2])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 1, 1]
@@ -7396,7 +7564,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2]
@@ -7437,7 +7606,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -7481,7 +7651,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -7522,7 +7693,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 2, 2, 2]
@@ -7579,7 +7751,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 7])
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [
@@ -7635,7 +7808,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == ["e", "d", "c"])
+        #expect(graph.lexicographicallyFirstMaximumClique() == ["e", "d", "c"])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2, 2, 2]
@@ -7676,7 +7850,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [1, 2])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [0, 1, 1]
@@ -7717,7 +7892,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [2, 2, 2]
@@ -7758,7 +7934,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2])
+        #expect(graph.maximumClique().count == 3)
         #expect(graph.cliqueNumber() == 3)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -7802,7 +7979,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3])
+        #expect(graph.maximumClique().count == 2)
         #expect(graph.cliqueNumber() == 2)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3]
@@ -7843,7 +8021,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3])
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 2, 2, 2]
@@ -7901,7 +8080,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3, 7].map(c))
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3, 7].map(c))
+        #expect(graph.maximumClique().count == 5)
         #expect(graph.cliqueNumber() == 5)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [
@@ -7949,7 +8129,8 @@ struct CliqueRepresentationTests {
         let cliques = Array(graph.maximalCliques())
         #expect(Set(cliques) == Set(expectedCliques))
         #expect(cliques.count == expectedCliques.count)
-        #expect(graph.maximumClique() == [0, 1, 2, 3].map(c))
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 2, 3].map(c))
+        #expect(graph.maximumClique().count == 4)
         #expect(graph.cliqueNumber() == 4)
         let cores = graph.coreNumbers()
         let expectedCores: [Int] = [3, 3, 3, 3, 3, 3, 3]

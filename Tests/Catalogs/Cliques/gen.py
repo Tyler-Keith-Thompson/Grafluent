@@ -194,11 +194,20 @@ def body_for(rid, row, indent):
         if labels_ok:
             L.append("#expect(cliques.allSatisfy { $0 == $0.sorted() })")
         return L
-    if name == "maximumClique":
+    if name == "lexicographicallyFirstMaximumClique":
         L += [f"let expected: [{T}] = {vlist(label_list(g, exp))}",
-              "#expect(graph.maximumClique() == expected)",
+              "#expect(graph.lexicographicallyFirstMaximumClique() == expected)",
               "#expect(graph.cliqueNumber() == expected.count)",
-              "#expect(graph.directedView.undirectedView.maximumClique() == expected)"]
+              "#expect(graph.directedView.undirectedView.lexicographicallyFirstMaximumClique() == expected)",
+              "// maximumClique(): some largest clique, in `vertices` order.",
+              "let clique = graph.maximumClique()",
+              "#expect(clique.count == expected.count)",
+              "let listed = Array(graph.vertices)",
+              "let positions = clique.map { listed.firstIndex(of: $0)! }",
+              "#expect(positions == positions.sorted() && Set(positions).count == positions.count)",
+              "let unjoined = clique.indices.flatMap { i in clique[(i + 1)...].filter { !graph.contains(edge: UndirectedEdge(clique[i], $0)) } }",
+              '#expect(unjoined.isEmpty, "\\(clique) is not a clique")',
+              "#expect(graph.directedView.undirectedView.maximumClique().count == expected.count)"]
         return L
     if name == "cliqueNumber":
         k = parse_expected(g, exp)
@@ -309,7 +318,8 @@ def body_for(rid, row, indent):
 
 
 FUNC = {
-    "maximalCliques": "maximalCliques", "maximalCliques.count": "maximalCliqueCount", "maximumClique": "maximumClique",
+    "maximalCliques": "maximalCliques", "maximalCliques.count": "maximalCliqueCount",
+    "lexicographicallyFirstMaximumClique": "lexicographicallyFirstMaximumClique",
     "cliqueNumber": "cliqueNumber", "coreNumbers": "coreNumbers", "degeneracy": "degeneracy",
     "degeneracyOrdering": "degeneracyOrdering", "kCore": "kCore", "kShell": "kShell", "triangleCount": "triangleCount",
     "triangleCounts": "triangleCounts", "clusteringCoefficients": "clusteringCoefficients", "transitivity": "transitivity",
@@ -426,14 +436,15 @@ counts["MaximalCliqueTests.swift"] = section_file(
 
 counts["MaximumCliqueTests.swift"] = section_file(
     "MaximumCliqueTests.swift",
-    """// §C: the maximum clique and the clique number (CQ-201 – CQ-220). `maximumClique()` is the
-// lexicographically least largest clique by vertex index: of two disjoint triangles the one with the
-// least index, also when `vertices` is reversed (CQ-203) or the edges are written the other way
-// round (CQ-205); the first vertex of an edgeless graph (CQ-207); [0, 1, 2, 3, 7] over [0, 1, 2, 3, 13] on the karate club
-// (CQ-211). Each test also checks `maximumClique().count == cliqueNumber()`, `cliqueNumber() <=
-// degeneracy + 1` and `graph.directedView.undirectedView`. Every literal is a catalog cell (`ref.py`:
-// brute force over the maximal cliques, NetworkX 3.7). Case IDs (CQ-nnn) refer to the catalog; see
-// README.md.""",
+    """// §C: the maximum clique and the clique number (CQ-201 – CQ-220).
+// `lexicographicallyFirstMaximumClique()` is the lexicographically least largest clique by vertex
+// index: of two disjoint triangles the one with the least index, also when `vertices` is reversed
+// (CQ-203) or the edges are written the other way round (CQ-205); the first vertex of an edgeless
+// graph (CQ-207); [0, 1, 2, 3, 7] over [0, 1, 2, 3, 13] on the karate club (CQ-211). Each test also
+// checks that `maximumClique()` is a clique of `cliqueNumber()` vertices in `vertices` order,
+// `cliqueNumber() <= degeneracy + 1` and `graph.directedView.undirectedView`. Every literal is a
+// catalog cell (`ref.py`: brute force over the maximal cliques, NetworkX 3.7). Case IDs (CQ-nnn)
+// refer to the catalog; see README.md.""",
     IMPORTS, "Maximum clique and clique number", "MaximumCliqueTests", ids_in(201, 299), set())
 
 counts["CoreNumberTests.swift"] = section_file(
@@ -560,7 +571,8 @@ def checks(v, labels, T, indent, onebyone=True):
          "let cliques = Array(graph.maximalCliques())",
          "#expect(Set(cliques) == Set(expectedCliques))",
          "#expect(cliques.count == expectedCliques.count)",
-         f"#expect(graph.maximumClique() == {vlist(lab(v['maximum'])) if v['maximum'] else '[]'})",
+         f"#expect(graph.lexicographicallyFirstMaximumClique() == {vlist(lab(v['maximum'])) if v['maximum'] else '[]'})",
+         f"#expect(graph.maximumClique().count == {v['omega']})",
          f"#expect(graph.cliqueNumber() == {v['omega']})",
          "let cores = graph.coreNumbers()",
          f"let expectedCores: [Int] = {wrap_items([str(x) for x in v['core']], indent)}",
@@ -797,7 +809,8 @@ for i, cell in enumerate(["U: nx(karate_club)", "U: K(0..3), K(3..6), 0-6"], 1):
          "let cliques = Array(graph.maximalCliques())",
          "#expect(Set(cliques) == Set(expectedCliques))",
          "#expect(cliques.count == expectedCliques.count)",
-         f"#expect(graph.maximumClique() == {vlist([labels[i] for i in v['maximum']])}.map(c))",
+         f"#expect(graph.lexicographicallyFirstMaximumClique() == {vlist([labels[i] for i in v['maximum']])}.map(c))",
+         f"#expect(graph.maximumClique().count == {v['omega']})",
          f"#expect(graph.cliqueNumber() == {v['omega']})",
          "let cores = graph.coreNumbers()",
          f"let expectedCores: [Int] = {wrap_items([str(x) for x in v['core']], ind)}",

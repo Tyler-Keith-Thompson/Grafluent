@@ -1,11 +1,12 @@
 // `independenceNumber()` (catalog §IndependenceNumber, CV-042 – CV-049): α exactly, the size of
-// `maximumIndependentSet()`, n − |`minimumVertexCover()`|, and the largest independent subset by
-// brute force on rows of at most 16 vertices. Graphs are `UndirectedAdjacencyList` built by
-// inserting the row's vertices, then its edges in order, so rows are in position order (a self-loop
-// twice); `multigraph` rows are `ReferencePseudograph`, whose rows are in position order too; `L …;
-// R …` rows are `BipartiteGraph(left:right:edges:)`. Brute force numbers vertices by their index in
-// `vertices` (bit i of a mask is the vertex at index i). Generated from cases.md by swiftgen.py,
-// which re-evaluates each row with ref.py's model; see README.md.
+// `maximumIndependentSet()` and `lexicographicallyFirstMaximumIndependentSet()`, n −
+// |`minimumVertexCover()`|, and the largest independent subset by brute force on rows of at most 16
+// vertices. Graphs are `UndirectedAdjacencyList` built by inserting the row's vertices, then its
+// edges in order, so rows are in position order (a self-loop twice); `multigraph` rows are
+// `ReferencePseudograph`, whose rows are in position order too; `L …; R …` rows are
+// `BipartiteGraph(left:right:edges:)`. Brute force numbers vertices by their index in `vertices`
+// (bit i of a mask is the vertex at index i). Generated from cases.md by swiftgen.py, which
+// re-evaluates each row with ref.py's model; see README.md.
 
 import AdjacencyListModule
 import Covering
@@ -28,6 +29,7 @@ struct IndependenceNumberTests {
         let alpha = graph.independenceNumber()
         #expect(alpha == 0)
         #expect(graph.maximumIndependentSet().count == alpha)
+        #expect(graph.lexicographicallyFirstMaximumIndependentSet().count == alpha)
         #expect(graph.minimumVertexCover().count == n - alpha)
         // Brute force: the largest independent subset (bit i is the vertex at index i).
         var largest = 0
@@ -49,6 +51,7 @@ struct IndependenceNumberTests {
         let alpha = graph.independenceNumber()
         #expect(alpha == 0)
         #expect(graph.maximumIndependentSet().count == alpha)
+        #expect(graph.lexicographicallyFirstMaximumIndependentSet().count == alpha)
         #expect(graph.minimumVertexCover().count == n - alpha)
         // Brute force: the largest independent subset (bit i is the vertex at index i).
         var largest = 0
@@ -70,6 +73,7 @@ struct IndependenceNumberTests {
         let alpha = graph.independenceNumber()
         #expect(alpha == 3)
         #expect(graph.maximumIndependentSet().count == alpha)
+        #expect(graph.lexicographicallyFirstMaximumIndependentSet().count == alpha)
         #expect(graph.minimumVertexCover().count == n - alpha)
         // Brute force: the largest independent subset (bit i is the vertex at index i).
         var largest = 0
@@ -91,6 +95,7 @@ struct IndependenceNumberTests {
         let alpha = graph.independenceNumber()
         #expect(alpha == 4)
         #expect(graph.maximumIndependentSet().count == alpha)
+        #expect(graph.lexicographicallyFirstMaximumIndependentSet().count == alpha)
         #expect(graph.minimumVertexCover().count == n - alpha)
         // Brute force: the largest independent subset (bit i is the vertex at index i).
         var largest = 0
@@ -112,6 +117,7 @@ struct IndependenceNumberTests {
         let alpha = graph.independenceNumber()
         #expect(alpha == 1)
         #expect(graph.maximumIndependentSet().count == alpha)
+        #expect(graph.lexicographicallyFirstMaximumIndependentSet().count == alpha)
         #expect(graph.minimumVertexCover().count == n - alpha)
         // Brute force: the largest independent subset (bit i is the vertex at index i).
         var largest = 0
@@ -133,6 +139,7 @@ struct IndependenceNumberTests {
         let alpha = graph.independenceNumber()
         #expect(alpha == 8)
         #expect(graph.maximumIndependentSet().count == alpha)
+        #expect(graph.lexicographicallyFirstMaximumIndependentSet().count == alpha)
         #expect(graph.minimumVertexCover().count == n - alpha)
         // Brute force: the largest independent subset (bit i is the vertex at index i).
         var largest = 0
@@ -154,6 +161,7 @@ struct IndependenceNumberTests {
         let alpha = graph.independenceNumber()
         #expect(alpha == 8)
         #expect(graph.maximumIndependentSet().count == alpha)
+        #expect(graph.lexicographicallyFirstMaximumIndependentSet().count == alpha)
         #expect(graph.minimumVertexCover().count == n - alpha)
         // 20 vertices, too many for brute force here (ref.py checked α with igraph and an oracle);
         // the independent set it counts is independent.
@@ -180,6 +188,7 @@ struct IndependenceNumberTests {
         let alpha = graph.independenceNumber()
         #expect(alpha == 8)
         #expect(graph.maximumIndependentSet().count == alpha)
+        #expect(graph.lexicographicallyFirstMaximumIndependentSet().count == alpha)
         #expect(graph.minimumVertexCover().count == n - alpha)
         // 20 vertices, too many for brute force here (ref.py checked α with igraph and an oracle);
         // the independent set it counts is independent.

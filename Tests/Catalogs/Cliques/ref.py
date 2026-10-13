@@ -19,8 +19,8 @@ implementation runs it, and then checked independently:
   brute force over all vertex subsets (n <= 14), against NetworkX `find_cliques` and
   `find_cliques_recursive`, and against `enumerate_all_cliques` filtered to maximal ones;
   each clique sorted by index, no clique twice;
-* the maximum clique: the lexicographically least largest clique by index, checked by brute
-  force over the maximal cliques, its size against NetworkX `max_weight_clique(weight=None)`;
+* the lexicographically first maximum clique: the least largest clique by index, checked by
+  brute force over the maximal cliques, its size against NetworkX `max_weight_clique(weight=None)`;
 * triangles per vertex by marking (the Swift one-vertex query), the total by Latapy's
   compact-forward listing on the degree order (the Swift whole-graph pass); per-vertex counts
   against NetworkX `triangles` (simple graph and, where it accepts it, the MultiGraph) and the
@@ -435,14 +435,14 @@ def evaluate(cell, op):
             return "[" + ", ".join(fv(g, c) for c in maximal_cliques_model(adj)) + "]"
         if name == "maximalCliques.count":
             return "#" + str(len(maximal_cliques_model(adj)))
-        if name in ("maximumClique", "cliqueNumber"):
+        if name in ("lexicographicallyFirstMaximumClique", "cliqueNumber"):
             cs = maximal_cliques_model(adj)
             if not cs:
                 best = []
             else:
                 w = max(len(c) for c in cs)
                 best = min(c for c in cs if len(c) == w)
-            return fv(g, best) if name == "maximumClique" else "#" + str(len(best))
+            return fv(g, best) if name == "lexicographicallyFirstMaximumClique" else "#" + str(len(best))
         core, order = batagelj_zaversnik(adj)
         if name == "coreNumbers":
             return "[" + ", ".join(map(str, core)) + "]"

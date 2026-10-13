@@ -21,7 +21,7 @@ import Testing
 
 @Suite("Covering properties against oracles, with shrinking", .tags(.randomized))
 struct CoveringPropertyTests {
-    @Test("maximumIndependentSet() is the lexicographically least maximum independent set by brute force; minimumVertexCover() is its complement; α + τ = n")
+    @Test("lexicographicallyFirstMaximumIndependentSet() is the lexicographically least maximum independent set by brute force; maximumIndependentSet() one as large, minimumVertexCover() its complement; α + τ = n")
     func exactIndependentSet() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 20)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
@@ -40,11 +40,17 @@ struct CoveringPropertyTests {
                 if best < 0 || mask.nonzeroBitCount > best.nonzeroBitCount || (mask.nonzeroBitCount == best.nonzeroBitCount && mask & (1 << least) != 0) { best = mask }
             }
             let expected = (0 ..< n).filter { best & (1 << $0) != 0 }.map { listed[$0] }
-            let independent = graph.maximumIndependentSet()
-            #expect(independent == expected, "\(context)")
+            #expect(graph.lexicographicallyFirstMaximumIndependentSet() == expected, "\(context)")
             #expect(graph.independenceNumber() == expected.count, "\(context)")
+            // The fast spellings: a maximum independent set in `vertices` order, and its complement.
+            let independent = graph.maximumIndependentSet()
+            #expect(independent.count == expected.count, "\(context)")
+            let inOrder = listed.filter { independent.contains($0) }
+            #expect(independent == inOrder && Set(independent).count == independent.count, "\(context)")
+            for (a, b) in ends { #expect(!(independent.contains(listed[a]) && independent.contains(listed[b])), "\(context)") }
             let cover = graph.minimumVertexCover()
-            #expect(cover == listed.filter { !expected.contains($0) }, "\(context)")
+            let complement = listed.filter { !independent.contains($0) }
+            #expect(cover == complement, "\(context)")
             #expect(graph.independenceNumber() + cover.count == n)
             #expect(graph.isIndependentSet(independent) && graph.isVertexCover(cover), "\(context)")
             // No vertex cover is smaller.
@@ -55,8 +61,9 @@ struct CoveringPropertyTests {
             for (a, b) in ends where a == b { #expect(cover.contains(listed[a]) && !independent.contains(listed[a])) }
             // Parallel edges change nothing.
             let simple = UndirectedAdjacencyList(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-            #expect(simple.maximumIndependentSet() == expected, "\(context)")
-            #expect(simple.minimumVertexCover() == cover, "\(context)")
+            #expect(simple.lexicographicallyFirstMaximumIndependentSet() == expected, "\(context)")
+            #expect(simple.maximumIndependentSet().count == expected.count, "\(context)")
+            #expect(simple.minimumVertexCover().count == cover.count, "\(context)")
         }
     }
 
@@ -79,9 +86,12 @@ struct CoveringPropertyTests {
                 if best < 0 || mask.nonzeroBitCount > best.nonzeroBitCount || (mask.nonzeroBitCount == best.nonzeroBitCount && mask & (1 << least) != 0) { best = mask }
             }
             let expected = (0 ..< n).filter { best & (1 << $0) != 0 }.map { listed[$0] }
-            #expect(graph.maximumIndependentSet() == expected, "\(context)")
+            #expect(graph.lexicographicallyFirstMaximumIndependentSet() == expected, "\(context)")
+            let independent = graph.maximumIndependentSet()
+            #expect(independent.count == expected.count && graph.isIndependentSet(independent), "\(context)")
             let cover = graph.minimumVertexCover()
-            #expect(cover == listed.filter { !expected.contains($0) }, "\(context)")
+            let complement = listed.filter { !independent.contains($0) }
+            #expect(cover == complement, "\(context)")
             guard let sides = graph.bipartition() else {
                 Issue.record("not bipartite: \(context)")
                 return
@@ -135,7 +145,8 @@ struct CoveringPropertyTests {
                 if bipartiteBest < 0 || mask.nonzeroBitCount > bipartiteBest.nonzeroBitCount || (mask.nonzeroBitCount == bipartiteBest.nonzeroBitCount && mask & (1 << least) != 0) { bipartiteBest = mask }
             }
             let bipartiteExpected = (0 ..< n).filter { bipartiteBest & (1 << $0) != 0 }.map { order[$0] }
-            #expect(bipartite.maximumIndependentSet() == bipartiteExpected, "\(context), left \(leftOrder), right \(rightOrder)")
+            #expect(bipartite.lexicographicallyFirstMaximumIndependentSet() == bipartiteExpected, "\(context), left \(leftOrder), right \(rightOrder)")
+            #expect(bipartite.maximumIndependentSet().count == bipartiteExpected.count)
             #expect(bipartite.minimumVertexCover().count == bipartite.maximumBipartiteMatching().edges.count)
         }
     }
@@ -244,7 +255,7 @@ struct CoveringPropertyTests {
         }
     }
 
-    @Test("minimumDominatingSet() is the lexicographically least minimum dominating set by brute force; the greedy approximation is the eager set cover written out, within H(Δ + 1) of the least weight")
+    @Test("lexicographicallyFirstMinimumDominatingSet() is the lexicographically least minimum dominating set by brute force, minimumDominatingSet() one as small; the greedy approximation is the eager set cover written out, within H(Δ + 1) of the least weight")
     func dominatingSets() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 16)
         let weights = Gen.int(in: 0 ... 4).array(of: 10)
@@ -267,9 +278,16 @@ struct CoveringPropertyTests {
                 if best < 0 || mask.nonzeroBitCount < best.nonzeroBitCount || (mask.nonzeroBitCount == best.nonzeroBitCount && mask & (1 << least) != 0) { best = mask }
                 leastWeight = min(leastWeight, (0 ..< n).reduce(0) { mask & (1 << $1) != 0 ? $0 + weight[listed[$1]] : $0 })
             }
-            let exact = graph.minimumDominatingSet()
+            let exact = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(exact == (0 ..< n).filter { best & (1 << $0) != 0 }.map { listed[$0] }, "\(context)")
             #expect(graph.isDominatingSet(exact))
+            // The fast spelling: as small, in `vertices` order, and dominating by the definition.
+            let found = graph.minimumDominatingSet()
+            #expect(found.count == exact.count, "\(context)")
+            let inOrder = listed.filter { found.contains($0) }
+            #expect(found == inOrder && Set(found).count == found.count, "\(context)")
+            let foundIndices = Set(found.map { index[$0]! })
+            for v in 0 ..< n { #expect(!closed[v].isDisjoint(with: foundIndices), "\(listed[v]) undominated: \(context)") }
             // The greedy set cover, written out eagerly: the unchosen vertex of least weight per newly
             // dominated vertex (none if it dominates nothing new), the least index on ties.
             func greedy(_ less: (Int, Int, Int, Int) -> Bool) -> [Int] {

@@ -1,7 +1,8 @@
 // `minimumVertexCover(bipartition: g.bipartition()!)` (catalog §KoenigVC, CV-072 – CV-086): König's
 // cover, exact, with the canonical sides asserted; a cover as large as
 // `maximumBipartiteMatching(bipartition:)`; by brute force no cover smaller and the unique minimum
-// cover with the most left vertices; and `minimumVertexCover()` where it differs. Graphs are
+// cover with the most left vertices; and the complement of
+// `lexicographicallyFirstMaximumIndependentSet()` where it differs. Graphs are
 // `UndirectedAdjacencyList` built by inserting the row's vertices, then its edges in order, so rows
 // are in position order (a self-loop twice); `multigraph` rows are `ReferencePseudograph`, whose
 // rows are in position order too; `L …; R …` rows are `BipartiteGraph(left:right:edges:)`. Brute
@@ -101,9 +102,10 @@ struct KoenigVertexCoverTests {
         #expect(cover.count == fewest)
         let most = minimumCovers.map { ($0 & leftMask).nonzeroBitCount }.max() ?? 0
         #expect(minimumCovers.filter { ($0 & leftMask).nonzeroBitCount == most } == [members.reduce(0) { $0 | (1 << $1) }])
-        // minimumVertexCover() is a different minimum cover: the complement of the lexicographically
-        // least maximum independent set.
-        #expect(graph.minimumVertexCover() == [1] as [Int])
+        // The complement of the lexicographically first maximum independent set is a different minimum
+        // cover.
+        let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+        #expect(vertexList.filter { !leastSet.contains($0) } == [1] as [Int])
     }
 
     @Test("CV-074 P(4): [0, 2]")
@@ -146,9 +148,10 @@ struct KoenigVertexCoverTests {
         #expect(cover.count == fewest)
         let most = minimumCovers.map { ($0 & leftMask).nonzeroBitCount }.max() ?? 0
         #expect(minimumCovers.filter { ($0 & leftMask).nonzeroBitCount == most } == [members.reduce(0) { $0 | (1 << $1) }])
-        // minimumVertexCover() is a different minimum cover: the complement of the lexicographically
-        // least maximum independent set.
-        #expect(graph.minimumVertexCover() == [1, 3] as [Int])
+        // The complement of the lexicographically first maximum independent set is a different minimum
+        // cover.
+        let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+        #expect(vertexList.filter { !leastSet.contains($0) } == [1, 3] as [Int])
     }
 
     @Test("CV-075 P(5): [1, 3]")
@@ -233,9 +236,10 @@ struct KoenigVertexCoverTests {
         #expect(cover.count == fewest)
         let most = minimumCovers.map { ($0 & leftMask).nonzeroBitCount }.max() ?? 0
         #expect(minimumCovers.filter { ($0 & leftMask).nonzeroBitCount == most } == [members.reduce(0) { $0 | (1 << $1) }])
-        // minimumVertexCover() is a different minimum cover: the complement of the lexicographically
-        // least maximum independent set.
-        #expect(graph.minimumVertexCover() == [1, 3, 5] as [Int])
+        // The complement of the lexicographically first maximum independent set is a different minimum
+        // cover.
+        let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+        #expect(vertexList.filter { !leastSet.contains($0) } == [1, 3, 5] as [Int])
     }
 
     @Test("CV-077 star(3): [0]")
@@ -364,9 +368,10 @@ struct KoenigVertexCoverTests {
         #expect(cover.count == fewest)
         let most = minimumCovers.map { ($0 & leftMask).nonzeroBitCount }.max() ?? 0
         #expect(minimumCovers.filter { ($0 & leftMask).nonzeroBitCount == most } == [members.reduce(0) { $0 | (1 << $1) }])
-        // minimumVertexCover() is a different minimum cover: the complement of the lexicographically
-        // least maximum independent set.
-        #expect(graph.minimumVertexCover() == [3, 4, 5] as [Int])
+        // The complement of the lexicographically first maximum independent set is a different minimum
+        // cover.
+        let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+        #expect(vertexList.filter { !leastSet.contains($0) } == [3, 4, 5] as [Int])
     }
 
     @Test("CV-080 grid(3,3): [1, 3, 5, 7]")
@@ -451,9 +456,10 @@ struct KoenigVertexCoverTests {
         #expect(cover.count == fewest)
         let most = minimumCovers.map { ($0 & leftMask).nonzeroBitCount }.max() ?? 0
         #expect(minimumCovers.filter { ($0 & leftMask).nonzeroBitCount == most } == [members.reduce(0) { $0 | (1 << $1) }])
-        // minimumVertexCover() is a different minimum cover: the complement of the lexicographically
-        // least maximum independent set.
-        #expect(graph.minimumVertexCover() == [1, 3, 4, 6, 9, 11, 12, 14] as [Int])
+        // The complement of the lexicographically first maximum independent set is a different minimum
+        // cover.
+        let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+        #expect(vertexList.filter { !leastSet.contains($0) } == [1, 3, 4, 6, 9, 11, 12, 14] as [Int])
     }
 
     @Test("CV-082 tree: [1, 2]")
@@ -623,9 +629,10 @@ struct KoenigVertexCoverTests {
         #expect(cover.count == fewest)
         let most = minimumCovers.map { ($0 & leftMask).nonzeroBitCount }.max() ?? 0
         #expect(minimumCovers.filter { ($0 & leftMask).nonzeroBitCount == most } == [members.reduce(0) { $0 | (1 << $1) }])
-        // minimumVertexCover() is a different minimum cover: the complement of the lexicographically
-        // least maximum independent set.
-        #expect(graph.minimumVertexCover() == [0, 1, 2, 3, 5, 7] as [Int])
+        // The complement of the lexicographically first maximum independent set is a different minimum
+        // cover.
+        let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+        #expect(vertexList.filter { !leastSet.contains($0) } == [0, 1, 2, 3, 5, 7] as [Int])
     }
 
     @Test("CV-086 lcgb(9,5,20,9): [9, 10, 11, 12, 13]")

@@ -24,27 +24,37 @@ struct CoveringConformanceTests {
         // Vertices [c, a, d, b], path c–a–d–b. Indices: c 0, a 1, d 2, b 3. The least maximum
         // independent set by index is {c, d} (indices 0, 2), listed as [c, d].
         let graph = UndirectedAdjacencyList(vertices: ["c", "a", "d", "b"], edges: [UndirectedEdge("c", "a"), UndirectedEdge("a", "d"), UndirectedEdge("d", "b")])
-        #expect(graph.maximumIndependentSet() == ["c", "d"])
-        #expect(graph.minimumVertexCover() == ["a", "b"])
+        let least = graph.lexicographicallyFirstMaximumIndependentSet()
+        #expect(least == ["c", "d"])
+        #expect(graph.vertices.filter { !least.contains($0) } == ["a", "b"])
+        // The fast spellings: some optimum, also in `vertices` order.
+        let independent = graph.maximumIndependentSet()
+        #expect(independent.count == 2 && graph.isIndependentSet(independent))
+        #expect(graph.minimumVertexCover() == graph.vertices.filter { !independent.contains($0) })
         // Seeds in any order: the result is still in `vertices` order.
         #expect(graph.maximalIndependentSet(containing: ["b", "c"]) == ["c", "b"])
         // γ(P4) = 2; the least by index of the dominating pairs is {c, d}.
-        #expect(graph.minimumDominatingSet() == ["c", "d"])
+        #expect(graph.lexicographicallyFirstMinimumDominatingSet() == ["c", "d"])
+        let dominating = graph.minimumDominatingSet()
+        #expect(dominating.count == 2 && graph.isDominatingSet(dominating))
+        #expect(dominating == graph.vertices.filter { dominating.contains($0) })
         #expect(graph.approximateMinimumDominatingSet() == ["a", "d"])
     }
 
     @Test("Generic code over some Graph sees the same results as concrete code")
     func genericCode() {
         func everything(_ graph: some Graph<Int>) -> [[Int]] {
-            [graph.maximumIndependentSet(), graph.minimumVertexCover(), graph.maximalIndependentSet(), graph.minimumDominatingSet(),
-             graph.approximateMinimumVertexCover(), graph.approximateMinimumDominatingSet(), [graph.independenceNumber()]]
+            [graph.lexicographicallyFirstMaximumIndependentSet(), graph.minimumVertexCover(), graph.maximalIndependentSet(),
+             graph.lexicographicallyFirstMinimumDominatingSet(), graph.approximateMinimumVertexCover(), graph.approximateMinimumDominatingSet(),
+             [graph.independenceNumber()], graph.maximumIndependentSet(), graph.minimumDominatingSet()]
         }
-        // C5: MIS [0, 2] (CV-015), cover [1, 3, 4] (CV-059), α = 2.
+        // C5: the least MIS [0, 2] (CV-015), covers of 3 (CV-059), α = 2, γ = 2.
         let cycle = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: (0 ..< 5).map { UndirectedEdge($0, ($0 + 1) % 5) })
-        let concrete = [cycle.maximumIndependentSet(), cycle.minimumVertexCover(), cycle.maximalIndependentSet(), cycle.minimumDominatingSet(),
-                        cycle.approximateMinimumVertexCover(), cycle.approximateMinimumDominatingSet(), [cycle.independenceNumber()]]
+        let concrete = [cycle.lexicographicallyFirstMaximumIndependentSet(), cycle.minimumVertexCover(), cycle.maximalIndependentSet(),
+                        cycle.lexicographicallyFirstMinimumDominatingSet(), cycle.approximateMinimumVertexCover(), cycle.approximateMinimumDominatingSet(),
+                        [cycle.independenceNumber()], cycle.maximumIndependentSet(), cycle.minimumDominatingSet()]
         #expect(everything(cycle) == concrete)
-        #expect(concrete[0] == [0, 2] && concrete[1] == [1, 3, 4] && concrete[6] == [2])
+        #expect(concrete[0] == [0, 2] && concrete[1].count == 3 && concrete[6] == [2] && concrete[7].count == 2 && concrete[8].count == 2)
         #expect(cycle.isVertexCover(concrete[4]))
     }
 
@@ -53,12 +63,16 @@ struct CoveringConformanceTests {
         let csr = CompressedSparseRow(vertexCount: 6, edges: [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)].map { DirectedEdge(from: $0.0, to: $0.1) })
         let graph = AdjacencyList(csr).undirectedView
         // Both sides are maximum independent sets; the lesser by index is {0, 1, 2} (CV-025).
-        #expect(graph.maximumIndependentSet() == [0, 1, 2])
-        #expect(graph.minimumVertexCover() == [3, 4, 5])
+        #expect(graph.lexicographicallyFirstMaximumIndependentSet() == [0, 1, 2])
+        let independent = graph.maximumIndependentSet()
+        #expect(independent == [0, 1, 2] || independent == [3, 4, 5])
+        #expect(graph.minimumVertexCover() == (0 ..< 6).filter { !independent.contains($0) })
         let sides = try #require(graph.bipartition())
         #expect(graph.minimumVertexCover(bipartition: sides) == [0, 1, 2])
-        // γ(K3,3) = 2: {0, 3} is the least dominating pair.
-        #expect(graph.minimumDominatingSet() == [0, 3])
+        // γ(K3,3) = 2: {0, 3} is the least dominating pair, and every dominating pair is an edge.
+        #expect(graph.lexicographicallyFirstMinimumDominatingSet() == [0, 3])
+        let dominating = graph.minimumDominatingSet()
+        #expect(dominating.count == 2 && dominating[0] < 3 && dominating[1] >= 3)
         let cover = try #require(graph.minimumEdgeCover())
         #expect(cover.count == 3 && graph.isEdgeCover(cover))
     }
@@ -69,10 +83,12 @@ struct CoveringConformanceTests {
         let bull = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2), UndirectedEdge(1, 3), UndirectedEdge(2, 4)])
         let doubled = bull.directedView.undirectedView
         #expect(doubled.edgeCount == 10)
-        #expect(doubled.maximumIndependentSet() == bull.maximumIndependentSet())
-        #expect(bull.maximumIndependentSet() == [0, 3, 4])
-        #expect(doubled.minimumVertexCover() == bull.minimumVertexCover())
-        #expect(doubled.minimumDominatingSet() == bull.minimumDominatingSet())
+        #expect(doubled.lexicographicallyFirstMaximumIndependentSet() == bull.lexicographicallyFirstMaximumIndependentSet())
+        #expect(bull.lexicographicallyFirstMaximumIndependentSet() == [0, 3, 4])
+        #expect(doubled.maximumIndependentSet().count == 3 && doubled.isIndependentSet(doubled.maximumIndependentSet()))
+        #expect(doubled.minimumVertexCover().count == bull.minimumVertexCover().count)
+        #expect(doubled.lexicographicallyFirstMinimumDominatingSet() == bull.lexicographicallyFirstMinimumDominatingSet())
+        #expect(doubled.minimumDominatingSet().count == bull.minimumDominatingSet().count)
         #expect(doubled.approximateMinimumDominatingSet() == bull.approximateMinimumDominatingSet())
         #expect(doubled.maximalIndependentSet() == bull.maximalIndependentSet())
         #expect(doubled.isVertexCover(doubled.approximateMinimumVertexCover()))
@@ -178,21 +194,25 @@ struct CoveringConformanceTests {
         let sides = try #require(graph.bipartition())
         #expect(Array(sides.left) == [0, 1, 2, 6])
         #expect(graph.minimumVertexCover(bipartition: sides) == [0, 1, 2])
-        // minimumVertexCover() is the other extreme here: the right side.
-        #expect(graph.minimumVertexCover() == [3, 4, 5])
-        #expect(graph.maximumIndependentSet() == [0, 1, 2, 6])
+        // The complement of the least maximum independent set is the other extreme here: the right side.
+        #expect(graph.lexicographicallyFirstMaximumIndependentSet() == [0, 1, 2, 6])
+        let cover = graph.minimumVertexCover()
+        #expect(cover.count == 3 && graph.isVertexCover(cover))
     }
 
     @Test("Empty and edgeless graphs: empty results, every vertex independent and dominating, no edge cover")
     func edgeless() {
         let empty = UndirectedAdjacencyList<Int>()
         #expect(empty.maximumIndependentSet().isEmpty && empty.minimumVertexCover().isEmpty && empty.minimumDominatingSet().isEmpty)
+        #expect(empty.lexicographicallyFirstMaximumIndependentSet().isEmpty && empty.lexicographicallyFirstMinimumDominatingSet().isEmpty)
         #expect(empty.minimumEdgeCover() == [])
         #expect(empty.independenceNumber() == 0)
         let three = UndirectedAdjacencyList(vertices: [5, 3, 9])
         #expect(three.maximumIndependentSet() == [5, 3, 9])
         #expect(three.minimumVertexCover() == [])
         #expect(three.minimumDominatingSet() == [5, 3, 9])
+        #expect(three.lexicographicallyFirstMaximumIndependentSet() == [5, 3, 9])
+        #expect(three.lexicographicallyFirstMinimumDominatingSet() == [5, 3, 9])
         #expect(three.approximateMinimumDominatingSet() == [5, 3, 9])
         #expect(three.approximateMinimumVertexCover() == [])
         #expect(three.maximalIndependentSet() == [5, 3, 9])

@@ -235,8 +235,9 @@ struct CliqueConformanceTests {
         #expect(Set(cliques) == [[2, 3], [0, 1, 2]])
         counter.hashes = 0
         #expect(graph.maximumClique().map(\.value) == [0, 1, 2])
+        #expect(graph.lexicographicallyFirstMaximumClique().map(\.value) == [0, 1, 2])
         #expect(graph.cliqueNumber() == 3)
-        #expect(counter.hashes == 0, "maximumClique() or cliqueNumber() hashed \(counter.hashes) times")
+        #expect(counter.hashes == 0, "a maximum clique or cliqueNumber() hashed \(counter.hashes) times")
         counter.hashes = 0
         let cores = graph.coreNumbers()
         let coresByIndex = (0 ..< 4).map { cores.coreNumber(ofIndex: $0) }

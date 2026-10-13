@@ -3,7 +3,7 @@
 # Known equivalent mutants:
 #   dominating_noallowed, dominating_bound
 #                         pruning removed from the dominating search: it still exhausts the same
-#                         tree within the budget and finds the same least set.
+#                         tree within the budget and finds the same least set (and the same γ).
 #   dominating_budget     the budget check: the coverage bound already prunes a node with no budget
 #                         left and something undominated (most · 0 < undominated).
 #   sparse_forced, sparse_infeasible, sparse_sum, sparse_packing
@@ -34,6 +34,14 @@ MUTANTS = [
     Mutant("dominating_noallowed", "ExactCovering.swift", "if count == 0 { return -1 }", "", mode="stmt"),
     Mutant("dominating_bound", "ExactCovering.swift", "if most * remaining < undominated { return -1 }", "", mode="stmt"),
     Mutant("dominating_budget", "ExactCovering.swift", "if remaining <= 0 { return -1 }", "", mode="stmt"),
+
+    # The fast spellings: one solve, its set kept
+    Mutant("fast_kernel_set", "ExactCovering.swift", "size += kernel!.solve(g, members, need: Int.max, wantSet: true)", "size += kernel!.solve(g, members, need: Int.max, wantSet: false)", mode="stmt"),
+    Mutant("fast_kernel_flags", "ExactCovering.swift", "            for u in kernel!.set { inSet[u] = true }", "", mode="stmt"),
+    Mutant("fast_bipartite_set", "ExactCovering.swift", "goal != .independenceNumber", "goal == .lexicographicallyFirst"),
+    Mutant("fast_sparse_reduced", "ExactCovering.swift", "state[v] == 2 || witness[v]", "witness[v]"),
+    Mutant("fast_dense_flags", "ExactCovering.swift", "            for i in witness { inSet[vertices[i]] = true }", "", mode="stmt"),
+    Mutant("lex_sparse_rules", "ExactCovering.swift", "reduce(lexicographic: lexicographic)", "reduce(lexicographic: false)", mode="stmt"),
 
     # Kernel reductions and the sparse dominating search
     Mutant("kernel_triangle", "ExactCovering.swift", "adjacent(a, b)", "false", nth=0),

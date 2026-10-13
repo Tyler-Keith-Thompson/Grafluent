@@ -38,6 +38,7 @@ MUTANTS = [
     Mutant("ceiling", "MaximumClique.swift", "core.max()! + 1", "core.max()!"),
     Mutant("corepruning", "MaximumClique.swift", "core[v] + 1 > clique.count", "core[v] > clique.count"),
     Mutant("subrows", "MaximumClique.swift", "                engine.rows[j * words + i >> 6] |= 1 << UInt64(i & 63)", "", mode="stmt"),
+    Mutant("fastorder", "MaximumClique.swift", "_cliqueNumber(_simpleRows()).clique.sorted()", "_cliqueNumber(_simpleRows()).clique"),
     Mutant("lexleast", "MaximumClique.swift", "candidate.lexicographicallyPrecedes(current)", "current.lexicographicallyPrecedes(candidate)"),
     Mutant("crossprune", "MaximumClique.swift", "min(v, members.first ?? v) > current[0]", "min(v, members.first ?? v) >= current[0]"),
     Mutant("witnessreset", "MaximumClique.swift", "                        for k in 0 ..< words { witness[k] = 0 }", "", mode="stmt"),

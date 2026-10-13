@@ -482,17 +482,20 @@ func coveringAnswers<G: Graph<Int>>(_ graph: G) -> CoveringAnswers {
     // The exact searches, on graphs small enough for the script's brute force or NetworkX's
     // max_weight_clique on the complement.
     if graph.vertexCount <= 40 {
-        let mis = graph.maximumIndependentSet(), cover = graph.minimumVertexCover()
+        // The script compares the lexicographically first set; the fast spelling must match its size.
+        let mis = graph.lexicographicallyFirstMaximumIndependentSet(), cover = graph.minimumVertexCover()
+        let fast = graph.maximumIndependentSet()
         a.maximumIndependentSet = mis
         a.independenceNumber = graph.independenceNumber()
         a.minimumVertexCover = cover
         a.consistent = a.consistent && graph.isIndependentSet(mis) && graph.isVertexCover(cover) && mis.count + cover.count == graph.vertexCount
-            && a.independenceNumber == mis.count
+            && a.independenceNumber == mis.count && fast.count == mis.count && graph.isIndependentSet(fast)
     }
     if graph.vertexCount <= 16 {
-        let dominating = graph.minimumDominatingSet()
+        let dominating = graph.lexicographicallyFirstMinimumDominatingSet()
+        let fast = graph.minimumDominatingSet()
         a.minimumDominatingSet = dominating
-        a.consistent = a.consistent && graph.isDominatingSet(dominating)
+        a.consistent = a.consistent && graph.isDominatingSet(dominating) && fast.count == dominating.count && graph.isDominatingSet(fast)
     }
     if let cover = graph.minimumEdgeCover() {
         a.edgeCover = cover.map { [graph.edges[$0].u, graph.edges[$0].v] }
@@ -878,7 +881,7 @@ for c in cases {
             var cliques = CliqueAnswers()
             cliques.maximal = Array(graph.maximalCliques())
             cliques.cliqueNumber = graph.cliqueNumber()
-            cliques.maximum = graph.maximumClique()
+            cliques.maximum = graph.lexicographicallyFirstMaximumClique()
             let cores = graph.coreNumbers()
             cliques.cores = (0 ..< c.n).map { cores.coreNumber(of: $0) }
             // Each vertex has at most its core number of distinct neighbors after it in the ordering.

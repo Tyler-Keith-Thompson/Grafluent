@@ -35,14 +35,23 @@ struct DegenerateGraphTests {
         #expect(viaArcs.count == expected.count)
     }
 
-    @Test("CQ-002 U([]).maximumClique is []")
-    func maximumClique002() {
+    @Test("CQ-002 U([]).lexicographicallyFirstMaximumClique is []")
+    func lexicographicallyFirstMaximumClique002() {
         // U: []
         let graph = ReferencePseudograph<Int>(vertices: [], edges: [])
         let expected: [Int] = []
-        #expect(graph.maximumClique() == expected)
+        #expect(graph.lexicographicallyFirstMaximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directedView.undirectedView.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.lexicographicallyFirstMaximumClique() == expected)
+        // maximumClique(): some largest clique, in `vertices` order.
+        let clique = graph.maximumClique()
+        #expect(clique.count == expected.count)
+        let listed = Array(graph.vertices)
+        let positions = clique.map { listed.firstIndex(of: $0)! }
+        #expect(positions == positions.sorted() && Set(positions).count == positions.count)
+        let unjoined = clique.indices.flatMap { i in clique[(i + 1)...].filter { !graph.contains(edge: UndirectedEdge(clique[i], $0)) } }
+        #expect(unjoined.isEmpty, "\(clique) is not a clique")
+        #expect(graph.directedView.undirectedView.maximumClique().count == expected.count)
     }
 
     @Test("CQ-003 U([]).cliqueNumber is #0")
@@ -169,14 +178,23 @@ struct DegenerateGraphTests {
         #expect(viaArcs.count == expected.count)
     }
 
-    @Test("CQ-012 U([0]).maximumClique is [0]")
-    func maximumClique012() {
+    @Test("CQ-012 U([0]).lexicographicallyFirstMaximumClique is [0]")
+    func lexicographicallyFirstMaximumClique012() {
         // U: [0]
         let graph = ReferencePseudograph<Int>(vertices: [0], edges: [])
         let expected: [Int] = [0]
-        #expect(graph.maximumClique() == expected)
+        #expect(graph.lexicographicallyFirstMaximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directedView.undirectedView.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.lexicographicallyFirstMaximumClique() == expected)
+        // maximumClique(): some largest clique, in `vertices` order.
+        let clique = graph.maximumClique()
+        #expect(clique.count == expected.count)
+        let listed = Array(graph.vertices)
+        let positions = clique.map { listed.firstIndex(of: $0)! }
+        #expect(positions == positions.sorted() && Set(positions).count == positions.count)
+        let unjoined = clique.indices.flatMap { i in clique[(i + 1)...].filter { !graph.contains(edge: UndirectedEdge(clique[i], $0)) } }
+        #expect(unjoined.isEmpty, "\(clique) is not a clique")
+        #expect(graph.directedView.undirectedView.maximumClique().count == expected.count)
     }
 
     @Test("CQ-013 U([0]).cliqueNumber is #1")
@@ -304,15 +322,24 @@ struct DegenerateGraphTests {
         #expect(viaArcs.count == expected.count)
     }
 
-    @Test("CQ-022 U([0] 0-0).maximumClique is [0]")
-    func maximumClique022() {
+    @Test("CQ-022 U([0] 0-0).lexicographicallyFirstMaximumClique is [0]")
+    func lexicographicallyFirstMaximumClique022() {
         // U: [0] 0-0
         let pairs: [(Int, Int)] = [(0, 0)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let expected: [Int] = [0]
-        #expect(graph.maximumClique() == expected)
+        #expect(graph.lexicographicallyFirstMaximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directedView.undirectedView.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.lexicographicallyFirstMaximumClique() == expected)
+        // maximumClique(): some largest clique, in `vertices` order.
+        let clique = graph.maximumClique()
+        #expect(clique.count == expected.count)
+        let listed = Array(graph.vertices)
+        let positions = clique.map { listed.firstIndex(of: $0)! }
+        #expect(positions == positions.sorted() && Set(positions).count == positions.count)
+        let unjoined = clique.indices.flatMap { i in clique[(i + 1)...].filter { !graph.contains(edge: UndirectedEdge(clique[i], $0)) } }
+        #expect(unjoined.isEmpty, "\(clique) is not a clique")
+        #expect(graph.directedView.undirectedView.maximumClique().count == expected.count)
     }
 
     @Test("CQ-023 U([0] 0-0).cliqueNumber is #1")
@@ -447,14 +474,23 @@ struct DegenerateGraphTests {
         #expect(viaArcs.count == expected.count)
     }
 
-    @Test("CQ-032 U([0, 1]).maximumClique is [0]")
-    func maximumClique032() {
+    @Test("CQ-032 U([0, 1]).lexicographicallyFirstMaximumClique is [0]")
+    func lexicographicallyFirstMaximumClique032() {
         // U: [0, 1]
         let graph = ReferencePseudograph<Int>(vertices: [0, 1], edges: [])
         let expected: [Int] = [0]
-        #expect(graph.maximumClique() == expected)
+        #expect(graph.lexicographicallyFirstMaximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directedView.undirectedView.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.lexicographicallyFirstMaximumClique() == expected)
+        // maximumClique(): some largest clique, in `vertices` order.
+        let clique = graph.maximumClique()
+        #expect(clique.count == expected.count)
+        let listed = Array(graph.vertices)
+        let positions = clique.map { listed.firstIndex(of: $0)! }
+        #expect(positions == positions.sorted() && Set(positions).count == positions.count)
+        let unjoined = clique.indices.flatMap { i in clique[(i + 1)...].filter { !graph.contains(edge: UndirectedEdge(clique[i], $0)) } }
+        #expect(unjoined.isEmpty, "\(clique) is not a clique")
+        #expect(graph.directedView.undirectedView.maximumClique().count == expected.count)
     }
 
     @Test("CQ-033 U([0, 1]).cliqueNumber is #1")
@@ -582,15 +618,24 @@ struct DegenerateGraphTests {
         #expect(viaArcs.count == expected.count)
     }
 
-    @Test("CQ-042 U(0-1).maximumClique is [0, 1]")
-    func maximumClique042() {
+    @Test("CQ-042 U(0-1).lexicographicallyFirstMaximumClique is [0, 1]")
+    func lexicographicallyFirstMaximumClique042() {
         // U: 0-1
         let pairs: [(Int, Int)] = [(0, 1)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let expected: [Int] = [0, 1]
-        #expect(graph.maximumClique() == expected)
+        #expect(graph.lexicographicallyFirstMaximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directedView.undirectedView.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.lexicographicallyFirstMaximumClique() == expected)
+        // maximumClique(): some largest clique, in `vertices` order.
+        let clique = graph.maximumClique()
+        #expect(clique.count == expected.count)
+        let listed = Array(graph.vertices)
+        let positions = clique.map { listed.firstIndex(of: $0)! }
+        #expect(positions == positions.sorted() && Set(positions).count == positions.count)
+        let unjoined = clique.indices.flatMap { i in clique[(i + 1)...].filter { !graph.contains(edge: UndirectedEdge(clique[i], $0)) } }
+        #expect(unjoined.isEmpty, "\(clique) is not a clique")
+        #expect(graph.directedView.undirectedView.maximumClique().count == expected.count)
     }
 
     @Test("CQ-043 U(0-1).cliqueNumber is #2")
@@ -726,15 +771,24 @@ struct DegenerateGraphTests {
         #expect(viaArcs.count == expected.count)
     }
 
-    @Test("CQ-052 U(0-1, 0-1, 1-0).maximumClique is [0, 1]")
-    func maximumClique052() {
+    @Test("CQ-052 U(0-1, 0-1, 1-0).lexicographicallyFirstMaximumClique is [0, 1]")
+    func lexicographicallyFirstMaximumClique052() {
         // U: 0-1, 0-1, 1-0
         let pairs: [(Int, Int)] = [(0, 1), (0, 1), (1, 0)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let expected: [Int] = [0, 1]
-        #expect(graph.maximumClique() == expected)
+        #expect(graph.lexicographicallyFirstMaximumClique() == expected)
         #expect(graph.cliqueNumber() == expected.count)
-        #expect(graph.directedView.undirectedView.maximumClique() == expected)
+        #expect(graph.directedView.undirectedView.lexicographicallyFirstMaximumClique() == expected)
+        // maximumClique(): some largest clique, in `vertices` order.
+        let clique = graph.maximumClique()
+        #expect(clique.count == expected.count)
+        let listed = Array(graph.vertices)
+        let positions = clique.map { listed.firstIndex(of: $0)! }
+        #expect(positions == positions.sorted() && Set(positions).count == positions.count)
+        let unjoined = clique.indices.flatMap { i in clique[(i + 1)...].filter { !graph.contains(edge: UndirectedEdge(clique[i], $0)) } }
+        #expect(unjoined.isEmpty, "\(clique) is not a clique")
+        #expect(graph.directedView.undirectedView.maximumClique().count == expected.count)
     }
 
     @Test("CQ-053 U(0-1, 0-1, 1-0).cliqueNumber is #2")

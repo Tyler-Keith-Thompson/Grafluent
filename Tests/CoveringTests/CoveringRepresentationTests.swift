@@ -37,1575 +37,2073 @@ private struct UnindexedGraph<Vertex: Hashable>: Graph {
 struct CoveringRepresentationTests {
     @Test("CV-001 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv001() {
-        // V []; E []; maximumIndependentSet()
+        // V []; E []; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
             let graph = UnindexedGraph<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-002 one vertex, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv002() {
-        // V [0]; E []; maximumIndependentSet()
+        // V [0]; E []; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
             let graph = UnindexedGraph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-003 one vertex with a self-loop, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv003() {
-        // V [0]; E [0-0]; maximumIndependentSet()
+        // V [0]; E [0-0]; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = UnindexedGraph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-004 two isolated vertices, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv004() {
-        // V [0, 1]; E []; maximumIndependentSet()
+        // V [0, 1]; E []; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
             let graph = UnindexedGraph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-005 one edge: the lesser end, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv005() {
-        // V [0, 1]; E [0-1]; maximumIndependentSet()
+        // V [0, 1]; E [0-1]; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-006 self-loop excludes its vertex, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv006() {
-        // V [0, 1]; E [0-0, 0-1]; maximumIndependentSet()
+        // V [0, 1]; E [0-0, 0-1]; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 0), (0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 2)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 0), (0, 1)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 2)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1)]
             let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-007 parallel edges count once, on no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv007() {
-        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; maximumIndependentSet()
+        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; lexicographicallyFirstMaximumIndependentSet()
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-008 triangle, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv008() {
-        // K(3); maximumIndependentSet()
+        // K(3); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-009 K(5), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv009() {
-        // K(5); maximumIndependentSet()
+        // K(5); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 10)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 10)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-010 path P(2), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv010() {
-        // P(2); maximumIndependentSet()
+        // P(2); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-011 path P(4): {0,2} beats {0,3}, {1,3}, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv011() {
-        // P(4); maximumIndependentSet()
+        // P(4); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-012 path P(5), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv012() {
-        // P(5); maximumIndependentSet()
+        // P(5); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-013 path P(6), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv013() {
-        // P(6); maximumIndependentSet()
+        // P(6); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-014 cycle C(4), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv014() {
-        // C(4); maximumIndependentSet()
+        // C(4); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
             let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-015 cycle C(5), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv015() {
-        // C(5); maximumIndependentSet()
+        // C(5); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-016 cycle C(6), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv016() {
-        // C(6); maximumIndependentSet()
+        // C(6); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-017 cycle C(7), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv017() {
-        // C(7); maximumIndependentSet()
+        // C(7); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 7)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 7)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 0)]
             let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-018 star(4): the leaves, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv018() {
-        // star(4); maximumIndependentSet()
+        // star(4); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 2, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 2, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 2, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 2, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-019 wheel(5), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv019() {
-        // wheel(5); maximumIndependentSet()
+        // wheel(5); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 10)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 10)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 2), (2, 3), (3, 4), (4, 5), (5, 1)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 10)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-020 wheel(6), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv020() {
-        // wheel(6); maximumIndependentSet()
+        // wheel(6); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 12)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 3, 5] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 12)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 3, 5] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 3, 5] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 1)]
             let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 3, 5] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-021 Petersen, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv021() {
-        // nx(petersen_graph); maximumIndependentSet()
+        // nx(petersen_graph); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 15)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 8, 9] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 15)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 8, 9] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 8, 9] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 8, 9] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-022 grid(3,4), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv022() {
-        // grid(3,4); maximumIndependentSet()
+        // grid(3,4); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 17)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 5, 7, 8, 10] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 17)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 5, 7, 8, 10] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 17)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 5, 7, 8, 10] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (9, 10), (10, 11)]
             let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 17)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 5, 7, 8, 10] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-023 grid(5,5), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv023() {
-        // grid(5,5); maximumIndependentSet()
+        // grid(5,5); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 6), (5, 10), (6, 7), (6, 11), (7, 8), (7, 12), (8, 9), (8, 13), (9, 14), (10, 11), (10, 15), (11, 12), (11, 16), (12, 13), (12, 17), (13, 14), (13, 18), (14, 19), (15, 16), (15, 20), (16, 17), (16, 21), (17, 18), (17, 22), (18, 19), (18, 23), (19, 24), (20, 21), (21, 22), (22, 23), (23, 24)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 40)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 6), (5, 10), (6, 7), (6, 11), (7, 8), (7, 12), (8, 9), (8, 13), (9, 14), (10, 11), (10, 15), (11, 12), (11, 16), (12, 13), (12, 17), (13, 14), (13, 18), (14, 19), (15, 16), (15, 20), (16, 17), (16, 21), (17, 18), (17, 22), (18, 19), (18, 23), (19, 24), (20, 21), (21, 22), (22, 23), (23, 24)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 40)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 6), (5, 10), (6, 7), (6, 11), (7, 8), (7, 12), (8, 9), (8, 13), (9, 14), (10, 11), (10, 15), (11, 12), (11, 16), (12, 13), (12, 17), (13, 14), (13, 18), (14, 19), (15, 16), (15, 20), (16, 17), (16, 21), (17, 18), (17, 22), (18, 19), (18, 23), (19, 24), (20, 21), (21, 22), (22, 23), (23, 24)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 40)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 6), (5, 10), (6, 7), (6, 11), (7, 8), (7, 12), (8, 9), (8, 13), (9, 14), (10, 11), (10, 15), (11, 12), (11, 16), (12, 13), (12, 17), (13, 14), (13, 18), (14, 19), (15, 16), (15, 20), (16, 17), (16, 21), (17, 18), (17, 22), (18, 19), (18, 23), (19, 24), (20, 21), (21, 22), (22, 23), (23, 24)]
             let graph = AdjacencyMatrix(vertexCount: 25, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 40)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-024 Kb(2,3) as BipartiteGraph, on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv024() {
-        // Kb(2,3); maximumIndependentSet()
+        // Kb(2,3); lexicographicallyFirstMaximumIndependentSet()
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [2, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [2, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [2, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [2, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [2, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-025 Kb(3,3), on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv025() {
-        // Kb(3,3); maximumIndependentSet()
+        // Kb(3,3); lexicographicallyFirstMaximumIndependentSet()
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 9)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 9)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 9)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 9)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 9)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-026 mixed components: triangle, path, looped pendant, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv026() {
-        // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 1-2, 2-0, 3-4, 4-5, 6-6, 6-7]; maximumIndependentSet()
+        // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 1-2, 2-0, 3-4, 4-5, 6-6, 6-7]; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 7)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5, 7] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 7)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5, 7] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5, 7] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5, 7] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-027 vertex order, not label order, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func cv027() {
-        // V [d, a, c, b]; E [d-a, a-c, c-b]; maximumIndependentSet()
+        // V [d, a, c, b]; E [d-a, a-c, c-b]; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
             let graph = ReferencePseudograph<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == ["d", "c"] as [String])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
             let graph = UnindexedGraph<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == ["d", "c"] as [String])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
             let graph = AdjacencyList<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == ["d", "c"] as [String])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-028 bipartite, interleaved vertex order, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv028() {
-        // V [0, 1, 2, 3, 4, 5]; E [0-3, 3-1, 1-4, 4-2, 2-5]; maximumIndependentSet()
+        // V [0, 1, 2, 3, 4, 5]; E [0-3, 3-1, 1-4, 4-2, 2-5]; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 3), (3, 1), (1, 4), (4, 2), (2, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 3), (3, 1), (1, 4), (4, 2), (2, 5)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (3, 1), (1, 4), (4, 2), (2, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (3, 1), (1, 4), (4, 2), (2, 5)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-029 bipartite core: perfect matching, lattice choice, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv029() {
-        // V [0, 1, 2, 3, 4, 5]; E [0-1, 1-2, 2-3, 3-0, 0-5, 4-5]; maximumIndependentSet()
+        // V [0, 1, 2, 3, 4, 5]; E [0-1, 1-2, 2-3, 3-0, 0-5, 4-5]; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0), (0, 5), (4, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0), (0, 5), (4, 5)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0), (0, 5), (4, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0), (0, 5), (4, 5)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-030 odd cycle with pendant, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv030() {
-        // V [0, 1, 2, 3, 4, 5]; E [0-1, 1-2, 2-3, 3-4, 4-0, 2-5]; maximumIndependentSet()
+        // V [0, 1, 2, 3, 4, 5]; E [0-1, 1-2, 2-3, 3-4, 4-0, 2-5]; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (2, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (2, 5)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (2, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0), (2, 5)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-031 all vertices looped, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv031() {
-        // V [0, 1, 2]; E [0-0, 1-1, 2-2, 0-1]; maximumIndependentSet()
+        // V [0, 1, 2]; E [0-0, 1-1, 2-2, 0-1]; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 0), (1, 1), (2, 2), (0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 0), (1, 1), (2, 2), (0, 1)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (1, 1), (2, 2), (0, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (1, 1), (2, 2), (0, 1)]
             let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 4)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-032 loop in a bipartite piece splits it, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv032() {
-        // V [0, 1, 2, 3, 4]; E [0-1, 1-2, 2-3, 3-4, 2-2]; maximumIndependentSet()
+        // V [0, 1, 2, 3, 4]; E [0-1, 1-2, 2-3, 3-4, 2-2]; lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (2, 2)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (2, 2)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (2, 2)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (2, 2)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-033 nx(bull_graph), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv033() {
-        // nx(bull_graph); maximumIndependentSet()
+        // nx(bull_graph); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 4)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 4] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-034 nx(house_graph), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv034() {
-        // nx(house_graph); maximumIndependentSet()
+        // nx(house_graph); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 4)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 4)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 4)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-035 nx(krackhardt_kite_graph), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv035() {
-        // nx(krackhardt_kite_graph); maximumIndependentSet()
+        // nx(krackhardt_kite_graph); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 5), (1, 3), (1, 4), (1, 6), (2, 3), (2, 5), (3, 4), (3, 5), (3, 6), (4, 6), (5, 6), (5, 7), (6, 7), (7, 8), (8, 9)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 18)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 4, 7, 9] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 5), (1, 3), (1, 4), (1, 6), (2, 3), (2, 5), (3, 4), (3, 5), (3, 6), (4, 6), (5, 6), (5, 7), (6, 7), (7, 8), (8, 9)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 18)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 4, 7, 9] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 5), (1, 3), (1, 4), (1, 6), (2, 3), (2, 5), (3, 4), (3, 5), (3, 6), (4, 6), (5, 6), (5, 7), (6, 7), (7, 8), (8, 9)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 4, 7, 9] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 5), (1, 3), (1, 4), (1, 6), (2, 3), (2, 5), (3, 4), (3, 5), (3, 6), (4, 6), (5, 6), (5, 7), (6, 7), (7, 8), (8, 9)]
             let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 4, 7, 9] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-036 nx(frucht_graph), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv036() {
-        // nx(frucht_graph); maximumIndependentSet()
+        // nx(frucht_graph); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 6), (0, 7), (1, 2), (1, 7), (2, 3), (2, 8), (3, 4), (3, 9), (4, 5), (4, 9), (5, 6), (5, 10), (6, 10), (7, 11), (8, 11), (8, 9), (10, 11)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 18)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 5, 9, 11] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 6), (0, 7), (1, 2), (1, 7), (2, 3), (2, 8), (3, 4), (3, 9), (4, 5), (4, 9), (5, 6), (5, 10), (6, 10), (7, 11), (8, 11), (8, 9), (10, 11)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 18)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 5, 9, 11] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 6), (0, 7), (1, 2), (1, 7), (2, 3), (2, 8), (3, 4), (3, 9), (4, 5), (4, 9), (5, 6), (5, 10), (6, 10), (7, 11), (8, 11), (8, 9), (10, 11)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 5, 9, 11] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 6), (0, 7), (1, 2), (1, 7), (2, 3), (2, 8), (3, 4), (3, 9), (4, 5), (4, 9), (5, 6), (5, 10), (6, 10), (7, 11), (8, 11), (8, 9), (10, 11)]
             let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 2, 5, 9, 11] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-037 lcg(12,20,1), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv037() {
-        // lcg(12,20,1); maximumIndependentSet()
+        // lcg(12,20,1); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 20)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 2, 3, 5, 8, 11] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 20)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 2, 3, 5, 8, 11] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 2, 3, 5, 8, 11] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(2, 9), (0, 6), (6, 11), (2, 10), (9, 10), (3, 10), (2, 4), (10, 11), (4, 9), (7, 1), (2, 6), (9, 8), (0, 8), (0, 5), (6, 10), (4, 1), (11, 4), (0, 9), (6, 4), (8, 10)]
             let graph = AdjacencyMatrix(vertexCount: 12, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [1, 2, 3, 5, 8, 11] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-038 lcg(16,30,2), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv038() {
-        // lcg(16,30,2); maximumIndependentSet()
+        // lcg(16,30,2); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(12, 10), (7, 11), (12, 6), (1, 10), (7, 2), (0, 10), (10, 13), (14, 7), (8, 6), (13, 6), (7, 10), (15, 3), (6, 4), (11, 9), (1, 12), (8, 4), (15, 12), (12, 4), (0, 15), (10, 14), (11, 1), (14, 12), (8, 9), (2, 11), (2, 14), (2, 5), (5, 1), (3, 12), (0, 1), (3, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 30)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5, 8, 11, 13, 14] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(12, 10), (7, 11), (12, 6), (1, 10), (7, 2), (0, 10), (10, 13), (14, 7), (8, 6), (13, 6), (7, 10), (15, 3), (6, 4), (11, 9), (1, 12), (8, 4), (15, 12), (12, 4), (0, 15), (10, 14), (11, 1), (14, 12), (8, 9), (2, 11), (2, 14), (2, 5), (5, 1), (3, 12), (0, 1), (3, 4)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 30)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5, 8, 11, 13, 14] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(12, 10), (7, 11), (12, 6), (1, 10), (7, 2), (0, 10), (10, 13), (14, 7), (8, 6), (13, 6), (7, 10), (15, 3), (6, 4), (11, 9), (1, 12), (8, 4), (15, 12), (12, 4), (0, 15), (10, 14), (11, 1), (14, 12), (8, 9), (2, 11), (2, 14), (2, 5), (5, 1), (3, 12), (0, 1), (3, 4)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 30)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5, 8, 11, 13, 14] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(12, 10), (7, 11), (12, 6), (1, 10), (7, 2), (0, 10), (10, 13), (14, 7), (8, 6), (13, 6), (7, 10), (15, 3), (6, 4), (11, 9), (1, 12), (8, 4), (15, 12), (12, 4), (0, 15), (10, 14), (11, 1), (14, 12), (8, 9), (2, 11), (2, 14), (2, 5), (5, 1), (3, 12), (0, 1), (3, 4)]
             let graph = AdjacencyMatrix(vertexCount: 16, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 30)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 3, 5, 8, 11, 13, 14] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-039 lcg(24,40,3), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv039() {
-        // lcg(24,40,3); maximumIndependentSet()
+        // lcg(24,40,3); lexicographicallyFirstMaximumIndependentSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(11, 19), (11, 10), (12, 11), (7, 5), (17, 9), (19, 18), (8, 21), (22, 17), (3, 19), (7, 8), (5, 22), (11, 18), (5, 11), (13, 6), (23, 7), (17, 0), (9, 15), (12, 19), (7, 21), (12, 22), (12, 17), (5, 1), (13, 2), (5, 10), (10, 17), (23, 10), (8, 5), (19, 14), (1, 13), (11, 3), (11, 1), (23, 3), (12, 18), (11, 14), (21, 12), (2, 14), (12, 15), (21, 1), (21, 3), (12, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 40)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2, 3, 4, 6, 7, 9, 10, 16, 18, 20, 22] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(11, 19), (11, 10), (12, 11), (7, 5), (17, 9), (19, 18), (8, 21), (22, 17), (3, 19), (7, 8), (5, 22), (11, 18), (5, 11), (13, 6), (23, 7), (17, 0), (9, 15), (12, 19), (7, 21), (12, 22), (12, 17), (5, 1), (13, 2), (5, 10), (10, 17), (23, 10), (8, 5), (19, 14), (1, 13), (11, 3), (11, 1), (23, 3), (12, 18), (11, 14), (21, 12), (2, 14), (12, 15), (21, 1), (21, 3), (12, 0)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 40)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2, 3, 4, 6, 7, 9, 10, 16, 18, 20, 22] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(11, 19), (11, 10), (12, 11), (7, 5), (17, 9), (19, 18), (8, 21), (22, 17), (3, 19), (7, 8), (5, 22), (11, 18), (5, 11), (13, 6), (23, 7), (17, 0), (9, 15), (12, 19), (7, 21), (12, 22), (12, 17), (5, 1), (13, 2), (5, 10), (10, 17), (23, 10), (8, 5), (19, 14), (1, 13), (11, 3), (11, 1), (23, 3), (12, 18), (11, 14), (21, 12), (2, 14), (12, 15), (21, 1), (21, 3), (12, 0)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 40)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2, 3, 4, 6, 7, 9, 10, 16, 18, 20, 22] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(11, 19), (11, 10), (12, 11), (7, 5), (17, 9), (19, 18), (8, 21), (22, 17), (3, 19), (7, 8), (5, 22), (11, 18), (5, 11), (13, 6), (23, 7), (17, 0), (9, 15), (12, 19), (7, 21), (12, 22), (12, 17), (5, 1), (13, 2), (5, 10), (10, 17), (23, 10), (8, 5), (19, 14), (1, 13), (11, 3), (11, 1), (23, 3), (12, 18), (11, 14), (21, 12), (2, 14), (12, 15), (21, 1), (21, 3), (12, 0)]
             let graph = AdjacencyMatrix(vertexCount: 24, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 40)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [0, 1, 2, 3, 4, 6, 7, 9, 10, 16, 18, 20, 22] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-040 lcgb(6,7,15,4) as BipartiteGraph, on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv040() {
-        // lcgb(6,7,15,4); maximumIndependentSet()
+        // lcgb(6,7,15,4); lexicographicallyFirstMaximumIndependentSet()
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(2, 12), (4, 7), (5, 10), (1, 11), (1, 7), (5, 12), (0, 12), (0, 9), (0, 11), (3, 7), (2, 11), (3, 6), (1, 8), (0, 6), (3, 11)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 15)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [4, 6, 8, 9, 10, 11, 12] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(2, 12), (4, 7), (5, 10), (1, 11), (1, 7), (5, 12), (0, 12), (0, 9), (0, 11), (3, 7), (2, 11), (3, 6), (1, 8), (0, 6), (3, 11)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 15)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [4, 6, 8, 9, 10, 11, 12] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(2, 12), (4, 7), (5, 10), (1, 11), (1, 7), (5, 12), (0, 12), (0, 9), (0, 11), (3, 7), (2, 11), (3, 6), (1, 8), (0, 6), (3, 11)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 15)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [4, 6, 8, 9, 10, 11, 12] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(2, 12), (4, 7), (5, 10), (1, 11), (1, 7), (5, 12), (0, 12), (0, 9), (0, 11), (3, 7), (2, 11), (3, 6), (1, 8), (0, 6), (3, 11)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [4, 6, 8, 9, 10, 11, 12] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(2, 12), (4, 7), (5, 10), (1, 11), (1, 7), (5, 12), (0, 12), (0, 9), (0, 11), (3, 7), (2, 11), (3, 6), (1, 8), (0, 6), (3, 11)]
             let graph = AdjacencyMatrix(vertexCount: 13, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [4, 6, 8, 9, 10, 11, 12] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
     @Test("CV-041 lcgb(10,10,25,5), on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv041() {
-        // lcgb(10,10,25,5); maximumIndependentSet()
+        // lcgb(10,10,25,5); lexicographicallyFirstMaximumIndependentSet()
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(2, 13), (4, 15), (5, 11), (9, 19), (0, 14), (5, 14), (8, 11), (3, 17), (8, 13), (2, 10), (8, 12), (1, 14), (0, 19), (5, 13), (5, 19), (0, 11), (4, 18), (0, 10), (4, 16), (8, 14), (7, 16), (1, 17), (1, 12), (1, 15), (1, 18)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 25)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [3, 6, 7, 9, 10, 11, 12, 13, 14, 15, 18] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(2, 13), (4, 15), (5, 11), (9, 19), (0, 14), (5, 14), (8, 11), (3, 17), (8, 13), (2, 10), (8, 12), (1, 14), (0, 19), (5, 13), (5, 19), (0, 11), (4, 18), (0, 10), (4, 16), (8, 14), (7, 16), (1, 17), (1, 12), (1, 15), (1, 18)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 25)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [3, 6, 7, 9, 10, 11, 12, 13, 14, 15, 18] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(2, 13), (4, 15), (5, 11), (9, 19), (0, 14), (5, 14), (8, 11), (3, 17), (8, 13), (2, 10), (8, 12), (1, 14), (0, 19), (5, 13), (5, 19), (0, 11), (4, 18), (0, 10), (4, 16), (8, 14), (7, 16), (1, 17), (1, 12), (1, 15), (1, 18)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 25)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [3, 6, 7, 9, 10, 11, 12, 13, 14, 15, 18] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(2, 13), (4, 15), (5, 11), (9, 19), (0, 14), (5, 14), (8, 11), (3, 17), (8, 13), (2, 10), (8, 12), (1, 14), (0, 19), (5, 13), (5, 19), (0, 11), (4, 18), (0, 10), (4, 16), (8, 14), (7, 16), (1, 17), (1, 12), (1, 15), (1, 18)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 25)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [3, 6, 7, 9, 10, 11, 12, 13, 14, 15, 18] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(2, 13), (4, 15), (5, 11), (9, 19), (0, 14), (5, 14), (8, 11), (3, 17), (8, 13), (2, 10), (8, 12), (1, 14), (0, 19), (5, 13), (5, 19), (0, 11), (4, 18), (0, 10), (4, 16), (8, 14), (7, 16), (1, 17), (1, 12), (1, 15), (1, 18)]
             let graph = AdjacencyMatrix(vertexCount: 20, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 25)
-            let result = graph.maximumIndependentSet()
+            let result = graph.lexicographicallyFirstMaximumIndependentSet()
             #expect(result == [3, 6, 7, 9, 10, 11, 12, 13, 14, 15, 18] as [Int])
             #expect(graph.isIndependentSet(result))
+            let other = graph.maximumIndependentSet()
+            #expect(other.count == result.count)
+            #expect(graph.isIndependentSet(other))
         }
     }
 
@@ -1851,14 +2349,16 @@ struct CoveringRepresentationTests {
 
     @Test("CV-050 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv050() {
-        // V []; E []; minimumVertexCover()
+        // V []; E []; minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [] as [Int])
+            #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -1866,37 +2366,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 0)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [] as [Int])
+            #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [] as [Int])
+            #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [] as [Int])
+            #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [] as [Int])
         }
     }
 
     @Test("CV-051 one vertex, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv051() {
-        // V [0]; E []; minimumVertexCover()
+        // V [0]; E []; minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [] as [Int])
+            #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
@@ -1904,37 +2412,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 0)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [] as [Int])
+            #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [] as [Int])
+            #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [] as [Int])
+            #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [] as [Int])
         }
     }
 
     @Test("CV-052 self-loop: its vertex, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv052() {
-        // V [0]; E [0-0]; minimumVertexCover()
+        // V [0]; E [0-0]; minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 1)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 0)]
@@ -1942,37 +2458,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 1)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
     }
 
     @Test("CV-053 one edge: the greater end, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv053() {
-        // V [0, 1]; E [0-1]; minimumVertexCover()
+        // V [0, 1]; E [0-1]; minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 1)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1)]
@@ -1980,37 +2504,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 1)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1] as [Int])
         }
     }
 
     @Test("CV-054 loop and edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv054() {
-        // V [0, 1]; E [0-0, 0-1]; minimumVertexCover()
+        // V [0, 1]; E [0-0, 0-1]; minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 0), (0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 2)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 0), (0, 1)]
@@ -2018,67 +2550,81 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 2)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0), (0, 1)]
             let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
     }
 
     @Test("CV-055 parallel edges, on no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv055() {
-        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; minimumVertexCover()
+        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; minimumVertexCover().count
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1] as [Int])
         }
     }
 
     @Test("CV-056 triangle, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv056() {
-        // K(3); minimumVertexCover()
+        // K(3); minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
@@ -2086,37 +2632,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2] as [Int])
         }
     }
 
     @Test("CV-057 K(4), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv057() {
-        // K(4); minimumVertexCover()
+        // K(4); minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2, 3] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2, 3] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
@@ -2124,37 +2678,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2, 3] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2, 3] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2, 3] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2, 3] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2, 3] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2, 3] as [Int])
         }
     }
 
     @Test("CV-058 P(4), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv058() {
-        // P(4); minimumVertexCover()
+        // P(4); minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
@@ -2162,37 +2724,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3] as [Int])
         }
     }
 
     @Test("CV-059 C(5), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv059() {
-        // C(5); minimumVertexCover()
+        // C(5); minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 4] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 4] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -2200,37 +2770,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 4] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 4] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 4] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 4] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 4] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 4] as [Int])
         }
     }
 
     @Test("CV-060 star(5): the hub, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv060() {
-        // star(5); minimumVertexCover()
+        // star(5); minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
@@ -2238,37 +2816,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0] as [Int])
+            #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0] as [Int])
         }
     }
 
     @Test("CV-061 Petersen: 6, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv061() {
-        // nx(petersen_graph); minimumVertexCover()
+        // nx(petersen_graph); minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 15)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 4, 5, 6, 7] as [Int])
+            #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 4, 5, 6, 7] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
@@ -2276,45 +2862,55 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 15)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 4, 5, 6, 7] as [Int])
+            #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 4, 5, 6, 7] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 4, 5, 6, 7] as [Int])
+            #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 4, 5, 6, 7] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 4, 5, 6, 7] as [Int])
+            #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 4, 5, 6, 7] as [Int])
         }
     }
 
     @Test("CV-062 Kb(2,3): the left side, on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv062() {
-        // Kb(2,3); minimumVertexCover()
+        // Kb(2,3); minimumVertexCover().count
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 1] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 1] as [Int])
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 1] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 1] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
@@ -2322,45 +2918,55 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 1] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 1] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 1] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 1] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 1] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 1] as [Int])
         }
     }
 
     @Test("CV-063 Kb(3,2): the right side, on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv063() {
-        // Kb(3,2); minimumVertexCover()
+        // Kb(3,2); minimumVertexCover().count
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (1, 3), (1, 4), (2, 3), (2, 4)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [3, 4] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [3, 4] as [Int])
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (1, 3), (1, 4), (2, 3), (2, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [3, 4] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [3, 4] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (1, 3), (1, 4), (2, 3), (2, 4)]
@@ -2368,45 +2974,55 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [3, 4] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [3, 4] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (1, 3), (1, 4), (2, 3), (2, 4)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [3, 4] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [3, 4] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (1, 3), (1, 4), (2, 3), (2, 4)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [3, 4] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [3, 4] as [Int])
         }
     }
 
     @Test("CV-064 L [0,1,2]; R [3,4,5]: lex vs Koenig, on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv064() {
-        // L [0, 1, 2]; R [3, 4, 5]; E [0-3, 1-3, 1-4, 2-4, 2-5]; minimumVertexCover()
+        // L [0, 1, 2]; R [3, 4, 5]; E [0-3, 1-3, 1-4, 2-4, 2-5]; minimumVertexCover().count
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(0, 3), (1, 3), (1, 4), (2, 4), (2, 5)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [3, 4, 5] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [3, 4, 5] as [Int])
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 3), (1, 3), (1, 4), (2, 4), (2, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [3, 4, 5] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [3, 4, 5] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 3), (1, 3), (1, 4), (2, 4), (2, 5)]
@@ -2414,45 +3030,55 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [3, 4, 5] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [3, 4, 5] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (1, 3), (1, 4), (2, 4), (2, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [3, 4, 5] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [3, 4, 5] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 3), (1, 3), (1, 4), (2, 4), (2, 5)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [3, 4, 5] as [Int])
+            #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [3, 4, 5] as [Int])
         }
     }
 
     @Test("CV-065 BipartiteGraph with an isolated right vertex, on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv065() {
-        // L [0, 1]; R [2, 3, 4]; E [0-2, 1-2, 1-3]; minimumVertexCover()
+        // L [0, 1]; R [2, 3, 4]; E [0-2, 1-2, 1-3]; minimumVertexCover().count
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(0, 2), (1, 2), (1, 3)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [2, 3] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [2, 3] as [Int])
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 2), (1, 2), (1, 3)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [2, 3] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [2, 3] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 2), (1, 2), (1, 3)]
@@ -2460,45 +3086,55 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [2, 3] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [2, 3] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 2), (1, 2), (1, 3)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [2, 3] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [2, 3] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 2), (1, 2), (1, 3)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [2, 3] as [Int])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [2, 3] as [Int])
         }
     }
 
     @Test("CV-066 lcgb(8,6,18,7), on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv066() {
-        // lcgb(8,6,18,7); minimumVertexCover()
+        // lcgb(8,6,18,7); minimumVertexCover().count
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(6, 13), (1, 13), (0, 8), (3, 12), (3, 11), (0, 10), (5, 12), (5, 11), (4, 13), (0, 9), (6, 8), (5, 8), (0, 13), (6, 9), (5, 13), (1, 9), (4, 8), (4, 10)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 18)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [8, 9, 10, 11, 12, 13] as [Int])
+            #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [8, 9, 10, 11, 12, 13] as [Int])
         }
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(6, 13), (1, 13), (0, 8), (3, 12), (3, 11), (0, 10), (5, 12), (5, 11), (4, 13), (0, 9), (6, 8), (5, 8), (0, 13), (6, 9), (5, 13), (1, 9), (4, 8), (4, 10)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 18)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [8, 9, 10, 11, 12, 13] as [Int])
+            #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [8, 9, 10, 11, 12, 13] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(6, 13), (1, 13), (0, 8), (3, 12), (3, 11), (0, 10), (5, 12), (5, 11), (4, 13), (0, 9), (6, 8), (5, 8), (0, 13), (6, 9), (5, 13), (1, 9), (4, 8), (4, 10)]
@@ -2506,37 +3142,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 18)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [8, 9, 10, 11, 12, 13] as [Int])
+            #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [8, 9, 10, 11, 12, 13] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(6, 13), (1, 13), (0, 8), (3, 12), (3, 11), (0, 10), (5, 12), (5, 11), (4, 13), (0, 9), (6, 8), (5, 8), (0, 13), (6, 9), (5, 13), (1, 9), (4, 8), (4, 10)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [8, 9, 10, 11, 12, 13] as [Int])
+            #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [8, 9, 10, 11, 12, 13] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(6, 13), (1, 13), (0, 8), (3, 12), (3, 11), (0, 10), (5, 12), (5, 11), (4, 13), (0, 9), (6, 8), (5, 8), (0, 13), (6, 9), (5, 13), (1, 9), (4, 8), (4, 10)]
             let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [8, 9, 10, 11, 12, 13] as [Int])
+            #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [8, 9, 10, 11, 12, 13] as [Int])
         }
     }
 
     @Test("CV-067 grid(4,5), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv067() {
-        // grid(4,5); minimumVertexCover()
+        // grid(4,5); minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 6), (5, 10), (6, 7), (6, 11), (7, 8), (7, 12), (8, 9), (8, 13), (9, 14), (10, 11), (10, 15), (11, 12), (11, 16), (12, 13), (12, 17), (13, 14), (13, 18), (14, 19), (15, 16), (16, 17), (17, 18), (18, 19)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 31)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] as [Int])
+            #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 6), (5, 10), (6, 7), (6, 11), (7, 8), (7, 12), (8, 9), (8, 13), (9, 14), (10, 11), (10, 15), (11, 12), (11, 16), (12, 13), (12, 17), (13, 14), (13, 18), (14, 19), (15, 16), (16, 17), (17, 18), (18, 19)]
@@ -2544,37 +3188,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 31)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] as [Int])
+            #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 6), (5, 10), (6, 7), (6, 11), (7, 8), (7, 12), (8, 9), (8, 13), (9, 14), (10, 11), (10, 15), (11, 12), (11, 16), (12, 13), (12, 17), (13, 14), (13, 18), (14, 19), (15, 16), (16, 17), (17, 18), (18, 19)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 31)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] as [Int])
+            #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 6), (5, 10), (6, 7), (6, 11), (7, 8), (7, 12), (8, 9), (8, 13), (9, 14), (10, 11), (10, 15), (11, 12), (11, 16), (12, 13), (12, 17), (13, 14), (13, 18), (14, 19), (15, 16), (16, 17), (17, 18), (18, 19)]
             let graph = AdjacencyMatrix(vertexCount: 20, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 31)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] as [Int])
+            #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 3, 5, 7, 9, 11, 13, 15, 17, 19] as [Int])
         }
     }
 
     @Test("CV-068 mixed components, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv068() {
-        // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 1-2, 2-0, 3-4, 4-5, 6-6, 6-7]; minimumVertexCover()
+        // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 1-2, 2-0, 3-4, 4-5, 6-6, 6-7]; minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 7)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2, 4, 6] as [Int])
+            #expect(cover.count == 4)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2, 4, 6] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
@@ -2582,37 +3234,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 7)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2, 4, 6] as [Int])
+            #expect(cover.count == 4)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2, 4, 6] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2, 4, 6] as [Int])
+            #expect(cover.count == 4)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2, 4, 6] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [1, 2, 4, 6] as [Int])
+            #expect(cover.count == 4)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [1, 2, 4, 6] as [Int])
         }
     }
 
     @Test("CV-069 letters, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func cv069() {
-        // V [d, a, c, b]; E [d-a, a-c, c-b]; minimumVertexCover()
+        // V [d, a, c, b]; E [d-a, a-c, c-b]; minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
             let graph = ReferencePseudograph<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == ["a", "b"] as [String])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == ["a", "b"] as [String])
         }
         do { // no indices
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
@@ -2620,29 +3280,35 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == ["a", "b"] as [String])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == ["a", "b"] as [String])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
             let graph = AdjacencyList<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
             let cover = graph.minimumVertexCover()
-            #expect(cover == ["a", "b"] as [String])
+            #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == ["a", "b"] as [String])
         }
     }
 
     @Test("CV-070 lcg(18,35,8), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv070() {
-        // lcg(18,35,8); minimumVertexCover()
+        // lcg(18,35,8); minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(4, 6), (14, 7), (14, 5), (16, 5), (1, 11), (9, 1), (2, 7), (13, 14), (12, 5), (6, 0), (11, 15), (16, 4), (3, 10), (4, 7), (11, 9), (16, 15), (6, 16), (0, 12), (15, 13), (12, 15), (17, 0), (2, 5), (1, 17), (15, 10), (11, 6), (15, 3), (10, 4), (8, 14), (5, 1), (4, 11), (11, 7), (15, 9), (10, 9), (5, 4), (13, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 35)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 1, 5, 6, 7, 10, 11, 14, 15, 16] as [Int])
+            #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 1, 5, 6, 7, 10, 11, 14, 15, 16] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(4, 6), (14, 7), (14, 5), (16, 5), (1, 11), (9, 1), (2, 7), (13, 14), (12, 5), (6, 0), (11, 15), (16, 4), (3, 10), (4, 7), (11, 9), (16, 15), (6, 16), (0, 12), (15, 13), (12, 15), (17, 0), (2, 5), (1, 17), (15, 10), (11, 6), (15, 3), (10, 4), (8, 14), (5, 1), (4, 11), (11, 7), (15, 9), (10, 9), (5, 4), (13, 5)]
@@ -2650,37 +3316,45 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 35)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 1, 5, 6, 7, 10, 11, 14, 15, 16] as [Int])
+            #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 1, 5, 6, 7, 10, 11, 14, 15, 16] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(4, 6), (14, 7), (14, 5), (16, 5), (1, 11), (9, 1), (2, 7), (13, 14), (12, 5), (6, 0), (11, 15), (16, 4), (3, 10), (4, 7), (11, 9), (16, 15), (6, 16), (0, 12), (15, 13), (12, 15), (17, 0), (2, 5), (1, 17), (15, 10), (11, 6), (15, 3), (10, 4), (8, 14), (5, 1), (4, 11), (11, 7), (15, 9), (10, 9), (5, 4), (13, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 35)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 1, 5, 6, 7, 10, 11, 14, 15, 16] as [Int])
+            #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 1, 5, 6, 7, 10, 11, 14, 15, 16] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(4, 6), (14, 7), (14, 5), (16, 5), (1, 11), (9, 1), (2, 7), (13, 14), (12, 5), (6, 0), (11, 15), (16, 4), (3, 10), (4, 7), (11, 9), (16, 15), (6, 16), (0, 12), (15, 13), (12, 15), (17, 0), (2, 5), (1, 17), (15, 10), (11, 6), (15, 3), (10, 4), (8, 14), (5, 1), (4, 11), (11, 7), (15, 9), (10, 9), (5, 4), (13, 5)]
             let graph = AdjacencyMatrix(vertexCount: 18, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 35)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 1, 5, 6, 7, 10, 11, 14, 15, 16] as [Int])
+            #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 1, 5, 6, 7, 10, 11, 14, 15, 16] as [Int])
         }
     }
 
     @Test("CV-071 wheel(7), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv071() {
-        // wheel(7); minimumVertexCover()
+        // wheel(7); minimumVertexCover().count
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 14)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 2, 4, 6, 7] as [Int])
+            #expect(cover.count == 5)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 2, 4, 6, 7] as [Int])
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 1)]
@@ -2688,24 +3362,30 @@ struct CoveringRepresentationTests {
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 14)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 2, 4, 6, 7] as [Int])
+            #expect(cover.count == 5)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 2, 4, 6, 7] as [Int])
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 14)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 2, 4, 6, 7] as [Int])
+            #expect(cover.count == 5)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 2, 4, 6, 7] as [Int])
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 1)]
             let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 14)
             let cover = graph.minimumVertexCover()
-            #expect(cover == [0, 2, 4, 6, 7] as [Int])
+            #expect(cover.count == 5)
             #expect(graph.isVertexCover(cover))
+            let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()
+            #expect(Array(graph.vertices).filter { !leastSet.contains($0) } == [0, 2, 4, 6, 7] as [Int])
         }
     }
 
@@ -4895,707 +5575,929 @@ struct CoveringRepresentationTests {
 
     @Test("CV-129 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv129() {
-        // V []; E []; minimumDominatingSet()
+        // V []; E []; lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
             let graph = UnindexedGraph<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-130 one vertex, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv130() {
-        // V [0]; E []; minimumDominatingSet()
+        // V [0]; E []; lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
             let graph = UnindexedGraph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-131 self-loop, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv131() {
-        // V [0]; E [0-0]; minimumDominatingSet()
+        // V [0]; E [0-0]; lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 1)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = UnindexedGraph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 1)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-132 two isolated, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv132() {
-        // V [0, 1]; E []; minimumDominatingSet()
+        // V [0, 1]; E []; lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 1] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = []
             let graph = UnindexedGraph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 1] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 1] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 1] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-133 one edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv133() {
-        // V [0, 1]; E [0-1]; minimumDominatingSet()
+        // V [0, 1]; E [0-1]; lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 1)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 1)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-134 parallel edges, on no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv134() {
-        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; minimumDominatingSet()
+        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; lexicographicallyFirstMinimumDominatingSet()
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-135 P(3): the middle, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv135() {
-        // P(3); minimumDominatingSet()
+        // P(3); lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 2)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 2)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-136 P(4), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv136() {
-        // P(4); minimumDominatingSet()
+        // P(4); lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-137 P(7), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv137() {
-        // P(7); minimumDominatingSet()
+        // P(7); lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 5] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 5] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 5] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)]
             let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 5] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-138 C(6), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv138() {
-        // C(6); minimumDominatingSet()
+        // C(6); lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 3] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-139 star(5): the hub, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv139() {
-        // star(5); minimumDominatingSet()
+        // star(5); lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-140 K(4), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv140() {
-        // K(4); minimumDominatingSet()
+        // K(4); lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-141 Petersen: 3, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv141() {
-        // nx(petersen_graph); minimumDominatingSet()
+        // nx(petersen_graph); lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 15)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 6] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 15)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 6] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 6] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 6] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-142 grid(3,3), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv142() {
-        // grid(3,3); minimumDominatingSet()
+        // grid(3,3); lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 12)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 7] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 12)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 7] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 7] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 3), (1, 2), (1, 4), (2, 5), (3, 4), (3, 6), (4, 5), (4, 7), (5, 8), (6, 7), (7, 8)]
             let graph = AdjacencyMatrix(vertexCount: 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 12)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 2, 7] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-143 grid(4,4), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv143() {
-        // grid(4,4); minimumDominatingSet()
+        // grid(4,4); lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (8, 12), (9, 10), (9, 13), (10, 11), (10, 14), (11, 15), (12, 13), (13, 14), (14, 15)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 24)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 7, 8, 14] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (8, 12), (9, 10), (9, 13), (10, 11), (10, 14), (11, 15), (12, 13), (13, 14), (14, 15)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 24)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 7, 8, 14] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (8, 12), (9, 10), (9, 13), (10, 11), (10, 14), (11, 15), (12, 13), (13, 14), (14, 15)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 24)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 7, 8, 14] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (1, 2), (1, 5), (2, 3), (2, 6), (3, 7), (4, 5), (4, 8), (5, 6), (5, 9), (6, 7), (6, 10), (7, 11), (8, 9), (8, 12), (9, 10), (9, 13), (10, 11), (10, 14), (11, 15), (12, 13), (13, 14), (14, 15)]
             let graph = AdjacencyMatrix(vertexCount: 16, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 24)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 7, 8, 14] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-144 mixed components, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv144() {
-        // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 1-2, 2-0, 3-4, 4-5, 6-6, 6-7]; minimumDominatingSet()
+        // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 1-2, 2-0, 3-4, 4-5, 6-6, 6-7]; lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 7)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 4, 6] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 7)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 4, 6] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 4, 6] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [0, 4, 6] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-145 letters, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func cv145() {
-        // V [d, a, c, b]; E [d-a, a-c, c-b]; minimumDominatingSet()
+        // V [d, a, c, b]; E [d-a, a-c, c-b]; lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
             let graph = ReferencePseudograph<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == ["d", "c"] as [String])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
             let graph = UnindexedGraph<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == ["d", "c"] as [String])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
             let graph = AdjacencyList<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == ["d", "c"] as [String])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-146 three branches, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv146() {
-        // V [0, 1, 2, 3, 4, 5, 6]; E [0-1, 0-2, 0-3, 1-4, 2-5, 3-6, 1-2, 2-3]; minimumDominatingSet()
+        // V [0, 1, 2, 3, 4, 5, 6]; E [0-1, 0-2, 0-3, 1-4, 2-5, 3-6, 1-2, 2-3]; lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 4), (2, 5), (3, 6), (1, 2), (2, 3)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 8)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 2, 3] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 4), (2, 5), (3, 6), (1, 2), (2, 3)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 8)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 2, 3] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 4), (2, 5), (3, 6), (1, 2), (2, 3)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 8)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 2, 3] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 4), (2, 5), (3, 6), (1, 2), (2, 3)]
             let graph = AdjacencyMatrix(vertexCount: 7, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 8)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 2, 3] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 
     @Test("CV-147 lcg(14,20,10), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv147() {
-        // lcg(14,20,10); minimumDominatingSet()
+        // lcg(14,20,10); lexicographicallyFirstMinimumDominatingSet()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(3, 0), (7, 0), (10, 5), (3, 9), (12, 10), (3, 11), (2, 5), (1, 5), (5, 7), (6, 12), (1, 4), (11, 13), (12, 8), (13, 2), (0, 5), (5, 12), (1, 7), (6, 9), (12, 1), (10, 3)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 20)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 2, 3, 12] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // no indices
             let pairs: [(Int, Int)] = [(3, 0), (7, 0), (10, 5), (3, 9), (12, 10), (3, 11), (2, 5), (1, 5), (5, 7), (6, 12), (1, 4), (11, 13), (12, 8), (13, 2), (0, 5), (5, 12), (1, 7), (6, 9), (12, 1), (10, 3)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 20)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 2, 3, 12] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyList.undirectedView
             let pairs: [(Int, Int)] = [(3, 0), (7, 0), (10, 5), (3, 9), (12, 10), (3, 11), (2, 5), (1, 5), (5, 7), (6, 12), (1, 4), (11, 13), (12, 8), (13, 2), (0, 5), (5, 12), (1, 7), (6, 9), (12, 1), (10, 3)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 2, 3, 12] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
         do { // AdjacencyMatrix.undirectedView
             let pairs: [(Int, Int)] = [(3, 0), (7, 0), (10, 5), (3, 9), (12, 10), (3, 11), (2, 5), (1, 5), (5, 7), (6, 12), (1, 4), (11, 13), (12, 8), (13, 2), (0, 5), (5, 12), (1, 7), (6, 9), (12, 1), (10, 3)]
             let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 20)
-            let result = graph.minimumDominatingSet()
+            let result = graph.lexicographicallyFirstMinimumDominatingSet()
             #expect(result == [1, 2, 3, 12] as [Int])
             #expect(graph.isDominatingSet(result))
+            let other = graph.minimumDominatingSet()
+            #expect(other.count == result.count)
+            #expect(graph.isDominatingSet(other))
         }
     }
 

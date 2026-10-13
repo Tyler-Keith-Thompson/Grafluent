@@ -74,17 +74,30 @@ extension Graph {
     @inlinable
     public func cliqueNumber() -> Int { _cliqueNumber(_simpleRows()).clique.count }
 
-    /// The lexicographically least largest clique by vertex index, in `vertices` order; [] for the
-    /// empty graph. Self-loops and parallel edges are ignored. Each largest clique is searched for
-    /// from its first vertex v in degeneracy order, among v's later neighbors, so memory stays O(n +
-    /// m + degeneracy²) however large a hub's degree; of two cliques of one size, the lesser is the
-    /// one holding the least vertex of their symmetric difference. For each v, a witness clique W
-    /// (any one of the right size) guides a pass over the candidates in ascending number: a
-    /// candidate in W is taken, any other is taken exactly when a search finds the rest of a clique
-    /// among the common neighbors left (which then becomes W). A v whose candidates all exceed the
-    /// least vertex of the best clique so far is skipped. Exponential in the worst case.
+    /// A largest clique of the simple graph, in `vertices` order; [] for the empty graph.
+    /// Self-loops and parallel edges are ignored. Deterministic, but which largest clique it is
+    /// depends on the search; for one fixed by a rule, see `lexicographicallyFirstMaximumClique()`.
+    /// It is the clique `cliqueNumber()`'s search finds, so it costs the same: exponential in the
+    /// worst case, memory O(n + m + degeneracy²). The search does not check for task cancellation.
     @inlinable
     public func maximumClique() -> [Vertex] {
+        let listed = _listedVertices()
+        return _cliqueNumber(_simpleRows()).clique.sorted().map { _vertex(number: $0, listed) }
+    }
+
+    /// The lexicographically first largest clique: of all the largest cliques, the least by vertex
+    /// index, in `vertices` order; [] for the empty graph. Self-loops and parallel edges are
+    /// ignored. Of two cliques of one size, the lesser is the one holding the least vertex of their
+    /// symmetric difference. After `cliqueNumber()`'s search, each largest clique is searched for
+    /// from its first vertex v in degeneracy order, among v's later neighbors, so memory stays O(n +
+    /// m + degeneracy²) however large a hub's degree. For each v, a witness clique W (any one of
+    /// the right size) guides a pass over the candidates in ascending number: a candidate in W is
+    /// taken, any other is taken exactly when a search finds the rest of a clique among the common
+    /// neighbors left (which then becomes W). A v whose candidates all exceed the least vertex of
+    /// the best clique so far is skipped. Up to one search per vertex and candidate, each
+    /// exponential in the worst case, so it can be far slower than `maximumClique()`; the search
+    /// does not check for task cancellation.
+    public func lexicographicallyFirstMaximumClique() -> [Vertex] {
         let rows = _simpleRows()
         let n = rows.count
         guard n > 0 else { return [] }

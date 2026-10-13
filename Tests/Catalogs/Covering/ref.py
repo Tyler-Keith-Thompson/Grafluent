@@ -5,10 +5,12 @@ Run:  uv run --quiet --no-project --with networkx==3.7 [--with igraph==1.0.0] py
 
 What decides Expected, per entry point (api.md, Determinism), and what each row is checked by:
 
-* maximumIndependentSet()     the lexicographically least maximum independent set by vertex index
-  independenceNumber()        (of two, the one holding the least vertex of their symmetric
-  minimumVertexCover()        difference); a vertex with a self-loop is never independent.
-                              minimumVertexCover() is its complement. Model: the documented
+* lexicographicallyFirst-     the lexicographically least maximum independent set by vertex index
+    MaximumIndependentSet()   (of two, the one holding the least vertex of their symmetric
+  independenceNumber()        difference); a vertex with a self-loop is never independent; alpha is
+  minimumVertexCover()        its size. minimumVertexCover() (the complement of some maximum set)
+                              has n - alpha vertices, and the complement of the least set is listed
+                              with each MinimumVC row. Model: the documented
                               algorithm (looped vertices out; per component, bipartite components by
                               a maximum matching and the lattice greedy, the rest by a search).
                               Checked: equal to a reference that knows nothing of components or
@@ -29,7 +31,8 @@ What decides Expected, per entry point (api.md, Determinism), and what each row 
     containing:)              Checked: independent and maximal; NetworkX validates the seeds the same
                               way (raises where ours is nil); on loop-free graphs equal to NetworkX
                               dominating_set(G, start_with=first vertex) where that run pops in order.
-* minimumDominatingSet()      the lexicographically least minimum dominating set. Checked: brute force
+* lexicographicallyFirstMin- the lexicographically least minimum dominating set. Checked: brute force
+  imumDominatingSet()
                               (first k-subset in combinations order with k = the domination number).
 * approximateMinimumDominat-  greedy set cover (Chvatal; NetworkX min_weighted_dominating_set): least
   ingSet(weight:)             weight / newly dominated count, ties to the least vertex index. Checked:
@@ -843,7 +846,7 @@ def case_mis(name, g):
     got = mis_model(g)
     assert is_is(g, got)
     chk = check_mis(c, g, got)
-    add("MaximumIS", name, g.text(), "maximumIndependentSet()", fmtl(g.names(got)), chk)
+    add("MaximumIS", name, g.text(), "lexicographicallyFirstMaximumIndependentSet()", fmtl(g.names(got)), chk)
 
 
 def case_alpha(name, g):
@@ -881,8 +884,8 @@ def case_vc(name, g):
         note = f"; size = maximum matching {len(es)}"
         if kc != cover:
             note += f"; NetworkX to_vertex_cover (most left vertices) is {fmtl(g.names(kc))}"
-    add("MinimumVC", name, g.text(), "minimumVertexCover()", fmtl(g.names(cover)),
-        "complement of maximumIndependentSet(); " + chk + note)
+    add("MinimumVC", name, g.text(), "minimumVertexCover().count", str(len(cover)),
+        f"n - alpha; the complement of lexicographicallyFirstMaximumIndependentSet() is {fmtl(g.names(cover))}; " + chk + note)
 
 
 def case_konig(name, g, left=None):
@@ -921,7 +924,7 @@ def case_konig(name, g, left=None):
         chk += "; brute force: the unique minimum cover with the most left vertices"
     lex = set(range(g.n)) - mis_model(g)
     if lex != kc:
-        chk += f"; minimumVertexCover() is {fmtl(g.names(lex))}"
+        chk += f"; the complement of lexicographicallyFirstMaximumIndependentSet() is {fmtl(g.names(lex))}"
     add("KoenigVC", name, g.text() + f"; left {fmtl(L)}, right {fmtl(R)}", call, fmtl(g.names(kc)), chk)
 
 
@@ -1007,7 +1010,7 @@ def case_mds(name, g):
     gr_ = greedy_ds_model(withw(g, None))
     if len(gr_) > len(got):
         chk += f"; greedy gives {len(gr_)}"
-    add("MinimumDS", name, g.text(), "minimumDominatingSet()", fmtl(g.names(got)), chk)
+    add("MinimumDS", name, g.text(), "lexicographicallyFirstMinimumDominatingSet()", fmtl(g.names(got)), chk)
 
 
 def case_approx_ds(name, g, weighted):

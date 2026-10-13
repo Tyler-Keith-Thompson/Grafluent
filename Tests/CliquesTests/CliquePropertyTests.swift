@@ -80,7 +80,7 @@ struct CliquePropertyTests {
         }
     }
 
-    @Test("maximumClique() is the lexicographically least largest clique by index, cliqueNumber() its size, at most degeneracy + 1")
+    @Test("lexicographicallyFirstMaximumClique() is the lexicographically least largest clique by index, maximumClique() a largest clique, cliqueNumber() its size, at most degeneracy + 1")
     func maximumCliqueAgainstSubsets() async {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 24)
         await propertyCheck(count: 300, input: Gen.int(in: 0 ... 8), edges, Gen.int(in: 0 ... 1_000_000)) { n, raw, seed in
@@ -100,14 +100,20 @@ struct CliquePropertyTests {
                     best = members
                 }
             }
-            #expect(graph.maximumClique() == best)
+            #expect(graph.lexicographicallyFirstMaximumClique() == best)
+            // maximumClique(): a clique as large, in index order.
+            let clique = graph.maximumClique()
+            #expect(clique.count == best.count)
+            #expect(clique == clique.sorted() && Set(clique).count == clique.count)
+            let mask = clique.reduce(0) { $0 | (1 << $1) }
+            #expect(clique.allSatisfy { (mask & ~(1 << $0)) & ~neighbours[$0] == 0 })
             #expect(graph.cliqueNumber() == best.count)
             let degeneracy = graph.coreNumbers().degeneracy
             #expect(graph.cliqueNumber() <= degeneracy + 1)
         }
     }
 
-    @Test("maximumClique() on dense graphs, where several largest cliques compete: the lexicographically least by index")
+    @Test("lexicographicallyFirstMaximumClique() on dense graphs, where several largest cliques compete: the lexicographically least by index; maximumClique() one of them")
     func maximumCliqueDenseAgainstSubsets() async {
         // Each pair of 0..<n is an edge when its bit of `bits` is set, n(n − 1)/2 ≤ 66 bits, with
         // `extra` setting more bits so most graphs are dense.
@@ -135,12 +141,17 @@ struct CliquePropertyTests {
                     best = members
                 }
             }
-            #expect(graph.maximumClique() == best)
+            #expect(graph.lexicographicallyFirstMaximumClique() == best)
+            let clique = graph.maximumClique()
+            #expect(clique.count == best.count)
+            #expect(clique == clique.sorted() && Set(clique).count == clique.count)
+            let mask = clique.reduce(0) { $0 | (1 << $1) }
+            #expect(clique.allSatisfy { (mask & ~(1 << $0)) & ~neighbours[$0] == 0 })
             #expect(graph.cliqueNumber() == best.count)
         }
     }
 
-    @Test("maximumClique() keeps only the latest witness: a vertex of an earlier witness, taken again, can leave no room for the rest")
+    @Test("lexicographicallyFirstMaximumClique() keeps only the latest witness: a vertex of an earlier witness, taken again, can leave no room for the rest")
     func maximumCliqueStaleWitness() {
         // A dense random graph on 20 vertices, found by a search that replays the witness pass
         // with stale witness bits kept: that variant returns [0, 1, 3, 11, 16], five vertices.
@@ -161,11 +172,11 @@ struct CliquePropertyTests {
             (0, 7), (6, 9)
         ]
         let graph = ShuffledPseudograph(vertexCount: 20, edges: pairs.map { UndirectedEdge($0.0, $0.1) }, seed: 0)
-        #expect(graph.maximumClique() == [0, 1, 4, 8, 11, 16])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 1, 4, 8, 11, 16])
         #expect(graph.cliqueNumber() == 6)
     }
 
-    @Test("maximumClique() takes the last vertex it needs without a search: nothing is left to extend it with")
+    @Test("lexicographicallyFirstMaximumClique() takes the last vertex it needs without a search: nothing is left to extend it with")
     func maximumCliqueLastVertex() {
         // 0, 3 and 4 form the least triangle; a pass that searched for the empty rest among 4's
         // remaining common neighbours (none) would reject 4 and return [0, 3, 8]. Rows in position
@@ -175,7 +186,7 @@ struct CliquePropertyTests {
             (3, 6), (5, 8), (3, 8), (5, 6), (6, 8), (7, 8), (1, 2), (2, 4),
         ]
         let graph = ShuffledPseudograph(vertexCount: 9, edges: pairs.map { UndirectedEdge($0.0, $0.1) }, seed: 0)
-        #expect(graph.maximumClique() == [0, 3, 4])
+        #expect(graph.lexicographicallyFirstMaximumClique() == [0, 3, 4])
     }
 
     @Test("coreNumbers() is peeling: core(v) is the largest k for which v survives deleting vertices of fewer than k distinct neighbours; degeneracy, kCore and kShell follow")
@@ -346,7 +357,8 @@ struct CliquePropertyTests {
             let viewCliques = Array(view.maximalCliques())
             #expect(Set(viewCliques) == Set(cliques))
             #expect(viewCliques.count == cliques.count)
-            #expect(view.maximumClique() == graph.maximumClique())
+            #expect(view.lexicographicallyFirstMaximumClique() == graph.lexicographicallyFirstMaximumClique())
+            #expect(view.maximumClique().count == graph.maximumClique().count)
             #expect(view.cliqueNumber() == graph.cliqueNumber())
             let cores = graph.coreNumbers()
             let viewCores = view.coreNumbers()
@@ -396,7 +408,11 @@ struct CliquePropertyTests {
             #expect(cliques.count == expected.count)
             let largest = expected.map(\.count).max() ?? 0
             let least = expected.filter { $0.count == largest }.min { $0.lexicographicallyPrecedes($1) }
-            #expect(graph.maximumClique() == least)
+            #expect(graph.lexicographicallyFirstMaximumClique() == least)
+            // maximumClique() is a largest clique, so one of the maximal ones.
+            let clique = graph.maximumClique()
+            #expect(clique.count == largest)
+            #expect(clique.isEmpty || expected.contains(clique))
             #expect(graph.cliqueNumber() == largest)
 
             // Peeling.
