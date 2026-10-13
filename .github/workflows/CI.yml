@@ -16,7 +16,8 @@ on:
 jobs:
   bazel:
     name: Bazel tests
-    runs-on: ubuntu-26.04
+    # arm64, like the local swift:6.3 container that fills the remote cache before a push.
+    runs-on: ubuntu-26.04-arm
     # rules_swift's Linux toolchain is whatever swiftc is on the PATH.
     container: swift:6.3
     env:
@@ -28,7 +29,7 @@ jobs:
         run: |
           apt-get update && apt-get install -y --no-install-recommends ca-certificates curl python3
           # Bazelisk runs the Bazel in .bazelversion.
-          curl -fsSL -o /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-amd64
+          curl -fsSL -o /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-arm64
           chmod +x /usr/local/bin/bazel
       - name: Configure the remote cache
         env:

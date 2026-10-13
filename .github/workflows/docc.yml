@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   docs:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-26.04-arm
     # rules_swift's Linux toolchain is whatever swiftc is on the PATH; docc comes from beside it.
     container: swift:6.3
     env:
@@ -35,7 +35,7 @@ jobs:
           # The image has neither curl nor python3; the umbrella's extension index needs python3.
           apt-get update && apt-get install -y --no-install-recommends ca-certificates curl python3
           # Bazelisk runs the Bazel in .bazelversion.
-          curl -fsSL -o /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.27.0/bazelisk-linux-amd64
+          curl -fsSL -o /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.27.0/bazelisk-linux-arm64
           chmod +x /usr/local/bin/bazel
       - name: Configure the remote cache
         env:
