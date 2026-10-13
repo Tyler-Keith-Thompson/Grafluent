@@ -227,7 +227,7 @@ extension IncidenceList {
         _sources.appendHyperedge(sourceRow)
         _targets.appendHyperedge(targetRow)
         _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)
-        // After the advance, which leaves the maps' tables the hypergraph's own.
+        // After the advance, which makes the maps' tables the hypergraph's own when it leaves shared storage.
         if !_vertexMaps.isEmpty, _vertices.count != vertexCount { _vertexMaps.appendDefaultsToOwnTable(count: _vertices.count &- vertexCount) }
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }
         return position

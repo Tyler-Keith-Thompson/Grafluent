@@ -937,9 +937,10 @@ extension CompressedSparseRow {
     @inlinable
     public var sourceGeneration: GraphGeneration { _sourceGeneration }
 
-    /// Whether this graph was built by `init(_:)` from `graph` (or a copy of it) and `graph` has
-    /// not been structurally mutated since. A view of a graph shares that graph's generation, so
-    /// it reports the same answer as the graph. False when the source does not track
+    /// Whether this graph was built by `init(_:)` from `graph`'s storage (`graph`, a copy of it,
+    /// or a view or adaptor over the same base) and that storage has not been structurally
+    /// mutated since. A view shares its base's generation, so a view and its base give the same
+    /// answer, although they may describe different graphs. False when the source does not track
     /// generations. O(1).
     @inlinable
     public func isCurrent(for graph: some DirectedGraph) -> Bool {
@@ -947,7 +948,8 @@ extension CompressedSparseRow {
     }
 
     /// The generation of this graph, which never changes because the graph is immutable. A
-    /// structure derived from this graph is current for it and its copies, and for no other graph.
+    /// structure derived from this graph is current for it, its copies and the views and adaptors
+    /// over them, and for no other graph.
     /// `init()`'s empty graph has no generation and is current for nothing.
     @inlinable
     public var generation: GraphGeneration { _generation.generation }

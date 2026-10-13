@@ -71,8 +71,8 @@ public struct ImplicitDirectedGraph<Row: Sequence<Int>> {
     }
 
     /// The generation of this graph, which never changes. A structure derived from this graph is
-    /// current for it and its copies, and for no other graph, even one built from the same
-    /// closure.
+    /// current for it, its copies and the views and adaptors over them, and for no other graph,
+    /// even one built from the same closure.
     @inlinable
     public var generation: GraphGeneration { _generation.generation }
 

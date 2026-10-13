@@ -12,9 +12,10 @@ import GraphProtocols
 /// `Pseudograph(multigraph)` is O(1) and keeps the maps.
 @frozen
 public struct Multigraph<Vertex: Hashable> {
-    /// The wrapped graph. Not for use outside the library: writing it directly can break the
-    /// invariant. `base` reads it.
-    public var _base: Pseudograph<Vertex>
+    /// The wrapped graph. Writable only inside this module, where every write keeps the graph
+    /// free of self-loops; `base` reads it.
+    @usableFromInline
+    internal var _base: Pseudograph<Vertex>
 
     /// The empty graph.
     @inlinable
@@ -294,11 +295,74 @@ extension Multigraph: CustomStringConvertible, CustomDebugStringConvertible, Cus
 // MARK: - Graph
 
 extension Multigraph: GraphDelegator, Graph, PropertyGraph {
-    // Every read requirement, and the attached maps, are `GraphDelegator`'s defaults, which
-    // forward to `_base`.
+    // Every read requirement, and the attached-map reads, are `GraphDelegator`'s defaults, which
+    // forward to `base`. Attaching, detaching and writing maps are below, on the stored base.
     public typealias Base = Pseudograph<Vertex>
     public typealias IncidentEdges = Base.IncidentEdges
     public typealias NeighborIndices = Base.NeighborIndices
     public typealias IncidentEdgeIndices = Base.IncidentEdgeIndices
     public typealias EdgePosition = Base.EdgePosition
+
+    /// The wrapped graph, read-only: writing it directly could insert a self-loop.
+    @inlinable
+    public var base: Base {
+        _read { yield _base }
+    }
+
+    /// Attaches a map from vertices to `Value`, every vertex's value `value`, to the base, and
+    /// returns its handle. O(`vertexCount`).
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
+        _base.addVertexMap(default: value)
+    }
+
+    /// Attaches a map from edge positions to `Value`, every edge's value `value`, to the base, and
+    /// returns its handle. O(`edgeCount`).
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
+        _base.addEdgeMap(default: value)
+    }
+
+    /// Detaches the vertex map from the base and frees its storage.
+    ///
+    /// - Precondition: `map` is attached to this graph.
+    @inlinable
+    public mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) {
+        _base.removeVertexMap(map)
+    }
+
+    /// Detaches the edge map from the base and frees its storage.
+    ///
+    /// - Precondition: `map` is attached to this graph.
+    @inlinable
+    public mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) {
+        _base.removeEdgeMap(map)
+    }
+
+    /// The value of the vertex in slot `position` in `map`. O(1).
+    ///
+    /// - Precondition: `map` is attached to this graph, and `position` is in `0..<vertexCount`.
+    @inlinable
+    public subscript<Value>(map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
+        get { _base[map, ofVertexAt: position] }
+        set { _base[map, ofVertexAt: position] = newValue }
+    }
+
+    /// The value of `vertex` in `map`. One hash.
+    ///
+    /// - Precondition: `map` is attached to this graph, and `vertex` is a vertex.
+    @inlinable
+    public subscript<Value>(map: VertexMap<Value>, of vertex: Vertex) -> Value {
+        get { _base[map, of: vertex] }
+        set { _base[map, of: vertex] = newValue }
+    }
+
+    /// The value of the edge at `position` in `map`. O(1).
+    ///
+    /// - Precondition: `map` is attached to this graph, and `position` is in `0..<edgeCount`.
+    @inlinable
+    public subscript<Value>(map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value {
+        get { _base[map, ofEdgeAt: position] }
+        set { _base[map, ofEdgeAt: position] = newValue }
+    }
 }

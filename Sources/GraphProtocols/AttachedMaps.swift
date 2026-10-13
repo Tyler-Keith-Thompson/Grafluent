@@ -23,10 +23,12 @@ import Synchronization
 // no call and no retain. Other values go through closures specialized where the map was attached.
 // A map's buffer is copied on the first write after it may have become shared by a copy of the
 // graph or a `values(of:)` snapshot. A flag on the buffer and one on the table record that, so an
-// unshared buffer needs no uniqueness check of its own. A list representation skips the table's
-// check too. Its upkeep runs right after its generation stamp's advance with `maps:`, which
-// leaves both tables its own (see GraphGeneration.swift). One map of `Double` or `Int` then costs
-// one call, a load and a store (`_MapTable._fastBuffer`).
+// unshared buffer needs no uniqueness check of its own. A list representation runs its upkeep
+// right after its generation stamp's advance with `maps:` (see GraphGeneration.swift), with the
+// table's uniqueness check inline: a copy of the graph mutated on another thread can still hold
+// the table then, so the check is what keeps the fast path's writes to this graph's own buffer.
+// One map of `Double` or `Int` then costs the check, one call, a load and a store
+// (`_MapTable._fastBuffer`).
 
 /// How a representation lays out its attached maps: one buffer by offset (`dense`), or pages of
 /// 1024 offsets (`paged`). A static property of the representation, so a specialized read folds
@@ -939,13 +941,15 @@ package struct _AttachedMaps: Sendable {
         _ownTable()?._swapRemove(at: offset)
     }
 
-    /// `swapRemove(at:)` on a table the graph knows is its own: right after a `_GenerationStamp`
-    /// advance with `maps:`. It checks no uniqueness and makes one call, whose one-map fast path
-    /// is a load and a store.
+    /// `swapRemove(at:)` right after a `_GenerationStamp` advance with `maps:`: one inline
+    /// uniqueness check on the table (a copy of the graph on another thread may still hold it),
+    /// then one call, whose one-map fast path is a load and a store.
     @inlinable
     @inline(__always)
     package mutating func swapRemoveInOwnTable(at offset: Int) {
-        _table?._swapRemoveOwned(at: offset)
+        guard _table != nil else { return }
+        if _slowPath(!isKnownUniquelyReferenced(&_table)) { own() }
+        _table.unsafelyUnwrapped._swapRemoveOwned(at: offset)
     }
 
     /// Appends `count` defaults to every map (dense layout): the representation appended that
@@ -955,13 +959,15 @@ package struct _AttachedMaps: Sendable {
         _ownTable()?._appendDefaults(count: count)
     }
 
-    /// `appendDefaults(count:)` on a table the graph knows is its own: right after a
-    /// `_GenerationStamp` advance with `maps:`. It checks no uniqueness and makes one call, whose
-    /// one-map fast path is a load and a store.
+    /// `appendDefaults(count:)` right after a `_GenerationStamp` advance with `maps:`: one inline
+    /// uniqueness check on the table (a copy of the graph on another thread may still hold it),
+    /// then one call, whose one-map fast path is a load and a store.
     @inlinable
     @inline(__always)
     package mutating func appendDefaultsToOwnTable(count: Int) {
-        _table?._appendDefaultsOwned(count: count)
+        guard _table != nil else { return }
+        if _slowPath(!isKnownUniquelyReferenced(&_table)) { own() }
+        _table.unsafelyUnwrapped._appendDefaultsOwned(count: count)
     }
 
     /// `appendDefaultsToOwnTable(count: 1)` with the one-map fast path inline, for a mutation whose
@@ -970,7 +976,9 @@ package struct _AttachedMaps: Sendable {
     @inlinable
     @inline(__always)
     package mutating func appendDefaultToOwnTableInline() {
-        guard let table = _table else { return }
+        guard _table != nil else { return }
+        if _slowPath(!isKnownUniquelyReferenced(&_table)) { own() }
+        let table = _table.unsafelyUnwrapped
         let address = table._fastBuffer.load(ordering: .relaxed)
         if _fastPath(address != 0) {
             unowned(unsafe) let buffer = _MapTable._buffer(at: address)

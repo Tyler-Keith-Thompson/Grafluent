@@ -55,9 +55,10 @@ import GraphProtocols
 /// Equality is the base's. The order depends on insertion history and does not count.
 @frozen
 public struct DirectedAcyclicGraph<Base: MutableDirectedGraph> {
-    /// The graph, mutable: `GraphDelegator`'s defaults read it and write attached map values
-    /// through it. Not for use outside the library; `base` reads it.
-    public var _base: Base
+    /// The graph. Writable only inside this module, where every write keeps the order; `base`
+    /// reads it.
+    @usableFromInline
+    internal var _base: Base
 
     /// The keys (`Base`'s vertex keys) in topological order, by slot.
     @usableFromInline

@@ -428,7 +428,7 @@ extension AdjacencyList {
         let position = _records.count
         let out = _out.append(target, toRow: source)
         _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
-        // After the advance, which leaves the maps' table the graph's own.
+        // After the advance, which makes the maps' tables the graph's own when it leaves shared storage.
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }
         _outEdges.append(position, toRow: source)
         let into = _in.append(source, toRow: target)
@@ -528,7 +528,7 @@ extension AdjacencyList {
 
     /// Removes the edge at `position` from the map, from both rows and from the edge array,
     /// moving each row's last entry and the last edge into the holes and recording where they went.
-    /// The caller updates the edge maps after advancing the generation, which makes them unique.
+    /// The caller updates the edge maps after advancing the generation.
     @inlinable
     internal mutating func _detachFromRows(_ position: Int) {
         _takeEdgeTable()

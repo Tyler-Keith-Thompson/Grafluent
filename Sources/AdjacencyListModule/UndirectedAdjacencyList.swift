@@ -394,7 +394,7 @@ extension UndirectedAdjacencyList {
         let record = _records[position]
         _detachFromRows(position, record)
         _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
-        // After the advance, which leaves the maps' table the graph's own.
+        // After the advance, which makes the maps' tables the graph's own when it leaves shared storage.
         if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }
         return UndirectedEdge(_vertices[record.u], _vertices[record.v])
     }
@@ -788,7 +788,7 @@ extension UndirectedAdjacencyList {
         _incident.append(position, toRow: u)
         let vOffset = _neighbors.append(u, toRow: v)
         _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
-        // After the advance, which leaves the maps' table the graph's own.
+        // After the advance, which makes the maps' tables the graph's own when it leaves shared storage.
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultToOwnTableInline() }
         _incident.append(position, toRow: v)
         _records.append(_EdgeRecord(u: u, v: v, uOffset: uOffset, vOffset: vOffset))

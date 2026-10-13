@@ -18,9 +18,9 @@ import GraphProtocols
 /// edge sets and each vertex's side, not orders, and ignores maps.
 @frozen
 public struct BipartiteGraph<Vertex: Hashable> {
-    /// The wrapped graph. Not for use outside the library: writing it directly can break the
-    /// invariant. `base` reads it.
-    public var _base: UndirectedAdjacencyList<Vertex>
+    /// The wrapped graph. Writable only inside this module, where every write keeps the
+    /// bipartition; `base` reads it.
+    @usableFromInline var _base: UndirectedAdjacencyList<Vertex>
     /// The side of each slot.
     @usableFromInline var _side: [BipartiteSide]
     /// The slots on each side, in side order.
@@ -365,6 +365,8 @@ extension BipartiteGraph: GraphDelegator, Graph {
     public typealias NeighborIndices = Base.NeighborIndices
     public typealias IncidentEdgeIndices = Base.IncidentEdgeIndices
 
+    /// The wrapped graph, read-only: writing it directly could join two vertices on one side.
+    @inlinable public var base: Base { _read { yield _base } }
     /// The base's generation: every insertion and removal starts a new one; reserving capacity,
     /// a mutation that throws, and attaching or writing maps do not.
     @inlinable public var generation: GraphGeneration { _base.generation }

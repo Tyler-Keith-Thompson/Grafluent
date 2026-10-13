@@ -160,8 +160,8 @@ extension Tree: PropertyGraph {
     }
 
     /// The generation of this tree, which never changes: it is immutable. A structure derived
-    /// from it is current for it and its copies, and for no other graph, a conversion of it
-    /// included.
+    /// from it is current for it, its copies and the views over them, and for no other graph, a
+    /// conversion of it included.
     @inlinable
     public var generation: GraphGeneration { _generation.generation }
 }
@@ -316,8 +316,8 @@ extension RootedTree: PropertyGraph {
     }
 
     /// The generation of this tree, which never changes: it is immutable. A structure derived
-    /// from it is current for it and its copies, and for no other graph, a conversion of it
-    /// included.
+    /// from it is current for it, its copies and the views over them, and for no other graph, a
+    /// conversion of it included.
     @inlinable
     public var generation: GraphGeneration { _generation.generation }
 }
@@ -472,8 +472,8 @@ extension Arborescence: PropertyGraph {
     }
 
     /// The generation of this arborescence, which never changes: it is immutable. A structure derived
-    /// from it is current for it and its copies, and for no other graph, a conversion of it
-    /// included.
+    /// from it is current for it, its copies and the views over them, and for no other graph, a
+    /// conversion of it included.
     @inlinable
     public var generation: GraphGeneration { _generation.generation }
 }
@@ -628,8 +628,8 @@ extension Forest: PropertyGraph {
     }
 
     /// The generation of this forest, which never changes: it is immutable. A structure derived
-    /// from it is current for it and its copies, and for no other graph, a conversion of it
-    /// included.
+    /// from it is current for it, its copies and the views over them, and for no other graph, a
+    /// conversion of it included.
     @inlinable
     public var generation: GraphGeneration { _generation.generation }
 }

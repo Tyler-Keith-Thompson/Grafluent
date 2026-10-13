@@ -10,7 +10,8 @@ import Synchronization
 // counter, at version 0. A mutation costs a load, a compare and an addition, with no runtime call,
 // no allocation and no atomic. The stamp holds no reference.
 //
-// No two states share a generation. Copies of a graph share its identity array. A write to a
+// No two states of a graph's storage share a generation (views and adaptors report their base's,
+// so they share it with the base). Copies of a graph share its identity array. A write to a
 // shared array allocates a new buffer while the other copy still holds the old one, so the new
 // address is not the old one. The copy that mutates first leaves the lineage, and only a graph that
 // holds its buffer alone can stay in it. The graphs in a lineage at one version are therefore
@@ -32,17 +33,22 @@ import Synchronization
 /// The source of lineages: one per immutable graph built, and one per restart of a mutable one.
 private let _generationLineages = Atomic<UInt64>(0)
 
-/// A graph's generation: which state of which graph it is.
+/// A graph's generation: which structural state of which graph storage it is.
 ///
 /// Every structural mutation (an insertion, a removal, re-pointing an edge) starts a new
 /// generation. Reserving capacity and writing attached map values do not. A structure derived from
 /// a graph stores the graph's `generation` and calls `isCurrent(for:)` before it relies on the
 /// graph again.
 ///
-/// A copy of a graph has the same generation as the original until either is mutated. An
-/// untracked generation, from a representation that does not track generations or a mutable graph
-/// never mutated, is current for no graph. Equal generations are the same state of the same
-/// graph, except that every untracked generation equals every other.
+/// A copy of a graph has the same generation as the original until either is mutated. Views and
+/// adaptors (a transposed view, an undirected view, a wrapper such as `DirectedAcyclicGraph`)
+/// report their base's generation, so a view and its base, though they may describe different
+/// graphs, have equal generations. `isCurrent(for:)` answers only whether the storage of the graph
+/// passed in is in the state the generation was read from; it does not tell which view the
+/// generation was read through. An untracked generation, from a representation that does not track
+/// generations or a mutable graph never mutated, is current for no graph. Equal tracked
+/// generations are the same structural state of the same storage, and every untracked generation
+/// equals every other.
 @frozen
 public struct GraphGeneration: Equatable, Sendable, BitwiseCopyable {
     /// The lineage; 0 when untracked.
@@ -60,30 +66,31 @@ public struct GraphGeneration: Equatable, Sendable, BitwiseCopyable {
     @inlinable
     public static var untracked: GraphGeneration { GraphGeneration(_lineage: 0, version: 0) }
 
-    /// Whether this is `generation`, meaning both come from the same graph or its copies with no
-    /// structural mutation between them. False when either is untracked. O(1).
+    /// Whether this is `generation`, meaning both were read from the same storage (a graph, its
+    /// copies, or views and adaptors over them) with no structural mutation between them. False
+    /// when either is untracked. O(1).
     @inlinable
     public func isCurrent(for generation: GraphGeneration) -> Bool {
         _lineage != 0 && self == generation
     }
 
     /// Whether `graph` has not been structurally mutated since this generation was read from it
-    /// (or from a copy of it). O(1).
+    /// (or from a copy of it, or from a view or adaptor over the same storage). O(1).
     @inlinable
     public func isCurrent(for graph: some Graph) -> Bool { isCurrent(for: graph.generation) }
 
     /// Whether `graph` has not been structurally mutated since this generation was read from it
-    /// (or from a copy of it). O(1).
+    /// (or from a copy of it, or from a view or adaptor over the same storage). O(1).
     @inlinable
     public func isCurrent(for graph: some DirectedGraph) -> Bool { isCurrent(for: graph.generation) }
 
     /// Whether `hypergraph` has not been structurally mutated since this generation was read from
-    /// it (or from a copy of it). O(1).
+    /// it (or from a copy of it, or from a view or adaptor over the same storage). O(1).
     @inlinable
     public func isCurrent(for hypergraph: some Hypergraph) -> Bool { isCurrent(for: hypergraph.generation) }
 
     /// Whether `hypergraph` has not been structurally mutated since this generation was read from
-    /// it (or from a copy of it). O(1).
+    /// it (or from a copy of it, or from a view or adaptor over the same storage). O(1).
     @inlinable
     public func isCurrent(for hypergraph: some DirectedHypergraph) -> Bool { isCurrent(for: hypergraph.generation) }
 }
@@ -170,14 +177,13 @@ package struct _GenerationStamp: Sendable, BitwiseCopyable {
     package var generation: GraphGeneration { GraphGeneration(_lineage: _lineage, version: _version) }
 
     // Attached maps by the identity array. A graph that advances its stamp with the `maps:`
-    // spellings below holds its maps' tables alone right after the advance, so the map upkeep that
-    // follows needs no uniqueness check of its own (`_AttachedMaps.appendDefaultsToOwnTable(count:)`).
-    // The fast path proves it: the identity array, made unique by the mutation, is still where it
-    // was at the graph's last structural mutation, so no copy of the graph took it since. That
-    // holds because every graph that leaves an identity array its copies keep (the address it
-    // recorded no longer matches: a copy-on-write copy, growth, reserving capacity) makes both its
-    // tables its own as it leaves, here, and so leaves the shared tables to the graphs that stay.
-    // A graph that never mutated recorded no address, and no array has address 0.
+    // spellings below makes both map tables its own whenever it leaves an identity array its
+    // copies keep (the address it recorded no longer matches: a copy-on-write copy, growth,
+    // reserving capacity), and so leaves the shared tables to the graphs that stay. That is not
+    // enough to skip the table's uniqueness check in the upkeep that follows: a copy on another
+    // thread can give up the shared identity array, leaving it unique to this graph, before it
+    // makes its tables its own. So the upkeep (`_AttachedMaps.appendDefaultsToOwnTable(count:)`)
+    // still checks the table's reference count inline, and copies it when a copy still holds it.
 
     /// `advance(writing:)` for a graph whose map upkeep runs after it, owned: when the identity
     /// array moved, the graph also makes both map tables its own.

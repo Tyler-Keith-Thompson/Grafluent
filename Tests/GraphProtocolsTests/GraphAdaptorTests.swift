@@ -1,7 +1,7 @@
 // GraphAdaptor, GraphDelegator, PropertyGraph and GraphGeneration on test-local conformers: a
 // dense swap-remove digraph with attached maps (the dense layout of the shared map storage), a
-// generic and a concrete delegator over it that declare their conformances and write no
-// forwarding bodies, and an adaptor that is not a delegator. They prove that the delegator's
+// generic and a concrete delegator over it that declare their conformances and write no read
+// forwarding bodies (only the map writes, which change the base), and an adaptor that is not a delegator. They prove that the delegator's
 // defaults are the witnesses (generic code calls the base's own member, logged), that a concrete
 // delegator whose base keeps the protocols' conditional defaults compiles without ambiguity, that
 // an adaptor does not forward, and that maps and generations pass through. The map storage's
@@ -183,8 +183,8 @@ private struct DenseDigraph: BidirectionalDirectedGraph, PropertyGraph {
     }
 }
 
-/// A rule-adding wrapper over any such graph, generic: no self-loops. Every read and every map
-/// member comes from `GraphDelegator`'s defaults.
+/// A rule-adding wrapper over any such graph, generic: no self-loops. Every read, including the
+/// map reads, comes from `GraphDelegator`'s defaults; the map writes are its own.
 private struct LooplessGraph<Base: BidirectionalDirectedGraph & PropertyGraph>: GraphDelegator, BidirectionalDirectedGraph, PropertyGraph {
     typealias Vertex = Base.Vertex
     typealias Vertices = Base.Vertices
@@ -198,6 +198,26 @@ private struct LooplessGraph<Base: BidirectionalDirectedGraph & PropertyGraph>: 
     typealias EdgePosition = Base.EdgePosition
 
     var _base: Base
+
+    var base: Base { _base }
+
+    // Attaching, detaching and writing maps change the base, so they are the wrapper's own.
+    mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> { _base.addVertexMap(default: value) }
+    mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> { _base.addEdgeMap(default: value) }
+    mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { _base.removeVertexMap(map) }
+    mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { _base.removeEdgeMap(map) }
+    subscript<Value>(map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
+        get { _base[map, ofVertexAt: position] }
+        set { _base[map, ofVertexAt: position] = newValue }
+    }
+    subscript<Value>(map: VertexMap<Value>, of vertex: Vertex) -> Value {
+        get { _base[map, of: vertex] }
+        set { _base[map, of: vertex] = newValue }
+    }
+    subscript<Value>(map: EdgeMap<Value>, ofEdgeAt position: EdgePosition) -> Value {
+        get { _base[map, ofEdgeAt: position] }
+        set { _base[map, ofEdgeAt: position] = newValue }
+    }
 }
 
 /// The same rule over the concrete fixture: its associated types are the conditional defaults'
@@ -217,6 +237,26 @@ private struct LooplessDenseDigraph: GraphDelegator, BidirectionalDirectedGraph,
     typealias EdgePosition = Int
 
     var _base: DenseDigraph
+
+    var base: Base { _base }
+
+    // Attaching, detaching and writing maps change the base, so they are the wrapper's own.
+    mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> { _base.addVertexMap(default: value) }
+    mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> { _base.addEdgeMap(default: value) }
+    mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { _base.removeVertexMap(map) }
+    mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { _base.removeEdgeMap(map) }
+    subscript<Value>(map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
+        get { _base[map, ofVertexAt: position] }
+        set { _base[map, ofVertexAt: position] = newValue }
+    }
+    subscript<Value>(map: VertexMap<Value>, of vertex: Vertex) -> Value {
+        get { _base[map, of: vertex] }
+        set { _base[map, of: vertex] = newValue }
+    }
+    subscript<Value>(map: EdgeMap<Value>, ofEdgeAt position: EdgePosition) -> Value {
+        get { _base[map, ofEdgeAt: position] }
+        set { _base[map, ofEdgeAt: position] = newValue }
+    }
 
     mutating func insert(edge: DirectedEdge<Int>) -> Int? {
         edge.source == edge.target ? nil : _base.insert(edge: edge)
@@ -356,6 +396,26 @@ private struct LooplessUndirectedGraph<Base: Graph & PropertyGraph>: GraphDelega
     typealias EdgePosition = Base.EdgePosition
 
     var _base: Base
+
+    var base: Base { _base }
+
+    // Attaching, detaching and writing maps change the base, so they are the wrapper's own.
+    mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> { _base.addVertexMap(default: value) }
+    mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> { _base.addEdgeMap(default: value) }
+    mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { _base.removeVertexMap(map) }
+    mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { _base.removeEdgeMap(map) }
+    subscript<Value>(map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
+        get { _base[map, ofVertexAt: position] }
+        set { _base[map, ofVertexAt: position] = newValue }
+    }
+    subscript<Value>(map: VertexMap<Value>, of vertex: Vertex) -> Value {
+        get { _base[map, of: vertex] }
+        set { _base[map, of: vertex] = newValue }
+    }
+    subscript<Value>(map: EdgeMap<Value>, ofEdgeAt position: EdgePosition) -> Value {
+        get { _base[map, ofEdgeAt: position] }
+        set { _base[map, ofEdgeAt: position] = newValue }
+    }
 }
 
 /// The same over the concrete fixture, where the conditional defaults all apply.
@@ -371,6 +431,26 @@ private struct LooplessDenseGraph: GraphDelegator, Graph, PropertyGraph {
     typealias EdgePosition = Int
 
     var _base: DenseGraph
+
+    var base: Base { _base }
+
+    // Attaching, detaching and writing maps change the base, so they are the wrapper's own.
+    mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> { _base.addVertexMap(default: value) }
+    mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> { _base.addEdgeMap(default: value) }
+    mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { _base.removeVertexMap(map) }
+    mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { _base.removeEdgeMap(map) }
+    subscript<Value>(map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
+        get { _base[map, ofVertexAt: position] }
+        set { _base[map, ofVertexAt: position] = newValue }
+    }
+    subscript<Value>(map: VertexMap<Value>, of vertex: Vertex) -> Value {
+        get { _base[map, of: vertex] }
+        set { _base[map, of: vertex] = newValue }
+    }
+    subscript<Value>(map: EdgeMap<Value>, ofEdgeAt position: EdgePosition) -> Value {
+        get { _base[map, ofEdgeAt: position] }
+        set { _base[map, ofEdgeAt: position] = newValue }
+    }
 }
 
 /// An adaptor that is not a delegator: the graph with every edge reversed. Over `DenseDigraph`,

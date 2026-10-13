@@ -1,10 +1,10 @@
 import GraphProtocols
 
-// Every read requirement, `generation`, and over a `PropertyGraph` base the attached maps, are
-// `GraphDelegator`'s defaults: the base's members, with the base's own types. Positions and
-// indices are the base's, so data kept by position and the base's maps stay valid through the
-// wrapper. Removing a vertex or an edge through the wrapper removes its values, as removing it
-// from the base does.
+// Every read requirement, `generation`, and over a `PropertyGraph` base the attached-map reads,
+// are `GraphDelegator`'s defaults: the base's members, with the base's own types. Attaching,
+// detaching and writing maps are below, on the stored base. Positions and indices are the base's,
+// so data kept by position and the base's maps stay valid through the wrapper. Removing a vertex
+// or an edge through the wrapper removes its values, as removing it from the base does.
 
 extension DirectedAcyclicGraph: GraphDelegator, DirectedGraph, BidirectionalDirectedGraph {
     public typealias Vertex = Base.Vertex
@@ -16,12 +16,76 @@ extension DirectedAcyclicGraph: GraphDelegator, DirectedGraph, BidirectionalDire
     public typealias Predecessors = Base.Predecessors
     public typealias InEdges = Base.InEdges
     public typealias PredecessorIndices = Base.PredecessorIndices
+
+    /// The wrapped graph, read-only: writing it directly could close a cycle or leave the order
+    /// stale.
+    @inlinable
+    public var base: Base {
+        _read { yield _base }
+    }
 }
 
 extension DirectedAcyclicGraph: SparselyIndexedDirectedGraph where Base: SparselyIndexedDirectedGraph {}
 
 extension DirectedAcyclicGraph: PropertyGraph where Base: PropertyGraph {
     public typealias EdgePosition = Base.EdgePosition
+
+    /// Attaches a map from vertices to `Value`, every vertex's value `value`, to the base, and
+    /// returns its handle. The base's cost.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
+        _base.addVertexMap(default: value)
+    }
+
+    /// Attaches a map from edge positions to `Value`, every edge's value `value`, to the base, and
+    /// returns its handle. The base's cost.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
+        _base.addEdgeMap(default: value)
+    }
+
+    /// Detaches the vertex map from the base and frees its storage.
+    ///
+    /// - Precondition: `map` is attached to this graph.
+    @inlinable
+    public mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) {
+        _base.removeVertexMap(map)
+    }
+
+    /// Detaches the edge map from the base and frees its storage.
+    ///
+    /// - Precondition: `map` is attached to this graph.
+    @inlinable
+    public mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) {
+        _base.removeEdgeMap(map)
+    }
+
+    /// The base's value of the vertex at `position` in `map`. The base's cost.
+    ///
+    /// - Precondition: `map` is attached to this graph, and a vertex is at `position`.
+    @inlinable
+    public subscript<Value>(map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
+        get { _base[map, ofVertexAt: position] }
+        set { _base[map, ofVertexAt: position] = newValue }
+    }
+
+    /// The base's value of `vertex` in `map`. The base's cost.
+    ///
+    /// - Precondition: `map` is attached to this graph, and `vertex` is a vertex.
+    @inlinable
+    public subscript<Value>(map: VertexMap<Value>, of vertex: Vertex) -> Value {
+        get { _base[map, of: vertex] }
+        set { _base[map, of: vertex] = newValue }
+    }
+
+    /// The base's value of the edge at `position` in `map`. The base's cost.
+    ///
+    /// - Precondition: `map` is attached to this graph, and an edge is at `position`.
+    @inlinable
+    public subscript<Value>(map: EdgeMap<Value>, ofEdgeAt position: EdgePosition) -> Value {
+        get { _base[map, ofEdgeAt: position] }
+        set { _base[map, ofEdgeAt: position] = newValue }
+    }
 }
 
 // MARK: - checked: lookups

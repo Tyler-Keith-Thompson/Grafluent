@@ -255,9 +255,11 @@ public struct Condensation<G: DirectedGraph> {
         self.sourceGeneration = sourceGeneration
     }
 
-    /// Whether `graph` has not been structurally mutated since the condensation was computed from
-    /// it (or from a copy of it), so its components and edges still describe `graph`. False for a
-    /// graph that does not track generations. O(1).
+    /// Whether `graph`'s storage has not been structurally mutated since the condensation was
+    /// computed from it (through `graph`, a copy of it, or a view or adaptor over the same base).
+    /// A view reports its base's generation, so for a view type the answer is for the base: a
+    /// different view of the same type over the same base also answers true. False for a graph
+    /// that does not track generations. O(1).
     @inlinable
     public func isCurrent(for graph: G) -> Bool { sourceGeneration.isCurrent(for: graph.generation) }
 }
