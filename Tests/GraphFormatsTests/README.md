@@ -12,8 +12,10 @@ are in `api.md` in [`Tests/Catalogs/GraphFormats/`](../Catalogs/GraphFormats/). 
 - A Mermaid flowchart that mixes arrows and open links is `kindMismatch`.
 - The Matrix Market vertex count is inserted eagerly, bounded by `maximumVertexCount:` (default
   `nil`: 16 per input byte plus 4,096).
-- Writers trap on a string they cannot represent: XML control characters, whitespace or `#` in a
-  list token, a Mermaid ID outside `[A-Za-z0-9_]+`, a non-finite double in JSON.
+- Writers throw `WriteError` on data they cannot represent, and then write nothing: a repeated
+  ID, XML control characters, whitespace or `#` in a list token, a boolean edge-list column, a
+  Mermaid ID outside `[A-Za-z0-9_]+`, a non-finite double or a reserved name in node-link JSON, a
+  GraphML key of two types. A closure that breaks its contract traps.
 - DOT HTML strings are read as `.string`, and the writer quotes them.
 - No writer emits `strict`.
 
@@ -25,6 +27,7 @@ the seeded generator and the tags in `GrafluentTestSupport`.
 ```swift
 enum AttributeValue: Hashable, Sendable, literals { case string(String), integer(Int), double(Double), boolean(Bool) }
 struct ParseError: Error, Hashable, Sendable { var kind: Kind; var line, column, byteOffset: Int }
+enum WriteError: Error, Hashable, Sendable { case duplicateID, invalidID, invalidKey, reservedKey, invalidValue, typeMismatch }
 
 extension MutableDirectedGraph, MutableGraph {
     init(dot:vertex:vertexAttribute:edgeAttribute:graphAttribute:) throws(ParseError)
@@ -39,13 +42,13 @@ extension MutableDirectedGraph, MutableGraph {
 // (matrixMarket, nodeLinkJSON, edgeList, adjacencyList).
 
 extension DirectedGraph, Graph {
-    writeDOT(to:vertexID:vertexAttributes:edgeAttributes:graphAttributes:)
-    writeGraphML(to:vertexID:vertexAttributes:edgeAttributes:graphAttributes:)
-    writeNodeLinkJSON(to:vertexID:vertexAttributes:edgeAttributes:graphAttributes:)
+    writeDOT(to:vertexID:vertexAttributes:edgeAttributes:graphAttributes:) throws(WriteError)
+    writeGraphML(to:vertexID:vertexAttributes:edgeAttributes:graphAttributes:) throws(WriteError)
+    writeNodeLinkJSON(to:vertexID:vertexAttributes:edgeAttributes:graphAttributes:) throws(WriteError)
     writeMatrixMarket(to:), writeMatrixMarket(to:weight: (Edges.Index) -> Int), writeMatrixMarket(to:weight: (Edges.Index) -> Double)
-    writeEdgeList(to:vertexID:columns:edgeAttributes:)
-    writeAdjacencyList(to:vertexID:)
-    writeMermaid(to:vertexID:vertexLabel:edgeLabel:)
+    writeEdgeList(to:vertexID:columns:edgeAttributes:) throws(WriteError)
+    writeAdjacencyList(to:vertexID:) throws(WriteError)
+    writeMermaid(to:vertexID:vertexLabel:edgeLabel:) throws(WriteError)
 }
 ```
 
@@ -75,10 +78,11 @@ row (259 rows):
   vertices in order, then edges in position order. It passes the row's attributes through the
   writer's closures, as `switch` statements over the vertex or position, and checks every byte.
 
-The catalog has no trap rows. The writers' preconditions are in `extra_traps.swift`, which
-`swiftgen.py` splices into `GraphFormatsPreconditionTests.swift`. Each trapping call runs in a child
-process (an exit test). The same call without the fault then runs in this process and its output
-is checked, so the trap comes from the fault.
+The catalog has no trap rows. The writers' preconditions (the closures' contract) are in
+`extra_traps.swift`, which `swiftgen.py` splices into `GraphFormatsPreconditionTests.swift`. Each
+trapping call runs in a child process (an exit test), through `try?` so that a throw would fail it.
+The same call without the fault then runs in this process and its output is checked, so the trap
+comes from the fault.
 
 ## Hand-written files
 
@@ -116,6 +120,10 @@ is checked, so the trap comes from the fault.
 
   Positions are pinned to `ref.py`'s where api.md fixes them. For every other error, line and
   column must agree with the byte offset.
+- **Write errors** (`GraphFormatsWriteErrorTests.swift`). Every `WriteError` case in every writer
+  that throws it, each beside the same call without the fault, and the output unchanged after the
+  throw: a string, and a recording stream that must receive nothing when the fault comes after
+  the first 64 KiB.
 - **Interface** (`GraphFormatsInterfaceTests.swift`).
   - The `vertex` closure is called once per new ID, in first-appearance order, in every format.
     `nil` is `invalidVertex` at the ID, and two IDs that map to one vertex make one vertex.

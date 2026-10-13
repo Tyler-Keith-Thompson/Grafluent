@@ -134,13 +134,33 @@
 
 /// Runs `body` with a buffer that delivers to `output`, then flushes what remains. Always inlined,
 /// so that a writer's body (and the caller's closures it calls) can be inlined into the caller.
+/// When `body` throws, what it appended since the last full buffer is dropped: a writer that
+/// throws before its first append leaves `output` unchanged.
 @inline(__always)
-@inlinable func _withOutputBuffer(_ output: inout some TextOutputStream, _ body: (inout _OutputBuffer) -> Void) {
-    withoutActuallyEscaping({ (piece: String) in output.write(piece) }) { deliver in
+@inlinable func _withOutputBuffer<Failure: Error>(
+    _ output: inout some TextOutputStream, _ body: (inout _OutputBuffer) throws(Failure) -> Void
+) throws(Failure) {
+    try withoutActuallyEscaping({ (piece: String) in output.write(piece) }) { deliver throws(Failure) in
         var buffer = _OutputBuffer(deliver: deliver)
-        body(&buffer)
+        try body(&buffer)
         buffer.flush()
     }
+}
+
+/// Runs `body` with a buffer whose full pieces are held, then hands every piece to `output` in
+/// order once `body` returns. When `body` throws, nothing reaches `output`. For the writers whose
+/// checks run while they write; the others check first and stream (`_withOutputBuffer`).
+@inline(__always)
+@inlinable func _withHeldOutputBuffer(
+    _ output: inout some TextOutputStream, _ body: (inout _OutputBuffer) throws(WriteError) -> Void
+) throws(WriteError) {
+    var pieces: [String] = []
+    try withoutActuallyEscaping({ (piece: String) in pieces.append(piece) }) { deliver throws(WriteError) in
+        var buffer = _OutputBuffer(deliver: deliver)
+        try body(&buffer)
+        buffer.flush()
+    }
+    for piece in pieces { output.write(piece) }
 }
 
 /// Where formatting code appends bytes: the output buffer, or an array being built.

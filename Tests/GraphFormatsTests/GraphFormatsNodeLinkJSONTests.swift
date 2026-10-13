@@ -519,29 +519,29 @@ struct GraphFormatsNodeLinkJSONTests {
     }
 
     @Test("GF-200 empty digraph")
-    func gf200() {
+    func gf200() throws {
         // writeNodeLinkJSON(to:) on D:
         let graph = DirectedPseudograph<String>()
         var output = ""
-        graph.writeNodeLinkJSON(to: &output)
+        try graph.writeNodeLinkJSON(to: &output)
         #expect(output == "{\"directed\": true, \"multigraph\": false, \"graph\": {}, \"nodes\": [], \"edges\": []}")
     }
 
     @Test("GF-201 path, string ids")
-    func gf201() {
+    func gf201() throws {
         // writeNodeLinkJSON(to:) on D: a, b, c; a>b, b>c
         let graph = DirectedPseudograph<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c")])
         var output = ""
-        graph.writeNodeLinkJSON(to: &output)
+        try graph.writeNodeLinkJSON(to: &output)
         #expect(output == "{\"directed\": true, \"multigraph\": false, \"graph\": {}, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}, {\"id\": \"c\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\"}, {\"source\": \"b\", \"target\": \"c\"}]}")
     }
 
     @Test("GF-202 typed attributes")
-    func gf202() {
+    func gf202() throws {
         // writeNodeLinkJSON(to:) on D: a{label="x y", n=3, x=2.0, ok=true}, b; a>b{weight=2, w2=-0.5}, b>b{weight=1.5}; graph{title="G"}
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "b")])
         var output = ""
-        graph.writeNodeLinkJSON(to: &output, vertexAttributes: { v in
+        try graph.writeNodeLinkJSON(to: &output, vertexAttributes: { v in
             switch v {
             case "a": [("label", .string("x y")), ("n", .integer(3)), ("x", .double(2.0)), ("ok", .boolean(true))]
             default: []
@@ -557,20 +557,20 @@ struct GraphFormatsNodeLinkJSONTests {
     }
 
     @Test("GF-203 Int vertices are numbers")
-    func gf203() {
+    func gf203() throws {
         // writeNodeLinkJSON(to:) on U: 0, 1, 2; 0-1, 1-2
         let graph = Pseudograph<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
         var output = ""
-        graph.writeNodeLinkJSON(to: &output)
+        try graph.writeNodeLinkJSON(to: &output)
         #expect(output == "{\"directed\": false, \"multigraph\": false, \"graph\": {}, \"nodes\": [{\"id\": 0}, {\"id\": 1}, {\"id\": 2}], \"edges\": [{\"source\": 0, \"target\": 1}, {\"source\": 1, \"target\": 2}]}")
     }
 
     @Test("GF-204 parallel edges: multigraph true and NetworkX's keys")
-    func gf204() {
+    func gf204() throws {
         // writeNodeLinkJSON(to:) on D: a, b; a>b, b>a{w=1}, a>b, a>b
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "b")])
         var output = ""
-        graph.writeNodeLinkJSON(to: &output, edgeAttributes: { e in
+        try graph.writeNodeLinkJSON(to: &output, edgeAttributes: { e in
             switch e {
             case 1: [("w", .integer(1))]
             default: []
@@ -580,20 +580,20 @@ struct GraphFormatsNodeLinkJSONTests {
     }
 
     @Test("GF-205 undirected parallel edges: b-a is the second a-b")
-    func gf205() {
+    func gf205() throws {
         // writeNodeLinkJSON(to:) on U: a, b; a-b, b-a
         let graph = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "a")])
         var output = ""
-        graph.writeNodeLinkJSON(to: &output)
+        try graph.writeNodeLinkJSON(to: &output)
         #expect(output == "{\"directed\": false, \"multigraph\": true, \"graph\": {}, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\", \"key\": 0}, {\"source\": \"b\", \"target\": \"a\", \"key\": 1}]}")
     }
 
     @Test("GF-206 non-ASCII and control characters are escaped")
-    func gf206() {
+    func gf206() throws {
         // writeNodeLinkJSON(to:) on D: "é"{s="\b\f/'"}, "😀", "c\u0001"; "é">"😀"
         let graph = DirectedPseudograph<String>(vertices: ["é", "😀", "c\u{1}"], edges: [DirectedEdge(from: "é", to: "😀")])
         var output = ""
-        graph.writeNodeLinkJSON(to: &output, vertexAttributes: { v in
+        try graph.writeNodeLinkJSON(to: &output, vertexAttributes: { v in
             switch v {
             case "é": [("s", .string("\u{8}\u{C}/'"))]
             default: []

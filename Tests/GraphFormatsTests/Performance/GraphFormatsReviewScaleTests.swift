@@ -246,7 +246,7 @@ struct GraphFormatsReviewScaleTests {
     }
 
     @Test("Writers check that IDs are distinct in linear time: 8× the vertices cost about 8×", .timeLimit(.minutes(1)))
-    func distinctIDCheckIsLinear() {
+    func distinctIDCheckIsLinear() throws {
         let small = DirectedPseudograph<Int>(vertices: 0 ..< 5_000), large = DirectedPseudograph<Int>(vertices: 0 ..< 40_000)
         // Interleaved, so that both sizes run under the same load: the least time of each over
         // five rounds, then their ratio; measured again, up to three times, while the ratio looks
@@ -269,12 +269,12 @@ struct GraphFormatsReviewScaleTests {
             }
             return best
         }
-        func write(_ graph: DirectedPseudograph<Int>) {
+        func write(_ graph: DirectedPseudograph<Int>) throws {
             var dot = "", list = ""
-            graph.writeDOT(to: &dot, vertexID: { "vertex-\($0)" })
-            graph.writeAdjacencyList(to: &list, vertexID: { "vertex-\($0)" })
+            try graph.writeDOT(to: &dot, vertexID: { "vertex-\($0)" })
+            try graph.writeAdjacencyList(to: &list, vertexID: { "vertex-\($0)" })
         }
-        let ratio = ratio({ write(small) }, { write(large) })
+        let ratio = try ratio({ try write(small) }, { try write(large) })
         #expect(ratio < 32, "8× the vertices took \(ratio)× as long")
     }
 

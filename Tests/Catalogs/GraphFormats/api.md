@@ -6,7 +6,7 @@ on any mutable representation (`AdjacencyList`, `DirectedPseudograph`, `StableDi
 `UndirectedAdjacencyList`, `Pseudograph`). It reports vertex, edge and graph attributes through
 closures, by vertex and by edge position. A writer is a method on any `DirectedGraph` or `Graph`
 that streams canonical text into an `inout some TextOutputStream`, taking IDs and attributes from
-closures. The module uses no Foundation: it has its own UTF-8, XML-subset and JSON scanners, and
+closures. A writer throws `WriteError` on data its format cannot hold and then writes nothing. The module uses no Foundation: it has its own UTF-8, XML-subset and JSON scanners, and
 builds on Linux with the standard library and `GraphProtocols` only. It draws nothing: a format's
 styling statements are skipped on reading and never written, unless the caller passes them as
 plain attributes.
@@ -110,6 +110,7 @@ extension MutableDirectedGraph where Vertex == Int    { /* matrixMarket, nodeLin
 extension MutableGraph { /* the same seven, undirected */ }
 
 // Writers. Closures are called once per vertex and edge, in order (GraphML: twice, see below).
+// Every writer but Matrix Market's throws WriteError on data its format cannot hold.
 extension DirectedGraph {
     public func writeDOT(
         to output: inout some TextOutputStream,
@@ -117,20 +118,24 @@ extension DirectedGraph {
         vertexAttributes: (Vertex) -> [(key: String, value: AttributeValue)] = { _ in [] },
         edgeAttributes: (Edges.Index) -> [(key: String, value: AttributeValue)] = { _ in [] },
         graphAttributes: [(key: String, value: AttributeValue)] = []
-    )
-    public func writeGraphML(to:, vertexID:, vertexAttributes:, edgeAttributes:, graphAttributes:)
-    public func writeNodeLinkJSON(to:, vertexID: (Vertex) -> AttributeValue = …, vertexAttributes:, edgeAttributes:, graphAttributes:)
+    ) throws(WriteError)
+    public func writeGraphML(to:, vertexID:, vertexAttributes:, edgeAttributes:, graphAttributes:) throws(WriteError)
+    public func writeNodeLinkJSON(to:, vertexID: (Vertex) -> AttributeValue = …, vertexAttributes:, edgeAttributes:, graphAttributes:) throws(WriteError)
         // default vertexID: .integer for Vertex == Int, .string(String(describing:)) otherwise
     public func writeMatrixMarket(to output: inout some TextOutputStream)                                       // pattern
     public func writeMatrixMarket(to output: inout some TextOutputStream, weight: (Edges.Index) -> Int)          // integer
     public func writeMatrixMarket(to output: inout some TextOutputStream, weight: (Edges.Index) -> Double)       // real
-    public func writeEdgeList(to:, vertexID:, columns: [String] = [], edgeAttributes:)
-    public func writeAdjacencyList(to:, vertexID:)
+    public func writeEdgeList(to:, vertexID:, columns: [String] = [], edgeAttributes:) throws(WriteError)
+    public func writeAdjacencyList(to:, vertexID:) throws(WriteError)
     public func writeMermaid(to:, vertexID:,
                              vertexLabel: (Vertex) -> String? = { _ in nil },
-                             edgeLabel: (Edges.Index) -> String? = { _ in nil })
+                             edgeLabel: (Edges.Index) -> String? = { _ in nil }) throws(WriteError)
 }
 extension Graph { /* the same nine */ }
+
+@frozen public enum WriteError: Error, Hashable, Sendable {
+    case duplicateID, invalidID, invalidKey, reservedKey, invalidValue, typeMismatch
+}
 ```
 
 Call sites:
@@ -142,7 +147,7 @@ let g = try DirectedPseudograph<String>(graphML: bytes, edgeAttribute: { e, key,
 })
 
 var text = ""
-g.writeDOT(to: &text, edgeAttributes: { e in [("weight", .double(weight[e] ?? 1))] })
+try g.writeDOT(to: &text, edgeAttributes: { e in [("weight", .double(weight[e] ?? 1))] })
 
 let csr = try AdjacencyList<Int>(matrixMarket: file)        // then CompressedSparseRow(csr)
 ```
@@ -169,6 +174,17 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
   wrapper). The writer fills a 64 KiB `String` buffer and calls `write(_:)` per full buffer, so a
   stream's per-call cost is paid 16 times per MiB. Every writer but node-link JSON ends its
   output with a line feed; lines end in LF only.
+- **Write errors.** Data the format cannot represent throws a payload-free `WriteError`, and the
+  writer then leaves `output` as it was: `duplicateID` (two vertices with one ID), `invalidID`,
+  `invalidKey` and `invalidValue` (an ID, attribute name or value the format cannot spell),
+  `reservedKey` (node-link's own member names) and `typeMismatch` (a GraphML key of two types).
+  DOT, GraphML, the adjacency list and Mermaid make and check every ID (GraphML: every name and
+  string too, in its first pass) before the first byte, and stream. Node-link JSON and the edge
+  list check as they write, so they hold their 64 KiB pieces until the end and then hand them to
+  `write(_:)` in order (O(output) memory). Matrix Market writes every `Double` and never throws.
+  A closure that breaks its contract traps: a key twice for one element, an edge without a
+  value for one of `columns`, a node-link `id` that is a double or a boolean, and GraphML closures
+  that return different pairs on their two calls (unchecked).
 - Readers and writers do no file I/O: no Foundation, and the caller chooses the file API.
 
 ### Targets, vertices and edges
@@ -231,7 +247,7 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
   A real file stays far inside (a vertex statement is several bytes, a Mermaid edge at least
   three).
 - **Writers take closures** returning `[(key: String, value: AttributeValue)]`, the pairs in the
-  order to write. Within one element a key appears once (precondition). The writers never invent
+  order to write. Within one element a key appears once (precondition: a trap). The writers never invent
   attributes; `label` is an attribute like any other (except Mermaid's dedicated closures).
 - A caller filling a `StableDirectedGraph`'s `EdgeMap` collects values into an array during the
   read and assigns them after, since the graph is being initialized.
@@ -374,14 +390,15 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
   Two-space indent. Key ids `d0, d1, …` in order of first appearance per domain, graph keys
   first. Types: `.string` → `string`, `.integer` → `long` (64-bit), `.double` → `double`,
   `.boolean` → `boolean`; a key with both integers and doubles is `double` (GF-198); any other mix
-  is a precondition failure. The closures are called **twice** per element (once to collect key
+  throws `typeMismatch`. The closures are called **twice** per element (once to collect key
   types, once to write) and must return the same pairs both times; the writer holds no copy of
   the attributes. `vertexID` is called once per vertex: the
   IDs are kept, escaped, for the edges. Escaping: text `& < >` and CR as
   `&#13;`; attribute values also `"`, tab, LF, CR as references (so they survive normalization,
-  GF-197). Doubles in the short form, `INF`, `-INF`, `NaN`. A string containing a character XML
-  1.0 cannot represent (C0 controls other than tab, LF, CR; U+FFFE, U+FFFF) is a precondition
-  failure.
+  GF-197). Doubles in the short form, `INF`, `-INF`, `NaN`. An ID, attribute name or string value
+  containing a character XML 1.0 cannot represent (C0 controls other than tab, LF, CR; U+FFFE,
+  U+FFFF) throws `invalidID`, `invalidKey` or `invalidValue`. Every check runs in the first pass
+  and on the IDs, before anything is written.
 
 ### Node-link JSON
 
@@ -406,9 +423,9 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
   graph has a parallel edge, and then each edge's `key` is the number of earlier edges between the
   same ordered (directed) or unordered pair (GF-204). Strings escape `"`, `\`, the C0 controls
   (`\n \r \t \b \f`, else `\u00XX`) and everything outside ASCII as `\uXXXX` with surrogate
-  pairs (GF-206). Doubles in the short form; a non-finite double, an `id` that is neither
-  `.string` nor `.integer`, or an attribute named `id` (node) or `source`/`target`/`key` (edge), is
-  a precondition failure. Edges are written in position order. `ref.py` compares the write rows
+  pairs (GF-206). Doubles in the short form; a non-finite double throws `invalidValue`, an
+  attribute named `id` (node) or `source`/`target`/`key` (edge) `reservedKey`; an `id` that is
+  neither `.string` nor `.integer` is a precondition failure. Edges are written in position order. `ref.py` compares the write rows
   byte for byte with `json.dumps(nx.node_link_data(G, edges="edges"))` for the same graph built in
   the same order; NetworkX orders edges by adjacency, so on a graph whose edges are not grouped by
   source `ref.py` compares the edges as sets.
@@ -454,10 +471,11 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
   out-edges' targets in position order; undirected: each edge on the line of its endpoint that
   comes first in `vertices` order, a loop once (GF-219 – GF-221). `ref.py` compares both byte for
   byte with NetworkX's `write_edgelist` and `write_adjlist` (minus its three `#` header lines) on
-  simple graphs. IDs and string values must be non-empty and contain no whitespace (in the
-  readers' sense above) or `#` (precondition). Booleans cannot be written to an edge list (they
-  would read back as strings): precondition. So is an edge whose attributes lack one of
-  `columns`; its short line would read back as a syntax error. `edgeAttributes` is called once per edge even without columns.
+  simple graphs. An ID that is empty or contains whitespace (in the readers' sense above) or `#`
+  throws `invalidID`; such a string value, or a boolean (it would read back as a string), in a
+  column throws `invalidValue`. The edge list checks only the IDs of vertices an edge names. An
+  edge whose attributes lack one of `columns` is a precondition failure; its short line would
+  read back as a syntax error. `edgeAttributes` is called once per edge even without columns.
 
 ### Mermaid
 
@@ -492,10 +510,10 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
   Four-space indent. Labels are always quoted, with `#` `"` `&` `<` `>` LF CR written as
   `#35; #quot; #amp; #lt; #gt; #10; #13;`, so any string round-trips through the reader (GF-222).
   IDs must match `[A-Za-z0-9_]+` and not be `end graph flowchart subgraph style classDef class
-  click linkStyle direction` (precondition); a caller with arbitrary vertex names passes
+  click linkStyle direction` (else `invalidID`); a caller with arbitrary vertex names passes
   `vertexID:` (indices) and `vertexLabel:` (the names).
-- **Every writer that names vertices** requires distinct IDs (precondition): two vertices with one
-  ID would read back as one. IDs compare by Unicode scalars, so canonically equivalent but
+- **Every writer that names vertices** requires distinct IDs (else `duplicateID`): two vertices
+  with one ID would read back as one. IDs compare by Unicode scalars, so canonically equivalent but
   different IDs are distinct.
 
 ### Round trips
@@ -588,7 +606,7 @@ What `read(write(g))` gives back, into a target of the same kind and type:
 | Operation | Time | Extra memory |
 |---|---|---|
 | every reader | O(input bytes + n + m) expected (one hash per ID occurrence), plus the calls and edges defaults and `&` groups add, at most 16 (DOT, GraphML) or 1 (Mermaid) per input byte | O(n) ID table; O(m) pair table only for DOT `strict` and node-link `multigraph: false`, and an O(m) table of `(u, v, key)` for node-link `multigraph: true`; GraphML holds the edges until the graph's nodes are known (O(m)); the line formats hold the vertices and key pairs (O(n + m)) and their edge attributes until the build. A GraphML element costs O(its data + the defaults of its domain); a JSON object or XML tag of k keys O(k) (one shared index with generation stamps) |
-| every writer | O(n + m + output bytes), plus the closures' cost (GraphML: called twice) | O(n) for the vertex IDs, kept as escaped bytes, beyond a 64 KiB buffer; node-link JSON O(m) for the parallel-edge keys (a table of pairs and one `Int32` per edge, found in one pass); the adjacency list O(n + m) to group the edges by line; GraphML O(keys) |
+| every writer | O(n + m + output bytes), plus the closures' cost (GraphML: called twice) | O(n) for the vertex IDs, kept as escaped bytes, beyond a 64 KiB buffer; node-link JSON and the edge list O(output bytes), held until they finish; node-link JSON O(m) for the parallel-edge keys (a table of pairs and one `Int32` per edge, found in one pass); the adjacency list O(n + m) to group the edges by line; GraphML O(keys) |
 | error position | O(offset of the error), once | O(1) |
 
 ## Library disagreements

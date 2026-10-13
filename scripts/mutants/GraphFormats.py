@@ -101,8 +101,8 @@ MUTANTS = [
     Mutant("dotbudgetvertex", DOT, "try budget.spend(defaults.count, at: statement)", "", mode="stmt"),
     Mutant("dotbudgetedge", DOT, "try budget.spend(edgeDefaults.count &+ pairs.count, at: lexeme.start)",
            "try budget.spend(edgeDefaults.count, at: lexeme.start)", mode="stmt"),
-    Mutant("dotidcheck", DOT, "ids.set(k, id: id.debugDescription) { _appendDOTID(id, to: &$0) }",
-           "ids.set(k, id: id.debugDescription) { _appendDOTID(id + \"\\(k)\", to: &$0) }", mode="stmt"),
+    Mutant("dotidcheck", DOT, "try ids.set(k) { _appendDOTID(id, to: &$0) }",
+           "try ids.set(k) { _appendDOTID(id + \"\\(k)\", to: &$0) }", mode="stmt"),
 
     # The expansion budget.
     Mutant("budgetfloor", EB, "remaining = overflow ? .max : product &+ 4096", "remaining = overflow ? .max : product &+ 1_000_000_000", mode="stmt"),
@@ -191,7 +191,7 @@ MUTANTS = [
     Mutant("mdbudgetunit", MD, "budget = _ExpansionBudget(inputCount: n, perByte: 1)", "budget = _ExpansionBudget(inputCount: n, perByte: 16)", mode="stmt"),
 
     # Writers: distinct IDs, keys by scalars.
-    Mutant("idrepeat", WS, "!repeated", "true"),
+    Mutant("idrepeat", WS, "if repeated { throw .duplicateID }", "", mode="stmt"),
     Mutant("distinctkeys", WS, "!_sameScalars(key, other)", "key != other"),
     Mutant("iddecimalzero", WS, "(count == 1 || bytes[0] != UInt8(ascii: \"0\"))", "true"),
     Mutant("iddecimallimit", WS, "return value < decimalLimit ? value : nil", "return value", mode="stmt"),
@@ -203,6 +203,24 @@ MUTANTS = [
     Mutant("listtokenplain", EL, "b <= 0x20 || b >= 0x7F", "b < 0x20 || b >= 0x7F"),
     Mutant("nlwritermulti", NL, "multigraph = true", "", mode="stmt"),
     Mutant("nlwriterkeyreset", NL, "counts[b] = 0", "", mode="stmt"),
+
+    # Write errors: each check, and the held output of the writers that check as they write.
+    Mutant("heldoutput", OB, "pieces.append(piece)", "output.write(piece)"),
+    Mutant("elidtoken", EL, "if !_appendListToken(id, to: &bytes) { throw .invalidID }", "_ = _appendListToken(id, to: &bytes)", mode="stmt"),
+    Mutant("elvaluetoken", EL, "if !_appendListToken(s, to: &scratch) { throw .invalidValue }", "_ = _appendListToken(s, to: &scratch)", mode="stmt"),
+    Mutant("elboolean", EL, "throw .invalidValue", "out.appendASCII(\"True\")", mode="stmt", nth=1),
+    Mutant("alidtoken", AL, "if !_appendListToken(id, to: &bytes) { throw .invalidID }", "_ = _appendListToken(id, to: &bytes)", mode="stmt"),
+    Mutant("gmlvaluexml", GML, "if !_isXMLRepresentable(s) { throw .invalidValue }", "", mode="stmt"),
+    Mutant("gmlkeyxml", GML, "if !_isXMLRepresentable(pair.key) { throw .invalidKey }", "", mode="stmt"),
+    Mutant("gmlidxml", GML, "_isXMLRepresentable(id)", "true"),
+    Mutant("gmltypeold", GML, "(old == .long || old == .double)", "true"),
+    Mutant("gmltypenew", GML, "(type == .long || type == .double)", "true"),
+    Mutant("nlfinite", NL, "if !d.isFinite { throw .invalidValue }", "", mode="stmt"),
+    Mutant("nlreservedid", NL, "_sameScalars(key, ascii: \"id\")", "false"),
+    Mutant("nlreservedendpoint", NL, "_isEndpointKey(key)", "false"),
+    Mutant("mdidempty", MD, "!id.isEmpty", "true"),
+    Mutant("mdidbytes", MD, "id.utf8.allSatisfy(_isMermaidID)", "true"),
+    Mutant("mdidreserved", MD, "!_reservedMermaidIDs.contains(id)", "true"),
     Mutant("dpeightlimit", DP, "significant <= 11", "significant <= 12", nth=1),
     Mutant("dpeightcheck", DP, "(word & 0xF0F0_F0F0_F0F0_F0F0)", "(0x3030_3030_3030_3030)"),
     Mutant("scalarhash", SK, "_sameScalars(a.string, b.string)", "a.string == b.string"),

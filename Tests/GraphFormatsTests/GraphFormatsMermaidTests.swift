@@ -364,11 +364,11 @@ struct GraphFormatsMermaidTests {
     }
 
     @Test("GF-222 directed, vertex and edge labels with escapes")
-    func gf222() {
+    func gf222() throws {
         // writeMermaid(to:) on D: A{label="say \"hi\" #1 <b> & more"}, B{label="two\nlines"}, C; A>B{label="yes|no"}, B>C, C>A
         let graph = DirectedPseudograph<String>(vertices: ["A", "B", "C"], edges: [DirectedEdge(from: "A", to: "B"), DirectedEdge(from: "B", to: "C"), DirectedEdge(from: "C", to: "A")])
         var output = ""
-        graph.writeMermaid(to: &output, vertexLabel: { v in
+        try graph.writeMermaid(to: &output, vertexLabel: { v in
             switch v {
             case "A": "say \"hi\" #1 <b> & more"
             case "B": "two\nlines"
@@ -384,11 +384,11 @@ struct GraphFormatsMermaidTests {
     }
 
     @Test("GF-223 undirected")
-    func gf223() {
+    func gf223() throws {
         // writeMermaid(to:) on U: A, B; A-B, B-B{label="loop"}
         let graph = Pseudograph<String>(vertices: ["A", "B"], edges: [UndirectedEdge("A", "B"), UndirectedEdge("B", "B")])
         var output = ""
-        graph.writeMermaid(to: &output, edgeLabel: { e in
+        try graph.writeMermaid(to: &output, edgeLabel: { e in
             switch e {
             case 1: "loop"
             default: nil
@@ -398,20 +398,20 @@ struct GraphFormatsMermaidTests {
     }
 
     @Test("GF-224 empty")
-    func gf224() {
+    func gf224() throws {
         // writeMermaid(to:) on D:
         let graph = DirectedPseudograph<String>()
         var output = ""
-        graph.writeMermaid(to: &output)
+        try graph.writeMermaid(to: &output)
         #expect(output == "flowchart TD\n")
     }
 
     @Test("GF-225 vertices without labels")
-    func gf225() {
+    func gf225() throws {
         // writeMermaid(to:) on D: a, b, z; a>b
         let graph = DirectedPseudograph<String>(vertices: ["a", "b", "z"], edges: [DirectedEdge(from: "a", to: "b")])
         var output = ""
-        graph.writeMermaid(to: &output)
+        try graph.writeMermaid(to: &output)
         #expect(output == "flowchart TD\n    a\n    b\n    z\n    a --> b\n")
     }
 

@@ -511,15 +511,20 @@
     scratch.withUnsafeBufferPointer { out.append($0) }
 }
 
-/// Writes canonical DOT: graph attributes, every vertex, then every edge.
+/// Writes canonical DOT: graph attributes, every vertex, then every edge. Every ID is made and
+/// checked before the first byte is written.
 @inlinable func _writeDOT<Source: _WriteSource>(
     _ source: Source, to out: inout _OutputBuffer, vertexID: (Source.Vertex) -> String,
     vertexAttributes: (Source.Vertex) -> [(key: String, value: AttributeValue)],
     edgeAttributes: (Source.Position) -> [(key: String, value: AttributeValue)],
     graphAttributes: [(key: String, value: AttributeValue)]
-) {
+) throws(WriteError) {
     let n = source.vertexCount
     var ids = _IDCache(vertexCount: n)
+    for k in 0 ..< n {
+        let id = vertexID(source.vertex(at: k))
+        try ids.set(k) { _appendDOTID(id, to: &$0) }
+    }
     var scratch: [UInt8] = []
     out.appendASCII(Source.isDirected ? "digraph {\n" : "graph {\n")
     if !graphAttributes.isEmpty {
@@ -529,8 +534,6 @@
     }
     for k in 0 ..< n {
         let vertex = source.vertex(at: k)
-        let id = vertexID(vertex)
-        ids.set(k, id: id.debugDescription) { _appendDOTID(id, to: &$0) }
         out.append(0x09)
         ids.write(k, to: &out)
         _appendDOTAttributes(vertexAttributes(vertex), to: &out, scratch: &scratch)

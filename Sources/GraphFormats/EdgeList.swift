@@ -48,12 +48,14 @@
     return !_containsWhitespace(bytes)
 }
 
-/// Appends `s` as a list field, after checking it can be one.
-@inlinable func _appendListToken(_ s: String, to bytes: inout [UInt8]) {
+/// Appends `s` as a list field, after checking it can be one; `false`, with nothing appended, when
+/// it cannot.
+@inlinable func _appendListToken(_ s: String, to bytes: inout [UInt8]) -> Bool {
     var text = s
-    text.withUTF8 {
-        precondition(_isListToken($0), "\(s.debugDescription) cannot be an edge- or adjacency-list field: it is empty or holds whitespace or #")
+    return text.withUTF8 {
+        guard _isListToken($0) else { return false }
         bytes.append(contentsOf: $0)
+        return true
     }
 }
 
@@ -63,13 +65,13 @@
 @inlinable func _writeEdgeList<Source: _WriteSource>(
     _ source: Source, to out: inout _OutputBuffer, vertexID: (Source.Vertex) -> String, columns: [String],
     edgeAttributes: (Source.Position) -> [(key: String, value: AttributeValue)]
-) {
+) throws(WriteError) {
     var ids = _IDCache(vertexCount: source.vertexCount)
     var scratch: [UInt8] = []
     let columnsAreASCII = columns.allSatisfy(_isASCII)
-    source.forEachEdge { position, u, v in
-        if !ids.has(u) { _makeListID(u, of: source, vertexID: vertexID, in: &ids) }
-        if !ids.has(v) { _makeListID(v, of: source, vertexID: vertexID, in: &ids) }
+    try source.forEachEdge { (position, u, v) throws(WriteError) in
+        if !ids.has(u) { try _makeListID(u, of: source, vertexID: vertexID, in: &ids) }
+        if !ids.has(v) { try _makeListID(v, of: source, vertexID: vertexID, in: &ids) }
         ids.write(u, to: &out)
         out.append(0x20)
         ids.write(v, to: &out)
@@ -89,7 +91,7 @@
                 }
                 if found < 0 { _missingColumn(column, at: position) }
                 out.append(0x20)
-                _appendListValue(pairs[found].value, to: &out, scratch: &scratch)
+                try _appendListValue(pairs[found].value, to: &out, scratch: &scratch)
             }
         }
         out.append(0x0A)
@@ -100,9 +102,9 @@
 @inline(never)
 @inlinable func _makeListID<Source: _WriteSource>(
     _ index: Int, of source: Source, vertexID: (Source.Vertex) -> String, in ids: inout _IDCache
-) {
+) throws(WriteError) {
     let id = vertexID(source.vertex(at: index))
-    ids.set(index, id: id.debugDescription) { _appendListToken(id, to: &$0) }
+    try ids.set(index) { (bytes) throws(WriteError) in if !_appendListToken(id, to: &bytes) { throw .invalidID } }
 }
 
 @inline(never)
@@ -110,17 +112,18 @@
     preconditionFailure("The edge at \(position) has no value for the column \(column)")
 }
 
-/// Appends an edge-list column's value.
+/// Appends an edge-list column's value. Throws `invalidValue` for a boolean (it would read back as
+/// a string) and for a string that cannot be a field.
 @inline(never)
-@inlinable func _appendListValue(_ value: AttributeValue, to out: inout _OutputBuffer, scratch: inout [UInt8]) {
+@inlinable func _appendListValue(_ value: AttributeValue, to out: inout _OutputBuffer, scratch: inout [UInt8]) throws(WriteError) {
     switch value {
     case .integer(let i): out.appendDecimal(i)
     case .double(let d): _appendPythonDouble(d, to: &out)
     case .string(let s):
         scratch.removeAll(keepingCapacity: true)
-        _appendListToken(s, to: &scratch)
+        if !_appendListToken(s, to: &scratch) { throw .invalidValue }
         scratch.withUnsafeBufferPointer { out.append($0) }
     case .boolean:
-        preconditionFailure("A boolean cannot be an edge-list column: it would read back as a string")
+        throw .invalidValue
     }
 }

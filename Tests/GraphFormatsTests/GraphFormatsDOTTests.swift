@@ -974,29 +974,29 @@ struct GraphFormatsDOTTests {
     }
 
     @Test("GF-186 empty digraph")
-    func gf186() {
+    func gf186() throws {
         // writeDOT(to:) on D:
         let graph = DirectedPseudograph<String>()
         var output = ""
-        graph.writeDOT(to: &output)
+        try graph.writeDOT(to: &output)
         #expect(output == "digraph {\n}\n")
     }
 
     @Test("GF-187 every vertex, then every edge, in order")
-    func gf187() {
+    func gf187() throws {
         // writeDOT(to:) on D: a, b, z; a>b
         let graph = DirectedPseudograph<String>(vertices: ["a", "b", "z"], edges: [DirectedEdge(from: "a", to: "b")])
         var output = ""
-        graph.writeDOT(to: &output)
+        try graph.writeDOT(to: &output)
         #expect(output == "digraph {\n\ta;\n\tb;\n\tz;\n\ta -> b;\n}\n")
     }
 
     @Test("GF-188 typed attributes; graph attributes first")
-    func gf188() {
+    func gf188() throws {
         // writeDOT(to:) on D: a{label="x y", n=3, x=2.0, ok=true}, b; a>b{weight=2, w2=-0.5}, b>b{weight=1.5}; graph{title="G"}
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "b")])
         var output = ""
-        graph.writeDOT(to: &output, vertexAttributes: { v in
+        try graph.writeDOT(to: &output, vertexAttributes: { v in
             switch v {
             case "a": [("label", .string("x y")), ("n", .integer(3)), ("x", .double(2.0)), ("ok", .boolean(true))]
             default: []
@@ -1012,29 +1012,29 @@ struct GraphFormatsDOTTests {
     }
 
     @Test("GF-189 undirected, a loop, parallel edges")
-    func gf189() {
+    func gf189() throws {
         // writeDOT(to:) on U: a, b, c; b-a, a-a, a-b, c-b
         let graph = Pseudograph<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("b", "a"), UndirectedEdge("a", "a"), UndirectedEdge("a", "b"), UndirectedEdge("c", "b")])
         var output = ""
-        graph.writeDOT(to: &output)
+        try graph.writeDOT(to: &output)
         #expect(output == "graph {\n\ta;\n\tb;\n\tc;\n\tb -- a;\n\ta -- a;\n\ta -- b;\n\tc -- b;\n}\n")
     }
 
     @Test("GF-190 Int vertices are numerals")
-    func gf190() {
+    func gf190() throws {
         // writeDOT(to:) on U: 0, 1, 2; 0-1, 1-2
         let graph = Pseudograph<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
         var output = ""
-        graph.writeDOT(to: &output)
+        try graph.writeDOT(to: &output)
         #expect(output == "graph {\n\t0;\n\t1;\n\t2;\n\t0 -- 1;\n\t1 -- 2;\n}\n")
     }
 
     @Test("GF-191 quoting: keywords, numerals, non-ASCII, quotes, trailing backslash, backslash before newline")
-    func gf191() {
+    func gf191() throws {
         // writeDOT(to:) on D: node, "1.5", "-x"{k=1e-05}, "é"{inf=inf}, "a b", "q\"r", "tail\\", "bs\\\nnl", _ok9; node>"1.5"
         let graph = DirectedPseudograph<String>(vertices: ["node", "1.5", "-x", "é", "a b", "q\"r", "tail\\", "bs\\\nnl", "_ok9"], edges: [DirectedEdge(from: "node", to: "1.5")])
         var output = ""
-        graph.writeDOT(to: &output, vertexAttributes: { v in
+        try graph.writeDOT(to: &output, vertexAttributes: { v in
             switch v {
             case "-x": [("k", .double(1e-05))]
             case "é": [("inf", .double(.infinity))]
@@ -1045,11 +1045,11 @@ struct GraphFormatsDOTTests {
     }
 
     @Test("GF-192 non-finite doubles and booleans")
-    func gf192() {
+    func gf192() throws {
         // writeDOT(to:) on D: a{x=inf, y=-inf, z=nan, b=false}
         let graph = DirectedPseudograph<String>(vertices: ["a"])
         var output = ""
-        graph.writeDOT(to: &output, vertexAttributes: { v in
+        try graph.writeDOT(to: &output, vertexAttributes: { v in
             switch v {
             case "a": [("x", .double(.infinity)), ("y", .double(-.infinity)), ("z", .double(.nan)), ("b", .boolean(false))]
             default: []

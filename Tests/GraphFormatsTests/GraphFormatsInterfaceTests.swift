@@ -245,27 +245,27 @@ struct GraphFormatsInterfaceTests {
     }
 
     @Test("Writers call each closure once per element, in vertices then position order; GraphML twice")
-    func writerClosureCalls() {
+    func writerClosureCalls() throws {
         let graph = DirectedPseudograph<String>(vertices: ["c", "a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "c", to: "c")])
         for format in ["dot", "graphML", "nodeLinkJSON", "edgeList", "adjacencyList", "mermaid"] {
             var ids: [String] = [], vertexCalls: [String] = [], edgeCalls: [Int] = []
             var output = ""
             switch format {
             case "dot":
-                graph.writeDOT(to: &output, vertexID: { ids.append($0); return $0 }, vertexAttributes: { vertexCalls.append($0); return [] },
+                try graph.writeDOT(to: &output, vertexID: { ids.append($0); return $0 }, vertexAttributes: { vertexCalls.append($0); return [] },
                                edgeAttributes: { edgeCalls.append($0); return [] })
             case "graphML":
-                graph.writeGraphML(to: &output, vertexAttributes: { vertexCalls.append($0); return [("k", .integer(1))] },
+                try graph.writeGraphML(to: &output, vertexAttributes: { vertexCalls.append($0); return [("k", .integer(1))] },
                                    edgeAttributes: { edgeCalls.append($0); return [] })
             case "nodeLinkJSON":
-                graph.writeNodeLinkJSON(to: &output, vertexID: { ids.append($0); return .string($0) }, vertexAttributes: { vertexCalls.append($0); return [] },
+                try graph.writeNodeLinkJSON(to: &output, vertexID: { ids.append($0); return .string($0) }, vertexAttributes: { vertexCalls.append($0); return [] },
                                         edgeAttributes: { edgeCalls.append($0); return [] })
             case "edgeList":
-                graph.writeEdgeList(to: &output, vertexID: { ids.append($0); return $0 }, edgeAttributes: { edgeCalls.append($0); return [] })
+                try graph.writeEdgeList(to: &output, vertexID: { ids.append($0); return $0 }, edgeAttributes: { edgeCalls.append($0); return [] })
             case "adjacencyList":
-                graph.writeAdjacencyList(to: &output, vertexID: { ids.append($0); return $0 })
+                try graph.writeAdjacencyList(to: &output, vertexID: { ids.append($0); return $0 })
             default:
-                graph.writeMermaid(to: &output, vertexID: { ids.append($0); return $0 }, vertexLabel: { vertexCalls.append($0); return nil },
+                try graph.writeMermaid(to: &output, vertexID: { ids.append($0); return $0 }, vertexLabel: { vertexCalls.append($0); return nil },
                                    edgeLabel: { edgeCalls.append($0); return nil })
             }
             switch format {
@@ -289,16 +289,16 @@ struct GraphFormatsInterfaceTests {
     }
 
     @Test("Every writer but node-link JSON ends with a line feed; no writer emits a carriage return")
-    func lineEnds() {
+    func lineEnds() throws {
         let graph = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
         var outputs: [String: String] = [:]
         var text = ""
-        graph.writeDOT(to: &text, vertexAttributes: { _ in [("s", .string("x\r\ny"))] }); outputs["dot"] = text; text = ""
-        graph.writeGraphML(to: &text, vertexAttributes: { _ in [("s", .string("x\r\ny"))] }); outputs["graphML"] = text; text = ""
-        graph.writeNodeLinkJSON(to: &text, vertexAttributes: { _ in [("s", .string("x\r\ny"))] }); outputs["nodeLinkJSON"] = text; text = ""
-        graph.writeEdgeList(to: &text); outputs["edgeList"] = text; text = ""
-        graph.writeAdjacencyList(to: &text); outputs["adjacencyList"] = text; text = ""
-        graph.writeMermaid(to: &text, vertexLabel: { _ in "x\r\ny" }); outputs["mermaid"] = text; text = ""
+        try graph.writeDOT(to: &text, vertexAttributes: { _ in [("s", .string("x\r\ny"))] }); outputs["dot"] = text; text = ""
+        try graph.writeGraphML(to: &text, vertexAttributes: { _ in [("s", .string("x\r\ny"))] }); outputs["graphML"] = text; text = ""
+        try graph.writeNodeLinkJSON(to: &text, vertexAttributes: { _ in [("s", .string("x\r\ny"))] }); outputs["nodeLinkJSON"] = text; text = ""
+        try graph.writeEdgeList(to: &text); outputs["edgeList"] = text; text = ""
+        try graph.writeAdjacencyList(to: &text); outputs["adjacencyList"] = text; text = ""
+        try graph.writeMermaid(to: &text, vertexLabel: { _ in "x\r\ny" }); outputs["mermaid"] = text; text = ""
         Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)]).writeMatrixMarket(to: &text); outputs["matrixMarket"] = text
         for (format, output) in outputs {
             #expect(output.hasSuffix("\n") == (format != "nodeLinkJSON"), "\(format)")
@@ -310,33 +310,33 @@ struct GraphFormatsInterfaceTests {
     }
 
     @Test("Writers accept any DirectedGraph or Graph: AdjacencyList, StableDirectedGraph with holes, UndirectedAdjacencyList")
-    func writersOverOtherRepresentations() {
+    func writersOverOtherRepresentations() throws {
         var output = ""
-        AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "y", to: "x")]).writeDOT(to: &output)
+        try AdjacencyList<String>(vertices: ["x", "y"], edges: [DirectedEdge(from: "y", to: "x")]).writeDOT(to: &output)
         #expect(output == "digraph {\n\tx;\n\ty;\n\ty -> x;\n}\n")
         var stable = StableDirectedGraph<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a")])
         _ = stable.remove("b")
         output = ""
-        stable.writeDOT(to: &output, edgeAttributes: { [("position", .integer($0))] })
+        try stable.writeDOT(to: &output, edgeAttributes: { [("position", .integer($0))] })
         #expect(output == "digraph {\n\ta;\n\tc;\n\tc -> a [position=2];\n}\n")
         output = ""
         stable.writeMatrixMarket(to: &output)
         #expect(output == "%%MatrixMarket matrix coordinate pattern general\n%\n2 2 1\n2 1\n")
         output = ""
-        UndirectedAdjacencyList<String>(vertices: ["p", "q"], edges: [UndirectedEdge("q", "p"), UndirectedEdge("p", "p")]).writeAdjacencyList(to: &output)
+        try UndirectedAdjacencyList<String>(vertices: ["p", "q"], edges: [UndirectedEdge("q", "p"), UndirectedEdge("p", "p")]).writeAdjacencyList(to: &output)
         #expect(output == "p q p\nq\n")
     }
 
     @Test("Node-link writer: each edge's key counts the earlier edges between its pair only, in each kind")
-    func nodeLinkWriterKeys() {
+    func nodeLinkWriterKeys() throws {
         // 1 is the far end of two sources: its count from the first row does not carry into the
         // next one.
         var output = ""
-        DirectedPseudograph<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 0, to: 1)])
+        try DirectedPseudograph<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 0, to: 1)])
             .writeNodeLinkJSON(to: &output)
         #expect(output == "{\"directed\": true, \"multigraph\": true, \"graph\": {}, \"nodes\": [{\"id\": 0}, {\"id\": 1}, {\"id\": 2}], \"edges\": [{\"source\": 0, \"target\": 1, \"key\": 0}, {\"source\": 2, \"target\": 1, \"key\": 0}, {\"source\": 2, \"target\": 1, \"key\": 1}, {\"source\": 0, \"target\": 1, \"key\": 1}]}")
         output = ""
-        Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(1, 0), UndirectedEdge(1, 2), UndirectedEdge(2, 1), UndirectedEdge(0, 1)])
+        try Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(1, 0), UndirectedEdge(1, 2), UndirectedEdge(2, 1), UndirectedEdge(0, 1)])
             .writeNodeLinkJSON(to: &output)
         #expect(output == "{\"directed\": false, \"multigraph\": true, \"graph\": {}, \"nodes\": [{\"id\": 0}, {\"id\": 1}, {\"id\": 2}], \"edges\": [{\"source\": 1, \"target\": 0, \"key\": 0}, {\"source\": 1, \"target\": 2, \"key\": 0}, {\"source\": 2, \"target\": 1, \"key\": 1}, {\"source\": 0, \"target\": 1, \"key\": 1}]}")
     }

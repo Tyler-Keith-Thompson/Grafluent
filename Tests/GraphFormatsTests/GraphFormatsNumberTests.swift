@@ -128,7 +128,7 @@ struct GraphFormatsNumberTests {
         // The edge list writes description's digits, positional exactly for decimal exponents
         // -4 ..< 16, and every value reads back.
         var edgeList = ""
-        graph.writeEdgeList(to: &edgeList, columns: ["x"], edgeAttributes: { [("x", .double(values[$0]))] })
+        try graph.writeEdgeList(to: &edgeList, columns: ["x"], edgeAttributes: { [("x", .double(values[$0]))] })
         let written = edgeList.split(separator: "\n").map { String($0.split(separator: " ")[2]) }
         for (k, x) in values.enumerated() where x.isFinite && x != 0 {
             let text = written[k]
@@ -148,13 +148,13 @@ struct GraphFormatsNumberTests {
             if case .double(let d) = value { fromMatrix[p] = d }
         })
         var graphML = ""
-        graph.writeGraphML(to: &graphML, edgeAttributes: { [("x", .double(values[$0]))] })
+        try graph.writeGraphML(to: &graphML, edgeAttributes: { [("x", .double(values[$0]))] })
         var fromGraphML = [Double](repeating: 0, count: m)
         _ = try DirectedPseudograph<Int>(graphML: graphML.utf8, vertex: { Int($0) }, edgeAttribute: { p, _, value in
             if case .double(let d) = value { fromGraphML[p] = d }
         })
         var nodeLink = ""
-        graph.writeNodeLinkJSON(to: &nodeLink, edgeAttributes: { [("x", .double(values[$0].isFinite ? values[$0] : 0))] })
+        try graph.writeNodeLinkJSON(to: &nodeLink, edgeAttributes: { [("x", .double(values[$0].isFinite ? values[$0] : 0))] })
         var fromJSON = [Double](repeating: 0, count: m)
         _ = try DirectedPseudograph<Int>(nodeLinkJSON: nodeLink.utf8, edgeAttribute: { p, _, value in
             if case .double(let d) = value { fromJSON[p] = d }
@@ -169,7 +169,7 @@ struct GraphFormatsNumberTests {
     }
 
     @Test("Python's layout around 10¹⁶ and 2⁵³, where description's switches to an exponent earlier")
-    func pythonLayoutBand() {
+    func pythonLayoutBand() throws {
         let cases: [(Double, String)] = [
             (9.5e15, "9500000000000000.0"), (9_007_199_254_740_992, "9007199254740992.0"), (9_007_199_254_740_994, "9007199254740994.0"),
             (9_999_999_999_999_998, "9999999999999998.0"), (1e16, "1e+16"), (1.0000000000000002e16, "1.0000000000000002e+16"),
@@ -181,7 +181,7 @@ struct GraphFormatsNumberTests {
         ]
         var output = ""
         let graph = DirectedPseudograph<Int>(vertices: 0 ..< 2, edges: Array(repeating: DirectedEdge(from: 0, to: 1), count: cases.count))
-        graph.writeEdgeList(to: &output, columns: ["x"], edgeAttributes: { [("x", .double(cases[$0].0))] })
+        try graph.writeEdgeList(to: &output, columns: ["x"], edgeAttributes: { [("x", .double(cases[$0].0))] })
         #expect(output == cases.map { "0 1 \($0.1)\n" }.joined())
         var scipy = ""
         let three: [Double] = [9.5e15, 1e16, 0.00001]
@@ -191,11 +191,11 @@ struct GraphFormatsNumberTests {
     }
 
     @Test("The smallest subnormals write description's digits, the shortest that round-trip")
-    func smallestSubnormalsShortest() {
+    func smallestSubnormalsShortest() throws {
         let values = (1 ... 200).map { Double(bitPattern: UInt64($0)) }
         var output = ""
         let graph = DirectedPseudograph<Int>(vertices: 0 ..< 2, edges: Array(repeating: DirectedEdge(from: 0, to: 1), count: values.count))
-        graph.writeEdgeList(to: &output, columns: ["x"], edgeAttributes: { [("x", .double(values[$0]))] })
+        try graph.writeEdgeList(to: &output, columns: ["x"], edgeAttributes: { [("x", .double(values[$0]))] })
         let written = output.split(separator: "\n").map { String($0.split(separator: " ")[2]) }
         #expect(written[19] == "1e-322")
         #expect(written[9] == "5e-323")

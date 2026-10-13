@@ -32,18 +32,19 @@
 /// graph (each edge's line and far end kept for the second, as 32-bit numbers when they fit).
 @inlinable func _writeAdjacencyList<Source: _WriteSource>(
     _ source: Source, to out: inout _OutputBuffer, vertexID: (Source.Vertex) -> String
-) {
+) throws(WriteError) {
     if source.vertexCount <= Int(Int32.max) {
-        _writeAdjacencyList(source, numbers: Int32.self, to: &out, vertexID: vertexID)
+        try _writeAdjacencyList(source, numbers: Int32.self, to: &out, vertexID: vertexID)
     } else {
-        _writeAdjacencyList(source, numbers: Int.self, to: &out, vertexID: vertexID)
+        try _writeAdjacencyList(source, numbers: Int.self, to: &out, vertexID: vertexID)
     }
 }
 
-/// `_writeAdjacencyList`, with vertex numbers stored as `Number`.
+/// `_writeAdjacencyList`, with vertex numbers stored as `Number`. Every ID is made and checked
+/// before the first byte is written.
 @inlinable func _writeAdjacencyList<Source: _WriteSource, Number: FixedWidthInteger>(
     _ source: Source, numbers _: Number.Type, to out: inout _OutputBuffer, vertexID: (Source.Vertex) -> String
-) {
+) throws(WriteError) {
     let n = source.vertexCount, m = source.edgeCount
     var rowStart = [Int](repeating: 0, count: n &+ 1)
     var lines = [Number](repeating: 0, count: m), ends = [Number](repeating: 0, count: m)
@@ -81,7 +82,7 @@
     var ids = _IDCache(vertexCount: n)
     for k in 0 ..< n {
         let id = vertexID(source.vertex(at: k))
-        ids.set(k, id: id.debugDescription) { _appendListToken(id, to: &$0) }
+        try ids.set(k) { (bytes) throws(WriteError) in if !_appendListToken(id, to: &bytes) { throw .invalidID } }
     }
     rowStart.withUnsafeBufferPointer { rowStart in
         far.withUnsafeBufferPointer { far in

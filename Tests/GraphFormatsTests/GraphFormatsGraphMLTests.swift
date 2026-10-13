@@ -788,29 +788,29 @@ struct GraphFormatsGraphMLTests {
     }
 
     @Test("GF-193 empty digraph")
-    func gf193() {
+    func gf193() throws {
         // writeGraphML(to:) on D:
         let graph = DirectedPseudograph<String>()
         var output = ""
-        graph.writeGraphML(to: &output)
+        try graph.writeGraphML(to: &output)
         #expect(output == "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd\">\n  <graph edgedefault=\"directed\">\n  </graph>\n</graphml>\n")
     }
 
     @Test("GF-194 nodes without data are empty elements")
-    func gf194() {
+    func gf194() throws {
         // writeGraphML(to:) on D: a, b, z; a>b
         let graph = DirectedPseudograph<String>(vertices: ["a", "b", "z"], edges: [DirectedEdge(from: "a", to: "b")])
         var output = ""
-        graph.writeGraphML(to: &output)
+        try graph.writeGraphML(to: &output)
         #expect(output == "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd\">\n  <graph edgedefault=\"directed\">\n    <node id=\"a\"/>\n    <node id=\"b\"/>\n    <node id=\"z\"/>\n    <edge source=\"a\" target=\"b\"/>\n  </graph>\n</graphml>\n")
     }
 
     @Test("GF-195 typed keys: graph, then node, then edge keys, by first appearance")
-    func gf195() {
+    func gf195() throws {
         // writeGraphML(to:) on D: a{label="x y", n=3, x=2.0, ok=true}, b; a>b{weight=2, w2=-0.5}, b>b{weight=1.5}; graph{title="G"}
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "b")])
         var output = ""
-        graph.writeGraphML(to: &output, vertexAttributes: { v in
+        try graph.writeGraphML(to: &output, vertexAttributes: { v in
             switch v {
             case "a": [("label", .string("x y")), ("n", .integer(3)), ("x", .double(2.0)), ("ok", .boolean(true))]
             default: []
@@ -826,20 +826,20 @@ struct GraphFormatsGraphMLTests {
     }
 
     @Test("GF-196 undirected")
-    func gf196() {
+    func gf196() throws {
         // writeGraphML(to:) on U: a, b, c; b-a, a-a, a-b, c-b
         let graph = Pseudograph<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("b", "a"), UndirectedEdge("a", "a"), UndirectedEdge("a", "b"), UndirectedEdge("c", "b")])
         var output = ""
-        graph.writeGraphML(to: &output)
+        try graph.writeGraphML(to: &output)
         #expect(output == "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd\">\n  <graph edgedefault=\"undirected\">\n    <node id=\"a\"/>\n    <node id=\"b\"/>\n    <node id=\"c\"/>\n    <edge source=\"b\" target=\"a\"/>\n    <edge source=\"a\" target=\"a\"/>\n    <edge source=\"a\" target=\"b\"/>\n    <edge source=\"c\" target=\"b\"/>\n  </graph>\n</graphml>\n")
     }
 
     @Test("GF-197 escaping in ids and data")
-    func gf197() {
+    func gf197() throws {
         // writeGraphML(to:) on D: "a&<>\""{s="x & <y> \"z\" \r\n"}, "t\tn\nr\r"; "a&<>\"">"t\tn\nr\r"{s="\t"}
         let graph = DirectedPseudograph<String>(vertices: ["a&<>\"", "t\tn\nr\r"], edges: [DirectedEdge(from: "a&<>\"", to: "t\tn\nr\r")])
         var output = ""
-        graph.writeGraphML(to: &output, vertexAttributes: { v in
+        try graph.writeGraphML(to: &output, vertexAttributes: { v in
             switch v {
             case "a&<>\"": [("s", .string("x & <y> \"z\" \r\n"))]
             default: []
@@ -854,11 +854,11 @@ struct GraphFormatsGraphMLTests {
     }
 
     @Test("GF-198 integer and double values under one key: double")
-    func gf198() {
+    func gf198() throws {
         // writeGraphML(to:) on D: a{w=1}, b; a>b{w=1}, b>a{w=2.5}
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a")])
         var output = ""
-        graph.writeGraphML(to: &output, vertexAttributes: { v in
+        try graph.writeGraphML(to: &output, vertexAttributes: { v in
             switch v {
             case "a": [("w", .integer(1))]
             default: []
@@ -874,11 +874,11 @@ struct GraphFormatsGraphMLTests {
     }
 
     @Test("GF-199 INF, -INF, NaN, booleans")
-    func gf199() {
+    func gf199() throws {
         // writeGraphML(to:) on D: a{x=inf, y=-inf, z=nan, b=false}
         let graph = DirectedPseudograph<String>(vertices: ["a"])
         var output = ""
-        graph.writeGraphML(to: &output, vertexAttributes: { v in
+        try graph.writeGraphML(to: &output, vertexAttributes: { v in
             switch v {
             case "a": [("x", .double(.infinity)), ("y", .double(-.infinity)), ("z", .double(.nan)), ("b", .boolean(false))]
             default: []

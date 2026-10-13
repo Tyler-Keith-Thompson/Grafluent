@@ -153,20 +153,20 @@ struct GraphFormatsEdgeListTests {
     }
 
     @Test("GF-215 edges in order; isolated vertices are lost")
-    func gf215() {
+    func gf215() throws {
         // writeEdgeList(to:) on D: a, b, z; a>b
         let graph = DirectedPseudograph<String>(vertices: ["a", "b", "z"], edges: [DirectedEdge(from: "a", to: "b")])
         var output = ""
-        graph.writeEdgeList(to: &output)
+        try graph.writeEdgeList(to: &output)
         #expect(output == "a b\n")
     }
 
     @Test("GF-216 columns")
-    func gf216() {
+    func gf216() throws {
         // writeEdgeList(to:, columns: ["weight"]) on D: a{label="x y", n=3, x=2.0, ok=true}, b; a>b{weight=2, w2=-0.5}, b>b{weight=1.5}; graph{title="G"}
         let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "b")])
         var output = ""
-        graph.writeEdgeList(to: &output, columns: ["weight"], edgeAttributes: { e in
+        try graph.writeEdgeList(to: &output, columns: ["weight"], edgeAttributes: { e in
             switch e {
             case 0: [("weight", .integer(2)), ("w2", .double(-0.5))]
             case 1: [("weight", .double(1.5))]
@@ -177,20 +177,20 @@ struct GraphFormatsEdgeListTests {
     }
 
     @Test("GF-217 undirected")
-    func gf217() {
+    func gf217() throws {
         // writeEdgeList(to:) on U: a, b, c; b-a, a-a, a-b, c-b
         let graph = Pseudograph<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("b", "a"), UndirectedEdge("a", "a"), UndirectedEdge("a", "b"), UndirectedEdge("c", "b")])
         var output = ""
-        graph.writeEdgeList(to: &output)
+        try graph.writeEdgeList(to: &output)
         #expect(output == "b a\na a\na b\nc b\n")
     }
 
     @Test("GF-218 Int vertices")
-    func gf218() {
+    func gf218() throws {
         // writeEdgeList(to:) on U: 0, 1, 2; 0-1, 1-2
         let graph = Pseudograph<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
         var output = ""
-        graph.writeEdgeList(to: &output)
+        try graph.writeEdgeList(to: &output)
         #expect(output == "0 1\n1 2\n")
     }
 

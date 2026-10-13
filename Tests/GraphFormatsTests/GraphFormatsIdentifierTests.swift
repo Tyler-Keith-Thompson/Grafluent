@@ -81,12 +81,12 @@ struct GraphFormatsIdentifierTests {
 
         // Writers: two keys, not one key given twice.
         var output = ""
-        DirectedPseudograph<String>(vertices: ["n"]).writeGraphML(to: &output, vertexAttributes: { _ in
+        try DirectedPseudograph<String>(vertices: ["n"]).writeGraphML(to: &output, vertexAttributes: { _ in
             [(composed, .integer(1)), (decomposed, .integer(2))]
         })
         #expect(output.ranges(of: "<key ").count == 2)
         output = ""
-        DirectedPseudograph<String>(vertices: ["n"]).writeNodeLinkJSON(to: &output, vertexAttributes: { _ in
+        try DirectedPseudograph<String>(vertices: ["n"]).writeNodeLinkJSON(to: &output, vertexAttributes: { _ in
             [(composed, .integer(1)), (decomposed, .integer(2))]
         })
         #expect(output == "{\"directed\": true, \"multigraph\": false, \"graph\": {}, \"nodes\": [{\"\\u00e9\": 1, \"e\\u0301\": 2, \"id\": \"n\"}], \"edges\": []}")

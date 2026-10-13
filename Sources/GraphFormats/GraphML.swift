@@ -989,9 +989,9 @@
 }
 
 /// Appends `s` escaped for an attribute value (`& < > "`, and tab, line feed and carriage return as
-/// references, so they survive normalization) or for text (`& < >`, carriage return).
+/// references, so they survive normalization) or for text (`& < >`, carriage return). `s` is
+/// representable (`_isXMLRepresentable`, checked by the writer's first pass).
 @inlinable func _appendXMLEscaped(_ s: String, attribute: Bool, to out: inout _OutputBuffer) {
-    precondition(_isXMLRepresentable(s), "\(s.debugDescription) holds a character XML 1.0 cannot represent")
     var s = s
     s.withUTF8 { bytes in
         var run = 0
@@ -1055,12 +1055,17 @@
         return k
     }
 
-    @inlinable mutating func add(_ pairs: [(key: String, value: AttributeValue)], order: inout [(Int, Int)], domain: Int) {
+    /// Records the keys and types of one element's pairs. Throws `invalidKey` or `invalidValue` for
+    /// a name or string XML 1.0 cannot represent, and `typeMismatch` for a key whose values have
+    /// two types other than integers and doubles.
+    @inlinable mutating func add(_ pairs: [(key: String, value: AttributeValue)], order: inout [(Int, Int)], domain: Int) throws(WriteError) {
         _checkDistinctKeys(pairs)
         for pair in pairs {
             let type: _WrittenType
             switch pair.value {
-            case .string: type = .string
+            case .string(let s):
+                if !_isXMLRepresentable(s) { throw .invalidValue }
+                type = .string
             case .integer: type = .long
             case .double: type = .double
             case .boolean: type = .boolean
@@ -1068,11 +1073,11 @@
             if let k = number(of: pair.key) {
                 let old = types[k]
                 if old != type {
-                    precondition((old == .long || old == .double) && (type == .long || type == .double),
-                                 "GraphML key \(pair.key) holds values of two types; only integers and doubles can share a key")
+                    guard (old == .long || old == .double) && (type == .long || type == .double) else { throw .typeMismatch }
                     types[k] = .double
                 }
             } else {
+                if !_isXMLRepresentable(pair.key) { throw .invalidKey }
                 numbers[_ScalarKey(pair.key)] = names.count
                 names.append(pair.key)
                 ascii.append(_isASCII(pair.key))
@@ -1084,20 +1089,40 @@
 }
 
 /// Writes GraphML: keys (graph, node, then edge, by first appearance), the graph's data, every
-/// node, every edge.
+/// node, every edge. The first pass checks every ID, name and string before the first byte is
+/// written.
 @inlinable func _writeGraphML<Source: _WriteSource>(
     _ source: Source, to out: inout _OutputBuffer, vertexID: (Source.Vertex) -> String,
     vertexAttributes: (Source.Vertex) -> [(key: String, value: AttributeValue)],
     edgeAttributes: (Source.Position) -> [(key: String, value: AttributeValue)],
     graphAttributes: [(key: String, value: AttributeValue)]
-) {
-    // First pass: the keys and their types.
+) throws(WriteError) {
+    // First pass: the keys and their types, then the IDs.
     var tables = [_KeyTable(), _KeyTable(), _KeyTable()]
     var order: [(Int, Int)] = []
-    tables[0].add(graphAttributes, order: &order, domain: 0)
+    try tables[0].add(graphAttributes, order: &order, domain: 0)
     let n = source.vertexCount
-    for k in 0 ..< n { tables[1].add(vertexAttributes(source.vertex(at: k)), order: &order, domain: 1) }
-    source.forEachEdge { position, _, _ in tables[2].add(edgeAttributes(position), order: &order, domain: 2) }
+    for k in 0 ..< n { try tables[1].add(vertexAttributes(source.vertex(at: k)), order: &order, domain: 1) }
+    try source.forEachEdge { (position, _, _) throws(WriteError) in try tables[2].add(edgeAttributes(position), order: &order, domain: 2) }
+    var cache = _IDCache(vertexCount: n)
+    for k in 0 ..< n {
+        let id = vertexID(source.vertex(at: k))
+        guard _isXMLRepresentable(id) else { throw .invalidID }
+        try cache.set(k) { bytes in
+            for b in id.utf8 {
+                switch b {
+                case UInt8(ascii: "&"): bytes.append(contentsOf: "&amp;".utf8)
+                case UInt8(ascii: "<"): bytes.append(contentsOf: "&lt;".utf8)
+                case UInt8(ascii: ">"): bytes.append(contentsOf: "&gt;".utf8)
+                case UInt8(ascii: "\""): bytes.append(contentsOf: "&quot;".utf8)
+                case 0x09: bytes.append(contentsOf: "&#9;".utf8)
+                case 0x0A: bytes.append(contentsOf: "&#10;".utf8)
+                case 0x0D: bytes.append(contentsOf: "&#13;".utf8)
+                default: bytes.append(b)
+                }
+            }
+        }
+    }
     // Key ids d0, d1, … in that order.
     var numbering = [[Int]](repeating: [], count: 3)
     for d in 0 ..< 3 { numbering[d] = Array(repeating: 0, count: tables[d].names.count) }
@@ -1127,25 +1152,8 @@
         _appendGraphMLData(pair.value, key: ids[0][keyTables[0].number(of: pair.key)!], indent: "    ", to: &out)
     }
 
-    var cache = _IDCache(vertexCount: n)
     for k in 0 ..< n {
         let vertex = source.vertex(at: k)
-        let id = vertexID(vertex)
-        precondition(_isXMLRepresentable(id), "\(id.debugDescription) holds a character XML 1.0 cannot represent")
-        cache.set(k, id: id.debugDescription) { bytes in
-            for b in id.utf8 {
-                switch b {
-                case UInt8(ascii: "&"): bytes.append(contentsOf: "&amp;".utf8)
-                case UInt8(ascii: "<"): bytes.append(contentsOf: "&lt;".utf8)
-                case UInt8(ascii: ">"): bytes.append(contentsOf: "&gt;".utf8)
-                case UInt8(ascii: "\""): bytes.append(contentsOf: "&quot;".utf8)
-                case 0x09: bytes.append(contentsOf: "&#9;".utf8)
-                case 0x0A: bytes.append(contentsOf: "&#10;".utf8)
-                case 0x0D: bytes.append(contentsOf: "&#13;".utf8)
-                default: bytes.append(b)
-                }
-            }
-        }
         out.appendASCII("    <node id=\"")
         cache.write(k, to: &out)
         let pairs = vertexAttributes(vertex)

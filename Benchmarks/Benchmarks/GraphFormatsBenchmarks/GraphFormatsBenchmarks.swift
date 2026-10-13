@@ -34,26 +34,26 @@ let benchmarks: @Sendable () -> Void = {
     let small = DirectedPseudograph(vertices: 0 ..< 10_000, edges: Inputs.randomEdges(vertexCount: 10_000, edgeCount: 100_000, seed: 3))
 
     var edgeList = ""
-    graph.writeEdgeList(to: &edgeList, columns: ["weight"], edgeAttributes: { [("weight", .double(weights[$0]))] })
+    try! graph.writeEdgeList(to: &edgeList, columns: ["weight"], edgeAttributes: { [("weight", .double(weights[$0]))] })
     var adjacencyList = ""
-    graph.writeAdjacencyList(to: &adjacencyList)
+    try! graph.writeAdjacencyList(to: &adjacencyList)
     var graphML = ""
-    graph.writeGraphML(to: &graphML, edgeAttributes: { [("weight", .double(weights[$0]))] })
+    try! graph.writeGraphML(to: &graphML, edgeAttributes: { [("weight", .double(weights[$0]))] })
     var nodeLink = ""
-    graph.writeNodeLinkJSON(to: &nodeLink, edgeAttributes: { [("weight", .double(weights[$0]))] })
+    try! graph.writeNodeLinkJSON(to: &nodeLink, edgeAttributes: { [("weight", .double(weights[$0]))] })
     var matrixMarket = ""
     graph.writeMatrixMarket(to: &matrixMarket, weight: { weights[$0] })
     var dot = ""
-    small.writeDOT(to: &dot)
+    try! small.writeDOT(to: &dot)
     var mermaid = ""
-    graph.writeMermaid(to: &mermaid, vertexID: { "v\($0)" })
+    try! graph.writeMermaid(to: &mermaid, vertexID: { "v\($0)" })
 
     // MARK: Edge list
 
     Benchmark("GraphFormats: writeEdgeList, 10⁶ weighted edges") { benchmark in
         for _ in benchmark.scaledIterations {
             var out = ByteCounter()
-            graph.writeEdgeList(to: &out, columns: ["weight"], edgeAttributes: { [("weight", .double(weights[$0]))] })
+            try graph.writeEdgeList(to: &out, columns: ["weight"], edgeAttributes: { [("weight", .double(weights[$0]))] })
             blackHole(out)
         }
     }
@@ -88,7 +88,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("GraphFormats: writeAdjacencyList, 10⁶ edges") { benchmark in
         for _ in benchmark.scaledIterations {
             var out = ByteCounter()
-            graph.writeAdjacencyList(to: &out)
+            try graph.writeAdjacencyList(to: &out)
             blackHole(out)
         }
     }
@@ -106,7 +106,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("GraphFormats: writeGraphML, 10⁶ weighted edges") { benchmark in
         for _ in benchmark.scaledIterations {
             var out = ByteCounter()
-            graph.writeGraphML(to: &out, edgeAttributes: { [("weight", .double(weights[$0]))] })
+            try graph.writeGraphML(to: &out, edgeAttributes: { [("weight", .double(weights[$0]))] })
             blackHole(out)
         }
     }
@@ -130,7 +130,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("GraphFormats: writeNodeLinkJSON, 10⁶ weighted edges") { benchmark in
         for _ in benchmark.scaledIterations {
             var out = ByteCounter()
-            graph.writeNodeLinkJSON(to: &out, edgeAttributes: { [("weight", .double(weights[$0]))] })
+            try graph.writeNodeLinkJSON(to: &out, edgeAttributes: { [("weight", .double(weights[$0]))] })
             blackHole(out)
         }
     }
@@ -194,7 +194,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("GraphFormats: writeDOT, 10⁵ edges") { benchmark in
         for _ in benchmark.scaledIterations {
             var out = ByteCounter()
-            small.writeDOT(to: &out)
+            try small.writeDOT(to: &out)
             blackHole(out)
         }
     }

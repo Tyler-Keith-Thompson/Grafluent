@@ -485,20 +485,22 @@
     out.append(UInt8(ascii: "\""))
 }
 
-/// Writes a flowchart: every vertex (with its label, if any), then every edge.
+/// Writes a flowchart: every vertex (with its label, if any), then every edge. Every ID is made and
+/// checked before the first byte is written.
 @inlinable func _writeMermaid<Source: _WriteSource>(
     _ source: Source, to out: inout _OutputBuffer, vertexID: (Source.Vertex) -> String,
     vertexLabel: (Source.Vertex) -> String?, edgeLabel: (Source.Position) -> String?
-) {
+) throws(WriteError) {
     let n = source.vertexCount
     var ids = _IDCache(vertexCount: n)
+    for k in 0 ..< n {
+        let id = vertexID(source.vertex(at: k))
+        guard !id.isEmpty && id.utf8.allSatisfy(_isMermaidID) && !_reservedMermaidIDs.contains(id) else { throw .invalidID }
+        try ids.set(k) { $0.append(contentsOf: id.utf8) }
+    }
     out.appendASCII("flowchart TD\n")
     for k in 0 ..< n {
         let vertex = source.vertex(at: k)
-        let id = vertexID(vertex)
-        precondition(!id.isEmpty && id.utf8.allSatisfy(_isMermaidID) && !_reservedMermaidIDs.contains(id),
-                     "\(id.debugDescription) cannot be a Mermaid vertex ID: pass vertexID: with IDs of [A-Za-z0-9_]+")
-        ids.set(k, id: id.debugDescription) { $0.append(contentsOf: id.utf8) }
         out.appendASCII("    ")
         ids.write(k, to: &out)
         if let label = vertexLabel(vertex) {

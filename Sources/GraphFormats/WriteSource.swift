@@ -14,8 +14,8 @@ import GraphProtocols
     func vertex(at index: Int) -> Vertex
 
     /// Calls `body` with every edge's position and endpoint numbers (stored orientation), in
-    /// position order.
-    func forEachEdge(_ body: (Position, Int, Int) -> Void)
+    /// position order, stopping at the first error it throws.
+    func forEachEdge<Failure: Error>(_ body: (Position, Int, Int) throws(Failure) -> Void) throws(Failure)
 
     /// Where a walk over the edges in position order stands.
     associatedtype EdgeCursor
@@ -59,15 +59,15 @@ import GraphProtocols
         return graph.vertex(atIndex: index)
     }
 
-    @inlinable func forEachEdge(_ body: (Base.Edges.Index, Int, Int) -> Void) {
+    @inlinable func forEachEdge<Failure: Error>(_ body: (Base.Edges.Index, Int, Int) throws(Failure) -> Void) throws(Failure) {
         let edges = graph.edges
         if let numbers {
             for p in edges.indices {
                 let e = edges[p]
-                body(p, numbers[e.source]!, numbers[e.target]!)
+                try body(p, numbers[e.source]!, numbers[e.target]!)
             }
         } else {
-            for p in edges.indices { body(p, graph.sourceIndex(ofEdgeAt: p), graph.targetIndex(ofEdgeAt: p)) }
+            for p in edges.indices { try body(p, graph.sourceIndex(ofEdgeAt: p), graph.targetIndex(ofEdgeAt: p)) }
         }
     }
 
@@ -128,17 +128,17 @@ import GraphProtocols
         return graph.vertex(atIndex: index)
     }
 
-    @inlinable func forEachEdge(_ body: (Base.Edges.Index, Int, Int) -> Void) {
+    @inlinable func forEachEdge<Failure: Error>(_ body: (Base.Edges.Index, Int, Int) throws(Failure) -> Void) throws(Failure) {
         let edges = graph.edges
         if let numbers {
             for p in edges.indices {
                 let e = edges[p]
-                body(p, numbers[e.u]!, numbers[e.v]!)
+                try body(p, numbers[e.u]!, numbers[e.v]!)
             }
         } else {
             for p in edges.indices {
                 let (u, v) = graph.endpointIndices(ofEdgeAt: p)
-                body(p, u, v)
+                try body(p, u, v)
             }
         }
     }
@@ -172,9 +172,9 @@ import GraphProtocols
 }
 
 /// Each vertex's ID as the writer prints it, made once (on first use) and kept as bytes. Two
-/// vertices may not have the same ID (a precondition): the file would name one vertex where the
-/// graph has two. IDs are compared by their Unicode scalars, so canonically equivalent but
-/// different IDs (`"é"` precomposed and decomposed) are distinct.
+/// vertices may not have the same ID (`WriteError.duplicateID`): the file would name one vertex
+/// where the graph has two. IDs are compared by their Unicode scalars, so canonically equivalent
+/// but different IDs (`"é"` precomposed and decomposed) are distinct.
 @usableFromInline internal struct _IDCache: ~Copyable {
     @usableFromInline var arena: [UInt8] = []
     /// Per vertex number: the start of its bytes in the arena and their count (-1 until made), and
@@ -214,10 +214,10 @@ import GraphProtocols
 
     /// Stores the bytes `make` appends as vertex `index`'s ID, which must differ from every other
     /// vertex's (the writer's encoding of an ID is one-to-one, so comparing the encoded bytes
-    /// compares the IDs). `id` describes it for the trap's message.
-    @inlinable mutating func set(_ index: Int, id: @autoclosure () -> String, _ make: (inout [UInt8]) -> Void) {
+    /// compares the IDs). Throws `duplicateID` when it does not, and what `make` throws.
+    @inlinable mutating func set(_ index: Int, _ make: (inout [UInt8]) throws(WriteError) -> Void) throws(WriteError) {
         let start = arena.count
-        make(&arena)
+        try make(&arena)
         let end = arena.count
         let (value, word) = arena.withUnsafeBufferPointer { arena in
             let bytes = UnsafeBufferPointer(rebasing: arena[start ..< end])
@@ -242,7 +242,7 @@ import GraphProtocols
             }
             swap(&bytes, &arena)
         }
-        precondition(!repeated, "Two vertices have the ID \(id()): pass vertexID: with distinct IDs")
+        if repeated { throw .duplicateID }
     }
 
     /// Appends `separator`, then vertex `index`'s ID, to `out`: with one store when the ID has at

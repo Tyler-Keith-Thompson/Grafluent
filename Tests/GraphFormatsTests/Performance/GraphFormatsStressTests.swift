@@ -12,8 +12,8 @@ import Testing
 @Suite("GraphFormats at scale")
 struct GraphFormatsStressTests {
     @Test("10⁵ weighted arcs through the edge list, Matrix Market and node-link JSON", .timeLimit(.minutes(1)))
-    func weightedArcs() async {
-        await Task {
+    func weightedArcs() async throws {
+        try await Task {
             let clock = ContinuousClock()
             let start = clock.now
             let n = 20_000, m = 100_000
@@ -24,7 +24,7 @@ struct GraphFormatsStressTests {
             let weights = (0 ..< m).map { Double($0 % 1_000) / 8 - 60 }
 
             var edgeList = ""
-            graph.writeEdgeList(to: &edgeList, columns: ["weight"], edgeAttributes: { [("weight", .double(weights[$0]))] })
+            try graph.writeEdgeList(to: &edgeList, columns: ["weight"], edgeAttributes: { [("weight", .double(weights[$0]))] })
             var listWeights = [Double](repeating: .nan, count: m)
             do {
                 let reread = try DirectedPseudograph<Int>(edgeList: edgeList.utf8, columns: ["weight"], edgeAttribute: { e, _, value in
@@ -53,7 +53,7 @@ struct GraphFormatsStressTests {
             }
 
             var json = ""
-            graph.writeNodeLinkJSON(to: &json, edgeAttributes: { [("w", .double(weights[$0]))] })
+            try graph.writeNodeLinkJSON(to: &json, edgeAttributes: { [("w", .double(weights[$0]))] })
             var jsonWeights = [Double](repeating: .nan, count: m)
             do {
                 let reread = try DirectedPseudograph<Int>(nodeLinkJSON: json.utf8, edgeAttribute: { e, _, value in
@@ -70,8 +70,8 @@ struct GraphFormatsStressTests {
     }
 
     @Test("10⁵ labelled arcs through DOT, GraphML, the adjacency list and Mermaid", .timeLimit(.minutes(1)))
-    func labelledArcs() async {
-        await Task {
+    func labelledArcs() async throws {
+        try await Task {
             let clock = ContinuousClock()
             let start = clock.now
             let n = 10_000, m = 100_000
@@ -82,7 +82,7 @@ struct GraphFormatsStressTests {
             let graph = DirectedPseudograph<String>(vertices: names, edges: edges)
 
             var dot = ""
-            graph.writeDOT(to: &dot, edgeAttributes: { [("label", .string("e \($0)"))] })
+            try graph.writeDOT(to: &dot, edgeAttributes: { [("label", .string("e \($0)"))] })
             var dotLabels = [String](repeating: "", count: m)
             do {
                 let reread = try DirectedPseudograph<String>(dot: dot.utf8, edgeAttribute: { e, _, value in
@@ -96,7 +96,7 @@ struct GraphFormatsStressTests {
             }
 
             var graphML = ""
-            graph.writeGraphML(to: &graphML, edgeAttributes: { [("n", .integer($0))] })
+            try graph.writeGraphML(to: &graphML, edgeAttributes: { [("n", .integer($0))] })
             var graphMLValues = [Int](repeating: -1, count: m)
             do {
                 let reread = try DirectedPseudograph<String>(graphML: graphML.utf8, edgeAttribute: { e, _, value in
@@ -110,7 +110,7 @@ struct GraphFormatsStressTests {
             }
 
             var adjacency = ""
-            graph.writeAdjacencyList(to: &adjacency)
+            try graph.writeAdjacencyList(to: &adjacency)
             do {
                 let reread = try DirectedPseudograph<String>(adjacencyList: adjacency.utf8)
                 #expect(reread.vertexCount == n && reread.edgeCount == m)
@@ -120,7 +120,7 @@ struct GraphFormatsStressTests {
             }
 
             var mermaid = ""
-            graph.writeMermaid(to: &mermaid, edgeLabel: { $0.isMultiple(of: 2) ? "#\($0)" : nil })
+            try graph.writeMermaid(to: &mermaid, edgeLabel: { $0.isMultiple(of: 2) ? "#\($0)" : nil })
             var mermaidLabels: [Int: String] = [:]
             do {
                 let reread = try DirectedPseudograph<String>(mermaid: mermaid.utf8, edgeLabel: { mermaidLabels[$0] = $1 })
@@ -135,8 +135,8 @@ struct GraphFormatsStressTests {
     }
 
     @Test("A megabyte in one ID and one label, in every format that carries strings", .timeLimit(.minutes(1)))
-    func longStrings() async {
-        await Task {
+    func longStrings() async throws {
+        try await Task {
             let clock = ContinuousClock()
             let start = clock.now
             let long = String(repeating: "ab\"\\é<&>#\n", count: 100_000)
@@ -149,13 +149,13 @@ struct GraphFormatsStressTests {
                     let reread: DirectedPseudograph<String>
                     switch format {
                     case "dot":
-                        graph.writeDOT(to: &output, edgeAttributes: { _ in [("label", .string(long))] })
+                        try graph.writeDOT(to: &output, edgeAttributes: { _ in [("label", .string(long))] })
                         reread = try DirectedPseudograph<String>(dot: output.utf8, edgeAttribute: { if case .string(let s) = $2 { labels.append(s) } })
                     case "graphML":
-                        graph.writeGraphML(to: &output, edgeAttributes: { _ in [("label", .string(long))] })
+                        try graph.writeGraphML(to: &output, edgeAttributes: { _ in [("label", .string(long))] })
                         reread = try DirectedPseudograph<String>(graphML: output.utf8, edgeAttribute: { if case .string(let s) = $2 { labels.append(s) } })
                     default:
-                        graph.writeNodeLinkJSON(to: &output, edgeAttributes: { _ in [("label", .string(long))] })
+                        try graph.writeNodeLinkJSON(to: &output, edgeAttributes: { _ in [("label", .string(long))] })
                         reread = try DirectedPseudograph<String>(nodeLinkJSON: output.utf8, edgeAttribute: { if case .string(let s) = $2 { labels.append(s) } })
                     }
                     #expect(Array(reread.vertices) == [long, "b"], "\(format)")
@@ -165,7 +165,7 @@ struct GraphFormatsStressTests {
                 }
             }
             var list = ""
-            DirectedPseudograph<String>(edges: [DirectedEdge(from: token, to: "b")]).writeEdgeList(to: &list)
+            try DirectedPseudograph<String>(edges: [DirectedEdge(from: token, to: "b")]).writeEdgeList(to: &list)
             #expect(list.utf8.count == 1_000_003)
             do {
                 let reread = try DirectedPseudograph<String>(edgeList: list.utf8)
@@ -174,7 +174,7 @@ struct GraphFormatsStressTests {
                 Issue.record("edge list: \(error)")
             }
             var mermaid = ""
-            DirectedPseudograph<String>(vertices: ["A"]).writeMermaid(to: &mermaid, vertexLabel: { _ in long })
+            try DirectedPseudograph<String>(vertices: ["A"]).writeMermaid(to: &mermaid, vertexLabel: { _ in long })
             var label: String?
             do {
                 _ = try DirectedPseudograph<String>(mermaid: mermaid.utf8, vertexLabel: { label = $1 })
@@ -187,8 +187,8 @@ struct GraphFormatsStressTests {
     }
 
     @Test("A 2 MB output reaches the stream in pieces of at most 64 KiB, mostly full, and in order", .timeLimit(.minutes(1)))
-    func bufferedOutput() async {
-        await Task {
+    func bufferedOutput() async throws {
+        try await Task {
             struct Recorder: TextOutputStream {
                 var pieces: [String] = []
                 mutating func write(_ string: String) { pieces.append(string) }
@@ -197,8 +197,8 @@ struct GraphFormatsStressTests {
             let graph = DirectedPseudograph<Int>(vertices: 0 ..< n, edges: (0 ..< n).map { DirectedEdge(from: $0, to: ($0 + 1) % n) })
             var recorder = Recorder()
             var whole = ""
-            graph.writeDOT(to: &recorder, vertexAttributes: { [("é", .integer($0))] })
-            graph.writeDOT(to: &whole, vertexAttributes: { [("é", .integer($0))] })
+            try graph.writeDOT(to: &recorder, vertexAttributes: { [("é", .integer($0))] })
+            try graph.writeDOT(to: &whole, vertexAttributes: { [("é", .integer($0))] })
             let size = whole.utf8.count
             #expect(size > 2_000_000)
             #expect(recorder.pieces.joined() == whole)

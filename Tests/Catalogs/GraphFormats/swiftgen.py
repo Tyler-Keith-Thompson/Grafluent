@@ -18,7 +18,8 @@ row, one file per format:
     position order), passes its attributes through the writer's closures, and checks every byte.
 
 The precondition file holds the hand-written exit tests of extra_traps.swift (the catalog has no
-trap rows: the writers' preconditions are api.md's, not catalog values).
+trap rows: the writers' preconditions are api.md's, not catalog values). They cover the closures'
+contract only; data a format cannot hold throws WriteError (GraphFormatsWriteErrorTests.swift).
 """
 import math
 import os
@@ -334,7 +335,11 @@ def write_test(c):
         if el:
             args.append("edgeLabel: " + el)
     lines.append('        var output = ""')
-    lines.append(f"        graph.{call}(to: &output" + "".join(", " + a for a in args) + ")")
+    # Every writer but Matrix Market's throws WriteError on data its format cannot hold.
+    throwing = call != "writeMatrixMarket"
+    if throwing:
+        lines[1] = f"    func {fname(c)}() throws {{"
+    lines.append("        " + ("try " if throwing else "") + f"graph.{call}(to: &output" + "".join(", " + a for a in args) + ")")
     lines.append(f"        #expect(output == {lit(out)})")
     lines.append("    }")
     return lines
@@ -400,7 +405,8 @@ def write_traps():
     extra = open(os.path.join(HERE, "extra_traps.swift")).read().rstrip("\n")
     out = ["// Writer preconditions (api.md; the catalog has no trap rows): each trapping call runs in a child",
            "// process (exit test), and the same call without the fault then runs in this process, so the",
-           "// trap is the fault's. Hand-written in extra_traps.swift; swiftgen.py splices them in here.",
+           "// trap is the fault's. Data a format cannot hold throws instead (GraphFormatsWriteErrorTests).",
+           "// Hand-written in extra_traps.swift; swiftgen.py splices them in here.",
            "// Generated from cases.md by swiftgen.py; see README.md.", ""]
     imports = ["GraphFormats", "GraphProtocols", "GrafluentTestSupport", "Testing"]
     for module, needles in IMPORTS.items():

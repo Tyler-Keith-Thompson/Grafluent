@@ -986,14 +986,15 @@
     sink.append(UInt8(ascii: "\""))
 }
 
-/// Appends a JSON value, a double as `_appendPythonDouble` writes it; a double must be finite.
-@inlinable func _appendJSONValue<Sink: _ByteSink & ~Copyable>(_ value: AttributeValue, to sink: inout Sink) {
+/// Appends a JSON value, a double as `_appendPythonDouble` writes it. Throws `invalidValue` for a
+/// NaN or infinite double, which JSON has no spelling for.
+@inlinable func _appendJSONValue<Sink: _ByteSink & ~Copyable>(_ value: AttributeValue, to sink: inout Sink) throws(WriteError) {
     switch value {
     case .string(let s): _appendJSONString(s, to: &sink)
     case .integer(let i): sink.appendDecimal(i)
     case .boolean(let b): sink.appendASCII(b ? "true" : "false")
     case .double(let d):
-        precondition(d.isFinite, "Node-link JSON cannot hold \(d): JSON has no non-finite numbers")
+        if !d.isFinite { throw .invalidValue }
         _appendPythonDouble(d, to: &sink)
     }
 }
@@ -1016,30 +1017,32 @@
 /// attribute closures are then inlined into the loops of a small frame, where the arrays they
 /// return stay on the stack (a frame over the stack-promotion budget allocates them on the heap).
 /// The writer's state is reached through a pointer: one word in the frame, and none of an
-/// object's dynamic exclusivity checks.
+/// object's dynamic exclusivity checks. The checks run as it writes, so the caller holds the output
+/// (`_withHeldOutputBuffer`).
 @inline(__always)
 @inlinable func _writeNodeLinkJSON<Source: _WriteSource>(
     _ source: Source, to out: inout _OutputBuffer, vertexID: (Source.Vertex) -> AttributeValue,
     vertexAttributes: (Source.Vertex) -> [(key: String, value: AttributeValue)],
     edgeAttributes: (Source.Position) -> [(key: String, value: AttributeValue)],
     graphAttributes: [(key: String, value: AttributeValue)]
-) {
+) throws(WriteError) {
     let writer = UnsafeMutablePointer<_NodeLinkWriter<Source>>.allocate(capacity: 1)
-    writer.initialize(to: _NodeLinkWriter(source, graphAttributes: graphAttributes, to: &out))
+    writer.initialize(to: _NodeLinkWriter(source, to: &out))
     defer {
         writer.deinitialize(count: 1)
         writer.deallocate()
     }
-    while let vertex = writer.pointee.nextNode(vertexID: vertexID, to: &out) {
+    try writer.pointee.graph(graphAttributes, to: &out)
+    while let vertex = try writer.pointee.nextNode(vertexID: vertexID, to: &out) {
         let pairs = vertexAttributes(vertex)
         _checkDistinctKeys(pairs)
-        for k in pairs.indices { writer.pointee.member(pairs[k].key, pairs[k].value, node: true, to: &out) }
+        for k in pairs.indices { try writer.pointee.member(pairs[k].key, pairs[k].value, node: true, to: &out) }
         writer.pointee.endNode(to: &out)
     }
     while let position = writer.pointee.nextEdge(to: &out) {
         let pairs = edgeAttributes(position)
         _checkDistinctKeys(pairs)
-        for k in pairs.indices { writer.pointee.member(pairs[k].key, pairs[k].value, node: false, to: &out) }
+        for k in pairs.indices { try writer.pointee.member(pairs[k].key, pairs[k].value, node: false, to: &out) }
         writer.pointee.endEdge(to: &out)
     }
 }
@@ -1063,10 +1066,10 @@
     @usableFromInline var lastKeyIsNode = false
     @usableFromInline var encodedKey: [UInt8] = []
 
-    /// Writes the document up to its nodes: `directed`, `multigraph` (whether some pair has two
-    /// edges) and the graph's attributes.
+    /// Writes the document up to the graph's attributes: `directed` and `multigraph` (whether some
+    /// pair has two edges).
     @inline(never)
-    @inlinable init(_ source: Source, graphAttributes: [(key: String, value: AttributeValue)], to out: inout _OutputBuffer) {
+    @inlinable init(_ source: Source, to out: inout _OutputBuffer) {
         self.source = source
         ids = _IDCache(vertexCount: source.vertexCount)
         cursor = source.firstEdge
@@ -1117,12 +1120,17 @@
         keys = multigraph ? edgeKeys : nil
         out.appendASCII(Source.isDirected ? "{\"directed\": true, " : "{\"directed\": false, ")
         out.appendASCII(multigraph ? "\"multigraph\": true, \"graph\": {" : "\"multigraph\": false, \"graph\": {")
+    }
+
+    /// Writes the graph's attributes, up to the nodes.
+    @inline(never)
+    @inlinable func graph(_ graphAttributes: [(key: String, value: AttributeValue)], to out: inout _OutputBuffer) throws(WriteError) {
         _checkDistinctKeys(graphAttributes)
         for (k, pair) in graphAttributes.enumerated() {
             if k > 0 { out.appendASCII(", ") }
             _appendJSONString(pair.key, to: &out)
             out.appendASCII(": ")
-            _appendJSONValue(pair.value, to: &out)
+            try _appendJSONValue(pair.value, to: &out)
         }
         out.appendASCII("}, \"nodes\": [")
     }
@@ -1130,7 +1138,7 @@
     /// Starts the next node's object, its ID made; the node, or `nil` after the last (then the
     /// nodes end and the edges start).
     @inline(never)
-    @inlinable mutating func nextNode(vertexID: (Source.Vertex) -> AttributeValue, to out: inout _OutputBuffer) -> Source.Vertex? {
+    @inlinable mutating func nextNode(vertexID: (Source.Vertex) -> AttributeValue, to out: inout _OutputBuffer) throws(WriteError) -> Source.Vertex? {
         guard node < source.vertexCount else {
             out.appendASCII("], \"edges\": [")
             return nil
@@ -1141,7 +1149,7 @@
         case .string, .integer: break
         default: preconditionFailure("A node-link id must be a string or an integer, not \(id)")
         }
-        ids.set(node, id: "\(id)") { _appendJSONValue(id, to: &$0) }
+        try ids.set(node) { (bytes) throws(WriteError) in try _appendJSONValue(id, to: &bytes) }
         if node > 0 { out.appendASCII(", ") }
         out.append(UInt8(ascii: "{"))
         return vertex
@@ -1187,9 +1195,9 @@
     }
 
     /// Appends `"key": value, ` for a node's attribute (`node`, whose key may not be `id`) or an
-    /// edge's (whose key may not be `source`, `target` or `key`).
+    /// edge's (whose key may not be `source`, `target` or `key`): `reservedKey` otherwise.
     @inline(never)
-    @inlinable mutating func member(_ key: String, _ value: AttributeValue, node: Bool, to out: inout _OutputBuffer) {
+    @inlinable mutating func member(_ key: String, _ value: AttributeValue, node: Bool, to out: inout _OutputBuffer) throws(WriteError) {
         var key = key
         let known = lastKeyIsNode == node && key.withUTF8 { bytes in
             lastKey.withUnsafeBufferPointer { last in
@@ -1203,11 +1211,7 @@
             }
         }
         if !known {
-            if node {
-                precondition(!_sameScalars(key, ascii: "id"), "A node-link node cannot have an attribute named id")
-            } else {
-                precondition(!_isEndpointKey(key), "A node-link edge cannot have an attribute named source, target or key")
-            }
+            if node ? _sameScalars(key, ascii: "id") : _isEndpointKey(key) { throw .reservedKey }
             encodedKey.removeAll(keepingCapacity: true)
             _appendJSONString(key, to: &encodedKey)
             encodedKey.appendASCII(": ")
@@ -1215,7 +1219,7 @@
             lastKeyIsNode = node
         }
         encodedKey.withUnsafeBufferPointer { out.append($0) }
-        _appendJSONValue(value, to: &out)
+        try _appendJSONValue(value, to: &out)
         out.appendASCII(", ")
     }
 }

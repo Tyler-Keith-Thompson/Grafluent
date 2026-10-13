@@ -190,81 +190,92 @@ func graphMLWritable(_ reading: Reading) -> (writable: Bool, exact: Bool) {
     return (true, exact)
 }
 
-/// The text `graph` writes in `format`, with the attributes `reading` recorded.
-func written<G: DirectedGraph>(_ graph: G, _ format: Format, _ reading: Reading, columns: [String], position: (G.Edges.Index) -> Int) -> String
+/// The text `graph` writes in `format`, with the attributes `reading` recorded; `nil` when the
+/// writer throws `WriteError` (and then wrote nothing).
+func written<G: DirectedGraph>(_ graph: G, _ format: Format, _ reading: Reading, columns: [String], position: (G.Edges.Index) -> Int) -> String?
     where G.Vertex == String
 {
     var out = ""
     let vertexAttributes: (String) -> [(key: String, value: AttributeValue)] = { reading.vertexAttributes[$0]?.pairs ?? [] }
     let edgeAttributes: (G.Edges.Index) -> [(key: String, value: AttributeValue)] = { reading.edgeAttributes[position($0)].pairs }
     let index = Dictionary(uniqueKeysWithValues: reading.vertices.enumerated().map { ($1, $0) })
-    switch format {
-    case .dot: graph.writeDOT(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
-    case .graphML: graph.writeGraphML(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
-    case .nodeLinkJSON:
-        graph.writeNodeLinkJSON(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
-    case .matrixMarket:
-        let weights = reading.edgeAttributes.compactMap { $0.values["weight"] }
-        if weights.isEmpty {
-            graph.writeMatrixMarket(to: &out)
-        } else if case .integer = weights[0] {
-            graph.writeMatrixMarket(to: &out, weight: { p -> Int in
-                if case .integer(let w)? = reading.edgeAttributes[position(p)].values["weight"] { return w }
-                return 0
-            })
-        } else {
-            graph.writeMatrixMarket(to: &out, weight: { p -> Double in
-                if case .double(let w)? = reading.edgeAttributes[position(p)].values["weight"] { return w }
-                return 0
-            })
+    do throws(WriteError) {
+        switch format {
+        case .dot: try graph.writeDOT(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
+        case .graphML: try graph.writeGraphML(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
+        case .nodeLinkJSON:
+            try graph.writeNodeLinkJSON(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
+        case .matrixMarket:
+            let weights = reading.edgeAttributes.compactMap { $0.values["weight"] }
+            if weights.isEmpty {
+                graph.writeMatrixMarket(to: &out)
+            } else if case .integer = weights[0] {
+                graph.writeMatrixMarket(to: &out, weight: { p -> Int in
+                    if case .integer(let w)? = reading.edgeAttributes[position(p)].values["weight"] { return w }
+                    return 0
+                })
+            } else {
+                graph.writeMatrixMarket(to: &out, weight: { p -> Double in
+                    if case .double(let w)? = reading.edgeAttributes[position(p)].values["weight"] { return w }
+                    return 0
+                })
+            }
+        case .edgeList: try graph.writeEdgeList(to: &out, columns: columns, edgeAttributes: edgeAttributes)
+        case .adjacencyList: try graph.writeAdjacencyList(to: &out)
+        case .mermaid:
+            try graph.writeMermaid(to: &out, vertexID: { "v\(index[$0]!)" }, vertexLabel: { reading.vertexAttributes[$0]?.values["label"].map { "\($0)" } },
+                                   edgeLabel: { reading.edgeAttributes[position($0)].values["label"].map { "\($0)" } })
         }
-    case .edgeList: graph.writeEdgeList(to: &out, columns: columns, edgeAttributes: edgeAttributes)
-    case .adjacencyList: graph.writeAdjacencyList(to: &out)
-    case .mermaid:
-        graph.writeMermaid(to: &out, vertexID: { "v\(index[$0]!)" }, vertexLabel: { reading.vertexAttributes[$0]?.values["label"].map { "\($0)" } },
-                           edgeLabel: { reading.edgeAttributes[position($0)].values["label"].map { "\($0)" } })
+    } catch {
+        check(out.isEmpty, "\(format) threw \(error) after writing:\n\(out)")
+        return nil
     }
     return out
 }
 
-func written<G: Graph>(_ graph: G, _ format: Format, _ reading: Reading, columns: [String], position: (G.Edges.Index) -> Int) -> String
+func written<G: Graph>(_ graph: G, _ format: Format, _ reading: Reading, columns: [String], position: (G.Edges.Index) -> Int) -> String?
     where G.Vertex == String
 {
     var out = ""
     let vertexAttributes: (String) -> [(key: String, value: AttributeValue)] = { reading.vertexAttributes[$0]?.pairs ?? [] }
     let edgeAttributes: (G.Edges.Index) -> [(key: String, value: AttributeValue)] = { reading.edgeAttributes[position($0)].pairs }
     let index = Dictionary(uniqueKeysWithValues: reading.vertices.enumerated().map { ($1, $0) })
-    switch format {
-    case .dot: graph.writeDOT(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
-    case .graphML: graph.writeGraphML(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
-    case .nodeLinkJSON:
-        graph.writeNodeLinkJSON(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
-    case .matrixMarket:
-        let weights = reading.edgeAttributes.compactMap { $0.values["weight"] }
-        if weights.isEmpty {
-            graph.writeMatrixMarket(to: &out)
-        } else if case .integer = weights[0] {
-            graph.writeMatrixMarket(to: &out, weight: { p -> Int in
-                if case .integer(let w)? = reading.edgeAttributes[position(p)].values["weight"] { return w }
-                return 0
-            })
-        } else {
-            graph.writeMatrixMarket(to: &out, weight: { p -> Double in
-                if case .double(let w)? = reading.edgeAttributes[position(p)].values["weight"] { return w }
-                return 0
-            })
+    do throws(WriteError) {
+        switch format {
+        case .dot: try graph.writeDOT(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
+        case .graphML: try graph.writeGraphML(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
+        case .nodeLinkJSON:
+            try graph.writeNodeLinkJSON(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
+        case .matrixMarket:
+            let weights = reading.edgeAttributes.compactMap { $0.values["weight"] }
+            if weights.isEmpty {
+                graph.writeMatrixMarket(to: &out)
+            } else if case .integer = weights[0] {
+                graph.writeMatrixMarket(to: &out, weight: { p -> Int in
+                    if case .integer(let w)? = reading.edgeAttributes[position(p)].values["weight"] { return w }
+                    return 0
+                })
+            } else {
+                graph.writeMatrixMarket(to: &out, weight: { p -> Double in
+                    if case .double(let w)? = reading.edgeAttributes[position(p)].values["weight"] { return w }
+                    return 0
+                })
+            }
+        case .edgeList: try graph.writeEdgeList(to: &out, columns: columns, edgeAttributes: edgeAttributes)
+        case .adjacencyList: try graph.writeAdjacencyList(to: &out)
+        case .mermaid:
+            try graph.writeMermaid(to: &out, vertexID: { "v\(index[$0]!)" }, vertexLabel: { reading.vertexAttributes[$0]?.values["label"].map { "\($0)" } },
+                                   edgeLabel: { reading.edgeAttributes[position($0)].values["label"].map { "\($0)" } })
         }
-    case .edgeList: graph.writeEdgeList(to: &out, columns: columns, edgeAttributes: edgeAttributes)
-    case .adjacencyList: graph.writeAdjacencyList(to: &out)
-    case .mermaid:
-        graph.writeMermaid(to: &out, vertexID: { "v\(index[$0]!)" }, vertexLabel: { reading.vertexAttributes[$0]?.values["label"].map { "\($0)" } },
-                           edgeLabel: { reading.edgeAttributes[position($0)].values["label"].map { "\($0)" } })
+    } catch {
+        check(out.isEmpty, "\(format) threw \(error) after writing:\n\(out)")
+        return nil
     }
     return out
 }
 
-/// Whether the writer's preconditions hold for what was read (otherwise the round trip is skipped:
-/// the writer would trap by design, on a value its format cannot hold).
+/// Whether the writer can hold what was read: when not, it must throw `WriteError`, and when so, it
+/// must write.
 func writable(_ format: Format, _ reading: Reading, directed: Bool) -> Bool {
     switch format {
     case .graphML: return graphMLWritable(reading).writable
@@ -308,10 +319,15 @@ func roundTrip(_ format: Format, _ first: Reading, _ second: Reading, directed: 
 }
 
 func fuzzDirected<G: MutableDirectedGraph>(_ type: G.Type, _ format: Format, _ bytes: [UInt8], columns: [String]) where G.Vertex == String {
-    guard let (graph, reading) = readDirected(type, format, bytes, columns: columns), writable(format, reading, directed: true) else { return }
+    guard let (graph, reading) = readDirected(type, format, bytes, columns: columns) else { return }
     var offsets: [G.Edges.Index: Int] = [:]
     for (k, p) in graph.edges.indices.enumerated() { offsets[p] = k }
-    let text = written(graph, format, reading, columns: columns, position: { offsets[$0]! })
+    let canWrite = writable(format, reading, directed: true)
+    guard let text = written(graph, format, reading, columns: columns, position: { offsets[$0]! }) else {
+        check(!canWrite, "\(format) threw on what it can hold")
+        return
+    }
+    check(canWrite, "\(format) wrote what it cannot hold:\n\(text)")
     var back: Reading?
     if format == .mermaid {
         // Read back with each `vK` named as the vertex it stands for.
@@ -341,10 +357,15 @@ func fuzzDirected<G: MutableDirectedGraph>(_ type: G.Type, _ format: Format, _ b
 }
 
 func fuzzUndirected<G: MutableGraph>(_ type: G.Type, _ format: Format, _ bytes: [UInt8], columns: [String]) where G.Vertex == String {
-    guard let (graph, reading) = readUndirected(type, format, bytes, columns: columns), writable(format, reading, directed: false) else { return }
+    guard let (graph, reading) = readUndirected(type, format, bytes, columns: columns) else { return }
     var offsets: [G.Edges.Index: Int] = [:]
     for (k, p) in graph.edges.indices.enumerated() { offsets[p] = k }
-    let text = written(graph, format, reading, columns: columns, position: { offsets[$0]! })
+    let canWrite = writable(format, reading, directed: false)
+    guard let text = written(graph, format, reading, columns: columns, position: { offsets[$0]! }) else {
+        check(!canWrite, "\(format) threw on what it can hold")
+        return
+    }
+    check(canWrite, "\(format) wrote what it cannot hold:\n\(text)")
     var back: Reading?
     if format == .mermaid {
         var reread = Reading()

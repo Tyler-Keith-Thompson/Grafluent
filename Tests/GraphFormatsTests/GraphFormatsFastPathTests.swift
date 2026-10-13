@@ -150,14 +150,15 @@ struct GraphFormatsFastPathTests {
     }
 
     @Test("An edge-list column matches a key by scalars: U+212A is not the column K")
-    func columnByScalars() async {
+    func columnByScalars() async throws {
         await #expect(processExitsWith: .failure) {
             var output = ""
-            DirectedPseudograph<Int>(edges: [DirectedEdge(from: 1, to: 2)])
+            // `try?`: a writer that threw instead of trapping would return and exit cleanly.
+            _ = try? DirectedPseudograph<Int>(edges: [DirectedEdge(from: 1, to: 2)])
                 .writeEdgeList(to: &output, columns: ["K"], edgeAttributes: { _ in [("\u{212A}", .integer(1))] })
         }
         var output = ""
-        DirectedPseudograph<Int>(edges: [DirectedEdge(from: 1, to: 2)])
+        try DirectedPseudograph<Int>(edges: [DirectedEdge(from: 1, to: 2)])
             .writeEdgeList(to: &output, columns: ["K", "\u{212A}"], edgeAttributes: { _ in [("\u{212A}", .integer(1)), ("K", .integer(2))] })
         #expect(output == "1 2 2 1\n")
     }

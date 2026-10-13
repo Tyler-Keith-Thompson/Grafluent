@@ -67,29 +67,29 @@ struct GraphFormatsAdjacencyListTests {
     }
 
     @Test("GF-219 directed: successors in edge order; isolated vertex alone")
-    func gf219() {
+    func gf219() throws {
         // writeAdjacencyList(to:) on D: a, b, c, d; a>c, b>a, a>b, a>a
         let graph = DirectedPseudograph<String>(vertices: ["a", "b", "c", "d"], edges: [DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "b", to: "a"), DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "a")])
         var output = ""
-        graph.writeAdjacencyList(to: &output)
+        try graph.writeAdjacencyList(to: &output)
         #expect(output == "a c b a\nb a\nc\nd\n")
     }
 
     @Test("GF-220 undirected: each edge on its earlier endpoint's line")
-    func gf220() {
+    func gf220() throws {
         // writeAdjacencyList(to:) on U: a, b, c; b-a, a-a, a-b, c-b
         let graph = Pseudograph<String>(vertices: ["a", "b", "c"], edges: [UndirectedEdge("b", "a"), UndirectedEdge("a", "a"), UndirectedEdge("a", "b"), UndirectedEdge("c", "b")])
         var output = ""
-        graph.writeAdjacencyList(to: &output)
+        try graph.writeAdjacencyList(to: &output)
         #expect(output == "a b a b\nb c\nc\n")
     }
 
     @Test("GF-221 undirected path")
-    func gf221() {
+    func gf221() throws {
         // writeAdjacencyList(to:) on U: a, b, c, d; c-b, a-b, d-c
         let graph = Pseudograph<String>(vertices: ["a", "b", "c", "d"], edges: [UndirectedEdge("c", "b"), UndirectedEdge("a", "b"), UndirectedEdge("d", "c")])
         var output = ""
-        graph.writeAdjacencyList(to: &output)
+        try graph.writeAdjacencyList(to: &output)
         #expect(output == "a b\nb c\nc d\nd\n")
     }
 

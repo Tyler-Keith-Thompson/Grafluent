@@ -66,7 +66,7 @@ struct GraphFormatsRoundTripTests {
                 }
             }
             var output = ""
-            graph.writeDOT(to: &output, vertexAttributes: { pairsFor(vertices.firstIndex(of: $0)!) },
+            try graph.writeDOT(to: &output, vertexAttributes: { pairsFor(vertices.firstIndex(of: $0)!) },
                            edgeAttributes: { pairsFor(vertices.count + $0) }, graphAttributes: pairsFor(vertices.count + edges.count))
             var vertexKeys: [String: [String]] = [:], vertexValues: [String: [String: AttributeValue]] = [:]
             var edgeKeys: [Int: [String]] = [:], edgeValues: [Int: [String: AttributeValue]] = [:]
@@ -93,7 +93,7 @@ struct GraphFormatsRoundTripTests {
                 #expect(graphKeys == expected[vertices.count + edges.count].map(\.0), "\(output)")
                 #expect(expected[vertices.count + edges.count].allSatisfy { graphValues[$0.0] == $0.1 }, "\(output)")
                 var again = ""
-                reread.writeDOT(to: &again, vertexAttributes: { pairsFor(vertices.firstIndex(of: $0)!) },
+                try reread.writeDOT(to: &again, vertexAttributes: { pairsFor(vertices.firstIndex(of: $0)!) },
                                 edgeAttributes: { pairsFor(vertices.count + $0) }, graphAttributes: pairsFor(vertices.count + edges.count))
                 #expect(again == output)
             } catch {
@@ -122,7 +122,7 @@ struct GraphFormatsRoundTripTests {
             let graph = Pseudograph<String>(vertices: vertices, edges: edges)
             let labels = edges.indices.map { pool[codes[$0 % codes.count] % pool.count] }
             var output = ""
-            graph.writeDOT(to: &output, vertexAttributes: { v in [("name", .string(v))] }, edgeAttributes: { [("label", .string(labels[$0]))] })
+            try graph.writeDOT(to: &output, vertexAttributes: { v in [("name", .string(v))] }, edgeAttributes: { [("label", .string(labels[$0]))] })
             var vertexValues: [String: [String: AttributeValue]] = [:], edgeValues: [Int: [String: AttributeValue]] = [:]
             do {
                 let reread = try Pseudograph<String>(dot: output.utf8, vertexAttribute: { v, key, value in vertexValues[v, default: [:]][key] = value },
@@ -202,7 +202,7 @@ struct GraphFormatsRoundTripTests {
             let expectedEdges = promoted(vertices.count ..< vertices.count + edges.count)
             let expectedGraph = promoted(vertices.count + edges.count ..< vertices.count + edges.count + 1)[0]
             var output = ""
-            graph.writeGraphML(to: &output, vertexAttributes: { pairsFor(vertices.firstIndex(of: $0)!) },
+            try graph.writeGraphML(to: &output, vertexAttributes: { pairsFor(vertices.firstIndex(of: $0)!) },
                                edgeAttributes: { pairsFor(vertices.count + $0) }, graphAttributes: pairsFor(vertices.count + edges.count))
             var vertexKeys: [String: [String]] = [:], vertexValues: [String: [String: AttributeValue]] = [:]
             var edgeKeys: [Int: [String]] = [:], edgeValues: [Int: [String: AttributeValue]] = [:]
@@ -255,7 +255,7 @@ struct GraphFormatsRoundTripTests {
             let graph = Pseudograph<String>(vertices: vertices, edges: edges)
             let labels = edges.indices.map { pool[codes[$0 % codes.count] % pool.count] }
             var output = ""
-            graph.writeGraphML(to: &output, vertexAttributes: { v in [("name", .string(v))] }, edgeAttributes: { [("label", .string(labels[$0]))] })
+            try graph.writeGraphML(to: &output, vertexAttributes: { v in [("name", .string(v))] }, edgeAttributes: { [("label", .string(labels[$0]))] })
             var vertexValues: [String: [String: AttributeValue]] = [:], edgeValues: [Int: [String: AttributeValue]] = [:]
             do {
                 let reread = try Pseudograph<String>(graphML: output.utf8, vertexAttribute: { v, key, value in vertexValues[v, default: [:]][key] = value },
@@ -318,7 +318,7 @@ struct GraphFormatsRoundTripTests {
                 }
             }
             var output = ""
-            graph.writeNodeLinkJSON(to: &output, vertexAttributes: { pairsFor(vertices.firstIndex(of: $0)!) },
+            try graph.writeNodeLinkJSON(to: &output, vertexAttributes: { pairsFor(vertices.firstIndex(of: $0)!) },
                                     edgeAttributes: { pairsFor(vertices.count + $0) }, graphAttributes: pairsFor(vertices.count + edges.count))
             #expect(!output.unicodeScalars.contains { $0.value > 0x7E || $0.value < 0x20 }, "ensure_ascii: \(output)")
             var vertexKeys: [String: [String]] = [:], vertexValues: [String: [String: AttributeValue]] = [:]
@@ -366,7 +366,7 @@ struct GraphFormatsRoundTripTests {
             let edges = vertices.isEmpty ? [] : pairs.map { UndirectedEdge(vertices[$0.0 % vertices.count], vertices[$0.1 % vertices.count]) }
             let graph = Pseudograph<Int>(vertices: vertices, edges: edges)
             var output = ""
-            graph.writeNodeLinkJSON(to: &output, edgeAttributes: { [("position", .integer($0))] })
+            try graph.writeNodeLinkJSON(to: &output, edgeAttributes: { [("position", .integer($0))] })
             let unordered = edges.map { Set([$0.u, $0.v]) }
             #expect(output.contains("\"multigraph\": true") == (Set(unordered).count < unordered.count), "\(output)")
             var edgeValues: [Int: [String: AttributeValue]] = [:]
@@ -496,7 +496,7 @@ struct GraphFormatsRoundTripTests {
                 return (w, .string(strings[code / 7 % strings.count]))
             }
             var output = ""
-            graph.writeEdgeList(to: &output, columns: ["w", "s"], edgeAttributes: { [("s", values[$0].1), ("w", values[$0].0)] })
+            try graph.writeEdgeList(to: &output, columns: ["w", "s"], edgeAttributes: { [("s", values[$0].1), ("w", values[$0].0)] })
             var expectedVertices: [String] = []
             for e in edges {
                 if !expectedVertices.contains(e.source) { expectedVertices.append(e.source) }
@@ -544,7 +544,7 @@ struct GraphFormatsRoundTripTests {
             let edges = vertices.isEmpty ? [] : pairs.map { UndirectedEdge(vertices[$0.0 % vertices.count], vertices[$0.1 % vertices.count]) }
             let graph = Pseudograph<Int>(vertices: vertices, edges: edges)
             var output = ""
-            graph.writeEdgeList(to: &output)
+            try graph.writeEdgeList(to: &output)
             var expectedVertices: [Int] = []
             for e in edges {
                 if !expectedVertices.contains(e.u) { expectedVertices.append(e.u) }
@@ -577,7 +577,7 @@ struct GraphFormatsRoundTripTests {
             let edges = vertices.isEmpty ? [] : pairs.map { DirectedEdge(from: vertices[$0.0 % vertices.count], to: vertices[$0.1 % vertices.count]) }
             let graph = DirectedPseudograph<String>(vertices: vertices, edges: edges)
             var output = ""
-            graph.writeAdjacencyList(to: &output)
+            try graph.writeAdjacencyList(to: &output)
             // Line k: vertex k, then its successors in position order.
             var expectedVertices: [String] = [], expectedEdges: [DirectedEdge<String>] = []
             for v in vertices {
@@ -615,7 +615,7 @@ struct GraphFormatsRoundTripTests {
             let edges = vertices.isEmpty ? [] : pairs.map { UndirectedEdge(vertices[$0.0 % vertices.count], vertices[$0.1 % vertices.count]) }
             let graph = Pseudograph<String>(vertices: vertices, edges: edges)
             var output = ""
-            graph.writeAdjacencyList(to: &output)
+            try graph.writeAdjacencyList(to: &output)
             var expectedVertices: [String] = [], expectedEdges: [[String]] = []
             for (k, v) in vertices.enumerated() {
                 if !expectedVertices.contains(v) { expectedVertices.append(v) }
@@ -656,7 +656,7 @@ struct GraphFormatsRoundTripTests {
             let vertexLabels = vertices.map { v -> String? in let c = codes[v % codes.count]; return c < 3_000 ? nil : pool[c % pool.count] }
             let edgeLabels = edges.indices.map { p -> String? in let c = codes[(p + 3) % codes.count]; return c < 3_000 ? nil : pool[c / 3 % pool.count] }
             var output = ""
-            graph.writeMermaid(to: &output, vertexID: { "v\($0)" }, vertexLabel: { vertexLabels[$0] }, edgeLabel: { edgeLabels[$0] })
+            try graph.writeMermaid(to: &output, vertexID: { "v\($0)" }, vertexLabel: { vertexLabels[$0] }, edgeLabel: { edgeLabels[$0] })
             var readVertexLabels: [String: String] = [:], readEdgeLabels: [Int: String] = [:]
             do {
                 let reread = try DirectedPseudograph<String>(mermaid: output.utf8, vertexLabel: { readVertexLabels[$0] = $1 }, edgeLabel: { readEdgeLabels[$0] = $1 })
@@ -686,7 +686,7 @@ struct GraphFormatsRoundTripTests {
             let graph = Pseudograph<Int>(vertices: vertices, edges: edges)
             let edgeLabels = edges.indices.map { p -> String? in let c = codes[p % codes.count]; return c < 3_000 ? nil : pool[c % pool.count] }
             var output = ""
-            graph.writeMermaid(to: &output, vertexID: { "n_\($0)" }, edgeLabel: { edgeLabels[$0] })
+            try graph.writeMermaid(to: &output, vertexID: { "n_\($0)" }, edgeLabel: { edgeLabels[$0] })
             var readEdgeLabels: [Int: String] = [:]
             do {
                 let reread = try Pseudograph<String>(mermaid: output.utf8, edgeLabel: { readEdgeLabels[$0] = $1 })
