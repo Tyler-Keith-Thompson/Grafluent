@@ -151,7 +151,7 @@ MUTANTS = [
 # storage's own array read traps at the same positions, so removing one changes only the message.
 P = "FunctionalGraph+PropertyGraph.swift"
 MUTANTS += [
-    Mutant("mapstamp", F, "        _generation.advance()", "", mode="stmt"),
+    Mutant("mapstamp", F, "        _generation.stamp()", "", mode="stmt"),
     Mutant("mapcheckededge", P, "guard contains(position) else { throw EdgeNotFound() }", "", mode="stmt"),
     Mutant("mapcheckedvertex", P, "guard contains(position) else { throw VertexNotFound() }", "", mode="stmt"),
 ]

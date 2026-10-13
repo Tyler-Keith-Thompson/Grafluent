@@ -203,7 +203,17 @@ let benchmarks: @Sendable () -> Void = {
     // The n vertices, then the m hyperedges one at a time, with 0, 1 (an edge map) or 2 (an edge
     // map and a vertex map) attached maps; the BASELINE appends to two arrays beside the
     // hypergraph instead.
-    for maps in 0 ... 2 {
+    // The 0-map row attaches nothing: an attach call in the loop, even one run zero times, costs the
+    // optimizer facts a caller without maps keeps.
+    Benchmark("Hypergraphs: insert(_:) then insert(hyperedge:), 0 attached maps") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var built = UndirectedIncidenceList<Int>()
+            for v in 0 ..< n { built.insert(v) }
+            for row in rows { built.insert(hyperedge: row) }
+            blackHole(built)
+        }
+    }
+    for maps in 1 ... 2 {
         Benchmark("Hypergraphs: insert(_:) then insert(hyperedge:), \(maps) attached maps") { benchmark in
             for _ in benchmark.scaledIterations {
                 var built = UndirectedIncidenceList<Int>()

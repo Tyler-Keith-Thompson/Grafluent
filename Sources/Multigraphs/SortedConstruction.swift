@@ -32,7 +32,7 @@ extension DirectedPseudograph where Vertex == Int {
         _records = rows.records
         let records = rows.records
         _parallel = _ParallelClasses(singleCopies: records.count) { _SlotPair(records[$0].source, records[$0].target) }
-        _generation.advance()
+        _generation.stamp()
     }
 }
 
@@ -69,7 +69,7 @@ extension Pseudograph where Vertex == Int {
         _records = rows.records
         let records = rows.records
         _parallel = _ParallelClasses(singleCopies: records.count) { _SlotPair(records[$0].u, records[$0].v) }
-        _generation.advance()
+        _generation.stamp()
     }
 }
 

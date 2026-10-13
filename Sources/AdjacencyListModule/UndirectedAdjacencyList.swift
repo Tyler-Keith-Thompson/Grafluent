@@ -344,7 +344,6 @@ extension UndirectedAdjacencyList {
     public mutating func remove(_ vertex: Vertex) -> Vertex? {
         guard let slot = _slots[vertex] else { return nil }
         let removed = _vertices[slot]
-        _generation.advance()
         if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }
 
         // Detach every incident edge, last entry first, so nothing moves in the vertex's own row.
@@ -381,6 +380,7 @@ extension UndirectedAdjacencyList {
         _neighbors.swapRemoveRow(slot)
         _incident.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
+        _generation.advanceVersion(storageIsEmpty: _neighbors.rows.isEmpty)
         return removed
     }
 
@@ -395,8 +395,8 @@ extension UndirectedAdjacencyList {
         // Checked before removing, so removing an absent edge never copies shared storage.
         guard let position = _positions[u <= v ? _SlotPair(u, v) : _SlotPair(v, u)] else { return nil }
         let record = _records[position]
-        _generation.advance()
         _detach(position)
+        _generation.advanceVersion()
         return UndirectedEdge(_vertices[record.u], _vertices[record.v])
     }
 
@@ -447,6 +447,7 @@ extension UndirectedAdjacencyList {
     /// Removes every vertex and edge. Attached maps stay attached, emptied.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
+        // Empties the storage the generation is told apart by: the lineage tells copies apart.
         if !_vertices.isEmpty { _generation.advance() }
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
@@ -462,7 +463,7 @@ extension UndirectedAdjacencyList {
     @inlinable
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
         guard !_records.isEmpty else { return }
-        _generation.advance()
+        _generation.advanceVersion()
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
         _neighbors.removeAllEntries(keepingCapacity: keepingCapacity)
         _incident.removeAllEntries(keepingCapacity: keepingCapacity)
@@ -480,7 +481,9 @@ extension UndirectedAdjacencyList {
         if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(edgeCount) }
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
-        _neighbors.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
+        // Not the row table: the generation is told apart by it, and moving it would start a
+        // generation (see `generation`).
+        _neighbors.reserveEntryCapacity(2 * edgeCount)
         _incident.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
         _records.reserveCapacity(edgeCount)
         _positions.reserveCapacity(edgeCount)
@@ -489,12 +492,12 @@ extension UndirectedAdjacencyList {
     @inlinable
     @discardableResult
     internal mutating func _appendSlot(for vertex: Vertex) -> Int {
-        _generation.advance()
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
         let slot = _vertices.count
         _vertices.append(vertex)
         _slots[vertex] = slot
         _neighbors.appendRow()
+        _generation.advanceVersion()
         _incident.appendRow()
         return slot
     }
@@ -687,7 +690,7 @@ extension UndirectedAdjacencyList: Graph {
     /// The current generation (see `GraphGeneration`): every insertion and removal starts a new
     /// one; reserving capacity and attaching or writing maps do not.
     @inlinable
-    public var generation: GraphGeneration { _generation.generation }
+    public var generation: GraphGeneration { _generation.generation(storage: _GenerationStamp.storage(of: _neighbors.rows)) }
 
     /// The vertices' slots: dense indices `0..<vertexCount`, valid until the next vertex removal.
     @inlinable
@@ -776,11 +779,11 @@ extension UndirectedAdjacencyList {
             let record = _records[position]
             return (false, UndirectedEdge(_vertices[record.u], _vertices[record.v]))
         }
-        // The maps and the generation first: their loads then overlap the rows' cache misses.
-        _generation.advance()
+        // The maps first: their loads then overlap the rows' cache misses.
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
         let position = _records.count
         let uOffset = _neighbors.append(v, toRow: u)
+        _generation.advanceVersion()
         _incident.append(position, toRow: u)
         let vOffset = _neighbors.append(u, toRow: v)
         _incident.append(position, toRow: v)

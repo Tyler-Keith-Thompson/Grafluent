@@ -29,7 +29,7 @@ public struct RootedTree<Vertex: Hashable> {
         _vertexMaps = _AttachedMaps()
         _edgeMaps = _AttachedMaps()
         _generation = _GenerationStamp()
-        _generation.advance()
+        _generation.stamp()
     }
 
     /// The tree rooted at `root`. O(n), and O(1) when it is already rooted there.

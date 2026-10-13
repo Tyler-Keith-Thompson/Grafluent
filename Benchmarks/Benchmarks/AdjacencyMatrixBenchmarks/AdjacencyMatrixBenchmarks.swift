@@ -120,7 +120,25 @@ let benchmarks: @Sendable () -> Void = {
     let mapEdges = Inputs.randomEdges(vertexCount: mapN, edgeCount: 1_000_000)
     let mapBase = AdjacencyMatrix(vertexCount: mapN, edges: mapEdges)
     let removals = Array(mapBase.edges.prefix(100_000))
-    for maps in 0 ... 2 {
+    // The 0-map rows attach nothing: an attach call in the loop, even one run zero times, keeps the
+    // optimizer from proving the matrix's arrays unique, which a caller without maps never pays.
+    Benchmark("AdjacencyMatrix: insert 10⁶ random cells of 1024², 0 edge maps") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var matrix = AdjacencyMatrix(vertexCount: mapN)
+            for edge in mapEdges { matrix.insert(edge: edge) }
+            blackHole(matrix)
+        }
+    }
+    Benchmark("AdjacencyMatrix: remove 10⁵ edges of 1024², 0 edge maps") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var copy = mapBase
+            benchmark.startMeasurement()
+            for edge in removals { copy.remove(edge: edge) }
+            benchmark.stopMeasurement()
+            blackHole(copy)
+        }
+    }
+    for maps in 1 ... 2 {
         Benchmark("AdjacencyMatrix: insert 10⁶ random cells of 1024², \(maps) edge maps") { benchmark in
             for _ in benchmark.scaledIterations {
                 var matrix = AdjacencyMatrix(vertexCount: mapN)

@@ -72,7 +72,7 @@ extension DirectedPseudograph {
         graph._inEdges = rows.inEdges
         graph._records = rows.records
         graph._parallel = _ParallelClasses(firsts: sourceKeys, seconds: targetKeys, vertexCount: n, undirected: false)
-        graph._generation.advance()
+        graph._generation.stamp()
         return (graph, reportingPositions ? Array(sourceKeys.indices) : [])
     }
 }
@@ -96,7 +96,7 @@ extension Pseudograph {
         graph._incident = rows.incident
         graph._records = rows.records
         graph._parallel = _ParallelClasses(firsts: uKeys, seconds: vKeys, vertexCount: n, undirected: true)
-        graph._generation.advance()
+        graph._generation.stamp()
         return (graph, reportingPositions ? Array(uKeys.indices) : [])
     }
 }

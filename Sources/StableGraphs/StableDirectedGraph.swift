@@ -138,7 +138,9 @@ public struct StableDirectedGraph<Vertex: Hashable> {
     @usableFromInline
     internal var _vertexMaps: _AttachedMaps
 
-    /// The generation, advanced by every structural mutation.
+    /// The generation, advanced by every structural mutation: an edge mutation writes the edge
+    /// page table, which tells copies apart (`_GenerationStamp.generation(storage:)`); a vertex
+    /// mutation, which may not, advances the lineage (`advance()`).
     @usableFromInline
     internal var _generation: _GenerationStamp
 
@@ -607,7 +609,7 @@ extension StableDirectedGraph {
         _edgePages[k].live &+= 1
         _edgeEnd = position &+ 1
         _edgeCount &+= 1
-        _generation.advance()
+        _generation.advanceVersion()
         return position
     }
 
@@ -847,7 +849,7 @@ extension StableDirectedGraph {
     @inlinable
     internal mutating func _changeTarget(_ position: Int, _ record: _EdgeRecord, to target: Int) {
         guard target != record.target else { return }
-        _generation.advance()
+        _generation.advanceVersion()
         let ek = _ek(position), el = position & _PositionPage.mask, sourcePage = _vk(record.source)
         _kill(record.in, slot: record.target, outward: false)
         let into = _insertInOrder(end: record.source, position: position, slot: target, outward: false)
@@ -859,7 +861,7 @@ extension StableDirectedGraph {
     @inlinable
     internal mutating func _changeSource(_ position: Int, _ record: _EdgeRecord, to source: Int) {
         guard source != record.source else { return }
-        _generation.advance()
+        _generation.advanceVersion()
         let ek = _ek(position), el = position & _PositionPage.mask, targetPage = _vk(record.target)
         _kill(record.out, slot: record.source, outward: true)
         let out = _insertInOrder(end: record.target, position: position, slot: source, outward: true)
@@ -951,7 +953,7 @@ extension StableDirectedGraph {
         _edgeCount &-= removed
         if removed > 0 {
             _dropFreedEdgePages()
-            _generation.advance()
+            _generation.advanceVersion(storageIsEmpty: _edgePages.isEmpty)
         }
         if lowest == _firstEdge { _firstEdge = _nextLiveEdge(after: lowest, _edgePages, base: _edgeBase, end: _edgeEnd) }
         if let failure { throw failure }
@@ -1033,7 +1035,7 @@ extension StableDirectedGraph {
         }
         _edgeCount &-= 1
         if position == _firstEdge { _firstEdge = _nextLiveEdge(after: position, _edgePages, base: _edgeBase, end: _edgeEnd) }
-        _generation.advance()
+        _generation.advanceVersion(storageIsEmpty: _edgePages.isEmpty)
     }
 
     /// Kills the entry at `offset` of slot `slot`'s out-row (`outward`) or in-row.
@@ -1082,7 +1084,7 @@ extension StableDirectedGraph {
         // The maps stay attached, emptied.
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advance()
+        _generation.advance()  // Empties the edge page table: the lineage tells copies apart.
         _vertexPages.removeAll(keepingCapacity: keepingCapacity)
         _outPages.removeAll(keepingCapacity: keepingCapacity)
         _inPages.removeAll(keepingCapacity: keepingCapacity)
@@ -1106,7 +1108,7 @@ extension StableDirectedGraph {
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
         guard _edgeEnd > 0 else { return }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advance()
+        _generation.advance()  // Empties the edge page table: the lineage tells copies apart.
         _edgePages.removeAll(keepingCapacity: keepingCapacity)
         for k in _outPages.indices where !_outPages[k].isFreed {
             _outPages[k].removeAllEntries(keepingCapacity: keepingCapacity)
@@ -1133,7 +1135,8 @@ extension StableDirectedGraph {
         _vertexPages.reserveCapacity(vertexPages)
         _outPages.reserveCapacity(vertexPages)
         _inPages.reserveCapacity(vertexPages)
-        _edgePages.reserveCapacity((edgeCount &>> _PositionPage.shift) &+ 1)
+        // Not the edge page table: the generation is told apart by it, and moving it would start
+        // a generation (see `generation`).
     }
 }
 

@@ -188,7 +188,7 @@ extension AdjacencyList where Vertex == Int {
         _inEdges = rows.inEdges
         _records = rows.records
         _deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)
-        _generation.advance()
+        _generation.stamp()
     }
 }
 
@@ -215,7 +215,7 @@ extension UndirectedAdjacencyList where Vertex == Int {
         _records = rows.records
         let records = rows.records
         _positions._insertDistinct(count: records.count) { (_SlotPair(records[$0].u, records[$0].v), $0) }
-        _generation.advance()
+        _generation.stamp()
     }
 }
 
@@ -247,7 +247,7 @@ extension AdjacencyList {
         _inEdges = rows.inEdges
         _records = rows.records
         _deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)
-        _generation.advance()
+        _generation.stamp()
     }
 }
 
@@ -269,6 +269,6 @@ extension UndirectedAdjacencyList {
         _records = rows.records
         let records = rows.records
         _positions._insertDistinct(count: records.count) { (_SlotPair(records[$0].u, records[$0].v), $0) }
-        _generation.advance()
+        _generation.stamp()
     }
 }

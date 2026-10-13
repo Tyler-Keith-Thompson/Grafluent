@@ -627,7 +627,7 @@ struct GraphAdaptorTests {
         graph.removeAllEdges()
         _ = graph.insert(edge: DirectedEdge(from: 0, to: 3))
         #expect(graph[ids, ofEdgeAt: 0] == -1 && graph[marks, ofEdgeAt: 0] == nil && graph[names, of: 3] == "new")
-        #expect(graph.edgeMaps.entries.count == 2 && graph.vertexMaps.entries.count == 1)
+        #expect(graph.edgeMaps._entries.count == 2 && graph.vertexMaps._entries.count == 1)
     }
 
     @Test("Handles: equal by identity, hashable, valid on copies, and found again after an earlier map is removed")
@@ -678,24 +678,24 @@ struct GraphAdaptorTests {
         dense.setValue("y", at: 2, in: 1, layout: .dense)
         #expect((0 ..< 3).map { dense.value(Int.self, at: $0, in: 0, layout: .dense) } == [5, 7, 5])
         dense.appendDefaults(count: 2)
-        #expect(dense.storage(Int.self, in: 0).dense == [5, 7, 5, 5, 5] && dense.storage(String.self, in: 1).dense == ["x", "x", "y", "x", "x"])
+        #expect(Array(dense.storage(Int.self, in: 0).dense) == [5, 7, 5, 5, 5] && Array(dense.storage(String.self, in: 1).dense) == ["x", "x", "y", "x", "x"])
         // Releasing leaves trivial values alone and resets the others.
         dense.setValue(6, at: 2, in: 0, layout: .dense)
         dense.release(at: 2)
         #expect(dense.storage(Int.self, in: 0).dense[2] == 6 && dense.storage(String.self, in: 1).dense[2] == "x")
         dense.setValue(9, at: 4, in: 0, layout: .dense)
         dense.swapRemove(at: 1)
-        #expect(dense.storage(Int.self, in: 0).dense == [5, 9, 6, 5])
+        #expect(Array(dense.storage(Int.self, in: 0).dense) == [5, 9, 6, 5])
         dense.setValue(8, at: 0, in: 0, layout: .dense)
         let copy = dense
         dense.reset(at: 0)
         #expect(dense.storage(Int.self, in: 0).dense[0] == 5 && copy.storage(Int.self, in: 0).dense[0] == 8)
         dense.reserveCapacity(100)
-        #expect(dense.storage(Int.self, in: 0).dense.capacity >= 100 && copy.storage(Int.self, in: 0).dense.count == 4)
+        #expect(unsafeDowncast(dense._entries[0].buffer, to: _DenseMapBuffer.self).capacity >= 100 && copy.storage(Int.self, in: 0).dense.count == 4)
         dense.removeAll(keepingCapacity: true)
-        #expect(dense.storage(Int.self, in: 0).dense.isEmpty && dense.storage(Int.self, in: 0).dense.capacity >= 100)
+        #expect(dense.storage(Int.self, in: 0).dense.isEmpty && unsafeDowncast(dense._entries[0].buffer, to: _DenseMapBuffer.self).capacity >= 100)
         dense.remove(token, hint: hint)
-        #expect(dense.entries.count == 1 && dense.index(of: other, hint: 1) == 0)
+        #expect(dense._entries.count == 1 && dense.index(of: other, hint: 1) == 0)
 
         var paged = _AttachedMaps()
         let (pagedToken, _) = paged.add(default: 0, layout: .paged, count: 0)

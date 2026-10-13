@@ -114,4 +114,4 @@ for k, name in enumerate(["tree", "rooted", "arborescence", "forest"]):
         Mutant(f"map{name}vertexcount", M, "_layout.count", "_layout.edgeCount", nth=4 * k),
     ]
 for file, name in [("Tree.swift", "tree"), ("RootedTree.swift", "rooted"), ("Arborescence.swift", "arborescence"), ("Forest.swift", "forest")]:
-    MUTANTS.append(Mutant(f"{name}stamp", file, "        _generation.advance()", "", mode="stmt"))
+    MUTANTS.append(Mutant(f"{name}stamp", file, "        _generation.stamp()", "", mode="stmt"))

@@ -174,7 +174,7 @@ public struct EdgeValues<Base: PropertyGraph, Value> {
     @inlinable
     public subscript(position: Base.EdgePosition) -> Value {
         let k = Base._edgeMapOffset(of: position)
-        if Base._edgeMapLayout == .dense { return _storage.dense[k] }
+        if Base._edgeMapLayout == .dense { return _storage.denseValue(at: k) }
         return _storage.pagedValue(at: k)
     }
 }
@@ -208,7 +208,7 @@ public struct VertexValues<Base: PropertyGraph, Value> {
     /// - Precondition: `position` is in the graph's position range when the map is dense.
     @inlinable
     public subscript(position: Int) -> Value {
-        if Base._vertexMapLayout == .dense { return _storage.dense[position] }
+        if Base._vertexMapLayout == .dense { return _storage.denseValue(at: position) }
         return _storage.pagedValue(at: position)
     }
 }

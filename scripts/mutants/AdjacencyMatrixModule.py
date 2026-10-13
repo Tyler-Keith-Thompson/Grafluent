@@ -11,6 +11,10 @@
 #
 # Known equivalent mutants (they survive by design): none.
 #
+# Removed as equivalent: the complement keeping the matrix's generation stamp instead of a fresh
+# one. The generation is told apart by `_inDegrees`, which the complement recounts (writes), so
+# its storage, and so its generation, is never the matrix's; with no vertices both are empty.
+#
 # Removed as dead code after planting: the vertex maps' range checks in the subscripts (each map
 # holds exactly one value per vertex, so its own bounds check traps on the same positions).
 
@@ -74,20 +78,19 @@ MUTANTS = [
     Mutant("removealledgemaps", M, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
     Mutant("complementedgemaps", M, "        result._edgeMaps = _AttachedMaps()", "", mode="stmt"),
     Mutant("complementvertexmaps", M, "        result._vertexMaps = _AttachedMaps()", "", mode="stmt"),
-    Mutant("complementgeneration", M, "        result._generation = _GenerationStamp()", "", mode="stmt"),
 
     # Generations: each structural mutation advances, a call that changes nothing does not.
-    Mutant("gencombine", M, "        _generation.advance()", "", mode="stmt", nth=0),
-    Mutant("geninsert", M, "        _generation.advance()", "", mode="stmt", nth=1),
-    Mutant("genremove", M, "        _generation.advance()", "", mode="stmt", nth=2),
-    Mutant("genrowclear", M, "        _generation.advance()", "", mode="stmt", nth=3),
-    Mutant("gencolumnclear", M, "        _generation.advance()", "", mode="stmt", nth=4),
-    Mutant("genappend", M, "        _generation.advance()", "", mode="stmt", nth=5),
-    Mutant("genremovealledges", M, "        _generation.advance()", "", mode="stmt", nth=6),
-    Mutant("genremoveall", M, "        _generation.advance()", "", mode="stmt", nth=7),
-    Mutant("gensubscriptset", M, "            if _setCell(source, target, to: newValue) { _generation.advance() }", "            _setCell(source, target, to: newValue)", mode="stmt"),
-    Mutant("gensubscriptchanged", M, "            if _setCell(source, target, to: newValue) { _generation.advance() }", "            _setCell(source, target, to: newValue)\n            _generation.advance()", mode="stmt"),
-    Mutant("gensubscriptmodify", M, "if _setCell(source, target, to: value) { _generation.advance() }", "_setCell(source, target, to: value)", mode="stmt"),
-    Mutant("geninsertedges", M, "        if inserted > 0 { _generation.advance() }", "        _generation.advance()", mode="stmt"),
-    Mutant("geninsertedgesnone", M, "        if inserted > 0 { _generation.advance() }", "        if inserted > 1 { _generation.advance() }", mode="stmt"),
+    Mutant("gencombine", M, "        _generation.advanceVersion(storageIsEmpty: _inDegrees.isEmpty)", "", mode="stmt", nth=0),
+    Mutant("geninsert", M, "        _generation.advanceVersion()", "", mode="stmt", nth=0),
+    Mutant("genremove", M, "        _generation.advanceVersion()", "", mode="stmt", nth=1),
+    Mutant("genrowclear", M, "        _generation.advanceVersion()", "", mode="stmt", nth=2),
+    Mutant("gencolumnclear", M, "        _generation.advanceVersion()", "", mode="stmt", nth=3),
+    Mutant("genappend", M, "        _generation.advanceVersion()", "", mode="stmt", nth=4),
+    Mutant("genremovealledges", M, "        _generation.advanceVersion(storageIsEmpty: _inDegrees.isEmpty)", "", mode="stmt", nth=1),
+    Mutant("genremoveall", M, "        _generation.advance()  // Empties `_inDegrees`: the lineage tells copies apart.", "", mode="stmt"),
+    Mutant("gensubscriptset", M, "            if _setCell(source, target, to: newValue) { _generation.advanceVersion() }", "            _setCell(source, target, to: newValue)", mode="stmt"),
+    Mutant("gensubscriptchanged", M, "            if _setCell(source, target, to: newValue) { _generation.advanceVersion() }", "            _setCell(source, target, to: newValue)\n            _generation.advanceVersion()", mode="stmt"),
+    Mutant("gensubscriptmodify", M, "if _setCell(source, target, to: value) { _generation.advanceVersion() }", "_setCell(source, target, to: value)", mode="stmt"),
+    Mutant("geninsertedges", M, "        if inserted > 0 { _generation.advanceVersion() }", "        _generation.advanceVersion()", mode="stmt"),
+    Mutant("geninsertedgesnone", M, "        if inserted > 0 { _generation.advanceVersion() }", "        if inserted > 1 { _generation.advanceVersion() }", mode="stmt"),
 ]

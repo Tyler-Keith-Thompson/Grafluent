@@ -38,7 +38,7 @@ MUTANTS = [
 # message.
 P = "CompressedSparseRow+PropertyGraph.swift"
 MUTANTS += [
-    Mutant("mapstamp", C, "        _generation.advance()", "", mode="stmt"),
+    Mutant("mapstamp", C, "        _generation.stamp()", "", mode="stmt"),
     Mutant("mapemptybuild", C, "return CompressedSparseRow(_offsets: _emptyOffsets, _targets: [])", "return CompressedSparseRow()", mode="stmt"),
     Mutant("mapemptytranspose", C, "return CompressedSparseRow(_offsets: _offsets, _targets: _targets)", "return self", mode="stmt"),
     Mutant("mapsamesource", C, "_sourceGeneration = same.generation", "", mode="stmt"),

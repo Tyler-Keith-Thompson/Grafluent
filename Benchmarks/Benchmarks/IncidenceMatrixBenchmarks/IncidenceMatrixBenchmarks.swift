@@ -174,7 +174,16 @@ let benchmarks: @Sendable () -> Void = {
     // One value per column, appended with the column: 0, 1 and 2 attached hyperedge maps against a
     // caller's `[Double]` appended by hand; then `values(of:)` against that array, read at every
     // vertex's incident columns.
-    for maps in 0 ... 2 {
+    // The 0-map row attaches nothing: an attach call in the loop, even one run zero times, costs the
+    // optimizer facts a caller without maps keeps.
+    Benchmark("IncidenceMatrix: insert(hyperedge:) × 2·10⁴, sizes 2–8, n = 10⁴, 0 hyperedge maps") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var built = IncidenceMatrix(vertexCount: 10_000)
+            for column in xgiColumns { built.insert(hyperedge: column) }
+            blackHole(built)
+        }
+    }
+    for maps in 1 ... 2 {
         Benchmark("IncidenceMatrix: insert(hyperedge:) × 2·10⁴, sizes 2–8, n = 10⁴, \(maps) hyperedge maps") { benchmark in
             for _ in benchmark.scaledIterations {
                 var built = IncidenceMatrix(vertexCount: 10_000)

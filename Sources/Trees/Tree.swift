@@ -29,7 +29,7 @@ public struct Tree<Vertex: Hashable> {
         _vertexMaps = _AttachedMaps()
         _edgeMaps = _AttachedMaps()
         _generation = _GenerationStamp()
-        _generation.advance()
+        _generation.stamp()
     }
 
     /// The tree a graph is, keeping its vertex order and its edges at their positions; nil when

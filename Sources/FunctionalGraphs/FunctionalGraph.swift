@@ -43,7 +43,7 @@ public struct FunctionalGraph: Sendable {
         _vertexMaps = _AttachedMaps()
         _edgeMaps = _AttachedMaps()
         _generation = _GenerationStamp()
-        _generation.advance()
+        _generation.stamp()
     }
 
     /// The generation of this graph, which never changes: the graph is immutable. A structure

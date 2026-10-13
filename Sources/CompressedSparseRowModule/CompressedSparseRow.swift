@@ -46,7 +46,7 @@ public struct CompressedSparseRow {
         _edgeMaps = _AttachedMaps()
         _generation = _GenerationStamp()
         _sourceGeneration = .untracked
-        _generation.advance()
+        _generation.stamp()
     }
 
     /// Shared by every graph with no vertices, so creating one does not allocate.

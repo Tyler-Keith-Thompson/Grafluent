@@ -239,7 +239,10 @@ struct HypergraphMapTests {
         #expect(undirected.description == plain.description && undirected.debugDescription == plain.debugDescription)
         let decoded = try JSONDecoder().decode(UndirectedIncidenceList<String>.self, from: JSONEncoder().encode(undirected))
         #expect(decoded == undirected)
-        #expect(try JSONEncoder().encode(undirected) == JSONEncoder().encode(plain))
+        // Sorted keys: a keyed container's key order is otherwise unspecified.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        #expect(try encoder.encode(undirected) == encoder.encode(plain))
         // The conversion of the same type returns the hypergraph itself, maps included.
         #expect(UndirectedIncidenceList(undirected)[colors, of: "a"] == 2)
 
@@ -249,7 +252,7 @@ struct HypergraphMapTests {
         directed[weights, ofEdgeAt: 0] = 2
         #expect(directed == plainDirected && directed.hashValue == plainDirected.hashValue)
         #expect(directed.description == plainDirected.description)
-        #expect(try JSONEncoder().encode(directed) == JSONEncoder().encode(plainDirected))
+        #expect(try encoder.encode(directed) == encoder.encode(plainDirected))
         #expect(IncidenceList(directed)[weights, ofEdgeAt: 0] == 2)
     }
 }

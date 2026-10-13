@@ -62,7 +62,7 @@ public struct ImplicitDirectedGraph<Row: Sequence<Int>> {
         self._vertexCount = vertexCount
         self._successors = successors
         _generation = _GenerationStamp()
-        _generation.advance()
+        _generation.stamp()
     }
 
     /// The generation of this graph, which never changes: the graph is immutable, and its closure

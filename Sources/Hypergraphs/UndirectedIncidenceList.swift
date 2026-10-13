@@ -67,7 +67,7 @@ public struct UndirectedIncidenceList<Vertex: Hashable> {
         _vertexMaps = _AttachedMaps()
         _edgeMaps = _AttachedMaps()
         _generation = _GenerationStamp()
-        _generation.advance()
+        _generation.stamp()
     }
 }
 

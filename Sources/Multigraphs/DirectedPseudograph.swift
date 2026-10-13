@@ -387,7 +387,7 @@ extension DirectedPseudograph {
         _records.append(_ArcRecord(source: source, target: target, out: out, in: into))
         _parallel.append(position, key: _SlotPair(source, target))
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
-        _generation.advance()
+        _generation.advanceVersion()
         return position
     }
 
@@ -449,7 +449,7 @@ extension DirectedPseudograph {
         _inEdges.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
         if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }
-        _generation.advance()
+        _generation.advanceVersion(storageIsEmpty: _out.rows.isEmpty)
         return removed
     }
 
@@ -530,13 +530,14 @@ extension DirectedPseudograph {
         _records.removeLast()
         _parallel.removeLast()
         if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }
-        _generation.advance()
+        _generation.advanceVersion()
     }
 
     /// Removes every vertex and edge.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
         // Clearing an empty graph changes nothing: it keeps its generation.
+        // Empties the storage the generation is told apart by: the lineage tells copies apart.
         if !_vertices.isEmpty { _generation.advance() }
         _vertices.removeAll(keepingCapacity: keepingCapacity)
         _slots.removeAll(keepingCapacity: keepingCapacity)
@@ -561,7 +562,7 @@ extension DirectedPseudograph {
         _records.removeAll(keepingCapacity: keepingCapacity)
         _parallel.removeAll(keepingCapacity: keepingCapacity)
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advance()
+        _generation.advanceVersion()
     }
 
     /// Reserves space for at least `vertexCount` vertices and `edgeCount` edges.
@@ -571,7 +572,9 @@ extension DirectedPseudograph {
         precondition(edgeCount >= 0, "Negative edge count")
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
-        _out.reserveCapacity(rows: vertexCount, entries: edgeCount)
+        // Not the row table: the generation is told apart by it, and moving it would start a
+        // generation (see `generation`).
+        _out.reserveEntryCapacity(edgeCount)
         _outEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _in.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _inEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
@@ -592,7 +595,7 @@ extension DirectedPseudograph {
         _in.appendRow()
         _inEdges.appendRow()
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
-        _generation.advance()
+        _generation.advanceVersion()
         return slot
     }
 
@@ -801,7 +804,7 @@ extension DirectedPseudograph: BidirectionalDirectedGraph {
     /// The current generation (see `GraphGeneration`): every insertion and removal, and both
     /// resets, start a new one. O(1).
     @inlinable
-    public var generation: GraphGeneration { _generation.generation }
+    public var generation: GraphGeneration { _generation.generation(storage: _GenerationStamp.storage(of: _out.rows)) }
 
     /// The positions in `edges` of the edges leaving `vertex`, in the order of
     /// `successors(of:)`: the stored row. O(1).

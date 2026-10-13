@@ -12,7 +12,7 @@ extension AdjacencyMatrix {
     /// The current generation (see `GraphGeneration`): every edge inserted or removed, every vertex
     /// appended, the whole-matrix operations and both resets start a new one. O(1).
     @inlinable
-    public var generation: GraphGeneration { _generation.generation }
+    public var generation: GraphGeneration { _generation.generation(storage: _GenerationStamp.storage(of: _inDegrees)) }
 
     /// Szudzik's pairing of the cell (`source`, `target`): its offset in an edge map.
     @inlinable

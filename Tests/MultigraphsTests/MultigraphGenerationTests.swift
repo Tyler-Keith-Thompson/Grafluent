@@ -93,6 +93,8 @@ struct MultigraphGenerationTests {
             ("remove(edge:)", { _ = $0.remove(edge: DirectedEdge(from: 0, to: 1)) }),
             ("remove(edgeAt:)", { _ = $0.remove(edgeAt: 0) }),
             ("_insertVertex", { _ = $0._insertVertex(9) }),
+            // The row table has room now: the insertion moves no storage.
+            ("insert(_:) with room for the vertex", { _ = $0.insert(7) }),
             ("_insertEdge(fromKey:toKey:)", { _ = $0._insertEdge(fromKey: 0, toKey: 2) }),
             ("_removeEdge(at:)", { _ = $0._removeEdge(at: 0) }),
             ("removeAllEdges(from:to:)", { _ = $0.removeAllEdges(from: 0, to: 9) }),
@@ -105,6 +107,7 @@ struct MultigraphGenerationTests {
         for (name, step) in steps {
             try step(&graph)
             #expect(!seen.isCurrent(for: graph), "\(name) kept the generation")
+            #expect(graph.generation.isCurrent(for: graph), "\(name)")
             seen = graph.generation
         }
 

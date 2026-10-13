@@ -100,5 +100,5 @@ MUTANTS = [
 
 # The generation, stamped by the initializer.
 MUTANTS += [
-    Mutant("generationstamp", I, "        _generation.advance()", "", mode="stmt"),
+    Mutant("generationstamp", I, "        _generation.stamp()", "", mode="stmt"),
 ]

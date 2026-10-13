@@ -79,6 +79,19 @@ struct StableGraphGenerationTests {
         }
     }
 
+    @Test("Emptying the edges, then resetting the edge positions, starts a generation each time")
+    func emptiedEdges() {
+        var graph = StableDirectedGraph<Int>(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
+        // The last live edge goes, and its page with it.
+        graph.remove(edgeAt: 0)
+        let emptied = graph.generation
+        #expect(emptied.isCurrent(for: graph))
+        // No live edge, but the positions start over: a structural change.
+        graph.removeAllEdges()
+        #expect(!emptied.isCurrent(for: graph) && graph.generation.isCurrent(for: graph))
+        #expect(graph.edges.endIndex == 0)
+    }
+
     @Test("A copy shares the generation until either is mutated; built and decoded graphs have one")
     func copiesAndConstruction() throws {
         var graph = StableDirectedGraph<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1)])

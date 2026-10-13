@@ -85,6 +85,6 @@ struct CondensationStalenessTests {
         // Never mutated: no generation yet.
         let empty = TrackedDigraph(vertexCount: 2, edges: [])
         let condensation = empty.condensation()
-        #expect(!condensation.isCurrent(for: empty) && condensation.sourceGeneration._token == nil)
+        #expect(!condensation.isCurrent(for: empty) && condensation.sourceGeneration._lineage == 0)
     }
 }

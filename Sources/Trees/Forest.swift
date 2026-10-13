@@ -30,7 +30,7 @@ public struct Forest<Vertex: Hashable> {
         _vertexMaps = _AttachedMaps()
         _edgeMaps = _AttachedMaps()
         _generation = _GenerationStamp()
-        _generation.advance()
+        _generation.stamp()
         let trees = layout.roots.count
         guard trees >= 2 else {
             _vertexStart = []

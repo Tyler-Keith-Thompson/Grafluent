@@ -68,7 +68,7 @@ public struct IncidenceList<Vertex: Hashable> {
         _vertexMaps = _AttachedMaps()
         _edgeMaps = _AttachedMaps()
         _generation = _GenerationStamp()
-        _generation.advance()
+        _generation.stamp()
     }
 }
 
@@ -80,7 +80,7 @@ extension IncidenceList {
     public init(vertices: some Sequence<Vertex>) {
         self.init()
         for v in vertices { insert(v) }
-        _generation.advance()
+        _generation.stamp()
     }
 
     /// A hypergraph with the given hyperedges, in order, whose vertices are their sources and
