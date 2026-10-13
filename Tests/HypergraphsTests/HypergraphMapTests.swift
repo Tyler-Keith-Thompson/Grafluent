@@ -2,7 +2,8 @@
 // hyperedge position, the default for every element until it is set and for every new element
 // (vertices inserted by a hyperedge's insertion included), reads by index, by vertex and through
 // `values(of:)`, the checked reads, `removeAll` emptying the maps and keeping them attached,
-// several maps and removed maps, copy-on-write, `reversed` carrying the maps, and equality,
+// several maps and removed maps, copy-on-write (two copies, whichever mutates first, keep their own
+// values), `reversed` carrying the maps, and equality,
 // hashing and `Codable` ignoring them. Hand-written: the catalog (cases.md) models the storage
 // against XGI and HyperNetX, which have no attached maps. See README.md.
 
@@ -210,6 +211,115 @@ struct HypergraphMapTests {
         hypergraph.insert(4)
         #expect(copy[second, ofVertexAt: 0] == 1 && copy.vertexCount == 3)
         #expect(hypergraph[second, ofVertexAt: 0] == 5 && hypergraph[second, of: 4] == 1)
+    }
+
+    @Test("Both: two copies keep their own values whichever mutates first, every mutation on one then every mutation on the other")
+    func copiesMutatedInTurn() {
+        // One hyperedge map of Ints (the one-map fast paths of the upkeep) and a vertex map. Each
+        // copy's values must be what its own mutation alone gives a fresh hypergraph, and so after
+        // a further insertion on each.
+        func undirected() -> (UndirectedIncidenceList<Int>, EdgeMap<Int>, VertexMap<Double>) {
+            var hypergraph = UndirectedIncidenceList<Int>(vertices: 0 ..< 4)
+            let weights = hypergraph.addEdgeMap(default: -1)
+            let ranks = hypergraph.addVertexMap(default: 0.5)
+            for members in [[0, 1], [1, 2, 3], [3]] { hypergraph.insert(hyperedge: members) }
+            for p in 0 ..< hypergraph.hyperedgeCount { hypergraph[weights, ofEdgeAt: p] = 10 * p + 1 }
+            for v in 0 ..< 4 { hypergraph[ranks, of: v] = Double(v) }
+            return (hypergraph, weights, ranks)
+        }
+        let undirectedSteps: [(String, (inout UndirectedIncidenceList<Int>, EdgeMap<Int>, VertexMap<Double>) -> Void)] = [
+            ("insert(_:)", { h, _, _ in h.insert(9) }),
+            ("insert(hyperedge:)", { h, _, _ in h.insert(hyperedge: [0, 2]) }),
+            ("insert(hyperedge:) with new vertices", { h, _, _ in h.insert(hyperedge: [1, 7, 8]) }),
+            ("insert(checked:)", { h, _, _ in _ = try? h.insert(checked: [2, 3]) }),
+            ("reserveCapacity", { h, _, _ in h.reserveCapacity(vertexCount: 64, hyperedgeCount: 64, incidenceCount: 256) }),
+            ("removeAll", { h, _, _ in h.removeAll() }),
+            ("removeAll(keepingCapacity: true)", { h, _, _ in h.removeAll(keepingCapacity: true) }),
+            ("a hyperedge value written", { h, w, _ in h[w, ofEdgeAt: 1] = -7 }),
+            ("a vertex value written", { h, _, r in h[r, of: 0] = -7 }),
+        ]
+        // Each map holds one value per element, and every value is its element's own (set by
+        // `undirected()` and `directed()`), the default or the written -7.
+        func undirectedState(_ h: UndirectedIncidenceList<Int>, _ w: EdgeMap<Int>, _ r: VertexMap<Double>) -> [String] {
+            let values = (0 ..< h.hyperedgeCount).map { "\(Array(h.members(ofHyperedgeAt: $0)))=\(h[w, ofEdgeAt: $0])" } + h.vertices.map { "\($0)=\(h[r, of: $0])" }
+            let own = (0 ..< h.hyperedgeCount).allSatisfy { [10 * $0 + 1, -1, -7].contains(h[w, ofEdgeAt: $0]) } && h.vertices.allSatisfy { [Double($0), 0.5, -7].contains(h[r, of: $0]) }
+            let counts = h.values(of: w)._storage.dense.count == h.hyperedgeCount && h.values(of: r)._storage.dense.count == h.vertexCount
+            return values + ["own values: \(own)", "one value per element: \(counts)"]
+        }
+        func undirectedReplay(_ names: [String]) -> [String] {
+            var (h, w, r) = undirected()
+            for name in names { undirectedSteps.first { $0.0 == name }!.1(&h, w, r) }
+            return undirectedState(h, w, r)
+        }
+        for (first, a) in undirectedSteps {
+            for (second, b) in undirectedSteps {
+                for firstOnCopy in [true, false] {
+                    var (original, w, r) = undirected()
+                    var copy = original
+                    if firstOnCopy { a(&copy, w, r); b(&original, w, r) } else { a(&original, w, r); b(&copy, w, r) }
+                    let label = "undirected: \(first) on the \(firstOnCopy ? "copy" : "original"), then \(second) on the other"
+                    #expect(undirectedState(firstOnCopy ? copy : original, w, r) == undirectedReplay([first]), "\(label): the first")
+                    #expect(undirectedState(original, w, r).suffix(2) == ["own values: true", "one value per element: true"] && undirectedState(copy, w, r).suffix(2) == ["own values: true", "one value per element: true"], "\(label): own values")
+                    #expect(undirectedState(firstOnCopy ? original : copy, w, r) == undirectedReplay([second]), "\(label): the second")
+                    original.insert(hyperedge: [0, 2])
+                    copy.insert(hyperedge: [0, 2])
+                    let originalSteps = firstOnCopy ? [second] : [first], copySteps = firstOnCopy ? [first] : [second]
+                    #expect(undirectedState(original, w, r) == undirectedReplay(originalSteps + ["insert(hyperedge:)"]), "\(label): then an insertion on the original")
+                    #expect(undirectedState(copy, w, r) == undirectedReplay(copySteps + ["insert(hyperedge:)"]), "\(label): then an insertion on the copy")
+                }
+            }
+        }
+
+        func directed() -> (IncidenceList<Int>, EdgeMap<Int>, VertexMap<Double>) {
+            var hypergraph = IncidenceList<Int>(vertices: 0 ..< 4)
+            let weights = hypergraph.addEdgeMap(default: -1)
+            let ranks = hypergraph.addVertexMap(default: 0.5)
+            for (sources, targets) in [([0], [1]), ([1, 2], [3]), ([3], [])] { hypergraph.insert(sources: sources, targets: targets) }
+            for p in 0 ..< hypergraph.hyperedgeCount { hypergraph[weights, ofEdgeAt: p] = 10 * p + 1 }
+            for v in 0 ..< 4 { hypergraph[ranks, of: v] = Double(v) }
+            return (hypergraph, weights, ranks)
+        }
+        let directedSteps: [(String, (inout IncidenceList<Int>, EdgeMap<Int>, VertexMap<Double>) -> Void)] = [
+            ("insert(_:)", { h, _, _ in h.insert(9) }),
+            ("insert(sources:targets:)", { h, _, _ in h.insert(sources: [0], targets: [2]) }),
+            ("insert(sources:targets:) with new vertices", { h, _, _ in h.insert(sources: [1, 7], targets: [8]) }),
+            ("insert(checked:targets:)", { h, _, _ in _ = try? h.insert(checked: [2], targets: [3]) }),
+            ("reserveCapacity", { h, _, _ in h.reserveCapacity(vertexCount: 64, hyperedgeCount: 64, sourceCount: 256, targetCount: 256) }),
+            ("removeAll", { h, _, _ in h.removeAll() }),
+            ("removeAll(keepingCapacity: true)", { h, _, _ in h.removeAll(keepingCapacity: true) }),
+            ("a hyperedge value written", { h, w, _ in h[w, ofEdgeAt: 1] = -7 }),
+            ("a vertex value written", { h, _, r in h[r, of: 0] = -7 }),
+        ]
+        func directedState(_ h: IncidenceList<Int>, _ w: EdgeMap<Int>, _ r: VertexMap<Double>) -> [String] {
+            let values = (0 ..< h.hyperedgeCount).map { "\(Array(h.sources(ofHyperedgeAt: $0)))→\(Array(h.targets(ofHyperedgeAt: $0)))=\(h[w, ofEdgeAt: $0])" }
+                + h.vertices.map { "\($0)=\(h[r, of: $0])" }
+            let own = (0 ..< h.hyperedgeCount).allSatisfy { [10 * $0 + 1, -1, -7].contains(h[w, ofEdgeAt: $0]) } && h.vertices.allSatisfy { [Double($0), 0.5, -7].contains(h[r, of: $0]) }
+            let counts = h.values(of: w)._storage.dense.count == h.hyperedgeCount && h.values(of: r)._storage.dense.count == h.vertexCount
+            return values + ["own values: \(own)", "one value per element: \(counts)"]
+        }
+        func directedReplay(_ names: [String]) -> [String] {
+            var (h, w, r) = directed()
+            for name in names { directedSteps.first { $0.0 == name }!.1(&h, w, r) }
+            return directedState(h, w, r)
+        }
+        for (first, a) in directedSteps {
+            for (second, b) in directedSteps {
+                for firstOnCopy in [true, false] {
+                    var (original, w, r) = directed()
+                    var copy = original
+                    if firstOnCopy { a(&copy, w, r); b(&original, w, r) } else { a(&original, w, r); b(&copy, w, r) }
+                    let label = "directed: \(first) on the \(firstOnCopy ? "copy" : "original"), then \(second) on the other"
+                    #expect(directedState(firstOnCopy ? copy : original, w, r) == directedReplay([first]), "\(label): the first")
+                    #expect(directedState(original, w, r).suffix(2) == ["own values: true", "one value per element: true"] && directedState(copy, w, r).suffix(2) == ["own values: true", "one value per element: true"], "\(label): own values")
+                    #expect(directedState(firstOnCopy ? original : copy, w, r) == directedReplay([second]), "\(label): the second")
+                    original.insert(sources: [0], targets: [2])
+                    copy.insert(sources: [0], targets: [2])
+                    let originalSteps = firstOnCopy ? [second] : [first], copySteps = firstOnCopy ? [first] : [second]
+                    #expect(directedState(original, w, r) == directedReplay(originalSteps + ["insert(sources:targets:)"]), "\(label): then an insertion on the original")
+                    #expect(directedState(copy, w, r) == directedReplay(copySteps + ["insert(sources:targets:)"]), "\(label): then an insertion on the copy")
+                }
+            }
+        }
     }
 
     @Test("Maps attached to an empty hypergraph grow with it")

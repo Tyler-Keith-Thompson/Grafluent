@@ -27,16 +27,12 @@ public struct AdjacencyMatrix {
     @usableFromInline
     internal var _words: ContiguousArray<UInt>
 
-    /// The number of set cells in each row.
+    /// The edge count and the generation, then each vertex's out-degree (the set cells in its row)
+    /// and in-degree (in its column), interleaved: see `_headerCount`. One array, so a mutation
+    /// makes one buffer unique for all of them, and the generation is written where the degrees
+    /// already are.
     @usableFromInline
-    internal var _outDegrees: ContiguousArray<Int>
-
-    /// The number of set cells in each column.
-    @usableFromInline
-    internal var _inDegrees: ContiguousArray<Int>
-
-    @usableFromInline
-    internal var _edgeCount: Int
+    internal var _degrees: ContiguousArray<Int>
 
     /// The attached vertex maps (`addVertexMap(default:)`): dense, one value per vertex.
     @usableFromInline
@@ -47,23 +43,15 @@ public struct AdjacencyMatrix {
     @usableFromInline
     internal var _edgeMaps: _AttachedMaps
 
-    /// The generation, advanced by every structural mutation, each of which writes `_inDegrees`
-    /// (the identity array of `_GenerationStamp`).
-    @usableFromInline
-    internal var _generation: _GenerationStamp
-
     /// The matrix with no vertices.
     @inlinable
     public init() {
         _vertexCount = 0
         _wordsPerRow = 0
         _words = []
-        _outDegrees = []
-        _inDegrees = []
-        _edgeCount = 0
+        _degrees = Self._degreeStorage(wordsPerRow: 0)
         _vertexMaps = _AttachedMaps()
         _edgeMaps = _AttachedMaps()
-        _generation = _GenerationStamp()
     }
 
     /// A matrix of `vertexCount` vertices and no edges.
@@ -76,12 +64,9 @@ public struct AdjacencyMatrix {
         _vertexCount = vertexCount
         _wordsPerRow = Self._wordsNeeded(forColumns: vertexCount)
         _words = ContiguousArray(repeating: 0, count: vertexCount * _wordsPerRow)
-        _outDegrees = ContiguousArray(repeating: 0, count: vertexCount)
-        _inDegrees = ContiguousArray(repeating: 0, count: vertexCount)
-        _edgeCount = 0
+        _degrees = Self._degreeStorage(wordsPerRow: _wordsPerRow)
         _vertexMaps = _AttachedMaps()
         _edgeMaps = _AttachedMaps()
-        _generation = _GenerationStamp()
     }
 
     /// A matrix of `vertexCount` vertices in which every cell is `value`: with `true`, the complete
@@ -96,8 +81,8 @@ public struct AdjacencyMatrix {
             for word in 0 ..< used {
                 _words[row * _wordsPerRow + word] = word == used - 1 ? lastWordMask : ~0
             }
-            _outDegrees[row] = vertexCount
-            _inDegrees[row] = vertexCount
+            _degrees[Self._outSlot(row)] = vertexCount
+            _degrees[_inSlot(row)] = vertexCount
         }
         _edgeCount = vertexCount * vertexCount
     }
@@ -159,6 +144,106 @@ extension AdjacencyMatrix {
         precondition(vertex >= 0 && vertex < _vertexCount, "Vertex \(vertex) is out of range 0..<\(_vertexCount)")
     }
 
+    // `_degrees` holds the edge count in slot 0 and the generation in slots 1–3 (see
+    // GraphGeneration.swift): the version, the lineage, and the address of the array's first
+    // element after the last structural mutation (0: unknown). Then come the out-degrees, one slot
+    // per column the rows have room for (`_wordsPerRow × 64`), then the in-degrees, as many: so
+    // appending a vertex writes no degree, and a degree's address is one shifted index. Every slot
+    // past the last vertex holds 0. The array is the generation's identity array and the stamp
+    // lives in it, so a mutation writes the version into the buffer it has already made unique for
+    // the degrees.
+    //
+    // Keeping the stamp and the edge count out of stored properties is the point: the optimizer
+    // splits a struct into registers through a loop only when it has at most six scalar and
+    // reference fields (SIL's `shouldExpand`), and only then checks its arrays' uniqueness once for
+    // the loop instead of on every insertion (2× the instructions for a fresh matrix filled in a
+    // loop). The six are `_vertexCount`, `_wordsPerRow`, `_words`, `_degrees` and the two map
+    // tables.
+
+    /// The slots before the first degree.
+    @inlinable
+    @inline(__always)
+    internal static var _headerCount: Int { 4 }
+
+    /// The slot of `vertex`'s out-degree.
+    @inlinable
+    @inline(__always)
+    internal static func _outSlot(_ vertex: Int) -> Int { _headerCount &+ vertex }
+
+    /// The slot of `vertex`'s in-degree.
+    @inlinable
+    @inline(__always)
+    internal func _inSlot(_ vertex: Int) -> Int { Self._headerCount &+ _wordsPerRow &* UInt.bitWidth &+ vertex }
+
+    /// The degree array for rows of `wordsPerRow` words, with no edges and no generation.
+    @inlinable
+    internal static func _degreeStorage(wordsPerRow: Int) -> ContiguousArray<Int> {
+        ContiguousArray(repeating: 0, count: _headerCount &+ 2 &* wordsPerRow &* UInt.bitWidth)
+    }
+
+    /// The degree array for rows of `wordsPerRow` words, with no edges and the generation of
+    /// `old`, in a new buffer (so the generation's next advance starts a new lineage).
+    @inlinable
+    internal static func _degreeStorage(wordsPerRow: Int, stamp old: ContiguousArray<Int>) -> ContiguousArray<Int> {
+        var degrees = _degreeStorage(wordsPerRow: wordsPerRow)
+        degrees[1] = old[1]
+        degrees[2] = old[2]
+        degrees[3] = old[3]
+        return degrees
+    }
+
+    /// The number of edges: slot 0 of `_degrees`.
+    @inlinable
+    internal var _edgeCount: Int {
+        @inline(__always) get { _degrees.withUnsafeBufferPointer { $0.baseAddress.unsafelyUnwrapped[0] } }
+        @inline(__always) set { _degrees.withUnsafeMutableBufferPointer { $0.baseAddress.unsafelyUnwrapped[0] = newValue } }
+    }
+
+    /// The degree in `slot` (`_outSlot(_:)` or `_inSlot(_:)` of a vertex), unchecked.
+    @inlinable
+    @inline(__always)
+    internal func _degree(at slot: Int) -> Int {
+        _degrees.withUnsafeBufferPointer { $0.baseAddress.unsafelyUnwrapped[slot] }
+    }
+
+    /// Starts a new generation after a structural mutation: makes `_degrees` unique (a copy that
+    /// shared it is then told apart by the address) and advances the stamp in it.
+    @inlinable
+    @inline(__always)
+    internal mutating func _advanceGeneration() {
+        _degrees.withUnsafeMutableBufferPointer { Self._advanceGeneration(in: $0.baseAddress.unsafelyUnwrapped) }
+    }
+
+    /// Advances the stamp at the front of a unique `_degrees` buffer: one more version while the
+    /// buffer is the one the stamp was last advanced in, else a new lineage at version 0.
+    @inlinable
+    @inline(__always)
+    internal static func _advanceGeneration(in degrees: UnsafeMutablePointer<Int>) {
+        if _slowPath(degrees[3] != Int(bitPattern: degrees)) { _startLineage(in: degrees) }
+        degrees[1] &+= 1
+    }
+
+    /// Starts a new lineage in the stamp, one version before 0: `_advanceGeneration(in:)` then
+    /// advances it to 0.
+    @usableFromInline
+    @inline(never)
+    internal static func _startLineage(in degrees: UnsafeMutablePointer<Int>) {
+        degrees[1] = -1
+        degrees[2] = Int(truncatingIfNeeded: _GenerationStamp._newLineage())
+        degrees[3] = Int(bitPattern: degrees)
+    }
+
+    /// Forgets the stamp's address if `_degrees` moved without a structural mutation (reserving
+    /// capacity), so the freed buffer's address, reused later, can never match: the next
+    /// structural mutation starts a new lineage.
+    @inlinable
+    internal mutating func _degreeStorageMayHaveMoved() {
+        _degrees.withUnsafeMutableBufferPointer { buffer in
+            let degrees = buffer.baseAddress.unsafelyUnwrapped
+            if degrees[3] != Int(bitPattern: degrees) { degrees[3] = 0 }
+        }
+    }
+
     /// Moves the rows into storage of `wordsPerRow` words each.
     @inlinable
     internal mutating func _restride(wordsPerRow: Int) {
@@ -170,7 +255,15 @@ extension AdjacencyMatrix {
                 words[row * wordsPerRow + word] = _words[row * _wordsPerRow + word]
             }
         }
+        var degrees = Self._degreeStorage(wordsPerRow: wordsPerRow, stamp: _degrees)
+        degrees[0] = _edgeCount
+        let inBase = Self._headerCount &+ wordsPerRow &* UInt.bitWidth
+        for vertex in 0 ..< _vertexCount {
+            degrees[Self._outSlot(vertex)] = _degree(at: Self._outSlot(vertex))
+            degrees[inBase &+ vertex] = _degree(at: _inSlot(vertex))
+        }
         _words = words
+        _degrees = degrees
         _wordsPerRow = wordsPerRow
     }
 
@@ -179,7 +272,7 @@ extension AdjacencyMatrix {
     internal mutating func _recountDegrees() {
         let n = _vertexCount
         let used = Self._wordsNeeded(forColumns: n)
-        for column in 0 ..< n { _inDegrees[column] = 0 }
+        for column in 0 ..< n { _degrees[_inSlot(column)] = 0 }
         var total = 0
         for row in 0 ..< n {
             var rowCount = 0
@@ -187,11 +280,11 @@ extension AdjacencyMatrix {
                 var bits = _words[row * _wordsPerRow + word]
                 rowCount &+= bits.nonzeroBitCount
                 while bits != 0 {
-                    _inDegrees[word * UInt.bitWidth + bits.trailingZeroBitCount] &+= 1
+                    _degrees[_inSlot(word * UInt.bitWidth + bits.trailingZeroBitCount)] &+= 1
                     bits &= bits &- 1
                 }
             }
-            _outDegrees[row] = rowCount
+            _degrees[Self._outSlot(row)] = rowCount
             total &+= rowCount
         }
         _edgeCount = total
@@ -228,7 +321,7 @@ extension AdjacencyMatrix {
         _clearPadding()
         _recountDegrees()
         if let before { _resetEdgeMaps(removedSince: before) }
-        _generation.advance(writing: _inDegrees)
+        _advanceGeneration()
     }
 
     /// Sets every edge map's value back to the default at each edge leaving `vertex`, before its
@@ -317,13 +410,13 @@ extension AdjacencyMatrix {
         set {
             _checkVertex(source)
             _checkVertex(target)
-            if _setCell(source, target, to: newValue) { _generation.advance(writing: _inDegrees) }
+            _setCell(source, target, to: newValue)
         }
         _modify {
             _checkVertex(source)
             _checkVertex(target)
             var value = _bit(source, target)
-            defer { if _setCell(source, target, to: value) { _generation.advance(writing: _inDegrees) } }
+            defer { _setCell(source, target, to: value) }
             yield &value
         }
     }
@@ -359,7 +452,7 @@ extension AdjacencyMatrix {
     @inlinable
     public func outDegree(of vertex: Int) -> Int {
         _checkVertex(vertex)
-        return _outDegrees[vertex]
+        return _degree(at: Self._outSlot(vertex))
     }
 
     /// The number of edges entering `vertex`. O(1).
@@ -368,7 +461,7 @@ extension AdjacencyMatrix {
     @inlinable
     public func inDegree(of vertex: Int) -> Int {
         _checkVertex(vertex)
-        return _inDegrees[vertex]
+        return _degree(at: _inSlot(vertex))
     }
 
     /// `outDegree(of:) + inDegree(of:)`. A self-loop counts twice: once leaving and once entering.
@@ -377,36 +470,39 @@ extension AdjacencyMatrix {
     @inlinable
     public func degree(of vertex: Int) -> Int {
         _checkVertex(vertex)
-        return _outDegrees[vertex] + _inDegrees[vertex]
+        return _degree(at: Self._outSlot(vertex)) + _degree(at: _inSlot(vertex))
     }
 }
 
 // MARK: - Mutation
 
 extension AdjacencyMatrix {
-    /// Writes the cell, its degrees and the edge count, and on a removal sets the edge maps' value
-    /// back to the default. The caller advances the generation.
+    /// Writes the cell, its degrees and the edge count, advances the generation unless
+    /// `advancing` is false (the caller then advances it once for many cells), and on a removal
+    /// sets the edge maps' value back to the default.
     ///
     /// - Returns: Whether the cell changed.
+    /// - Precondition: both are in `0..<vertexCount`.
     @inlinable
     @discardableResult
-    internal mutating func _setCell(_ source: Int, _ target: Int, to value: Bool) -> Bool {
+    internal mutating func _setCell(_ source: Int, _ target: Int, to value: Bool, advancing: Bool = true) -> Bool {
         let index = _wordIndex(source, target)
         let mask = Self._mask(target)
         // Read before writing, so a write that changes nothing never copies shared storage.
         guard (_words[index] & mask != 0) != value else { return false }
-        if value {
-            _words[index] |= mask
-            _outDegrees[source] += 1
-            _inDegrees[target] += 1
-            _edgeCount += 1
-        } else {
-            _words[index] &= ~mask
-            _outDegrees[source] -= 1
-            _inDegrees[target] -= 1
-            _edgeCount -= 1
-            if !_edgeMaps.isEmpty { _edgeMaps.reset(at: Self._edgeMapOffset(source, target)) }
-        }
+        if value { _words[index] |= mask } else { _words[index] &= ~mask }
+        // A degree is at most n, and the edge count at most n², which the bits already take
+        // memory for: none can overflow.
+        let change = value ? 1 : -1
+        // The edge count through the subscript, which makes the buffer unique in a way the
+        // optimizer hoists out of a caller's loop (`withUnsafeMutableBufferPointer` is not
+        // hoisted); then the degrees and the stamp through that buffer's address, unchecked.
+        _degrees[0] &+= change
+        let degrees = _degrees._baseAddressIfContiguous.unsafelyUnwrapped
+        degrees[Self._outSlot(source)] &+= change
+        degrees[_inSlot(target)] &+= change
+        if advancing { Self._advanceGeneration(in: degrees) }
+        if !value, !_edgeMaps.isEmpty { _edgeMaps.reset(at: Self._edgeMapOffset(source, target)) }
         return true
     }
 
@@ -421,7 +517,6 @@ extension AdjacencyMatrix {
         _checkVertex(edge.target)
         if _bit(edge.source, edge.target) { return (false, edge) }
         _setCell(edge.source, edge.target, to: true)
-        _generation.advance(writing: _inDegrees)
         return (true, edge)
     }
 
@@ -451,7 +546,6 @@ extension AdjacencyMatrix {
     public mutating func remove(edge: DirectedEdge<Int>) -> DirectedEdge<Int>? {
         guard contains(edge: edge) else { return nil }
         _setCell(edge.source, edge.target, to: false)
-        _generation.advance(writing: _inDegrees)
         return edge
     }
 
@@ -467,10 +561,10 @@ extension AdjacencyMatrix {
         if let last = targets.last { _checkVertex(last) }
         var inserted = 0
         for target in targets where !_bit(source, target) {
-            _setCell(source, target, to: true)
+            _setCell(source, target, to: true, advancing: false)
             inserted += 1
         }
-        if inserted > 0 { _generation.advance(writing: _inDegrees) }
+        if inserted > 0 { _advanceGeneration() }
         return inserted
     }
 
@@ -481,21 +575,21 @@ extension AdjacencyMatrix {
     @discardableResult
     public mutating func removeEdges(from vertex: Int) -> Int {
         _checkVertex(vertex)
-        let removed = _outDegrees[vertex]
+        let removed = _degree(at: Self._outSlot(vertex))
         guard removed > 0 else { return 0 }
         if !_edgeMaps.isEmpty { _resetEdgeMaps(ofRow: vertex) }
         let start = vertex * _wordsPerRow
         for word in 0 ..< Self._wordsNeeded(forColumns: _vertexCount) {
             var bits = _words[start + word]
             while bits != 0 {
-                _inDegrees[word * UInt.bitWidth + bits.trailingZeroBitCount] -= 1
+                _degrees[_inSlot(word * UInt.bitWidth + bits.trailingZeroBitCount)] -= 1
                 bits &= bits &- 1
             }
             _words[start + word] = 0
         }
-        _outDegrees[vertex] = 0
+        _degrees[Self._outSlot(vertex)] = 0
         _edgeCount -= removed
-        _generation.advance(writing: _inDegrees)
+        _advanceGeneration()
         return removed
     }
 
@@ -506,7 +600,7 @@ extension AdjacencyMatrix {
     @discardableResult
     public mutating func removeEdges(to vertex: Int) -> Int {
         _checkVertex(vertex)
-        let removed = _inDegrees[vertex]
+        let removed = _degree(at: _inSlot(vertex))
         guard removed > 0 else { return 0 }
         if !_edgeMaps.isEmpty { _resetEdgeMaps(ofColumn: vertex) }
         let mask = Self._mask(vertex)
@@ -515,12 +609,12 @@ extension AdjacencyMatrix {
             let index = row * _wordsPerRow + wordInRow
             if _words[index] & mask != 0 {
                 _words[index] &= ~mask
-                _outDegrees[row] -= 1
+                _degrees[Self._outSlot(row)] -= 1
             }
         }
-        _inDegrees[vertex] = 0
+        _degrees[_inSlot(vertex)] = 0
         _edgeCount -= removed
-        _generation.advance(writing: _inDegrees)
+        _advanceGeneration()
         return removed
     }
 
@@ -549,13 +643,11 @@ extension AdjacencyMatrix {
         }
         // The new column is already zero: every bit past the last column is.
         _words.append(contentsOf: repeatElement(0, count: _wordsPerRow))
-        _outDegrees.append(0)
-        _inDegrees.append(0)
         _vertexCount += 1
         // The new cells are the Szudzik offsets vertex² ..< (vertex + 1)²: 2·vertex + 1 defaults.
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 2 &* vertex &+ 1) }
-        _generation.advance(writing: _inDegrees)
+        _advanceGeneration()
         return vertex
     }
 
@@ -566,26 +658,24 @@ extension AdjacencyMatrix {
     @inlinable
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
         let n = _vertexCount
+        let hadEdges = _edgeCount > 0
         if keepingCapacity {
-            guard _edgeCount > 0 else { return }
+            guard hadEdges else { return }
             for index in _words.indices { _words[index] = 0 }
-            for vertex in 0 ..< n {
-                _outDegrees[vertex] = 0
-                _inDegrees[vertex] = 0
-            }
+            for slot in Self._headerCount ..< _degrees.count { _degrees[slot] = 0 }
+            _edgeCount = 0
         } else {
-            // Fresh zeroed storage: never copies shared words just to overwrite them.
+            // Fresh zeroed storage: never copies shared words just to overwrite them. The stamp
+            // moves to the new buffer, whose address does not match it: a new lineage.
             _wordsPerRow = Self._wordsNeeded(forColumns: n)
             _words = ContiguousArray(repeating: 0, count: n * _wordsPerRow)
-            _outDegrees = ContiguousArray(repeating: 0, count: n)
-            _inDegrees = ContiguousArray(repeating: 0, count: n)
+            _degrees = Self._degreeStorage(wordsPerRow: _wordsPerRow, stamp: _degrees)
         }
-        if _edgeCount > 0, !_edgeMaps.isEmpty {
+        if hadEdges, !_edgeMaps.isEmpty {
             _edgeMaps.removeAll(keepingCapacity: keepingCapacity)
             _edgeMaps.appendDefaults(count: n &* n)
         }
-        _edgeCount = 0
-        _generation.advance(writing: _inDegrees)
+        _advanceGeneration()
     }
 
     /// Removes every vertex and edge. Every attached map stays attached, empty.
@@ -593,19 +683,17 @@ extension AdjacencyMatrix {
     public mutating func removeAll(keepingCapacity: Bool = false) {
         if keepingCapacity {
             _words.removeAll(keepingCapacity: true)
-            _outDegrees.removeAll(keepingCapacity: true)
-            _inDegrees.removeAll(keepingCapacity: true)
+            for slot in Self._headerCount ..< _degrees.count { _degrees[slot] = 0 }
+            _edgeCount = 0
         } else {
             _wordsPerRow = 0
             _words = []
-            _outDegrees = []
-            _inDegrees = []
+            _degrees = Self._degreeStorage(wordsPerRow: 0, stamp: _degrees)
         }
         _vertexCount = 0
-        _edgeCount = 0
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advance(writing: _inDegrees)
+        _advanceGeneration()
     }
 
     /// Reserves storage for at least `vertexCount` vertices, and room for their values in every
@@ -618,9 +706,8 @@ extension AdjacencyMatrix {
             _restride(wordsPerRow: wordsPerRow)
         }
         _words.reserveCapacity(vertexCount * _wordsPerRow)
-        _outDegrees.reserveCapacity(vertexCount)
-        _inDegrees.reserveCapacity(vertexCount)
-        _generation.storageMayHaveMoved(_inDegrees)
+        // The degrees already have a slot per column the rows have room for.
+        _degreeStorageMayHaveMoved()
         if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
         if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(vertexCount &* vertexCount) }
     }
@@ -706,7 +793,6 @@ extension AdjacencyMatrix {
         var result = self
         result._vertexMaps = _AttachedMaps()
         result._edgeMaps = _AttachedMaps()
-        result._generation = _GenerationStamp()
         let used = Self._wordsNeeded(forColumns: _vertexCount)
         for row in 0 ..< _vertexCount {
             for word in 0 ..< used {
@@ -720,6 +806,10 @@ extension AdjacencyMatrix {
             }
         }
         result._recountDegrees()
+        // A new graph, with no generation, like one just built.
+        result._degrees[1] = 0
+        result._degrees[2] = 0
+        result._degrees[3] = 0
         return result
     }
 
@@ -739,8 +829,10 @@ extension AdjacencyMatrix {
                 }
             }
         }
-        result._outDegrees = _inDegrees
-        result._inDegrees = _outDegrees
+        for vertex in 0 ..< _vertexCount {
+            result._degrees[Self._outSlot(vertex)] = _degree(at: _inSlot(vertex))
+            result._degrees[result._inSlot(vertex)] = _degree(at: Self._outSlot(vertex))
+        }
         result._edgeCount = _edgeCount
         return result
     }

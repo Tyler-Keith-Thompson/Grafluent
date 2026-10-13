@@ -138,6 +138,13 @@ public struct StableDirectedGraph<Vertex: Hashable> {
     @usableFromInline
     internal var _vertexMaps: _AttachedMaps
 
+    /// Whether some edge map's values hold references, so a removed edge's value is released
+    /// (`_AttachedMaps.release(at:)`); kept by `addEdgeMap` and `removeEdgeMap`. A removal tests
+    /// this one flag, which is false both with no maps and with maps of trivial values, so
+    /// trivial maps cost a removal nothing.
+    @usableFromInline
+    internal var _edgeMapsRelease: Bool
+
     /// The generation, advanced by every structural mutation, each of which writes the out-row
     /// page table (`_outPages`, the identity array of `_GenerationStamp`).
     @usableFromInline
@@ -163,6 +170,7 @@ public struct StableDirectedGraph<Vertex: Hashable> {
         _firstEdge = 0
         _edgeMaps = _AttachedMaps()
         _vertexMaps = _AttachedMaps()
+        _edgeMapsRelease = false
         _generation = _GenerationStamp()
     }
 }
@@ -1021,24 +1029,26 @@ extension StableDirectedGraph {
     internal mutating func _unlink(_ position: Int, _ r: _EdgeRecord) {
         let base = _edgeBase, sourcePage = _vk(r.source), targetPage = _vk(r.target)
         let k = _ek(position), l = position & _PositionPage.mask
-        // One uniqueness check per table, then the pages in place.
-        let freed: Bool = _edgePages.withUnsafeMutableBufferPointer { table in
-            _outPages.withUnsafeMutableBufferPointer { pages in
+        // One uniqueness check per table, then the pages in place. The out-row table's address is
+        // the generation's (it is the identity array).
+        let (freed, identity): (Bool, UInt) = _edgePages.withUnsafeMutableBufferPointer { table in
+            let identity = _outPages.withUnsafeMutableBufferPointer { pages in
                 pages[sourcePage].kill(r.out, inRow: r.source & _PositionPage.mask, table, edgeBase: base, outward: true)
+                return UInt(bitPattern: pages.baseAddress)
             }
             _inPages.withUnsafeMutableBufferPointer { pages in
                 pages[targetPage].kill(r.in, inRow: r.target & _PositionPage.mask, table, edgeBase: base, outward: false)
             }
-            return table[k].hole(l)
+            return (table[k].hole(l), identity)
         }
-        if freed { _dropFreedEdgePages() }
-        if !_edgeMaps.isEmpty {
-            _edgeMaps.release(at: position)
-            if freed { _edgeMaps.freePage(position &>> _PositionPage.shift) }
+        if _slowPath(_edgeMapsRelease) { _edgeMaps.release(at: position) }
+        if freed {
+            _dropFreedEdgePages()
+            if !_edgeMaps.isEmpty { _edgeMaps.freePage(position &>> _PositionPage.shift) }
         }
         _edgeCount &-= 1
         if position == _firstEdge { _firstEdge = _nextLiveEdge(after: position, _edgePages, base: _edgeBase, end: _edgeEnd) }
-        _generation.advance(writing: _outPages)
+        _generation.advance(address: identity)
     }
 
     /// Kills the entry at `offset` of slot `slot`'s out-row (`outward`) or in-row.
@@ -1071,10 +1081,10 @@ extension StableDirectedGraph {
     @inlinable
     internal mutating func _hole(_ position: Int) {
         let freed = _edgePages[_ek(position)].hole(position & _PositionPage.mask)
-        if freed { _dropFreedEdgePages() }
-        if !_edgeMaps.isEmpty {
-            _edgeMaps.release(at: position)
-            if freed { _edgeMaps.freePage(position &>> _PositionPage.shift) }
+        if _slowPath(_edgeMapsRelease) { _edgeMaps.release(at: position) }
+        if freed {
+            _dropFreedEdgePages()
+            if !_edgeMaps.isEmpty { _edgeMaps.freePage(position &>> _PositionPage.shift) }
         }
         _edgeCount &-= 1
         if position == _firstEdge { _firstEdge = _nextLiveEdge(after: position, _edgePages, base: _edgeBase, end: _edgeEnd) }

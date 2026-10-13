@@ -21,7 +21,7 @@ extension Pseudograph: PropertyGraph {
     /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
-        let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _records.count)
+        let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _records.count, capacity: _records.capacity)
         return EdgeMap(_token: token, hint: hint)
     }
 
@@ -30,7 +30,7 @@ extension Pseudograph: PropertyGraph {
     /// its slot takes its own value along. O(`vertexCount`).
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
-        let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _vertices.count)
+        let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _vertices.count, capacity: _vertices.capacity)
         return VertexMap(_token: token, hint: hint)
     }
 

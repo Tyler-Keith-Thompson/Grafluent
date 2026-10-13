@@ -2,7 +2,8 @@
 // maps of trivial values moved as raw bytes (strides 8 and 16), and on the general paths they fall
 // back to (other strides, counts other than 1, a full buffer, a shared one), each checked against a
 // plain array kept in step; a copy that replaces the table it shares, with every upkeep on the
-// other copy after it; and the generation stamp. See README.md.
+// other copy after it; the upkeep a graph runs owned after advancing its stamp with its maps, with
+// every way a copy leaves first; and the generation stamp. See README.md.
 
 import GraphProtocols
 import Testing
@@ -226,6 +227,163 @@ struct AttachedMapUpkeepTests {
         #expect(keeper.storage(Int.self, in: 0).dense.count == 1001 && keeper.value(Int.self, at: 0, in: 0, layout: .dense) == 7)
     }
 
+    @Test("Owned upkeep after a maps advance: every way one copy leaves the identity array or mutates first, then every owned upkeep on the other, both directions")
+    func ownedUpkeep() {
+        // A graph in miniature: an identity array (`rows`) that every structural mutation writes,
+        // a stamp advanced with the `maps:` spellings, and the upkeep after it, owned, as the list
+        // representations run it. Two copies share everything; one runs a trigger, the other an
+        // upkeep operation, and each copy's values are checked against a model of its own.
+        struct Graph {
+            var rows: ContiguousArray<Int> = [0]
+            var stamp = _GenerationStamp()
+            var vertexMaps = _AttachedMaps()
+            var edgeMaps = _AttachedMaps()
+            mutating func insertVertex() {
+                rows.append(0)
+                stamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
+                if !vertexMaps.isEmpty { vertexMaps.appendDefaultsToOwnTable(count: 1) }
+            }
+            mutating func insertEdge(inline: Bool) {
+                rows[0] &+= 1
+                stamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
+                if !edgeMaps.isEmpty {
+                    if inline { edgeMaps.appendDefaultToOwnTableInline() } else { edgeMaps.appendDefaultsToOwnTable(count: 1) }
+                }
+            }
+            mutating func removeEdge(at p: Int) {
+                rows[0] &-= 1
+                stamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
+                if !edgeMaps.isEmpty { edgeMaps.swapRemoveInOwnTable(at: p) }
+            }
+            mutating func removeVertex(at p: Int) {
+                rows.removeLast()
+                stamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
+                if !vertexMaps.isEmpty { vertexMaps.swapRemoveInOwnTable(at: p) }
+            }
+            /// A structural mutation that writes no row: the array is made unique to tell a copy apart.
+            mutating func reorient() {
+                stamp.advance(owning: &rows, maps: &vertexMaps, &edgeMaps)
+                if !edgeMaps.isEmpty { edgeMaps.appendDefaultsToOwnTable(count: 2) }
+            }
+            mutating func reserve() {
+                rows.reserveCapacity(rows.capacity * 4 + 16)
+                stamp.storageMayHaveMoved(rows, maps: &vertexMaps, &edgeMaps)
+            }
+            /// A structural mutation that leaves the identity array empty, its buffer kept (and so
+            /// copied first when shared); the maps are left alone, and a row comes back after.
+            mutating func empty() {
+                rows.removeAll(keepingCapacity: true)
+                stamp.advance(owning: &rows, maps: &vertexMaps, &edgeMaps)
+                rows.append(0)
+            }
+        }
+        struct Model: Equatable {
+            var edges: [[Int]]
+            var vertices: [Double]
+        }
+        func expectRoom(_ holds: Bool, _ message: String) {
+            #expect(holds, "\(message)")
+        }
+        // One edge map of Ints (the one-map fast paths); an Int map and a String map, or an Int map
+        // and a Double map (the general paths, with references and without); one map of `Int?`
+        // (16 bytes: the one-map paths that are not the 8-byte ones). A vertex map of Doubles.
+        for kind in ["one Int", "Int and String", "Int and Double", "one Int?"] {
+            let optional = kind == "one Int?", secondMap = kind == "Int and String" ? "String" : kind == "Int and Double" ? "Double" : ""
+            func setEdge(_ graph: inout Graph, _ value: Int, at p: Int) {
+                if optional { graph.edgeMaps.setValue(Int?(value), at: p, in: 0, layout: .dense) } else { graph.edgeMaps.setValue(value, at: p, in: 0, layout: .dense) }
+            }
+            func edge(_ graph: Graph, at p: Int) -> Int {
+                optional ? graph.edgeMaps.value(Int?.self, at: p, in: 0, layout: .dense) ?? -99 : graph.edgeMaps.value(Int.self, at: p, in: 0, layout: .dense)
+            }
+            func edgeCount(_ graph: Graph) -> Int {
+                optional ? graph.edgeMaps.storage(Int?.self, in: 0).dense.count : graph.edgeMaps.storage(Int.self, in: 0).dense.count
+            }
+            func fresh() -> Graph {
+                var graph = Graph()
+                if optional { _ = graph.edgeMaps.add(default: Int?(-1), layout: .dense, count: 0) } else { _ = graph.edgeMaps.add(default: -1, layout: .dense, count: 0) }
+                if secondMap == "String" { _ = graph.edgeMaps.add(default: "", layout: .dense, count: 0) }
+                if secondMap == "Double" { _ = graph.edgeMaps.add(default: 2.5, layout: .dense, count: 0) }
+                _ = graph.vertexMaps.add(default: 0.5, layout: .dense, count: 0)
+                for _ in 0 ..< 3 { graph.insertVertex() }
+                // Eight: the buffers, grown by doubling, are full, so a copy's first append grows
+                // its buffer and the appends after it run in place.
+                for _ in 0 ..< 8 { graph.insertEdge(inline: false) }
+                for p in 0 ..< 8 {
+                    setEdge(&graph, 10 * p, at: p)
+                    if secondMap == "String" { graph.edgeMaps.setValue("e\(p)", at: p, in: 1, layout: .dense) }
+                    if secondMap == "Double" { graph.edgeMaps.setValue(Double(p) + 0.25, at: p, in: 1, layout: .dense) }
+                }
+                for v in 0 ..< 3 { graph.vertexMaps.setValue(Double(v), at: v, in: 0, layout: .dense) }
+                return graph
+            }
+            func read(_ graph: Graph) -> Model {
+                let vertexCount = graph.vertexMaps.storage(Double.self, in: 0).dense.count
+                // No append runs past a buffer's room.
+                for maps in [graph.edgeMaps, graph.vertexMaps] {
+                    for entry in maps._entries {
+                        let dense = unsafeDowncast(entry.buffer, to: _DenseMapBuffer.self)
+                        expectRoom(dense.count <= dense.capacity, "\(kind): \(dense.count) values in room for \(dense.capacity)")
+                    }
+                }
+                return Model(
+                    edges: (0 ..< edgeCount(graph)).map { p in
+                        [edge(graph, at: p)]
+                            + (secondMap == "String" ? [graph.edgeMaps.value(String.self, at: p, in: 1, layout: .dense).count] : [])
+                            + (secondMap == "Double" ? [Int(graph.edgeMaps.value(Double.self, at: p, in: 1, layout: .dense) * 4)] : [])
+                    },
+                    vertices: (0 ..< vertexCount).map { graph.vertexMaps.value(Double.self, at: $0, in: 0, layout: .dense) })
+            }
+            let steps: [(String, (inout Graph) -> Void)] = [
+                ("insertVertex", { $0.insertVertex() }),
+                ("insertEdge", { $0.insertEdge(inline: false) }),
+                ("insertEdge inline", { $0.insertEdge(inline: true) }),
+                ("removeEdge(at: 1)", { $0.removeEdge(at: 1) }),
+                ("removeEdge of the last", { $0.removeEdge(at: 7) }),
+                ("removeVertex(at: 0)", { $0.removeVertex(at: 0) }),
+                ("reorient", { $0.reorient() }),
+                ("reserve", { $0.reserve() }),
+                ("empty", { $0.empty() }),
+                ("an edge value written", { setEdge(&$0, -7, at: 2) }),
+                ("a vertex value written", { $0.vertexMaps.setValue(-7.0, at: 1, in: 0, layout: .dense) }),
+                ("a snapshot taken", { graph in _ = optional ? graph.edgeMaps.storage(Int?.self, in: 0).dense.count : graph.edgeMaps.storage(Int.self, in: 0).dense.count }),
+            ]
+            // What each step does to a lone graph's values.
+            func model(after names: [String]) -> Model {
+                var graph = fresh()
+                for name in names { steps.first { $0.0 == name }!.1(&graph) }
+                return read(graph)
+            }
+            for (first, trigger) in steps {
+                for (second, operation) in steps {
+                    for firstOnCopy in [true, false] {
+                        var original = fresh()
+                        var copy = original
+                        // The copy's snapshot, held across the other's upkeep.
+                        let held = optional ? nil : copy.edgeMaps.storage(Int.self, in: 0)
+                        let heldValues = held.map { Array($0.dense) }
+                        if firstOnCopy {
+                            trigger(&copy)
+                            operation(&original)
+                        } else {
+                            trigger(&original)
+                            operation(&copy)
+                        }
+                        let firstModel = model(after: [first]), secondModel = model(after: [second])
+                        let label = "\(kind): \(first) on the \(firstOnCopy ? "copy" : "original"), then \(second) on the other"
+                        #expect(read(firstOnCopy ? copy : original) == firstModel, "\(label): the first")
+                        #expect(read(firstOnCopy ? original : copy) == secondModel, "\(label): the second")
+                        #expect(held.map { Array($0.dense) } == heldValues, "\(label): a snapshot")
+                        // And each goes on alone: its next upkeep sees its own values only.
+                        for (graphIsCopy, steps) in [(true, firstOnCopy ? [first] : [second]), (false, firstOnCopy ? [second] : [first])] {
+                            if graphIsCopy { copy.insertEdge(inline: true) } else { original.insertEdge(inline: false) }
+                            #expect(read(graphIsCopy ? copy : original) == model(after: steps + [graphIsCopy ? "insertEdge inline" : "insertEdge"]), "\(label): then an insertion on the \(graphIsCopy ? "copy" : "original")")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Test("The generation stamp: untracked until a mutation; a write in place is a version, a moved, copied or empty identity array a new lineage")
     func generationStamps() {
         var stamp = _GenerationStamp()
@@ -320,6 +478,52 @@ struct AttachedMapUpkeepTests {
             guard moved.withUnsafeBufferPointer({ UInt(bitPattern: $0.baseAddress) }) == oldAddress else { continue }
             reused += 1
             movedStamp.advance(writing: moved)
+            #expect(!movedStamp.generation.isCurrent(for: taken))
+        }
+        // The maps spellings advance the same way: a write in place is the next version, a copy's
+        // write a new lineage, an emptied array a new lineage every time, and a move without a
+        // structural mutation forgets the address.
+        var vertexMaps = _AttachedMaps(), edgeMaps = _AttachedMaps()
+        var rows = ContiguousArray<Int>()
+        rows.reserveCapacity(8)
+        rows.append(1)
+        var rowStamp = _GenerationStamp()
+        rowStamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
+        let rowFirst = rowStamp.generation
+        #expect(rowFirst._lineage != 0 && rowFirst._version == 0)
+        rows.append(2)
+        rowStamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
+        #expect(rowStamp.generation._lineage == rowFirst._lineage && rowStamp.generation._version == 1)
+        var rowCopy = rows, rowCopyStamp = rowStamp
+        rowCopy.append(3)
+        rowCopyStamp.advance(writing: rowCopy, maps: &vertexMaps, &edgeMaps)
+        #expect(rowCopyStamp.generation._lineage != rowFirst._lineage && rowCopyStamp.generation._version == 0)
+        var emptyRows = ContiguousArray<Int>()
+        rowStamp.advance(owning: &emptyRows, maps: &vertexMaps, &edgeMaps)
+        let emptiedOnce = rowStamp.generation
+        rowStamp.advance(owning: &emptyRows, maps: &vertexMaps, &edgeMaps)
+        #expect(rowStamp.generation._lineage != emptiedOnce._lineage && emptiedOnce._lineage != rowFirst._lineage)
+        var rowsReused = 0
+        for _ in 0 ..< 64 where rowsReused == 0 {
+            var original = ContiguousArray<Int>()
+            original.reserveCapacity(4)
+            original.append(1)
+            var originalStamp = _GenerationStamp()
+            originalStamp.advance(writing: original, maps: &vertexMaps, &edgeMaps)
+            let oldAddress = original.withUnsafeBufferPointer { UInt(bitPattern: $0.baseAddress) }
+            var moved = original, movedStamp = originalStamp
+            moved.reserveCapacity(64)
+            movedStamp.storageMayHaveMoved(moved, maps: &vertexMaps, &edgeMaps)
+            original.append(2)
+            originalStamp.advance(writing: original, maps: &vertexMaps, &edgeMaps)
+            let taken = originalStamp.generation
+            original = []
+            moved.removeAll()
+            moved.reserveCapacity(4)
+            moved.append(3)
+            guard moved.withUnsafeBufferPointer({ UInt(bitPattern: $0.baseAddress) }) == oldAddress else { continue }
+            rowsReused += 1
+            movedStamp.advance(writing: moved, maps: &vertexMaps, &edgeMaps)
             #expect(!movedStamp.generation.isCurrent(for: taken))
         }
         // A generation is two integers.

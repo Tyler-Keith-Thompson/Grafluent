@@ -196,37 +196,38 @@ internal struct _RowPage {
     /// removal costs O(1) amortized and a row is never more than twice its degree.
     @inlinable
     mutating func kill(_ offset: Int, inRow row: Int, _ table: UnsafeMutableBufferPointer<_EdgePage>, edgeBase: Int, outward: Bool) {
-        let block = rows[row]
-        let start = block.start
-        var count = block.count
-        var deadCount = block.dead &+ 1
-        let compact: Bool = ends.withUnsafeMutableBufferPointer { ends in
-            ends[start &+ offset] = -1
-            while count > 0, ends[start &+ count &- 1] < 0 {
-                count &-= 1
-                deadCount &-= 1
-            }
-            return deadCount &* 2 > count
-        }
-        if compact {
-            // Keep the live entries in order.
-            ends.withUnsafeMutableBufferPointer { ends in
-                positions.withUnsafeMutableBufferPointer { positions in
-                    var kept = 0
-                    for k in 0 ..< count where ends[start &+ k] >= 0 {
-                        let position = positions[start &+ k]
-                        ends[start &+ kept] = ends[start &+ k]
-                        positions[start &+ kept] = position
-                        let page = (position &>> _PositionPage.shift) &- edgeBase, slot = position & _PositionPage.mask
-                        if outward { table[page].records[slot].out = kept } else { table[page].records[slot].in = kept }
-                        kept &+= 1
-                    }
-                    count = kept
-                }
-            }
-            deadCount = 0
-        }
+        // One access to the rows, read and written in place.
         rows.withUnsafeMutableBufferPointer { rows in
+            let block = rows[row]
+            let start = block.start
+            var count = block.count
+            var deadCount = block.dead &+ 1
+            let compact: Bool = ends.withUnsafeMutableBufferPointer { ends in
+                ends[start &+ offset] = -1
+                while count > 0, ends[start &+ count &- 1] < 0 {
+                    count &-= 1
+                    deadCount &-= 1
+                }
+                return deadCount &* 2 > count
+            }
+            if compact {
+                // Keep the live entries in order.
+                ends.withUnsafeMutableBufferPointer { ends in
+                    positions.withUnsafeMutableBufferPointer { positions in
+                        var kept = 0
+                        for k in 0 ..< count where ends[start &+ k] >= 0 {
+                            let position = positions[start &+ k]
+                            ends[start &+ kept] = ends[start &+ k]
+                            positions[start &+ kept] = position
+                            let page = (position &>> _PositionPage.shift) &- edgeBase, slot = position & _PositionPage.mask
+                            if outward { table[page].records[slot].out = kept } else { table[page].records[slot].in = kept }
+                            kept &+= 1
+                        }
+                        count = kept
+                    }
+                }
+                deadCount = 0
+            }
             rows[row].count = count
             rows[row].dead = deadCount
         }

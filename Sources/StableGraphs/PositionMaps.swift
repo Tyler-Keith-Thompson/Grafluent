@@ -23,6 +23,7 @@ extension StableDirectedGraph: PropertyGraph {
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .paged, count: 0)
+        _edgeMapsRelease = _edgeMaps.releases
         return EdgeMap(_token: token, hint: hint)
     }
 
@@ -40,6 +41,7 @@ extension StableDirectedGraph: PropertyGraph {
     @inlinable
     public mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) {
         _edgeMaps.remove(map._token, hint: map._hint)
+        _edgeMapsRelease = _edgeMaps.releases
     }
 
     /// Detaches the vertex map and frees its storage.

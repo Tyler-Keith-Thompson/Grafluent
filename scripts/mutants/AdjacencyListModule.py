@@ -16,6 +16,10 @@
 #                    lists clear a slot only after moving the last vertex into the hole, and that
 #                    move (`_slots[moved] = slot`, slot ≠ last) already ends the identity, so while
 #                    it holds the only present vertex ever cleared is the last.
+#
+# Not planted, being equivalent: the plain `storageMayHaveMoved` for the maps spelling in
+# `reserveCapacity`: it reserves in each attached map first, which makes that map's table the
+# graph's own, so the tables are its own before the identity array moves.
 
 TESTS = ["AdjacencyListTests", "UndirectedAdjacencyListTests", "MultigraphsTests"]
 
@@ -94,37 +98,53 @@ MUTANTS = [
     Mutant("ucheckedinsert", UAL, "_slots[edge.v]", "Optional(_slots[edge.v] ?? 0)", nth=2),
 
     # Attached maps (PropertyGraph) and generations.
-    Mutant("mapsinsertedge", AL, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("mapsinsertedge", AL, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt"),
     Mutant("mapsdetach", AL, "        if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }", "", mode="stmt"),
+    Mutant("mapsremoveedge", AL, "        if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }", "", mode="stmt", nth=0),
+    Mutant("mapsremoveedgeat", AL, "        if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }", "", mode="stmt", nth=1),
     Mutant("mapsremoveslot", AL, "        if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }", "", mode="stmt"),
-    Mutant("mapsappendslot", AL, "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("mapsappendslot", AL, "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt"),
     Mutant("mapsremoveallvertex", AL, "        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
     Mutant("mapsremovealledge", AL, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=0),
     Mutant("mapsremovealledges", AL, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=1),
-    Mutant("umapsinsertedge", UAL, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("umapsinsertedge", UAL, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultToOwnTableInline() }", "", mode="stmt"),
     Mutant("umapsdetach", UAL, "        if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }", "", mode="stmt"),
+    Mutant("umapsremoveedge", UAL, "        if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }", "", mode="stmt"),
     Mutant("umapsremoveslot", UAL, "        if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }", "", mode="stmt"),
-    Mutant("umapsappendslot", UAL, "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }", "", mode="stmt"),
+    Mutant("umapsappendslot", UAL, "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt"),
     Mutant("umapsremoveallvertex", UAL, "        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
     Mutant("umapsremovealledge", UAL, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=0),
     Mutant("umapsremovealledges", UAL, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=1),
-    Mutant("geninsertedge", AL, "        _generation.advance(writing: _out.rows)", "", mode="stmt", nth=0),
-    Mutant("genremoveslot", AL, "        _generation.advance(writing: _out.rows)", "", mode="stmt", nth=1),
-    Mutant("genremoveedge", AL, "        _generation.advance(writing: _out.rows)", "", mode="stmt", nth=2),
-    Mutant("genremovealledges", AL, "        _generation.advance(writing: _out.rows)", "", mode="stmt", nth=3),
-    Mutant("genappendslot", AL, "        _generation.advance(writing: _out.rows)", "", mode="stmt", nth=4),
-    Mutant("genremoveedgeat", AL, "        _generation.advance(writing: _out.rows)", "", mode="stmt", nth=5),
-    Mutant("genremoveall", AL, "        if changes { _generation.advance(writing: _out.rows) } else { _generation.storageMayHaveMoved(_out.rows) }", "        _generation.storageMayHaveMoved(_out.rows)", mode="stmt"),
+    Mutant("geninsertedge", AL, "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=0),
+    Mutant("genremoveslot", AL, "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=1),
+    Mutant("genremoveedge", AL, "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=2),
+    Mutant("genremovealledges", AL, "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=3),
+    Mutant("genappendslot", AL, "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=4),
+    Mutant("genremoveedgeat", AL, "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=5),
+    Mutant("genremoveall", AL, "        if changes { _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps) } else { _generation.storageMayHaveMoved(_out.rows, maps: &_vertexMaps, &_edgeMaps) }", "        _generation.storageMayHaveMoved(_out.rows, maps: &_vertexMaps, &_edgeMaps)", mode="stmt"),
     Mutant("genremoveallempty", AL, "!_vertices.isEmpty", "true"),
-    Mutant("ugenremove", UAL, "        _generation.advance(writing: _neighbors.rows)", "", mode="stmt", nth=0),
-    Mutant("ugenremoveedge", UAL, "        _generation.advance(writing: _neighbors.rows)", "", mode="stmt", nth=1),
-    Mutant("ugenremovealledges", UAL, "        _generation.advance(writing: _neighbors.rows)", "", mode="stmt", nth=2),
-    Mutant("ugenappendslot", UAL, "        _generation.advance(writing: _neighbors.rows)", "", mode="stmt", nth=3),
-    Mutant("ugeninsertedge", UAL, "        _generation.advance(writing: _neighbors.rows)", "", mode="stmt", nth=4),
-    Mutant("ugenreverse", UAL, "        _generation.advance(owning: &_neighbors.rows)", "", mode="stmt"),
-    Mutant("ugenreversewriting", UAL, "_generation.advance(owning: &_neighbors.rows)", "_generation.advance(writing: _neighbors.rows)", mode="stmt"),
-    Mutant("ugenremoveall", UAL, "        if changes { _generation.advance(writing: _neighbors.rows) } else { _generation.storageMayHaveMoved(_neighbors.rows) }", "        _generation.storageMayHaveMoved(_neighbors.rows)", mode="stmt"),
+    Mutant("ugenremove", UAL, "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=0),
+    Mutant("ugenremoveedge", UAL, "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=1),
+    Mutant("ugenremovealledges", UAL, "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=2),
+    Mutant("ugenappendslot", UAL, "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=3),
+    Mutant("ugeninsertedge", UAL, "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=4),
+    Mutant("ugenreverse", UAL, "        _generation.advance(owning: &_neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt"),
+    Mutant("ugenreversewriting", UAL, "_generation.advance(owning: &_neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "_generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", mode="stmt"),
+    Mutant("ugenremoveall", UAL, "        if changes { _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps) } else { _generation.storageMayHaveMoved(_neighbors.rows, maps: &_vertexMaps, &_edgeMaps) }", "        _generation.storageMayHaveMoved(_neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", mode="stmt"),
     Mutant("ugenremoveallempty", UAL, "!_vertices.isEmpty", "true"),
+    # A graph that leaves its identity array owns both tables (the maps spellings): each mutation
+    # whose map upkeep follows its advance, owned, and the reservation.
+    Mutant("ownsinsertedge", AL, "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _out.rows)", mode="stmt", nth=0),
+    Mutant("ownsremoveedge", AL, "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _out.rows)", mode="stmt", nth=2),
+    Mutant("ownsappendslot", AL, "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _out.rows)", mode="stmt", nth=4),
+    Mutant("ownsremoveedgeat", AL, "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _out.rows)", mode="stmt", nth=5),
+    Mutant("uownsremoveedge", UAL, "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _neighbors.rows)", mode="stmt", nth=1),
+    Mutant("uownsappendslot", UAL, "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _neighbors.rows)", mode="stmt", nth=3),
+    Mutant("uownsinsertedge", UAL, "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _neighbors.rows)", mode="stmt", nth=4),
+    # The detach's record writes, in one access.
+    Mutant("detachmovedout", AL, "            if let movedOut { records[movedOut].out = record.out }", "", mode="stmt"),
+    Mutant("detachmovedin", AL, "            if let movedIn { records[movedIn].in = record.in }", "", mode="stmt"),
+    Mutant("detachlast", AL, "            records[position] = records[last]", "", mode="stmt"),
     Mutant("gensorted", SC, "        _generation.stamp()", "", mode="stmt", nth=0),
     Mutant("ugensorted", SC, "        _generation.stamp()", "", mode="stmt", nth=1),
     Mutant("genslotted", SC, "        _generation.stamp()", "", mode="stmt", nth=2),

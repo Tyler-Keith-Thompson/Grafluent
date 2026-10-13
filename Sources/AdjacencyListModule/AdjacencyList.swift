@@ -427,11 +427,11 @@ extension AdjacencyList {
         // Checked before inserting, so inserting an existing edge never copies shared storage.
         if let existing = _position(ofPair: pair) { return existing }
         _takeEdgeTable()
-        // The maps first: their loads then overlap the rows' cache misses.
-        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
         let position = _records.count
         let out = _out.append(target, toRow: source)
-        _generation.advance(writing: _out.rows)
+        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        // After the advance, which leaves the maps' table the graph's own.
+        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }
         _outEdges.append(position, toRow: source)
         let into = _in.append(source, toRow: target)
         _inEdges.append(position, toRow: target)
@@ -499,7 +499,7 @@ extension AdjacencyList {
         _in.swapRemoveRow(slot)
         _inEdges.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
-        _generation.advance(writing: _out.rows)
+        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
         return removed
     }
 
@@ -513,33 +513,44 @@ extension AdjacencyList {
         guard let source = _slots[edge.source], let target = _slots[edge.target] else { return nil }
         // Checked before removing, so removing an absent edge never copies shared storage.
         guard let position = _position(ofPair: _SlotPair(source, target)) else { return nil }
-        _detach(position)
-        _generation.advance(writing: _out.rows)
+        _detachFromRows(position)
+        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }
         return DirectedEdge(from: _vertices[source], to: _vertices[target])
+    }
+
+    /// Removes the edge at `position` from the edge maps, and then as `_detachFromRows(_:)` does.
+    /// The caller advances the generation, once for a vertex and all its edges.
+    @inlinable
+    internal mutating func _detach(_ position: Int) {
+        // The maps first: their loads then overlap the rows' cache misses.
+        if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }
+        _detachFromRows(position)
     }
 
     /// Removes the edge at `position` from the map, from both rows and from the edge array,
     /// moving each row's last entry and the last edge into the holes and recording where they went.
-    /// The caller advances the generation, once for a vertex and all its edges.
+    /// The edge maps are the caller's to update: after advancing the generation, owned.
     @inlinable
-    internal mutating func _detach(_ position: Int) {
+    internal mutating func _detachFromRows(_ position: Int) {
         _takeEdgeTable()
-        // The maps first: their loads then overlap the rows' cache misses.
-        if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }
         let record = _records[position]
         _edges.removeValue(forKey: record.pair)
         _ = _out.swapRemove(at: record.out, fromRow: record.source)
-        if let moved = _outEdges.swapRemove(at: record.out, fromRow: record.source) {
-            _records[moved].out = record.out
-        }
+        let movedOut = _outEdges.swapRemove(at: record.out, fromRow: record.source)
         _ = _in.swapRemove(at: record.in, fromRow: record.target)
-        if let moved = _inEdges.swapRemove(at: record.in, fromRow: record.target) {
-            _records[moved].in = record.in
-        }
+        let movedIn = _inEdges.swapRemove(at: record.in, fromRow: record.target)
+        // Every record write in one access: the entries that moved in the rows, then the last
+        // edge into the hole.
         let last = _records.count - 1
-        if position != last {
-            let moved = _records[last]
-            _records[position] = moved
+        let moved: _ArcRecord? = _records.withUnsafeMutableBufferPointer { records in
+            if let movedOut { records[movedOut].out = record.out }
+            if let movedIn { records[movedIn].in = record.in }
+            guard position != last else { return nil }
+            records[position] = records[last]
+            return records[position]
+        }
+        if let moved {
             _outEdges[row: moved.source, moved.out] = position
             _inEdges[row: moved.target, moved.in] = position
             _edges.updateValue(position, forKey: moved.pair)
@@ -562,7 +573,7 @@ extension AdjacencyList {
         _records.removeAll(keepingCapacity: keepingCapacity)
         _deferredEdges = nil
         _edges.removeAll(keepingCapacity: keepingCapacity)
-        if changes { _generation.advance(writing: _out.rows) } else { _generation.storageMayHaveMoved(_out.rows) }
+        if changes { _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps) } else { _generation.storageMayHaveMoved(_out.rows, maps: &_vertexMaps, &_edgeMaps) }
     }
 
     /// Removes every edge, keeping every vertex. Attached edge maps stay attached, emptied.
@@ -571,7 +582,7 @@ extension AdjacencyList {
         guard !_records.isEmpty else { return }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
         _out.removeAllEntries(keepingCapacity: keepingCapacity)
-        _generation.advance(writing: _out.rows)
+        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
         _outEdges.removeAllEntries(keepingCapacity: keepingCapacity)
         _in.removeAllEntries(keepingCapacity: keepingCapacity)
         _inEdges.removeAllEntries(keepingCapacity: keepingCapacity)
@@ -591,7 +602,7 @@ extension AdjacencyList {
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
         _out.reserveCapacity(rows: vertexCount, entries: edgeCount)
-        _generation.storageMayHaveMoved(_out.rows)
+        _generation.storageMayHaveMoved(_out.rows, maps: &_vertexMaps, &_edgeMaps)
         _outEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _in.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _inEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
@@ -603,12 +614,12 @@ extension AdjacencyList {
     @inlinable
     @discardableResult
     internal mutating func _appendSlot(for vertex: Vertex) -> Int {
-        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
         let slot = _vertices.count
         _vertices.append(vertex)
         _slots[vertex] = slot
         _out.appendRow()
-        _generation.advance(writing: _out.rows)
+        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }
         _outEdges.appendRow()
         _in.appendRow()
         _inEdges.appendRow()
@@ -981,8 +992,9 @@ extension AdjacencyList: MutableDirectedGraph {
     @inlinable
     public mutating func _removeEdge(at position: Int) -> DirectedEdge<Vertex> {
         let record = _records[position]  // traps on a position out of range
-        _detach(position)
-        _generation.advance(writing: _out.rows)
+        _detachFromRows(position)
+        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }
         return DirectedEdge(from: _vertices[record.source], to: _vertices[record.target])
     }
 }

@@ -231,6 +231,125 @@ struct AdjacencyListMapTests {
         #expect(undirected.edgeCount == 0 && copy.edgeCount == 3)
     }
 
+    @Test("AM-06 two copies keep their own values whichever mutates first: every mutation on one, then every mutation on the other, both lists")
+    func copiesMutatedInTurn() {
+        // One edge map of Ints (the one-map fast paths of the upkeep) and a vertex map. The copies
+        // share every array and table; the first mutation of either copies what it writes, and
+        // the other then mutates storage only it holds. Each copy's values must be what its own
+        // mutation alone gives a fresh graph.
+        func directed() -> (AdjacencyList<Int>, EdgeMap<Int>, VertexMap<Double>) {
+            var graph = AdjacencyList<Int>(vertices: 0 ..< 4)
+            let weights = graph.addEdgeMap(default: -1)
+            let ranks = graph.addVertexMap(default: 0.5)
+            for (s, t) in [(0, 1), (1, 2), (2, 3), (3, 0), (0, 2)] { graph.insert(edge: DirectedEdge(from: s, to: t)) }
+            for p in 0 ..< graph.edgeCount { graph[weights, ofEdgeAt: p] = 100 * graph.edges[p].source + graph.edges[p].target }
+            for v in graph.vertices { graph[ranks, of: v] = Double(v) }
+            return (graph, weights, ranks)
+        }
+        let directedSteps: [(String, (inout AdjacencyList<Int>, EdgeMap<Int>, VertexMap<Double>) -> Void)] = [
+            ("insert(_:)", { g, _, _ in g.insert(9) }),
+            ("insert(edge:)", { g, _, _ in g.insert(edge: DirectedEdge(from: 1, to: 3)) }),
+            ("insert(edge:) of a new vertex", { g, _, _ in g.insert(edge: DirectedEdge(from: 3, to: 8)) }),
+            ("insert(edge:) 0→3", { g, _, _ in g.insert(edge: DirectedEdge(from: 0, to: 3)) }),
+            ("remove(edge:)", { g, _, _ in g.remove(edge: DirectedEdge(from: 1, to: 2)) }),
+            ("remove(edge:) of the last", { g, _, _ in g.remove(edge: DirectedEdge(from: 0, to: 2)) }),
+            ("_removeEdge(at:)", { g, _, _ in _ = g._removeEdge(at: 0) }),
+            ("remove(_:)", { g, _, _ in g.remove(2) }),
+            ("reserveCapacity", { g, _, _ in g.reserveCapacity(vertexCount: 64, edgeCount: 64) }),
+            ("removeAllEdges", { g, _, _ in g.removeAllEdges(keepingCapacity: true) }),
+            ("removeAll", { g, _, _ in g.removeAll() }),
+            ("an edge value written", { g, w, _ in g[w, ofEdgeAt: 1] = -7 }),
+            ("a vertex value written", { g, _, r in g[r, of: 0] = -7 }),
+        ]
+        // Every value is its element's own (set by `directed()`), the default (an element inserted
+        // since) or the written -7; and each map holds one value per element.
+        func state(_ g: AdjacencyList<Int>, _ w: EdgeMap<Int>, _ r: VertexMap<Double>) -> [String] {
+            let values = (0 ..< g.edgeCount).map { "\(g.edges[$0])=\(g[w, ofEdgeAt: $0])" } + g.vertices.map { "\($0)=\(g[r, of: $0])" }
+            let own = (0 ..< g.edgeCount).allSatisfy { [100 * g.edges[$0].source + g.edges[$0].target, -1, -7].contains(g[w, ofEdgeAt: $0]) }
+                && g.vertices.allSatisfy { [Double($0), 0.5, -7].contains(g[r, of: $0]) }
+            let counts = g.values(of: w)._storage.dense.count == g.edgeCount && g.values(of: r)._storage.dense.count == g.vertexCount
+            return values + ["own values: \(own)", "one value per element: \(counts)"]
+        }
+        func directedReplay(_ names: [String]) -> [String] {
+            var (g, w, r) = directed()
+            for name in names { directedSteps.first { $0.0 == name }!.1(&g, w, r) }
+            return state(g, w, r)
+        }
+        for (first, a) in directedSteps {
+            for (second, b) in directedSteps {
+                for firstOnCopy in [true, false] {
+                    var (original, w, r) = directed()
+                    var copy = original
+                    if firstOnCopy { a(&copy, w, r); b(&original, w, r) } else { a(&original, w, r); b(&copy, w, r) }
+                    let label = "\(first) on the \(firstOnCopy ? "copy" : "original"), then \(second) on the other"
+                    #expect(state(firstOnCopy ? copy : original, w, r) == directedReplay([first]), "AdjacencyList: \(label): the first")
+                    #expect(state(original, w, r).suffix(2) == ["own values: true", "one value per element: true"] && state(copy, w, r).suffix(2) == ["own values: true", "one value per element: true"], "AdjacencyList: \(label): own values")
+                    #expect(state(firstOnCopy ? original : copy, w, r) == directedReplay([second]), "AdjacencyList: \(label): the second")
+                    // Each then goes on alone.
+                    original.insert(edge: DirectedEdge(from: 0, to: 3))
+                    copy.insert(edge: DirectedEdge(from: 0, to: 3))
+                    let originalSteps = firstOnCopy ? [second] : [first], copySteps = firstOnCopy ? [first] : [second]
+                    #expect(state(original, w, r) == directedReplay(originalSteps + ["insert(edge:) 0→3"]), "AdjacencyList: \(label): then an insertion on the original")
+                    #expect(state(copy, w, r) == directedReplay(copySteps + ["insert(edge:) 0→3"]), "AdjacencyList: \(label): then an insertion on the copy")
+                }
+            }
+        }
+
+        func undirected() -> (UndirectedAdjacencyList<Int>, EdgeMap<Int>, VertexMap<Double>) {
+            var graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 4)
+            let weights = graph.addEdgeMap(default: -1)
+            let ranks = graph.addVertexMap(default: 0.5)
+            for (u, v) in [(0, 1), (1, 2), (2, 3), (3, 0), (0, 2)] { graph.insert(edge: UndirectedEdge(u, v)) }
+            for p in 0 ..< graph.edgeCount { graph[weights, ofEdgeAt: p] = 100 * graph.edges[p].u + graph.edges[p].v }
+            for v in graph.vertices { graph[ranks, of: v] = Double(v) }
+            return (graph, weights, ranks)
+        }
+        let undirectedSteps: [(String, (inout UndirectedAdjacencyList<Int>, EdgeMap<Int>, VertexMap<Double>) -> Void)] = [
+            ("insert(_:)", { g, _, _ in g.insert(9) }),
+            ("insert(edge:)", { g, _, _ in g.insert(edge: UndirectedEdge(1, 3)) }),
+            ("insert(edge:) of a new vertex", { g, _, _ in g.insert(edge: UndirectedEdge(3, 8)) }),
+            ("insert(edge:) 0–3", { g, _, _ in g.insert(edge: UndirectedEdge(0, 3)) }),
+            ("remove(edge:)", { g, _, _ in g.remove(edge: UndirectedEdge(2, 1)) }),
+            ("remove(edge:) of the last", { g, _, _ in g.remove(edge: UndirectedEdge(0, 2)) }),
+            ("remove(_:)", { g, _, _ in g.remove(2) }),
+            ("reserveCapacity", { g, _, _ in g.reserveCapacity(vertexCount: 64, edgeCount: 64) }),
+            ("removeAllEdges", { g, _, _ in g.removeAllEdges(keepingCapacity: true) }),
+            ("removeAll", { g, _, _ in g.removeAll() }),
+            ("an edge value written", { g, w, _ in g[w, ofEdgeAt: 1] = -7 }),
+            ("a vertex value written", { g, _, r in g[r, of: 0] = -7 }),
+        ]
+        func undirectedState(_ g: UndirectedAdjacencyList<Int>, _ w: EdgeMap<Int>, _ r: VertexMap<Double>) -> [String] {
+            let values = (0 ..< g.edgeCount).map { "\(g.edges[$0])=\(g[w, ofEdgeAt: $0])" } + g.vertices.map { "\($0)=\(g[r, of: $0])" }
+            let own = (0 ..< g.edgeCount).allSatisfy { [100 * g.edges[$0].u + g.edges[$0].v, -1, -7].contains(g[w, ofEdgeAt: $0]) }
+                && g.vertices.allSatisfy { [Double($0), 0.5, -7].contains(g[r, of: $0]) }
+            let counts = g.values(of: w)._storage.dense.count == g.edgeCount && g.values(of: r)._storage.dense.count == g.vertexCount
+            return values + ["own values: \(own)", "one value per element: \(counts)"]
+        }
+        func undirectedReplay(_ names: [String]) -> [String] {
+            var (g, w, r) = undirected()
+            for name in names { undirectedSteps.first { $0.0 == name }!.1(&g, w, r) }
+            return undirectedState(g, w, r)
+        }
+        for (first, a) in undirectedSteps {
+            for (second, b) in undirectedSteps {
+                for firstOnCopy in [true, false] {
+                    var (original, w, r) = undirected()
+                    var copy = original
+                    if firstOnCopy { a(&copy, w, r); b(&original, w, r) } else { a(&original, w, r); b(&copy, w, r) }
+                    let label = "\(first) on the \(firstOnCopy ? "copy" : "original"), then \(second) on the other"
+                    #expect(undirectedState(firstOnCopy ? copy : original, w, r) == undirectedReplay([first]), "UndirectedAdjacencyList: \(label): the first")
+                    #expect(undirectedState(original, w, r).suffix(2) == ["own values: true", "one value per element: true"] && undirectedState(copy, w, r).suffix(2) == ["own values: true", "one value per element: true"], "UndirectedAdjacencyList: \(label): own values")
+                    #expect(undirectedState(firstOnCopy ? original : copy, w, r) == undirectedReplay([second]), "UndirectedAdjacencyList: \(label): the second")
+                    original.insert(edge: UndirectedEdge(0, 3))
+                    copy.insert(edge: UndirectedEdge(0, 3))
+                    let originalSteps = firstOnCopy ? [second] : [first], copySteps = firstOnCopy ? [first] : [second]
+                    #expect(undirectedState(original, w, r) == undirectedReplay(originalSteps + ["insert(edge:) 0–3"]), "UndirectedAdjacencyList: \(label): then an insertion on the original")
+                    #expect(undirectedState(copy, w, r) == undirectedReplay(copySteps + ["insert(edge:) 0–3"]), "UndirectedAdjacencyList: \(label): then an insertion on the copy")
+                }
+            }
+        }
+    }
+
     @Test("AM-07 Codable and conversions carry no maps; the identity conversion keeps them")
     func codingAndConversion() throws {
         var graph = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)])

@@ -104,6 +104,11 @@ struct AdjacencyMatrixGenerationTests {
         #expect(!current.isCurrent(for: matrix.transposed()))
         #expect(!current.isCurrent(for: matrix.union(copy)))
         #expect(current.isCurrent(for: matrix))
+        // A matrix one mutation into its lineage (version 0) derives nothing current for it.
+        var young = AdjacencyMatrix(vertexCount: 3)
+        young.insert(edge: DirectedEdge(from: 0, to: 1))
+        #expect(!young.generation.isCurrent(for: young.complement()))
+        #expect(!young.generation.isCurrent(for: young.transposed()))
         // A decoded or rebuilt equal matrix is another graph.
         #expect(!current.isCurrent(for: AdjacencyMatrix(vertexCount: 3, edges: matrix.edges)))
     }

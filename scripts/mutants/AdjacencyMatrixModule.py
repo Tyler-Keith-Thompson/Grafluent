@@ -11,9 +11,10 @@
 #
 # Known equivalent mutants (they survive by design): none.
 #
-# Removed as equivalent: the complement keeping the matrix's generation stamp instead of a fresh
-# one. The generation is told apart by `_inDegrees`, which the complement recounts (writes), so
-# its storage, and so its generation, is never the matrix's; with no vertices both are empty.
+# Not planted, as equivalent: `insertEdges` advancing per cell instead of once (more versions, the
+# same answers), a new lineage starting at another version, the stamp forgetting no address on a
+# move it already mismatches, and the cleared matrices keeping the old stamp's slots (the new
+# buffer's address never matches them).
 #
 # Removed as dead code after planting: the vertex maps' range checks in the subscripts (each map
 # holds exactly one value per vertex, so its own bounds check traps on the same positions).
@@ -64,7 +65,7 @@ MUTANTS = [
     Mutant("edgesetcheck", P, "            _checkEdge(at: position)", "", mode="stmt", nth=1),
     Mutant("checkededge", P, "guard contains(edge: DirectedEdge(from: position.source, to: position.target)) else { throw EdgeNotFound() }", "", mode="stmt"),
     Mutant("checkedvertex", P, "guard contains(position) else { throw VertexNotFound() }", "", mode="stmt"),
-    Mutant("cellreset", M, "            if !_edgeMaps.isEmpty { _edgeMaps.reset(at: Self._edgeMapOffset(source, target)) }", "", mode="stmt"),
+    Mutant("cellreset", M, "        if !value, !_edgeMaps.isEmpty { _edgeMaps.reset(at: Self._edgeMapOffset(source, target)) }", "", mode="stmt"),
     Mutant("rowreset", M, "        if !_edgeMaps.isEmpty { _resetEdgeMaps(ofRow: vertex) }", "", mode="stmt"),
     Mutant("columnreset", M, "        if !_edgeMaps.isEmpty { _resetEdgeMaps(ofColumn: vertex) }", "", mode="stmt"),
     Mutant("combinereset", M, "        if let before { _resetEdgeMaps(removedSince: before) }", "", mode="stmt"),
@@ -80,17 +81,27 @@ MUTANTS = [
     Mutant("complementvertexmaps", M, "        result._vertexMaps = _AttachedMaps()", "", mode="stmt"),
 
     # Generations: each structural mutation advances, a call that changes nothing does not.
-    Mutant("gencombine", M, "        _generation.advance(writing: _inDegrees)", "", mode="stmt", nth=0),
-    Mutant("geninsert", M, "        _generation.advance(writing: _inDegrees)", "", mode="stmt", nth=1),
-    Mutant("genremove", M, "        _generation.advance(writing: _inDegrees)", "", mode="stmt", nth=2),
-    Mutant("genrowclear", M, "        _generation.advance(writing: _inDegrees)", "", mode="stmt", nth=3),
-    Mutant("gencolumnclear", M, "        _generation.advance(writing: _inDegrees)", "", mode="stmt", nth=4),
-    Mutant("genappend", M, "        _generation.advance(writing: _inDegrees)", "", mode="stmt", nth=5),
-    Mutant("genremovealledges", M, "        _generation.advance(writing: _inDegrees)", "", mode="stmt", nth=6),
-    Mutant("genremoveall", M, "        _generation.advance(writing: _inDegrees)", "", mode="stmt", nth=7),
-    Mutant("gensubscriptset", M, "            if _setCell(source, target, to: newValue) { _generation.advance(writing: _inDegrees) }", "            _setCell(source, target, to: newValue)", mode="stmt"),
-    Mutant("gensubscriptchanged", M, "            if _setCell(source, target, to: newValue) { _generation.advance(writing: _inDegrees) }", "            _setCell(source, target, to: newValue)\n            _generation.advance(writing: _inDegrees)", mode="stmt"),
-    Mutant("gensubscriptmodify", M, "if _setCell(source, target, to: value) { _generation.advance(writing: _inDegrees) }", "_setCell(source, target, to: value)", mode="stmt"),
-    Mutant("geninsertedges", M, "        if inserted > 0 { _generation.advance(writing: _inDegrees) }", "        _generation.advance(writing: _inDegrees)", mode="stmt"),
-    Mutant("geninsertedgesnone", M, "        if inserted > 0 { _generation.advance(writing: _inDegrees) }", "        if inserted > 1 { _generation.advance(writing: _inDegrees) }", mode="stmt"),
+    Mutant("gencombine", M, "        _advanceGeneration()", "", mode="stmt", nth=0),
+    Mutant("genrowclear", M, "        _advanceGeneration()", "", mode="stmt", nth=1),
+    Mutant("gencolumnclear", M, "        _advanceGeneration()", "", mode="stmt", nth=2),
+    Mutant("genappend", M, "        _advanceGeneration()", "", mode="stmt", nth=3),
+    Mutant("genremovealledges", M, "        _advanceGeneration()", "", mode="stmt", nth=4),
+    Mutant("genremoveall", M, "        _advanceGeneration()", "", mode="stmt", nth=5),
+    # A cell write (insert, remove, the subscript) advances, and insertEdges once for many.
+    Mutant("gensetcell", M, "        if advancing { Self._advanceGeneration(in: degrees) }", "", mode="stmt"),
+    Mutant("geninsertedges", M, "        if inserted > 0 { _advanceGeneration() }", "        _advanceGeneration()", mode="stmt"),
+    Mutant("geninsertedgesnone", M, "        if inserted > 0 { _advanceGeneration() }", "        if inserted > 1 { _advanceGeneration() }", mode="stmt"),
+    # The stamp in `_degrees`: a moved buffer starts a lineage, a write in place is a version.
+    Mutant("stampmoved", M, "if _slowPath(degrees[3] != Int(bitPattern: degrees)) { _startLineage(in: degrees) }", "if false { _startLineage(in: degrees) }", mode="stmt"),
+    Mutant("stampversion", M, "        degrees[1] &+= 1", "", mode="stmt"),
+    Mutant("stamplineage", M, "        degrees[2] = Int(truncatingIfNeeded: _GenerationStamp._newLineage())", "", mode="stmt"),
+    Mutant("complementstamp", M, "        result._degrees[2] = 0", "", mode="stmt"),
+    # The degrees and the edge count in `_degrees`.
+    Mutant("edgecountslot", M, "        _degrees[0] &+= change", "", mode="stmt"),
+    Mutant("insamesasout", M, "        degrees[_inSlot(target)] &+= change", "        degrees[Self._outSlot(target)] &+= change", mode="stmt"),
+    Mutant("restrideindegrees", M, "            degrees[inBase &+ vertex] = _degree(at: _inSlot(vertex))", "", mode="stmt"),
+    Mutant("restrideedgecount", M, "        degrees[0] = _edgeCount", "", mode="stmt"),
+    Mutant("transposeddegrees", M, "            result._degrees[result._inSlot(vertex)] = _degree(at: Self._outSlot(vertex))", "            result._degrees[result._inSlot(vertex)] = _degree(at: _inSlot(vertex))", mode="stmt"),
+    Mutant("removealledgeskeepdegrees", M, "            for slot in Self._headerCount ..< _degrees.count { _degrees[slot] = 0 }\n            _edgeCount = 0", "            _edgeCount = 0", mode="stmt", nth=0),
+    Mutant("removeallkeepdegrees", M, "            for slot in Self._headerCount ..< _degrees.count { _degrees[slot] = 0 }\n            _edgeCount = 0", "            _edgeCount = 0", mode="stmt", nth=1),
 ]

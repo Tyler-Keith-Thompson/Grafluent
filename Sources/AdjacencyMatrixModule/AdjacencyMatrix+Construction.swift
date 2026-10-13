@@ -8,17 +8,16 @@ extension AdjacencyMatrix {
     package init(_uncheckedVertexCount n: Int, sortedEdges edges: some Collection<DirectedEdge<Int>>) {
         self.init(vertexCount: n)
         let wordsPerRow = _wordsPerRow
+        let inBase = Self._headerCount &+ wordsPerRow &* UInt.bitWidth
         var count = 0
         _words.withUnsafeMutableBufferPointer { words in
-            _outDegrees.withUnsafeMutableBufferPointer { outDegrees in
-                _inDegrees.withUnsafeMutableBufferPointer { inDegrees in
-                    for edge in edges {
-                        let source = edge.source, target = edge.target
-                        words[source &* wordsPerRow &+ target / UInt.bitWidth] |= Self._mask(target)
-                        outDegrees[source] &+= 1
-                        inDegrees[target] &+= 1
-                        count &+= 1
-                    }
+            _degrees.withUnsafeMutableBufferPointer { degrees in
+                for edge in edges {
+                    let source = edge.source, target = edge.target
+                    words[source &* wordsPerRow &+ target / UInt.bitWidth] |= Self._mask(target)
+                    degrees[Self._outSlot(source)] &+= 1
+                    degrees[inBase &+ target] &+= 1
+                    count &+= 1
                 }
             }
         }

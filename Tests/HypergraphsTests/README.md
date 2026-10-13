@@ -149,7 +149,9 @@ checked.
   element and every new one (the vertices a hyperedge's insertion adds included), values by index,
   by vertex and by position, `values(of:)` snapshots, the checked reads throwing just outside the
   elements, `removeAll` emptying the maps and keeping them attached, several maps and removed
-  ones, copy-on-write, reference values, `reversed` carrying the maps, and equality, hashing and
+  ones, copy-on-write (two copies keep their own values whichever mutates first: every mutation
+  on one, then every mutation on the other), reference values, `reversed` carrying the maps, and
+  equality, hashing and
   `Codable` ignoring them. The traps (out of range, a non-vertex, a handle of another hypergraph or
   of a removed map) are in `extra_traps.swift`.
 - **Maps against a model** (`HypergraphMapPropertyTests.swift`, swift-property-based): random

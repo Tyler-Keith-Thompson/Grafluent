@@ -2,6 +2,10 @@
 #
 # Known equivalent mutants:
 #   outoforder  `>` for `>=` between positions of one class: positions are distinct, so they agree.
+#
+# Not planted, being equivalent: the plain `storageMayHaveMoved` for the maps spelling in
+# `reserveCapacity`: it reserves in each attached map first, which makes that map's table the
+# graph's own, so the tables are its own before the identity array moves.
 
 TESTS = ["MultigraphsTests"]
 
@@ -51,20 +55,26 @@ MUTANTS = [
     Mutant("dmcheckedloop", "DirectedMultigraph.swift", "        if source == target { throw .selfLoop }", "", mode="stmt"),
 
     # Pseudograph: attached maps and generations
-    Mutant("pmapappendedge", "Pseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }", "", mode="stmt"),
-    Mutant("pmapappendvertex", "Pseudograph.swift", "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }", "", mode="stmt"),
-    Mutant("pmapswapedge", "Pseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }", "", mode="stmt"),
-    Mutant("pmapswapvertex", "Pseudograph.swift", "        if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }", "", mode="stmt"),
+    Mutant("pmapappendedge", "Pseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt"),
+    Mutant("pmapappendvertex", "Pseudograph.swift", "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt"),
+    Mutant("pmapswapedge", "Pseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }", "", mode="stmt"),
+    Mutant("pmapswapvertex", "Pseudograph.swift", "        if !_vertexMaps.isEmpty { _vertexMaps.swapRemoveInOwnTable(at: slot) }", "", mode="stmt"),
     Mutant("pmapclearvertices", "Pseudograph.swift", "        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
     Mutant("pmapclearedges", "Pseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=1),
     Mutant("pmapclearall", "Pseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=0),
-    Mutant("pgeninsertedge", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows)", "", mode="stmt", nth=0),
-    Mutant("pgenremovevertex", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows)", "", mode="stmt", nth=1),
-    Mutant("pgenremoveedge", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows)", "", mode="stmt", nth=2),
-    Mutant("pgenremoveedges", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows)", "", mode="stmt", nth=3),
-    Mutant("pgeninsertvertex", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows)", "", mode="stmt", nth=4),
-    Mutant("pgenclearnone", "Pseudograph.swift", "        if changes { _generation.advance(writing: _neighbors.rows) } else { _generation.storageMayHaveMoved(_neighbors.rows) }", "        _generation.storageMayHaveMoved(_neighbors.rows)", mode="stmt"),
+    Mutant("pgeninsertedge", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=0),
+    Mutant("pgenremovevertex", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=1),
+    Mutant("pgenremoveedge", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=2),
+    Mutant("pgenremoveedges", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=3),
+    Mutant("pgeninsertvertex", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=4),
+    Mutant("pgenclearnone", "Pseudograph.swift", "        if changes { _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps) } else { _generation.storageMayHaveMoved(_neighbors.rows, maps: &_vertexMaps, &_edgeMaps) }", "        _generation.storageMayHaveMoved(_neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", mode="stmt"),
     Mutant("pgenclear", "Pseudograph.swift", "!_vertices.isEmpty", "true"),
+    # A graph that leaves its identity array owns both tables (the maps spellings), so the upkeep
+    # after each advance, owned, writes its own tables only.
+    Mutant("pownsinsertedge", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _neighbors.rows)", mode="stmt", nth=0),
+    Mutant("pownsremovevertex", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _neighbors.rows)", mode="stmt", nth=1),
+    Mutant("pownsremoveedge", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _neighbors.rows)", mode="stmt", nth=2),
+    Mutant("pownsinsertvertex", "Pseudograph.swift", "        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _neighbors.rows)", mode="stmt", nth=4),
     Mutant("pmapedgecount", "Pseudograph+PropertyGraph.swift", "_records.count", "0", nth=0),
     Mutant("pmapvertexcount", "Pseudograph+PropertyGraph.swift", "_vertices.count", "0", nth=0),
     Mutant("pmapcheckededge", "Pseudograph+PropertyGraph.swift", "guard UInt(bitPattern: position) < UInt(bitPattern: _records.count) else { throw EdgeNotFound() }", "guard position < _records.count else { throw EdgeNotFound() }", mode="stmt"),
@@ -73,20 +83,26 @@ MUTANTS = [
     Mutant("pmapcheckedvertex", "Pseudograph+PropertyGraph.swift", "_slots[vertex]", "Optional(_slots[vertex] ?? 0)"),
 
     # DirectedPseudograph: attached maps and generations
-    Mutant("dpmapappendedge", "DirectedPseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }", "", mode="stmt"),
-    Mutant("dpmapappendvertex", "DirectedPseudograph.swift", "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }", "", mode="stmt"),
-    Mutant("dpmapswapedge", "DirectedPseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }", "", mode="stmt"),
-    Mutant("dpmapswapvertex", "DirectedPseudograph.swift", "        if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }", "", mode="stmt"),
+    Mutant("dpmapappendedge", "DirectedPseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt"),
+    Mutant("dpmapappendvertex", "DirectedPseudograph.swift", "        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt"),
+    Mutant("dpmapswapedge", "DirectedPseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }", "", mode="stmt"),
+    Mutant("dpmapswapvertex", "DirectedPseudograph.swift", "        if !_vertexMaps.isEmpty { _vertexMaps.swapRemoveInOwnTable(at: slot) }", "", mode="stmt"),
     Mutant("dpmapclearvertices", "DirectedPseudograph.swift", "        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
     Mutant("dpmapclearedges", "DirectedPseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=1),
     Mutant("dpmapclearall", "DirectedPseudograph.swift", "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=0),
-    Mutant("dpgeninsertedge", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows)", "", mode="stmt", nth=0),
-    Mutant("dpgenremovevertex", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows)", "", mode="stmt", nth=1),
-    Mutant("dpgenremoveedge", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows)", "", mode="stmt", nth=2),
-    Mutant("dpgenremoveedges", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows)", "", mode="stmt", nth=3),
-    Mutant("dpgeninsertvertex", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows)", "", mode="stmt", nth=4),
-    Mutant("dpgenclearnone", "DirectedPseudograph.swift", "        if changes { _generation.advance(writing: _out.rows) } else { _generation.storageMayHaveMoved(_out.rows) }", "        _generation.storageMayHaveMoved(_out.rows)", mode="stmt"),
+    Mutant("dpgeninsertedge", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=0),
+    Mutant("dpgenremovevertex", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=1),
+    Mutant("dpgenremoveedge", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=2),
+    Mutant("dpgenremoveedges", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=3),
+    Mutant("dpgeninsertvertex", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=4),
+    Mutant("dpgenclearnone", "DirectedPseudograph.swift", "        if changes { _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps) } else { _generation.storageMayHaveMoved(_out.rows, maps: &_vertexMaps, &_edgeMaps) }", "        _generation.storageMayHaveMoved(_out.rows, maps: &_vertexMaps, &_edgeMaps)", mode="stmt"),
     Mutant("dpgenclear", "DirectedPseudograph.swift", "!_vertices.isEmpty", "true"),
+    # A graph that leaves its identity array owns both tables (the maps spellings), so the upkeep
+    # after each advance, owned, writes its own tables only.
+    Mutant("dpownsinsertedge", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _out.rows)", mode="stmt", nth=0),
+    Mutant("dpownsremovevertex", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _out.rows)", mode="stmt", nth=1),
+    Mutant("dpownsremoveedge", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _out.rows)", mode="stmt", nth=2),
+    Mutant("dpownsinsertvertex", "DirectedPseudograph.swift", "        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(writing: _out.rows)", mode="stmt", nth=4),
     Mutant("dpmapedgecount", "DirectedPseudograph+PropertyGraph.swift", "_records.count", "0", nth=0),
     Mutant("dpmapvertexcount", "DirectedPseudograph+PropertyGraph.swift", "_vertices.count", "0", nth=0),
     Mutant("dpmapcheckededge", "DirectedPseudograph+PropertyGraph.swift", "guard UInt(bitPattern: position) < UInt(bitPattern: _records.count) else { throw EdgeNotFound() }", "guard position < _records.count else { throw EdgeNotFound() }", mode="stmt"),

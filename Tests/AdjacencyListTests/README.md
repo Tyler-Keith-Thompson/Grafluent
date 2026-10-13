@@ -117,7 +117,7 @@ named fixtures and the vertex types used to stress `Hashable` (`Collider`, `Hash
 | `AdjacencyListCodableTests.swift` | JSON and property list round trips |
 | `AdjacencyListDescriptionTests.swift` | `description`, `debugDescription` and the mirror |
 | `AdjacencyListOverloadTests.swift` | Vertex and edge operations stay distinct when the vertex type could hold an edge |
-| `AdjacencyListMapTests.swift` | Attached maps on both lists: defaults, values moved by edge and vertex removal, clears, handles, copies (one that attaches, removes or writes a map leaves the original's later mutations to the original), coding, `values(of:)`, views (AM-01 – AM-09) |
+| `AdjacencyListMapTests.swift` | Attached maps on both lists: defaults, values moved by edge and vertex removal, clears, handles, copies (one that attaches, removes or writes a map leaves the original's later mutations to the original; two copies keep their own values whichever mutates first, every mutation on one then every mutation on the other), coding, `values(of:)`, views (AM-01 – AM-09) |
 | `AdjacencyListMapPreconditionTests.swift` | Exit tests: a map value of an element not in the graph, and stale or foreign handles (AM-10) |
 | `AdjacencyListMapPropertyTests.swift` | swift-property-based model of every map under random mutations, with shrinking (AM-12) |
 | `AdjacencyListGenerationTests.swift` | Which calls start a generation, copies, built and decoded graphs (AM-11); on both lists, two copies under every interleaving of three steps never share a generation in different states |

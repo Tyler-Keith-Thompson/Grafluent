@@ -381,7 +381,7 @@ extension UndirectedAdjacencyList {
         _neighbors.swapRemoveRow(slot)
         _incident.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
-        _generation.advance(writing: _neighbors.rows)
+        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
         return removed
     }
 
@@ -396,19 +396,27 @@ extension UndirectedAdjacencyList {
         // Checked before removing, so removing an absent edge never copies shared storage.
         guard let position = _positions[u <= v ? _SlotPair(u, v) : _SlotPair(v, u)] else { return nil }
         let record = _records[position]
-        _detach(position)
-        _generation.advance(writing: _neighbors.rows)
+        _detachFromRows(position, record)
+        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        // After the advance, which leaves the maps' table the graph's own.
+        if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }
         return UndirectedEdge(_vertices[record.u], _vertices[record.v])
     }
 
-    /// Removes the edge at `position` from both rows and from the edge array, moving each row's
-    /// last entry and the last edge into the holes and recording where they went. The caller
-    /// advances the generation, once for a vertex and all its edges.
+    /// Removes the edge at `position` from the edge maps, and then as `_detachFromRows(_:_:)`
+    /// does. The caller advances the generation, once for a vertex and all its edges.
     @inlinable
     internal mutating func _detach(_ position: Int) {
         // The maps first: their loads then overlap the rows' cache misses.
         if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }
-        let record = _records[position]
+        _detachFromRows(position, _records[position])
+    }
+
+    /// Removes the edge at `position`, whose record is `record`, from both rows and from the edge
+    /// array, moving each row's last entry and the last edge into the holes and recording where
+    /// they went. The edge maps are the caller's to update.
+    @inlinable
+    internal mutating func _detachFromRows(_ position: Int, _ record: _EdgeRecord) {
         _positions.removeValue(forKey: record.key)
         // A self-loop's two ends share a row: the later one goes first, so the earlier one is not
         // what moves into its place.
@@ -457,7 +465,7 @@ extension UndirectedAdjacencyList {
         _incident.removeAll(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
         _positions.removeAll(keepingCapacity: keepingCapacity)
-        if changes { _generation.advance(writing: _neighbors.rows) } else { _generation.storageMayHaveMoved(_neighbors.rows) }
+        if changes { _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps) } else { _generation.storageMayHaveMoved(_neighbors.rows, maps: &_vertexMaps, &_edgeMaps) }
     }
 
     /// Removes every edge, keeping every vertex. Attached edge maps stay attached, emptied.
@@ -466,7 +474,7 @@ extension UndirectedAdjacencyList {
         guard !_records.isEmpty else { return }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
         _neighbors.removeAllEntries(keepingCapacity: keepingCapacity)
-        _generation.advance(writing: _neighbors.rows)
+        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
         _incident.removeAllEntries(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
         _positions.removeAll(keepingCapacity: keepingCapacity)
@@ -483,7 +491,7 @@ extension UndirectedAdjacencyList {
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
         _neighbors.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
-        _generation.storageMayHaveMoved(_neighbors.rows)
+        _generation.storageMayHaveMoved(_neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
         _incident.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
         _records.reserveCapacity(edgeCount)
         _positions.reserveCapacity(edgeCount)
@@ -492,12 +500,12 @@ extension UndirectedAdjacencyList {
     @inlinable
     @discardableResult
     internal mutating func _appendSlot(for vertex: Vertex) -> Int {
-        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
         let slot = _vertices.count
         _vertices.append(vertex)
         _slots[vertex] = slot
         _neighbors.appendRow()
-        _generation.advance(writing: _neighbors.rows)
+        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }
         _incident.appendRow()
         return slot
     }
@@ -779,13 +787,13 @@ extension UndirectedAdjacencyList {
             let record = _records[position]
             return (false, UndirectedEdge(_vertices[record.u], _vertices[record.v]))
         }
-        // The maps first: their loads then overlap the rows' cache misses.
-        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
         let position = _records.count
         let uOffset = _neighbors.append(v, toRow: u)
         _incident.append(position, toRow: u)
         let vOffset = _neighbors.append(u, toRow: v)
-        _generation.advance(writing: _neighbors.rows)
+        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        // After the advance, which leaves the maps' table the graph's own.
+        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultToOwnTableInline() }
         _incident.append(position, toRow: v)
         _records.append(_EdgeRecord(u: u, v: v, uOffset: uOffset, vOffset: vOffset))
         _positions.insert(key, position)
@@ -800,6 +808,6 @@ extension UndirectedAdjacencyList {
         let record = _records[position]
         _records[position] = _EdgeRecord(u: record.v, v: record.u, uOffset: record.vOffset, vOffset: record.uOffset)
         // The rows are unchanged, so the row table is made unique to tell a copy apart.
-        _generation.advance(owning: &_neighbors.rows)
+        _generation.advance(owning: &_neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
     }
 }

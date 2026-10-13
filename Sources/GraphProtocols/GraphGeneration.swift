@@ -121,14 +121,23 @@ package struct _GenerationStamp: Sendable, BitwiseCopyable {
     @inlinable
     @inline(__always)
     package mutating func advance<Element>(writing storage: ContiguousArray<Element>) {
-        let address = storage.withUnsafeBufferPointer { UInt(bitPattern: $0.baseAddress) }
-        if _fastPath(address == _address) {
-            _version &+= 1
-        } else {
+        advance(address: storage.withUnsafeBufferPointer { UInt(bitPattern: $0.baseAddress) })
+    }
+
+    /// `advance(writing:)`, given the identity array's base address after the mutation's last
+    /// write to it: a pointer the mutation already holds (from `withUnsafeMutableBufferPointer`),
+    /// so the array is not read again.
+    @inlinable
+    @inline(__always)
+    package mutating func advance(address: UInt) {
+        // The common case falls through to the increment: a new lineage starts one version
+        // before 0.
+        if _slowPath(address != _address) {
             _lineage = Self._newLineage()
-            _version = 0
+            _version = .max
             _address = address
         }
+        _version &+= 1
     }
 
     /// `advance(writing:)`, after a structural mutation that may not have written the identity
@@ -158,6 +167,66 @@ package struct _GenerationStamp: Sendable, BitwiseCopyable {
     /// The current generation.
     @inlinable
     package var generation: GraphGeneration { GraphGeneration(_lineage: _lineage, version: _version) }
+
+    // Attached maps by the identity array. A graph that advances its stamp with the `maps:`
+    // spellings below holds its maps' tables alone right after the advance, so the map upkeep that
+    // follows needs no uniqueness check of its own (`_AttachedMaps.appendDefaultsToOwnTable(count:)`).
+    // The fast path proves it: the identity array, made unique by the mutation, is still where it
+    // was at the graph's last structural mutation, so no copy of the graph took it since. That
+    // holds because every graph that leaves an identity array its copies keep (the address it
+    // recorded no longer matches: a copy-on-write copy, growth, reserving capacity) makes both its
+    // tables its own as it leaves, here, and so leaves the shared tables to the graphs that stay.
+    // A graph that never mutated recorded no address, and no array has address 0.
+
+    /// `advance(writing:)` for a graph whose map upkeep runs after it, owned: when the identity
+    /// array moved, the graph also makes both map tables its own.
+    @inlinable
+    @inline(__always)
+    package mutating func advance<Element>(writing storage: ContiguousArray<Element>, maps vertexMaps: inout _AttachedMaps, _ edgeMaps: inout _AttachedMaps) {
+        let address = storage.withUnsafeBufferPointer { UInt(bitPattern: $0.baseAddress) }
+        if _slowPath(address != _address) { _restart(at: address, maps: &vertexMaps, &edgeMaps) }
+        _version &+= 1
+    }
+
+    /// The slow path of `advance(writing:maps:_:)`, out of line, so the mutations that inline the
+    /// advance stay small: both tables made the graph's own, and a new lineage one version
+    /// before 0. A mutating method, unlike `_newLineage()`: its callers are the list
+    /// representations, whose stored properties are more than a loop keeps in registers anyway.
+    @usableFromInline
+    @inline(never)
+    package mutating func _restart(at address: UInt, maps vertexMaps: inout _AttachedMaps, _ edgeMaps: inout _AttachedMaps) {
+        vertexMaps.own()
+        edgeMaps.own()
+        _lineage = Self._newLineage()
+        _version = .max
+        _address = address
+    }
+
+    /// `advance(owning:)` for a graph whose map upkeep runs after it, owned.
+    @inlinable
+    package mutating func advance<Element>(owning storage: inout ContiguousArray<Element>, maps vertexMaps: inout _AttachedMaps, _ edgeMaps: inout _AttachedMaps) {
+        storage.withUnsafeMutableBufferPointer { _ in }
+        if _slowPath(storage.isEmpty) {
+            vertexMaps.own()
+            edgeMaps.own()
+            _lineage = Self._newLineage()
+            _version = 0
+            _address = 0
+        } else {
+            advance(writing: storage, maps: &vertexMaps, &edgeMaps)
+        }
+    }
+
+    /// `storageMayHaveMoved(_:)` for a graph whose map upkeep runs after its advances, owned:
+    /// when the identity array moved, the graph also makes both map tables its own.
+    @inlinable
+    package mutating func storageMayHaveMoved<Element>(_ storage: ContiguousArray<Element>, maps vertexMaps: inout _AttachedMaps, _ edgeMaps: inout _AttachedMaps) {
+        if storage.withUnsafeBufferPointer({ UInt(bitPattern: $0.baseAddress) }) != _address {
+            _address = 0
+            vertexMaps.own()
+            edgeMaps.own()
+        }
+    }
 
     /// A lineage no graph has had. A static function, not a mutating method: a call that takes
     /// the stamp's address takes the graph's (the stamp is one of its stored properties), and a

@@ -26,7 +26,10 @@ import Synchronization
 // non-generic code, with no call and no retain; other values go through closures specialized where
 // the map was attached. A map's buffer is copied on the first write after it may have become
 // shared (by a copy of the graph, or a `values(of:)` snapshot), which a flag on the buffer, and
-// one on the table, record, so an unshared buffer needs no uniqueness check of its own.
+// one on the table, record, so an unshared buffer needs no uniqueness check of its own. A list
+// representation skips even the table's check: its upkeep runs right after its generation stamp's
+// advance with `maps:`, which leaves both tables its own (see GraphGeneration.swift), and one map
+// of `Double` or `Int` then costs one call, a load and a store (`_MapTable._fastBuffer`).
 
 /// How a representation lays out its attached maps: one buffer by offset (`dense`), or pages of
 /// 1024 offsets (`paged`). A static property of the representation, so a specialized read folds
@@ -260,6 +263,9 @@ package class _DenseMapBuffer: _AnyMapBuffer {
     @usableFromInline package final let isTrivial: Bool
     /// The default value, one initialized value.
     @usableFromInline package final let defaultAddress: UnsafeRawPointer
+    /// The default value's bytes, when it is 8 bytes of trivial value (else 0): what the inline
+    /// append stores, with no load through `defaultAddress`.
+    @usableFromInline package final let _defaultWord: UInt64
 
     @inlinable
     package init(base: UnsafeMutableRawPointer, count: Int, capacity: Int, stride: Int, isTrivial: Bool, defaultAddress: UnsafeRawPointer, witnesses: _MapWitnesses) {
@@ -269,6 +275,7 @@ package class _DenseMapBuffer: _AnyMapBuffer {
         self.stride = stride
         self.isTrivial = isTrivial
         self.defaultAddress = defaultAddress
+        _defaultWord = isTrivial && stride == 8 ? defaultAddress.load(as: UInt64.self) : 0
         super.init(witnesses: witnesses, isDense: true)
     }
 
@@ -326,15 +333,16 @@ package class _DenseMapBuffer: _AnyMapBuffer {
 /// A dense map's buffer of `Value`s.
 @usableFromInline
 package final class _DenseMapBufferOf<Value>: _DenseMapBuffer {
-    /// `count` values, every one `value`.
+    /// `count` values, every one `value`, with room for `capacity` (at least `count`).
     @inlinable
-    package init(repeating value: Value, count: Int, witnesses: _MapWitnesses) {
-        let elements = UnsafeMutablePointer<Value>.allocate(capacity: count)
+    package init(repeating value: Value, count: Int, capacity: Int, witnesses: _MapWitnesses) {
+        let capacity = Swift.max(count, capacity)
+        let elements = UnsafeMutablePointer<Value>.allocate(capacity: capacity)
         elements.initialize(repeating: value, count: count)
         let defaultValue = UnsafeMutablePointer<Value>.allocate(capacity: 1)
         defaultValue.initialize(to: value)
         super.init(
-            base: UnsafeMutableRawPointer(elements), count: count, capacity: count, stride: MemoryLayout<Value>.stride,
+            base: UnsafeMutableRawPointer(elements), count: count, capacity: capacity, stride: MemoryLayout<Value>.stride,
             isTrivial: _isPOD(Value.self), defaultAddress: UnsafeRawPointer(defaultValue), witnesses: witnesses)
     }
 
@@ -466,11 +474,19 @@ package final class _MapTable: @unchecked Sendable {
     @usableFromInline package let entries: UnsafeMutableBufferPointer<_AttachedMap>
     /// Whether every map is dense with trivial values: the upkeep's fast paths, with no closure.
     @usableFromInline package let _allTrivialDense: Bool
+    /// Whether there is exactly one map, dense, of trivial 8-byte values (`Double`, `Int`): the
+    /// common case, which the upkeep of a graph that owns the table moves with one load and one
+    /// store (`_fastBuffer`).
+    @usableFromInline package let _singleWord: Bool
     /// Whether some map's values hold references (see `_AttachedMap.releases`).
     @usableFromInline package let _releases: Bool
     /// Whether some buffer may be shared (`_AnyMapBuffer._mayBeShared`): while false, the upkeep
     /// skips the buffers' own flags.
     @usableFromInline package let _someMayBeShared: Atomic<Bool>
+    /// The one map's buffer, as an address, while `_singleWord` and not `_someMayBeShared`, else
+    /// 0: the one-map fast paths' one load and test. (A buffer is replaced by its copy only while
+    /// it may be shared, so never while this names it; the table holds it.)
+    @usableFromInline package let _fastBuffer: Atomic<UInt>
 
     /// `source`'s entries, without the one at `removing` and with `appending` after them; when
     /// `markingShared`, every buffer kept is marked shared, as another table may also list it.
@@ -492,10 +508,30 @@ package final class _MapTable: @unchecked Sendable {
             allTrivialDense = allTrivialDense && appending.buffer._isTrivialDense
             (entries.baseAddress.unsafelyUnwrapped + k).initialize(to: appending)
         }
+        // A table lists at least one map (`_replacing` makes none for zero).
         self.entries = entries
         _allTrivialDense = allTrivialDense
+        let singleWord = count == 1 && allTrivialDense && unsafeDowncast(entries[0].buffer, to: _DenseMapBuffer.self).stride == 8
+        _singleWord = singleWord
         _releases = releases
         _someMayBeShared = Atomic(someMayBeShared)
+        _fastBuffer = Atomic(singleWord && !someMayBeShared ? UInt(bitPattern: ObjectIdentifier(entries[0].buffer)) : 0)
+    }
+
+    /// The one map's buffer, for the fast paths: `address` is `_fastBuffer`, not 0. Unowned: the
+    /// table holds it, and a retain and release would cost more than the upkeep.
+    @inlinable
+    @inline(__always)
+    package static func _buffer(at address: UInt) -> _DenseMapBuffer {
+        unsafeBitCast(address, to: _DenseMapBuffer.self)
+    }
+
+    /// Records that some buffer may be shared: a copy of the graph may list it too, or a
+    /// snapshot holds it.
+    @inlinable
+    package final func _markSomeShared() {
+        _someMayBeShared.store(true, ordering: .relaxed)
+        _fastBuffer.store(0, ordering: .relaxed)
     }
 
     deinit {
@@ -509,7 +545,7 @@ package final class _MapTable: @unchecked Sendable {
     /// on its fast paths.
     @usableFromInline
     package static func _replacing(_ table: _MapTable?, removing: Int?, appending: _AttachedMap?, markingShared: Bool) -> _MapTable? {
-        if markingShared { table?._someMayBeShared.store(true, ordering: .relaxed) }
+        if markingShared { table?._markSomeShared() }
         let source = table.map { UnsafeBufferPointer($0.entries) } ?? UnsafeBufferPointer(start: nil, count: 0)
         if source.count &- (removing == nil ? 0 : 1) &+ (appending == nil ? 0 : 1) == 0 { return nil }
         return _MapTable(source, removing: removing, appending: appending, markingShared: markingShared)
@@ -521,7 +557,7 @@ package final class _MapTable: @unchecked Sendable {
     @usableFromInline
     @inline(never)
     package func _copy() -> _MapTable {
-        _someMayBeShared.store(true, ordering: .relaxed)
+        _markSomeShared()
         return _MapTable(UnsafeBufferPointer(entries), removing: nil, appending: nil, markingShared: true)
     }
 
@@ -549,6 +585,7 @@ package final class _MapTable: @unchecked Sendable {
     final func _ownAll() {
         for k in 0 ..< entries.count { _own(k) }
         _someMayBeShared.store(false, ordering: .relaxed)
+        _fastBuffer.store(_singleWord ? UInt(bitPattern: ObjectIdentifier(entries[0].buffer)) : 0, ordering: .relaxed)
     }
 
     @usableFromInline
@@ -623,6 +660,41 @@ package final class _MapTable: @unchecked Sendable {
         }
     }
 
+    /// `_appendDefaults(count:)` with the one-map fast path first: the upkeep of a graph that
+    /// owns the table (`_AttachedMaps.appendDefaultsToOwnTable(count:)`), out of line.
+    @usableFromInline
+    package final func _appendDefaultsOwned(count: Int) {
+        let address = _fastBuffer.load(ordering: .relaxed)
+        if _fastPath(count == 1 && address != 0) {
+            unowned(unsafe) let buffer = Self._buffer(at: address)
+            let c = buffer.count
+            if _fastPath(c != buffer.capacity) {
+                (buffer.base + c &* 8).storeBytes(of: buffer._defaultWord, as: UInt64.self)
+                buffer.count = c &+ 1
+                return
+            }
+        }
+        _appendDefaults(count: count)
+    }
+
+    /// `_swapRemove(at:)` with the one-map fast path first: the upkeep of a graph that owns the
+    /// table (`_AttachedMaps.swapRemoveInOwnTable(at:)`), out of line.
+    @usableFromInline
+    package final func _swapRemoveOwned(at offset: Int) {
+        let address = _fastBuffer.load(ordering: .relaxed)
+        if _fastPath(address != 0) {
+            unowned(unsafe) let buffer = Self._buffer(at: address)
+            let count = buffer.count
+            if _fastPath(UInt(bitPattern: offset) < UInt(bitPattern: count)) {
+                let base = buffer.base, last = count &- 1
+                (base + offset &* 8).storeBytes(of: (base + last &* 8).load(as: UInt64.self), as: UInt64.self)
+                buffer.count = last
+                return
+            }
+        }
+        _swapRemove(at: offset)
+    }
+
     @usableFromInline
     package func _appendDefaults(count: Int) {
         guard _fastPath(_allTrivialDense && count == 1 && !_someMayBeShared.load(ordering: .relaxed)) else {
@@ -691,6 +763,10 @@ package struct _AttachedMaps: Sendable {
     @inlinable
     package var isEmpty: Bool { _table == nil }
 
+    /// Whether some map's values hold references (`_AttachedMap.releases`).
+    @inlinable
+    package var releases: Bool { _table?._releases ?? false }
+
     /// The entries; empty when no map is attached.
     @inlinable
     package var _entries: UnsafeBufferPointer<_AttachedMap> {
@@ -700,14 +776,16 @@ package struct _AttachedMaps: Sendable {
 
     /// Attaches a map whose every value is `value`, and returns its token and its table index
     /// (the handle's hint). With the dense layout, `count` values are allocated now, one per
-    /// offset below the graph's bound; with the paged layout nothing is.
+    /// offset below the graph's bound, with room for `capacity` (the room the graph has reserved
+    /// for its elements, so a map attached after `reserveCapacity` appends in place); with the
+    /// paged layout nothing is.
     @inlinable
-    package mutating func add<Value: Sendable>(default value: Value, layout: _MapLayout, count: Int) -> (token: _MapToken, hint: Int) {
+    package mutating func add<Value: Sendable>(default value: Value, layout: _MapLayout, count: Int, capacity: Int = 0) -> (token: _MapToken, hint: Int) {
         let token = _MapToken()
         let witnesses = _MapWitnesses.of(Value.self, layout: layout)
         let buffer: _AnyMapBuffer =
             layout == .dense
-            ? _DenseMapBufferOf(repeating: value, count: count, witnesses: witnesses)
+            ? _DenseMapBufferOf(repeating: value, count: count, capacity: capacity, witnesses: witnesses)
             : _PagedMapBuffer(_MapStorage(default: value), witnesses: witnesses)
         _replaceTable(removing: nil, appending: _AttachedMap(token: token, buffer: buffer, releases: !_isPOD(Value.self)))
         return (token, _entries.count &- 1)
@@ -788,7 +866,7 @@ package struct _AttachedMaps: Sendable {
         if buffer.isDense {
             let dense = unsafeDowncast(buffer, to: _DenseMapBufferOf<Value>.self)
             dense._markShared()
-            _table.unsafelyUnwrapped._someMayBeShared.store(true, ordering: .relaxed)
+            _table.unsafelyUnwrapped._markSomeShared()
             return _MapStorage(dense: dense.values, owner: dense, default: dense.defaultValue)
         }
         return unsafeDowncast(buffer, to: _PagedMapBuffer<Value>.self).storage
@@ -865,11 +943,57 @@ package struct _AttachedMaps: Sendable {
         _ownTable()?._swapRemove(at: offset)
     }
 
+    /// `swapRemove(at:)` on a table the graph knows is its own: right after a `_GenerationStamp`
+    /// advance with `maps:`. It checks no uniqueness and makes one call, whose one-map fast path
+    /// is a load and a store.
+    @inlinable
+    @inline(__always)
+    package mutating func swapRemoveInOwnTable(at offset: Int) {
+        _table?._swapRemoveOwned(at: offset)
+    }
+
     /// Appends `count` defaults to every map (dense layout): the representation appended that
     /// many elements.
     @inlinable
     package mutating func appendDefaults(count: Int) {
         _ownTable()?._appendDefaults(count: count)
+    }
+
+    /// `appendDefaults(count:)` on a table the graph knows is its own: right after a
+    /// `_GenerationStamp` advance with `maps:`. It checks no uniqueness and makes one call, whose
+    /// one-map fast path is a load and a store.
+    @inlinable
+    @inline(__always)
+    package mutating func appendDefaultsToOwnTable(count: Int) {
+        _table?._appendDefaultsOwned(count: count)
+    }
+
+    /// `appendDefaultsToOwnTable(count: 1)` with the one-map fast path inline, for a mutation whose
+    /// own work is small enough that the call would show (`BipartiteGraph`'s insertion, through
+    /// `UndirectedAdjacencyList`).
+    @inlinable
+    @inline(__always)
+    package mutating func appendDefaultToOwnTableInline() {
+        guard let table = _table else { return }
+        let address = table._fastBuffer.load(ordering: .relaxed)
+        if _fastPath(address != 0) {
+            unowned(unsafe) let buffer = _MapTable._buffer(at: address)
+            let c = buffer.count
+            if _fastPath(c != buffer.capacity) {
+                (buffer.base + c &* 8).storeBytes(of: buffer._defaultWord, as: UInt64.self)
+                buffer.count = c &+ 1
+                return
+            }
+        }
+        table._appendDefaults(count: 1)
+    }
+
+    /// Makes the table this graph's own, copying it if a copy of the graph shares it. Out of
+    /// line: it runs when a graph leaves an identity array its copies keep, rarely.
+    @usableFromInline
+    @inline(never)
+    package mutating func own() {
+        if _table != nil { _ = _ownTable() }
     }
 
     /// Reserves room for `count` values in every map (dense layout).
