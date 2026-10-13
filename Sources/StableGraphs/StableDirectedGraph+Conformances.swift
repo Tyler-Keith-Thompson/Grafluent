@@ -50,11 +50,11 @@ extension StableDirectedGraph: BidirectionalDirectedGraph {
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     @inlinable
     public func successorIndices(ofIndex index: Int) -> SuccessorIndices {
+        precondition(_vertexCount == _vertexEnd, "The graph has vertex holes, so no vertex indices; check vertexIndexBound first")
+        precondition(UInt(bitPattern: index) < UInt(bitPattern: _vertexEnd), "Vertex index out of range")
+        // Without holes, every slot below the end is live, so its page and row exist.
         let k = _vk(index), l = index & _PositionPage.mask
-        return _outPages.withUnsafeBufferPointer { pages in
-            precondition(k >= 0 && k < pages.count, "Vertex index out of range")
-            return _LiveRow.Ends(ends: pages[k].endSlice(l), count: pages[k].degree(l))
-        }
+        return _outPages.withUnsafeBufferPointer { pages in _LiveRow.Ends(ends: pages[k].endSlice(l), count: pages[k].degree(l)) }
     }
 
     /// The indices of the predecessors of the vertex at `index`: the stored row. O(1).
@@ -62,20 +62,32 @@ extension StableDirectedGraph: BidirectionalDirectedGraph {
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     @inlinable
     public func predecessorIndices(ofIndex index: Int) -> PredecessorIndices {
+        precondition(_vertexCount == _vertexEnd, "The graph has vertex holes, so no vertex indices; check vertexIndexBound first")
+        precondition(UInt(bitPattern: index) < UInt(bitPattern: _vertexEnd), "Vertex index out of range")
+        // Without holes, every slot below the end is live, so its page and row exist.
         let k = _vk(index), l = index & _PositionPage.mask
-        return _inPages.withUnsafeBufferPointer { pages in
-            precondition(k >= 0 && k < pages.count, "Vertex index out of range")
-            return _LiveRow.Ends(ends: pages[k].endSlice(l), count: pages[k].degree(l))
-        }
+        return _inPages.withUnsafeBufferPointer { pages in _LiveRow.Ends(ends: pages[k].endSlice(l), count: pages[k].degree(l)) }
     }
 
     /// `outEdges(of: vertex(atIndex: index))`, without the hash. O(1).
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     @inlinable
-    public func outEdges(ofIndex index: Int) -> OutEdges { _outEdges(slot: index) }
+    public func outEdges(ofIndex index: Int) -> OutEdges {
+        precondition(_vertexCount == _vertexEnd, "The graph has vertex holes, so no vertex indices; check vertexIndexBound first")
+        precondition(UInt(bitPattern: index) < UInt(bitPattern: _vertexEnd), "Vertex index out of range")
+        return _outEdges(slot: index)
+    }
 
     /// `inEdges(of: vertex(atIndex: index))`, without the hash. O(1).
+    ///
+    /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     @inlinable
-    public func inEdges(ofIndex index: Int) -> InEdges { _inEdges(slot: index) }
+    public func inEdges(ofIndex index: Int) -> InEdges {
+        precondition(_vertexCount == _vertexEnd, "The graph has vertex holes, so no vertex indices; check vertexIndexBound first")
+        precondition(UInt(bitPattern: index) < UInt(bitPattern: _vertexEnd), "Vertex index out of range")
+        return _inEdges(slot: index)
+    }
 
     /// The stored out-degree of the vertex at `index`, without the hash. O(1).
     ///
@@ -571,14 +583,49 @@ extension StableDirectedGraph: CustomStringConvertible, CustomDebugStringConvert
 extension StableDirectedGraph: MutableDirectedGraph {
     /// The position of `vertex`, or `nil`. One hash.
     @inlinable public func _key(of vertex: Vertex) -> Int? { _slots[vertex] }
-    @inlinable public func _vertex(atKey key: Int) -> Vertex { _vertex(atSlot: key) }
-    @inlinable public func _successors(ofKey key: Int) -> Neighbors { Neighbors(pages: _vertexPages, base: _vertexBase, row: _outRow(key)) }
-    @inlinable public func _predecessors(ofKey key: Int) -> Neighbors { Neighbors(pages: _vertexPages, base: _vertexBase, row: _inRow(key)) }
+
+    /// The vertex at position `key`; traps unless a vertex is there.
+    @inlinable
+    public func _vertex(atKey key: Int) -> Vertex {
+        precondition(containsVertex(atPosition: key), "No vertex at position \(key)")
+        return _vertex(atSlot: key)
+    }
+
+    /// Traps unless position `key` has a row in `pages`: below `vertices.endIndex`, in a page
+    /// that was not freed. One check per row fetch, so the key hooks never read outside the
+    /// page table; liveness itself is the caller's contract.
+    @inlinable
+    @inline(__always)
+    internal func _checkRow(_ key: Int, _ pages: ContiguousArray<_RowPage>) {
+        let k = _vk(key), l = key & _PositionPage.mask
+        let hasRow = pages.withUnsafeBufferPointer { pages in
+            UInt(bitPattern: k) < UInt(bitPattern: pages.count) && l < pages[k].rows.count
+        }
+        precondition(hasRow, "No vertex at position \(key)")
+    }
+
+    // The row hooks below (`_successors`, `_predecessors`, `_successorKeys`, `_predecessorKeys`,
+    // `_outEdges`, `_inEdges`, `_outDegree`, `_inDegree`, all `ofKey:`) trap at a position past
+    // `vertices.endIndex`, negative, or in a freed page. A position below the end in a live page
+    // reads its row as stored, which for a hole is not a vertex's: pass only live positions.
+
+    @inlinable
+    public func _successors(ofKey key: Int) -> Neighbors {
+        _checkRow(key, _outPages)
+        return Neighbors(pages: _vertexPages, base: _vertexBase, row: _outRow(key))
+    }
+
+    @inlinable
+    public func _predecessors(ofKey key: Int) -> Neighbors {
+        _checkRow(key, _inPages)
+        return Neighbors(pages: _vertexPages, base: _vertexBase, row: _inRow(key))
+    }
 
     /// The stored row's live far ends, which are positions; valid with holes, unlike
     /// `successorIndices(ofIndex:)`'s contract.
     @inlinable
     public func _successorKeys(ofKey key: Int) -> SuccessorIndices {
+        _checkRow(key, _outPages)
         let k = _vk(key), l = key & _PositionPage.mask
         return _outPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: $0[k].degree(l)) }
     }
@@ -586,14 +633,35 @@ extension StableDirectedGraph: MutableDirectedGraph {
     /// The stored row's live far ends, which are positions.
     @inlinable
     public func _predecessorKeys(ofKey key: Int) -> PredecessorIndices {
+        _checkRow(key, _inPages)
         let k = _vk(key), l = key & _PositionPage.mask
         return _inPages.withUnsafeBufferPointer { _LiveRow.Ends(ends: $0[k].endSlice(l), count: $0[k].degree(l)) }
     }
 
-    @inlinable public func _outEdges(ofKey key: Int) -> OutEdges { _outEdges(slot: key) }
-    @inlinable public func _inEdges(ofKey key: Int) -> InEdges { _inEdges(slot: key) }
-    @inlinable public func _outDegree(ofKey key: Int) -> Int { _outDegree(key) }
-    @inlinable public func _inDegree(ofKey key: Int) -> Int { _inDegree(key) }
+    @inlinable
+    public func _outEdges(ofKey key: Int) -> OutEdges {
+        _checkRow(key, _outPages)
+        return _outEdges(slot: key)
+    }
+
+    @inlinable
+    public func _inEdges(ofKey key: Int) -> InEdges {
+        _checkRow(key, _inPages)
+        return _inEdges(slot: key)
+    }
+
+    @inlinable
+    public func _outDegree(ofKey key: Int) -> Int {
+        _checkRow(key, _outPages)
+        return _outDegree(key)
+    }
+
+    @inlinable
+    public func _inDegree(ofKey key: Int) -> Int {
+        _checkRow(key, _inPages)
+        return _inDegree(key)
+    }
+
     @inlinable public func _sourceKey(ofEdgeAt position: Int) -> Int { _liveRecord(position).source }
     @inlinable public func _targetKey(ofEdgeAt position: Int) -> Int { _liveRecord(position).target }
     @inlinable public mutating func _insertVertex(_ vertex: Vertex) -> Int { _appendSlot(for: vertex) }
@@ -607,7 +675,7 @@ extension StableDirectedGraph: MutableDirectedGraph {
     /// Removes the vertex at position `key`, leaving a hole: nothing moves, so always `nil`.
     @inlinable
     public mutating func _removeVertex(atKey key: Int) -> Int? {
-        _slots.removeValue(forKey: _vertex(atSlot: key))
+        _slots.removeValue(forKey: _vertex(atKey: key))
         _ = _removeSlot(key)
         return nil
     }

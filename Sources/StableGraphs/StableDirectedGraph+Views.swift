@@ -75,8 +75,11 @@ extension StableDirectedGraph {
         }
 
         /// The previous live position before `i`. O(holes skipped), a freed page skipped whole.
+        ///
+        /// - Precondition: `i` is at most `endIndex`, and a live position is below it.
         @inlinable
         public func index(before i: Int) -> Int {
+            precondition(i <= _end, "Index out of range")
             let j = _previousLiveVertex(before: i, _pages, base: _base)
             precondition(j >= 0, "Cannot move before startIndex")
             return j
@@ -288,8 +291,11 @@ extension StableDirectedGraph {
         }
 
         /// The previous live position before `i`. O(holes skipped), a freed page skipped whole.
+        ///
+        /// - Precondition: `i` is at most `endIndex`, and a live position is below it.
         @inlinable
         public func index(before i: Int) -> Int {
+            precondition(i <= _end, "Index out of range")
             let j = _previousLiveEdge(before: i, _pages, base: _base)
             precondition(j >= 0, "Cannot move before startIndex")
             return j

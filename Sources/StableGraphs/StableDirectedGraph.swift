@@ -46,6 +46,7 @@ import GraphProtocols
 /// page between the oldest live position and the end. Iterating `vertices` or `edges`, and
 /// numbering the vertices for an algorithm, costs O(live elements + pages). A copy shares every
 /// page, and the first mutation after a copy copies the page table and only the pages it touches.
+/// A vertex insertion or removal after a copy also copies the vertex lookup, O(n).
 ///
 /// ## Attached maps
 ///

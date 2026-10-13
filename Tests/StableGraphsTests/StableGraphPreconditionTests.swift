@@ -1124,4 +1124,138 @@ struct StableGraphPreconditionTests {
         graph[names, of: 1] = nil
         #expect(graph[labels, ofEdgeAt: 0] == "a" && copy[labels, ofEdgeAt: 0] == "b" && graph[names, of: 1] == nil)
     }
+
+    @Test("Index-space reads trap out of range and at a vertex hole; vertices and edges trap stepping back from past the end")
+    func indexReadsOutOfRange() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = Array(graph.outEdges(ofIndex: 5000))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = Array(graph.outEdges(ofIndex: -1))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = Array(graph.inEdges(ofIndex: 5000))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = Array(graph.inEdges(ofIndex: 1))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = Array(graph.predecessorIndices(ofIndex: 1))
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 1, to: 0)])
+            _ = graph.remove(1)
+            _ = Array(graph.outEdges(ofIndex: 1))
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 1, to: 0)])
+            _ = graph.remove(1)
+            _ = Array(graph.successorIndices(ofIndex: 1))
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1, 2])
+            _ = graph.remove(1)
+            _ = Array(graph.successorIndices(ofIndex: 0))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = graph.vertices.index(before: 1_000_000)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0], edges: [DirectedEdge(from: 0, to: 0)])
+            _ = graph.edges.index(before: 1_000_000)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = graph.vertices.indices.index(before: 1_000_000)
+        }
+        // Without the calls: in range and without holes, the rows answer; stepping back from the
+        // end reaches the last live position.
+        var graph = StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 1, to: 0)])
+        #expect(Array(graph.outEdges(ofIndex: 1)) == [0] && Array(graph.inEdges(ofIndex: 0)) == [0])
+        #expect(Array(graph.successorIndices(ofIndex: 1)) == [0] && Array(graph.predecessorIndices(ofIndex: 1)) == [] as [Int])
+        #expect(graph.vertices.index(before: graph.vertices.endIndex) == 1 && graph.edges.index(before: graph.edges.endIndex) == 0)
+        #expect(graph.vertices.indices.index(before: 2) == 1)
+        _ = graph.remove(1)
+        #expect(graph.vertexIndexBound == nil && graph.containsVertex(atPosition: 0))
+    }
+
+    @Test("The key hooks trap outside the page table, in a freed page, and at a hole where they read the vertex")
+    func keyHooksOutOfRange() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = graph._outDegree(ofKey: 5000)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = graph._inDegree(ofKey: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = Array(graph._successorKeys(ofKey: 5000))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = Array(graph._predecessorKeys(ofKey: -1))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = Array(graph._successors(ofKey: 5000))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = Array(graph._predecessors(ofKey: 5000))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = Array(graph._outEdges(ofKey: 5000))
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = Array(graph._inEdges(ofKey: -1))
+        }
+        await #expect(processExitsWith: .failure) {
+            // Positions 1024 ..< 2048 all removed: their page is freed, between two live pages.
+            var graph = StableDirectedGraph<Int>(vertices: 0 ..< 3072)
+            for v in 1024 ..< 2048 { _ = graph.remove(v) }
+            _ = graph._outDegree(ofKey: 1500)
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: 0 ..< 3072)
+            for v in 1024 ..< 2048 { _ = graph.remove(v) }
+            _ = Array(graph._predecessorKeys(ofKey: 1500))
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1])
+            _ = graph.remove(1)
+            _ = graph._vertex(atKey: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = graph._vertex(atKey: 5000)
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0])
+            _ = graph._removeVertex(atKey: 5000)
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<Int>(vertices: [0, 1])
+            _ = graph.remove(1)
+            _ = graph._removeVertex(atKey: 1)
+        }
+        // Without the calls: live keys answer, on either side of a freed page.
+        var graph = StableDirectedGraph<Int>(vertices: 0 ..< 3072, edges: [DirectedEdge(from: 0, to: 2500)])
+        for v in 1024 ..< 2048 { _ = graph.remove(v) }
+        #expect(graph._outDegree(ofKey: 0) == 1 && graph._inDegree(ofKey: 2500) == 1)
+        #expect(Array(graph._successorKeys(ofKey: 0)) == [2500] && Array(graph._predecessorKeys(ofKey: 2500)) == [0])
+        #expect(Array(graph._successors(ofKey: 0)) == [2500] && Array(graph._predecessors(ofKey: 2500)) == [0])
+        #expect(Array(graph._outEdges(ofKey: 0)) == [0] && Array(graph._inEdges(ofKey: 2500)) == [0])
+        #expect(graph._vertex(atKey: 2500) == 2500)
+        #expect(graph._removeVertex(atKey: 2500) == nil && !graph.contains(2500) && graph.edgeCount == 0)
+    }
 }
