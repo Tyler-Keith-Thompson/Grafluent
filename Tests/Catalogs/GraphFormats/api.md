@@ -11,7 +11,7 @@ builds on Linux with the standard library and `GraphProtocols` only. It draws no
 styling statements are skipped on reading and never written, unless the caller passes them as
 plain attributes.
 
-`cases.md` (GF-001 – GF-256: 216 read rows, 109 of them errors, and 40 write rows) pins the values.
+`cases.md` (GF-001 – GF-259: 219 read rows, 110 of them errors, and 40 write rows) pins the values.
 `ref.py` is an independent Python implementation of everything below. Every row is compared with
 NetworkX 3.7 (GraphML, node-link JSON, edge list, adjacency list), SciPy 1.18.1 (Matrix Market) or
 pydot 4.0.1 (DOT), where that library reads or writes the format. `ref.py` checks the write rows
@@ -96,7 +96,7 @@ extension MutableDirectedGraph {
                 vertex: (AttributeValue) -> Vertex?,                 // id: .string or .integer
                 vertexAttribute:, edgeAttribute:, graphAttribute:) throws(ParseError)
     public init(matrixMarket input: some Sequence<UInt8>,
-                maximumVertexCount: Int = 1 << 24,                   // above it: limitExceeded
+                maximumVertexCount: Int? = nil,                      // above it: limitExceeded; nil: 16 × bytes + 4096
                 vertex: (Int) -> Vertex?,                            // 0-based index
                 edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = …) throws(ParseError) // key "weight"
     public init(edgeList input: some Sequence<UInt8>, columns: [String] = [], vertex:, edgeAttribute:) throws(ParseError)
@@ -265,7 +265,7 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
 | `doctypeNotAllowed`, `entityNotAllowed` | any `<!DOCTYPE`; any entity reference but `&lt; &gt; &amp; &quot; &apos;` and character references |
 | `mismatchedTag` | an end tag that does not close the open element, or comes with no element open (`</a>` first, GF-227) |
 | `unsupported` | a construct listed under Scope, another diagram or object type, another encoding |
-| `limitExceeded` | a Matrix Market size line over `maximumVertexCount` (at its first field, GF-232); a file over the expansion budget (DOT and GraphML defaults, DOT edge-chain attributes, Mermaid `&` groups; at the statement or element that crosses it) |
+| `limitExceeded` | a Matrix Market size line over `maximumVertexCount` (at its first field, GF-232, GF-257); a file over the expansion budget (DOT and GraphML defaults, DOT edge-chain attributes, Mermaid `&` groups; at the statement or element that crosses it) |
 
 - **Error order.** A reader reports the first error in this order: invalid UTF-8 anywhere (the
   whole input is checked first, so a scalar cut at the end is `invalidUTF8` at its lead byte); for
@@ -282,9 +282,11 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
   checks. No reader reserves memory from a count in the file beyond what the input could hold: the
   Matrix Market entry count reserves at most `remaining bytes / 4` entries, so a 30-byte file
   claiming 10¹⁸ entries allocates nothing. The Matrix Market vertex count is inserted eagerly,
-  because isolated vertices are part of the graph, and is bounded by `maximumVertexCount` (default
-  2²⁴; a caller reading untrusted files passes a smaller bound): a 79-byte file claiming 10¹²
-  vertices is `limitExceeded` before anything is allocated. The work a file can multiply is
+  because isolated vertices are part of the graph, and is bounded by `maximumVertexCount`. Its
+  default, `nil`, bounds it by the input's size, 16 vertices per byte plus 4,096 (the expansion
+  budget's rate), so a 69-byte file claiming 2²⁴ vertices (GF-257) or a 79-byte file claiming 10¹²
+  is `limitExceeded` before anything is allocated; an explicit bound replaces it, for a matrix that
+  is mostly isolated vertices. The work a file can multiply is
   bounded by its size (Attributes, the budget). Strings, lines and files have no length limit beyond memory: each
   costs memory linear in the input.
 - **Strict.** Where a format leaves room, readers reject rather than guess: a single-token
@@ -394,7 +396,7 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
   merges parallel edges, later attributes winning, and ignores keys (GF-087). `multigraph: true`
   merges on `(u, v, key)`: a key already taken between the pair is that edge, its attributes set
   again. An edge without a key, or with `null`, gets the number of keys between the pair, raised
-  past any taken. Keys compare as numbers where they are numbers (`true` is 1, an integral double
+  past any taken (GF-248, GF-258, GF-259). Keys compare as numbers where they are numbers (`true` is 1, an integral double
   its integer; the string `"1"` is not 1); an array or object key is `unsupported` (GF-233 –
   GF-236).
 - **Writer** (GF-200 – GF-206): `", "` and `": "` separators, one line, and no final line feed
@@ -424,9 +426,9 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
   exactly 2 (`pattern`) or 3 fields; indices are unsigned decimals in `1...n`; `integer` values fit
   `Int`; `real` values are decimal floats or `inf`, `infinity`, `nan` in any case with a sign.
 - **Graph**: vertices `0..<n` (the `vertex` closure maps the index), even with no entries
-  (GF-117), at most `maximumVertexCount` of them (default 2²⁴, about 1.7 GB in the dense
-  representations at about 100 bytes a vertex; above it `limitExceeded` at the size line's first
-  field, GF-232). Directed target: `general` → an arc row → column per entry; `symmetric` → arcs (r, c) then (c, r), one arc for a
+  (GF-117), at most `maximumVertexCount` of them (default `nil`: 16 per input byte plus 4,096,
+  which every file with an entry per 64 vertices meets, as each entry takes at least 4 bytes;
+  above it `limitExceeded` at the size line's first field, GF-232, GF-257). Directed target: `general` → an arc row → column per entry; `symmetric` → arcs (r, c) then (c, r), one arc for a
   diagonal entry (GF-115); `skew-symmetric` → the mirrored arc gets the negated weight (GF-116).
   Undirected target: `symmetric` only, one edge per entry as written (GF-114); either triangle is
   accepted (GF-122). Duplicate entries are parallel edges (GF-118). An integer entry of `Int.min` in a skew-symmetric file has no mirror in `Int`: `numberOutOfRange` at the value (GF-230). An entry is an edge whatever
@@ -605,7 +607,7 @@ differently from this module.
 | JSON parsing | Python's `json.loads` accepts `NaN`/`Infinity`, keeps the last of duplicate keys, keeps lone surrogates, and reads integers of any size; NetworkX adds undeclared edge endpoints, keeps `null`/list attributes, and names a node without `id` `None` | GF-093 – GF-104, GF-110 |
 | Matrix Market | SciPy truncates `3.5` in an `integer` file to `3`, reads `0x1p3` as `0.0`, ignores extra columns, accepts `+1` as an index, a skew-symmetric diagonal, and `pattern skew-symmetric` (which the spec forbids); writes field `real` for any empty matrix, even with `field="pattern"` | GF-137 – GF-146, GF-213 |
 | Matrix Market symmetry | SciPy's `mmwrite(A)` without `symmetry=` detects a symmetric matrix and writes `symmetric`; here `general` for every directed graph (so the kind is the type's, not the data's) | `ref.py` passes `symmetry="general"` |
-| Matrix Market vertex count | SciPy makes a 2²⁴ + 1 square empty matrix lazily; here: `limitExceeded` above `maximumVertexCount` | GF-232 |
+| Matrix Market vertex count | SciPy makes a 2²⁴ or 2²⁴ + 1 square empty matrix lazily; here: `limitExceeded` above `maximumVertexCount` (by default 16 per input byte plus 4,096) | GF-232, GF-257 |
 | GraphML `edgedefault` | NetworkX compares `edgedefault` without collapsing whitespace, so `" directed "` reads undirected; here it is collapsed (an enumeration of tokens) | GF-243 |
 | Edge list | NetworkX skips lines with fewer than two fields, ignores fields past the declared data, and accepts a line without its data; here: `syntax` | GF-153 – GF-155 |
 | Adjacency list | NetworkX `read_adjlist` raises `IndexError` on a line that is only a comment | GF-160 |

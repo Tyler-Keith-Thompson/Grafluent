@@ -64,11 +64,13 @@ extension MutableDirectedGraph {
     /// Reads a Matrix Market coordinate file: vertices `0..<n` (each index mapped once by `vertex`,
     /// at the size line), an edge per entry, its value under the key `"weight"`. A size line
     /// declaring more than `maximumVertexCount` vertices is `limitExceeded` at its first field,
-    /// before anything is allocated: the vertices are inserted eagerly, so the count bounds the
-    /// memory a small file can ask for.
+    /// before anything is allocated: the vertices are inserted eagerly, so the bound caps the memory
+    /// a file can ask for. `nil`, the default, bounds the count by the input's size: 16 vertices
+    /// per byte plus 4,096, which any file with an entry for every 64 vertices meets. A file that
+    /// is mostly isolated vertices needs an explicit bound.
     @inlinable public init(
         matrixMarket input: some Sequence<UInt8>,
-        maximumVertexCount: Int = 1 << 24,
+        maximumVertexCount: Int? = nil,
         vertex: (Int) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
@@ -212,10 +214,11 @@ extension MutableDirectedGraph where Vertex == Int {
     }
 
     /// Reads a Matrix Market file onto the vertices `0..<n`; more than `maximumVertexCount` is
-    /// `limitExceeded` at the size line's first field.
+    /// `limitExceeded` at the size line's first field. `nil`, the default, bounds the count by the
+    /// input's size: 16 vertices per byte plus 4,096.
     @inlinable public init(
         matrixMarket input: some Sequence<UInt8>,
-        maximumVertexCount: Int = 1 << 24,
+        maximumVertexCount: Int? = nil,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
         self = try Self._readBulk(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
@@ -298,11 +301,13 @@ extension MutableGraph {
     /// Reads a Matrix Market coordinate file: vertices `0..<n` (each index mapped once by `vertex`,
     /// at the size line), an edge per entry, its value under the key `"weight"`. A size line
     /// declaring more than `maximumVertexCount` vertices is `limitExceeded` at its first field,
-    /// before anything is allocated: the vertices are inserted eagerly, so the count bounds the
-    /// memory a small file can ask for.
+    /// before anything is allocated: the vertices are inserted eagerly, so the bound caps the memory
+    /// a file can ask for. `nil`, the default, bounds the count by the input's size: 16 vertices
+    /// per byte plus 4,096, which any file with an entry for every 64 vertices meets. A file that
+    /// is mostly isolated vertices needs an explicit bound.
     @inlinable public init(
         matrixMarket input: some Sequence<UInt8>,
-        maximumVertexCount: Int = 1 << 24,
+        maximumVertexCount: Int? = nil,
         vertex: (Int) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
@@ -446,10 +451,11 @@ extension MutableGraph where Vertex == Int {
     }
 
     /// Reads a Matrix Market file onto the vertices `0..<n`; more than `maximumVertexCount` is
-    /// `limitExceeded` at the size line's first field.
+    /// `limitExceeded` at the size line's first field. `nil`, the default, bounds the count by the
+    /// input's size: 16 vertices per byte plus 4,096.
     @inlinable public init(
         matrixMarket input: some Sequence<UInt8>,
-        maximumVertexCount: Int = 1 << 24,
+        maximumVertexCount: Int? = nil,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
         self = try Self._readBulk(input, names: ["weight"], edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in

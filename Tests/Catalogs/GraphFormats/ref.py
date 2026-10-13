@@ -1322,7 +1322,9 @@ def mm_int(tok, off, sign=True):
     return x
 
 
-MM_MAX_VERTICES = 1 << 24
+def mm_max_vertices(t):
+    """maximumVertexCount's default: 16 vertices per input byte (after a byte-order mark) plus 4,096."""
+    return 16 * len(t.encode()) + 4096
 
 
 def mm_read(t, g):
@@ -1367,7 +1369,7 @@ def mm_read(t, g):
     rows, cols, nnz = [mm_int(s, o, sign=False) for o, s in size]
     if rows != cols:
         raise ParseError("notSquare", size[1][0])
-    if rows > MM_MAX_VERTICES:  # maximumVertexCount's default
+    if rows > mm_max_vertices(t):  # maximumVertexCount's default
         raise ParseError("limitExceeded", size[0][0])
     for i in range(rows):
         g.vertex(i if g.vtype is int else str(i))
@@ -2202,7 +2204,7 @@ E("matrixMarket", "DI", "skew-symmetric: a mirrored weight outside Int", MMH + "
 R("mermaid", "D", "a lone CR ends a statement", "flowchart TD\n  A\rB --> C\n")
 
 # ---------------------------------------------------------------- GF-232 – GF-256
-E("matrixMarket", "DI", "a vertex count above maximumVertexCount (2^24)", MMH + "pattern general\n16777217 16777217 0\n")
+E("matrixMarket", "DI", "a vertex count above the default maximumVertexCount (16 a byte plus 4,096)", MMH + "pattern general\n16777217 16777217 0\n")
 R("nodeLinkJSON", "D", "multigraph: an edge whose key is taken is that edge; no key gets new_edge_key",
   '{"directed": true, "multigraph": true, "nodes": [{"id": "a"}, {"id": "b"}], "edges": ['
   '{"source": "a", "target": "b", "w": 1}, {"source": "a", "target": "b", "key": 1, "w": 2}, '
@@ -2248,6 +2250,19 @@ R("nodeLinkJSON", "U", "multigraph: a repeated string key is that edge, in eithe
   '{"multigraph": true, "nodes": [{"id": "a"}, {"id": "b"}], "edges": ['
   '{"source": "a", "target": "b", "key": "x", "w": 1}, {"source": "b", "target": "a", "key": "x", "w": 2}, '
   '{"source": "a", "target": "b", "key": 1.5, "w": 3}, {"source": "a", "target": "b", "key": 1.5, "w": 4}]}')
+
+# ---------------------------------------------------------------- GF-257 – GF-259
+E("matrixMarket", "DI", "a 69-byte file claiming 2^24 vertices is over the default maximumVertexCount",
+  MMH + "pattern general\n16777216 16777216 0\n")
+R("nodeLinkJSON", "D", "multigraph: key-less edges after key 2 get new_edge_key 3 and 4; key 3 is the first",
+  '{"directed": true, "multigraph": true, "nodes": [{"id": "a"}, {"id": "b"}], "edges": ['
+  '{"source": "a", "target": "b", "w": 1}, {"source": "a", "target": "b", "key": 2, "w": 2}, '
+  '{"source": "a", "target": "b", "w": 3}, {"source": "a", "target": "b", "w": 4}, '
+  '{"source": "a", "target": "b", "key": 3, "w": 5}]}')
+R("nodeLinkJSON", "D", "multigraph: key 1 after two key-less edges is the second",
+  '{"directed": true, "multigraph": true, "nodes": [{"id": "a"}, {"id": "b"}], "edges": ['
+  '{"source": "a", "target": "b", "w": 1}, {"source": "a", "target": "b", "w": 2}, '
+  '{"source": "a", "target": "b", "key": 1, "w": 3}]}')
 
 
 def write_output(c):
@@ -2576,7 +2591,9 @@ def dot_text(x):
 # Library behaviour that differs from ours on purpose (api.md, Library disagreements).
 KNOWN = {
     # GF-232 – GF-256
-    "a vertex count above maximumVertexCount (2^24)": "SciPy makes the empty 2^24 + 1 square matrix lazily",
+    "a vertex count above the default maximumVertexCount (16 a byte plus 4,096)": "SciPy makes the empty 2^24 + 1 square matrix lazily",
+    # GF-257 – GF-259
+    "a 69-byte file claiming 2^24 vertices is over the default maximumVertexCount": "SciPy makes the empty 2^24 square matrix lazily",
     "edgedefault with whitespace around it": "NetworkX compares edgedefault without collapsing whitespace, so reads it undirected",
     "pattern: a third field on an entry": "SciPy ignores extra columns",
     "a lone CR inside a field": "SciPy reads 1\\r2 as two fields",

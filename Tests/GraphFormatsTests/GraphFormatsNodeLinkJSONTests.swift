@@ -785,4 +785,62 @@ struct GraphFormatsNodeLinkJSONTests {
         #expect(graphKeys == [])
         #expect(graphValues == [:])
     }
+
+    @Test("GF-258 multigraph: key-less edges after key 2 get new_edge_key 3 and 4; key 3 is the first")
+    func gf258() throws {
+        // DirectedPseudograph<String>(nodeLinkJSON:) → D: a, b; a>b{w=1}, a>b{w=2}, a>b{w=5}, a>b{w=4}
+        let input = "{\"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\", \"w\": 1}, {\"source\": \"a\", \"target\": \"b\", \"key\": 2, \"w\": 2}, {\"source\": \"a\", \"target\": \"b\", \"w\": 3}, {\"source\": \"a\", \"target\": \"b\", \"w\": 4}, {\"source\": \"a\", \"target\": \"b\", \"key\": 3, \"w\": 5}]}"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 4)
+        #expect(Array(graph.edges.indices) == [0, 1, 2, 3])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["a", "b"], ["a", "b"], ["a", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["w"], 1: ["w"], 2: ["w"], 3: ["w"]])
+        #expect(edgeValues == [0: ["w": .integer(1)], 1: ["w": .integer(2)], 2: ["w": .integer(5)], 3: ["w": .integer(4)]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-259 multigraph: key 1 after two key-less edges is the second")
+    func gf259() throws {
+        // DirectedPseudograph<String>(nodeLinkJSON:) → D: a, b; a>b{w=1}, a>b{w=3}
+        let input = "{\"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\", \"w\": 1}, {\"source\": \"a\", \"target\": \"b\", \"w\": 2}, {\"source\": \"a\", \"target\": \"b\", \"key\": 1, \"w\": 3}]}"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 2)
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["a", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["w"], 1: ["w"]])
+        #expect(edgeValues == [0: ["w": .integer(1)], 1: ["w": .integer(3)]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
 }

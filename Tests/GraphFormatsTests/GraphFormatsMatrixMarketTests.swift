@@ -627,7 +627,7 @@ struct GraphFormatsMatrixMarketTests {
         }
     }
 
-    @Test("GF-232 a vertex count above maximumVertexCount (2^24)")
+    @Test("GF-232 a vertex count above the default maximumVertexCount (16 a byte plus 4,096)")
     func gf232() {
         // DirectedPseudograph<Int>(matrixMarket:) → **limitExceeded** at 2:1
         let input = "%%MatrixMarket matrix coordinate pattern general\n16777217 16777217 0\n"
@@ -689,6 +689,19 @@ struct GraphFormatsMatrixMarketTests {
         } catch {
             #expect(error.kind == .syntax)
             #expect([error.line, error.column, error.byteOffset] == [3, 2, 56])
+        }
+    }
+
+    @Test("GF-257 a 69-byte file claiming 2^24 vertices is over the default maximumVertexCount")
+    func gf257() {
+        // DirectedPseudograph<Int>(matrixMarket:) → **limitExceeded** at 2:1
+        let input = "%%MatrixMarket matrix coordinate pattern general\n16777216 16777216 0\n"
+        do {
+            let graph = try DirectedPseudograph<Int>(matrixMarket: input.utf8)
+            Issue.record("expected limitExceeded, read \(graph)")
+        } catch {
+            #expect(error.kind == .limitExceeded)
+            #expect([error.line, error.column, error.byteOffset] == [2, 1, 49])
         }
     }
 }

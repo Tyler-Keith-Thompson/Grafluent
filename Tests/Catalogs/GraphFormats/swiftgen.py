@@ -41,7 +41,7 @@ for line in TEXT.split("\n"):
     if line.startswith("| GF-"):
         ROWS[line.split(" | ")[0][2:]] = line
 CASES = ref.CASES
-assert len(CASES) == len(ROWS) == 256
+assert len(CASES) == len(ROWS) == 259
 for c in CASES:
     r = ref.evaluate(c)
     cells = ROWS[c["id"]].split(" | ")

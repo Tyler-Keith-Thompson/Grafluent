@@ -196,41 +196,47 @@
         return firsts
     }
 
+    /// The keys taken between one pair, by the edge holding each; how many there are; and where
+    /// the search for a key-less edge's key resumes (every key from `count` up to it is taken).
+    @usableFromInline typealias _KeyGroup = (keys: [AttributeValue: Int], count: Int, probe: Int)
+
     /// For each edge, the edge it is: itself when its key is new between its pair, else the
     /// earlier edge with that key. An edge without a key gets the number of keys between the pair,
     /// raised past any taken. Only pairs with several edges keep a table of their keys.
     @inlinable func networkXKeys(firsts: [Int]) -> [Int] {
         var sameAs = firsts
-        var groups: [Int: (keys: [AttributeValue: Int], count: Int)] = [:]
+        var groups: [Int: _KeyGroup] = [:]
         for i in firsts.indices {
             let first = firsts[i]
             if first == i {
                 sameAs[i] = i
                 continue
             }
-            var group = groups[first] ?? {
-                // The pair's first edge: its key, or key 0 when it has none.
-                let key = self.key(first).map(_pythonKey) ?? .integer(0)
-                return ([key: first], 1)
-            }()
-            var name: AttributeValue
-            if let key = key(i) {
-                name = _pythonKey(key)
-            } else {
-                var k = group.count
-                while group.keys[.integer(k)] != nil { k &+= 1 }
-                name = .integer(k)
-            }
-            if let earlier = group.keys[name] {
-                sameAs[i] = earlier
-            } else {
-                group.keys[name] = i
-                group.count &+= 1
-                sameAs[i] = i
-            }
-            groups[first] = group
+            // In place: the pair's table is not copied per edge. A new pair starts from its first
+            // edge, under its key or key 0 when it has none.
+            sameAs[i] = Self._resolve(&groups[first, default: ([self.key(first).map(_pythonKey) ?? .integer(0): first], 1, 0)],
+                                      key: key(i).map(_pythonKey), edge: i)
         }
         return sameAs
+    }
+
+    /// The edge that edge `i`, with `key` (`nil` for none), is within its pair's `group`, recording
+    /// it there when its key is new. A key-less edge gets the first key from `group.count` up that
+    /// is not taken; keys and the count only grow, so the search resumes where the last one ended.
+    @inlinable static func _resolve(_ group: inout _KeyGroup, key: AttributeValue?, edge i: Int) -> Int {
+        let name: AttributeValue
+        if let key {
+            name = key
+        } else {
+            var k = max(group.count, group.probe)
+            while group.keys[.integer(k)] != nil { k &+= 1 }
+            group.probe = k
+            name = .integer(k)
+        }
+        if let earlier = group.keys[name] { return earlier }
+        group.keys[name] = i
+        group.count &+= 1
+        return i
     }
 }
 

@@ -11,7 +11,7 @@ are in `api.md` in [`Tests/Catalogs/GraphFormats/`](../Catalogs/GraphFormats/). 
   `UndirectedAdjacencyList` and `Pseudograph` conform, so every reader also has an undirected form.
 - A Mermaid flowchart that mixes arrows and open links is `kindMismatch`.
 - The Matrix Market vertex count is inserted eagerly, bounded by `maximumVertexCount:` (default
-  2²⁴).
+  `nil`: 16 per input byte plus 4,096).
 - Writers trap on a string they cannot represent: XML control characters, whitespace or `#` in a
   list token, a Mermaid ID outside `[A-Za-z0-9_]+`, a non-finite double in JSON.
 - DOT HTML strings are read as `.string`, and the writer quotes them.
@@ -61,15 +61,15 @@ uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 --with pyd
 
 It first checks that `ref.py` reproduces `cases.md` byte for byte. Then it re-runs every row on the
 model and checks that the result renders to the row's Expected cell. Last, it writes one `@Test` per
-row (256 rows):
+row (259 rows):
 
-- **Read rows (107).** The reader runs on the row's target with closures that record every
+- **Read rows (109).** The reader runs on the row's target with closures that record every
   attribute call (or Mermaid label call). For each key the test keeps the order it was first set
   in and the last value set. The test then checks the vertices in order, and every edge position
   with its endpoints (stored orientation for undirected edges). It also checks the counts and every
   recorded attribute of every vertex, every edge and the graph, and that no other attribute was
   set. A NaN is checked by `isNaN`.
-- **Error rows (109).** The test checks the `ParseError`'s kind, line, column and byte offset. The
+- **Error rows (110).** The test checks the `ParseError`'s kind, line, column and byte offset. The
   offset is computed from the model's position and counts from after a byte-order mark.
 - **Write rows (40).** The test builds the row's graph as a `DirectedPseudograph` or `Pseudograph`:
   vertices in order, then edges in position order. It passes the row's attributes through the

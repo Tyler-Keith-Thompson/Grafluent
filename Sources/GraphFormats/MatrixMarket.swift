@@ -114,7 +114,7 @@
 /// value).
 @inlinable func _readMatrixMarket<Vertex, Direction>(
     _ text: UnsafeBufferPointer<UInt8>, into target: inout _BulkTarget<Vertex, Direction>,
-    maximumVertexCount: Int, identity: Bool, map: (Int) -> Vertex?,
+    maximumVertexCount: Int?, identity: Bool, map: (Int) -> Vertex?,
     weight: (Int, AttributeValue) -> Void
 ) throws(ParseError) {
     let n = text.count
@@ -180,10 +180,12 @@
     let entries = try _matrixMarketCount(text, fields[2].0, fields[2].1)
     if rows != columns { throw ParseError(.notSquare, at: fields[1].0) }
 
-    // The vertices, eagerly (isolated vertices are data), up to the caller's bound; edge room only
-    // as much as the rest of the input could describe, at 4 bytes an entry at least.
+    // The vertices, eagerly (isolated vertices are data), up to the caller's bound or, by default,
+    // 16 a byte of input plus 4,096; edge room only as much as the rest of the input could
+    // describe, at 4 bytes an entry at least.
     let sizeOffset = fields[0].0
-    if rows > maximumVertexCount { throw ParseError(.limitExceeded, at: sizeOffset) }
+    let vertexBound = maximumVertexCount ?? _ExpansionBudget(inputCount: n, perByte: 16).remaining
+    if rows > vertexBound { throw ParseError(.limitExceeded, at: sizeOffset) }
     let remaining = n - start
     let arcsPerEntry = symmetry != .general && isDirected ? 2 : 1
     target.reserve(vertexCount: rows, edgeCount: min(entries, remaining / 4) &* arcsPerEntry)

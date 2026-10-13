@@ -105,7 +105,9 @@ func readDirected<G: MutableDirectedGraph>(_: G.Type, _ format: Format, _ bytes:
         case .dot: graph = try G(dot: bytes, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
         case .graphML: graph = try G(graphML: bytes, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
         case .nodeLinkJSON: graph = try G(nodeLinkJSON: bytes, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
-        case .matrixMarket: graph = try G(matrixMarket: bytes, maximumVertexCount: 4096, vertex: { String($0) }, edgeAttribute: edgeAttribute)
+        // An even-length input passes a bound, an odd one takes the default (16 a byte plus 4,096).
+        case .matrixMarket: graph = try G(matrixMarket: bytes, maximumVertexCount: bytes.count & 1 == 0 ? 4096 : nil, vertex: { String($0) },
+                                          edgeAttribute: edgeAttribute)
         case .edgeList: graph = try G(edgeList: bytes, columns: columns, edgeAttribute: edgeAttribute)
         case .adjacencyList: graph = try G(adjacencyList: bytes)
         case .mermaid:
@@ -140,7 +142,9 @@ func readUndirected<G: MutableGraph>(_: G.Type, _ format: Format, _ bytes: [UInt
         case .dot: graph = try G(dot: bytes, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
         case .graphML: graph = try G(graphML: bytes, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
         case .nodeLinkJSON: graph = try G(nodeLinkJSON: bytes, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
-        case .matrixMarket: graph = try G(matrixMarket: bytes, maximumVertexCount: 4096, vertex: { String($0) }, edgeAttribute: edgeAttribute)
+        // An even-length input passes a bound, an odd one takes the default (16 a byte plus 4,096).
+        case .matrixMarket: graph = try G(matrixMarket: bytes, maximumVertexCount: bytes.count & 1 == 0 ? 4096 : nil, vertex: { String($0) },
+                                          edgeAttribute: edgeAttribute)
         case .edgeList: graph = try G(edgeList: bytes, columns: columns, edgeAttribute: edgeAttribute)
         case .adjacencyList: graph = try G(adjacencyList: bytes)
         case .mermaid:

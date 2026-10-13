@@ -54,7 +54,7 @@ struct GraphFormatsReviewScaleTests {
         #expect(undirected.vertexCount == 3 && undirected.edgeCount == 1)
         let undirectedNamed = try Pseudograph<String>(matrixMarket: symmetricThree.utf8, maximumVertexCount: 3, vertex: { "v\($0)" })
         #expect(Array(undirectedNamed.vertices) == ["v0", "v1", "v2"])
-        // The default bound is 2²⁴, and a zero bound reads only the empty matrix.
+        // A zero bound reads only the empty matrix.
         #expect(try DirectedPseudograph<Int>(matrixMarket: (header + "0 0 0\n").utf8, maximumVertexCount: 0).vertexCount == 0)
         #expect(clock.now - start < .seconds(5))
     }
@@ -276,5 +276,50 @@ struct GraphFormatsReviewScaleTests {
         }
         let ratio = ratio({ write(small) }, { write(large) })
         #expect(ratio < 32, "8× the vertices took \(ratio)× as long")
+    }
+
+    @Test("Node-link: 200,000 key-less parallel edges read in linear time, in either reader", .timeLimit(.minutes(1)))
+    func nodeLinkKeylessParallelEdges() throws {
+        let clock = ContinuousClock()
+        let start = clock.now
+        var edges = ""
+        edges.reserveCapacity(200_000 * 28)
+        for k in 0 ..< 200_000 { edges += (k == 0 ? "" : ", ") + "{\"source\": 0, \"target\": 1}" }
+        // The common layout (one pass), then a member the reader ignores first (two passes).
+        let common = "{\"directed\": true, \"multigraph\": true, \"graph\": {}, \"nodes\": [{\"id\": 0}, {\"id\": 1}], \"edges\": [" + edges + "]}"
+        let other = "{\"x\": 0, \"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": 0}, {\"id\": 1}], \"edges\": [" + edges + "]}"
+        let one = try DirectedPseudograph<Int>(nodeLinkJSON: common.utf8)
+        #expect(one.vertexCount == 2 && one.edgeCount == 200_000)
+        let two = try DirectedPseudograph<Int>(nodeLinkJSON: other.utf8)
+        #expect(two.vertexCount == 2 && two.edgeCount == 200_000)
+        let undirectedText = "{\"directed\": false, \"multigraph\": true, \"graph\": {}, \"nodes\": [{\"id\": 0}, {\"id\": 1}], \"edges\": [" + edges + "]}"
+        let undirected = try Pseudograph<Int>(nodeLinkJSON: undirectedText.utf8)
+        #expect(undirected.edgeCount == 200_000)
+        #expect(clock.now - start < .seconds(20))
+    }
+
+    @Test("Node-link: 50,000 keys 50,001 – 100,000 then 50,000 key-less edges read in linear time", .timeLimit(.minutes(1)))
+    func nodeLinkKeysThenKeyless() throws {
+        let clock = ContinuousClock()
+        let start = clock.now
+        var edges = ""
+        edges.reserveCapacity(100_000 * 40)
+        for k in 50_001 ... 100_000 { edges += (k == 50_001 ? "" : ", ") + "{\"source\": 0, \"target\": 1, \"key\": \(k)}" }
+        for _ in 0 ..< 50_000 { edges += ", {\"source\": 0, \"target\": 1}" }
+        // The key-less edges get 50,000 and then 100,001 – 149,999 (NetworkX's new_edge_key): a
+        // later edge with key 50,000 or 149,999 is one of them, one with 150,000 is new.
+        let tail = ", {\"source\": 0, \"target\": 1, \"key\": 50000, \"w\": 1}, {\"source\": 0, \"target\": 1, \"key\": 149999, \"w\": 2}"
+            + ", {\"source\": 0, \"target\": 1, \"key\": 150000, \"w\": 3}"
+        let common = "{\"directed\": true, \"multigraph\": true, \"graph\": {}, \"nodes\": [{\"id\": 0}, {\"id\": 1}], \"edges\": [" + edges + tail + "]}"
+        let other = "{\"x\": 0, \"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": 0}, {\"id\": 1}], \"edges\": [" + edges + tail + "]}"
+        for text in [common, other] {
+            var weights: [Int] = []
+            let graph = try DirectedPseudograph<Int>(nodeLinkJSON: text.utf8, edgeAttribute: { _, _, value in
+                if case .integer(let w) = value { weights.append(w) }
+            })
+            #expect(graph.vertexCount == 2 && graph.edgeCount == 100_001)
+            #expect(weights == [1, 2, 3])
+        }
+        #expect(clock.now - start < .seconds(20))
     }
 }

@@ -54,8 +54,9 @@ MUTANTS = [
     Mutant("listtokenws", EL, "!_containsWhitespace(bytes)", "true"),
 
     # Matrix Market.
-    Mutant("mmlimit", MM, "if rows > maximumVertexCount { throw ParseError(.limitExceeded, at: sizeOffset) }", "", mode="stmt"),
-    Mutant("mmlimiteq", MM, "rows > maximumVertexCount", "rows >= maximumVertexCount"),
+    Mutant("mmlimit", MM, "if rows > vertexBound { throw ParseError(.limitExceeded, at: sizeOffset) }", "", mode="stmt"),
+    Mutant("mmlimiteq", MM, "rows > vertexBound", "rows >= vertexBound"),
+    Mutant("mmlimitdefault", MM, "perByte: 16).remaining", "perByte: 1 << 20).remaining"),
     Mutant("mmfieldcr", MM, "(c == 0x0D && (q &+ 1 == text.count || text[q &+ 1] == 0x0A))", "c == 0x0D"),
     Mutant("mmoverflow", MM, "if o1 || o2 { overflow = true }", "", mode="stmt"),
     Mutant("mmdigits", MM, "digitsOnly = false", "", mode="stmt"),
@@ -128,8 +129,9 @@ MUTANTS = [
     Mutant("xmlindexend", XML, "nameIndex.end()", "", mode="stmt"),
 
     # Node-link JSON.
-    Mutant("nlkeyed", NL, "sameAs[i] = earlier", "sameAs[i] = i", mode="stmt"),
+    Mutant("nlkeyed", NL, "if let earlier = group.keys[name] { return earlier }", "", mode="stmt"),
     Mutant("nlnewkey", NL, "while group.keys[.integer(k)] != nil { k &+= 1 }", "", mode="stmt"),
+    Mutant("nlprobe", NL, "max(group.count, group.probe)", "group.probe"),
     Mutant("nlstringkey", NL, "otherKeys[us.count] = other", "", mode="stmt"),
     Mutant("nlnormalize", NL, ".integer(b ? 1 : 0)", "value"),
     Mutant("nlnullkey", NL, "json.kind(keyOffset) != .null", "true"),

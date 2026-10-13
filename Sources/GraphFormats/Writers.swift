@@ -19,6 +19,8 @@ internal func _defaultVertexID<Vertex>(_ vertex: Vertex) -> String {
 extension DirectedGraph {
     /// Writes canonical DOT: `digraph {`, the graph attributes, every vertex in `vertices` order,
     /// every edge in position order, one tab of indent. IDs are bare when DOT allows, else quoted.
+    ///
+    /// Traps when two vertices have the same ID (compared by Unicode scalars), or when an attribute closure gives one key twice for an element.
     @inlinable public func writeDOT(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) },
@@ -35,6 +37,11 @@ extension DirectedGraph {
     /// Writes GraphML: a typed `<key>` per attribute name and domain, then every vertex and edge
     /// with its `<data>`. The attribute closures are called twice per element (to type the keys,
     /// then to write), and must return the same pairs both times; `vertexID` once per vertex.
+    ///
+    /// Traps when two vertices have the same ID (compared by Unicode scalars); when an ID, attribute name or string value holds a character XML 1.0
+    /// cannot represent (a C0 control other than tab, line feed and carriage return, U+FFFE or
+    /// U+FFFF); when one key holds values of two types other than integers and doubles; or when
+    /// an attribute closure gives one key twice for an element.
     @inlinable public func writeGraphML(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) },
@@ -51,6 +58,10 @@ extension DirectedGraph {
     /// Writes node-link JSON: one line, `", "` and `": "` between items, every character outside
     /// ASCII escaped, and no final line feed. `vertexID` gives each node's `id` (by default an
     /// `Int` vertex as a number, any other as its description).
+    ///
+    /// Traps when `vertexID` returns a double or a boolean; when two vertices have the same ID (compared by Unicode scalars); when a value is a NaN or
+    /// infinite double; when a vertex has an attribute named `id`, or an edge one named `source`,
+    /// `target` or `key`; or when an attribute closure gives one key twice for an element.
     @inlinable public func writeNodeLinkJSON(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> AttributeValue = { ($0 as? Int).map(AttributeValue.integer) ?? .string(_defaultVertexID($0)) },
@@ -88,6 +99,10 @@ extension DirectedGraph {
 
     /// Writes an edge list: `u v` and the value of each of `columns` per edge, in position order
     /// (isolated vertices are not written).
+    ///
+    /// Traps when an ID or string value is empty or holds whitespace or `#`; when two vertices have the same ID (compared by Unicode scalars); when a
+    /// column's value is a boolean; when an edge's attributes have no value for one of `columns`; or
+    /// when an attribute closure gives one key twice for an element.
     @inlinable public func writeEdgeList(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) },
@@ -101,6 +116,8 @@ extension DirectedGraph {
 
     /// Writes an adjacency list: one line per vertex in `vertices` order, the vertex and then the far
     /// end of each of its edges.
+    ///
+    /// Traps when an ID is empty or holds whitespace or `#`, or when two vertices have the same ID (compared by Unicode scalars).
     @inlinable public func writeAdjacencyList(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) }
@@ -111,7 +128,11 @@ extension DirectedGraph {
     }
 
     /// Writes a Mermaid flowchart (`flowchart TD`): every vertex, with its label when it has one,
-    /// then every edge. IDs must be `[A-Za-z0-9_]+` and not a Mermaid keyword.
+    /// then every edge.
+    ///
+    /// Traps when an ID is not `[A-Za-z0-9_]+` or is a Mermaid keyword (`end`, `graph`,
+    /// `flowchart`, `subgraph`, `style`, `classDef`, `class`, `click`, `linkStyle`, `direction`), or
+    /// when two vertices have the same ID (compared by Unicode scalars).
     @inlinable public func writeMermaid(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) },
@@ -129,6 +150,8 @@ extension DirectedGraph {
 extension Graph {
     /// Writes canonical DOT: `graph {`, the graph attributes, every vertex in `vertices` order,
     /// every edge in position order, one tab of indent. IDs are bare when DOT allows, else quoted.
+    ///
+    /// Traps when two vertices have the same ID (compared by Unicode scalars), or when an attribute closure gives one key twice for an element.
     @inlinable public func writeDOT(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) },
@@ -145,6 +168,11 @@ extension Graph {
     /// Writes GraphML: a typed `<key>` per attribute name and domain, then every vertex and edge
     /// with its `<data>`. The attribute closures are called twice per element (to type the keys,
     /// then to write), and must return the same pairs both times; `vertexID` once per vertex.
+    ///
+    /// Traps when two vertices have the same ID (compared by Unicode scalars); when an ID, attribute name or string value holds a character XML 1.0
+    /// cannot represent (a C0 control other than tab, line feed and carriage return, U+FFFE or
+    /// U+FFFF); when one key holds values of two types other than integers and doubles; or when
+    /// an attribute closure gives one key twice for an element.
     @inlinable public func writeGraphML(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) },
@@ -161,6 +189,10 @@ extension Graph {
     /// Writes node-link JSON: one line, `", "` and `": "` between items, every character outside
     /// ASCII escaped, and no final line feed. `vertexID` gives each node's `id` (by default an
     /// `Int` vertex as a number, any other as its description).
+    ///
+    /// Traps when `vertexID` returns a double or a boolean; when two vertices have the same ID (compared by Unicode scalars); when a value is a NaN or
+    /// infinite double; when a vertex has an attribute named `id`, or an edge one named `source`,
+    /// `target` or `key`; or when an attribute closure gives one key twice for an element.
     @inlinable public func writeNodeLinkJSON(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> AttributeValue = { ($0 as? Int).map(AttributeValue.integer) ?? .string(_defaultVertexID($0)) },
@@ -198,6 +230,10 @@ extension Graph {
 
     /// Writes an edge list: `u v` and the value of each of `columns` per edge, in position order
     /// (isolated vertices are not written).
+    ///
+    /// Traps when an ID or string value is empty or holds whitespace or `#`; when two vertices have the same ID (compared by Unicode scalars); when a
+    /// column's value is a boolean; when an edge's attributes have no value for one of `columns`; or
+    /// when an attribute closure gives one key twice for an element.
     @inlinable public func writeEdgeList(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) },
@@ -211,6 +247,8 @@ extension Graph {
 
     /// Writes an adjacency list: one line per vertex in `vertices` order, the vertex and then the far
     /// end of each of its edges.
+    ///
+    /// Traps when an ID is empty or holds whitespace or `#`, or when two vertices have the same ID (compared by Unicode scalars).
     @inlinable public func writeAdjacencyList(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) }
@@ -221,7 +259,11 @@ extension Graph {
     }
 
     /// Writes a Mermaid flowchart (`flowchart TD`): every vertex, with its label when it has one,
-    /// then every edge. IDs must be `[A-Za-z0-9_]+` and not a Mermaid keyword.
+    /// then every edge.
+    ///
+    /// Traps when an ID is not `[A-Za-z0-9_]+` or is a Mermaid keyword (`end`, `graph`,
+    /// `flowchart`, `subgraph`, `style`, `classDef`, `class`, `click`, `linkStyle`, `direction`), or
+    /// when two vertices have the same ID (compared by Unicode scalars).
     @inlinable public func writeMermaid(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) },

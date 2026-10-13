@@ -34,6 +34,68 @@ struct GraphFormatsReviewTests {
         }
     }
 
+    @Test("Matrix Market: the 69-byte file claiming 2²⁴ vertices is over the default bound, through every overload")
+    func matrixMarketDefaultBoundSmallFile() {
+        let file = "%%MatrixMarket matrix coordinate pattern general\n16777216 16777216 0\n"
+        let symmetric = "%%MatrixMarket matrix coordinate pattern symmetric\n16777216 16777216 0\n"
+        #expect(file.utf8.count == 69)
+        #expect(throws: ParseError(kind: .limitExceeded, line: 2, column: 1, byteOffset: 49)) {
+            try DirectedPseudograph<Int>(matrixMarket: file.utf8)
+        }
+        #expect(throws: ParseError(kind: .limitExceeded, line: 2, column: 1, byteOffset: 49)) {
+            try DirectedPseudograph<String>(matrixMarket: file.utf8, vertex: { String($0) })
+        }
+        #expect(throws: ParseError(kind: .limitExceeded, line: 2, column: 1, byteOffset: 51)) {
+            try Pseudograph<Int>(matrixMarket: symmetric.utf8)
+        }
+        #expect(throws: ParseError(kind: .limitExceeded, line: 2, column: 1, byteOffset: 51)) {
+            try Pseudograph<String>(matrixMarket: symmetric.utf8, vertex: { String($0) })
+        }
+    }
+
+    @Test("Matrix Market: the default bound is 16 vertices per input byte plus 4,096")
+    func matrixMarketDefaultBoundEdge() throws {
+        // 61 bytes: 16 × 61 + 4,096 = 5,072 vertices fit, 5,073 do not.
+        let header = "%%MatrixMarket matrix coordinate pattern general\n"
+        let atBound = header + "5072 5072 0\n", overBound = header + "5073 5073 0\n"
+        #expect(atBound.utf8.count == 61 && overBound.utf8.count == 61)
+        let read = try DirectedPseudograph<Int>(matrixMarket: atBound.utf8)
+        #expect(read.vertexCount == 5_072 && read.edgeCount == 0)
+        #expect(Array(read.vertices) == Array(0 ..< 5_072))
+        #expect(throws: ParseError(kind: .limitExceeded, line: 2, column: 1, byteOffset: 49)) {
+            try DirectedPseudograph<Int>(matrixMarket: overBound.utf8)
+        }
+        // A byte-order mark is not counted.
+        #expect(throws: ParseError(kind: .limitExceeded, line: 2, column: 1, byteOffset: 49)) {
+            try DirectedPseudograph<Int>(matrixMarket: [0xEF, 0xBB, 0xBF] + Array(overBound.utf8))
+        }
+        // A small honest file reads with the defaults, isolated vertices included.
+        let honest = try DirectedPseudograph<Int>(matrixMarket: (header + "5000 5000 0\n").utf8)
+        #expect(honest.vertexCount == 5_000 && honest.edgeCount == 0)
+        let weighted = "%%MatrixMarket matrix coordinate integer symmetric\n% a comment\n6 6 2\n2 1 7\n6 6 -1\n"
+        var weights: [AttributeValue] = []
+        let undirected = try Pseudograph<String>(matrixMarket: weighted.utf8, vertex: { "v\($0)" },
+                                                  edgeAttribute: { _, _, value in weights.append(value) })
+        #expect(Array(undirected.vertices) == ["v0", "v1", "v2", "v3", "v4", "v5"])
+        #expect(undirected.edgeCount == 2 && weights.count == 2)
+        #expect(weights.contains(.integer(7)) && weights.contains(.integer(-1)))
+    }
+
+    @Test("Matrix Market: an explicit maximumVertexCount replaces the default bound")
+    func matrixMarketExplicitBound() throws {
+        let file = "%%MatrixMarket matrix coordinate pattern general\n65536 65536 0\n"
+        #expect(throws: ParseError(kind: .limitExceeded, line: 2, column: 1, byteOffset: 49)) {
+            try DirectedPseudograph<Int>(matrixMarket: file.utf8)
+        }
+        let read = try DirectedPseudograph<Int>(matrixMarket: file.utf8, maximumVertexCount: 1 << 16)
+        #expect(read.vertexCount == 65_536 && read.edgeCount == 0)
+        let named = try DirectedPseudograph<String>(matrixMarket: file.utf8, maximumVertexCount: 1 << 16, vertex: { String($0) })
+        #expect(named.vertexCount == 65_536)
+        #expect(throws: ParseError(kind: .limitExceeded, line: 2, column: 1, byteOffset: 49)) {
+            try DirectedPseudograph<Int>(matrixMarket: file.utf8, maximumVertexCount: (1 << 16) - 1)
+        }
+    }
+
     @Test("DOT: a repeated default key keeps its first place and its last value")
     func dotRepeatedDefault() throws {
         var attributes: [String] = []
