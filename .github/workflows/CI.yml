@@ -45,8 +45,7 @@ jobs:
               echo "build --remote_cache_compression"
             } >> user.bazelrc
           fi
+      # Debug only: the release configuration's performance tests run locally before a push.
       - name: Test (debug)
         run: bazel test --keep_going //...
-      - name: Test (release)
-        run: bazel test --keep_going --allow_analysis_cache_discard --config=release //...
 
