@@ -26,7 +26,7 @@ struct GraphFormatsRoundTripTests {
             let (picks, pairs, codes) = input
             let pool = ["a", "x y", "q\"r", "\\", "tail\\", "é", "日本", "😀", "two\nlines", "#", "<&>", "1", "-2", "_", "node",
                         "\t", "\r\n", "", "a\\\nb", "-.5"]
-            // Doubles with Python's repr, the text DOT gives back.
+            // Doubles in the writers' form, the text DOT gives back.
             let doubles: [(Double, String)] = [(0.5, "0.5"), (-2.0, "-2.0"), (1e-07, "1e-07"), (1e22, "1e+22"), (9.5e15, "9500000000000000.0"),
                                                (1e16, "1e+16"), (0.0001, "0.0001"), (-0.0, "-0.0"), (.infinity, "inf"), (-.infinity, "-inf"),
                                                (.nan, "nan"), (5e-324, "5e-324"), (123456789.125, "123456789.125")]

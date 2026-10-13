@@ -1017,7 +1017,7 @@
     }
 }
 
-/// A written key's type: `.integer` is GraphML's `long` (64-bit, as NetworkX writes Python ints).
+/// A written key's type: `.integer` is GraphML's `long` (64-bit).
 @usableFromInline internal enum _WrittenType {
     case string, long, double, boolean
 

@@ -50,7 +50,7 @@ struct PruferTests {
 
     @Test("TS-504 Tree(K₁).pruferSequence is nil: undefined for n < 2")
     func codeOfK1() throws {
-        // U: [0]. NetworkX raises NetworkXPointlessConcept, igraph IGRAPH_EINVAL.
+        // U: [0]
         let graph = ReferencePseudograph<Int>(vertices: [0], edges: [])
         let tree = try #require(Tree(graph))
         #expect(tree.pruferSequence == nil)

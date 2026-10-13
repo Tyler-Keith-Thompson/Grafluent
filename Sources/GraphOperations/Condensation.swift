@@ -9,7 +9,7 @@ extension DirectedAcyclicGraph where Base: _DirectedGraphConstruction {
     /// step through the base's construction hook.
     ///
     /// Every condensation edge goes from a later component to an earlier one (Tarjan's order,
-    /// reverse topological), so the topological order is `n − 1, …, 0`, set without a Kahn pass.
+    /// reverse topological), so the topological order is `n − 1, …, 0` and needs no sort.
     /// O(k + e) for k components and e condensation edges.
     @inlinable
     public init<G>(_ condensation: Condensation<G>) {

@@ -19,7 +19,7 @@ Everything here is computed two ways, neither of them the algorithm under test's
   - block–cut tree: for each block, the articulation points it contains;
 * an iterative Hopcroft–Tarjan that skips the parent EDGE (by position), never the parent
   vertex, with an edge stack for blocks and a vertex stack for 2-edge-connected components:
-  the algorithm api.md proposes, checked against brute force on every case and on random
+  the algorithm api.md describes, checked against brute force on every case and on random
   multigraphs, and used alone on the stress sizes.
 
 Then NetworkX 3.7 cross-checks every case (MultiGraph for bridges; the simple collapse for
@@ -307,7 +307,7 @@ def finish(vs, es, cc, br, ap, bcc, becc):
     }
 
 
-# ------------------------------- iterative Hopcroft–Tarjan (the proposal) --------------------
+# ------------------------------- iterative Hopcroft–Tarjan -----------------------------------
 
 def hopcroft_tarjan(vs, es, skip_parent_vertex=False, push_loops=False):
     """One iterative DFS over vertex numbers in `vertices` order, incident edges in
@@ -581,7 +581,7 @@ def random_section(trials=1500):
         vs, es = random_multigraph(rng, n, rng.randint(n - 3, 2 * n), loops=rng.random() < 0.5,
                                    parallel=rng.random() < 0.5)
         laws(vs, es, compute(vs, es))
-    # Boost's biconnected_components_test: G(100, 500) with parallel edges, articulation points
+    # G(100, 500) with parallel edges, articulation points
     # against vertex removal (here also everything else, and sparser cuts so there is something to find)
     for n, m in [(100, 500), (100, 100), (100, 120), (300, 320)]:
         vs, es = random_multigraph(rng, n, m, loops=False)

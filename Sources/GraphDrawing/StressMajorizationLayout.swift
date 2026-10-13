@@ -1,26 +1,21 @@
 import GraphProtocols
 
 extension Graph {
-    /// A drawing whose distances match the graph's: stress majorization, the minimizer of
-    /// Kamada and Kawai's energy that Graphviz's `neato` uses by default.
+    /// A drawing whose distances match the graph's, by stress majorization.
     ///
     /// The target distance d_ij of two vertices is their shortest-path distance with `edgeLength`
-    /// (hops by default); between components it is 1 + L̄·√n, L̄ the mean edge length (`neato`'s
-    /// rule without packing). The drawing minimizes the stress Σ_{i<j} d_ij⁻² (‖x_i − x_j‖ − d_ij)²,
+    /// (hops by default); between components it is 1 + L̄·√n, L̄ the mean edge length. The drawing minimizes the stress Σ_{i<j} d_ij⁻² (‖x_i − x_j‖ − d_ij)²,
     /// which with these weights is Kamada and Kawai's energy. Each step updates every vertex in
     /// `vertices` order to the minimizer of a majorant of the stress in that vertex (Gansner,
     /// Koren and North's localized update), so the stress never increases. The run stops one step
     /// after a step that lowered the stress by at most `tolerance` times its value (each step
-    /// measures its starting stress on the way), or after `maxIterations` steps. The default
-    /// tolerance, 10⁻⁴, is Graphviz's `epsilon` for `neato -Gmode=major`; a smaller one can leave a
-    /// plateau that 10⁻⁴ stops on (on a random 40-vertex graph, 10⁻⁵ ends 9% lower).
+    /// measures its starting stress on the way), or after `maxIterations` steps. A tolerance
+    /// below the default 10⁻⁴ can carry the run past a plateau to a lower stress.
     ///
-    /// The start is `initial`, or by default `circularLayout(radius: L̄)`: NetworkX's start for
-    /// Kamada–Kawai, scaled by the mean edge length so that scaling every length by a power of 2
-    /// scales every step's drawing by exactly that factor (the update is homogeneous), and any
-    /// other factor up to rounding. (`neato -Gmode=major`, the like-for-like Graphviz run, starts
-    /// from random positions.) Deterministic: no randomness anywhere. A directed graph is drawn
-    /// through `undirectedView`.
+    /// The start is `initial`, or by default `circularLayout(radius: L̄)`. Scaled by the mean edge
+    /// length, the default start makes scaling every length by a power of 2 scale every step's
+    /// drawing by exactly that factor, and by any other factor up to rounding. The layout uses no
+    /// randomness. A directed graph is drawn through `undirectedView`.
     ///
     /// - Gansner, Koren and North, "Graph drawing by stress majorization", Graph Drawing (GD
     ///   2004), LNCS 3383, 2005.
@@ -29,7 +24,7 @@ extension Graph {
     ///
     /// O(n·(n + m)) for the distances by breadth-first search (O(n·m log n) by Dijkstra when the
     /// lengths differ), then O(n²) per step. The reciprocal target distances are kept in single
-    /// precision for the pairs i < j only: 2n² bytes (200 MB at 10⁴ vertices), so `stress` and the
+    /// precision for the pairs i < j only, 2n² bytes (200 MB at 10⁴ vertices). `stress` and the
     /// drawing are those of distances rounded to about 7 significant digits.
     ///
     /// - Precondition: every edge length is positive and finite; `tolerance ≥ 0`;

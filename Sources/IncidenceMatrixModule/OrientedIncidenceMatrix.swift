@@ -1,26 +1,26 @@
 import BitCollections
 import GraphProtocols
 
-/// The oriented incidence matrix of a directed hypergraph: entry (v, p) is −1 when `v` is a source
-/// of column `p`, +1 when it is a target, and 0 otherwise. Gallo, Longo, Pallottino and Nguyen
-/// (1993) define a directed hypergraph's matrix this way (aᵢⱼ = −1 for a tail node, 1 for a head
-/// node); a directed graph's edge is the column with one source and one target, the matrix of
-/// spectral graph theory (B·Bᵀ = L, Godsil–Royle §8.3) and NetworkX's
-/// `incidence_matrix(oriented=True)`. It conforms to `DirectedHypergraph`, so the `Hypergraphs`
-/// algorithms (B- and F-connection, components, the clique expansion) run on it unchanged; it is
+/// The oriented incidence matrix of a directed hypergraph. Entry (v, p) is −1 when `v` is a source
+/// of column `p`, +1 when it is a target, and 0 otherwise.
+///
+/// This is the matrix of Gallo, Longo, Pallottino and Nguyen (1993). A directed graph's edge is a
+/// column with one source and one target, which gives the oriented incidence matrix of spectral
+/// graph theory (B·Bᵀ = L). The matrix conforms to `DirectedHypergraph`, so the `Hypergraphs`
+/// algorithms (B- and F-connection, components, the clique expansion) run on it unchanged. It is
 /// not a `DirectedGraph`.
 ///
-/// **Two bit planes.** The sources and the targets are each an `IncidenceMatrix`, as
-/// SimpleDirectedHypergraphs.jl keeps two matrices, so a vertex can be on both sides of a column.
-/// Its entry is then target − source = **0**, with both bits kept: `sources(ofHyperedgeAt:)`,
-/// `targets(ofHyperedgeAt:)`, the stars and equality read the planes, so nothing is lost. A
-/// directed self-loop is such a column, and its zero matches NetworkX's oriented loop column and
-/// HyperGraphs.jl's `−1 + 1`. `reversed` swaps the planes (every entry negated) and `transposed()`
-/// transposes each (the dual), both in O(1).
+/// ## Two bit planes
 ///
-/// Storage is 4·n·m/8 bytes, so, as for `IncidenceMatrix`, this is for dense or small incidence;
-/// `IncidenceList` is the sparse representation. Equality compares both planes cell for cell, with
-/// equal shape, and column order counts.
+/// The sources and the targets are each stored as an `IncidenceMatrix`, so a vertex can be on both
+/// sides of a column. Its entry is then target − source = 0, with both bits kept.
+/// `sources(ofHyperedgeAt:)`, `targets(ofHyperedgeAt:)`, the stars and equality read the planes,
+/// so nothing is lost. A directed self-loop is such a column. `reversed` swaps the planes, negating
+/// every entry, and `transposed()` transposes each plane to give the dual. Both are O(1).
+///
+/// Storage is 4·n·m/8 bytes, so the matrix suits dense or small incidence. `IncidenceList` is the
+/// sparse representation. Equality compares both planes cell for cell, with equal shape, so column
+/// order counts.
 @frozen
 public struct OrientedIncidenceMatrix {
     /// The source plane: cell (v, p) set when `v` is a source of `p`.
@@ -80,17 +80,17 @@ extension OrientedIncidenceMatrix {
         self.init(_sources: IncidenceMatrix(vertexCount: vertexCount, hyperedges: sources), _targets: IncidenceMatrix(vertexCount: vertexCount, hyperedges: targets))
     }
 
-    /// A matrix of `vertexCount` vertices with one column per edge, in order: −1 at its source,
-    /// +1 at its target, and 0 for a self-loop (both bits set).
+    /// A matrix of `vertexCount` vertices with one column per edge, in order, with −1 at its
+    /// source and +1 at its target. A self-loop's column is 0 with both bits set.
     ///
-    /// - Precondition: every endpoint is in `0..<vertexCount`.
+    /// - Precondition: Every endpoint is in `0..<vertexCount`.
     @inlinable
     public init(vertexCount: Int, edges: some Sequence<DirectedEdge<Int>>) {
         self.init(vertexCount: vertexCount, hyperedges: edges.lazy.map { (sources: CollectionOfOne($0.source), targets: CollectionOfOne($0.target)) })
     }
 
-    /// The oriented matrix of a directed hypergraph: rows by vertex index, a column per hyperedge
-    /// in `hyperedges` order.
+    /// The oriented matrix of a directed hypergraph, with rows by vertex index and a column per
+    /// hyperedge in `hyperedges` order.
     ///
     /// - Precondition: `hypergraph.vertexIndexBound` is not `nil`.
     @inlinable
@@ -117,8 +117,8 @@ extension OrientedIncidenceMatrix {
         }
     }
 
-    /// The oriented incidence matrix of a directed graph: rows by vertex index, a column per edge
-    /// in `edges` order, −1 at the source and +1 at the target.
+    /// The oriented incidence matrix of a directed graph, with rows by vertex index and a column per
+    /// edge in `edges` order, −1 at the source and +1 at the target.
     ///
     /// - Precondition: `graph.vertexIndexBound` is not `nil`.
     @inlinable
@@ -135,8 +135,8 @@ extension OrientedIncidenceMatrix {
         }
     }
 
-    /// An oriented incidence matrix of an undirected graph: each edge oriented from `edges[p].u`
-    /// to `edges[p].v` (NetworkX's `edgelist` tuple order), rows by vertex index.
+    /// An oriented incidence matrix of an undirected graph, with each edge oriented from
+    /// `edges[p].u` to `edges[p].v` and rows by vertex index.
     ///
     /// - Precondition: `graph.vertexIndexBound` is not `nil`.
     @inlinable
@@ -154,8 +154,8 @@ extension OrientedIncidenceMatrix {
         }
     }
 
-    /// The one hypergraph conversion for a type that is both a directed graph and a directed
-    /// hypergraph: read as a hypergraph.
+    /// The hypergraph conversion for a type that is both a directed graph and a directed
+    /// hypergraph. It reads `hypergraph` as a hypergraph.
     @inlinable
     public init<H: DirectedGraph & DirectedHypergraph>(_ hypergraph: H) {
         self.init(_copying: hypergraph)
@@ -177,8 +177,8 @@ extension OrientedIncidenceMatrix {
     @inlinable
     public var vertices: Range<Int> { _sources.vertices }
 
-    /// Entry (`vertex`, `position`): target − source, so −1 for a source, +1 for a target, and 0
-    /// for neither or both. O(1).
+    /// Entry (`vertex`, `position`), which is target − source. That is −1 for a source, +1 for a
+    /// target, and 0 for neither or both. O(1).
     ///
     /// - Precondition: `vertex` is in `0..<vertexCount` and `position` in `0..<hyperedgeCount`.
     @inlinable
@@ -278,13 +278,11 @@ extension OrientedIncidenceMatrix {
     @inlinable
     public func inDegree(of vertex: Int) -> Int { _targets.degree(of: vertex) }
 
-    /// `outDegree + inDegree`: a vertex on both sides of a column counts it twice. O(1).
+    /// `outDegree + inDegree`. A vertex on both sides of a column counts it twice. O(1).
     @inlinable
     public func degree(of vertex: Int) -> Int { outDegree(of: vertex) &+ inDegree(of: vertex) }
 
-    // The `checked:` lookups (README Principle 6): they throw `VertexNotFound` for a vertex that
-    // is not in `0..<vertexCount`, where the trapping spellings above are the fast path; `try?`
-    // gives an Optional.
+    // The `checked:` lookups throw `VertexNotFound` for a vertex that is not in `0..<vertexCount`.
 
     /// `outHyperedges(of:)`, throwing instead of trapping when `vertex` is not in
     /// `0..<vertexCount`. O(⌈m/64⌉).
@@ -349,7 +347,7 @@ extension OrientedIncidenceMatrix {
     /// Whether some column has exactly these sources and these targets, ignoring order and
     /// repeats. False, without trapping, when a vertex is out of range.
     ///
-    /// - Complexity: O(k + d·⌈n/64⌉) at one listed vertex's d columns; the empty pair scans the m
+    /// - Complexity: O(k + d·⌈n/64⌉) at one listed vertex's d columns. The empty pair scans the m
     ///   cached sizes.
     @inlinable
     public func contains(sources: some Sequence<Int>, targets: some Sequence<Int>) -> Bool {
@@ -451,10 +449,10 @@ extension OrientedIncidenceMatrix {
     }
 
     /// Appends the column `sources` → `targets`. Either side may be empty, and a vertex may be on
-    /// both (entry 0).
+    /// both, with entry 0.
     ///
     /// - Returns: The new column's position.
-    /// - Precondition: every vertex listed is in `0..<vertexCount`.
+    /// - Precondition: Every vertex listed is in `0..<vertexCount`.
     /// - Complexity: Amortized O(n·⌈m/64⌉/m + ⌈n/64⌉ + k).
     @inlinable
     @discardableResult
@@ -467,10 +465,11 @@ extension OrientedIncidenceMatrix {
         return position
     }
 
-    /// Appends the column of `edge`: −1 at its source and +1 at its target (0 for a self-loop).
+    /// Appends the column of `edge`, with −1 at its source and +1 at its target. A self-loop's
+    /// entry is 0.
     ///
     /// - Returns: The new column's position.
-    /// - Precondition: both endpoints are in `0..<vertexCount`.
+    /// - Precondition: Both endpoints are in `0..<vertexCount`.
     @inlinable
     @discardableResult
     public mutating func insert(edge: DirectedEdge<Int>) -> Int {
@@ -578,17 +577,17 @@ extension OrientedIncidenceMatrix {
         if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(hyperedgeCount) }
     }
 
-    /// The transpose of each plane, which is the dual (`IncidenceList.dual()`'s convention): column
-    /// `v` of the result has sources `outHyperedges(of: v)` and targets `inHyperedges(of: v)`.
-    /// O(1). A new hypergraph: it carries none of this matrix's attached maps.
+    /// The transpose of each plane, which is the dual, as `IncidenceList.dual()` defines it. Column
+    /// `v` of the result has sources `outHyperedges(of: v)` and targets `inHyperedges(of: v)`. The
+    /// result carries none of this matrix's attached maps. O(1).
     @inlinable
     public func transposed() -> OrientedIncidenceMatrix {
         OrientedIncidenceMatrix(_sources: _sources.transposed(), _targets: _targets.transposed())
     }
 
-    /// Every column's sources and targets swapped, every entry negated (a vertex on both sides
-    /// stays 0): Gallo et al.'s symmetric image. An involution. O(1): the planes swap. A new
-    /// hypergraph: it carries none of this matrix's attached maps.
+    /// The matrix with every column's sources and targets swapped, which negates every entry. A
+    /// vertex on both sides stays 0. Reversing twice gives the original. The result carries none of
+    /// this matrix's attached maps. O(1).
     @inlinable
     public var reversed: OrientedIncidenceMatrix {
         OrientedIncidenceMatrix(_sources: _targets, _targets: _sources)
@@ -598,7 +597,7 @@ extension OrientedIncidenceMatrix {
 // MARK: - Equatable, Hashable, Sendable
 
 extension OrientedIncidenceMatrix: Equatable {
-    /// Equal when both planes are equal cell for cell, with equal shape: a vertex on both sides
+    /// Equal when both planes are equal cell for cell, with equal shape. A vertex on both sides
     /// differs from one on neither, although both entries are 0.
     @inlinable
     public static func == (lhs: OrientedIncidenceMatrix, rhs: OrientedIncidenceMatrix) -> Bool {
@@ -626,9 +625,8 @@ extension OrientedIncidenceMatrix: Codable {
         case targets
     }
 
-    /// Encodes `{"vertexCount": n, "sources": [[v, …], …], "targets": [[v, …], …]}`: the shape,
-    /// and each column's sides, by position, in ascending order. The encoding of a matrix is
-    /// always the same.
+    /// Encodes `{"vertexCount": n, "sources": [[v, …], …], "targets": [[v, …], …]}`, with each
+    /// column's sides in position order and ascending. Equal matrices encode identically.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: _CodingKeys.self)
         try container.encode(vertexCount, forKey: .vertexCount)
@@ -636,10 +634,11 @@ extension OrientedIncidenceMatrix: Codable {
         try container.encode((0 ..< hyperedgeCount).map { Array(targets(ofHyperedgeAt: $0)) }, forKey: .targets)
     }
 
-    /// Decodes the form `encode(to:)` writes, throwing `DecodingError.dataCorrupted` for a negative
-    /// vertex count, storage over `IncidenceMatrix.maximumDecodedWordCountKey`'s limit (two planes' words), a vertex
-    /// out of range, a side not strictly ascending, or `sources` and `targets` of different
-    /// lengths.
+    /// Decodes the form `encode(to:)` writes.
+    ///
+    /// - Throws: `DecodingError.dataCorrupted` for a negative vertex count, storage for two planes
+    ///   over the `IncidenceMatrix.maximumDecodedWordCountKey` limit, a vertex out of range, a side
+    ///   not strictly ascending, or `sources` and `targets` of different lengths.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: _CodingKeys.self)
         let n = try container.decode(Int.self, forKey: .vertexCount)
@@ -659,8 +658,8 @@ extension OrientedIncidenceMatrix: Codable {
 // MARK: - Description
 
 extension OrientedIncidenceMatrix: CustomStringConvertible {
-    /// The shape, then the rows as strings of `-` (−1), `0` and `+` (+1), column 0 leftmost, at
-    /// most 16 rows of 64 columns: `3×2 [-0, +-, 0+]`. The empty matrix is `0×0 []`.
+    /// The shape, then the rows as strings of `-` (−1), `0` and `+` (+1) with column 0 leftmost, at
+    /// most 16 rows of 64 columns, as in `3×2 [-0, +-, 0+]`. The empty matrix is `0×0 []`.
     public var description: String {
         _matrixDescription(vertexCount: vertexCount, hyperedgeCount: hyperedgeCount) { v, p in
             let entry = (_targets._rows.bit(v, p) ? 1 : 0) - (_sources._rows.bit(v, p) ? 1 : 0)

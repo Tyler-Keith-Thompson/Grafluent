@@ -1,5 +1,5 @@
-// FunctionalGraph, ImplicitDirectedGraph and the closure Dijkstra and A* (decision D19) against
-// written-out models.
+// FunctionalGraph, ImplicitDirectedGraph and the closure Dijkstra and A* against written-out
+// models.
 //
 // A functional-graph step reads a mapping on up to 48 vertices (random, a permutation, or long
 // tails into small cycles) and checks every vertex against its orbit, iterated with a dictionary

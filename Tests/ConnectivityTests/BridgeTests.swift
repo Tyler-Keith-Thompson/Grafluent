@@ -1,4 +1,4 @@
-// §B: bridges and 2-edge-connected components, ported from NetworkX, igraph, rustworkx and JGraphT.
+// §B: bridges and 2-edge-connected components.
 // Each case runs on the ReferencePseudograph in written order, and on an UndirectedAdjacencyList
 // built in the same order when no edge repeats, so positions and vertices order are the written
 // ones and every value is exact. Expected values come from the catalog's reference (brute force

@@ -1,5 +1,5 @@
 // Randomized and large graphs, checked against a model built from a plain set of edges; value
-// semantics and Sendable. Case IDs (CSR-Gnn, CSR-Vnn) refer to the harvested test catalog.
+// semantics and Sendable. Case IDs (CSR-Gnn, CSR-Vnn) refer to the case catalog.
 
 import CompressedSparseRowModule
 import GraphProtocols

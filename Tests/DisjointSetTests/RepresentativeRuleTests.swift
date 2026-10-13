@@ -1,8 +1,8 @@
 // The documented representative rule, exactly: `union(a, b)` keeps the representative of the
 // larger set, or, for sets of the same size, the smaller of the two representatives, whatever the
-// order of the arguments. `find` never changes a representative. scipy's tests are ported with
-// their exact pairs. Expected values come from the catalog's reference (`ref.py`, `cases.py`),
-// which is cross-checked against scipy's and NetworkX's own implementations.
+// order of the arguments. `find` never changes a representative. Expected values come from the
+// catalog's reference (`ref.py`, `cases.py`), which `check.py` cross-checks against scipy's and
+// NetworkX's union–find implementations.
 // Case IDs (DS-nn) refer to the catalog; see README.md.
 
 import DisjointSetModule
@@ -15,7 +15,7 @@ struct RepresentativeRuleTests {
     func equalSizes() {
         var p = DisjointSet(count: 4)
         #expect(p.union(3, 1) == true)
-        // petgraph's and JGraphT's first-argument tie would give [0, 3, 2, 3].
+        // A tie won by the first argument would give [0, 3, 2, 3].
         #expect((0 ..< 4).map { p.find($0) } == [0, 1, 2, 1])
 
         var q = DisjointSet(count: 4)
@@ -70,7 +70,7 @@ struct RepresentativeRuleTests {
 
     @Test("DS-22 scipy test_equal_size_ordering, n = 10: each pair takes its smaller element")
     func equalSizeOrdering() {
-        // The pairs scipy draws with RandomState(0).shuffle.
+        // The pairs NumPy's RandomState(0).shuffle draws.
         let pairs = [(2, 8), (4, 9), (1, 6), (7, 3), (0, 5)]
         var forwards = DisjointSet(count: 10)
         for (a, b) in pairs { #expect(forwards.union(a, b) == true) }
@@ -83,7 +83,7 @@ struct RepresentativeRuleTests {
 
     @Test("DS-23 scipy test_binary_tree: after each round find(x) == x − x % 2k", .tags(.randomized), arguments: [5, 10])
     func binaryTree(_ kmax: Int) {
-        // scipy picks with RandomState(0); the result does not depend on the picks.
+        // The picks come from a seeded generator; the result does not depend on them.
         var generator = SeededRandomNumberGenerator(seed: UInt(kmax))
         let n = 1 << kmax
         var d = DisjointSet(count: n)

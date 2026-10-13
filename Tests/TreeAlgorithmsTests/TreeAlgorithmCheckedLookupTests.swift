@@ -1,4 +1,4 @@
-// The `checked:` lookups (README Principle 6) of `HeavyLightDecomposition`,
+// The `checked:` lookups of `HeavyLightDecomposition`,
 // `LowestCommonAncestors` and the climbing `lowestCommonAncestor(checked:_:)` of `RootedTree` and
 // `Arborescence`. Each throws `VertexNotFound` where its plain spelling traps (either argument of a
 // two-vertex query), and otherwise returns the plain spelling's value, a leaf's nil heavy child

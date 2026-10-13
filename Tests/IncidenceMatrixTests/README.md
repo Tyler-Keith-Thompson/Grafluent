@@ -6,14 +6,9 @@
 - `OrientedIncidenceMatrix` has −1 at each source and +1 at each target. It is stored as two bit
   planes and is a `DirectedHypergraph` with `Int` vertices.
 
-The tests come from the proposed API in [`Tests/Catalogs/IncidenceMatrix/`](../Catalogs/IncidenceMatrix/)
-(`api.md`, phase 1), with every open question decided as recommended:
-
-- the two conformances, and neither matrix a `Graph` or `DirectedGraph`;
-- two types, not an `oriented` flag;
-- an entry of 0 with both bits kept for a vertex on both sides;
-- bits only;
-- spectral products, labels and removal deferred.
+The API is described in `api.md` in [`Tests/Catalogs/IncidenceMatrix/`](../Catalogs/IncidenceMatrix/).
+Neither matrix is a `Graph` or `DirectedGraph`. The two orientations are separate types, the
+entries are bits, and a vertex on both sides of an oriented column has entry 0 with both bits kept.
 
 The suite uses only the public API, and each test is self-contained. The only shared material is
 the seeded generator and the tags in `GrafluentTestSupport`.
@@ -47,8 +42,8 @@ struct OrientedIncidenceMatrix: DirectedHypergraph, …             // the same 
 | Question | Choice | Cases |
 |---|---|---|
 | Columns | In input or `edges` order; a repeated member is one bit; repeated and empty columns kept | IM-003, IM-004, IM-008 |
-| Self-loops, unoriented | One bit at the vertex (NetworkX: a zero column) | IM-009, IM-012 |
-| A vertex on both sides | Both bits kept, entry 0, as NetworkX's oriented loop column | IM-041, IM-046, IM-053 |
+| Self-loops, unoriented | One bit at the vertex | IM-009, IM-012 |
+| A vertex on both sides | Both bits kept, entry 0 | IM-041, IM-046, IM-053 |
 | Growth | Rows and columns grow past 64 with every bit kept | IM-024, IM-031 |
 | Dual | `transposed()`, each plane transposed; `reversed` swaps the planes (every entry negated) | IM-032, IM-049, IM-050 |
 | Equality | Cell for cell with equal shape; column order observable; both planes compared | IM-034 – IM-037, IM-060 – IM-063 |
@@ -100,8 +95,8 @@ There is no hash-law file. The vertices are `Int`s, and every read is in index s
   - Also: the conversions between all four types and from graphs (one column per edge in `edges`
     order, by vertex index), Codable round trips, copy-on-write, the resets and capacity, Hashable,
     and Sendable.
-- **Edge cases** (`IncidenceMatrixEdgeCaseTests.swift`), one behavior each, written for the planted
-  bugs the rest let through (`scripts/mutants/IncidenceMatrixModule.py`): the descriptions and
+- **Edge cases** (`IncidenceMatrixEdgeCaseTests.swift`), one behavior each, for the mutations in
+  `scripts/mutants/IncidenceMatrixModule.py` that the rest let through: the descriptions and
   their elision, hashing across storage strides, near-miss membership and equality, the trapping
   index reads, the decoder's overflow guards, and edge subscripts on the oriented matrix's
   incidence graph.
@@ -121,24 +116,8 @@ There is no hash-law file. The vertices are `Int`s, and every read is in index s
   conversions carry no map (the handle traps there); equality and coding ignore maps; every
   structural mutation starts a generation and a cell edit that changes nothing does not; on both
   matrices, two copies under every interleaving of three steps never share a generation in
-  different states; random
-  mutations against arrays by column and row (swift-property-based).
+  different states; random mutations against arrays by column and row (swift-property-based).
 - **Stress.**
-  - A multigraph at n = 2 048 and m = 2 × 10⁴, api.md's benchmark shape.
+  - A multigraph at n = 2 048 and m = 2 × 10⁴.
   - 10⁵ cell edits against a set.
   - The components of a 512 × 512 matrix at density 1/8 against an incidence-list copy.
-
-## Planted bugs
-
-The suite was checked against a Swift model of the API in a scratch copy of the workspace, built
-through Bazel, with one bug planted at a time. It caught every one:
-
-| Planted bug | Caught by |
-|---|---|
-| A self-loop's unoriented column left zero (NetworkX's matrix) | IM-009, conversions, stress |
-| A vertex on both sides given +1 instead of 0 | IM-041, IM-044 – IM-046 and 9 more |
-| `transposed()` keeping the vertex count | IM-033, properties, conformance, stress |
-| Equality ignoring the shape | IM-036, properties |
-| A cell insert updating the column but not the row | IM-027, IM-031, IM-053, properties, stress |
-| An undirected edge oriented v → u | IM-043, conversions |
-| Oriented `reversed` returning the matrix unchanged | IM-050, conformance, copy-on-write |

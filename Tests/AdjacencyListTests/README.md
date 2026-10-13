@@ -2,8 +2,7 @@
 
 `AdjacencyList<Vertex: Hashable>` is a directed graph: a set of vertices and a set of directed
 edges, each an ordered pair (source, target). Parallel edges are not allowed; self-loops are. This
-suite was written before the implementation, so it is the specification. It uses only the public
-API.
+suite is the type's specification. It uses only the public API.
 
 ## API under test
 
@@ -73,25 +72,22 @@ laws and are `Sendable` when `Vertex` is. Their concrete types are up to the imp
 
 ## Conventions
 
-The libraries these cases were drawn from disagree on several points. These are the choices, and
-why.
-
-| Question | Choice | Why | Disagreement |
-|---|---|---|---|
-| Parallel edges | Not allowed; inserting an existing edge returns `inserted: false` | A directed graph's edge set is a set; parallel edges belong to `DirectedMultigraph` | petgraph `Graph` allows them |
-| Self-loops | Allowed | Common in practice (NetworkX `DiGraph`, Boost, JGraphT pseudographs) | JGraphT `SimpleDirectedGraph` rejects them |
-| A self-loop's contribution | 1 to `edgeCount`, 1 to `outDegree`, 1 to `inDegree`, so 2 to `degree` | Keeps Σ outDegree = Σ inDegree = edgeCount and Σ degree = 2 · edgeCount | Boost `setS` undirected counts it once |
-| A self-loop in neighborhoods | v appears once in `successors(of: v)` and once in `predecessors(of: v)` | Neighborhoods are sets | Boost `vecS` lists it twice |
-| Inserting an edge with absent endpoints | Inserts the endpoints | Matches `Set.insert` ergonomics; NetworkX does the same | JGraphT throws; petgraph `Graph` panics |
-| Removing something absent | Returns `nil`; never traps | Matches `Set.remove` | NetworkX raises |
-| Removing an edge with absent endpoints | Returns `nil`; inserts nothing | A removal must not grow the graph | |
-| Successors, predecessors or degree of an absent vertex | **Traps** (precondition); the `checked:` spellings throw `VertexNotFound` instead | A programming error, like an out-of-bounds index; an empty answer would hide it | petgraph returns empty |
-| Equal-but-distinct vertex instances | The first stored instance is kept and returned, including as edge endpoints | Matches `Set.insert`'s `memberAfterInsert` | |
-| Dictionary literal with a repeated key | Traps | Matches `Dictionary` | |
-| `==` | Equal vertex sets and equal edge sets; independent of insertion order; not isomorphism | Value semantics | NetworkX and petgraph have no structural `==` |
-| `description` | `[0, 1, 2]; [0→1, 1→2]`, elements written as `Array` writes them, at most 16 vertices and 16 edges, then `…`; `debugDescription` adds the type and counts; the mirror shows `vertices` and `edges` | One textual form for every representation | — |
-| Iteration order | Unspecified | Leaves the implementation free to optimize; every test is order-insensitive | JGraphT documents insertion order |
-| Encoded form (`Codable`) | Unspecified; only round trips are tested | | |
+| Question | Choice | Why |
+|---|---|---|
+| Parallel edges | Not allowed; inserting an existing edge returns `inserted: false` | A directed graph's edge set is a set; parallel edges belong to `DirectedMultigraph` |
+| Self-loops | Allowed | Common in practice |
+| A self-loop's contribution | 1 to `edgeCount`, 1 to `outDegree`, 1 to `inDegree`, so 2 to `degree` | Keeps Σ outDegree = Σ inDegree = edgeCount and Σ degree = 2 · edgeCount |
+| A self-loop in neighborhoods | v appears once in `successors(of: v)` and once in `predecessors(of: v)` | Neighborhoods are sets |
+| Inserting an edge with absent endpoints | Inserts the endpoints | Matches `Set.insert` |
+| Removing something absent | Returns `nil`; never traps | Matches `Set.remove` |
+| Removing an edge with absent endpoints | Returns `nil`; inserts nothing | A removal must not grow the graph |
+| Successors, predecessors or degree of an absent vertex | **Traps** (precondition); the `checked:` spellings throw `VertexNotFound` instead | A programming error, like an out-of-bounds index; an empty answer would hide it |
+| Equal-but-distinct vertex instances | The first stored instance is kept and returned, including as edge endpoints | Matches `Set.insert`'s `memberAfterInsert` |
+| Dictionary literal with a repeated key | Traps | Matches `Dictionary` |
+| `==` | Equal vertex sets and equal edge sets; independent of insertion order; not isomorphism | Value semantics |
+| `description` | `[0, 1, 2]; [0→1, 1→2]`, elements written as `Array` writes them, at most 16 vertices and 16 edges, then `…`; `debugDescription` adds the type and counts; the mirror shows `vertices` and `edges` | One textual form for every representation |
+| Iteration order | Unspecified | Leaves the implementation free to optimize; every test is order-insensitive |
+| Encoded form (`Codable`) | Unspecified; only round trips are tested | |
 
 ## Files
 
@@ -105,7 +101,7 @@ named fixtures and the vertex types used to stress `Hashable` (`Collider`, `Hash
 | `AdjacencyListConstructionTests.swift` | Initializers, adjacency mappings, literals, single-pass input, independence from input order |
 | `AdjacencyListBuilderTests.swift` | The result builder: edges, bare vertices, `for`, `if`, `switch` |
 | `AdjacencyListVertexMutationTests.swift` | Inserting and removing vertices, clearing, mutating while iterating |
-| `AdjacencyListEdgeMutationTests.swift` | Inserting and removing edges, self-loops, the Boost disconnect sequence |
+| `AdjacencyListEdgeMutationTests.swift` | Inserting and removing edges, self-loops, a disconnect sequence |
 | `AdjacencyListQueryTests.swift` | Membership, successors and predecessors, degrees, the degree-sum identities, self-loops |
 | `AdjacencyListEqualityTests.swift` | `Equatable`/`Hashable` laws over equivalence classes; all 512 directed graphs on 3 vertices |
 | `AdjacencyListValueSemanticsTests.swift` | Every kind of mutation leaves an existing copy unchanged |
@@ -123,9 +119,9 @@ named fixtures and the vertex types used to stress `Hashable` (`Collider`, `Hash
 | `AdjacencyListGenerationTests.swift` | Which calls start a generation, copies, built and decoded graphs (AM-11); on both lists, two copies under every interleaving of three steps never share a generation in different states |
 | `AdjacencyListCheckedTests.swift` | The `checked:` lookups against their trapping spellings, throwing for a non-vertex and after a removal moved a slot; `source` / `target(checkedEdgeAt:)` in and out of range; `insert(checked:)` between existing vertices, and throwing with nothing changed for a missing endpoint |
 
-Case IDs in test names (C-04, V-06, Q-14, ...) refer to the catalog of cases (`Tests/Catalogs/AdjacencyList/cases.md`) harvested from
-NetworkX, petgraph, Boost.Graph and JGraphT; fixtures cite their sources in
-`Tests/GrafluentTestSupport/DirectedFixtures.swift`.
+Case IDs in test names (C-04, V-06, Q-14, ...) refer to the case catalog in
+`Tests/Catalogs/AdjacencyList/cases.md`, which cites each case's source. Fixtures cite their
+sources in `Tests/GrafluentTestSupport/DirectedFixtures.swift`.
 
 Properties that can only be observed internally (whether a no-op mutation copies storage, whether
 an empty graph allocates) are performance properties and belong in the benchmarks, not here.

@@ -1,6 +1,6 @@
 // Algorithms written once against Graph give the same answers on every conformer. Each test
 // declares its algorithm as a local generic function. Expected values were computed with NetworkX,
-// not with Grafluent. Case IDs (UG-Ann) refer to the catalog in README.md.
+// not with Grafluent. Case IDs (UG-Ann) refer to Tests/Catalogs/GraphProtocols/graph.md.
 
 import AdjacencyListModule
 import GraphProtocols
@@ -124,7 +124,7 @@ struct GraphAlgorithmTests {
 
     @Test("UG-A05 undirected depth-first search classifies each edge once, by position, as tree or back")
     func undirectedEdgeClasses() {
-        // Boost's undirected_dfs: edges are marked by position, so an edge is never seen again
+        // Edges are marked by position, so an edge is never seen again
         // from its other end, and there are no forward or cross edges.
         func classes<G: Graph>(_ g: G, from source: G.Vertex) -> (tree: Int, back: Int) {
             var discovered = Set<G.Vertex>()

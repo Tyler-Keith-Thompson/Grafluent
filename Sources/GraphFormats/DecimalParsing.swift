@@ -1,5 +1,5 @@
 /// Decimal numbers read from text: integers with overflow checks, and doubles by a grammar check
-/// followed by a correctly rounded conversion (Eisel–Lemire, as in fast_float, with the standard
+/// followed by a correctly rounded conversion (Eisel–Lemire, with the standard
 /// library's `Double(_:)` for the rare inputs it cannot decide). No hexadecimal floats, no
 /// `nan(…)` payloads, no Foundation.
 
@@ -199,8 +199,7 @@
     case none
 }
 
-/// The value of the eight ASCII digits at `base[i]`, read as one word (the SWAR conversion of
-/// fast_float and simdjson); `nil` when fewer than eight bytes are left or one is not a digit.
+/// The value of the eight ASCII digits at `base[i]`, read as one word (a SWAR conversion); `nil` when fewer than eight bytes are left or one is not a digit.
 @inline(__always)
 @inlinable func _eightDigits(_ base: UnsafePointer<UInt8>, _ i: Int, _ limit: Int) -> UInt64? {
     guard i &+ 8 <= limit else { return nil }

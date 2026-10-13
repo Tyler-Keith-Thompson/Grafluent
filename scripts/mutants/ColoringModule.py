@@ -49,7 +49,7 @@ MUTANTS = [
     Mutant("heap_lower", "ColoringRows.swift", "        _up(item, from: position[item])", "        key[item] = key[item]", mode="stmt"),
     Mutant("heap_popped", "ColoringRows.swift", "        position[top] = -1", "", mode="stmt"),
 
-    # igraph's two-way heap (colored neighbours)
+    # The two-way heap (colored neighbours)
     Mutant("twoway_up", "ColoringRows.swift", "data[elem] < data[parent]", "data[elem] <= data[parent]"),
     Mutant("twoway_sink", "ColoringRows.swift", "data[left] >= data[right]", "data[left] > data[right]"),
     Mutant("twoway_modify", "ColoringRows.swift", "        _shiftUp(position)", "", mode="stmt"),

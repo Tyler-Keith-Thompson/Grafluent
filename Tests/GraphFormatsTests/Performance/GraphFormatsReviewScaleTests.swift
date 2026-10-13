@@ -1,8 +1,8 @@
-// Review cases whose fix is about cost (GraphFormatsReviewTests.swift has the rest): a Matrix
-// Market size line under a bound on its own time, and DOT default lists, GraphML defaults against
-// data, objects and tags with many keys, and the writers' distinct-ID check, each timed at two
-// sizes eight times apart (a linear reader takes about 8× as long, a quadratic one 64×; each time
-// is the least of five interleaved runs). Expected values are known by construction. See README.md.
+// Cost cases (GraphFormatsReviewTests.swift has the rest): a Matrix Market size line under a bound
+// on its own time, and DOT default lists, GraphML defaults against data, objects and tags with many
+// keys, and the writers' distinct-ID check, each timed at two sizes eight times apart (a linear
+// reader takes about 8× as long, a quadratic one 64×; each time is the least of five interleaved
+// runs). Expected values are known by construction. See README.md.
 
 #if canImport(Darwin)
 import Darwin
@@ -59,7 +59,7 @@ struct GraphFormatsReviewScaleTests {
         #expect(clock.now - start < .seconds(5))
     }
 
-    @Test("DOT: a default list of 4k keys costs about 8× one of k keys (it was quadratic)", .timeLimit(.minutes(1)))
+    @Test("DOT: a default list of 4k keys costs about 8× one of k keys", .timeLimit(.minutes(1)))
     func dotDefaultListIsLinear() throws {
         func file(_ keys: Int) -> String {
             "digraph { node [" + (0 ..< keys).map { "a\($0)=1" }.joined(separator: " ") + "] x }\n"
@@ -160,9 +160,8 @@ struct GraphFormatsReviewScaleTests {
             return best
         }
         // Objects and tags that are only checked (an ignored member, an unknown element), so the
-        // time is the scanner's: 15 keys are compared in turn, 17 go through the index. Optimized,
-        // a key of a 17-key object cost 5–7× one of a 15-key object while each object built its
-        // own index; with the shared index it costs under 2×. (Debug builds hide the difference.)
+        // time is the scanner's: 15 keys are compared in turn, 17 go through the shared index, and
+        // a key should cost about the same either way. Debug builds hide the difference.
         func objects(keys: Int, count: Int) -> String {
             let members = (0 ..< keys).map { "\"k\($0)\": 1" }.joined(separator: ", ")
             return "{\"directed\": true, \"nodes\": [], \"edges\": [], \"ignored\": ["

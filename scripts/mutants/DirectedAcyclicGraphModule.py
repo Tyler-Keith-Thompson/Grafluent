@@ -55,12 +55,6 @@
 #   almovedlast       the swap-removing bases reporting the removed key itself as moved when it
 #   psmovedlast       was the last: the wrapper then relabels that key with its own slot and
 #                     frees the slot, the same as the plain removal.
-#
-# Removed as dead code after planting: the key table's branch for a page before `firstPage` and
-# its `front` update on insertion (a new key is `vertices.endIndex`, at least every live key, and
-# tables built from a graph take keys in increasing order); the merge's `b == _backward.count`
-# test (the source, last in the backward set, holds the greatest label, so that set runs out
-# last); AdjacencyList's range precondition in `_removeEdge(at:)` (the record read traps first).
 
 TESTS = ["DirectedAcyclicGraphTests", "ShortestPathsTests", "AdjacencyListTests", "MultigraphsTests", "StableGraphsTests"]
 

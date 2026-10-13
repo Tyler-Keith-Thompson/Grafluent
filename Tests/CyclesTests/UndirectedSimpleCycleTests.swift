@@ -1,7 +1,7 @@
 // §D: `Graph.simpleCycles()`: every simple cycle once, in canonical form (its least vertex first,
 // leaving it through the lesser of its two edges there, by position), emitted by least vertex and
-// then lexicographically by each edge's offset in its vertex's `incidentEdges` row. Graphs from
-// NetworkX, igraph and Boost and the classic families, written as the catalog writes them on the
+// then lexicographically by each edge's offset in its vertex's `incidentEdges` row. Graphs,
+// including the classic families, are written as the catalog writes them on the
 // `ReferencePseudograph`, so positions are exact. Expected values come from the catalog's
 // reference (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see README.md.
 

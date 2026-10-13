@@ -1,6 +1,6 @@
 // UndirectedEdge: the unordered pair {u, v}. Equality and hashing ignore the order the endpoints
 // were given in; the stored order is kept but is not part of the value. Case IDs (UG-Enn) refer to
-// the catalog in README.md.
+// Tests/Catalogs/GraphProtocols/graph.md.
 
 import Foundation
 import GraphProtocols

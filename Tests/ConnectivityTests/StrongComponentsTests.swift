@@ -1,6 +1,6 @@
 // Strong components: exact orders on the fixtures (ascending on the matrix and CSR, written order
-// on the ReferenceDirectedMultigraph), partitions on adjacency lists, graphs ported from other libraries' suites,
-// the documented order guarantees, and the strong and weak connectivity tests. Expected values
+// on the ReferenceDirectedMultigraph), partitions on adjacency lists, graphs from other test
+// suites, the documented order guarantees, and the strong and weak connectivity tests. Expected values
 // come from the catalog's independent reference (checked against NetworkX). Case IDs (CN-nn)
 // refer to the catalog; see README.md.
 
@@ -475,7 +475,7 @@ struct StrongComponentPortedTests {
         let graph = CompressedSparseRow(vertexCount: 5, edges: edges)
         let scc = graph.stronglyConnectedComponents()
         #expect(scc.map(Array.init) == [[0, 1, 2], [4], [3]])
-        // rustworkx (petgraph's Kosaraju) documents [[4], [3], [0, 1, 2]]: also reverse topological.
+        // Another valid order, [[4], [3], [0, 1, 2]], is also reverse topological.
         #expect(scc.map(Array.init) != [[4], [3], [0, 1, 2]])
         for edge in edges { #expect(scc.component(of: edge.source) >= scc.component(of: edge.target)) }
         #expect(AdjacencyMatrix(vertexCount: 5, edges: edges).stronglyConnectedComponents().map(Array.init) == [[0, 1, 2], [4], [3]])

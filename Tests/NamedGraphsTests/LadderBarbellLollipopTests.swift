@@ -1,6 +1,5 @@
-// Ladders, circular ladders, barbells and lollipops (catalog NG-091 – NG-109), numbered as NetworkX
-// numbers them: rails 0..<n and n..<2n with rungs i – (i + n); cliques joined by a path. Both arcs
-// when directed.
+// Ladders, circular ladders, barbells and lollipops (catalog NG-091 – NG-109): rails 0..<n and
+// n..<2n with rungs i – (i + n); cliques joined by a path. Both arcs when directed.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule

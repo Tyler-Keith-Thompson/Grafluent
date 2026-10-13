@@ -5,30 +5,23 @@
 /// The ranking LP (Gansner, Koutsofios, North and Vo, "A technique for drawing directed graphs",
 /// IEEE Transactions on Software Engineering 19(3), 1993) is the dual of a min-cost flow: every
 /// edge an uncapacitated arc of cost −1, every vertex a supply of out-degree − in-degree. This
-/// solves that flow by the primal network simplex, as OGDF's `OptimalRanking` does through a
-/// min-cost flow and LEMON's `NetworkSimplex` implements it, and returns minus the optimal node
-/// potentials:
+/// solves that flow by the primal network simplex and returns minus the optimal node potentials.
 ///
 /// - Warm start: longest-path ranks, every vertex with more out-edges than in-edges (every source)
 ///   pulled down to just above its nearest successor in reverse topological order, and Gansner's
 ///   feasible tree of tight edges on them (maximal tight subtrees merged smallest first). Each
 ///   component's tree is rooted, its flows computed bottom up, and an edge whose flow would be
 ///   negative, or zero against the direction toward the root, is cut and its subtree hung from an
-///   artificial root (big M, LEMON's scheme). Where longest path is already optimal no pivot
-///   follows.
-/// - The tree is kept as LEMON keeps it (parent, thread, subtree size, last successor), so a pivot
-///   costs the cycle's length plus the smaller of the moved subtree and the rest.
-/// - Entering arc: LEMON's block search (the most negative reduced cost in the first block of √m
+///   artificial root with big-M cost. Where longest path is already optimal no pivot follows.
+/// - The tree is kept as parent, thread, subtree size and last successor, so a pivot costs the
+///   cycle's length plus the smaller of the moved subtree and the rest.
+/// - Entering arc: block search (the most negative reduced cost in the first block of √m
 ///   edges that has one, cyclically). Leaving arc: Cunningham's strongly feasible tree rule (the
 ///   last blocking arc from the join in the direction of the flow), which rules out cycling
 ///   ("A network simplex method", Mathematical Programming 11, 1976): every run ends at an optimum,
 ///   and there is no pivot cap.
 ///
-/// Not polynomially bounded. Measured on random DAGs with m = 2n (release build): about 13,000
-/// pivots and 60 ms at n = 10⁴, 0.23 s at 2 · 10⁴, 63,000 pivots and 0.65 s at 4 · 10⁴, growing
-/// about as n^1.5 to n^1.7. Gansner's own pivots (tree edges with negative cut values leave, as in
-/// `dot`) took 0.71 s, 4.4 s and 42 s: almost all of them are degenerate, and each searches one
-/// side of a cut that splits the tree about evenly.
+/// Not polynomially bounded. On random DAGs with m = 2n the time grows about as n^1.5 to n^1.7.
 @usableFromInline
 func _minimumSpanLayers(vertexCount n: Int, tails: [Int], heads: [Int]) -> [Int] {
     var flow = _RankingFlow(vertexCount: n, tails: tails, heads: heads)
@@ -290,7 +283,7 @@ struct _RankingFlow {
         }
     }
 
-    /// LEMON's `updateTreeStructure`: hangs the subtree of `uOut` from `vIn` through the entering
+    /// Hangs the subtree of `uOut` from `vIn` through the entering
     /// arc, reversing the stem `uIn` … `uOut`, and repairs thread, sizes and last successors
     /// along the stem and the two paths to the join.
     mutating func updateTree(_ inArc: Int, join: Int, uIn: Int, vIn: Int, uOut: Int) {

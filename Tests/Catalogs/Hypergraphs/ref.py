@@ -5,7 +5,7 @@
 Run: uv run --quiet --no-project --with networkx==3.7 --with xgi==0.10.2 --with hypernetx==2.4.3 \
          --with halp==1.0.0 python3 Tests/Catalogs/Hypergraphs/ref.py [--write] [--stress] [--baseline]
 
-The model ports the proposed storage: an ordered set of vertices (vertices[i] is vertex index i, a
+The model ports the library's storage: an ordered set of vertices (vertices[i] is vertex index i, a
 list plus a dict standing in for OrderedSet's hash table), the hyperedges as compressed rows of
 vertex indices (each row ascending), and the transposed rows (each vertex's hyperedge positions,
 ascending). The directed form keeps two such planes, one for the sources and one for the targets.
@@ -783,9 +783,7 @@ def b_traversal(XB, n, r, forward=True):
     bipartite digraph (tail -> edge -> head; reversed for F): a node is discovered only along an arc
     from a discovered node, and a hyperedge node only once every arc into it comes from a
     discovered node. A hyperedge with no sources has no arc into it, so no path enters it and it
-    never fires; nothing here special-cases the empty tail. (The recursive reading, "y is
-    B-connected when every source of some hyperedge into y is", fires an empty tail vacuously from
-    any start; Gallo et al.'s B-Visit, and the library, follow the path-based one.)"""
+    never fires; nothing here special-cases the empty tail."""
     G = XB if forward else XB.reverse(copy=False)
     found, stack = {r}, [r]
     while stack:
@@ -1382,7 +1380,7 @@ def define():
 
 def render():
     out = [
-        "# Hypergraphs: case catalog (phase 1)",
+        "# Hypergraphs: case catalog",
         "",
         "Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with xgi==0.10.2",
         "--with hypernetx==2.4.3 --with halp==1.0.0 python3 Tests/Catalogs/Hypergraphs/ref.py`; `--write`",

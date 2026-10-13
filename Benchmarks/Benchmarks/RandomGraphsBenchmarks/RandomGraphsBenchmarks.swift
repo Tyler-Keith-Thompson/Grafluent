@@ -11,7 +11,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
 
-    // api.md's reference sizes; NetworkX 3.7 / igraph 1.0 in the README row.
+    // The reference sizes from api.md.
     Benchmark("RandomGraphs: BASELINE 10⁶ draws of Xoshiro256StarStar") { benchmark in
         var g = Xoshiro256StarStar(seed: 1)
         for _ in benchmark.scaledIterations {
@@ -56,7 +56,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.randomGeometric(vertexCount: 100_000, radius: radius, using: &g)) }
     }
     // The directed forms of the symmetric families: the undirected draws and pairs, then both arcs
-    // of every pair in one stable counting pass, straight into CSR's one-pass build.
+    // of every pair in one stable counting pass, passed to CSR's one-pass build.
     Benchmark("RandomGraphs: CompressedSparseRow Watts–Strogatz, n = 10⁵, k = 10, p = 0.1 (both arcs)") { benchmark in
         var g = Xoshiro256StarStar(seed: 1)
         for _ in benchmark.scaledIterations {
@@ -69,7 +69,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.randomGeometric(vertexCount: 100_000, radius: radius, using: &g)) }
     }
     // Complexity guard: radius 0 joins only coincident points, so the grid is sized as for a tiny
-    // radius (c^d ≤ n cells). Before the review r = 0 fell back to all pairs: 2491 ms at n = 5·10⁴.
+    // radius (c^d ≤ n cells) rather than checking all pairs.
     Benchmark("RandomGraphs: UndirectedAdjacencyList random geometric, n = 5·10⁴, radius 0") { benchmark in
         var g = Xoshiro256StarStar(seed: 1)
         for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.randomGeometric(vertexCount: 50_000, radius: 0, using: &g)) }
@@ -86,9 +86,8 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(UndirectedAdjacencyList<Int>.stochasticBlockModel(blockSizes: sizes, edgeProbabilities: probabilities, using: &g))
         }
     }
-    // Random regular (NetworkX's pairing with repair rounds) and random bipartite (skipping over
-    // the left–right pairs). NetworkX 3.7 on the same machine: random_regular_graph(3, 10⁵) and
-    // bipartite.random_graph(5·10⁴, 5·10⁴, 2·10⁻⁴) are in api.md.
+    // Random regular (pairing with repair rounds) and random bipartite (skipping over the
+    // left–right pairs).
     Benchmark("RandomGraphs: UndirectedAdjacencyList random regular, n = 10⁵, d = 3") { benchmark in
         var g = Xoshiro256StarStar(seed: 1)
         for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 100_000, degree: 3, using: &g)) }

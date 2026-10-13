@@ -1,6 +1,6 @@
 // Dense edge indices, index-space out-edges, edges in index order and index-space in-edges
-// (DG-L29 – DG-L32), added with
-// ShortestPaths: weights keyed by edge position live in arrays when the positions are dense.
+// (DG-L29 – DG-L32). With dense edge indices, weights keyed by edge position live in arrays.
+// Case IDs refer to Tests/Catalogs/GraphProtocols/directed-graph.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule

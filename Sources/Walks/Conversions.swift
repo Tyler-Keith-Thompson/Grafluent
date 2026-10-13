@@ -1,6 +1,6 @@
-// Conversions between the walk types, as initializers (Swift's convention: `Array(set)`,
-// `Int(exactly:)`). Upward ones cannot fail and share storage; a closed walk opens by repeating
-// its start at the end. Downward ones check the stronger rules and return `nil` when they fail.
+// Conversions between the walk types, as initializers. Conversions to a weaker type cannot fail
+// and share storage, and a closed walk opens by repeating its start at the end. Conversions to a
+// stronger type check its rules and return `nil` when they fail.
 
 extension Walk {
     /// The trail as a walk. O(1).
@@ -27,7 +27,7 @@ extension Walk {
         self.init(_uncheckedVertices: cycle._vertices + [cycle._vertices[0]], edges: cycle._edges)
     }
 
-    /// This walk followed by `other` (JGraphT's `concat`).
+    /// This walk followed by `other`.
     ///
     /// - Precondition: `target == other.source`.
     @inlinable

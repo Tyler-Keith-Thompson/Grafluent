@@ -1,6 +1,6 @@
 // Matrix Market (catalog GF-111 – GF-146 and GF-230 read, GF-207 – GF-214 write): coordinate matrices into
-// vertices 0..<n, symmetric files into either kind, weights under "weight"; the writer byte-equal
-// to SciPy's mmwrite.
+// vertices 0..<n, symmetric files into either kind, weights under "weight"; ref.py checks the
+// write rows byte for byte against SciPy's mmwrite.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
@@ -278,7 +278,7 @@ struct GraphFormatsMatrixMarketTests {
         }
     }
 
-    @Test("GF-127 array format (phase 2)")
+    @Test("GF-127 array format (unsupported)")
     func gf127() {
         // DirectedPseudograph<Int>(matrixMarket:) → **unsupported** at 1:23
         let input = "%%MatrixMarket matrix array real general\n2 2\n1\n0\n0\n1\n"
@@ -291,7 +291,7 @@ struct GraphFormatsMatrixMarketTests {
         }
     }
 
-    @Test("GF-128 complex (phase 2)")
+    @Test("GF-128 complex (unsupported)")
     func gf128() {
         // DirectedPseudograph<Int>(matrixMarket:) → **unsupported** at 1:34
         let input = "%%MatrixMarket matrix coordinate complex general\n1 1 1\n1 1 1 0\n"
@@ -304,7 +304,7 @@ struct GraphFormatsMatrixMarketTests {
         }
     }
 
-    @Test("GF-129 hermitian (phase 2)")
+    @Test("GF-129 hermitian (unsupported)")
     func gf129() {
         // DirectedPseudograph<Int>(matrixMarket:) → **unsupported** at 1:39
         let input = "%%MatrixMarket matrix coordinate real hermitian\n1 1 0\n"
@@ -317,7 +317,7 @@ struct GraphFormatsMatrixMarketTests {
         }
     }
 
-    @Test("GF-130 vector (phase 2)")
+    @Test("GF-130 vector (unsupported)")
     func gf130() {
         // DirectedPseudograph<Int>(matrixMarket:) → **unsupported** at 1:16
         let input = "%%MatrixMarket vector coordinate real general\n3 0\n"

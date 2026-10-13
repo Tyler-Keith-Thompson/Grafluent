@@ -1,58 +1,56 @@
 /// A directed graph: a finite set of vertices and a finite collection of directed edges between
 /// them.
 ///
-/// **Edges and their identity.** Edges may repeat (parallel edges) unless the representation says
-/// otherwise. Each edge, every copy included, has a position in `edges`, and that position is the
-/// edge's identity: `outEdges(of:)` lists the positions of the edges leaving a vertex, so an
-/// algorithm can tell parallel edges apart and keep per-edge values (weights, capacities, flow)
-/// keyed by `Edges.Index`. `source(ofEdgeAt:)` and `target(ofEdgeAt:)` read an edge's endpoints
-/// without the cost of `edges[i]`. Positions are valid until the graph is mutated.
+/// Edges may repeat (parallel edges) unless the representation says otherwise. Each edge, every
+/// copy included, has a position in `edges`, and that position is the edge's identity.
+/// `outEdges(of:)` lists the positions of the edges leaving a vertex, so an algorithm can tell
+/// parallel edges apart and key per-edge values (weights, capacities, flow) by `Edges.Index`.
+/// `source(ofEdgeAt:)` and `target(ofEdgeAt:)` read an edge's endpoints without building
+/// `edges[i]`. Positions are valid until the graph is mutated.
 ///
-/// **Counting.** Every count and neighborhood counts each edge once, so a repeated edge counts once
-/// per copy: `successors(of:)` lists a target once per edge to it, in the same order as
-/// `outEdges(of:)`, and `outDegree(of:)` is the length of either. For a simple graph these are the
-/// set definitions.
+/// Every count and neighborhood counts each edge once, so a repeated edge counts once per copy.
+/// `successors(of:)` lists a target once per edge to it, in the same order as `outEdges(of:)`, and
+/// `outDegree(of:)` is the length of either. For a simple graph these are the set definitions.
 ///
-/// **Vertex indices.** A representation with dense vertex indices reports `vertexIndexBound`, and
-/// then `vertexIndex(of:)` maps its vertices one-to-one onto `0..<vertexIndexBound`, so
-/// algorithms can keep per-vertex state in arrays instead of dictionaries (Boost's `vertex_index`,
-/// petgraph's `NodeCompactIndexable`). Indices are valid until the graph is mutated.
-/// `successorIndices(ofIndex:)` gives adjacency directly in index space, and `outEdges(ofIndex:)`
-/// the out-edges without looking the vertex up. A representation with dense edge indices also
-/// reports `edgeIndexBound`, and then `edgeIndex(of:)` maps edge positions one-to-one onto
-/// `0..<edgeIndexBound` (Boost's `edge_index`, petgraph's `EdgeIndexable`), so per-edge values
-/// (weights, flow) can live in arrays.
+/// A representation with dense vertex indices reports `vertexIndexBound`. Then `vertexIndex(of:)`
+/// maps its vertices one-to-one onto `0..<vertexIndexBound`, and algorithms keep per-vertex state
+/// in arrays instead of dictionaries. Indices are valid until the graph is mutated.
+/// `successorIndices(ofIndex:)` gives adjacency in index space, and `outEdges(ofIndex:)` gives the
+/// out-edges without looking the vertex up. A representation with dense edge indices also reports
+/// `edgeIndexBound`. Then `edgeIndex(of:)` maps edge positions one-to-one onto
+/// `0..<edgeIndexBound`, and per-edge values can live in arrays.
 ///
-/// **Laws.** Every conformer satisfies:
+/// Every conformer satisfies these laws:
 /// - `vertexCount == vertices.count`, the vertices are distinct, and every edge's endpoints are
-///   vertices; `edgeCount == edges.count`.
-/// - For every vertex `v`: `outEdges(of: v)` lists each position of an edge leaving `v` exactly
-///   once; `source(ofEdgeAt: e) == v` and `target(ofEdgeAt: e) == edges[e].target` for each;
-///   `successors(of: v)` is their targets in the same order; `outDegree(of: v)` is their count.
+///   vertices. `edgeCount == edges.count`.
+/// - For every vertex `v`, `outEdges(of: v)` lists each position of an edge leaving `v` exactly
+///   once, and for each such `e`, `source(ofEdgeAt: e) == v` and
+///   `target(ofEdgeAt: e) == edges[e].target`. `successors(of: v)` is their targets in the same
+///   order, and `outDegree(of: v)` is their count.
 /// - The out-degrees sum to `edgeCount`. `contains(edge:)` is true exactly for the edges in
-///   `edges`, and `contains` is false (and does not trap) for anything absent.
+///   `edges`. Both `contains` methods return false, without trapping, for anything absent.
 /// - Asking again gives the same answer.
-/// - With vertex indices, `vertices` is in index order: `vertex(atIndex: i)` is the `i`th vertex,
-///   so an algorithm that visits vertices in `vertices` order can walk `0..<vertexIndexBound`.
+/// - With vertex indices, `vertices` is in index order: `vertex(atIndex: i)` is the `i`th vertex.
+///   An algorithm that visits vertices in `vertices` order can walk `0..<vertexIndexBound`
+///   instead.
 /// - With vertex indices, `successorIndices(ofIndex: vertexIndex(of: v))` is
 ///   `successors(of: v)` mapped through `vertexIndex(of:)`, in the same order, and
-///   `outEdges(ofIndex: vertexIndex(of: v))` is `outEdges(of: v)`; for every position `e`,
+///   `outEdges(ofIndex: vertexIndex(of: v))` is `outEdges(of: v)`. For every position `e`,
 ///   `sourceIndex(ofEdgeAt: e)` and `targetIndex(ofEdgeAt: e)` are the indices of
 ///   `source(ofEdgeAt: e)` and `target(ofEdgeAt: e)`.
-/// - With edge indices, `edgeIndexBound == edgeCount` and `edgeIndex(of:)` is one-to-one onto
+/// - With edge indices, `edgeIndexBound == edgeCount`, `edgeIndex(of:)` is one-to-one onto
 ///   `0..<edgeIndexBound`, and `edges` is in index order: the `k`th position of `edges` has
-///   `edgeIndex` `k` (so `undirectedView`, which forwards both, keeps `Graph`'s law of the same name).
+///   `edgeIndex` `k`.
 ///
-/// **Defaults.** Members with default implementations are requirements, not extension methods, so
-/// a representation's faster version is the one generic code calls. A type that wraps another
-/// graph generically (a view, a relabeling) must implement every requirement by forwarding to its
-/// base: a default chosen for the wrapper would ignore the base's faster member.
+/// Members with default implementations are requirements, not extension methods, so generic code
+/// calls a representation's own version when it has one. A type that wraps another graph
+/// generically, such as a view or a relabeling, must implement every requirement by forwarding to
+/// its base. Otherwise the default replaces the base's implementation.
 ///
-/// The protocol has no mutation: mutation belongs to concrete types, and the refinement
-/// `MutableDirectedGraph` (Boost's `MutableGraph`) gives wrappers the few hooks they need to
-/// mutate a base generically. It does not refine
-/// `Sendable`; representations are `Sendable` when their vertices are, and algorithms that cross
-/// isolation ask for `DirectedGraph & Sendable`.
+/// The protocol has no mutating members. Concrete types provide mutation, and
+/// `MutableDirectedGraph` gives wrappers the hooks they need to mutate a base generically.
+/// `DirectedGraph` does not refine `Sendable`. Representations are `Sendable` when their vertices
+/// are, and algorithms that cross isolation require `DirectedGraph & Sendable`.
 public protocol DirectedGraph<Vertex> {
     associatedtype Vertex: Hashable
     associatedtype Vertices: Collection<Vertex>
@@ -118,9 +116,8 @@ public protocol DirectedGraph<Vertex> {
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func vertex(atIndex index: Int) -> Vertex
 
-    /// The indices of `successors(of: vertex(atIndex: index))`, in the same order: adjacency in
-    /// index space, so an algorithm keeping per-vertex state in arrays never maps a neighbor back
-    /// to its index. Default: `successors` mapped through `vertexIndex(of:)`.
+    /// The indices of `successors(of: vertex(atIndex: index))`, in the same order. Default:
+    /// `successors(of:)` mapped through `vertexIndex(of:)`.
     ///
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func successorIndices(ofIndex index: Int) -> SuccessorIndices
@@ -138,22 +135,21 @@ public protocol DirectedGraph<Vertex> {
     func outDegree(ofIndex index: Int) -> Int
 
     /// Calls `body` with each of `successorIndices(ofIndex: index)`, in order. Default: a loop
-    /// over `successorIndices`. A view whose row is a filtering iterator (a subgraph, a product)
-    /// runs its loops in place, which a walk over every row (union–find, breadth-first search)
-    /// runs faster than through the iterator.
+    /// over `successorIndices(ofIndex:)`. A view whose rows are filtering iterators, such as a
+    /// subgraph or a product, implements it with the filter loop inline, which is faster for
+    /// algorithms that visit every row.
     ///
     /// Not for use outside the library.
     func _forEachSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void)
 
-    /// `vertexIndex(of: source(ofEdgeAt: position))`, for a representation or a view that knows
-    /// the index without the lookup (a `LabeledGraph` reads its base's `Int` endpoint, where
-    /// `vertexIndex(of:)` would hash the label). Default: exactly that.
+    /// `vertexIndex(of: source(ofEdgeAt: position))`. A representation or view that stores
+    /// endpoint indices returns it without the lookup. Default: exactly that.
     ///
     /// - Precondition: `vertexIndexBound` is not `nil`, and `position` is a position in `edges`.
     func sourceIndex(ofEdgeAt position: Edges.Index) -> Int
 
-    /// `vertexIndex(of: target(ofEdgeAt: position))`, without the lookup where the representation
-    /// can avoid it. Default: exactly that.
+    /// `vertexIndex(of: target(ofEdgeAt: position))`. A representation or view that stores
+    /// endpoint indices returns it without the lookup. Default: exactly that.
     ///
     /// - Precondition: `vertexIndexBound` is not `nil`, and `position` is a position in `edges`.
     func targetIndex(ofEdgeAt position: Edges.Index) -> Int
@@ -167,32 +163,34 @@ public protocol DirectedGraph<Vertex> {
     /// - Precondition: `edgeIndexBound` is not `nil`, and `position` is a position in `edges`.
     func edgeIndex(of position: Edges.Index) -> Int
 
-    /// For representations that store adjacency as flat rows in index space (compressed sparse
-    /// row): calls `body` with the row offsets (`vertexIndexBound + 1` of them) and the targets,
-    /// so that `successorIndices(ofIndex: v)` is `targets[offsets[v] ..< offsets[v + 1]]`, and
-    /// returns its result. Only for a graph whose `Edges.Index` is `Int` and whose edge positions
-    /// are `0 ..< edgeCount` in row order: slot `k` of `targets` is the edge at position `k` (and
-    /// so with `edgeIndex` `k`), and algorithms hand slot `k` to a weight closure as position `k`.
-    /// The buffers are valid only during the call. Default: `nil`, without calling `body`.
+    /// Calls `body` with the row offsets (`vertexIndexBound + 1` of them) and the targets, and
+    /// returns its result. For representations that store adjacency as compressed sparse rows in
+    /// index space. Default: `nil`, without calling `body`.
     ///
-    /// Not for use outside the library: algorithms walk these rows with integer cursors, which
-    /// avoids retaining the row storage once per visited vertex.
+    /// `successorIndices(ofIndex: v)` is `targets[offsets[v] ..< offsets[v + 1]]`. Only a graph
+    /// whose `Edges.Index` is `Int` and whose edge positions are `0 ..< edgeCount` in row order
+    /// implements it. Slot `k` of `targets` is the edge at position `k`, with `edgeIndex` `k`, and
+    /// algorithms pass slot `k` to a weight closure as position `k`. The buffers are valid only
+    /// during the call.
+    ///
+    /// Not for use outside the library.
     func _withSuccessorIndexRows<Result>(
         _ body: (_ offsets: UnsafeBufferPointer<Int>, _ targets: UnsafeBufferPointer<Int>) -> Result
     ) -> Result?
 
-    /// For representations that store out-adjacency as rows in index space, each row in its own
-    /// block of a shared pool (`AdjacencyList`): calls `body` with the target storage and its row
-    /// table, and the edge-position storage and its row table, and returns its result. A row table
-    /// holds three entries per vertex index `v`: the row's start in the storage, its length, and
-    /// one more the algorithm ignores; so `successorIndices(ofIndex: v)` is
-    /// `targets[targetRows[3v] ..< targetRows[3v] + targetRows[3v + 1]]`, and `outEdges(ofIndex: v)`
-    /// likewise from `edges` and `edgeRows`. Only for a graph whose `Edges.Index` is `Int`. The
-    /// buffers are valid only during the call. Default: `nil`, without calling `body`.
+    /// Calls `body` with the target storage and its row table and the edge-position storage and
+    /// its row table, and returns its result. For representations that store each out-row in its
+    /// own block of a shared pool, such as `AdjacencyList`. Default: `nil`, without calling `body`.
     ///
-    /// Not for use outside the library, as `_withSuccessorIndexRows`; algorithms read the rows
-    /// through `_withCheckedOutIndexRows(_:)`, which checks the tables' bounds once. A view that
-    /// changes adjacency (a subgraph, a filter) must not forward it.
+    /// A row table holds three entries per vertex index `v`: the row's start in the storage, its
+    /// length, and one entry that callers ignore. `successorIndices(ofIndex: v)` is
+    /// `targets[targetRows[3v] ..< targetRows[3v] + targetRows[3v + 1]]`, and
+    /// `outEdges(ofIndex: v)` reads `edges` and `edgeRows` the same way. Only a graph whose
+    /// `Edges.Index` is `Int` implements it. The buffers are valid only during the call. A view
+    /// that changes adjacency, such as a subgraph or a filter, must not forward this method.
+    ///
+    /// Not for use outside the library. Algorithms read the rows through
+    /// `_withCheckedOutIndexRows(_:)`, which checks the tables' bounds once.
     func _withOutIndexRows<Result>(
         _ body: (
             _ targets: UnsafeBufferPointer<Int>, _ targetRows: UnsafeBufferPointer<Int>,
@@ -200,22 +198,23 @@ public protocol DirectedGraph<Vertex> {
         ) -> Result
     ) -> Result?
 
-    /// The graph's current generation, which every structural mutation replaces: a structure
-    /// derived from the graph stores it and asks `GraphGeneration.isCurrent(for:)` before relying
-    /// on the graph again. Default: `GraphGeneration.untracked`, current for no graph. A wrapper
-    /// reports its base's.
+    /// The graph's current generation. Every structural mutation replaces it. A structure derived
+    /// from the graph stores the generation and calls `GraphGeneration.isCurrent(for:)` before
+    /// relying on the graph again. Default: `GraphGeneration.untracked`, which is current for no
+    /// graph. A wrapper reports its base's generation.
     var generation: GraphGeneration { get }
 }
 
-/// A directed graph that also answers in-neighborhoods: Boost's `BidirectionalGraph`. Kept apart
-/// from `DirectedGraph` because in-adjacency usually costs extra storage, and many algorithms only
-/// go forward.
+/// A directed graph that also answers in-neighborhoods. In-adjacency usually costs extra
+/// storage, so representations that store only out-adjacency conform to `DirectedGraph` alone.
 ///
-/// **Laws**, in addition to `DirectedGraph`'s: for every vertex `v`, `inEdges(of: v)` lists each
-/// position of an edge entering `v` exactly once; `predecessors(of: v)` is their sources in the
-/// same order; `inDegree(of: v)` is their count; `degree(of: v)` is `outDegree + inDegree`. With
-/// vertex indices, `predecessorIndices` is `predecessors` mapped through `vertexIndex(of:)`, and
-/// `inEdges(ofIndex: vertexIndex(of: v))` is `inEdges(of: v)`.
+/// In addition to `DirectedGraph`'s laws, for every vertex `v`:
+/// - `inEdges(of: v)` lists each position of an edge entering `v` exactly once.
+/// - `predecessors(of: v)` is their sources in the same order, and `inDegree(of: v)` is their
+///   count.
+/// - `degree(of: v)` is `outDegree(of: v) + inDegree(of: v)`.
+/// - With vertex indices, `predecessorIndices(ofIndex:)` is `predecessors(of:)` mapped through
+///   `vertexIndex(of:)`, and `inEdges(ofIndex: vertexIndex(of: v))` is `inEdges(of: v)`.
 public protocol BidirectionalDirectedGraph<Vertex>: DirectedGraph {
     associatedtype Predecessors: Sequence<Vertex>
     associatedtype InEdges: Sequence<Edges.Index>
@@ -258,14 +257,14 @@ public protocol BidirectionalDirectedGraph<Vertex>: DirectedGraph {
     func inEdges(ofIndex index: Int) -> InEdges
 
     /// Calls `body` with each of `predecessorIndices(ofIndex: index)`, in order. Default: a loop
-    /// over `predecessorIndices`; as `_forEachSuccessorIndex(ofIndex:_:)`.
+    /// over `predecessorIndices(ofIndex:)`.
     ///
     /// Not for use outside the library.
     func _forEachPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void)
 }
 
 extension DirectedGraph {
-    /// `GraphGeneration.untracked`: a conformer that does not track its mutations.
+    /// `GraphGeneration.untracked`, for a conformer that does not track its mutations.
     @inlinable
     public var generation: GraphGeneration { .untracked }
 
@@ -359,9 +358,11 @@ extension DirectedGraph {
         nil
     }
 
-    /// `_withOutIndexRows(_:)`, with every row checked once to lie in bounds in both storages and
-    /// the two rows of a vertex equally long, O(n), so `body` may read them unchecked. `nil`
+    /// `_withOutIndexRows(_:)`, after checking that every row lies in bounds in both storages and
+    /// that a vertex's two rows have equal length, so `body` may read them unchecked. Returns `nil`
     /// without vertex indices or stored rows.
+    ///
+    /// - Complexity: O(*n*) for the check, plus `body`.
     @inlinable
     @inline(__always)
     package func _withCheckedOutIndexRows<Result>(
@@ -450,7 +451,7 @@ extension BidirectionalDirectedGraph where Predecessors: Collection {
     }
 }
 
-/// A cursor over one row of `_withSuccessorIndexRows`: an iterator that holds no reference.
+/// An iterator over one row of `_withSuccessorIndexRows` that holds no reference.
 @frozen
 @usableFromInline
 package struct _RowCursor: IteratorProtocol {
@@ -476,8 +477,8 @@ package struct _RowCursor: IteratorProtocol {
     }
 }
 
-/// A cursor over the targets of one row of `_withOutIndexRows`: an iterator that holds no
-/// reference. Unchecked: the tables are checked once by `_withCheckedOutIndexRows(_:)`.
+/// An iterator over the targets of one row of `_withOutIndexRows` that holds no reference. It
+/// does no bounds checks; `_withCheckedOutIndexRows(_:)` checks the tables once.
 @frozen
 @usableFromInline
 package struct _PooledRowCursor: IteratorProtocol {

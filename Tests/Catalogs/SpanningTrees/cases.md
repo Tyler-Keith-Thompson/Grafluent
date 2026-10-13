@@ -1,4 +1,4 @@
-# SpanningTrees phase 1: case catalog
+# SpanningTrees: case catalog
 
 Notation. Each graph is given by its vertices and then its edges as `(u, v, w)`, **in position order**:
 position `k` is the `k`th edge listed. **Canonical** is the forest picked by the tie rule
@@ -184,4 +184,4 @@ Oracles are written inside each test (no shared helpers).
 | J. Preconditions and conformance | ST-120 – ST-129 | 10 |
 | **Total** | | **101** |
 
-Benchmarks (not tests): ST-B01 – ST-B04, see api.md.
+Benchmarks (not tests): ST-B01 – ST-B04.

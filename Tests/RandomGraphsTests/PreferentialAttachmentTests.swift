@@ -1,5 +1,5 @@
 // Barabási–Albert and Watts–Strogatz for fixed seeds (catalog RG-047 – RG-068, RG-109,
-// RG-142, RG-144): the repeated-nodes list with targets appended in ascending order, and NetworkX's ring rewiring.
+// RG-142, RG-144): the repeated-nodes list with targets appended in ascending order, and the ring rewiring.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule

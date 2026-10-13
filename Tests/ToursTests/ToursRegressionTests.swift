@@ -1,6 +1,6 @@
-// Inputs found by planted-bug (mutation) testing and by fuzzing (`FuzzTours`), each pinning a rule
-// no catalog row isolates. Expected values are worked out in each test's comments, or computed in
-// the test from a procedure written out in it. The Hamiltonian cycle through a cut vertex relies
+// Inputs that each pin a rule no catalog row isolates, including fuzzing inputs (`FuzzTours`).
+// Expected values are worked out in each test's comments, or computed in the test from a procedure
+// written out in it. The Hamiltonian cycle through a cut vertex relies
 // on speed and is in Performance/ToursRegressionScaleTests.swift. See README.md.
 
 import AdjacencyListModule
@@ -62,7 +62,7 @@ struct ToursRegressionTests {
 
     @Test("twoOptTour(improving:) is JGraphT's best-improvement procedure, written out, on 400 seeded complete graphs of 9 to 16 vertices with weights 0, 1 and 2 (many tied moves)")
     func twoOptTiesAgainstTheProcedure() throws {
-        // JGraphT `TwoOptHeuristicTSP.improve`: each round the move (i, j), 0 ≤ i < n − 2,
+        // Best improvement: each round the move (i, j), 0 ≤ i < n − 2,
         // i + 2 ≤ j < n, of the greatest gain d(t[i], t[i+1]) + d(t[j], t[j+1]) − d(t[i], t[j]) −
         // d(t[i+1], t[j+1]), the first in row-major order on ties, reversing t[i+1 ... j]; stop when
         // no gain is positive. Small weights tie many moves, so the incremental bookkeeping's tie

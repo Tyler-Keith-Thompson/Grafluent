@@ -25,7 +25,7 @@ public struct UndirectedEdge<Vertex: Hashable>: Hashable {
     public var isSelfLoop: Bool { u == v }
 
     /// The endpoint across the edge from `vertex`: `v` for `u`, `u` for `v`, and `vertex` itself
-    /// for a self-loop (JGraphT's `getOppositeVertex`).
+    /// for a self-loop.
     ///
     /// - Precondition: `vertex` is `u` or `v`.
     @inlinable

@@ -62,10 +62,12 @@ extension DirectedGraph {
     }
 
     /// The weakly connected components: the components of the graph with edge directions
-    /// ignored. By union–find over the edges, so predecessors are not needed. O(E α(V)).
+    /// ignored, by union–find over the edges, so predecessors are not needed.
     ///
     /// Components are in the order of their first vertex in `vertices`, and each lists its
-    /// vertices in `vertices` order (the order of NetworkX's `weakly_connected_components`).
+    /// vertices in `vertices` order.
+    ///
+    /// - Complexity: O(E α(V)).
     @inlinable
     public func weaklyConnectedComponents() -> Components<Self> {
         let vertices = _DenseVertices(self)

@@ -2,8 +2,8 @@
 // UInt.max is the tropical zero and absorbs) and the signed tropical −∞ (Int.min), which absorbs
 // every finite value but not the zero, on its own and as an edge weight in Bellman–Ford, where a
 // cycle behind −∞ stops relaxing; and the tropical zero as an edge weight in DAG paths, an edge
-// that carries no path. Hand-written; they pin planted bugs the catalog rows missed
-// (scripts/mutants/Semirings.py).
+// that carries no path. Hand-written; they catch mutants in scripts/mutants/Semirings.py that the
+// catalog rows miss.
 
 import DirectedAcyclicGraphModule
 import GraphProtocols

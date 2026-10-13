@@ -8,8 +8,7 @@ import GraphOperations
 import GraphProtocols
 import Traversal
 
-// The targets are api.md's (Tests/Catalogs/GraphOperations/api.md, "Performance targets"): each
-// view against the same algorithm on the base or on a materialized copy.
+// Each view against the same algorithm on the base or on a materialized copy.
 
 /// The index-space edges of a directed view, in `edges` order: what a materialized copy holds.
 func indexEdges<G: DirectedGraph>(_ graph: G) -> [DirectedEdge<Int>] {
@@ -62,7 +61,7 @@ let benchmarks: @Sendable () -> Void = {
     let undirectedEdges = arcs.filter { $0.source < $0.target }.map { UndirectedEdge($0.source, $0.target) }
     let undirected = UndirectedAdjacencyList<Int>(vertices: 0 ..< n, edges: undirectedEdges)
 
-    // MARK: transposedView vs AdjacencyList(g.transposedView), target ≤ 1.05×
+    // MARK: transposedView vs AdjacencyList(g.transposedView)
 
     let reverse = list.transposedView
     let reversedCopy = AdjacencyList<Int>(reverse)
@@ -82,7 +81,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(reverse.stronglyConnectedComponents().count) }
     }
 
-    // MARK: inducedSubgraphView keeping 100% vs the base, target ≤ 1.2×
+    // MARK: inducedSubgraphView keeping 100% vs the base
 
     let all = list.inducedSubgraphView(on: 0 ..< n)
     let allUndirected = undirected.inducedSubgraphView(on: 0 ..< n)
@@ -113,7 +112,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(allUndirected.connectedComponents().count) }
     }
 
-    // MARK: inducedSubgraphView keeping 50% vs a materialized copy, target ≤ 1.2× with the build
+    // MARK: inducedSubgraphView keeping 50% vs a materialized copy, build included
 
     var generator = SeededRandomNumberGenerator(seed: 11)
     let half = (0 ..< n).filter { _ in Bool.random(using: &generator) }
@@ -161,7 +160,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(list.inducedSubgraphView(on: half)) }
     }
 
-    // MARK: inducedSubgraphView over CompressedSparseRow keeping 100%, target ≤ 1.3×
+    // MARK: inducedSubgraphView over CompressedSparseRow keeping 100%
 
     let allCSR = csr.inducedSubgraphView(on: 0 ..< n)
     Benchmark("GraphOperations: BASELINE breadthFirstLayers on CompressedSparseRow") { benchmark in
@@ -171,7 +170,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(allCSR.breadthFirstLayers(from: 0)) }
     }
 
-    // MARK: spanningSubgraphView of a spanning forest's edges vs BFS on the base, target ≤ 1.2×
+    // MARK: spanningSubgraphView of a spanning forest's edges vs BFS on the base
 
     // The view walks every base entry and tests the mask's words at the base's edge index, so the
     // baseline is BFS over the same base rows (the BASELINE on UndirectedAdjacencyList above).
@@ -200,7 +199,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(tree.directedView.breadthFirstLayers(from: 0)) }
     }
 
-    // MARK: complement of a sparse graph (n = 20k) vs a materialized complement, target ≤ 1.5×
+    // MARK: complement of a sparse graph (n = 20k) vs a materialized complement
 
     Benchmark("GraphOperations: BASELINE breadthFirstLayers on a materialized complement (n = 20k, 4·10⁸ arcs)", configuration: .init(maxDuration: .seconds(10))) { benchmark in
         let copy = complementInputs.copy
@@ -213,8 +212,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // MARK: walking a complement's edges.indices vs iterating its edges (n = 2000)
 
-    // index(after:) steps from the current cell, one contains(edge:) per column passed; it once
-    // rescanned the row from its start, O(n³) for the walk (800× iterating at n = 2000).
+    // index(after:) steps from the current cell, one contains(edge:) per column passed.
     let walkCount = 2000
     let walkBase = CompressedSparseRow(vertexCount: walkCount, edges: Inputs.randomEdges(vertexCount: walkCount, edgeCount: 3 * walkCount, seed: 3))
     let walkComplement = walkBase.complementView
@@ -236,7 +234,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // MARK: lineGraph and the condensation
 
-    // No self-loops: a directed self-loop's line graph has a self-loop, which traps in phase 1.
+    // No self-loops: a directed self-loop's line graph has a self-loop, which traps.
     let lineInput = CompressedSparseRow(vertexCount: n, edges: Inputs.randomEdges(vertexCount: n, edgeCount: 300_000, seed: 4).filter { $0.source != $0.target })
     Benchmark("GraphOperations: CompressedSparseRow.lineGraph(of:), G(10⁵, 3·10⁵)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.lineGraph(of: lineInput)) }
@@ -263,7 +261,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(DirectedAcyclicGraph<AdjacencyList<Int>>(lowerTriangle.condensation())) }
     }
 
-    // MARK: Index-space hooks of the representations (the protocol defaults looked the vertex up)
+    // MARK: Index-space hooks of the representations vs reads by vertex lookup
 
     Benchmark("GraphOperations: BASELINE outDegree(of: vertex(atIndex:)) + edge ends by lookup, AdjacencyList<Int>, every vertex and edge") { benchmark in
         for _ in benchmark.scaledIterations {

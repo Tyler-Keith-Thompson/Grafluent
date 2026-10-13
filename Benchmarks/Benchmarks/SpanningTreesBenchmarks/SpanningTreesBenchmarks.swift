@@ -40,8 +40,8 @@ func handWrittenKruskal(_ n: Int, _ us: [Int], _ vs: [Int], _ ws: [Int]) -> (cou
 }
 
 /// Kruskal by hand from the graph's own index rows, as a caller would write it against
-/// `UndirectedAdjacencyList`'s public API: each edge at its lower end, then as above. The fair
-/// floor for the library, which gathers the same way.
+/// `UndirectedAdjacencyList`'s public API: each edge at its lower end, then as above. The floor
+/// for the library, which gathers the same way.
 func handWrittenKruskal(_ graph: UndirectedAdjacencyList<Int>, _ ws: [Int]) -> (count: Int, weight: Int) {
     let n = graph.vertexCount
     var us = [Int](repeating: 0, count: ws.count), vs = us
@@ -126,11 +126,11 @@ let benchmarks: @Sendable () -> Void = {
     let matrixRank = Dictionary(uniqueKeysWithValues: matrix.edges.indices.enumerated().map { ($1, $0) })
     let matrixWeights = matrix.edges.indices.map { _ in Int.random(in: 1 ... 1_000_000, using: &generator) }
 
-    // The same weights attached as edge maps (§6.3 of the attached-maps plan), each algorithm fed
-    // by `values(of:)` against the same algorithm fed by an array, in one run: on the undirected
-    // list (dense), on K₁₀₀₀ as `AdjacencyMatrix.undirectedView` (dense, Szudzik-indexed, against
-    // a flat array at `s · n + t`), and on `StableDirectedGraph.undirectedView` (paged, against a
-    // side array of `edgePositionBound` weights).
+    // The same weights attached as edge maps, each algorithm fed by `values(of:)` against the
+    // same algorithm fed by an array: on the undirected list (dense), on K₁₀₀₀ as
+    // `AdjacencyMatrix.undirectedView` (Szudzik-indexed, against a flat array at `s · n + t`), and
+    // on `StableDirectedGraph.undirectedView` (paged, against a side array of `edgePositionBound`
+    // weights).
     var attaching = graph
     let graphWeights = attaching.addEdgeMap(default: 0)
     for p in attaching.edges.indices { attaching[graphWeights, ofEdgeAt: p] = weights[p] }
@@ -222,7 +222,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(complete.primMinimumSpanningTree { completeWeights[$0] }) }
     }
     // ST-B03: weights from an attached edge map through `values(of:)`, against the array rows
-    // above or beside them. Gate: ≤ 2 % dense, ≤ 5 % Szudzik, ≤ 10 % paged.
+    // above or beside them.
     Benchmark("SpanningTrees: kruskalMinimumSpanningTree, G(10⁵, 10⁶), weights from values(of:)") { benchmark in
         for _ in benchmark.scaledIterations {
             let w = weightedGraph.values(of: graphWeights)

@@ -10,8 +10,7 @@ import Testing
 
 @Suite("Sugiyama layering against a linear program at scale")
 struct SugiyamaLayeringLinearProgramScaleTests {
-    // Release: 0.23 s; Gansner's pivots, searching a side of a cut each, took 1.5 s. The
-    // bound is for a debug build. Crossing reduction is off: the layering is under test.
+    // The bound is for a debug build. Crossing reduction is off: the layering is under test.
     @Test("At 5 × 10⁴ vertices with short random arcs: the LP optimum (HiGHS: 172087)", .timeLimit(.minutes(1)))
     func largeSpanMatchesTheLinearProgram() async {
         await Task {

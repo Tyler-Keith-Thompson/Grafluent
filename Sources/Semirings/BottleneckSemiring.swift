@@ -1,19 +1,19 @@
-/// The bottleneck semiring (max, min) over `Value`: widest paths, also called maximum-capacity or
-/// bottleneck paths (Gondran–Minoux; GraphBLAS's `GrB_MAX_MIN_SEMIRING`).
+/// The bottleneck semiring (max, min) over `Value`, for widest paths, also called
+/// maximum-capacity or bottleneck paths (Gondran–Minoux).
 ///
 /// `zero` is −∞ (`Int.min`, `-.infinity`), `one` is +∞ (`Int.max`, `.infinity`), ⊕ is `max` and
-/// ⊗ is `min`, so neither ever overflows. `<` is the natural order, "wider": `BottleneckSemiring(9) <
-/// BottleneckSemiring(2)`, so the order is the reverse of the values': `[a, b].max()` is the
-/// narrower and `.min()` the wider. A path's value is its narrowest edge, and a weight equal to
-/// `zero` carries no path. No operation checks for NaN; the ShortestPaths entry points trap on a
-/// NaN weight.
+/// ⊗ is `min`, so neither ever overflows. `<` is the natural order, in which wider is better:
+/// `BottleneckSemiring(9) < BottleneckSemiring(2)`. The order is the reverse of the values', so
+/// `[a, b].max()` is the narrower and `.min()` the wider. A path's value is its narrowest edge,
+/// and a weight equal to `zero` carries no path. No operation checks for NaN. The ShortestPaths
+/// entry points trap on a NaN weight.
 ///
 /// On unsigned integers `zero` is `0` (`Value.min`), so an edge of capacity 0 carries no path, as
 /// −∞ does for signed integers and floating point.
 ///
 ///     graph.dijkstraShortestPaths(from: s) { BottleneckSemiring(capacity[$0]) }
 ///
-/// Dijkstra's cutoff then means "at least this wide".
+/// Dijkstra's cutoff then means at least this wide.
 @frozen
 public struct BottleneckSemiring<Value: _SemiringScalar>: SelectiveSemiring, Hashable, Sendable {
     /// The width.

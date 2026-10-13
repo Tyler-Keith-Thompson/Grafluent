@@ -4,8 +4,7 @@ import GraphProtocols
 import NamedGraphs
 
 /// One Batagelj–Brandes sweep over the a·b pairs (v, w) of `0..<a` × `0..<b`, v then w: each step
-/// skips `⌊log(1 − u) / log(1 − p)⌋` pairs and keeps the next, as NetworkX's
-/// `bipartite.random_graph` sweeps. Appends v → a + w, or a + w → v when `rightFirst`. A skip of
+/// skips `⌊log(1 − u) / log(1 − p)⌋` pairs and keeps the next. Appends v → a + w, or a + w → v when `rightFirst`. A skip of
 /// a·b or more passes every remaining pair and ends the sweep before it becomes an `Int`.
 @inlinable
 func _bipartiteSweep<G: RandomNumberGenerator>(
@@ -57,13 +56,12 @@ func _checkRandomBipartite(_ a: Int, _ b: Int, _ p: Double) {
 extension _GraphConstruction {
     /// The random bipartite graph G(a, b, p): left side `0..<leftCount`, right side
     /// `leftCount..<leftCount + rightCount` (as `completeBipartite` numbers them), and each of the
-    /// a·b left–right pairs an edge independently with probability p. Drawn by Batagelj and
-    /// Brandes' geometric skipping over the pairs (see `erdosRenyi(vertexCount:edgeProbability:)`),
-    /// so one `log` and one draw per edge, plus one; O(a + b + m) expected. p = 0 gives no edges and
-    /// p = 1 the complete bipartite graph, with no draws. The draws are NetworkX's
-    /// `bipartite.random_graph(a, b, p)` on the same stream; edges come sorted, left end first.
-    /// The sides as a structure are `BipartiteGraph.randomBipartite`.
+    /// a·b left–right pairs an edge independently with probability p. It uses Batagelj and
+    /// Brandes' geometric skipping over the pairs, with one `log` and one draw per edge, plus one
+    /// more at the end. p = 0 gives no edges and p = 1 the complete bipartite graph, with no draws.
+    /// `BipartiteGraph.randomBipartite` returns the same graph with its sides.
     ///
+    /// - Complexity: O(a + b + m) expected.
     /// - Precondition: both counts are non-negative, a + b and 2·a·b fit in `Int`, and
     ///   `edgeProbability` is in 0...1.
     @inlinable
@@ -87,12 +85,11 @@ extension _GraphConstruction {
 }
 
 extension _DirectedGraphConstruction {
-    /// The directed random bipartite graph: each left → right arc and each right → left arc
-    /// independently with probability p, by one sweep for each direction, as NetworkX's
-    /// `bipartite.random_graph(a, b, p, directed=True)`. p = 1 gives both arcs of every left–right
-    /// pair, with no draws (NetworkX returns the undirected complete bipartite graph there). Arcs
-    /// in row-major order. O(a + b + m) expected.
+    /// The directed random bipartite graph: each left → right arc and each right → left arc is
+    /// present independently with probability p, drawn by one sweep for each direction. p = 1 gives
+    /// both arcs of every left–right pair, with no draws.
     ///
+    /// - Complexity: O(a + b + m) expected.
     /// - Precondition: as for the undirected form.
     @inlinable
     public static func randomBipartite(
@@ -120,10 +117,10 @@ extension _DirectedGraphConstruction {
 
 extension BipartiteGraph where Vertex == Int {
     /// The random bipartite graph G(a, b, p) with its sides: `left` is `0..<leftCount` and `right`
-    /// is `leftCount..<leftCount + rightCount`, each edge stored left end first. The same draws and
-    /// edges as `UndirectedAdjacencyList.randomBipartite`; the sides are known, so there is no
-    /// 2-colouring pass. O(a + b + m) expected.
+    /// is `leftCount..<leftCount + rightCount`, each edge stored left end first. It makes the same
+    /// draws and has the same edges as `UndirectedAdjacencyList.randomBipartite`.
     ///
+    /// - Complexity: O(a + b + m) expected.
     /// - Precondition: both counts are non-negative, a + b and 2·a·b fit in `Int`, and
     ///   `edgeProbability` is in 0...1.
     @inlinable

@@ -1,8 +1,8 @@
-# DirectedAcyclicGraphModule: case catalog (phase 1)
+# DirectedAcyclicGraphModule: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with rustworkx==0.18.1
 python3 Tests/Catalogs/DirectedAcyclicGraph/ref.py`; `--write` regenerates this file, `--stress` adds the random
-sequences). Every Expected is the output of a port of the proposed wrapper over ports of the three bases,
+sequences). Every Expected is the output of a port of the wrapper over ports of the three bases,
 checked at every state against the laws (the order is a permutation of the vertices, every edge goes forward)
 and every witness against the graph; `--stress` also checks a NetworkX specification and a rustworkx shadow.
 

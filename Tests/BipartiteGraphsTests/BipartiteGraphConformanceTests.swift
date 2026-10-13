@@ -1,10 +1,10 @@
-// Conformances beyond Graph (api.md, Summary and Semantics): Codable (`left`, `right`, then the
+// Conformances beyond Graph: Codable (`left`, `right`, then the
 // edges as pairs of offsets into `left ++ right`; decoding re-checks the invariant and throws
 // instead of trapping), Hashable, `Sendable` when the vertex is, the description
 // (`[0, 2] | [1]; [0–1, 2–1]`: left, right, edges, at most 16 of each, written as every
 // representation writes them), `SideVertices` as a value with `Int` indices from 0, copy-on-write,
-// the capacity calls, and `BipartiteSide`. api.md names no coding keys, so the invalid payloads are
-// made by editing a valid encoding: the keys are found by their values. See README.md.
+// the capacity calls, and `BipartiteSide`. The invalid payloads are made by editing a valid
+// encoding, its keys found by their values. See README.md.
 
 import AdjacencyListModule
 import BipartiteGraphs

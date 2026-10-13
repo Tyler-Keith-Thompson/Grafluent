@@ -10,9 +10,10 @@ The model follows the definitions in api.md:
     `Int` (64-bit, trapping on overflow) or `Double` (IEEE) arithmetic. The selective ones order
     by the natural order: a < b when a ⊕ b == a and a != b ("a is better").
   * the algorithms run in index space over a weighted multigraph: Dijkstra (heap, settled set,
-    every out-edge of a settled vertex examined), Bellman–Ford in LEMON's weak rounds, DAG paths
-    by Kahn's algorithm over the reachable part, Mohri's shortest distances on a DAG (⊕ over all
-    paths), Floyd–Warshall with scipy's row skip, and (phase 2) Lehmann's closure with `star`.
+    every out-edge of a settled vertex examined), Bellman–Ford in rounds over the vertices the
+    previous round improved, DAG paths by Kahn's algorithm over the reachable part, Mohri's
+    shortest distances on a DAG (⊕ over all paths), Floyd–Warshall skipping row i when
+    d[i][k] is 0̄, and Lehmann's closure with `star` for the "Phase 2" rows.
     Distances start at 0̄ and only a strictly better candidate (natural order) relaxes, so an
     edge of weight 0̄ never reaches anything (annihilation).
 
@@ -75,9 +76,9 @@ class SR:
 
 
 def trop_times_int(a, b):
-    if a == IMAX or b == IMAX:      # 0̄ annihilates (Boost's closed_plus)
+    if a == IMAX or b == IMAX:      # 0̄ annihilates
         return IMAX
-    if a == IMIN or b == IMIN:      # −∞ (phase 2, only from star)
+    if a == IMIN or b == IMIN:      # −∞ absorbs every other value
         return IMIN
     return chk(a + b)
 
@@ -112,7 +113,7 @@ BOOL = SR("BooleanSemiring", "Bool", False, True, lambda a, b: a or b, lambda a,
           lambda a, b: a and not b, lambda a: True)
 CNT_I = SR("CountingSemiring<Int>", "Int", 0, 1, lambda a, b: chk(a + b), lambda a, b: chk(a * b))
 CNT_D = SR("CountingSemiring<Double>", "Double", 0.0, 1.0, lambda a, b: a + b, lambda a, b: a * b)
-LOG_D = SR("LogSemiring<Double>", "Double", INF, 0.0, log_plus, trop_times_double)  # phase 2
+LOG_D = SR("LogSemiring<Double>", "Double", INF, 0.0, log_plus, trop_times_double)  # "Phase 2" rows only
 
 # The other scalars: fixed-width integers (trapping at their width; signed ones absorb .min as
 # −∞ after .max, unsigned ones have no −∞) and Float / Float16 (IEEE at their width).
@@ -345,8 +346,9 @@ def dijkstra(g, s, sources, cutoff=None):
 
 
 def bellman_ford(g, s, sources):
-    """LEMON's weak rounds; None when work is left after n rounds, or when the converged distances
-    hide a cycle better than one (a −∞ distance cannot improve, so such a cycle stops relaxing)."""
+    """Rounds over the vertices the previous round improved. None when work is left after n
+    rounds, or when the converged distances hide a cycle better than one (a −∞ distance cannot
+    improve, so such a cycle stops relaxing)."""
     if not s.selective:
         raise Trap("not a SelectiveSemiring (does not compile)")
     rows = g.out()
@@ -515,7 +517,7 @@ def floyd_warshall(g, s):
 
 
 def kleene(g, s):
-    """Phase 2: Lehmann's closure A* = I ⊕ A ⊕ A² ⊕ … ; 0̄ entries shown as —."""
+    """Lehmann's closure A* = I ⊕ A ⊕ A² ⊕ … for the "Phase 2" rows; 0̄ entries shown as —."""
     n = g.n
     d = [[s.zero] * n for _ in range(n)]
     for u, v, w, _ in g.arcs():
@@ -923,7 +925,7 @@ def define():
     for seed in (11, 12, 13):
         R("Agreement", "against NetworkX all_simple_edge_paths", "CountingSemiring<Int>", f"D[10]: dlcg(10,25,{seed};1..3)", "dagShortestDistances(from: 0)")
 
-    # ---------------------------------------------------------------- review additions
+    # ---------------------------------------------------------------- −∞ weights and other scalars
     # −∞ weights in Bellman–Ford: a cycle through one saturates instead of running out of rounds.
     for name, lo in [("TropicalSemiring<Int>", "Int.min"), ("TropicalSemiring<Double>", "-.infinity")]:
         R("Bellman–Ford", "a cycle through a −∞ weight: nil (the parents would form a cycle)", name,
@@ -955,7 +957,7 @@ def define():
     for name, case, a, b, o in SCALAR_ARITHMETIC:
         R("Arithmetic", case, name, f"a = {a}, b = {b}", o)
 
-    # ---------------------------------------------------------------- phase 2
+    # ---------------------------------------------------------------- star, kleeneClosure, LogSemiring ("Phase 2" groups)
     for name, vals in [("TropicalSemiring<Int>", ["5", "0", "-1", "Int.max"]), ("TropicalSemiring<Double>", ["2.5", "0.0", "-0.5", ".infinity"]),
                        ("BottleneckSemiring<Int>", ["5", "Int.min"]), ("BooleanSemiring", ["true", "false"])]:
         for v in vals:
@@ -1143,14 +1145,15 @@ Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx=
 scipy==1.18.1 --with numpy==2.3.4 python3 Tests/Catalogs/Semirings/ref.py`; `--write` regenerates
 this file, `--stress` adds random multigraphs). The model implements the definitions in api.md:
 the semiring operations with Swift's `Int` (trapping) and `Double` arithmetic, and Dijkstra,
-Bellman–Ford, DAG paths, Mohri's DAG shortest distances, Floyd–Warshall and (phase 2) Lehmann's
-closure over any semiring. Every algorithm row is recomputed another way: tropical rows against
+Bellman–Ford, DAG paths, Mohri's DAG shortest distances, Floyd–Warshall and Lehmann's closure
+over any semiring. Every algorithm row is recomputed another way: tropical rows against
 NetworkX 3.7 and scipy 1.18.1 (`shortest_path` 'D', 'BF', 'FW', `NegativeCycleError`;
 `floyd_warshall`, `negative_edge_cycle`), bottleneck and Boolean rows against brute force over
 simple paths (and NetworkX `descendants`, `transitive_closure(reflexive=True)`), counting rows
 against NetworkX `all_simple_edge_paths` (closed forms 2^k and C(r+c−2, r−1) for the big ones).
 Law rows evaluate both sides; the model asserts they are equal. Rows SR-{p2first:03d} – SR-{last:03d}
-are phase 2.
+(the "Phase 2" groups) pin `star`, `kleeneClosure` and `LogSemiring`, which the library does not
+declare; `swiftgen.py` writes their tests only with `--phase2`.
 
 ## Notation
 

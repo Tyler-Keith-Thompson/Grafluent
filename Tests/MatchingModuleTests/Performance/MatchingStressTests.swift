@@ -4,7 +4,7 @@
 // expected value is known by construction: a planted perfect matching (Hopcroft–Karp, 10⁵
 // vertices), a Hamiltonian path (Edmonds on the odd cycle C₁₀₀₀₀₁ and on a chain of 10⁴
 // pentagons, every one a blossom), a unique optimum (the weighted path and triangles, a cost
-// matrix with one zero per row, a tall one with one zero per column), scipy's identity on a
+// matrix with one zero per row, a tall one with one zero per column), the identity on a
 // constant matrix (MA-196 at 200 × 200), and serial dictatorship for stable matching. Random
 // instances use the package's seeded generator. See README.md.
 

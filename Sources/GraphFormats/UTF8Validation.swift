@@ -1,5 +1,5 @@
 /// Checks that `text` is UTF-8, throwing `invalidUTF8` at the first byte of the first bad sequence
-/// (where Python's decoder reports it: a lead byte with a bad continuation, a lone continuation, an
+/// (a lead byte with a bad continuation, a lone continuation, an
 /// overlong form, a surrogate, a scalar past U+10FFFF, or a sequence cut by the end).
 ///
 /// With `xmlCharacters`, a scalar XML 1.0 does not allow (a C0 control other than tab, line feed

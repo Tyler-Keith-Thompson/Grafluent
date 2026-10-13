@@ -1,4 +1,4 @@
-# IncidenceMatrix: case catalog (phase 1)
+# IncidenceMatrix: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with xgi==0.10.2
 python3 Tests/Catalogs/IncidenceMatrix/ref.py`; `--write` regenerates this file, `--stress` adds the random

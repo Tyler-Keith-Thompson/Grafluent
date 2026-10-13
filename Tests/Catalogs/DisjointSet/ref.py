@@ -1,8 +1,8 @@
 """Reference models for the DisjointSet catalog.
 
-DS   -- the recommended design: one array, a root holds minus its set's size, any other element
-        its parent; union by size, ties won by the root with the smaller index (scipy's rule);
-        find by path halving. Iterative.
+DS   -- the model of DisjointSet: one array where a root holds minus its set's size and any
+        other element holds its parent. Union by size, ties won by the root with the smaller
+        index. Find by path halving, iterative.
 Naive -- an independent oracle: owner[x] = set id, members per set, and the representative of
         each set maintained by the rule from the sizes and representatives alone.
 """

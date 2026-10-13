@@ -1,13 +1,13 @@
-// `greedyEdgeColoring()`: rustworkx `graph_greedy_edge_color`, the largest-first colouring of the
-// line graph. Each row's colours by position are rustworkx 0.18.1's on a `PyGraph(multigraph=True)`
-// with the same edges in the same order; each test also checks properness by the definition (the
-// edges at each vertex differ, a self-loop met once there, as `isEdgeColoring(_:)` meets it), every
-// colour used, classes ascending, at most 2Δ − 1 colours (Δ counting edge ends), and the procedure
-// written out: edges by the number of other edges they share an end with (a parallel copy at both
-// ends, a self-loop once at its vertex), most first, ties by position, each taking the least colour
-// of no coloured edge it shares an end with. Then `digraph.undirectedView` with an antiparallel pair,
-// which `edgeColoring()` rejects; random multigraphs with loops against the procedure; and a
-// graph with no edge indices whose positions are not 0..<m. See README.md.
+// `greedyEdgeColoring()`: the largest-first colouring of the line graph. Each row's colours by
+// position are rustworkx 0.18.1's on a `PyGraph(multigraph=True)` with the same edges in the same
+// order; each test also checks properness by the definition (the edges at each vertex differ, a
+// self-loop met once there, as `isEdgeColoring(_:)` meets it), every colour used, classes
+// ascending, at most 2Δ − 1 colours (Δ counting edge ends), and the procedure written out: edges by
+// the number of other edges they share an end with (a parallel copy at both ends, a self-loop once
+// at its vertex), most first, ties by position, each taking the least colour of no coloured edge it
+// shares an end with. Then `digraph.undirectedView` with an antiparallel pair, which
+// `edgeColoring()` rejects; random multigraphs with loops against the procedure; and a graph with
+// no edge indices whose positions are not 0..<m. See README.md.
 
 import AdjacencyListModule
 import ColoringModule

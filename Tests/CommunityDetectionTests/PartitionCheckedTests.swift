@@ -1,4 +1,4 @@
-// `Partition.community(checked:)` (README Principle 6): the community `community(of:)` gives for a
+// `Partition.community(checked:)`: the community `community(of:)` gives for a
 // vertex of the graph, and `VertexNotFound` where `community(of:)` would trap. Read on an indexed
 // graph and on one without indices, whose partition looks vertices up in its own numbers.
 

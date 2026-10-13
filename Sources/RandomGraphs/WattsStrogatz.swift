@@ -1,10 +1,10 @@
 import GraphProtocols
 import NamedGraphs
 
-/// Watts–Strogatz rewiring, NetworkX's `watts_strogatz_graph` draw for draw, or nil for k = n (the
-/// complete graph, with no draws). Each ring edge u–(u + j) has a slot, j = 1…k/2 then u in order,
-/// and keeps its slot when rewired to u–w, so the slots always hold the edge set; a pair set answers
-/// "is u–w an edge". Pairs sorted, smaller end first.
+/// Watts–Strogatz rewiring, or nil for k = n (the complete graph, with no draws). Each ring edge
+/// u–(u + j) has a slot, ordered by j = 1…k/2 then u, and keeps its slot when rewired to u–w, so the
+/// slots always hold the edge set. A pair set answers "is u–w an edge". Pairs sorted, smaller end
+/// first.
 @inlinable
 func _wattsStrogatzPairs<G: RandomNumberGenerator>(_ n: Int, _ k: Int, _ p: Double, _ g: inout G) -> [DirectedEdge<Int>]? {
     _checkCount(n)
@@ -31,7 +31,7 @@ func _wattsStrogatzPairs<G: RandomNumberGenerator>(_ n: Int, _ k: Int, _ p: Doub
             var rewire = true
             while w == u || edges.contains(Swift.min(u, w), Swift.max(u, w)) {
                 w = _below(n, &g)
-                // NetworkX checks for a full vertex only after a redraw.
+                // The full-vertex check comes after the redraw; the catalog pins this draw order.
                 if degree[u] >= n - 1 {
                     rewire = false
                     break
@@ -64,13 +64,13 @@ extension _GraphConstruction {
     /// > Duncan J. Watts and Steven H. Strogatz. Collective dynamics of 'small-world' networks.
     /// > *Nature* 393, 440–442 (1998). doi:10.1038/30918
     ///
-    /// nk/2 edges for every p, sorted; `nearestNeighborCount` counts both sides, as NetworkX's k
-    /// does. k = n gives the complete graph and k = 0 no edges, with no draws. The draws are
-    /// NetworkX's `watts_strogatz_graph(n, k, p)` on the same stream. O(n·k) expected. The
-    /// directed conformers get the same graph with both arcs for every edge.
+    /// The result has nk/2 edges for every p. `nearestNeighborCount` counts both sides. k = n gives
+    /// the complete graph and k = 0 no edges, with no draws. The directed conformers get the same
+    /// graph with both arcs for every edge.
     ///
-    /// - Precondition: `nearestNeighborCount` even and in `0...vertexCount` (NetworkX floors an odd
-    ///   k without saying so), and `rewiringProbability` in 0...1.
+    /// - Complexity: O(n·k) expected.
+    /// - Precondition: `nearestNeighborCount` even and in `0...vertexCount`, and
+    ///   `rewiringProbability` in 0...1.
     @inlinable
     public static func wattsStrogatz(
         vertexCount n: Int, nearestNeighborCount k: Int, rewiringProbability p: Double,
@@ -91,11 +91,10 @@ extension _GraphConstruction {
 
 extension _DirectedGraphConstruction {
     /// The Watts–Strogatz graph with both arcs for every edge, as the directed `complete` and
-    /// `grid` have them: the undirected form's draws and edges, then u → v and v → u in row-major
-    /// order. Rewiring is defined on undirected edges, so neither NetworkX nor igraph has a
-    /// separate directed model; this is `wattsStrogatz(…)` as a `DiGraph`. k = n gives the complete
-    /// directed graph with no draws. O(n·k) expected.
+    /// `grid` have them. It makes the undirected form's draws and has its edges, each as u → v and
+    /// v → u. k = n gives the complete directed graph with no draws.
     ///
+    /// - Complexity: O(n·k) expected.
     /// - Precondition: as for the undirected form.
     @inlinable
     public static func wattsStrogatz(

@@ -1,4 +1,4 @@
-"""Flows phase 1: reference models and independent checks for every catalog row.
+"""Flows: reference models and independent checks for every catalog row.
 
 Run:  uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with rustworkx==0.18.1
       python3 ref.py [--stress] [--write]
@@ -20,7 +20,7 @@ What decides Expected, per entry point (api.md, Determinism), and what each row 
       discovered, augment by the bottleneck.
 * minimumCut(from:to:capacity:)  the canonical cut: the sink side is the set of vertices that can
       reach the sink in the residual network of a maximum flow (the inclusion-minimal sink side;
-      NetworkX's and igraph's partition). Its edges are every edge from the source side to the
+      checked against NetworkX's and igraph's partitions). Its edges are every edge from the source side to the
       sink side, zero capacities included.
 * minimumCut(capacity:) on Graph   a minimum cut with the first vertex on its source side (api.md;
       Nagamochi-Ibaraki, not pinned among several); nil below two vertices; the component of the
@@ -1619,9 +1619,8 @@ def build():
     for call in ["vertexConnectivity(from: 0, to: 0)", "minimumVertexCut(from: 0, to: 0)", "edgeConnectivity(from: 0, to: 0)"]:
         trap("Preconditions", "connectivity: source is the target", P(3).text(), call, "source == target")
 
-    # --- added after the critical review (FL-488 on): Int.max capacities in minimum-cost flow, the
-    # artificial cost bound gone, small capacity types and floating point in the global cuts and
-    # Gomory-Hu, and disjoint paths.
+    # --- FL-488 on: Int.max capacities in minimum-cost flow, the artificial cost bound, small
+    # capacity types and floating point in the global cuts and Gomory-Hu, and disjoint paths.
     imax = 2 ** 63 - 1
     mcf_rows("Int.max capacities, a negative cycle", M([0, 1], [(0, 1), (1, 0)], [imax, imax], [0, -1], {0: 5, 1: -5}),
              note="both arcs near Int.max (only the solver's own arcs are unbounded)")
@@ -1786,9 +1785,9 @@ column says what each row was checked against.
   positions 0, 1, …, each `u→v c` (directed) or `u–v c` (undirected) with its capacity `c`, and
   `@w` its cost in minimum-cost rows. Edges without `c` have capacity 1 (connectivity rows take no
   capacities). A leading `Double`, `Int8` or `UInt8` is the capacity type (default `Int`).
-  `supply [v: b, …]` lists the nonzero supplies (positive supplies, negative demands; LEMON's and
-  OR-Tools' sign). Rows with parallel edges need a multigraph representation (`DirectedPseudograph`,
-  `Pseudograph`) or an in-file conformer.
+  `supply [v: b, …]` lists the nonzero supplies (positive supplies, negative demands). Rows with
+  parallel edges need a multigraph representation (`DirectedPseudograph`, `Pseudograph`) or an
+  in-file conformer.
 * **Generators.** `K(n)`: every pair i < j lexicographic; `Kd(n)`: every ordered pair i ≠ j, i then
   j ascending; `C(n)` / `Cd(n)`: edges i–(i+1) mod n; `P(n)`: the path i–(i+1); `Kb(a,b)`: left
   0..<a, right a..<a+b, row-major; `wheel(k)`: hub 0, spokes 0–i, then rim i–(i mod k + 1);
@@ -1801,8 +1800,7 @@ column says what each row was checked against.
   lo,hi)` adds a third draw per edge, the cost lo + d % (hi − lo + 1).
 * **Flows and cuts.** `value v` is the flow value. `S [..]; T [..]` are the cut's source and sink
   sides (vertices listed by index), the canonical cut: T is every vertex that can reach the sink
-  in the residual network of a maximum flow (the least sink side of any minimum cut; NetworkX's and
-  igraph's). `cut [..]` lists the edges from S to T by position, zero capacities included; on an
+  in the residual network of a maximum flow (the least sink side of any minimum cut). `cut [..]` lists the edges from S to T by position, zero capacities included; on an
   undirected graph `3r` is edge 3 crossed against its stored order (the `DirectedView` arc with
   `reversed: true`). `flow [..]` gives each edge's flow by position; on an undirected graph the
   signed flow along the stored order (negative: against it). Only `edmondsKarpMaximumFlow` and the

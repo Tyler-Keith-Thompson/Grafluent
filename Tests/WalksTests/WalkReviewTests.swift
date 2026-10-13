@@ -1,4 +1,4 @@
-// Cases added after planting bugs: a path may not repeat an edge position even when its vertices
+// Further invariants: a path may not repeat an edge position even when its vertices
 // are distinct (so `Trail(path)` can never fail); cycles of different lengths that start alike
 // are not equal; cycles that differ only in their edges hash apart; a path's weight counts every
 // edge. Case IDs (WK-nn) refer to the catalog; see README.md.

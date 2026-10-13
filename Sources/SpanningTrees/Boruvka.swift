@@ -2,11 +2,12 @@ import DisjointSetModule
 import GraphProtocols
 
 extension Graph {
-    /// Borůvka's algorithm (JGraphT's `BoruvkaMinimumSpanningTree`, NetworkX's `'boruvka'`): in
-    /// each round every component takes its lightest edge to another component, under the strict
-    /// order (weight, position), so a round cannot close a cycle. The canonical minimum spanning
-    /// forest of `minimumSpanningTree(weight:)`, the same edges as Kruskal's, listed by round and
-    /// in an unspecified order within a round.
+    /// A minimum spanning forest by Borůvka's algorithm.
+    ///
+    /// In each round every component takes its lightest edge to another component under the
+    /// strict order (weight, position), so a round cannot close a cycle. The forest has the same
+    /// edges as `minimumSpanningTree(weight:)`, listed by round and in an unspecified order within
+    /// a round.
     ///
     /// - Complexity: O(m log n) over at most ⌈log₂ n⌉ rounds, each a scan of the edges still
     ///   between components.
@@ -17,8 +18,8 @@ extension Graph {
     ) -> SpanningForest<Self, W> {
         var ranked = _rankedEdges(weight)
         let n = ranked.vertexCount
-        // The edges still between components, as flat records read in order each round; looking
-        // endpoints up by rank instead was 2–3× slower on G(10⁵, 10⁶).
+        // The edges still between components, as flat records read in order each round, which is
+        // faster than looking endpoints up by rank.
         var live = ranked.takeKeyed().map { (w, rank) in (w: w, rank: rank, u: ranked.u[rank], v: ranked.v[rank]) }
         // Only the positions are needed from here on.
         ranked.u = []

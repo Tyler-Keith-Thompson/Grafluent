@@ -1,14 +1,12 @@
 # Cycles: case catalog (CY-001 – CY-879)
 
-Cases for the Cycles module's phase 1 (api.md): undirected `isAcyclic`, `findCycle()`,
-`findCycle(from:)`, `cycleBasis()`, `simpleCycles(maxLength:)` on `Graph` and `DirectedGraph`,
-and `girth()` on both, plus deferred sections (chordless cycles, minimum cycle bases) kept so
-phase 2 starts from checked values. Harvested from NetworkX `test_cycles.py`, JGraphT
+Cases for the Cycles module: undirected `isAcyclic`, `findCycle()`, `findCycle(from:)`,
+`cycleBasis()`, `simpleCycles(maxLength:)` on `Graph` and `DirectedGraph`, and `girth()` on both.
+The Source column cites the test suites cases were taken from: NetworkX `test_cycles.py`, JGraphT
 (`DirectedSimpleCyclesTest`, `HawickJamesSimpleCyclesTest`, `PatonCycleBaseTest`,
 `GraphMetricsTest`), igraph (`igraph_simple_cycles.c`, `igraph_find_cycle.c`, `cycle_bases.c`,
-`igraph_girth.c`), Boost (`hawick_circuits.cpp`, `tiernan_all_cycles.cpp`, reproduced exactly by
-`boostprobe/main.cpp` against Boost 1.87), and rustworkx (`test_simple_cycles.py`,
-`test_cycle_basis.py`, `test_find_cycle.py`).
+`igraph_girth.c`), Boost (`hawick_circuits.cpp`, `tiernan_all_cycles.cpp`), and rustworkx
+(`test_simple_cycles.py`, `test_cycle_basis.py`, `test_find_cycle.py`).
 
 ## Notation
 
@@ -43,7 +41,7 @@ brackets comes first, then edges in **position order** (position `k` is the `k`t
 `basisCount` (`cycleBasis().count`); `simpleCycles`, `simpleCycles(maxLength: k)` (every cycle,
 in emitted order); `count`, `count(maxLength: k)` (the number of cycles emitted);
 `directedCount` (`graph.directedView.simpleCycles().count`, the undirected graph read as two arcs per
-edge); `girth`; deferred: `chordlessCycles`, `chordlessCount`, `minimumCycleBasisLengths`.
+edge); `girth`.
 
 **Expected** cells:
 
@@ -53,7 +51,7 @@ edge); `girth`; deferred: `chordlessCycles`, `chordlessCount`, `minimumCycleBasi
 | `none`, `nil` | no cycle emitted; no cycle found / no girth (acyclic) |
 | `#k` | a count; `T` / `F` a Boolean |
 
-Every cycle is in api.md's canonical form: it starts at its least vertex (in `vertices` order),
+Every cycle is in canonical form: it starts at its least vertex (in `vertices` order),
 and an undirected cycle leaves that vertex through the lesser of its two edges there (by position);
 `simpleCycles` emits by least vertex, then lexicographically by each edge's offset in its
 vertex's row along the canonical orientation.
@@ -71,7 +69,7 @@ checkable; `ref.py` checks every one under that library's semantics:
 | `nxg=k`, `jgg=k`, `igg=k`, `btg=k` | girth: NetworkX and JGraphT (loops 1, parallel pairs 2), igraph (loops and multi-edges ignored), Boost `tiernan_girth_and_circumference` (no loops, no undirected 2-cycles; 0 when acyclic) |
 
 `ref.py` recomputes every Expected cell from brute force (two independent enumerations, the sort
-key computed per cycle), runs api.md's algorithm in Python and requires the same cycles in the
+key computed per cycle), runs the module's algorithm in Python and requires the same cycles in the
 same order, and cross-checks NetworkX 3.7 (and python-igraph 1.0 when run `--with igraph`) on
 every graph row.
 
@@ -83,7 +81,7 @@ CY-460 – CY-463, CY-498); P6 (ordering by the first edge's position instead of
 fails CY-210, CY-248, CY-326, CY-328, CY-331, CY-420 – CY-422, CY-704 – CY-706; P2 (a bounded
 undirected search not counting other-orientation closures as found) fails only CY-491 and the
 shuffled-row random graphs. P1 (not counting the closure back along the edge just taken as found)
-fails nothing, by design (api.md).
+fails nothing, by design: any cycle through that vertex is also found from its own branch.
 
 python-igraph 1.0.0 is wrong on two rows, CY-244 (111 for 113) and CY-252 (none for one); Boost
 and NetworkX agree with brute force on both, and `ref.py` reports them as known.
@@ -132,7 +130,7 @@ and NetworkX agree with brute force on both, and `ref.py` reports them as known.
 | CY-038 | roots repeated and out of order | `P(0,1) C(2,3,4)` | `findCycle(from: [4,0,4])` | `[2,3,4]/[1,2,3]` | Searches from 4 first |
 | CY-039 | NetworkX `test_dag` | `0-1 0-2 1-2` | `isAcyclic` | `F` | `D: 0>1 0>2 1>2` is acyclic as a digraph, not as a graph |
 
-## B. Cycle basis (CY-100 – CY-159)
+## B. Cycle basis (CY-100 – CY-123)
 
 | ID | Source | Graph | Op | Expected | Note |
 |---|---|---|---|---|---|
@@ -160,13 +158,6 @@ and NetworkX agree with brute force on both, and `ref.py` reports them as known.
 | CY-121 | wheel | `W(0;1..6)` | `cycleBasis` | `[0,1,2]/[0,6,1]; [0,2,3]/[1,7,2]; [0,3,4]/[2,8,3]; [0,4,5]/[3,9,4]; [0,5,6]/[4,10,5]; [0,1,6]/[0,11,5]` |  |
 | CY-122 | grid | `grid(3,3)` | `cycleBasis` | `[0,1,4,3]/[0,3,5,1]; [1,2,5,4]/[2,4,7,3]; [0,1,4,7,6,3]/[0,3,8,10,6,1]; [1,2,5,8,7,4]/[2,4,9,11,8,3]` |  |
 | CY-123 | not every basis is fundamental: NetworkX `cycle_basis` (Paton) gives [0,3,4], [2,3,4], [0,1,3], [0,2,4], and [0,3,4] has no edge of its own (nxb#4) | `[0..4] 0-4 0-3 0-2 0-1 1-3 2-4 2-3 3-4` | `cycleBasis` | `[0,3,1]/[1,4,3]; [0,4,2]/[0,5,2]; [0,3,2]/[1,6,2]; [0,4,3]/[0,7,1]` | Ours: each cycle holds exactly one non-tree edge, its own. JGraphT documents Paton's output as "weakly fundamental" |
-| CY-150 | deferred: NetworkX `test_unweighted_diamond` | `C(1,2,3,4) 2-4` | `minimumCycleBasisLengths` | `[3,3]` | NetworkX [[2,4,1],[3,4,2]] |
-| CY-151 | deferred: NetworkX `test_complete_graph` | `K(5)` | `minimumCycleBasisLengths` | `[3,3,3,3,3,3]` |  |
-| CY-152 | deferred: NetworkX `test_petersen_graph` | `nx(petersen)` | `minimumCycleBasisLengths` | `[5,5,5,5,5,5]` |  |
-| CY-153 | deferred: NetworkX gh-6787, unweighted | `C(0..3) 0-2 1-3` | `minimumCycleBasisLengths` | `[3,3,3]` |  |
-| CY-154 | deferred: NetworkX `test_tree_graph` | `P(0..4) 1-5 1-6` | `minimumCycleBasisLengths` | `[]` |  |
-| CY-155 | deferred: NetworkX docstring | `C(0,1,2,3) 3-4 4-5 5-0` | `minimumCycleBasisLengths` | `[4,4]` | NetworkX [[5,4,3,0],[3,2,1,0]] |
-| CY-156 | deferred: igraph `igraph_girth.c` ring | `C(0..99) 0-50` | `minimumCycleBasisLengths` | `[51,51]` |  |
 
 ## C. Directed simple cycles (CY-200 – CY-269)
 
@@ -398,23 +389,6 @@ and NetworkX agree with brute force on both, and `ref.py` reports them as known.
 | CY-533 | loop far from the start vertex | `P(0..5) C(5,6,7) 7-7` | `girth` | `1` |  |
 | CY-534 | directed: shortest cycle not through vertex 0 | `D: C(0..5) 3>1` | `girth` | `3` |  |
 
-## H. Chordless cycles, deferred (CY-600 – CY-629)
-
-Phase 2. Simple graphs only: NetworkX's multigraph rules (a loop is chordless unless doubled; a
-parallel pair is a 2-cycle unless tripled; no edge with a parallel copy in a longer cycle) are its
-own, and no other library has the function.
-
-| ID | Source | Graph | Op | Expected | Note |
-|---|---|---|---|---|---|
-| CY-600 | NetworkX docstring | `K(4)` | `chordlessCycles` | `[0,1,2]/[0,3,1]; [0,1,3]/[0,4,2]; [0,2,3]/[1,5,2]; [1,2,3]/[3,5,4]` | NetworkX: [1,0,2], [1,0,3], [2,0,3], [2,1,3] |
-| CY-601 | NetworkX `test_chordless_cycles_clique` | `K(5)` | `chordlessCount` | `#10` | C(n, 3) |
-| CY-602 |  | `K(7)` | `chordlessCount` | `#35` |  |
-| CY-603 | NetworkX `test_chordless_cycles_graph` | `0-1 0-4 1-2 2-3 3-4 4-5 4-11 5-6 6-7 7-8 8-9 9-10 10-11` | `chordlessCycles` | `[0,1,2,3,4]/[0,2,3,4,1]; [4,5,6,7,8,9,10,11]/[5,7,8,9,10,11,12,6]` |  |
-| CY-604 | plus 7–3 | `0-1 0-4 1-2 2-3 3-4 4-5 4-11 5-6 6-7 7-8 8-9 9-10 10-11 7-3` | `chordlessCycles` | `[0,1,2,3,4]/[0,2,3,4,1]; [4,3,7,6,5]/[4,13,8,7,5]; [4,3,7,8,9,10,11]/[4,13,9,10,11,12,6]; [4,5,6,7,8,9,10,11]/[5,7,8,9,10,11,12,6]` | NetworkX adds [3..7] and [4,3,7,8,9,10,11] |
-| CY-605 | NetworkX giant Hamiltonian, n = 12 | `hamladder(12)` | `chordlessCount` | `#7` | n/2 triangles and the cycle of evens |
-| CY-606 | Petersen | `nx(petersen)` | `chordlessCount` | `#22` |  |
-| CY-607 | hexagon with a long chord | `C(0..5) 0-3` | `chordlessCycles` | `[0,1,2,3]/[0,1,2,6]; [0,5,4,3]/[5,4,3,6]` |  |
-
 ## I. Representations (CY-700 – CY-729)
 
 Rows with a Graph cell are checked by `ref.py`; the others name a test to write.
@@ -479,7 +453,6 @@ debug build; the benchmarks take the big sizes.
 | CY-811 | ladder 2 × 1000 | grid(2,1000) | count(maxLength: 4) | #999 | The squares, out of C(1000, 2) = 499 500 cycles |
 | CY-813 | girth is O(n·m) on a long cycle: keep it small | C(0..1999), D: C(0..1999) | girth | 2000, 2000 | Every breadth-first search runs to the end: 4·10⁶ steps. At 10⁵ vertices it would be 10¹⁰ |
 | CY-814 | girth stops early on a grid | grid(100,100) | girth | 4 | The first search finds a 4-cycle; every later one stops at depth 2 |
-| CY-812 | NetworkX giant Hamiltonian, n = 1000, chordless (deferred) | hamladder(1000) | chordlessCount | #501 | |
 
 ## L. Preconditions and conformance (CY-850 – CY-879)
 

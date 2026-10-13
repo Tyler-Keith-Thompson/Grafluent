@@ -31,8 +31,8 @@ The model works in index space, from the definitions in api.md:
     reduction), by the oracle when small and NetworkX otherwise.
 
 --write regenerates cases.md; without it the run fails if cases.md differs. --stress adds random
-multigraphs checked against the oracle and the certificates. --bench prints the baselines api.md
-quotes.
+multigraphs checked against the oracle and the certificates. --bench prints baseline
+timings.
 """
 import itertools
 import math
@@ -1043,7 +1043,7 @@ Whitney's theorem (3-connected, after suppressing degree-2 vertices), with the c
 NetworkX and python-igraph, which must agree. Rows whose blocks have at most {wl} edges list
 every Kuratowski subgraph (each lies in one block), so the witness and its kind are pinned exactly
 where they are unique; larger blocks that are themselves a subdivision are unique too. NetworkX 3.7's
-`check_planarity` must agree on every row. python-igraph 1.0.0 has no planarity test.
+`check_planarity` must agree on every row.
 
 ## Notation
 

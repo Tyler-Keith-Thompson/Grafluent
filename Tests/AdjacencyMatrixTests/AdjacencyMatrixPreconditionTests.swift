@@ -1,7 +1,7 @@
 // Preconditions. Vertices are positions 0..<vertexCount, so naming any other index in an operation
 // that must touch a cell is a programming error, like an out-of-bounds Array index. Membership
 // (`contains`) and removal never trap. Each case runs in a child process (exit test). Case IDs
-// (AM-Cnn, AM-Rnn, AM-Gnn) refer to the harvested test catalog.
+// (AM-Cnn, AM-Rnn, AM-Gnn) refer to the case catalog.
 
 import AdjacencyMatrixModule
 import GraphProtocols

@@ -8,7 +8,7 @@
 // Gusfield's tree); a successive-shortest-path minimum-cost oracle; and complementary slackness for the returned potentials. Every oracle
 // here is polynomial or bounded by 2⁹ vertex sets. See README.md.
 // Conditions with a closure are computed into a constant before `#expect`: inside these closures a
-// closure in an `#expect` expansion failed SIL verification with this toolchain (README.md).
+// closure in an `#expect` expansion fails SIL verification (README.md).
 
 import Flows
 import GrafluentTestSupport
@@ -464,7 +464,7 @@ struct FlowsPropertyTests {
             #expect(quarterValue, "\(context)")
             // Directed: sides in order, the edges leaving the source side, the least value; the same as
             // the least canonical cut value over the cyclic pairs vᵢ → vᵢ₊₁ (mod n), since every proper
-            // set separates some such pair (Schnorr 1979; Esfahanian's Algorithm 8, NetworkX's).
+            // set separates some such pair (Schnorr 1979; Esfahanian's Algorithm 8).
             let dcut = directedCut!
             let dSink = (0 ..< n).map { dcut.sinkSide.contains(listed[$0]) }
             let dSidesInOrder = dcut.sourceSide == (0 ..< n).filter { !dSink[$0] }.map { listed[$0] } && dcut.sinkSide == (0 ..< n).filter { dSink[$0] }.map { listed[$0] }

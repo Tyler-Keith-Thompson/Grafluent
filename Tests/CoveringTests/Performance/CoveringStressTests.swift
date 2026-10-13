@@ -116,7 +116,7 @@ struct CoveringStressTests {
     @Test("1,000 copies of the Petersen graph and of P₇: minimumDominatingSet() is each copy's catalog set (CV-141, CV-137) shifted; the greedy approximation on 2,000 stars of ten leaves is the hubs", .timeLimit(.minutes(1)))
     func dominatingComponents() async {
         await Task {
-            // Petersen as NetworkX numbers it: outer cycle 0–4, spokes i–(i + 5), inner pentagram.
+            // Petersen: outer cycle 0–4, spokes i–(i + 5), inner pentagram.
             let petersen = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             var pairs: [(Int, Int)] = []
             let copies = 1_000

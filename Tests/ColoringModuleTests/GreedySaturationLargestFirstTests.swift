@@ -1,13 +1,12 @@
 // `greedyColoring(strategy: .saturationLargestFirst)` (catalog §Greedy.saturationLargestFirst):
-// DSatur with NetworkX's tie rule (saturation, then simple degree in the whole graph, then the
-// lesser index), NetworkX's colours; exact; proper (checked here); at most Δ + 1 colours; a
-// first-fit colouring; the strategy written out; at least `chromaticNumber()` colours. Graphs are
-// `UndirectedAdjacencyList` built by inserting the row's vertices, then its edges in order, so rows
-// are in position order (a self-loop twice); `multigraph` rows are `ReferencePseudograph`, whose
-// rows are in position order too; `L …; R …` and the `Kb`, `crown` and `lcgb` rows are
-// `BipartiteGraph(left:right:edges:)`. In-test oracles number vertices by their index in `vertices`.
-// Generated from cases.md by swiftgen.py, which re-evaluates each row with ref.py's model; see
-// README.md.
+// DSatur with its tie rule (saturation, then simple degree in the whole graph, then the lesser
+// index); exact; proper (checked here); at most Δ + 1 colours; a first-fit colouring; the strategy
+// written out; at least `chromaticNumber()` colours. Graphs are `UndirectedAdjacencyList` built by
+// inserting the row's vertices, then its edges in order, so rows are in position order (a self-loop
+// twice); `multigraph` rows are `ReferencePseudograph`, whose rows are in position order too; `L …;
+// R …` and the `Kb`, `crown` and `lcgb` rows are `BipartiteGraph(left:right:edges:)`. In-test
+// oracles number vertices by their index in `vertices`. Generated from cases.md by swiftgen.py,
+// which re-evaluates each row with ref.py's model; see README.md.
 
 import AdjacencyListModule
 import BipartiteGraphs
@@ -52,7 +51,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -101,7 +100,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -150,7 +149,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -199,7 +198,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -248,7 +247,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -297,7 +296,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -346,7 +345,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -395,7 +394,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -444,7 +443,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -493,7 +492,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -542,7 +541,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -591,7 +590,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -640,7 +639,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -689,7 +688,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -738,7 +737,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -787,7 +786,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -836,7 +835,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -885,7 +884,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -934,7 +933,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -983,7 +982,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -1032,7 +1031,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -1081,7 +1080,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -1130,7 +1129,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -1179,7 +1178,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -1228,7 +1227,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -1277,7 +1276,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -1326,7 +1325,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -1375,7 +1374,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -1424,7 +1423,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {
@@ -1473,7 +1472,7 @@ struct GreedySaturationLargestFirstTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         // First fit, checked here: a vertex of colour c has neighbours of every colour below c.
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(vertexList[v])") }
-        // DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour
+        // DSatur written out: the uncoloured vertex with the most distinct neighbour
         // colours, then the greatest simple degree, then the lesser index, takes the least colour free.
         var expected = [Int](repeating: -1, count: n)
         for _ in 0 ..< n {

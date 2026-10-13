@@ -1,5 +1,5 @@
-// §F: label propagation on `Graph`. Semi-synchronous (Cordasco–Gargano, NetworkX's deterministic
-// rules: a greedy largest-degree-first coloring, classes updated in color order) and asynchronous
+// §F: label propagation on `Graph`. Semi-synchronous (Cordasco–Gargano: a greedy
+// largest-degree-first coloring, classes updated in color order) and asynchronous
 // (Raghavan et al.: vertices in index order, ties to the greatest label; `using:` where every order and
 // tie choice gives the same partition). Votes are the row: parallel copies each vote, self-loops vote
 // for nothing, weights add.

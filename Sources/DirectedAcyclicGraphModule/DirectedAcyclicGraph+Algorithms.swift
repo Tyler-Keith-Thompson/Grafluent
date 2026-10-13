@@ -2,11 +2,11 @@ import GraphProtocols
 import Walks
 
 extension DirectedAcyclicGraph {
-    /// Whether a path leads from `source` to `target`; true when they are the same vertex
-    /// (NetworkX's `has_path`). False in O(1) when `source` is placed after `target`, since every
-    /// path goes forward in the order; otherwise a depth-first search visits only the vertices
-    /// placed between the two, the pruning Pearce–Kelly's forward search uses. This shadows
-    /// Traversal's `hasPath(from:to:)`, with the same answer.
+    /// Whether a path leads from `source` to `target`. True when they are the same vertex.
+    ///
+    /// Returns false in O(1) when `source` is placed after `target`, since every path goes forward
+    /// in the order. Otherwise a depth-first search visits only the vertices placed between the
+    /// two. Gives the same answer as Traversal's `hasPath(from:to:)`.
     ///
     /// - Precondition: both are vertices.
     @inlinable
@@ -66,11 +66,14 @@ extension DirectedAcyclicGraph {
         return (rows, words)
     }
 
-    /// The transitive closure (NetworkX's `transitive_closure_dag`, not reflexive): a copy of the
-    /// graph in which, for each vertex u in topological order, an edge u→w is appended for each
-    /// vertex w reachable from u that is not already a successor, in topological order of w.
-    /// Existing edges, copies included, keep their positions, and the order is the same.
-    /// O(n · m / 64 + n + output) time and n² / 8 bytes of scratch.
+    /// The transitive closure, not reflexive.
+    ///
+    /// A copy of the graph in which, for each vertex u in topological order, an edge u→w is
+    /// appended for each vertex w reachable from u that is not already a successor, in topological
+    /// order of w. Existing edges, parallel copies included, keep their positions, and the
+    /// topological order is unchanged.
+    ///
+    /// - Complexity: O(n · m / 64 + n + output) time and n² / 8 bytes of scratch.
     @inlinable
     public func transitiveClosure() -> Self {
         let places = _places()
@@ -98,11 +101,14 @@ extension DirectedAcyclicGraph {
         return closure
     }
 
-    /// The transitive reduction (NetworkX's `transitive_reduction`): the edge u→w is kept exactly
-    /// when no path of two or more edges leads from u to w, and of parallel copies only the first
-    /// in `edges` order. A new graph: the vertices in `vertices` order, the kept edges in `edges`
-    /// order at fresh positions (a `StableDirectedGraph` is compacted), and the same topological
-    /// order. O(n · m / 64 + n + m) time and n² / 8 bytes of scratch.
+    /// The transitive reduction.
+    ///
+    /// The edge u→w is kept exactly when no path of two or more edges leads from u to w, and of
+    /// parallel copies only the first in `edges` order is kept. The result is a new graph with the
+    /// vertices in `vertices` order, the kept edges in `edges` order at fresh positions (a
+    /// `StableDirectedGraph` is compacted), and the same topological order.
+    ///
+    /// - Complexity: O(n · m / 64 + n + m) time and n² / 8 bytes of scratch.
     @inlinable
     public func transitiveReduction() -> Self {
         let places = _places()
@@ -156,26 +162,30 @@ extension DirectedAcyclicGraph {
         return Self(_base: reduced, order: order, table: table)
     }
 
-    /// A longest path, by edge count (NetworkX's `dag_longest_path` with unit weights, given this
-    /// order as `topo_order`). Walking the order, each vertex's best predecessor edge is the first
-    /// in `inEdges` order that achieves its maximum; the path ends at the first vertex in the
-    /// order with the greatest distance. `nil` only for the empty graph; an edgeless graph gives
-    /// its first vertex in the order. O(n + m).
+    /// A longest path by edge count.
+    ///
+    /// Walking the topological order, each vertex's best predecessor edge is the first in
+    /// `inEdges` order that achieves its maximum. The path ends at the first vertex in the order
+    /// with the greatest distance. An edgeless graph gives its first vertex in the order.
+    ///
+    /// - Returns: The path, or `nil` for the empty graph.
+    /// - Complexity: O(n + m).
     @inlinable
     public func longestPath() -> Path<Vertex, Edges.Index>? {
         _longestPath { _ in 1 }
     }
 
-    /// A path of greatest total weight (NetworkX's `dag_longest_path(G, weight=…, topo_order=…)`
-    /// given this order, rustworkx's `dag_weighted_longest_path`), weights read by edge position
-    /// as in ShortestPaths. Walking the order, each vertex takes the predecessor edge, first in
-    /// `inEdges` order among equals, that maximizes its distance plus the edge's weight, and
-    /// starts afresh at distance zero when that maximum is negative (or it has no in-edge), as
-    /// NetworkX does; the path ends at the first vertex in the order with the greatest distance,
-    /// and its weight is that distance. So with negative weights the path may be a single vertex;
-    /// a zero-weight edge extends a path. `nil` only for the empty graph. O(n + m).
+    /// A path of greatest total weight, with weights read by edge position.
     ///
-    /// - Precondition: no distance is NaN; every sum fits in `W`.
+    /// Walking the topological order, each vertex takes the predecessor edge, first in `inEdges`
+    /// order among equals, that maximizes its distance plus the edge's weight. A vertex starts
+    /// afresh at distance zero when that maximum is negative or it has no in-edge. The path ends at
+    /// the first vertex in the order with the greatest distance, and its weight is that distance.
+    /// With negative weights the path may be a single vertex. A zero-weight edge extends a path.
+    ///
+    /// - Returns: The path, or `nil` for the empty graph.
+    /// - Precondition: No distance is NaN, and every sum fits in `W`.
+    /// - Complexity: O(n + m).
     @inlinable
     public func longestPath<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Path<Vertex, Edges.Index>? {
         _longestPath(weight)

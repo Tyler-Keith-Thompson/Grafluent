@@ -2,8 +2,8 @@ import Trees
 
 extension Tree {
     /// The vertices whose removal leaves no component of more than n/2 vertices (Jordan's
-    /// centroid; NetworkX `tree.centroid`), in `vertices` order: one, or two adjacent ones. Edge
-    /// weights do not enter. O(n).
+    /// centroid), in `vertices` order. There is one, or two adjacent ones. Edge weights are
+    /// ignored. O(n).
     @inlinable
     public func centroid() -> [Vertex] {
         let layout = _layout

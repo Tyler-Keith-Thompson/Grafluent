@@ -62,7 +62,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // The first review measured edge and vertex removal going quadratic around hubs.
+    // Edge and vertex removal around a hub, which must stay O(degree) per removal.
     Benchmark("AdjacencyList: remove every leaf of a 20k-leaf star") { benchmark in
         for _ in benchmark.scaledIterations {
             var mutable = star

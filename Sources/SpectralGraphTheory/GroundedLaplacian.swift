@@ -17,10 +17,9 @@ import GraphProtocols
 /// spread. A fill entry outside the pattern is dropped together with its share of the diagonal
 /// (the modification, which keeps every row sum).
 ///
-/// Measured on a 100 × 100 grid with conductances log-uniform over 10⁻⁶ … 10⁶ (resistance corner
-/// to corner, 10⁻¹⁰): IC(0) in breadth-first order 26,559 products, MIC(0) in breadth-first order
-/// over 40,000, MIC(0) in this order 79. On G(n, p) graphs Jacobi does better (36 against 711 on
-/// 10⁵ vertices), hence `_GroundedSolver`'s switch.
+/// This order keeps the iteration count low under wide conductance spreads, where breadth-first
+/// IC(0) and MIC(0) need far more products. On G(n, p) graphs Jacobi does better, hence
+/// `_GroundedSolver`'s switch.
 @usableFromInline
 struct _IncompleteFactor {
     /// The vertex eliminated at each position.
@@ -375,9 +374,8 @@ func _laplacianProduct(_ n: Int, _ offsets: UnsafePointer<Int>, _ columns: Unsaf
     return xy
 }
 
-/// Conjugate gradients switch from Jacobi to the incomplete factor after this many iterations
-/// (measured: G(n, p) on 10⁵ vertices converges in 36 with Jacobi; the spread grid above needs the
-/// factor).
+/// Conjugate gradients switch from Jacobi to the incomplete factor after this many iterations:
+/// G(n, p) graphs converge well within it with Jacobi, and wide conductance spreads need the factor.
 @usableFromInline let _jacobiIterations = 300
 
 

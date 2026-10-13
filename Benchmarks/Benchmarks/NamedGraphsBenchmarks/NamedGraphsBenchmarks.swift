@@ -39,7 +39,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
 
-    // api.md's reference sizes; NetworkX 3.7 / igraph 1.0 in the README row.
+    // The base families at fixed sizes, against hand-written floors.
     Benchmark("NamedGraphs: BASELINE hand-written CSR rows of the complete digraph, n = 2000") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(handWrittenCompleteRows(2000)) }
     }
@@ -76,8 +76,9 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.path(vertexCount: 1_000_000)) }
     }
 
-    // The families added in phase 1: one Θ(n) and one Θ(n²) shape of each, on CSR (both arcs where
-    // the directed form has them, so `_bothArcs` is in the measurement) and the adjacency list.
+    // Ladders, barbells, lollipops, multipartite graphs and balanced trees: one Θ(n) and one Θ(n²)
+    // shape of each, on CSR (both arcs where the directed form has them, so `_bothArcs` is in the
+    // measurement) and the adjacency list.
     Benchmark("NamedGraphs: CompressedSparseRow.ladder, 10⁶ rungs (6·10⁶ arcs)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.ladder(rungCount: 1_000_000)) }
     }

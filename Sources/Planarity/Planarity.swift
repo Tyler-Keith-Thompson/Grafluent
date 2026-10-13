@@ -16,9 +16,9 @@ extension Graph {
     @inlinable
     var _planarEdgeLimit: Int { let n = vertexIndexBound ?? vertexCount; return n >= 3 ? 3 * n - 6 : .max }
 
-    /// Whether the graph can be drawn in the plane without crossing edges (NetworkX's `is_planar`,
-    /// Boost's `boyer_myrvold_planarity_test`). A simple graph with more than 3n − 6 edges is not,
-    /// which is answered after counting distinct pairs, before any search. O(n + m).
+    /// Whether the graph can be drawn in the plane without crossing edges. A simple graph with more
+    /// than 3n − 6 edges is not, which is answered after counting distinct pairs, before any
+    /// search. O(n + m).
     @inlinable
     public var isPlanar: Bool {
         let simple = _runOnUndirectedRows(_UnderlyingSimpleGraphReader(limit: _planarEdgeLimit, readsEdges: false, keepsCopies: false))
@@ -27,8 +27,8 @@ extension Graph {
     }
 
     /// A planar embedding of the graph, over every edge position (loops and parallel copies
-    /// included), or nil when the graph is not planar: the witness of planarity (NetworkX's
-    /// `check_planarity`, Boost's `embedding` output). O(n + m), faces included.
+    /// included), or nil when the graph is not planar: the witness of planarity. O(n + m), faces
+    /// included.
     @inlinable
     public func planarEmbedding() -> PlanarEmbedding<Self>? {
         let numbering = _vertexNumbering()
@@ -41,9 +41,8 @@ extension Graph {
     }
 
     /// A subdivision of K₅ or K₃,₃ made of the graph's edges, or nil when the graph is planar: the
-    /// witness of non-planarity (Boost's `kuratowski_subgraph`, JGraphT's
-    /// `getKuratowskiSubdivision()`). A dense graph is searched on its first 3n − 5 distinct pairs
-    /// only, which already hold one. O(n + m).
+    /// witness of non-planarity. A dense graph is searched on its first 3n − 5 distinct pairs only,
+    /// which already hold one. O(n + m).
     @inlinable
     public func findKuratowskiSubgraph() -> KuratowskiSubgraph<Self>? {
         let numbering = _vertexNumbering()
@@ -55,9 +54,9 @@ extension Graph {
         return KuratowskiSubgraph(self, simple, witness: witness, listed: numbering?.listed)
     }
 
-    /// Whether the graph has a planar embedding with every vertex on one face (Mathematica's
-    /// `OuterplanarGraphQ`): whether the graph plus a new vertex joined to every vertex is planar.
-    /// A simple graph with more than 2n − 3 edges is not. O(n + m).
+    /// Whether the graph has a planar embedding with every vertex on one face: whether the graph
+    /// plus a new vertex joined to every vertex is planar. A simple graph with more than 2n − 3
+    /// edges is not. O(n + m).
     @inlinable
     public var isOuterplanar: Bool {
         let n = vertexIndexBound ?? vertexCount

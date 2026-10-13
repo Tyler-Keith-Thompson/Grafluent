@@ -1,7 +1,7 @@
 // The product numbering: vertex (g, h) at index(g)·|V(H)| + index(h), with its checks.
 
 /// The two factors' vertex counts, checked: both factors need vertex indices, and the product's
-/// count must fit in an `Int`. The guard is a comparison, not an overflow-reporting multiply.
+/// count must fit in an `Int`.
 @inlinable
 func _factorCounts(_ first: Int?, _ second: Int?) -> (first: Int, second: Int) {
     guard let nG = first, let nH = second else {

@@ -1,8 +1,8 @@
 import GraphProtocols
 
-// Edge and vertex connectivity by flows on the graph's edges with unit capacities: parallel
-// edges count for edge connectivity, self-loops never count, and vertex connectivity reads the
-// simple graph (parallel arcs of the split network never change its minimum cuts).
+// Edge and vertex connectivity by flows on the graph's edges with unit capacities. Parallel
+// edges count for edge connectivity and self-loops never count. Vertex connectivity reads the
+// simple graph, because parallel arcs of the split network never change its minimum cuts.
 
 /// The split network for vertex connectivity: vertex v becomes v_in = 2v and v_out = 2v + 1
 /// joined by an arc of capacity 1, and each edge u → v an arc u_out → v_in of capacity n (both
@@ -140,10 +140,11 @@ func _directedEdgeConnectivity(_ edges: _FlowEdges) -> Int {
 }
 
 extension DirectedGraph {
-    /// λ(G): the fewest edges whose removal leaves the graph not strongly connected; 0 below two
-    /// vertices (NetworkX `edge_connectivity`, igraph `edge_connectivity`). Parallel edges count;
-    /// self-loops do not. Hao–Orlin with unit capacities (LEMON `HaoOrlin`).
-    /// `minimumCut(capacity: { _ in 1 })` gives a cut.
+    /// λ(G), the fewest edges whose removal leaves the graph not strongly connected, or 0 below
+    /// two vertices.
+    ///
+    /// Parallel edges count and self-loops do not. Computed by Hao–Orlin with unit capacities.
+    /// `minimumCut(capacity: { _ in 1 })` gives a cut of this size.
     @inlinable
     public func edgeConnectivity() -> Int {
         _directedEdgeConnectivity(_flowEdges().edges)
@@ -160,16 +161,16 @@ extension DirectedGraph {
         return _dinic(_unitNetwork(edges), from: s, to: t)
     }
 
-    /// κ(G): the fewest vertices whose removal leaves the graph not strongly connected or with one
-    /// vertex (igraph `vertex_connectivity`, NetworkX `node_connectivity`); n − 1 for a complete
-    /// digraph, 0 below two vertices or when not strongly connected.
+    /// κ(G), the fewest vertices whose removal leaves the graph not strongly connected or with one
+    /// vertex. It is n − 1 for a complete digraph and 0 below two vertices or when the graph is not
+    /// strongly connected.
     @inlinable
     public func vertexConnectivity() -> Int {
         _globalVertexConnectivity(_flowEdges().edges).value
     }
 
-    /// The most internally vertex-disjoint paths from `source` to `target`; an edge
-    /// source → target counts as one path, whatever its multiplicity (NetworkX).
+    /// The most internally vertex-disjoint paths from `source` to `target`. Edges
+    /// source → target count as one path, whatever their multiplicity.
     ///
     /// - Precondition: `source` and `target` are distinct vertices.
     @inlinable
@@ -180,9 +181,11 @@ extension DirectedGraph {
         return _localVertexConnectivity(edges, s, t, wantsCut: false).value
     }
 
-    /// A minimum vertex cut, in `vertices` order, by Even's pair order (the first strict minimum
-    /// over the pairs, each the canonical cut nearest its target); the vertices after the first
-    /// for a complete digraph; empty when κ = 0.
+    /// A minimum vertex cut, in `vertices` order.
+    ///
+    /// The cut is the first strict minimum over the pairs in Even's order, each pair's cut the
+    /// one nearest its target. For a complete digraph it is every vertex after the first. It is
+    /// empty when κ = 0.
     @inlinable
     public func minimumVertexCut() -> [Vertex] {
         let (edges, vertices) = _flowEdges()
@@ -191,7 +194,7 @@ extension DirectedGraph {
     }
 
     /// The minimum source–target vertex cut nearest `target`, in `vertices` order, or nil when an
-    /// edge goes from `source` to `target` (no vertex set separates them).
+    /// edge goes from `source` to `target`, because then no vertex set separates them.
     ///
     /// - Precondition: `source` and `target` are distinct vertices.
     @inlinable
@@ -206,9 +209,11 @@ extension DirectedGraph {
 }
 
 extension Graph {
-    /// λ(G): the fewest edges whose removal disconnects the graph, by Nagamochi–Ibaraki with unit
-    /// capacities (merged parallel edges carry their multiplicity); 0 below two vertices or when
-    /// disconnected. Parallel edges count; self-loops do not.
+    /// λ(G), the fewest edges whose removal disconnects the graph, or 0 below two vertices or when
+    /// disconnected.
+    ///
+    /// Parallel edges count and self-loops do not. Computed by Nagamochi–Ibaraki with unit
+    /// capacities.
     @inlinable
     public func edgeConnectivity() -> Int {
         let edges = _flowEdges().edges
@@ -231,15 +236,15 @@ extension Graph {
         return _dinic(_unitNetwork(edges), from: s, to: t)
     }
 
-    /// κ(G): the fewest vertices whose removal disconnects the graph or leaves one vertex; n − 1
-    /// for a complete graph, 0 below two vertices or when disconnected.
+    /// κ(G), the fewest vertices whose removal disconnects the graph or leaves one vertex. It is
+    /// n − 1 for a complete graph and 0 below two vertices or when the graph is disconnected.
     @inlinable
     public func vertexConnectivity() -> Int {
         _globalVertexConnectivity(_flowEdges().edges).value
     }
 
-    /// The most internally vertex-disjoint paths between `source` and `target`; an edge between
-    /// them counts as one path.
+    /// The most internally vertex-disjoint paths between `source` and `target`. Edges between
+    /// them count as one path.
     ///
     /// - Precondition: `source` and `target` are distinct vertices.
     @inlinable
@@ -250,8 +255,8 @@ extension Graph {
         return _localVertexConnectivity(edges, s, t, wantsCut: false).value
     }
 
-    /// A minimum vertex cut, in `vertices` order, by Even's pair order; the vertices after the
-    /// first for a complete graph; empty when κ = 0.
+    /// A minimum vertex cut, in `vertices` order, chosen as in `DirectedGraph.minimumVertexCut()`.
+    /// For a complete graph it is every vertex after the first. It is empty when κ = 0.
     @inlinable
     public func minimumVertexCut() -> [Vertex] {
         let (edges, vertices) = _flowEdges()

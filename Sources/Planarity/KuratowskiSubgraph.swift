@@ -14,9 +14,8 @@ public enum KuratowskiGraph: Hashable, Sendable, CaseIterable, CustomStringConve
     public var description: String { self == .k5 ? "K5" : "K3,3" }
 }
 
-/// A Kuratowski subgraph: a subdivision of K₅ or K₃,₃ made of a graph's edges, the witness that
-/// the graph is not planar (Boost's `kuratowski_subgraph`; JGraphT and OGDF say "Kuratowski
-/// subdivision"). Suppressing its degree-2 vertices leaves exactly `kind`.
+/// A Kuratowski subgraph: a subdivision of K₅ or K₃,₃ made of a graph's edges, the witness that the
+/// graph is not planar. Suppressing its degree-2 vertices leaves exactly `kind`.
 ///
 /// It never uses a self-loop, and uses one copy of each pair of parallel edges. Which subgraph is
 /// found when there are several is not specified, but it depends only on the graph's rows: graphs

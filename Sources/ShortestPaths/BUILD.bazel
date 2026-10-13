@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Dijkstra, Bellman–Ford, A*, DAG, unweighted and Floyd–Warshall shortest paths, over numeric weights or a selective semiring, and Mohri's DAG shortest distances over any semiring; later Johnson, Yen, Δ-stepping, contraction hierarchies.
+# Dijkstra, Bellman–Ford, A*, DAG, unweighted and Floyd–Warshall shortest paths, over numeric weights or a selective semiring, and Mohri's DAG shortest distances over any semiring.
 swift_library(
     name = "ShortestPaths",
     srcs = glob(["**/*.swift"]),

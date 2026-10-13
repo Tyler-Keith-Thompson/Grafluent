@@ -32,7 +32,7 @@ struct TiesAndMultigraphTests {
         let tree = matrix.dijkstraShortestPaths(from: 0) { $0.source == 0 && $0.target == 1 ? 2 : $0.source == 1 && $0.target == 2 ? 1 : 0 }
         #expect((0 ..< 3).map { tree.parent(of: $0) } == [nil, 0, 1])
 
-        // Boost's B→B of weight 2 is not B's parent, from A or from B itself.
+        // The loop B→B of weight 2 is not B's parent, from A or from B itself.
         let boost: [(Int, Int, Int)] = [
             (0, 2, 1), (1, 1, 2), (1, 3, 1), (1, 4, 2), (2, 1, 7), (2, 3, 3), (3, 4, 1), (4, 0, 1), (4, 1, 1),
         ]
@@ -46,7 +46,6 @@ struct TiesAndMultigraphTests {
 
     @Test("SP-13 parallel edges with different weights: the cheapest copy is the parent edge")
     func parallelEdges() {
-        // petgraph's spfa_multiple_edges.
         let petgraph: [(Int, Int, Int)] = [
             (0, 1, 10), (0, 1, 1), (0, 2, 4), (0, 3, 10), (1, 2, 2), (1, 3, 2), (2, 3, 2), (0, 3, 100), (2, 3, 20), (0, 0, 5),
         ]

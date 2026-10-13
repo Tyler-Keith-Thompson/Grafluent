@@ -1,8 +1,7 @@
 // §C: the maximum clique and the clique number (CQ-201 – CQ-220). `maximumClique()` is the
 // lexicographically least largest clique by vertex index: of two disjoint triangles the one with the
 // least index, also when `vertices` is reversed (CQ-203) or the edges are written the other way
-// round (CQ-205); the first vertex of an edgeless graph (CQ-207, where NetworkX's
-// `max_weight_clique` returns the last); [0, 1, 2, 3, 7] over [0, 1, 2, 3, 13] on the karate club
+// round (CQ-205); the first vertex of an edgeless graph (CQ-207); [0, 1, 2, 3, 7] over [0, 1, 2, 3, 13] on the karate club
 // (CQ-211). Each test also checks `maximumClique().count == cliqueNumber()`, `cliqueNumber() <=
 // degeneracy + 1` and `graph.directedView.undirectedView`. Every literal is a catalog cell (`ref.py`:
 // brute force over the maximal cliques, NetworkX 3.7). Case IDs (CQ-nnn) refer to the catalog; see

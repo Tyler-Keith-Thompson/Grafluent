@@ -178,7 +178,7 @@ struct WeightEdgeCaseTests {
 
     @Test("SP-42 the weight closure is asked for positions, each examined edge once, parallel copies separately")
     func weightClosureSeesPositions() {
-        // petgraph's spfa_multiple_edges: every vertex is reached, so every edge is examined.
+        // Every vertex is reached, so every edge is examined.
         let petgraph: [(Int, Int, Int)] = [
             (0, 1, 10), (0, 1, 1), (0, 2, 4), (0, 3, 10), (1, 2, 2), (1, 3, 2), (2, 3, 2), (0, 3, 100), (2, 3, 20), (0, 0, 5),
         ]

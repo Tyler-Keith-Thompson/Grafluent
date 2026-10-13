@@ -17,10 +17,11 @@ Two parts:
   pinned walks and tours are compared exactly with ref.py's models of the documented procedures
   (Hierholzer under our row order, on the compressed sparse row's sorted rows too; the first
   Hamiltonian path or cycle in search order, its existence against a bitmask DP; nearest
-  neighbour, JGraphT's 2-opt, the pinned Christofides, Held–Karp's lexicographically least
+  neighbour, 2-opt, the pinned Christofides, Held–Karp's lexicographically least
   optimum, on the case's own graph and, directed, on a complete digraph less some arcs with
-  asymmetric weights, against brute force and a bitmask DP for existence). Every returned walk is validated on its own: the right edges, each once, joining the
-  right vertices; a tour's edges are the lightest copies. With IGRAPH_C_LIB set, igraph's C
+  asymmetric weights, against brute force and a bitmask DP for existence). Every returned walk
+  is validated on its own: the right edges, each once, joining the right vertices; a tour's
+  edges are the lightest copies. With IGRAPH_C_LIB set, igraph's C
   `igraph_is_eulerian` is asked too, through ref.py's worker process.
 """
 
@@ -286,8 +287,9 @@ def tours_case(case):
         y = g.next() % (x + 1)
         improving[x], improving[y] = improving[y], improving[x]
     start = g.next() % k
-    # Drawn after every earlier input, so those stay as they were: the complete digraph on k vertices,
-    # each arc kept with probability 7/8 (every other case all of them), asymmetric weights -5 … 20.
+    # Drawn after every other input, so their draws do not depend on it. The complete digraph
+    # on k vertices, each arc kept with probability 7/8 (every other case all of them),
+    # asymmetric weights -5 … 20.
     keep_all = g.next() % 2 == 0
     arcs = [[a, b] for a in range(k) for b in range(k) if a != b and (g.next() % 8 != 0 or keep_all)]
     arc_weights = [g.next() % 26 - 5 for _ in arcs]

@@ -1,6 +1,6 @@
 // Whole-matrix and whole-row operations: transpose, set algebra, complement, clearing a vertex's
 // edges, inserting a row from a BitSet. Also decoding limits, large-matrix descriptions, and the
-// Collection laws on wide random matrices. Case IDs (AM-Tnn, AM-Vnn, …) refer to the harvested test
+// Collection laws on wide random matrices. Case IDs (AM-Tnn, AM-Vnn, …) refer to the case
 // catalog.
 
 import AdjacencyMatrixModule
@@ -14,7 +14,7 @@ import Testing
 struct AdjacencyMatrixTransposeTests {
     @Test("AM-T01 transposing reverses every edge")
     func reversesEdges() {
-        // igraph reverse_edges fixture: 0→1, 1→2, 2→3, 3→1, 1→4.
+        // 0→1, 1→2, 2→3, 3→1, 1→4.
         let matrix = AdjacencyMatrix(vertexCount: 5, edges: DirectedFixture<Int>.igraphReverseEdges.edges)
         let expected = AdjacencyMatrix(vertexCount: 5, edges: [
             DirectedEdge(from: 1, to: 0), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 3, to: 2),
@@ -182,7 +182,7 @@ struct AdjacencyMatrixSetAlgebraTests {
 struct AdjacencyMatrixRowOperationTests {
     @Test("AM-V04 removeEdges(incidentTo:) clears a vertex's row and column and keeps the vertex")
     func clearVertex() {
-        // Boost.Graph clear_vertex on the adjacency_matrix example: vertex C (2) has C→A, C→C, B→C.
+        // The six-vertex example graph: vertex C (2) has C→A, C→C, B→C.
         var matrix = AdjacencyMatrix(vertexCount: 6, edges: DirectedFixture<Int>.boostExample.edges)
         #expect(matrix.removeEdges(incidentTo: 2) == 3)
         #expect(matrix.edgeCount == 4)
@@ -234,7 +234,7 @@ struct AdjacencyMatrixRowOperationTests {
 
     @Test("Warshall's transitive closure, written with whole-row unions")
     func transitiveClosureByRows() {
-        // NetworkX test_dag.py: the closure of the path 1→2→3→4 holds its 6 reachable pairs; the
+        // The closure of the path 1→2→3→4 holds its 6 reachable pairs; the
         // closure of a 3-cycle holds all 9 pairs, self-loops included.
         func closure(_ matrix: AdjacencyMatrix) -> AdjacencyMatrix {
             var result = matrix

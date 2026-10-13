@@ -10,7 +10,7 @@
 // flows: feasibility against a super-source maximum flow and the potentials' optimality certificate,
 // some capacities Int.max). See README.md.
 // Conditions with a closure are computed into a constant before `#expect`: inside these closures a
-// closure in an `#expect` expansion failed SIL verification with this toolchain (README.md).
+// closure in an `#expect` expansion fails SIL verification (README.md).
 
 import AdjacencyListModule
 import Flows

@@ -1,58 +1,57 @@
 /// An undirected graph: a finite set of vertices and a finite collection of undirected edges
-/// between them. Kept apart from `DirectedGraph`: an undirected graph is not a symmetric directed
-/// one, and no type is both. `directedView` views it as one when an algorithm needs arcs.
+/// between them.
 ///
-/// **Edges and their identity.** `edges` lists every edge once (each copy of a parallel edge, and
-/// each self-loop, once), and an edge's position in `edges` is its identity. The edge is reached
-/// from both its endpoints through `incidentEdges(of:)`, always at that one position, so a value
-/// keyed by `Edges.Index` (a weight) is the same in both directions. Positions are valid until the
-/// graph is mutated.
+/// No type is both a `Graph` and a `DirectedGraph`. Use `directedView` when an algorithm needs
+/// arcs.
 ///
-/// **Counting.** Neighborhoods count edge ends. A vertex `w ≠ v` appears in `neighbors(of: v)`
-/// once per edge between them. A self-loop has both its ends at `v`, so `v` appears in
-/// `neighbors(of: v)` twice per loop, and the loop's position twice in `incidentEdges(of: v)`
-/// (Boost's `adjacency_list`, LEMON, igraph). `degree(of:)` is the length of either, so a
-/// self-loop counts 2 and the degrees sum to `2 * edgeCount`.
+/// `edges` lists every edge once, including each copy of a parallel edge and each self-loop. An
+/// edge's position in `edges` is its identity. `incidentEdges(of:)` reaches the edge from both
+/// endpoints at that same position, so a value keyed by `Edges.Index`, such as a weight, is the
+/// same in both directions. Positions are valid until the graph is mutated.
 ///
-/// **Vertex and edge indices.** As for `DirectedGraph`: with `vertexIndexBound`,
+/// Neighborhoods count edge ends. A vertex `w ≠ v` appears in `neighbors(of: v)` once per edge
+/// between them. A self-loop has both ends at `v`, so `v` appears twice in `neighbors(of: v)` per
+/// loop, and the loop's position appears twice in `incidentEdges(of: v)`. `degree(of:)` is the
+/// length of either sequence, so a self-loop counts 2 and the degrees sum to `2 * edgeCount`.
+///
+/// A representation with dense vertex indices reports `vertexIndexBound`. Then
 /// `vertexIndex(of:)` maps the vertices one-to-one onto `0..<vertexIndexBound`, and
 /// `neighborIndices(ofIndex:)` gives adjacency in index space. A representation with dense edge
-/// indices also reports `edgeIndexBound`, and then `edgeIndex(of:)` maps edge positions
-/// one-to-one onto `0..<edgeIndexBound` (Boost's `edge_index`, petgraph's `EdgeIndexable`), so
-/// algorithms that mark edges (bridges, cut vertices, Euler tours) keep that state in arrays too.
-/// `incidentEdgeIndices(ofIndex:)` lists them parallel to `neighborIndices(ofIndex:)`.
+/// indices also reports `edgeIndexBound`. Then `edgeIndex(of:)` maps edge positions one-to-one
+/// onto `0..<edgeIndexBound`, and algorithms that mark edges (bridges, cut vertices, Euler tours)
+/// keep that state in arrays. `incidentEdgeIndices(ofIndex:)` lists edge indices parallel to
+/// `neighborIndices(ofIndex:)`.
 ///
-/// **Laws.** Every conformer satisfies:
+/// Every conformer satisfies these laws:
 /// - `vertexCount == vertices.count`, the vertices are distinct, and every edge's endpoints are
-///   vertices; `edgeCount == edges.count`.
-/// - For every vertex `v`: `incidentEdges(of: v)` lists the position of each edge with an end at
-///   `v` once per end (a self-loop twice); each such edge has `v` as an endpoint;
-///   `oppositeVertex(to: v, acrossEdgeAt: e)` is `edges[e].oppositeVertex(to: v)`;
-///   `neighbors(of: v)` is the opposite vertices in the same order; `degree(of: v)` is their
+///   vertices. `edgeCount == edges.count`.
+/// - For every vertex `v`, `incidentEdges(of: v)` lists the position of each edge with an end at
+///   `v` once per end (a self-loop twice), and each such edge has `v` as an endpoint.
+///   `oppositeVertex(to: v, acrossEdgeAt: e)` is `edges[e].oppositeVertex(to: v)`.
+///   `neighbors(of: v)` is the opposite vertices in the same order, and `degree(of: v)` is their
 ///   count.
 /// - The degrees sum to `2 * edgeCount`. `contains(edge:)` is true exactly for the edges in
-///   `edges`, in either orientation, and `contains` is false (and does not trap) for anything
-///   absent.
+///   `edges`, in either orientation. Both `contains` methods return false, without trapping, for
+///   anything absent.
 /// - Asking again gives the same answer.
 /// - With vertex indices, `vertices` is in index order: `vertex(atIndex: i)` is the `i`th vertex.
 /// - With vertex indices, `neighborIndices(ofIndex: vertexIndex(of: v))` is `neighbors(of: v)`
 ///   mapped through `vertexIndex(of:)`, in the same order.
 /// - With vertex indices, `incidentEdges(ofIndex: vertexIndex(of: v))` is `incidentEdges(of: v)`,
 ///   and `endpointIndices(ofEdgeAt: e)` is `edges[e]`'s ends mapped through `vertexIndex(of:)`.
-/// - With edge indices, `edgeIndexBound == edgeCount`, `edgeIndex(of:)` is one-to-one onto
-///   `0..<edgeIndexBound`, and, with vertex indices too,
+/// - With edge indices, `edgeIndexBound == edgeCount` and `edgeIndex(of:)` is one-to-one onto
+///   `0..<edgeIndexBound`. With vertex indices too,
 ///   `incidentEdgeIndices(ofIndex: vertexIndex(of: v))` is `incidentEdges(of: v)` mapped through
 ///   `edgeIndex(of:)`, in the same order.
 /// - With edge indices, `edges` is in index order: the `k`th position of `edges` has `edgeIndex`
-///   `k`. So an algorithm that gathers edges from the index-space rows can order them by position
-///   (a tie rule) without walking `edges`.
+///   `k`. An algorithm that gathers edges from the index-space rows can therefore order them by
+///   position without walking `edges`.
 ///
-/// **Defaults.** As for `DirectedGraph`, members with default implementations are requirements,
-/// so a representation's faster version is the one generic code calls, and a wrapper must forward
-/// every one.
+/// Members with default implementations are still requirements. Generic code calls a
+/// representation's own version when it has one, and a wrapper must forward every one.
 ///
-/// The protocol has no mutation; mutation belongs to concrete types. It does not refine
-/// `Sendable`.
+/// The protocol has no mutating members. Concrete types and `MutableGraph` provide mutation. It
+/// does not refine `Sendable`.
 public protocol Graph<Vertex> {
     associatedtype Vertex: Hashable
     associatedtype Vertices: Collection<Vertex>
@@ -157,32 +156,31 @@ public protocol Graph<Vertex> {
     func degree(ofIndex index: Int) -> Int
 
     /// Calls `body` with each of `neighborIndices(ofIndex: index)`, in order. Default: a loop
-    /// over `neighborIndices`; as `DirectedGraph._forEachSuccessorIndex(ofIndex:_:)`.
+    /// over `neighborIndices(ofIndex:)`.
     ///
     /// Not for use outside the library.
     func _forEachNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void)
 
-    /// The indices of `edges[position].u` and `.v`, in that order, for a representation or a view
-    /// that knows them without the lookup (the undirected view of a `LabeledGraph` reads its
-    /// base's `Int` endpoints, where `vertexIndex(of:)` would hash two labels). Default: both
+    /// The indices of `edges[position].u` and `.v`, in that order. A representation or view that
+    /// stores endpoint indices returns them without the `vertexIndex(of:)` lookups. Default: both
     /// endpoints through `vertexIndex(of:)`.
     ///
     /// - Precondition: `vertexIndexBound` is not `nil`, and `position` is a position in `edges`.
     func endpointIndices(ofEdgeAt position: Edges.Index) -> (u: Int, v: Int)
 
-    /// For representations that store incidence as rows in index space, with vertex and edge
-    /// indices (`UndirectedAdjacencyList`): calls `body` with the neighbor storage and its row
-    /// table, and the edge-index storage and its row table, and returns its result. A row table
-    /// holds three entries per vertex index `v`: the row's start in the storage, its length, and
-    /// one more the algorithm ignores; so `neighborIndices(ofIndex: v)` is
-    /// `neighbors[rows[3v] ..< rows[3v] + rows[3v + 1]]`, and likewise for
-    /// `incidentEdgeIndices(ofIndex:)`. The buffers are valid only during the call. Default:
-    /// `nil`, without calling `body`.
+    /// Calls `body` with the neighbor storage and its row table and the edge-index storage and its
+    /// row table, and returns its result. For representations that store incidence as rows in
+    /// index space with vertex and edge indices, such as `UndirectedAdjacencyList`. Default: `nil`,
+    /// without calling `body`.
     ///
-    /// Not for use outside the library: algorithms walk these rows with integer cursors, which
-    /// avoids retaining the row storage once per visited vertex. Algorithms check the tables'
-    /// bounds once before reading them. A view that changes incidence (a subgraph, a filter) must
-    /// not forward it.
+    /// A row table holds three entries per vertex index `v`: the row's start in the storage, its
+    /// length, and one entry that callers ignore. `neighborIndices(ofIndex: v)` is
+    /// `neighbors[rows[3v] ..< rows[3v] + rows[3v + 1]]`, and `incidentEdgeIndices(ofIndex:)`
+    /// reads `edges` the same way. The buffers are valid only during the call. Callers check the
+    /// tables' bounds once before reading them. A view that changes incidence, such as a subgraph
+    /// or a filter, must not forward this method.
+    ///
+    /// Not for use outside the library.
     func _withIncidentIndexRows<Result>(
         _ body: (
             _ neighbors: UnsafeBufferPointer<Int>, _ neighborRows: UnsafeBufferPointer<Int>,
@@ -190,15 +188,15 @@ public protocol Graph<Vertex> {
         ) -> Result
     ) -> Result?
 
-    /// The graph's current generation, which every structural mutation replaces: a structure
-    /// derived from the graph stores it and asks `GraphGeneration.isCurrent(for:)` before relying
-    /// on the graph again. Default: `GraphGeneration.untracked`, current for no graph. A wrapper
-    /// reports its base's.
+    /// The graph's current generation. Every structural mutation replaces it. A structure derived
+    /// from the graph stores the generation and calls `GraphGeneration.isCurrent(for:)` before
+    /// relying on the graph again. Default: `GraphGeneration.untracked`, which is current for no
+    /// graph. A wrapper reports its base's generation.
     var generation: GraphGeneration { get }
 }
 
 extension Graph {
-    /// `GraphGeneration.untracked`: a conformer that does not track its mutations.
+    /// `GraphGeneration.untracked`, for a conformer that does not track its mutations.
     @inlinable
     public var generation: GraphGeneration { .untracked }
 

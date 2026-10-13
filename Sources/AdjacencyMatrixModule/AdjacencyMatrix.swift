@@ -69,8 +69,8 @@ public struct AdjacencyMatrix {
         _edgeMaps = _AttachedMaps()
     }
 
-    /// A matrix of `vertexCount` vertices in which every cell is `value`: with `true`, the complete
-    /// directed graph with a self-loop on every vertex.
+    /// A matrix of `vertexCount` vertices in which every cell is `value`. With `true`, it is the
+    /// complete directed graph with a self-loop on every vertex.
     @inlinable
     public init(vertexCount: Int, repeating value: Bool) {
         self.init(vertexCount: vertexCount)
@@ -89,7 +89,7 @@ public struct AdjacencyMatrix {
 
     /// A matrix of `vertexCount` vertices with the given edges. Repeated edges are inserted once.
     ///
-    /// - Precondition: every endpoint is in `0..<vertexCount`.
+    /// - Precondition: Every endpoint is in `0..<vertexCount`.
     @inlinable
     public init(vertexCount: Int, edges: some Sequence<DirectedEdge<Int>>) {
         self.init(vertexCount: vertexCount)
@@ -147,18 +147,17 @@ extension AdjacencyMatrix {
     // `_degrees` holds the edge count in slot 0 and the generation in slots 1–3 (see
     // GraphGeneration.swift): the version, the lineage, and the address of the array's first
     // element after the last structural mutation (0: unknown). Then come the out-degrees, one slot
-    // per column the rows have room for (`_wordsPerRow × 64`), then the in-degrees, as many: so
-    // appending a vertex writes no degree, and a degree's address is one shifted index. Every slot
+    // per column the rows have room for (`_wordsPerRow × 64`), then as many in-degrees. Appending a
+    // vertex therefore writes no degree, and a degree's address is one shifted index. Every slot
     // past the last vertex holds 0. The array is the generation's identity array and the stamp
     // lives in it, so a mutation writes the version into the buffer it has already made unique for
     // the degrees.
     //
-    // Keeping the stamp and the edge count out of stored properties is the point: the optimizer
-    // splits a struct into registers through a loop only when it has at most six scalar and
-    // reference fields (SIL's `shouldExpand`), and only then checks its arrays' uniqueness once for
-    // the loop instead of on every insertion (2× the instructions for a fresh matrix filled in a
-    // loop). The six are `_vertexCount`, `_wordsPerRow`, `_words`, `_degrees` and the two map
-    // tables.
+    // The stamp and the edge count stay out of stored properties because the optimizer splits a
+    // struct into registers through a loop only when it has at most six scalar and reference fields
+    // (SIL's `shouldExpand`). Only then does it check the arrays' uniqueness once for the loop
+    // instead of on every insertion. The six are `_vertexCount`, `_wordsPerRow`, `_words`,
+    // `_degrees` and the two map tables.
 
     /// The slots before the first degree.
     @inlinable
@@ -399,7 +398,7 @@ extension AdjacencyMatrix {
     /// Whether there is an edge from `source` to `target`. Setting the cell inserts or removes
     /// that edge.
     ///
-    /// - Precondition: both are in `0..<vertexCount`.
+    /// - Precondition: Both are in `0..<vertexCount`.
     @inlinable
     public subscript(source: Int, target: Int) -> Bool {
         get {
@@ -482,7 +481,7 @@ extension AdjacencyMatrix {
     /// sets the edge maps' value back to the default.
     ///
     /// - Returns: Whether the cell changed.
-    /// - Precondition: both are in `0..<vertexCount`.
+    /// - Precondition: Both are in `0..<vertexCount`.
     @inlinable
     @discardableResult
     internal mutating func _setCell(_ source: Int, _ target: Int, to value: Bool, advancing: Bool = true) -> Bool {
@@ -508,7 +507,7 @@ extension AdjacencyMatrix {
 
     /// Inserts `edge`, if it is not already an edge.
     ///
-    /// - Precondition: both endpoints are in `0..<vertexCount`. The matrix never grows to fit an
+    /// - Precondition: Both endpoints are in `0..<vertexCount`. The matrix never grows to fit an
     ///   edge; use `appendVertex()`.
     @inlinable
     @discardableResult
@@ -521,13 +520,10 @@ extension AdjacencyMatrix {
     }
 
     /// Inserts `edge`, if it is not already an edge, only when both endpoints are in
-    /// `0..<vertexCount`; otherwise throws and changes nothing. O(1).
+    /// `0..<vertexCount`, and otherwise throws and changes nothing. O(1).
     ///
-    /// `insert(edge:)` traps on an out-of-range endpoint, since the matrix never grows to fit an
-    /// edge. Requiring the endpoints is JGraphT's `addEdge` precondition (it throws
-    /// `IllegalArgumentException`) and petgraph's `try_add_edge` (`GraphError::NodeMissed`); this
-    /// library spells it with the `checked:` label of the lookups (README Principle 6), for callers
-    /// whose vertices may come from another graph.
+    /// Use it when the vertices may come from another graph. `insert(edge:)` traps on an
+    /// out-of-range endpoint, because the matrix never grows to fit an edge.
     ///
     /// - Throws: `VertexNotFound` when either endpoint is not in `0..<vertexCount`.
     @inlinable
@@ -618,8 +614,7 @@ extension AdjacencyMatrix {
         return removed
     }
 
-    /// Removes every edge leaving or entering `vertex`, keeping the vertex. (Boost.Graph calls this
-    /// `clear_vertex`.)
+    /// Removes every edge leaving or entering `vertex`, keeping the vertex.
     ///
     /// - Returns: The number of edges removed. A self-loop counts once.
     @inlinable
@@ -641,7 +636,7 @@ extension AdjacencyMatrix {
         if vertex + 1 > _wordsPerRow * UInt.bitWidth {
             _restride(wordsPerRow: Swift.max(1, _wordsPerRow * 2))
         }
-        // The new column is already zero: every bit past the last column is.
+        // The new column is already zero, as every bit past the last column is.
         _words.append(contentsOf: repeatElement(0, count: _wordsPerRow))
         _vertexCount += 1
         // The new cells are the Szudzik offsets vertex² ..< (vertex + 1)²: 2·vertex + 1 defaults.
@@ -718,7 +713,7 @@ extension AdjacencyMatrix {
 extension AdjacencyMatrix {
     /// Inserts every edge of `other`.
     ///
-    /// - Precondition: both have the same vertex count.
+    /// - Precondition: Both have the same vertex count.
     @inlinable
     public mutating func formUnion(_ other: AdjacencyMatrix) {
         _combine(with: other) { $0 | $1 }
@@ -734,7 +729,7 @@ extension AdjacencyMatrix {
 
     /// Keeps only the edges also in `other`.
     ///
-    /// - Precondition: both have the same vertex count.
+    /// - Precondition: Both have the same vertex count.
     @inlinable
     public mutating func formIntersection(_ other: AdjacencyMatrix) {
         _combine(with: other) { $0 & $1 }
@@ -751,7 +746,7 @@ extension AdjacencyMatrix {
 
     /// Removes every edge that is in `other`.
     ///
-    /// - Precondition: both have the same vertex count.
+    /// - Precondition: Both have the same vertex count.
     @inlinable
     public mutating func subtract(_ other: AdjacencyMatrix) {
         _combine(with: other) { $0 & ~$1 }
@@ -768,7 +763,7 @@ extension AdjacencyMatrix {
 
     /// Keeps the edges in exactly one of the two matrices.
     ///
-    /// - Precondition: both have the same vertex count.
+    /// - Precondition: Both have the same vertex count.
     @inlinable
     public mutating func formSymmetricDifference(_ other: AdjacencyMatrix) {
         _combine(with: other) { $0 ^ $1 }
@@ -783,11 +778,11 @@ extension AdjacencyMatrix {
         return result
     }
 
-    /// The complement graph: an edge exactly where this matrix has none. A new graph: it carries
+    /// The complement graph, with an edge exactly where this matrix has none. The result carries
     /// none of this matrix's attached maps.
     ///
-    /// - Parameter includingSelfLoops: Whether the diagonal is complemented too. NetworkX's
-    ///   `complement` leaves self-loops out, which is the default here.
+    /// - Parameter includingSelfLoops: Whether the diagonal is complemented too. By default it is
+    ///   not, and the result has no self-loops.
     @inlinable
     public func complement(includingSelfLoops: Bool = false) -> AdjacencyMatrix {
         var result = self
@@ -813,8 +808,8 @@ extension AdjacencyMatrix {
         return result
     }
 
-    /// The matrix with every edge reversed: cell (i, j) of the result is cell (j, i) of this one.
-    /// A new graph: it carries none of this matrix's attached maps.
+    /// The matrix with every edge reversed, so cell (i, j) of the result is cell (j, i) of this one.
+    /// The result carries none of this matrix's attached maps.
     @inlinable
     public func transposed() -> AdjacencyMatrix {
         var result = AdjacencyMatrix(vertexCount: _vertexCount)
@@ -842,7 +837,7 @@ extension AdjacencyMatrix: ExpressibleByArrayLiteral {
     /// A matrix from rows of 0s and 1s: row `i`, column `j` is 1 when there is an edge from `i`
     /// to `j`.
     ///
-    /// - Precondition: the rows form a square, and every entry is 0 or 1.
+    /// - Precondition: The rows form a square, and every entry is 0 or 1.
     @inlinable
     public init(arrayLiteral rows: [Int]...) {
         self.init(vertexCount: rows.count)
@@ -863,8 +858,8 @@ extension AdjacencyMatrix {
     @inlinable
     public var edges: Edges { Edges(matrix: self) }
 
-    /// Every edge, in row-major order. A value: unaffected by later changes to the matrix (holding
-    /// one while mutating the matrix makes the mutation copy the matrix, as with any copy).
+    /// Every edge, in row-major order, as a value that later changes to the matrix do not affect.
+    /// Holding one while mutating the matrix makes the mutation copy the matrix.
     @frozen
     public struct Edges: BidirectionalCollection {
         @usableFromInline let matrix: AdjacencyMatrix
@@ -1072,13 +1067,13 @@ extension AdjacencyMatrix: Codable {
     /// The `userInfo` key for the largest vertex count a decoder accepts. Its value is an `Int`.
     public static let maximumDecodedVertexCountKey = CodingUserInfoKey(rawValue: "AdjacencyMatrix.maximumDecodedVertexCount")!
 
-    /// The largest vertex count decoded by default: 16,384 vertices, 32 MiB of cells. A tiny payload
-    /// can name an enormous vertex count, so decoding refuses anything larger unless the decoder's
-    /// `userInfo[maximumDecodedVertexCountKey]` allows it.
+    /// The largest vertex count decoded by default, 16,384 vertices or 32 MiB of cells. A tiny
+    /// payload can name an enormous vertex count, so decoding refuses anything larger unless the
+    /// decoder's `userInfo[maximumDecodedVertexCountKey]` allows it.
     public static let defaultMaximumDecodedVertexCount = 16_384
 
     /// Encodes `{"vertexCount": n, "edges": [source₀, target₀, source₁, target₁, …]}`, with the
-    /// edges in row-major order, so the encoding of a matrix is always the same.
+    /// edges in row-major order, so equal matrices encode identically.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: _CodingKeys.self)
         try container.encode(_vertexCount, forKey: .vertexCount)
@@ -1121,8 +1116,8 @@ extension AdjacencyMatrix: Codable {
 // MARK: - Descriptions
 
 extension AdjacencyMatrix: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
-    /// The vertices and the edges, at most 16 of each: `[0, 1, 2]; [0→1, 1→2]`. The same form as
-    /// every other representation, so equal graphs print alike.
+    /// The vertices and the edges, at most 16 of each, as in `[0, 1, 2]; [0→1, 1→2]`. Every
+    /// representation uses this form, and equal matrices print alike.
     public var description: String {
         GraphDescription.graph(vertices: vertices, vertexCount: _vertexCount, edges: edges, edgeCount: _edgeCount)
     }
@@ -1175,7 +1170,7 @@ extension AdjacencyMatrix: BidirectionalDirectedGraph {
 
     /// The source of the edge in a cell: its row. O(1).
     ///
-    /// - Precondition: the cell holds an edge, as for `edges[position]`.
+    /// - Precondition: The cell holds an edge, as for `edges[position]`.
     @inlinable
     public func source(ofEdgeAt position: Edges.Index) -> Int {
         _checkEdge(at: position)
@@ -1184,7 +1179,7 @@ extension AdjacencyMatrix: BidirectionalDirectedGraph {
 
     /// The target of the edge in a cell: its column. O(1).
     ///
-    /// - Precondition: the cell holds an edge, as for `edges[position]`.
+    /// - Precondition: The cell holds an edge, as for `edges[position]`.
     @inlinable
     public func target(ofEdgeAt position: Edges.Index) -> Int {
         _checkEdge(at: position)
@@ -1249,9 +1244,8 @@ extension AdjacencyMatrix: BidirectionalDirectedGraph {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex outside `0..<vertexCount`, `EdgeNotFound` for
-// a cell that holds no edge, where the trapping spellings above are the fast path. Each checks
-// the range once and then calls its trapping spelling; `try?` gives an Optional.
+// These throw `VertexNotFound` for a vertex outside `0..<vertexCount` and `EdgeNotFound` for a cell
+// that holds no edge. Each checks the range once and then calls its trapping spelling.
 
 extension AdjacencyMatrix {
     /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not in
@@ -1359,8 +1353,8 @@ extension AdjacencyMatrix {
     /// The matrix of any directed graph on the vertices `0..<graph.vertexCount`, with parallel
     /// edges collapsed.
     ///
-    /// - Precondition: the vertices are exactly `0..<graph.vertexCount`. Other numberings are not
-    ///   inferred or renumbered; use `init(vertexCount:edges:)`.
+    /// - Precondition: The vertices are exactly `0..<graph.vertexCount`. Other numberings are not
+    ///   renumbered; use `init(vertexCount:edges:)` for them.
     @inlinable
     public init(_ graph: some DirectedGraph<Int>) {
         if let same = graph as? AdjacencyMatrix {

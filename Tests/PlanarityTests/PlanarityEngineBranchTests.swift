@@ -1,5 +1,5 @@
-// Small graphs that reach particular branches of the two engines, each the smallest found by
-// searching random graphs for one where a planted bug in that branch changes the outcome: the
+// Small graphs that reach particular branches of the two engines, each the smallest random graph
+// where a bug in that branch changes the outcome: the
 // left-right test's second-lowest return point when an edge returns as low as its parent edge; the
 // Walkdown's short-circuit beside the root; and the Kuratowski isolation's minor C with the x–y
 // path attached above both x and y, and minor E2. Each is checked against the definitions, not

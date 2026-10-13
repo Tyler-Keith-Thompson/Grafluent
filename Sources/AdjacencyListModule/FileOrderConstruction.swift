@@ -1,10 +1,10 @@
 import GraphProtocols
 
 // Bulk construction from edges in insertion order (`MutableDirectedGraph._built` and
-// `MutableGraph._built`, what the `GraphFormats` readers build through): each row is laid out at
+// `MutableGraph._built`, which the `GraphFormats` readers build through). Each row is laid out at
 // its exact size by a stable counting sort, so it lists its edges in position order, as inserting
 // the edges one at a time would leave it. O(n + m), with no row growing. Repeated pairs are found
-// by a counting sort and a stamp per row, without hashing: the simple lists drop them, the
+// by a counting sort and a stamp per row, without hashing. The simple lists drop them, and the
 // multigraphs link them into their parallel classes.
 
 /// The rows and records of a directed graph on `0..<n` whose edge at position `p` is

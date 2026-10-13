@@ -117,7 +117,7 @@ extension Partition: CustomStringConvertible {
     }
 }
 
-/// How well a partition fits the graph (NetworkX `partition_quality`).
+/// How well a partition fits the graph.
 @frozen
 public struct PartitionQuality: Hashable, Sendable {
     /// Edges with both ends in one community, over all edges (parallel copies each count, a

@@ -2,8 +2,7 @@
 #
 # Known equivalent mutants:
 #   laterrows, forward  ranks are unique, so >= and > pick the same vertices.
-#   bbmc_bound          `<` for `<=` in the colour bound prunes less: the same optimum, slower
-#                       (it was Covering's; the search moved here).
+#   bbmc_bound          `<` for `<=` in the colour bound prunes less: the same optimum, slower.
 #   pivotscore          the first pivot loop's ties by order met rather than by index: no graph
 #                       among 3000 differential cases tells them apart (the X ∩ P members it
 #                       passes over were branched on in the same frame). pivotscorex, the tie

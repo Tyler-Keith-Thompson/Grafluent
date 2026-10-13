@@ -4,8 +4,8 @@ import BenchmarkSupport
 import Centrality
 import GraphProtocols
 
-/// Brandes by hand over flat rows with predecessor lists (NetworkX's and Boost's form): the
-/// baseline for `betweennessCentrality()`.
+/// Brandes by hand over flat rows with predecessor lists: the baseline for
+/// `betweennessCentrality()`.
 func handWrittenBetweenness(_ offsets: [Int], _ targets: [Int]) -> [Double] {
     let n = offsets.count - 1
     var result = [Double](repeating: 0, count: n)

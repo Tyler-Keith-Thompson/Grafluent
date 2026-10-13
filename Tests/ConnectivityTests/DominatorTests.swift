@@ -2,8 +2,8 @@
 // dominators are unique, so they are exact on every representation; `children(of:)` and
 // frontiers are in `vertices` order, so they are exact on the matrix, CSR and the ReferenceDirectedMultigraph and
 // compared as sets on adjacency lists. Expected values come from the catalog's reference, where
-// brute force, Cooper–Harvey–Kennedy and Lengauer–Tarjan agree with NetworkX, and Boost's own
-// `correctIdoms`. Case IDs (CN-nn) refer to the catalog; see README.md.
+// brute force, Cooper–Harvey–Kennedy and Lengauer–Tarjan agree with NetworkX and with the
+// expected immediate dominators of the test sets they come from. Case IDs (CN-nn) refer to the catalog; see README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -330,7 +330,7 @@ struct DominatorTreeQueryTests {
         let five = CompressedSparseRow(vertexCount: 8, edges: set5).dominatorTree(root: 0)
         #expect(five.dominators(of: 5) == nil)
         #expect(five.strictDominators(of: 5) == nil)
-        // petgraph's test_iter_dominators: idoms {2: 1, 1: 0}.
+        // idoms {2: 1, 1: 0}.
         let path = CompressedSparseRow(vertexCount: 3, edges: DirectedFixture<Int>.directedPath3.edges).dominatorTree(root: 0)
         #expect(path.dominators(of: 2) == [2, 1, 0])
         #expect(path.strictDominators(of: 2) == [1, 0])

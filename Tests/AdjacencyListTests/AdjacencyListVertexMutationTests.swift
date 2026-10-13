@@ -1,4 +1,4 @@
-// Inserting and removing vertices. Case IDs (V-nn) refer to the harvested test catalog.
+// Inserting and removing vertices. Case IDs (V-nn) refer to the case catalog.
 //
 // Tests taking `isShared` run twice: once on a uniquely referenced graph, and once while a copy
 // of it exists, which must come through the mutation unchanged.
@@ -14,7 +14,7 @@ struct AdjacencyListVertexMutationTests {
 
     @Test("V-01 / V-02 inserting a new vertex reports it, and the vertex is isolated", arguments: [false, true])
     func insertNew(isShared: Bool) {
-        // The Boost.Graph house DAG: 6 vertices, 7 edges.
+        // The house DAG: 6 vertices, 7 edges.
         var graph = AdjacencyList(edges: [
             DirectedEdge(from: 5, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 4, to: 0),
             DirectedEdge(from: 4, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 0),
@@ -80,8 +80,8 @@ struct AdjacencyListVertexMutationTests {
 
     @Test("V-04 removing a vertex removes its edges in both directions")
     func removeFromCycle() {
-        // JGraphT SimpleDirectedGraphTest g4: 1→2→3→4→1. Each removal takes the vertex's one
-        // incoming and one outgoing edge.
+        // The 4-cycle 1→2→3→4→1. Each removal takes the vertex's one incoming and one outgoing
+        // edge.
         var graph = AdjacencyList(edges: [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 1)])
 
         #expect(graph.remove(1) == 1)
@@ -142,8 +142,7 @@ struct AdjacencyListVertexMutationTests {
         #expect(single.vertexCount == 0)
         #expect(single.edgeCount == 0)
 
-        // NetworkX test_function graph. Vertex 1 has a self-loop, an edge to 0, an edge from 0, and an
-        // edge to 2.
+        // Vertex 1 has a self-loop, an edge to 0, an edge from 0, and an edge to 2.
         var graph = AdjacencyList(adjacency: [0: [1, 2, 3], 1: [1, 2, 0], 4: []])
         graph.remove(1)
         #expect(graph.vertexCount == 4)

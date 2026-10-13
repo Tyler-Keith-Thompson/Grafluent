@@ -65,7 +65,7 @@ struct ColoringConformanceTests {
             let edges = graph.edgeColoring()
             return greedy + [(0 ..< graph.vertexCount).map { first.color(ofIndex: $0) }, (0 ..< graph.vertexCount).map { minimum.color(ofIndex: $0) }, [graph.chromaticNumber()], graph.edges.indices.map { edges.color(ofEdgeAt: $0) }]
         }
-        // Petersen (NetworkX's numbering): largest first and the lexicographically first minimum
+        // Petersen (outer cycle 0–4, spokes i–(i + 5)): largest first and the lexicographically first minimum
         // colouring [0, 1, 0, 1, 2, 1, 0, 2, 2, 1] (CO-034, CO-180), colored neighbours python-igraph
         // 1.0's [0, 2, 0, 2, 1, 1, 1, 2, 0, 0], χ = 3 (CO-145), Misra–Gries CO-206.
         let pairs = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]

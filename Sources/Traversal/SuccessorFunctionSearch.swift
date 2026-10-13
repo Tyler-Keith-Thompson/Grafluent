@@ -1,8 +1,7 @@
 import GraphProtocols
 
 // Searches over a successor function, for state spaces that are not finite graphs (an unbounded
-// grid, a puzzle's positions): the vertices are whatever the function reaches. The Rust
-// `pathfinding` crate's `bfs`, `dfs`, `iddfs` and `topological_sort` take the same shape.
+// grid, a puzzle's positions): the vertices are whatever the function reaches.
 
 /// A successor function seen as a graph, for the searches. It is not a lawful `DirectedGraph` (it
 /// has no vertex or edge collection, and contains everything), and only the searches here use it.
@@ -67,14 +66,15 @@ public func topologicalSort<Vertex: Hashable, Successors: Sequence<Vertex>>(
 }
 
 /// A shortest path by edge count from `start` to the first state satisfying `isGoal`, by iterative
-/// deepening (the `pathfinding` crate's `iddfs`): depth-first searches with a growing depth limit
-/// that keep only the current path, so states need only be `Equatable`, and memory stays
-/// proportional to the path. A path never revisits a state on itself. `nil` when no goal is
-/// reachable and the space is finite; on an infinite space without a goal, it does not return.
+/// deepening.
 ///
-/// Iterative deepening trades time for memory: with no record of visited states, every path is
-/// enumerated again at each depth, which is exponential in the depth on graphs with many routes
-/// between states (a grid). Use `breadthFirstSearch(from:successors:)` when states are `Hashable`
+/// Runs depth-first searches with a growing depth limit that keep only the current path, so states
+/// need only be `Equatable` and memory stays proportional to the path. A path never revisits a
+/// state on itself. Returns `nil` when no goal is reachable and the space is finite; on an
+/// infinite space without a goal, it does not return.
+///
+/// With no record of visited states, every path is enumerated again at each depth, which is
+/// exponential in the depth on graphs with many routes between states (a grid). Use `breadthFirstSearch(from:successors:)` when states are `Hashable`
 /// and memory allows.
 @inlinable
 public func iterativeDeepeningDepthFirstSearch<Vertex: Equatable, Successors: Sequence<Vertex>>(

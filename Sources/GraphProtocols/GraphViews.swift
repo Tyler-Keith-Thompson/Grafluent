@@ -1,26 +1,26 @@
-// Lazy views between the two kinds of graph: an undirected graph read as directed (each edge as
-// two opposite arcs) and a bidirectional directed graph read as undirected (each arc as an edge).
-// Both forward every requirement, so the base's own fast members are the ones called.
+// Lazy views between the two kinds of graph. An undirected graph reads as directed with each edge
+// as two opposite arcs, and a bidirectional directed graph reads as undirected with each arc as an
+// edge. Both implement every requirement through the base's members, so the base's own fast
+// members are the ones called.
 
 import Algorithms
 
 extension Graph {
-    /// The graph as a directed graph with each edge as two opposite arcs, a self-loop included
-    /// (NetworkX's directed view, LEMON's reading of a graph as a digraph). O(1); a value holding
-    /// a copy of the graph.
+    /// The graph as a directed graph with each edge, self-loops included, as two opposite arcs.
+    /// O(1). The view holds a copy of the graph.
     ///
-    /// Arcs keep the edge's identity: the arc at `(position, reversed: false)` goes from
-    /// `edges[position].u` to `.v`, and `reversed: true` the other way.
+    /// Arcs keep the edge's identity. The arc at `(position, reversed: false)` goes from
+    /// `edges[position].u` to `.v`, and the arc at `(position, reversed: true)` goes the other way.
     @inlinable
     public var directedView: DirectedView<Self> { DirectedView(base: self) }
 }
 
 extension BidirectionalDirectedGraph {
-    /// The graph as an undirected graph with each arc as an edge, at the arc's own position, as
-    /// JGraphT's `AsUndirectedGraph` reads a digraph. Two opposite arcs become two parallel edges
-    /// (NetworkX's `to_undirected` would merge them into one, as converting to
-    /// `UndirectedAdjacencyList` does), and a self-loop is a loop of degree 2. O(1); a value
-    /// holding a copy of the graph.
+    /// The graph as an undirected graph with each arc as an edge at the arc's own position. O(1).
+    /// The view holds a copy of the graph.
+    ///
+    /// Two opposite arcs become two parallel edges, and a self-loop becomes a loop of degree 2.
+    /// Converting to `UndirectedAdjacencyList` instead merges opposite arcs into one edge.
     @inlinable
     public var undirectedView: UndirectedView<Self> { UndirectedView(base: self) }
 }

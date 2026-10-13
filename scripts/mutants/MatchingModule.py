@@ -13,14 +13,14 @@
 #                           rejects.
 #   fullemptyrow            the early exit for a row with no edge: the engine reaches nil too.
 #   wclamp                  the final δ₁ ends the search at once (deltaType 1 breaks out), so the
-#                           duals it sets are never read again; NetworkX notices only through its
-#                           optimality self-check (MA-1002 is the input where that check fails).
-#   wmincost                `c = greatest` instead of NetworkX's 1 + greatest: the transform runs
+#                           duals it sets are never read again; only an optimality self-check would
+#                           notice (MA-1002 is an input where such a check fails).
+#   wmincost                `c = greatest` instead of 1 + greatest: the transform runs
 #                           with maximumCardinality, where every candidate has the same number of
 #                           edges, so a constant added to every weight moves no optimum (the
 #                           weights stay non-negative, and the search never needs them positive).
 #
-# The cached slacks (bestSlack), which δ₂ and δ₃ now read too: wrefresh and wrefreshvertices,
+# The cached slacks (bestSlack), which δ₂ and δ₃ read too: wrefresh and wrefreshvertices,
 # the refresh after a dual update dropped or limited to vertices, are caught only by non-dyadic
 # Double weights on enough random graphs (MatchingStressTests' subset program): with small
 # integers the stale slack rarely reorders two candidates. wchosenslack, a new blossom's slack
@@ -72,7 +72,7 @@ MUTANTS = [
     Mutant("fulllightest", "Assignment.swift", "w < costs[k] || (w == costs[k] && e < edges[k])", "w > costs[k]"),
     Mutant("fulltranspose", "Assignment.swift", "left.count <= right.count", "true"),
 
-    # Weighted blossom (NetworkX's max_weight_matching)
+    # Weighted blossom
     Mutant("wdeltatype1", "WeightedMatching.swift", "for v in 1 ..< n where dual[v] < delta { delta = dual[v] }", "", mode="stmt"),
     Mutant("wdelta2", "WeightedMatching.swift", "bestSlack[v]", "half(bestSlack[v])", nth=0),
     Mutant("wdelta3", "WeightedMatching.swift", "half(bestSlack[v])", "bestSlack[v]", nth=1),

@@ -1,4 +1,4 @@
-/// Matrix Market coordinate files (SciPy `mmread`/`mmwrite`, mmio.c): a banner, `%` comments,
+/// Matrix Market coordinate files: a banner, `%` comments,
 /// the size line `n n entries`, then one entry `row column [value]` per line, 1-based.
 
 @usableFromInline internal enum _Field { case pattern, integer, real }
@@ -373,8 +373,8 @@
     if seen < entries { throw ParseError(.entryCountMismatch, at: n) }
 }
 
-/// Writes a Matrix Market coordinate file, byte-equal to SciPy's `mmwrite` with `symmetry="general"`
-/// (directed) or `"symmetric"` (undirected, each entry in the lower triangle).
+/// Writes a Matrix Market coordinate file, `general` (directed) or `symmetric` (undirected, each
+/// entry in the lower triangle).
 @inlinable func _writeMatrixMarket<Source: _WriteSource>(
     _ source: Source, to out: inout _OutputBuffer, field: StaticString, hasValue: Bool,
     value: (Source.Position, inout _OutputBuffer) -> Void

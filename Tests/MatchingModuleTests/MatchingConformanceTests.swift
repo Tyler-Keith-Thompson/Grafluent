@@ -82,7 +82,7 @@ struct MatchingConformanceTests {
         let plain = UndirectedAdjacencyList(vertices: [0, 1, 2, 3], edges: [UndirectedEdge(0, 2), UndirectedEdge(0, 3), UndirectedEdge(1, 2), UndirectedEdge(1, 3)])
         let viaSides = plain.maximumBipartiteMatching(bipartition: try #require(plain.bipartition()))
         #expect(viaSides.weight == 2 && viaSides.edges == [0, 3])
-        // The empty graph: no edges, perfect (2 · 0 == 0), as NetworkX's is_perfect_matching.
+        // The empty graph: no edges, perfect (2 · 0 == 0).
         let empty = UndirectedAdjacencyList<Int>()
         #expect(empty.maximumMatching().isPerfect && empty.maximalMatching().isPerfect)
         #expect(empty.maximumWeightMatching(weight: { (_: Int) -> Int in 1 }).isPerfect)

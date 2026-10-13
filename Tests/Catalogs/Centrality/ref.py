@@ -11,7 +11,7 @@ checked independently:
 
 * betweenness against the definition: all-pairs distances by Floyd-Warshall over the edge list,
   shortest-path counts sigma_st over edge sequences, BC(v) = sum sigma_sv*sigma_vt/sigma_st, with
-  NetworkX's rescaling;
+  the module's rescaling;
 * closeness and harmonic against Floyd-Warshall distances (incoming, d(v, u), when directed);
 * iterative measures: Expected is the LIMIT (the model run to tolerance 1e-15 or 1e-13), checked
   against a dense numpy/scipy solve (eigenvector: the Perron vector of A^T when the dominant

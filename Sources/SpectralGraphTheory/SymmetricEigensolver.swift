@@ -1,10 +1,9 @@
 // The dense symmetric eigensolver: Householder reduction to tridiagonal form, then the implicit QL
 // iteration with Wilkinson-type shifts (EISPACK's `tred2`, Martin, Reinsch and Wilkinson, and
 // `tql2`, Bowdler, Martin, Reinsch and Wilkinson, both in Wilkinson and Reinsch, "Handbook for
-// Automatic Computation II: Linear Algebra", 1971; transcribed after JAMA's public-domain
-// version), the method of LAPACK's `dsteqr`; for eigenvalues alone, the root-free QL/QR of
-// LAPACK's `dsterf` instead. One thread, fixed operation order, so results are reproducible bit
-// for bit on one platform and build.
+// Automatic Computation II: Linear Algebra", 1971; transcribed after JAMA's public-domain version);
+// for eigenvalues alone, the root-free QL/QR iteration of Pal, Walker and Kahan instead. One
+// thread, fixed operation order, so results are reproducible bit for bit on one platform and build.
 
 import GraphProtocols
 
@@ -287,11 +286,10 @@ func _scaleIntoRange(_ a: inout [Double]) -> Int {
 
 /// The eigenvalues of the symmetric tridiagonal matrix with diagonal `d` and off-diagonal `e`
 /// (`e[i]` couples i and i + 1), into `d`, unsorted; `e` is destroyed. The root-free QL/QR
-/// iteration of Pal, Walker and Kahan (LAPACK's `dsterf`): it carries the squares of the
-/// off-diagonal, so a rotation costs no square root, choosing QL or QR per block by which end is
-/// larger, with blocks scaled into a safe range first. Throws once `maxIterations` iterations are
-/// spent in all (LAPACK's limit is 30 n), with the off-diagonal entry being reduced, relative to
-/// the largest entry of its block.
+/// iteration of Pal, Walker and Kahan: it carries the squares of the off-diagonal, so a rotation
+/// costs no square root, choosing QL or QR per block by which end is larger, with blocks scaled
+/// into a safe range first. Throws once `maxIterations` iterations are spent in all, with the
+/// off-diagonal entry being reduced, relative to the largest entry of its block.
 @usableFromInline
 func _tridiagonalEigenvalues(_ n: Int, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>, maxIterations: Int) throws(NoConvergence) {
     guard n > 1 else { return }
@@ -446,7 +444,7 @@ func _tridiagonalEigenvalues(_ n: Int, _ d: UnsafeMutablePointer<Double>, _ e: U
     }
 }
 
-/// The eigenvalues of [[a, b], [b, c]], the larger in magnitude first (LAPACK's `dlae2`).
+/// The eigenvalues of [[a, b], [b, c]], the larger in magnitude first.
 @inline(__always)
 func _eigenvalues2(_ a: Double, _ b: Double, _ c: Double) -> (Double, Double) {
     let sum = a + c, difference = a - c

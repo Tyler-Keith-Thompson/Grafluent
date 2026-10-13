@@ -1,9 +1,8 @@
 # Connectivity, undirected half: case catalog (CN-200 – CN-399)
 
-IDs continue the `CN-` prefix of `Tests/ConnectivityTests/README.md`, because the tests join the
-same target, but start at **CN-200**: the directed half ends at CN-146 and keeps CN-147 – CN-199
-for its own later review additions. Benchmarks continue as CN-B10 onwards (the directed half has
-CN-B01 – CN-B07).
+IDs share the `CN-` prefix with the directed half (`../directed/cases.md`), which uses CN-01 –
+CN-199; this half starts at CN-200. Benchmarks are CN-B10 onwards (the directed half has CN-B01 –
+CN-B07).
 
 ## Notation
 
@@ -13,7 +12,7 @@ CN-B01 – CN-B07).
 | Token | Edges |
 |---|---|
 | `u-v` | one edge |
-| `P(a,b,c,…)` | the path a–b, b–c, … (a vertex may repeat, as in NetworkX's `pairwise`) |
+| `P(a,b,c,…)` | the path a–b, b–c, … (a vertex may repeat, consecutive pairs) |
 | `Pd(a..b)` | the path with every edge written twice in a row (parallel pairs) |
 | `C(a,b,…,z)` | the cycle a–b, …, z–a |
 | `K(a..b)`, `K(a,b,…)` | every pair i < j of the listed vertices, lexicographic |
@@ -81,7 +80,7 @@ CN-293, CN-298, CN-299).
 | CN-218 | LEMON `connectivity_test` (8 nodes): 3 components {n1,n2,n5,n8}, {n3}, {n4,n6,n7} | `[0..7] 0-1 4-0 1-7 7-4 5-3 3-5 1-4 0-7 5-6 6-5` | `cc=[[0,1,4,7],[2],[3,5,6]] ncc=3 conn=F br=[] ap=[5] bcc=[[0,1,2,3,6,7],[4,5],[8,9]] bccv=[[0,1,4,7],[3,5],[5,6]] bic=F becc=[[0,1,4,7],[2],[3,5,6]] bec=F bct=[[],[5],[5]]` |
 | CN-219 | LEMON `connectivity_test` (+ the five cut arcs n3–n1, n3–n5, n3–n8, n8–n6, n8–n7) | `[0..7] 0-1 4-0 1-7 7-4 5-3 3-5 1-4 0-7 5-6 6-5 2-0 2-4 2-7 7-5 7-6` | `cc=[[0,1,2,3,4,5,6,7]] conn=T br=[] ap=[5,7] bcc=[[0,1,2,3,6,7,10,11,12],[4,5],[8,9,13,14]] bccv=[[0,1,2,4,7],[3,5],[5,6,7]] bic=F becc=[[0,1,2,3,4,5,6,7]] bec=T bct=[[7],[5],[5,7]]` |
 
-## B. Bridges and 2-edge-connected components, ported (CN-220 – CN-234)
+## B. Bridges and 2-edge-connected components (CN-220 – CN-234)
 
 | ID | Source | Graph | Expected |
 |---|---|---|---|
@@ -101,7 +100,7 @@ CN-293, CN-298, CN-299).
 | CN-233 | NetworkX `bridge_components` doc example (`barbell_graph(5, 0)`): [[0…4], [5…9]] | `K(0..4) K(5..9) 4-5` | `cc=[[0,1,2,3,4,5,6,7,8,9]] conn=T br=[20] ap=[4,5] bcc=[[0,1,2,3,4,5,6,7,8,9],[10,11,12,13,14,15,16,17,18,19],[20]] bccv=[[0,1,2,3,4],[5,6,7,8,9],[4,5]] bic=F becc=[[0,1,2,3,4],[5,6,7,8,9]] bec=F bct=[[4],[5],[4,5]]` |
 | CN-234 | NetworkX `test_triangles` (`k_edge_components(G, k=2)`): two triangles joined by 11–21 | `C(11,12,13) C(21,22,23) 11-21` | `cc=[[11,12,13,21,22,23]] conn=T br=[6] ap=[11,21] bcc=[[0,1,2],[3,4,5],[6]] bccv=[[11,12,13],[21,22,23],[11,21]] bic=F becc=[[11,12,13],[21,22,23]] bec=F bct=[[11],[21],[11,21]]` |
 
-## C. Articulation points and blocks, ported (CN-235 – CN-279)
+## C. Articulation points and blocks (CN-235 – CN-279)
 
 | ID | Source | Graph | Expected |
 |---|---|---|---|
@@ -276,8 +275,7 @@ edges, plus sparser G(100, 100), G(100, 120), G(300, 320)). Oracles are written 
 
 ## J. Stress (CN-370 – CN-389)
 
-The algorithm is iterative; these would overflow a recursive DFS (NetworkX recursion was removed
-for this reason; JGraphT's `BiconnectivityInspector` is recursive). Tests run inside a `Task` at
+The algorithm is iterative; these would overflow a recursive depth-first search. Tests run inside a `Task` at
 the sizes below; the benchmarks use 10⁶.
 
 | ID | Source | Graph | Expected |

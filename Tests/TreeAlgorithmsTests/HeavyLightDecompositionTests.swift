@@ -9,9 +9,10 @@
 // dropped, and that segment with it when it held only the ancestor (TA-325); `source == target`
 // then gives no segment (TA-303). The walk's reverse gives the same ranges in reverse order with
 // the flags of the multi-position segments flipped (TA-318). `Segment` has no public
-// initializer in api.md, so segments are compared by their `positions` and `isReversed`. F1 is
+// initializer, so segments are compared by their `positions` and `isReversed`. F1 is
 // `U: [0..8] 0-1, 0-2, 1-3, 1-4, 2-5, 4-6, 4-7, 5-8`, F1b the same edges in the position order
-// `4-7, 0-2, 1-4, 5-8, 0-1, 4-6, 1-3, 2-5`, NX NetworkX's `TestTreeLCA` arborescence. Literals are
+// `4-7, 0-2, 1-4, 5-8, 0-1, 4-6, 1-3, 2-5`, NX the arborescence
+// `0>1, 0>2, 1>3, 1>4, 2>5, 2>6`. Literals are
 // catalog cells or were computed with `ref.py`'s model (heads, heavy children and positions of
 // every F1 vertex, the extra segments), which checks each segment list by expanding it back into
 // the path. TA-336 is an exit test in `TreeAlgorithmPreconditionTests.swift`. Case IDs (TA-nnn)

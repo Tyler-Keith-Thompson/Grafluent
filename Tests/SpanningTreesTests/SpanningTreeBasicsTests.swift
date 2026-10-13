@@ -1,6 +1,6 @@
-// The trivial cases and the graphs the established suites pin: NetworkX's Wikipedia graph,
-// petgraph's Prim example and its TEST_CASES, JGraphT's, Boost's and LEMON's examples, NetworkX's
-// spanning-tree-iterator graph and igraph's Frucht graph. Every case runs under every algorithm:
+// The trivial cases and small graphs with pinned answers: Wikipedia's Kruskal graph, Prim
+// examples, graphs with tied optima, constant and negative costs, the Sörensen–Janssens graph and
+// the Frucht graph. Every case runs under every algorithm:
 // the default, Kruskal and Borůvka give the canonical forest (Borůvka as a set), and Prim gives
 // the same weight, and the same set where the optimum is unique. Case IDs (ST-nn) refer to the
 // catalog; see README.md.
@@ -96,7 +96,7 @@ struct SpanningTreeBasicsTests {
             #expect(Set(rooted.edges) == Set(canonical), "from \(root)")
             #expect(rooted.weight == 39, "from \(root)")
         }
-        // NetworkX's expected edge set.
+        // The expected edge set.
         let expected: Set = [UndirectedEdge(0, 1), UndirectedEdge(0, 3), UndirectedEdge(1, 4), UndirectedEdge(2, 4), UndirectedEdge(3, 5), UndirectedEdge(4, 6)]
         #expect(Set(tree.edges.map { graph.edges[$0] }) == expected)
     }
@@ -121,7 +121,7 @@ struct SpanningTreeBasicsTests {
         #expect(prim.edges.count == 6)
         #expect(Set(prim.edges) == Set(canonical))
         #expect(prim.weight == 39)
-        // petgraph's expected set: A–D, A–B, D–F, B–E, E–C, E–G.
+        // Expected set: A–D, A–B, D–F, B–E, E–C, E–G.
         let expected: Set = [
             UndirectedEdge("A", "D"), UndirectedEdge("A", "B"), UndirectedEdge("D", "F"), UndirectedEdge("B", "E"), UndirectedEdge("E", "C"),
             UndirectedEdge("E", "G"),
@@ -228,7 +228,7 @@ struct SpanningTreeBasicsTests {
         #expect(Set(boruvka.edges) == Set(canonical))
         #expect(boruvka.weight == 4)
         #expect(Set(graph.primMinimumSpanningTree { edges[$0].2 }.edges) == Set(canonical))
-        // Boost: p[1] = 3, p[2] = 0, p[3] = 4, p[4] = 0; those are positions 1, 0, 5 and 6.
+        // Predecessors p[1] = 3, p[2] = 0, p[3] = 4, p[4] = 0; those are positions 1, 0, 5 and 6.
         let fromZero = graph.primMinimumSpanningTree(from: 0) { edges[$0].2 }
         #expect(fromZero.edges.count == 4)
         #expect(Set(fromZero.edges) == [0, 1, 5, 6])
@@ -268,7 +268,7 @@ struct SpanningTreeBasicsTests {
         let pairs = [(0, 1), (0, 2), (1, 2), (2, 1), (1, 3), (3, 2), (2, 4), (4, 3), (3, 5), (4, 5)]
         let edges = pairs.enumerated().map { ($0.element.0, $0.element.1, -10 + $0.offset) }
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        // LEMON checks the output order: by weight, which here is position order.
+        // The output order is by weight, which here is position order.
         let canonical = [0, 1, 4, 6, 8]
         let tree = graph.minimumSpanningTree { edges[$0].2 }
         #expect(tree.edges == canonical)
@@ -296,7 +296,7 @@ struct SpanningTreeBasicsTests {
         let tree = graph.minimumSpanningTree { edges[$0].2 }
         #expect(tree.edges == canonical)
         #expect(tree.weight == 112)
-        // petgraph's expected list, in its order.
+        // The expected list, in order.
         let petgraph = [
             UndirectedEdge(2, 7), UndirectedEdge(4, 8), UndirectedEdge(4, 5), UndirectedEdge(2, 4), UndirectedEdge(3, 6), UndirectedEdge(1, 8),
             UndirectedEdge(0, 8), UndirectedEdge(0, 3),
@@ -445,7 +445,7 @@ struct SpanningTreeBasicsTests {
 
     @Test("ST-19 igraph's Frucht graph weighed by edge betweenness: min 293/4, max 410/4, both unique")
     func igraphFrucht() {
-        // igraph's edge order; the weights are 4 × betweenness, so Int is exact and Double (÷ 4) too.
+        // The weights are 4 × edge betweenness, so Int is exact and Double (÷ 4) too.
         let pairs = [
             (0, 1), (0, 2), (0, 11), (1, 3), (1, 6), (2, 5), (2, 10), (3, 4), (3, 6), (4, 8), (4, 11), (5, 9), (5, 10), (6, 7), (7, 8), (7, 9),
             (8, 9), (10, 11),
@@ -456,7 +456,7 @@ struct SpanningTreeBasicsTests {
         let tree = graph.minimumSpanningTree { quarters[$0] }
         #expect(tree.edges == minimum)
         #expect(tree.weight == 293)
-        // igraph's output, as a set.
+        // The expected output, as a set.
         #expect(Set(tree.edges) == [2, 17, 6, 12, 0, 3, 8, 7, 13, 14, 16])
         #expect(graph.kruskalMinimumSpanningTree { quarters[$0] } == tree)
         let boruvka = graph.boruvkaMinimumSpanningTree { quarters[$0] }

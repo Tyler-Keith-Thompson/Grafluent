@@ -1,17 +1,16 @@
 // Cycle detection over a successor closure, in O(1) memory: the orbit x0, f(x0), f(f(x0)), … of an
-// eventually periodic f, as Rust's `pathfinding` crate offers (`cycle_detection::{floyd, brent}`).
+// eventually periodic f.
 
 /// The tail and cycle of the orbit of `start` under `successor`, by Floyd's algorithm (Knuth,
 /// *The Art of Computer Programming*, vol. 2, §3.1, exercise 6): a tortoise and a hare at twice its
 /// speed meet on the cycle; a second pass from `start` finds the first cyclic vertex, and a third
 /// lap measures the cycle. O(μ + λ) time, O(1) memory, and states need only be `Equatable`.
 ///
-/// Returns `tailLength`, the number of steps from `start` to the first vertex on the cycle (μ,
-/// Sage's "preperiod"), `cycleLength` (λ), and that first cyclic vertex, `root`. The closure is
-/// called exactly 3ν + 2μ + λ times, where ν is the least multiple of λ that is at least
-/// max(μ, 1); that count includes calling it on `start` twice, once for each runner's first step
-/// (Knuth's formulation, kept as pinned). `brentCycleDetection(from:successor:)` calls it less
-/// often.
+/// Returns `tailLength`, the number of steps from `start` to the first vertex on the cycle (μ),
+/// `cycleLength` (λ), and that first cyclic vertex, `root`. The closure is called exactly
+/// 3ν + 2μ + λ times, where ν is the least multiple of λ that is at least max(μ, 1). That count
+/// includes calling it on `start` twice, once for each runner's first step.
+/// `brentCycleDetection(from:successor:)` calls it less often.
 ///
 /// - Precondition: the orbit of `start` is eventually periodic (always so on a finite state
 ///   space). On an infinite orbit the function does not return.
@@ -19,8 +18,7 @@
 public func floydCycleDetection<Vertex: Equatable>(
     from start: Vertex, successor f: (Vertex) -> Vertex
 ) -> (tailLength: Int, cycleLength: Int, root: Vertex) {
-    // f(start) is called twice here, as the pinned call count requires; reusing the tortoise's
-    // value for the hare would save one call.
+    // f(start) is called twice, once per runner, as the documented call count states.
     var tortoise = f(start)
     var hare = f(f(start))
     while tortoise != hare {
@@ -49,8 +47,7 @@ public func floydCycleDetection<Vertex: Equatable>(
 /// pass with the hare λ steps ahead finds the first cyclic vertex. O(μ + λ) time, O(1) memory, and
 /// states need only be `Equatable`.
 ///
-/// Returns the same as `floydCycleDetection(from:successor:)`, with fewer closure calls on every
-/// orbit the catalog lists (351 against Floyd's 554 for Collatz from 27).
+/// Returns the same as `floydCycleDetection(from:successor:)`, usually with fewer closure calls.
 ///
 /// - Precondition: the orbit of `start` is eventually periodic. On an infinite orbit the function
 ///   does not return.

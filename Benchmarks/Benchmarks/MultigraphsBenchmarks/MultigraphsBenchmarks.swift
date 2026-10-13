@@ -4,17 +4,17 @@ import BenchmarkSupport
 import GraphProtocols
 import Multigraphs
 
-/// A 64-bit LCG step (Knuth's MMIX constants): edge positions to remove, made inside a
-/// measurement without an array.
+/// A 64-bit LCG step with Knuth's MMIX constants. It picks edge positions to remove inside a
+/// measurement without allocating an array.
 @inline(__always)
 func lcg(_ state: inout UInt64) -> Int {
     state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
     return Int(truncatingIfNeeded: state >> 33)
 }
 
-// Generic walks over the protocol requirements, specialized per graph: on a `GraphDelegator`
-// (DirectedMultigraph, Multigraph) every call is a forwarding default, so these rows against the
-// wrapped pseudograph's show what the forwarding costs.
+// Generic walks over the protocol requirements, specialized per graph. On a `GraphDelegator`
+// (`DirectedMultigraph`, `Multigraph`) every call is a forwarding default, so comparing these rows
+// with the wrapped pseudograph's measures the forwarding.
 
 @inline(never)
 func walkOutRowsByIndex<G: DirectedGraph>(_ graph: G) -> Int {
@@ -79,9 +79,8 @@ let benchmarks: @Sendable () -> Void = {
     // The attached-map rows: 10⁶ insertions into 10⁵ vertices, 10⁵ removals by position from the
     // 5·10⁵-edge graphs, and the 10% vertex removals above (whose rows are the 0-map ones).
     // BASELINE rows keep as many `[Double]`s as the map rows have maps, in the caller's own graph
-    // type (`SideArrayDirectedPseudograph`, `SideArrayPseudograph`) inside its mutating methods,
-    // mirroring every swap-remove; a map row's overhead over its 0-map row is gated at 1.5× the
-    // side arrays'.
+    // type (`SideArrayDirectedPseudograph`, `SideArrayPseudograph`), and mirror every swap-remove
+    // inside its mutating methods.
     let million = Inputs.randomEdges(vertexCount: 100_000, edgeCount: 1_000_000, seed: 62)
     let millionUndirected = million.map { UndirectedEdge($0.source, $0.target) }
 

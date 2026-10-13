@@ -9,8 +9,8 @@ extension DirectedGraph {
     ///    other than self-loops; a DAG reverses nothing. Self-loops are left out of the drawing.
     /// 2. Layers minimize the total edge span Σ (layer(target) − layer(source)) with every edge
     ///    spanning at least one layer, parallel edges counted each (Gansner et al.'s network
-    ///    simplex, solved through its dual min-cost flow as OGDF's `OptimalRanking`); each weakly
-    ///    connected component starts at layer 0. Where several layerings are optimal, which one is
+    ///    simplex, solved through its dual min-cost flow). Each weakly connected component starts
+    ///    at layer 0. Where several layerings are optimal, which one is
     ///    chosen is not specified.
     /// 3. An edge spanning k > 1 layers gets a bend point on each of the k − 1 between.
     /// 4. Crossings are reduced by barycenter sweeps: each layer starts with its vertices in
@@ -18,7 +18,7 @@ extension DirectedGraph {
     ///    the mean position of each node's neighbours in the layer above, then layers L−2 … 0 by
     ///    those below, stably, a node with no such neighbour keeping its position. The order with
     ///    the fewest crossings seen is kept. Sweeps stop at no crossings, when a sweep changes
-    ///    nothing, or after `maxIterations` (igraph's default, 100).
+    ///    nothing, or after `maxIterations`.
     /// 5. x coordinates are Brandes and Köpf's: four vertical alignments to median neighbours,
     ///    avoiding type-1 conflicts, each compacted by longest path over its blocks at separation
     ///    1, aligned to the narrowest, and averaged by the mean of the two median candidates.
@@ -33,9 +33,8 @@ extension DirectedGraph {
     /// class shifts, which Brandes, Walter and Zink show can violate the separation ("Erratum:
     /// Fast and simple horizontal coordinate assignment", arXiv:2008.01252, 2020).
     ///
-    /// O((n + m) log n) for cycle removal. Network simplex has no polynomial bound and is
-    /// superlinear in practice: on random DAGs with m = 2n it takes about 60 ms at n = 10⁴ and
-    /// 0.65 s at 4 · 10⁴, growing about as n^1.5 to n^1.7 (release build). O(maxIterations ·
+    /// O((n + m) log n) for cycle removal. Network simplex has no polynomial bound; on random DAGs
+    /// with m = 2n its time grows about as n^1.5 to n^1.7. O(maxIterations ·
     /// (N + M) log N) for crossing reduction over N vertices and bend points and M segments;
     /// O(N + M) for coordinates.
     ///
@@ -46,12 +45,13 @@ extension DirectedGraph {
         return _sugiyamaLayout(layers: nil, maxIterations: maxIterations)
     }
 
-    /// A layered drawing with the caller's layers (igraph's `layers=`): steps 3 to 5 of
-    /// `sugiyamaLayout(maxIterations:)` on layer `layers(v)` for each vertex, and y = `layers(v)`.
-    /// An edge pointing to a lower layer is reversed (and listed in `reversedEdges`); an edge
-    /// within one layer gets no segment and no bends. Layers that no vertex is on are skipped: a
-    /// long edge gets a bend on each non-empty layer it crosses, so time and memory do not depend
-    /// on how large the layer numbers are (igraph puts a bend on every layer between).
+    /// A layered drawing with the caller's layers: steps 3 to 5 of `sugiyamaLayout(maxIterations:)`
+    /// on layer `layers(v)` for each vertex, and y = `layers(v)`.
+    ///
+    /// An edge pointing to a lower layer is reversed and listed in `reversedEdges`. An edge within
+    /// one layer gets no segment and no bends. A long edge gets a bend on each non-empty layer it
+    /// crosses, and layers with no vertex are skipped, so time and memory do not depend on how
+    /// large the layer numbers are.
     ///
     /// - Precondition: every layer is at least 0; `maxIterations ≥ 0`.
     @inlinable

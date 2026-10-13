@@ -65,7 +65,7 @@ struct CoveringConformanceTests {
 
     @Test("An undirected graph read as directed and back: every edge a parallel pair, the same vertex sets")
     func directedAndBack() throws {
-        // The bull: triangle 0–1–2 with pendants 3 at 0 and 4 at 1 (NetworkX's bull_graph, CV-033).
+        // The bull: triangle 0–1–2 with pendants 3 at 0 and 4 at 1 (the bull graph, CV-033).
         let bull = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2), UndirectedEdge(1, 3), UndirectedEdge(2, 4)])
         let doubled = bull.directedView.undirectedView
         #expect(doubled.edgeCount == 10)
@@ -106,7 +106,7 @@ struct CoveringConformanceTests {
 
     @Test("The unweighted entry points are the unit weights; the vertex-cover weight is read once per vertex")
     func unitWeights() {
-        // Petersen (NetworkX's numbering).
+        // Petersen: outer cycle 0–4, spokes i–(i + 5), inner pentagram.
         let petersen = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 10, edges: petersen.map { UndirectedEdge($0.0, $0.1) })
         #expect(graph.approximateMinimumVertexCover() == graph.approximateMinimumVertexCover(weight: { (_: Int) -> Int in 1 }))
@@ -128,7 +128,7 @@ struct CoveringConformanceTests {
         let edge = UndirectedAdjacencyList(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
         let weights = [(1 << 53) + 1, 1 << 53]
         #expect(edge.approximateMinimumDominatingSet(weight: { weights[$0] }) == [1])
-        // The same doubles tie, and the least index wins, as in NetworkX.
+        // The same doubles tie, and the least index wins.
         #expect(edge.approximateMinimumDominatingSet(weight: { Double(weights[$0]) }) == [0])
     }
 

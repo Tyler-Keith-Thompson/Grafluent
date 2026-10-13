@@ -1,11 +1,11 @@
 import AdjacencyListModule
 import GraphProtocols
 
-// `Pseudograph`'s attached maps (`PropertyGraph`; the storage is GraphProtocols'
-// `_AttachedMaps`). Both kinds are dense, one value per slot or edge position, and follow the
-// graph's swap-remove: removing an element moves the last element's values into its place in
-// every map, in the same mutation, so a value stays with its vertex or edge copy. An insertion
-// appends the default. `Multigraph` reads and writes these maps through its base.
+// `Pseudograph`'s attached maps (`PropertyGraph`), stored in `_AttachedMaps`. Both kinds
+// are dense, one value per slot or edge position, and follow the graph's swap-remove. Removing an
+// element moves the last element's values into its place in every map in the same mutation, so a
+// value stays with its vertex or edge copy. An insertion appends the default. `Multigraph` reads and
+// writes these maps through its base.
 
 extension Pseudograph: PropertyGraph {
     public typealias EdgePosition = Int
@@ -13,21 +13,20 @@ extension Pseudograph: PropertyGraph {
     @inlinable public static var _vertexMapLayout: _MapLayout { .dense }
     @inlinable public static var _edgeMapLayout: _MapLayout { .dense }
 
-    /// Attaches a map from edge positions to `Value`, every edge's value `value` (LEMON's
-    /// `EdgeMap`), and returns its handle. Removing an edge removes its value, and the edge that
-    /// moves into its position takes its own value along. Copies of the graph carry the map,
-    /// copy-on-write. O(`edgeCount`).
+    /// Attaches a map from edge positions to `Value`, every edge's value `value`, and returns its
+    /// handle. Removing an edge removes its value, and the edge that moves into its position takes
+    /// its own value along. Copies of the graph carry the map, copy-on-write. O(`edgeCount`).
     ///
-    /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps.
+    /// Map contents take no part in equality, hashing or `Codable`. A decoded graph has no maps.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _records.count, capacity: _records.capacity)
         return EdgeMap(_token: token, hint: hint)
     }
 
-    /// Attaches a map from vertices to `Value`, every vertex's value `value` (LEMON's `NodeMap`),
-    /// and returns its handle. Removing a vertex removes its value, and the vertex that moves into
-    /// its slot takes its own value along. O(`vertexCount`).
+    /// Attaches a map from vertices to `Value`, every vertex's value `value`, and returns its
+    /// handle. Removing a vertex removes its value, and the vertex that moves into its slot takes
+    /// its own value along. O(`vertexCount`).
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _vertices.count, capacity: _vertices.capacity)

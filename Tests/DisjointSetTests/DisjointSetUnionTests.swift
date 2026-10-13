@@ -1,8 +1,8 @@
-// `union(_:_:)`, `find(_:)` and `inSameSet(_:_:)`, with the cases of petgraph, JGraphT, Boost,
-// NetworkX and LEMON translated to elements 0..<count. Representatives are exact: the rule is
-// documented (the larger set's representative wins; for sets of the same size, the smaller one).
-// Expected values come from the catalog's reference (`ref.py`, `cases.py`), which is
-// cross-checked against scipy's and NetworkX's own implementations.
+// `union(_:_:)`, `find(_:)` and `inSameSet(_:_:)` on fixed union sequences over elements
+// 0..<count. Representatives are exact, because the rule is documented: the larger set's
+// representative wins, and for sets of the same size, the smaller one. Expected values come from
+// the catalog's reference (`ref.py`, `cases.py`), which `check.py` cross-checks against scipy's
+// and NetworkX's union–find implementations.
 // Case IDs (DS-nn) refer to the catalog; see README.md.
 
 import DisjointSetModule
@@ -48,7 +48,7 @@ struct DisjointSetUnionTests {
         #expect(d.union(1, 4) == true)
         #expect(d.union(4, 7) == true)
         #expect(d.union(5, 6) == true)
-        // Boost's or LEMON's tie rule (second argument wins) would give [1, 1, 2, 1, 1, 6, 6, 1].
+        // A tie won by the second argument would give [1, 1, 2, 1, 1, 6, 6, 1].
         #expect((0 ..< 8).map { d.find($0) } == [0, 0, 2, 0, 0, 5, 5, 0])
         #expect(d.setCount == 3)
         #expect(d.sets() == [[0, 1, 3, 4, 7], [2], [5, 6]])
@@ -74,7 +74,7 @@ struct DisjointSetUnionTests {
 
     @Test("DS-12 JGraphT testUnionFind, translated: the larger set wins, not the higher rank")
     func jgraphtUnionFind() {
-        // "aaa" … "eee" become 0 … 4, their TreeSet order.
+        // "aaa" … "eee" become 0 … 4, in sorted order.
         var d = DisjointSet(count: 5)
         #expect(d.setCount == 5)
         #expect(d.union(0, 1) == true)
@@ -123,7 +123,7 @@ struct DisjointSetUnionTests {
         d.union(0, 1)
         d.union(1, 2)
         d.union(3, 4)
-        // Boost prints 1 1 1 4 4 5: its tie goes to the second root.
+        // A tie won by the second root would give 1 1 1 4 4 5.
         #expect((0 ..< 6).map { d.find($0) } == [0, 0, 0, 3, 3, 5])
         #expect(d.inSameSet(0, 2) == true)
         #expect(d.inSameSet(0, 5) == false)
@@ -174,7 +174,7 @@ struct DisjointSetUnionTests {
 
     @Test("DS-18 LEMON unionfind_test, translated")
     func lemonUnionFind() {
-        // Items 1 … 10, 0 unused; LEMON's insert(x, find(y)) becomes union(x, y).
+        // Items 1 … 10, 0 unused.
         var d = DisjointSet(count: 11)
         #expect(d.union(1, 2) == true)
         #expect(d.union(1, 4) == true)

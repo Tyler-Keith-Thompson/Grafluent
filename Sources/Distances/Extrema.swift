@@ -6,7 +6,7 @@ enum _ExtremaGoal: Sendable {
     case eccentricities, diameter, radius, center, periphery
 }
 
-/// Takes and Kosters' bounding (NetworkX `_extrema_bounding`), for undirected unweighted graphs:
+/// Takes and Kosters' bounding, for undirected unweighted graphs:
 /// each search from `c`, of eccentricity `e`, bounds every candidate `i` by
 /// `max(d(i), e − d(i)) ≤ ecc(i) ≤ e + d(i)`, and candidates whose bounds settle the goal leave.
 /// Searches alternate between the candidate of least lower bound and the one of greatest upper

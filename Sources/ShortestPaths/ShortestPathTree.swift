@@ -3,10 +3,9 @@ import Trees
 import Walks
 
 /// Shortest paths from one or more sources: for each reached vertex, its distance, its parent and
-/// the edge from the parent (a forest when there are several sources, LEMON's "shortest path tree
-/// (forest)").
+/// the edge from the parent (a forest when there are several sources).
 ///
-/// **Ties.** The first relaxation to a vertex's final distance wins. So `parent(of: v)` is a
+/// The first relaxation to a vertex's final distance wins. So `parent(of: v)` is a
 /// shortest-path predecessor of `v` settled first. Vertices at equal distance settle in an
 /// unspecified order, so when several vertices at the same smallest distance lead to `v` along
 /// shortest paths, which one is the parent is unspecified. Among parallel edges from the parent,
@@ -16,13 +15,13 @@ import Walks
 /// with cheap vertex indices. While the tree is alive, the next mutation of the original copies
 /// it; a tree of a graph about to change should be read and dropped first.
 ///
-/// **Several sources.** Each source starts at distance zero (`.one` over a semiring) with no parent. Dijkstra's algorithm
-/// and breadth-first search never improve on that, so a source keeps no parent even when another
-/// source reaches it. Bellman–Ford treats the sources as one super-source (NetworkX's
-/// `_bellman_ford`): a negative path from one source to another improves the second, which then
+/// With several sources, each starts at distance zero (`.one` over a semiring) with no parent.
+/// Dijkstra's algorithm and breadth-first search never improve on that, so a source keeps no
+/// parent even when another source reaches it. Bellman–Ford treats the sources as one
+/// super-source: a negative path from one source to another improves the second, which then
 /// has that distance, a parent and a path from the first.
 ///
-/// **Semirings.** Over a `SelectiveSemiring` a distance is the ⊗-product of a path's weights, the
+/// Over a `SelectiveSemiring` a distance is the ⊗-product of a path's weights, the
 /// best by the natural order `<`, and a vertex is reached exactly when its distance is not `.zero`.
 ///
 /// Not `Equatable`: two correct trees can choose different parents on ties.
@@ -148,8 +147,7 @@ public struct ShortestPathTree<G: DirectedGraph, Distance: Comparable> {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex that is not in the graph, where the trapping
-// spellings are the fast path. Each makes the one lookup its trapping spelling makes; `try?` gives
+// `VertexNotFound` for a vertex that is not in the graph. Each makes the one lookup its trapping spelling makes; `try?` gives
 // an Optional. A nil the trapping spelling returns (unreached, or a source) is still nil; `try?`
 // flattens it with a missing vertex's, so a caller that must tell them apart catches.
 
@@ -202,8 +200,7 @@ extension ShortestPathTree {
 
 extension Arborescence {
     /// The shortest-path tree of a one-source search, as an arborescence rooted at the source:
-    /// every reached vertex, each with its `parent(of:)` as parent (the tree LEMON's `predMap`
-    /// encodes).
+    /// every reached vertex, each with its `parent(of:)` as parent.
     ///
     /// Vertices are listed in the tree's index order (the indices of `distance(toIndex:)`, the
     /// graph's vertex indices when it has them), unreached ones left out, so the source need not
@@ -212,9 +209,7 @@ extension Arborescence {
     /// vertex stays `tree.parentEdge(of:)`. O(n); the vertices are hashed once, into the
     /// arborescence's lookup table, unless they are the `Int`s `0..<k` in order.
     ///
-    /// - Precondition: `tree.sources.count == 1`. Several sources make a rooted forest, which
-    ///   Trees has no type for; the source count is the caller's own argument to the search, so
-    ///   asking for one root with several is a programming error, not a lookup that may miss.
+    /// - Precondition: `tree.sources.count == 1`. Several sources make a forest; use `Forest(_:)`.
     @inlinable
     public init<G: DirectedGraph, Distance>(_ tree: ShortestPathTree<G, Distance>) where G.Vertex == Vertex {
         precondition(tree.sources.count == 1, "An arborescence has one root; the shortest-path tree has \(tree.sources.count) sources")
@@ -250,8 +245,7 @@ extension Forest {
     /// `Arborescence(_:)` lists them (unreached ones left out), and one edge (parent, child) per
     /// reached vertex with a parent, in that order. Edge positions are the forest's own: edge k
     /// joins the k-th listed vertex with a parent to its parent; the graph's edge stays
-    /// `tree.parentEdge(of:)`. The tree holds a copy of its graph, so none is passed, unlike
-    /// `Forest(_:in:)` for a spanning forest. O(n); the vertices are hashed once, into the
+    /// `tree.parentEdge(of:)`. O(n); the vertices are hashed once, into the
     /// forest's lookup table, unless they are the `Int`s `0..<k` in order.
     @inlinable
     public init<G: DirectedGraph, Distance>(_ tree: ShortestPathTree<G, Distance>) where G.Vertex == Vertex {

@@ -1,10 +1,9 @@
 // Preconditions, as exit tests. A vertex argument that is not a vertex of the tree traps, as every
 // Trees query does (TA-019, TA-020 one-shot; TA-123 `LowestCommonAncestors`; TA-336
-// `HeavyLightDecomposition`), and api.md's rule is applied to every vertex-taking member of both
+// `HeavyLightDecomposition`), and the same rule is applied to every vertex-taking member of both
 // structures. A weight below `.zero` or NaN traps in every weighted entry point (TA-421, TA-422
 // `center(weight:)`; TA-620 `diameter(weight:)`; TA-621 `diameterPath(weight:)`), with `Int` and
-// `Double` weights, as Dijkstra's precondition in ShortestPaths does; NetworkX raises `ValueError`
-// ("negative weights?"). Each exit test builds its inputs inside the closure. Case IDs (TA-nnn)
+// `Double` weights, as Dijkstra's precondition in ShortestPaths does. Each exit test builds its inputs inside the closure. Case IDs (TA-nnn)
 // refer to the catalog; see README.md.
 
 import GraphProtocols

@@ -1,7 +1,7 @@
 import GraphProtocols
 
-/// The vertex count of a graph that a materialized operation reads in index space, which phase 1
-/// requires.
+/// The vertex count of a graph that a materialized operation reads in index space. Traps when the
+/// graph has no vertex indices.
 @inlinable
 func _requireIndices(_ bound: Int?, _ what: StaticString) -> Int {
     guard let n = bound else {
@@ -34,15 +34,14 @@ struct _EdgeOrdinals<Position: Hashable> {
 
 extension _DirectedGraphConstruction {
     /// The line graph of `graph`: a vertex for each edge, and an arc e → f whenever e's target is
-    /// f's source (NetworkX's `line_graph`, igraph's `linegraph`; Harary and Norman's line
-    /// digraph). Vertex `k` is the edge with edge index `k`, or the `k`th position of `edges`
-    /// when the graph has no edge indices (one hash of a position per edge then). Parallel edges
-    /// are distinct vertices.
+    /// f's source. Vertex `k` is the edge with edge index `k`, or the `k`th position of `edges`
+    /// when the graph has no edge indices, which costs one hash of a position per edge. Parallel
+    /// edges are distinct vertices.
     ///
     /// O(m + |E(L)| + the row sorts).
     ///
     /// - Precondition: the graph has vertex indices and no self-loop. A self-loop's line graph
-    ///   has a self-loop, which the construction targets do not take (phase 1).
+    ///   has a self-loop, which the construction targets do not take.
     @inlinable
     public static func lineGraph<G: DirectedGraph>(of graph: G) -> Self {
         _ = _requireIndices(graph.vertexIndexBound, "lineGraph(of:)")
@@ -66,9 +65,8 @@ extension _DirectedGraphConstruction {
 
 extension _GraphConstruction {
     /// The line graph of `graph`: a vertex for each edge, and an edge between two distinct edges
-    /// that share an end (NetworkX's `line_graph`, igraph's `linegraph`, JGraphT's
-    /// `LineGraphConverter`). Two parallel edges are joined once; a self-loop is joined to every
-    /// other edge at its vertex and gets no loop. Vertex `k` is the edge with edge index `k`, or
+    /// that share an end. Two parallel edges are joined once. A self-loop is joined to every other
+    /// edge at its vertex and gets no loop. Vertex `k` is the edge with edge index `k`, or
     /// the `k`th position of `edges` when the graph has no edge indices.
     ///
     /// O(Σᵥ deg(v)² + the row sorts), with a stamp array of m entries for deduplication.

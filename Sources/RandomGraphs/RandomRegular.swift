@@ -1,9 +1,9 @@
 import GraphProtocols
 import NamedGraphs
 
-/// The pairing procedure of NetworkX's `random_regular_graph(d, n)`, draw for draw: the stubs
-/// (every vertex d times, `0..<n` repeated) are shuffled by Fisher–Yates (CPython's `shuffle`:
-/// i from the last index down to 1, swapped with `below(i + 1)`) and paired off in order. A pair
+/// The pairing procedure. The stubs (every vertex d times, `0..<n` repeated) are shuffled by
+/// Fisher–Yates (i from the last index down to 1, swapped with `below(i + 1)`) and paired off in
+/// order. A pair
 /// that is a self-loop or a repeat is not added; both its stubs are kept, by vertex in the order
 /// the vertices were first kept, for the next round. A round whose kept stubs can no longer form a
 /// new edge restarts the whole attempt. Pairs sorted, smaller end first.
@@ -51,9 +51,9 @@ func _randomRegularPairs<G: RandomNumberGenerator>(_ n: Int, _ d: Int, _ g: inou
                 }
                 k += 2
             }
-            // Whether a new edge can still be formed from the kept vertices, as NetworkX's
-            // `_suitable` decides it, quirk included: its swap of s1 and s2 rebinds s1 for the rest
-            // of the inner loop, so after meeting a smaller vertex it walks on from that one.
+            // Whether a new edge can still be formed from the kept vertices. After meeting a smaller
+            // vertex, s1 walks on from that one for the rest of the inner loop; the catalog pins
+            // this check draw for draw, so it stays as is.
             var suitable = order.isEmpty
             search: for x in order {
                 var s1 = x
@@ -92,11 +92,11 @@ extension _GraphConstruction {
     /// > doi:10.1017/S0963548399003867
     ///
     /// Kim and Vu showed the result asymptotically uniform for d = o(n^(1/28)) ("Generating random
-    /// regular graphs", STOC 2003, 213–222); NetworkX cites both papers. nd/2 edges, sorted.
-    /// The draws are NetworkX's `random_regular_graph(d, n)` on the same stream. O(nd) expected for
-    /// small d; an attempt fails, and starts over, with probability that grows with d, so a d near
-    /// n can take many attempts. d = 0 gives no edges and no draws.
+    /// regular graphs", STOC 2003, 213–222). The result has nd/2 edges. An attempt fails and starts
+    /// over with a probability that grows with d, so a d near n can take many attempts. d = 0 gives
+    /// no edges and no draws.
     ///
+    /// - Complexity: O(nd) expected for small d.
     /// - Precondition: `degree` in `0..<vertexCount`, and n·d even.
     @inlinable
     public static func randomRegular(vertexCount n: Int, degree d: Int, using generator: inout some RandomNumberGenerator) -> Self {
@@ -113,9 +113,10 @@ extension _GraphConstruction {
 
 extension _DirectedGraphConstruction {
     /// The random d-regular graph with both arcs for every edge, as the directed `complete` and
-    /// `grid` have them: the undirected form's draws and edges, so every vertex has in- and
-    /// out-degree d. Arcs in row-major order. O(nd) expected for small d.
+    /// `grid` have them. It makes the undirected form's draws, and every vertex has in- and
+    /// out-degree d.
     ///
+    /// - Complexity: O(nd) expected for small d.
     /// - Precondition: `degree` in `0..<vertexCount`, and n·d even.
     @inlinable
     public static func randomRegular(vertexCount n: Int, degree d: Int, using generator: inout some RandomNumberGenerator) -> Self {

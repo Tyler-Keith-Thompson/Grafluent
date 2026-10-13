@@ -39,9 +39,8 @@ struct GridNeighbors: Sequence, IteratorProtocol {
 }
 
 /// The in-grid neighbors of a cell, in the same order, computed up front into four slots and
-/// yielded by count: the row a hot path should use. A lazy filter over `GridNeighbors` calls its
-/// predicate per element and keeps the unfiltered iterator's state machine, and measured 1.2–1.8×
-/// this row in the searches below.
+/// yielded by count. This is the row a hot path should use. A lazy filter over `GridNeighbors`
+/// calls its predicate per element and carries the unfiltered iterator's state.
 struct GridRow: Sequence, IteratorProtocol {
     var slots: (Int, Int, Int, Int) = (0, 0, 0, 0)
     var count = 0, position = 0

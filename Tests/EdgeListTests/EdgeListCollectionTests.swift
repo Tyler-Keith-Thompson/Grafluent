@@ -397,7 +397,6 @@ struct EdgeListRangeReplaceableTests {
 
     @Test("EL-R10 remove(edge:) removes the first copy only, and returns it")
     func removeEdgeFirstCopy() {
-        // NetworkX removes the last-added parallel edge, rustworkx the newest, Boost every copy.
         var list = EdgeList(DirectedFixture<Int>.selfLoopsAndDuplicates.edges)
         #expect(list.remove(edge: DirectedEdge(from: 2, to: 3)) == DirectedEdge(from: 2, to: 3))
         #expect(Array(list) == [

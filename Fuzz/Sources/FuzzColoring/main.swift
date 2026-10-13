@@ -9,7 +9,7 @@
 // Misra–Gries on the simple graph is proper with Δ or Δ + 1 colours; König's colouring exists
 // exactly on bipartite graphs and uses exactly Δ colours, parallel edges counted; the greedy edge
 // colouring equals the line graph's largest-first colouring and stays within 2Δ − 1; colored
-// neighbours equals igraph's procedure (its two-way heap) written out; with random proper presets,
+// neighbours equals the procedure written out with a two-way heap; with random proper presets,
 // every strategy keeps them, stays proper and first fit elsewhere, and the static orders equal
 // first fit with the presets skipped; `isVertexColoring` and `isEdgeColoring` agree with the
 // definitions on arbitrary colourings. One input in eight is instead a sparse graph of 30 – 120
@@ -136,7 +136,7 @@ enum FuzzColoring {
             }
             return out
         }
-        // igraph's colored neighbours with its two-way heap.
+        // Colored neighbours, with a two-way heap.
         var colored = [Int](repeating: -1, count: n)
         if n > 0 {
             var data: [Int] = [], item: [Int] = [], place = [Int](repeating: 0, count: n)

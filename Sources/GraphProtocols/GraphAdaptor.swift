@@ -1,24 +1,23 @@
-/// A type that wraps a base graph and passes its positions through: a BGL or LEMON *graph
-/// adaptor*. Views (a transposed view, a subgraph view, a directed or undirected view) and
-/// wrappers that add rules (a multigraph, an acyclic graph) are adaptors.
+/// A type that wraps a base graph and passes its positions through.
 ///
-/// What every adaptor gets:
+/// Views (a transposed view, a subgraph view, a directed or undirected view) and wrappers that add
+/// rules (a multigraph, an acyclic graph) are adaptors. Every adaptor gets two things:
 ///
-/// - **`generation`** is the base's, so a structure derived from the adaptor is current exactly
+/// - Its `generation` is the base's, so a structure derived from the adaptor is current exactly
 ///   when one derived from the base would be.
-/// - **Attached maps read through it.** When the base is a `PropertyGraph`, `values(of:)` and
-///   `[map, of: vertex]` read the base's maps, and when the adaptor's edge positions are the
-///   base's (`Edges.Index == Base.EdgePosition`), so do `[map, ofEdgeAt: position]` and
-///   `values(of:)` for an edge map. A view whose positions are not the base's (a complement's
-///   cells) has no edge-map reads. These are read-only; a `GraphDelegator` also writes.
+/// - When the base is a `PropertyGraph`, `values(of:)` and `[map, of: vertex]` read the base's
+///   vertex maps. When the adaptor's edge positions are the base's
+///   (`Edges.Index == Base.EdgePosition`), `[map, ofEdgeAt: position]` and `values(of:)` read the
+///   base's edge maps too. A view whose positions are not the base's, such as a complement, has no
+///   edge-map reads. These members are read-only. A `GraphDelegator` also writes.
 ///
 /// A view whose vertices are a subset of its base's should declare its own `[map, of: vertex]`
-/// that traps on a vertex outside the view; the default reads the base's value.
+/// that traps on a vertex outside the view. The default reads the base's value.
 ///
-/// Nothing else is forwarded: a view's `DirectedGraph` members are its own, or the protocol's
-/// defaults over its own members. Forwarding every member to the base is `GraphDelegator`'s, and
-/// only a wrapper that keeps the base's adjacency opts into it, since for a view such as a
-/// transposed one, the base's member would answer for the wrong graph.
+/// Nothing else is forwarded. A view's graph members are its own, or the protocol defaults over
+/// its own members. `GraphDelegator` forwards every member to the base, and only a wrapper that
+/// keeps the base's adjacency conforms to it. For a view such as a transposed one, the base's
+/// members would describe the wrong graph.
 public protocol GraphAdaptor<Base> {
     associatedtype Base
     /// The graph this one wraps.
@@ -26,24 +25,27 @@ public protocol GraphAdaptor<Base> {
 }
 
 /// A wrapper that owns its base, keeps the base's vertices, edges and positions, and adds only
-/// rules: JGraphT's `GraphDelegator`. Every read requirement of `Graph`, `DirectedGraph`,
-/// `BidirectionalDirectedGraph`, `SparselyIndexedDirectedGraph` and `PropertyGraph` has a default
-/// that forwards to the base, `@inlinable` and with the base's own types, so algorithms run at the
-/// base's speed and data kept by position stays valid through the wrapper. The wrapper implements
-/// every mutation itself (that is where its rules are), and its non-requirement members.
+/// rules.
+///
+/// Every read requirement of `Graph`, `DirectedGraph`, `BidirectionalDirectedGraph`,
+/// `SparselyIndexedDirectedGraph` and `PropertyGraph` has a default that forwards to the base.
+/// The defaults are `@inlinable` and use the base's own types, so algorithms run at the base's
+/// speed and data kept by position stays valid through the wrapper. The wrapper implements every
+/// mutation itself, since that is where its rules apply, along with its other members.
 ///
 /// A conformer declares its associated types as the base's (`typealias Successors =
 /// Base.Successors`, and so on) and its conformances (`DirectedGraph`, `PropertyGraph`, …), and
-/// writes no forwarding bodies. Becoming a `PropertyGraph` takes only the declaration: attaching,
-/// reading and writing maps go through `_base`, so the base's mutations keep them in step.
+/// writes no forwarding bodies. Conforming to `PropertyGraph` needs only the declaration.
+/// Attaching, reading and writing maps go through `_base`, so the base's mutations keep them in
+/// step.
 public protocol GraphDelegator<Base>: GraphAdaptor {
-    /// The base itself, mutable: the defaults read it and write attached map values through it.
-    /// Not for use outside the library; `base` reads it.
+    /// The base itself, mutable. The defaults read it and write attached map values through it.
+    /// Not for use outside the library; use `base` to read it.
     var _base: Base { get set }
 }
 
 extension GraphDelegator {
-    /// The wrapped graph, read-only: it carries the wrapper's invariant.
+    /// The wrapped graph, read-only, because it carries the wrapper's invariant.
     @inlinable
     public var base: Base { _base }
 }

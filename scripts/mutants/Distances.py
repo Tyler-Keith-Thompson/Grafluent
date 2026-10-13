@@ -8,8 +8,7 @@
 #   diameterrule, radiusrule, undirectedmiss, pruning
 #                 each removes a shortcut (a goal's rule-out, the stop at the first miss, the
 #                 skip of vertices a missing search reached): the answers are the same, only the
-#                 number of searches grows. Before the bounding loops were tightened, the 10⁴-cycle
-#                 stress tests caught them by timing out; the benchmarks are where they show.
+#                 number of searches grows. The benchmarks show the difference.
 
 TESTS = ["DistancesTests"]
 

@@ -11,7 +11,7 @@ Whitney's theorem (3-connected, after suppressing degree-2 vertices), with the c
 NetworkX and python-igraph, which must agree. Rows whose blocks have at most 16 edges list
 every Kuratowski subgraph (each lies in one block), so the witness and its kind are pinned exactly
 where they are unique; larger blocks that are themselves a subdivision are unique too. NetworkX 3.7's
-`check_planarity` must agree on every row. python-igraph 1.0.0 has no planarity test.
+`check_planarity` must agree on every row.
 
 ## Notation
 

@@ -1,6 +1,6 @@
 // Edge changes (catalog SG-123 – SG-130): `changeTarget(ofEdgeAt:to:)` and `changeSource(ofEdgeAt:to:)`
-// (LEMON's `changeTarget` / `changeSource`) keep the position and the place in the unchanged
-// endpoint's row, and join the new endpoint's row in position order; the `checked:` spellings throw
+// keep the position and the place in the unchanged endpoint's row, and join the new endpoint's
+// row in position order; the `checked:` spellings throw
 // `ElementNotFound.edge` for a dead position, then `.vertex` for a missing endpoint, and change
 // nothing.
 // Generated from cases.md by swiftgen.py; see README.md.

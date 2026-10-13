@@ -3,9 +3,8 @@ import GraphProtocols
 extension DirectedHypergraph {
     /// The directed hypergraph's incidence graph as a lazy `BidirectionalDirectedGraph`: vertex
     /// index `i` is vertex `i`, `n + p` is hyperedge `p`, an arc from each source to its hyperedge
-    /// and from the hyperedge to each target (XGI's directed `to_bipartite_graph`). Plain directed
-    /// reachability, Gallo et al.'s "connected", is `descendants(of:)` on it restricted to
-    /// `0 ..< n`.
+    /// and from the hyperedge to each target. Plain directed reachability, Gallo et al.'s
+    /// "connected", is `descendants(of:)` on it restricted to `0 ..< n`.
     ///
     /// - Precondition: both index bounds are non-nil.
     /// - Complexity: O(1) for `IncidenceList`; O(m) otherwise, for each side's first incidence
@@ -20,23 +19,23 @@ extension DirectedHypergraph {
 /// `i` of `p` and `n + p → j` for each target `j`. A vertex on both sides of `p` gives the 2-cycle
 /// `i → n + p → i`.
 ///
-/// **Edges.** Positions `0 ..< P_s` are the source incidences, hyperedge by hyperedge in index
-/// order and within one in `sourceIndices` order, and `P_s + q` is target incidence `q`, in the
-/// same order. A per-incidence array is indexed by edge position. A view is a snapshot, so its own
-/// positions never change, but they are valid for the hypergraph only until its next mutation:
-/// the view of the mutated hypergraph numbers the incidences afresh (on `OrientedIncidenceMatrix`,
-/// inserting one cell shifts every later incidence by one).
+/// Positions `0 ..< P_s` are the source incidences, hyperedge by hyperedge in index order and
+/// within one in `sourceIndices` order, and `P_s + q` is target incidence `q`, in the same order. A
+/// per-incidence array is indexed by edge position. A view is a snapshot, so its own positions
+/// never change, but they are valid for the hypergraph only until its next mutation: the view of
+/// the mutated hypergraph numbers the incidences afresh (on `OrientedIncidenceMatrix`, inserting
+/// one cell shifts every later incidence by one).
 ///
-/// **The LabeledGraph law.** Every index member reads the base's rows, shifted where they hold
-/// hyperedges: `successorIndices(ofIndex: i)` is `outHyperedgeIndices(ofIndex: i)` plus n, and
-/// of `n + p` it is `targetIndices(ofHyperedgeAt: p)`; `predecessorIndices` is
-/// `inHyperedgeIndices` plus n, or `sourceIndices`. So graph algorithms run on the view without
-/// hashing a vertex. The view does not offer `_withSuccessorIndexRows`, whose contract needs edge
-/// positions in row order.
+/// Every index member reads the base's rows, shifted where they hold hyperedges:
+/// `successorIndices(ofIndex: i)` is `outHyperedgeIndices(ofIndex: i)` plus n, and of `n + p` it is
+/// `targetIndices(ofHyperedgeAt: p)`; `predecessorIndices` is `inHyperedgeIndices` plus n, or
+/// `sourceIndices`. Graph algorithms therefore run on the view without hashing a vertex. The view
+/// does not offer `_withSuccessorIndexRows`, whose contract needs edge positions in row order.
 ///
-/// **Costs.** As for `IncidenceGraphView`: O(1) reads on `IncidenceList`, which stores its
+/// Costs are as for `IncidenceGraphView`: O(1) reads on `IncidenceList`, which stores its
 /// incidences; on another base a hyperedge's incidence numbers are a range, O(1), `edges[q]`
-/// binary-searches and selects by rank, O(log m + ⌈n/64⌉) on `OrientedIncidenceMatrix`, and a vertex's `outEdges` or `inEdges` is computed from `_memberRank`, O(d·⌈n/64⌉) on
+/// binary-searches and selects by rank, O(log m + ⌈n/64⌉) on `OrientedIncidenceMatrix`, and a
+/// vertex's `outEdges` or `inEdges` is computed from `_memberRank`, O(d·⌈n/64⌉) on
 /// `OrientedIncidenceMatrix`.
 @frozen
 public struct DirectedIncidenceGraphView<Base: DirectedHypergraph>: BidirectionalDirectedGraph {

@@ -437,7 +437,7 @@ struct LexicographicProductTests {
         let h = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
         let product = lexicographicProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
-        // NetworkX's MultiGraph merges coincident loop products; here each generating tuple is its own edge.
+        // Each generating tuple is its own edge, coincident loop products included.
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x"), Pair("a", "y"), Pair("b", "x"), Pair("b", "y")])
         #expect(product.vertices.map { product.vertexIndex(of: $0) } == [0, 1, 2, 3])
@@ -534,7 +534,7 @@ struct LexicographicProductTests {
         let h = Pseudograph<String>(vertices: ["x"], edges: [UndirectedEdge("x", "x")])
         let product = lexicographicProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
-        // NetworkX's MultiGraph merges coincident loop products; here each generating tuple is its own edge.
+        // Each generating tuple is its own edge, coincident loop products included.
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x")])
         #expect(product.vertices.map { product.vertexIndex(of: $0) } == [0])

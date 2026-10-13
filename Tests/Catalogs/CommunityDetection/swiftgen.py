@@ -32,7 +32,7 @@ SECTIONS = {
 
 HEADERS = {
     "A": """// §A: the empty graph (both kinds), one vertex, four isolated vertices, lone self-loops, K₂ and one
-// arc: every entry point. m = 0 gives modularity 0 (NetworkX; igraph NaN); coverage and performance
+// arc: every entry point. m = 0 gives modularity 0; coverage and performance
 // are NaN where their ratio is 0/0; every algorithm returns singletons on an edgeless graph, and
 // self-loops never join two vertices (Louvain, greedy) and vote for nothing (label propagation).""",
     "B": """// §B: Newman–Girvan modularity with Reichardt–Bornholdt's resolution γ on `Graph` (an undirected
@@ -42,17 +42,17 @@ HEADERS = {
     "C": """// §C: coverage (edges inside communities over edges, parallel copies each counted, a loop inside) and
 // performance (vertex pairs classified correctly over pairs: adjacency is "at least one edge", loops
 // are not pairs, ordered pairs on `DirectedGraph`). Each test checks both members of the result.""",
-    "D": """// §D: Louvain (Blondel et al.) with NetworkX's arithmetic and stop rule: vertices in index order,
+    "D": """// §D: Louvain (Blondel et al.): vertices in index order,
 // a vertex stays when its own community ties the best gain, other ties go to the greatest community
 // label; parallel edges are weight, self-loops count in degrees; the Dugué–Perez gain on
 // `DirectedGraph`; `resolution`, `threshold`, weights, and `using:` on graphs where every order gives
 // the same partition (CD-112 – CD-114). CD-174 (total weight 0, not a trap) is here too.""",
     "E": """// §E: greedy modularity (Clauset–Newman–Moore): merge the adjacent pair of greatest ΔQ while ΔQ ≥ 0,
-// ties to the least pair (i, j) with i merged into j, NetworkX's `greedy_modularity_communities`;
+// ties to the least pair (i, j) with i merged into j;
 // `resolution`, weights, parallel edges, loops and `DirectedGraph`. CD-173 (total weight 0, not a
 // trap) is here too.""",
-    "F": """// §F: label propagation on `Graph`. Semi-synchronous (Cordasco–Gargano, NetworkX's deterministic
-// rules: a greedy largest-degree-first coloring, classes updated in color order) and asynchronous
+    "F": """// §F: label propagation on `Graph`. Semi-synchronous (Cordasco–Gargano: a greedy
+// largest-degree-first coloring, classes updated in color order) and asynchronous
 // (Raghavan et al.: vertices in index order, ties to the greatest label; `using:` where every order and
 // tie choice gives the same partition). Votes are the row: parallel copies each vote, self-loops vote
 // for nothing, weights add.""",

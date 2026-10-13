@@ -922,7 +922,7 @@ FILES = [
      "cover where it differs."),
     ("KoenigVertexCoverTests.swift", ["konig"], "minimumVertexCover(bipartition:)", "KoenigVertexCoverTests",
      "`minimumVertexCover(bipartition: g.bipartition()!)` (catalog §KoenigVC, CV-072 – CV-086): König's cover, "
-     "NetworkX `to_vertex_cover`'s, exact, with the canonical sides asserted; a cover as large as "
+     "exact, with the canonical sides asserted; a cover as large as "
      "`maximumBipartiteMatching(bipartition:)`; by brute force no cover smaller and the unique minimum cover with "
      "the most left vertices; and `minimumVertexCover()` where it differs."),
     ("ApproximateVertexCoverTests.swift", ["approx_vc"], "approximateMinimumVertexCover", "ApproximateVertexCoverTests",
@@ -940,7 +940,7 @@ FILES = [
      "subsets by brute force; the greedy approximation's size where the catalog notes it."),
     ("ApproximateDominatingSetTests.swift", ["approx_ds"], "approximateMinimumDominatingSet", "ApproximateDominatingSetTests",
      "`approximateMinimumDominatingSet()` and `approximateMinimumDominatingSet(weight:)` (catalog §ApproxDS, "
-     "CV-148 – CV-166): Chvátal's greedy set cover, NetworkX `min_weighted_dominating_set`'s output, exact; "
+     "CV-148 – CV-166): Chvátal's greedy set cover, exact;  "
      "dominating (checked here); its weight; within H(Δ + 1) of the least weight, found by brute force."),
     ("MinimumEdgeCoverTests.swift", ["ec", "ec_bip"], "minimumEdgeCover", "MinimumEdgeCoverTests",
      "`minimumEdgeCover()` and `minimumEdgeCover(matching:)` (catalog §MinimumEC, CV-167 – CV-188): the matching's "

@@ -111,19 +111,20 @@ struct _Dijkstra<G: DirectedGraph, W: Comparable & AdditiveArithmetic>: _IndexSp
 }
 
 extension DirectedGraph {
-    /// Shortest paths from `source` by Dijkstra's algorithm (Boost's `dijkstra_shortest_paths`,
-    /// NetworkX's `single_source_dijkstra`). `weight` gives each edge's length from its position
-    /// in `edges`, so parallel edges can differ; it is called each time an edge is examined (once
-    /// per out-edge of each settled vertex) and not kept.
+    /// Shortest paths from `source` by Dijkstra's algorithm.
+    ///
+    /// `weight` gives each edge's length from its position in `edges`, so parallel edges can
+    /// differ. It is called each time an edge is examined (once per out-edge of each settled
+    /// vertex) and not kept.
     ///
     /// - Parameter cutoff: When given, vertices other than the sources are reached only at
     ///   distance at most `cutoff`; the sources are always reached, at zero, even under a negative
-    ///   cutoff (NetworkX's and scipy's convention).
+    ///   cutoff.
     /// - Precondition: `source` is a vertex; `cutoff` is not NaN; every examined weight is at least
     ///   `.zero` and not NaN (a negative weight the search never examines does not trap); `du + w`
     ///   fits in `W` for every examined edge, including edges back into settled vertices and edges
-    ///   beyond the cutoff (it is computed before either is skipped, so an `Int.max` "blocked"
-    ///   weight traps on overflow; Boost's `closed_plus` saturates instead).
+    ///   beyond the cutoff. The sum is computed before either is skipped, so an `Int.max` "blocked"
+    ///   weight traps on overflow.
     @inlinable
     public func dijkstraShortestPaths<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, cutoff: W? = nil, weight: (Edges.Index) -> W
@@ -131,8 +132,8 @@ extension DirectedGraph {
         dijkstraShortestPaths(from: CollectionOfOne(source), cutoff: cutoff, weight: weight)
     }
 
-    /// Shortest paths from the nearest of `sources` (NetworkX's `multi_source_dijkstra`): every
-    /// source is at distance zero and has no parent.
+    /// Shortest paths from the nearest of `sources`. Every source is at distance zero and has no
+    /// parent.
     ///
     /// - Precondition: `sources` is not empty and holds only vertices; weights as for one source.
     @inlinable
@@ -147,8 +148,8 @@ extension DirectedGraph {
     }
 
     /// A shortest path from `source` to `target`, with the edges it takes (which tell parallel
-    /// edges apart), and its length, or `nil` when `target` is not reachable (NetworkX's
-    /// `dijkstra_path`). Stops as soon as `target` is settled.
+    /// edges apart), and its length, or `nil` when `target` is not reachable. Stops as soon as
+    /// `target` is settled.
     ///
     /// - Precondition: `source` and `target` are vertices; weights as for
     ///   `dijkstraShortestPaths(from:cutoff:weight:)`.
@@ -159,9 +160,9 @@ extension DirectedGraph {
         _bestFirstPath(from: source, to: target, weight: weight, heuristic: nil)
     }
 
-    /// A shortest path from `source` to `target` by A* (JGraphT's `AStarShortestPath`, NetworkX's
-    /// `astar_path`), guided by `heuristic`, an estimate of each vertex's distance to `target`;
-    /// `nil` when `target` is not reachable. The result is as for `dijkstraShortestPath`.
+    /// A shortest path from `source` to `target` by A*, guided by `heuristic`, an estimate of each
+    /// vertex's distance to `target`; `nil` when `target` is not reachable. The result is as for
+    /// `dijkstraShortestPath`.
     ///
     /// With an admissible heuristic (never more than the true distance) the path is a shortest
     /// one, even when the heuristic is not consistent, since a vertex whose distance improves after

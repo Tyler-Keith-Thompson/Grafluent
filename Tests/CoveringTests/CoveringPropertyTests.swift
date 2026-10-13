@@ -91,7 +91,7 @@ struct CoveringPropertyTests {
             let koenig = graph.minimumVertexCover(bipartition: sides)
             #expect(koenig.count == matching.edges.count && graph.isVertexCover(koenig), "\(context)")
             #expect(koenig == listed.filter { koenig.contains($0) }, "in vertices order: \(context)")
-            // NetworkX's construction: Z is every vertex reached from a free left vertex by an
+            // König's construction: Z is every vertex reached from a free left vertex by an
             // alternating path; the cover is (left − Z) ∪ (right ∩ Z).
             let leftSide = Set(sides.left)
             var reached = Set(sides.left.filter { matching.mate(of: $0) == nil })

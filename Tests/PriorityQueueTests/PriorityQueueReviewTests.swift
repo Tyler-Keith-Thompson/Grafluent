@@ -1,7 +1,7 @@
-// Cases added after the critical review: copy-on-write when the first mutation of a copy is one
-// that does not grow or shrink the heap, traps that must be the queue's own (not a crash after a
-// wild read), insert-or-decrease, and a composite tie-breaking priority. Case IDs continue the
-// catalog; see README.md.
+// Further invariants: copy-on-write when the first mutation of a copy neither grows nor shrinks
+// the heap, traps that must be the queue's own rather than a crash after a wild read,
+// insert-or-decrease, and a composite tie-breaking priority.
+// Case IDs (PQ-nn) refer to the catalog; see README.md.
 
 import Darwin
 import GrafluentTestSupport

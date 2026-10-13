@@ -26,7 +26,7 @@ func _twoOptRow<W: Comparable & AdditiveArithmetic>(_ d: UnsafePointer<W>, _ t: 
     return (best, column)
 }
 
-/// 2-opt by best improvement, JGraphT `TwoOptHeuristicTSP.improve`'s procedure: the tour as
+/// 2-opt by best improvement: the tour as
 /// t[0 ... n] with t[n] = t[0]; each round makes the move (i, j), 0 ≤ i < n − 2, i + 2 ≤ j < n,
 /// that most shortens the tour by replacing the edges t[i]t[i+1] and t[j]t[j+1] with t[i]t[j] and
 /// t[i+1]t[j+1] (the first (i, j) in row-major order on ties), reversing t[i+1 ... j]; it stops
@@ -117,19 +117,16 @@ extension Graph {
         return _tourCycle(_twoOpt(matrix, _nearestNeighborOrder(matrix, from: 0)), matrix, numbering)
     }
 
-    /// `tour` improved by 2-opt to a 2-optimal tour, by JGraphT
-    /// `TwoOptHeuristicTSP.improveTour`'s procedure: best improvement, the first move (i, j) in
-    /// row-major order on ties, until no exchange of two tour edges for two lighter ones remains.
-    /// LEMON's `Opt2Tsp` shares the name only: it takes the first improving move and restarts the
-    /// scan, which ends at a different tour. The first vertex of `tour` stays first. Only
-    /// `tour.vertices` is read: the result uses the lightest edge of each pair, as every tour
-    /// does. nil below three vertices.
+    /// `tour` improved by 2-opt to a 2-optimal tour.
+    ///
+    /// Each round makes the best improving move, the first move (i, j) in row-major order on
+    /// ties, until no exchange of two tour edges for two lighter ones remains. The first vertex of
+    /// `tour` stays first. Only `tour.vertices` is read: the result uses the lightest edge of each
+    /// pair, as every tour does. nil below three vertices.
     ///
     /// A move's gain is formed as (d(a, b) + d(c, e)) − (d(a, c) + d(b, e)), and the scan stops
-    /// when no move gains anything; JGraphT forms d(a, c) + d(b, e) − d(a, b) − d(c, e) and stops
-    /// when no change is below −1e-8. The tour is JGraphT's exactly on integers, and on floating
-    /// weights whose sums are exactly representable (dyadic values of moderate size); otherwise
-    /// rounding and the threshold can pick other moves, so the tours may differ.
+    /// when no move gains anything. With floating-point weights, rounding decides which moves
+    /// gain.
     ///
     /// - Precondition: the graph is complete; `tour.vertices` lists every vertex of the graph
     ///   exactly once; no weight is NaN or infinite; the sum of any two weights fits in `W`.

@@ -1,9 +1,9 @@
 /// The standard library's fixed-width integers and binary floating-point types, as the values of
 /// `TropicalSemiring` and `BottleneckSemiring`.
 ///
-/// Underscored: it supplies +∞ and −∞ (`±.infinity` for floating point; for integers the
-/// package-level sentinels `.infinity` and `.negativeInfinity`, which are `.max` and `.min`) and the
-/// tropical product, and is not meant for other conformers.
+/// It supplies +∞, −∞ and the tropical product, and is not meant for other conformers. Floating
+/// point uses `±.infinity`. Integers use the package-level sentinels `.infinity` and
+/// `.negativeInfinity`, which are `.max` and `.min`.
 public protocol _SemiringScalar: Comparable, AdditiveArithmetic, Hashable, Sendable {
     /// +∞: `.infinity` (for integers the sentinel `.max`).
     static var _semiringInfinity: Self { get }
@@ -17,8 +17,8 @@ public protocol _SemiringScalar: Comparable, AdditiveArithmetic, Hashable, Senda
 
 extension FixedWidthInteger {
     /// `.max`, the absorbing sentinel that stands for +∞ in the integer semirings (the tropical
-    /// zero, the bottleneck one). Not an arithmetic infinity: `Int.infinity + 1` traps. Package
-    /// level, so library users never see a misleading `Int.infinity`.
+    /// zero, the bottleneck one). It is not an arithmetic infinity: `Int.infinity + 1` traps. It is
+    /// package level so library users never see a misleading `Int.infinity`.
     @inlinable
     @inline(__always)
     package static var infinity: Self { .max }
@@ -26,8 +26,8 @@ extension FixedWidthInteger {
 
 extension FixedWidthInteger where Self: SignedInteger {
     /// `.min`, the absorbing sentinel that stands for −∞ in the integer semirings (the bottleneck
-    /// zero). Not an arithmetic infinity: `Int.negativeInfinity - 1` traps. Package level, as
-    /// `infinity`.
+    /// zero). It is not an arithmetic infinity: `Int.negativeInfinity - 1` traps. It is package
+    /// level, like `infinity`.
     @inlinable
     @inline(__always)
     package static var negativeInfinity: Self { .min }
@@ -40,9 +40,9 @@ extension _SemiringScalar where Self: FixedWidthInteger & SignedInteger {
     @inlinable
     public static var _semiringNegativeInfinity: Self { .negativeInfinity }
 
-    /// Boost's `closed_plus`: +∞ (`.infinity`, which is `.max`) absorbs, then −∞
-    /// (`.negativeInfinity`, `.min`), and any other sum traps on overflow. A finite sum landing
-    /// exactly on `.max` reads as +∞.
+    /// A closed sum. +∞ (`.infinity`, which is `.max`) absorbs, then −∞ (`.negativeInfinity`,
+    /// `.min`), and any other sum traps on overflow. A finite sum landing exactly on `.max` reads
+    /// as +∞.
     @inlinable
     @inline(__always)
     public static func _tropicalProduct(_ a: Self, _ b: Self) -> Self {
@@ -56,8 +56,8 @@ extension _SemiringScalar where Self: FixedWidthInteger & UnsignedInteger {
     @inlinable
     public static var _semiringInfinity: Self { .infinity }
 
-    /// `0` (`.min`), which is also the tropical `one`, so it does not absorb: there is no −∞
-    /// sentinel for unsigned integers.
+    /// `0` (`.min`). It is also the tropical `one`, so it does not absorb. Unsigned integers have
+    /// no −∞ sentinel.
     @inlinable
     public static var _semiringNegativeInfinity: Self { .min }
 
@@ -77,8 +77,8 @@ extension _SemiringScalar where Self: BinaryFloatingPoint {
     @inlinable
     public static var _semiringNegativeInfinity: Self { -.infinity }
 
-    /// Plain `+`: IEEE 754 already makes `.infinity` absorb every finite value. `-.infinity +
-    /// .infinity` is NaN; the tropical carrier is ℝ ∪ {+∞} (Mohri), without −∞.
+    /// Plain `+`, since IEEE 754 already makes `.infinity` absorb every finite value.
+    /// `-.infinity + .infinity` is NaN. The tropical carrier is ℝ ∪ {+∞} (Mohri), without −∞.
     @inlinable
     @inline(__always)
     public static func _tropicalProduct(_ a: Self, _ b: Self) -> Self {

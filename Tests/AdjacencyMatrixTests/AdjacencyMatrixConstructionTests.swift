@@ -1,5 +1,4 @@
-// Construction. Case IDs (AM-Cnn) refer to the catalog of cases harvested from petgraph, Boost.Graph,
-// gonum, NetworkX, LEMON, JGraphT, igraph and swift-algorithm-club; see README.md.
+// Construction. Case IDs (AM-Cnn) refer to the case catalog; see README.md.
 
 import AdjacencyMatrixModule
 import GraphProtocols
@@ -44,7 +43,7 @@ struct AdjacencyMatrixConstructionTests {
 
     @Test("AM-C03 the complete directed graph without self-loops on 15 vertices has 210 edges")
     func completeWithoutSelfLoops() {
-        // gonum simple/densegraph_test.go TestDenseLists.
+        // The complete digraph on 15 vertices without self-loops.
         var matrix = AdjacencyMatrix(vertexCount: 15, edges: (0 ..< 15).flatMap { u in (0 ..< 15).filter { $0 != u }.map { DirectedEdge(from: u, to: $0) } })
         #expect(matrix.edgeCount == 210)
         for v in 0 ..< 15 {
@@ -58,7 +57,7 @@ struct AdjacencyMatrixConstructionTests {
 
     @Test("AM-C04 the complete directed graph with self-loops on 8 vertices has 64 edges")
     func completeWithSelfLoops() {
-        // LEMON test/digraph_test.cc FullDigraph(8).
+        // The complete digraph on 8 vertices with self-loops.
         let matrix: AdjacencyMatrix = [
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
@@ -105,7 +104,7 @@ struct AdjacencyMatrixConstructionTests {
 
     @Test("AM-C08 in a literal, row i column j set means an edge from i to j")
     func literalRowIsSource() {
-        // NetworkX tests/test_convert_numpy.py: the superdiagonal of a 5×5 matrix is the path 0→1→2→3→4.
+        // The superdiagonal of a 5×5 matrix is the path 0→1→2→3→4.
         let matrix: AdjacencyMatrix = [
             [0, 1, 0, 0, 0],
             [0, 0, 1, 0, 0],
@@ -174,7 +173,7 @@ struct AdjacencyMatrixConstructionTests {
 
     @Test("a literal equals the matrix built from the same edges")
     func literalMatchesEdges() {
-        // Boost.Graph example/adjacency_matrix.cpp, vertices A…F as 0…5.
+        // The six-vertex example graph, vertices A…F as 0…5.
         let literal: AdjacencyMatrix = [
             [0, 0, 0, 0, 0, 0],
             [0, 0, 1, 0, 0, 1],

@@ -26,9 +26,6 @@
 #   walkupmark    vertex, or not marking the second walker's vertex: the walk then goes on to a
 #                 root that is already recorded and stops there; time only (the Walkup's
 #                 shorter-side bound).
-#
-# Removed as dead code after planting: minor E1 marking py as high on the y side (minor C reads
-# that mark only when px is high, which minor E excludes).
 
 TESTS = ["PlanarityTests"]
 

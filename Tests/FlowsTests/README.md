@@ -8,12 +8,8 @@ edge usable either way, results over `directedView`): `maximumFlow(from:to:capac
 unique), Gusfield's `gomoryHuTree(capacity:)`, `minimumCostFlow(supply:capacity:cost:)` and
 `minimumCostMaximumFlow` (network simplex, integers only), `edgeConnectivity`,
 `vertexConnectivity` and `minimumVertexCut` with their s–t forms, and `edgeDisjointPaths` and
-`vertexDisjointPaths`. The tests were written before the
-implementation, from the proposed API (`api.md` in [`Tests/Catalogs/Flows/`](../Catalogs/Flows/),
-phase 1), with the open questions decided: no `FlowNetworks` module and no stored flow network;
-no source-minimal cut; minimum-cost flow on integers only, without an infeasibility witness. After
-the critical review, the global cuts moved to Nagamochi–Ibaraki and Hao–Orlin (re-specified as
-"a minimum cut"), disjoint paths and `flowMap` were added, and FL-488 – FL-531 joined the catalog. The suite uses only the public API, and each test
+`vertexDisjointPaths`. The API and its semantics are in `api.md` in
+[`Tests/Catalogs/Flows/`](../Catalogs/Flows/). The suite uses only the public API, and each test
 is self-contained: the procedures, brute-force searches and definitions it checks against are
 written out inside it. The shared material is `ReferenceDirectedMultigraph`, `ReferencePseudograph`,
 `Collider`, the seeded generator and the tags in `GrafluentTestSupport`; two conformers with no
@@ -110,7 +106,7 @@ Gale's condition). Connectivity rows compare with brute force over removed verte
 (n ≤ 10 to 12), with the unit-capacity global cut and maximum flow, and check that each vertex cut
 disconnects or separates.
 
-The representation files (one per catalog section) run every non-trap row (465) again: directed rows on `DirectedPseudograph`
+The representation files (one per catalog section) run every non-trap row (507) again: directed rows on `DirectedPseudograph`
 (or `ReferenceDirectedMultigraph` for rows already on it), on a conformer with no vertex or edge
 indices, and, when no edge repeats, on `CompressedSparseRow` and `AdjacencyMatrix` over the vertex
 indices; undirected rows on `Pseudograph` (or `ReferencePseudograph`), the conformer, and, when no
@@ -131,9 +127,9 @@ successive-shortest-path minimum-cost oracle, and Menger's theorem for κ, λ an
 One property runs medium clustered networks (20 – 60 vertices, heavy edges inside up to four
 clusters and light ones between, so the minimum cut is rarely one vertex) for the global cuts,
 against the least maximum flow from the first vertex (and either way, directed), on both the
-bucket queue and the heap. Another runs medium layered networks (50 – 226 vertices) built so that push–relabel
-relabels past its global-relabel threshold and opens gaps (measured once with temporary counters:
-88 of 120 runs relabel globally again, all 120 open a gap), against Edmonds–Karp written out. Stress values are
+bucket queue and the heap. Another runs medium layered networks (50 – 226 vertices) built so that
+push–relabel relabels past its global-relabel threshold and opens gaps, against Edmonds–Karp
+written out. Stress values are
 known by construction: a 5 · 10⁴-edge path (value 1, the last capacity-1 edge the cut), 300 disjoint
 unit paths and K(150, 150)'s matching network (the sink alone on its side), a 150 × 150 grid (value
 2), a seeded random network of 2,000 vertices checked by definition, C(600) and two K(30) joined by a
@@ -144,23 +140,13 @@ a one-minute limit.
 
 In the property and stress files, conditions that contain a closure are computed into a named
 constant before `#expect`: inside `propertyCheck`'s and `Task`'s closures, a closure in an `#expect`
-expansion beside the capacity closures failed SIL verification ("function type mismatch") with the
-toolchain this suite was written on.
-
-The whole suite was run against a Swift model of api.md before the implementation existed (Dinic,
-Edmonds–Karp and a FIFO push–relabel first phase with the canonical cut; Stoer–Wagner with a lazy
-heap; Gusfield; successive shortest paths with Johnson potentials standing in for network simplex;
-the split-network connectivity; built in a scratch copy of the workspace through Bazel, with
-warnings as errors). That was the phase-1 suite; the Stoer–Wagner and cyclic-pair planted bugs
-below tested rules api.md no longer pins. All 991 tests pass against it in about 12 seconds in a debug build. It was
-also run against 32 planted bugs in that model, each of which fails tests (failing tests in
-parentheses): the cut's search following residuals ≥ 0 (472), the source-side cut (153), residual rows in reverse position order (15), Edmonds–Karp by depth-first search (8), an undirected edge's flow on the wrong arc (40), self-loops asked for a capacity (4, then the model traps), no negative-capacity check (5), no infinity check (1), Stoer–Wagner ties to the greater index (11), the last least phase (17), the last vertex's component on a disconnected graph (1), the directed cyclic pairs reversed (5), the last least pair (7), Gusfield without the swap (18), the swap without exchanging the capacities (10), `minimumCut(between:and:)` at the least edge nearest v (7), zero-cost edges saturated like negative ones (4, then a timeout), the potentials negated (34), unbalanced supplies not nil (2), circulations not saturated when every supply is zero (9), parallel edges collapsed for λ (NetworkX's; 8), κ(s, t) without the edge s → t (21), an empty s–t vertex cut instead of nil (NetworkX's; 22), Even's directed pairs one way only (13), directed κ read on the underlying undirected graph (22), the value as the flow out of the source ignoring flow back into it (19, then the model traps), zero-capacity edges dropped from cuts (17), cuts listing edges back from the sink side (88), undirected cut arcs never reversed (62), the cost closure called twice (29), no source = sink check in `maximumFlowValue` and `minimumCut` (2), and Stoer–Wagner merging the last vertex into the first instead of the second-to-last (15).
+expansion beside the capacity closures fails SIL verification ("function type mismatch").
 
 ## Files
 
 | File | Tests | Covers |
 |---|---|---|
-| `MaximumFlowTests.swift` | 46 | §MaximumFlow (the MaximumFlow rows of FL-001 – FL-212): degenerate networks, no path, zero capacities, loops, parallel and antiparallel edges, CLRS, NetworkX's example, LCG networks, Double, Int8, UInt8 and Int.max totals, undirected graphs |
+| `MaximumFlowTests.swift` | 46 | §MaximumFlow (the MaximumFlow rows of FL-001 – FL-212): degenerate networks, no path, zero capacities, loops, parallel and antiparallel edges, CLRS figure 26.1, worked examples, LCG networks, Double, Int8, UInt8 and Int.max totals, undirected graphs |
 | `EdmondsKarpTests.swift` | 41 | §EdmondsKarp: the same networks, the per-edge flow exactly |
 | `DinicTests.swift` | 40 | §Dinic |
 | `MaximumFlowValueTests.swift` | 46 | §MaximumFlowValue |
@@ -173,19 +159,21 @@ parentheses): the cut's search following residuals ≥ 0 (472), the source-side 
 | `VertexConnectivityTests.swift` | 55 | §VertexConnectivity |
 | `MinimumVertexCutTests.swift` | 55 | §MinimumVertexCut |
 | `DisjointPathsTests.swift` | 24 | §EdgeDisjointPaths, §VertexDisjointPaths (FL-502 – FL-523, FL-530, FL-531) |
-| `FlowsPreconditionTests.swift` | 34 | Exit tests: the 24 trap rows (FL-213 – FL-226, FL-249, FL-274, FL-306, FL-307, FL-319, FL-485 – FL-487, FL-524, FL-525), then 10 written by hand: the source as the sink on `Graph`; terminals not in the graph for every entry point, also without indices; negative capacities in every maximum flow and the directed global cut; NaN and infinity in the global cut, Gomory–Hu and Dinic; UInt8 and Double source sums past the type; `minimumCut(between:and:)` with u = v; a negative self-loop capacity in minimum-cost flow; `minimumCostMaximumFlow`'s capacity and cost checks; connectivity terminals; foreign positions and vertices on the results, whose `checked:` spellings throw instead (in process) |
+| `FlowsPreconditionTests.swift` | 38 | Exit tests: the 24 trap rows (FL-213 – FL-226, FL-249, FL-274, FL-306, FL-307, FL-319, FL-485 – FL-487, FL-524, FL-525), then 14 written by hand: the source as the sink on `Graph`; terminals not in the graph for every entry point, also without indices; negative capacities in every maximum flow and the directed global cut; NaN and infinity in the global cut, Gomory–Hu and Dinic; UInt8 and Double source sums past the type; `minimumCut(between:and:)` with u = v; a negative self-loop capacity in minimum-cost flow; `minimumCostMaximumFlow`'s capacity and cost checks; connectivity terminals; foreign positions and vertices on the results, whose `checked:` spellings throw instead (in process) |
 | `MaximumFlowRepresentationTests.swift`, `EdmondsKarpRepresentationTests.swift`, `DinicRepresentationTests.swift`, `MaximumFlowValueRepresentationTests.swift`, `MinimumCutRepresentationTests.swift` | 46, 41, 40, 46, 39 | Every flow, value and s–t cut row again on the other representations (Edmonds–Karp's flow recomputed on row-major positions) |
 | `GlobalMinimumCutRepresentationTests.swift`, `GomoryHuTreeRepresentationTests.swift` | 41, 19 | Every global-cut and Gomory–Hu row again |
 | `MinimumCostFlowRepresentationTests.swift` | 46 | Every minimum-cost row again (feasibility and the certificate where the flow is not unique) |
 | `EdgeConnectivityRepresentationTests.swift`, `VertexConnectivityRepresentationTests.swift`, `MinimumVertexCutRepresentationTests.swift` | 55 each | Every connectivity row again |
 | `DisjointPathsRepresentationTests.swift` | 24 | Every disjoint-path row again: the count, the ends, the disjointness |
-| `FlowsConformanceTests.swift` | 16 | Equality of the four results, `Sendable`, descriptions, each result's own copy of the graph, generic code, `Collider` and `String` vertices, Int32, UInt16 and Float capacities, an undirected graph against its `directedView` view, self-loops never asked, zero costs, Gomory–Hu lookups both ways, parallel edges kept apart, `flowMap`, the signed undirected flow, cut sides from index zero, unsigned minimum-cost capacities |
+| `FlowsConformanceTests.swift` | 19 | Equality of the four results, `Sendable`, descriptions, each result's own copy of the graph, generic code, `Collider` and `String` vertices, Int32, UInt16 and Float capacities, an undirected graph against its `directedView` view, self-loops never asked, zero costs, Gomory–Hu lookups both ways, parallel edges kept apart, `flowMap`, the signed undirected flow, cut sides from index zero, unsigned minimum-cost capacities |
 | `FlowsPropertyTests.swift` | 10 | PropertyBased with shrinking: directed and undirected maximum flows against brute force and Edmonds–Karp written out; floating capacities (eighths exact, integral Doubles integral); medium layered networks past push–relabel's global-relabel threshold, with gaps; global cuts against brute force, the cut's validity, the components rule and the least cyclic pair, in Int and Double; medium clustered global cuts (20 – 60 vertices) against the least maximum flow from the first vertex; Gomory–Hu against Gusfield written out and brute force; minimum-cost flow against a successive-shortest-path oracle; minimum-cost maximum flow; connectivity and disjoint paths by Menger |
-| `Performance/FlowsStressTests.swift` | 8 | Inside a `Task` with a one-minute limit; see above |
-| `UndirectedCapacityRangeTests.swift` | 3 | Int8 and UInt8 undirected capacities where twice a capacity overflows |
+| `Performance/FlowsStressTests.swift` | 11 | Inside a `Task` with a one-minute limit; see above |
+| `UndirectedCapacityRangeTests.swift` | 5 | Int8 and UInt8 undirected capacities where twice a capacity overflows |
+| `FlowsStableGraphTests.swift` | 2 | `StableDirectedGraph` with edge holes, vertex holes and both, against the compacting `DirectedPseudograph` |
 
-531 catalog rows (507 value rows, 24 trap rows), their 507 representation tests, and 47 more tests
-(10 precondition, 16 conformance, 10 property, 8 stress, 3 capacity range): 1,085 tests in all.
+531 catalog rows (507 value rows, 24 trap rows), their 507 representation tests, and 61 more tests
+(14 precondition, 19 conformance, 10 property, 11 stress, 5 capacity range, 2 stable graph): 1,099
+tests in all.
 
 ## Case IDs
 
@@ -210,11 +198,11 @@ scale that the catalog does not list.
 | FL-502 – FL-523, FL-530, FL-531 | EdgeDisjointPaths, VertexDisjointPaths | `DisjointPathsTests.swift` |
 | every row but the traps | Every non-trap row again | the twelve `…RepresentationTests.swift` files, one per section |
 
-## Readings of what api.md leaves open
+## Further behaviour checked
 
-| Question | Reading taken | Where |
+| Question | Behaviour | Where |
 |---|---|---|
-| The capacity closure for the global cut and Gomory–Hu | Once per non-loop edge in position order, as for the maximum flows (api.md states it in the maximum-flow preamble and Semantics) | `GlobalMinimumCutTests.swift`, `GomoryHuTreeTests.swift` |
+| The capacity closure for the global cut and Gomory–Hu | Once per non-loop edge in position order, as for the maximum flows | `GlobalMinimumCutTests.swift`, `GomoryHuTreeTests.swift` |
 | The closures of `minimumCostFlow` when it returns nil | `supply` once per vertex in order all the same; `capacity` and `cost` at most once per edge, in order (a solver may stop at unbalanced supplies) | nil rows in `MinimumCostFlowTests.swift` |
 | The closures of `minimumCostMaximumFlow` | Not counted: it is a maximum flow, then `minimumCostFlow`, and may read a capacity twice | `MinimumCostMaximumFlowTests.swift` |
 | Floating values "as computed" | Within 1e-12 for values and flows on rows whose capacities are not multiples of 1/1024 (FL-151 – FL-155); the cut's sides and edges exact there, and everything exact on dyadic rows | FL-151 – FL-155 |
@@ -225,7 +213,7 @@ scale that the catalog does not list.
 | Lookups with a position or vertex the graph does not have | Trap (`flow(ofEdgeAt:)`, `MinimumCostFlow.flow(ofEdgeAt:)`, `potential(of:)`) | `foreignLookups` |
 | A negative capacity on a self-loop | Traps in `minimumCostFlow` (loops carry flow there); never asked by the maximum flows | `minimumCostMoreTraps`, `loopsNeverAsked` |
 | The solver's artificial cost, (n + 1)(the greatest \|cost\| + 1) | Not a precondition on the cost type (it is computed in `Int` and never reported); only 4 × it must fit in `Int` | FL-491 |
-| Which global minimum cut among several | Not pinned (api.md): any minimum cut, the same on a second call; on `Graph` the first vertex on its source side | `GlobalMinimumCutTests.swift`, `globalCuts` |
+| Which global minimum cut among several | Unspecified: any minimum cut, the same on a second call; on `Graph` the first vertex on its source side | `GlobalMinimumCutTests.swift`, `globalCuts` |
 | Equality | On values: two calls on equal inputs are equal; another capacity or terminal differs | `equality` |
 | `description` | Not pinned; only that it is not empty | `descriptions` |
 
@@ -236,8 +224,6 @@ scale that the catalog does not list.
 | Which maximum flow push–relabel and Dinic return, phase 2's push–relabel toward the source | Unspecified by design; the tests check feasibility, the value and the cut from each flow's residual network |
 | The gap and global-relabelling heuristics, block-search pivots, strongly feasible trees, current-arc pointers, Nagamochi–Ibaraki's bucket queue and contractions, Hao–Orlin's dormant sets | Internal; their effect is only speed. The medium-network property reaches the push–relabel heuristics' code; mutation testing (`just mutate Flows`) and the benchmarks cover the rest |
 | Complexity bounds (O(n² √m), O(nm log n), O(n²m), Dinic's unit-network bound) | Benchmarks; the stress tests bound costs loosely |
-| `GomoryHuTree.minimumCutValue(between: u, and: u)` | api.md leaves it open (only `minimumCut(between:and:)` states u ≠ v) |
-| Overflow inside undirected residuals (c + f up to 2c for an Int8 edge above 63) | api.md says a residual is at most its edge's capacity, which holds for directed edges only; no catalog row exercises it |
+| `GomoryHuTree.minimumCutValue(between: u, and: u)` traps | No exit test covers this precondition |
 | NetworkX's, igraph's and rustworkx's outputs on random graphs (`just diff`) | Not Swift tests; `ref.py` checks every catalog row and its `--stress` networks against them |
-| Floating-point minimum-cost flow, infeasibility witnesses, UNBALANCED told apart from INFEASIBLE, lower bounds and GEQ/LEQ supplies, the source-minimal cut, Boykov–Kolmogorov | Phase 2 or later (api.md, open questions 3 – 6a) |
 | Residual arc counts of 2³¹ or more | The precondition exists (every network checks its arc count) but no test can build such a network |

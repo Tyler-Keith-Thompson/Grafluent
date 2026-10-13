@@ -1,6 +1,6 @@
 # Test catalog: `CompressedSparseRow` (immutable directed CSR graph)
 
-This catalog collects test cases for Grafluent's planned `CompressedSparseRow`, harvested from mature graph and sparse-matrix libraries. Cases are grouped by behavior and deduplicated across libraries.
+This catalog collects test cases for Grafluent's `CompressedSparseRow`, harvested from mature graph and sparse-matrix libraries. Cases are grouped by behavior and deduplicated across libraries.
 
 The type under test is a directed graph on vertices `0..<vertexCount`. It is stored as `offsets` (n + 1 entries) and `targets` (m entries), with each row's targets sorted ascending. It is built once by initializers. It allows self-loops, collapses duplicate edges (no parallel edges), and offers `vertexCount`, `edgeCount`, `vertices`, `edges` (row-major), `successors(of:)` (a sorted slice), O(1) `outDegree(of:)`, `contains(edge:)` by binary search, `transposed()` (the reverse graph, i.e. the CSC view), and `Equatable`/`Hashable`/`Codable`.
 

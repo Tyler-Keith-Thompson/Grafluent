@@ -1,10 +1,10 @@
 import GraphProtocols
 
 extension BidirectionalDirectedGraph {
-    /// The graph with every edge reversed, as a lazy view (NetworkX's `reverse_view`, Boost's
-    /// `reverse_graph`). O(1); the view holds a copy of the graph and copies no edge.
+    /// The graph with every edge reversed, as a lazy view. O(1). The view holds a copy of the
+    /// graph and copies no edge.
     ///
-    /// The view keeps the graph's vertices, vertex indices, edge positions and edge indices; the
+    /// The view keeps the graph's vertices, vertex indices, edge positions and edge indices. The
     /// edge at position `p` runs from the graph's target of `p` to its source. Its out-rows are the
     /// graph's in-rows. To materialize it, pass it to a representation's initializer
     /// (`AdjacencyList(g.transposedView)`), or use the representation's own `transposed()`.
@@ -13,7 +13,7 @@ extension BidirectionalDirectedGraph {
 }
 
 extension TransposedView {
-    /// The base: reversing twice gives back the graph itself, with no view around it. O(1).
+    /// The base. Reversing twice gives back the graph itself, with no view around it. O(1).
     @inlinable
     public var transposedView: Base { base }
 }
@@ -21,13 +21,12 @@ extension TransposedView {
 /// A bidirectional directed graph with every edge reversed: the converse (or transpose) of its
 /// base. Made by `transposedView`.
 ///
-/// Every member forwards to the base with the two directions swapped, so `successors` is the base's
-/// `predecessors`, `outEdges(ofIndex:)` the base's `inEdges(ofIndex:)`, and the base's own fast
-/// members are the ones called. Positions and edge indices are the base's, so a weight keyed by the
+/// Every member forwards to the base with the two directions swapped. `successors` is the base's
+/// `predecessors`, and `outEdges(ofIndex:)` is the base's `inEdges(ofIndex:)`. Positions and edge indices are the base's, so a weight keyed by the
 /// base's positions applies to the view unchanged.
 ///
-/// As a `GraphAdaptor`, its generation is the base's, and it reads the base's attached maps:
-/// `values(of:)` and `[map, ofEdgeAt:]` by the base's positions, `[map, of:]` by vertex.
+/// As a `GraphAdaptor`, its generation is the base's, and it reads the base's attached maps.
+/// `values(of:)` and `[map, ofEdgeAt:]` read by the base's positions, and `[map, of:]` by vertex.
 @frozen
 public struct TransposedView<Base: BidirectionalDirectedGraph>: BidirectionalDirectedGraph, GraphAdaptor {
     public typealias Vertex = Base.Vertex

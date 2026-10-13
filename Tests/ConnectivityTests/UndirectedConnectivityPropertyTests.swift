@@ -3,7 +3,7 @@
 // UndirectedAdjacencyList of the same edges (where repeats collapse), against oracles written in
 // each test: union–find component counts with a vertex or an edge removed, brute-force blocks
 // from far-end connectivity, and 2-edge-connected labels from every single-edge removal. CN-351
-// adds Boost's G(100, 500) and sparser G(100, 100), G(100, 120), G(300, 320); CN-350 has a
+// adds G(100, 500) and sparser G(100, 100), G(100, 120), G(300, 320); CN-350 has a
 // PropertyBased version that shrinks a failure to a small edge list. Case IDs (CN-nnn) refer to the
 // catalog; see README.md.
 
@@ -152,7 +152,7 @@ struct UndirectedConnectivityPropertyTests {
             }
             graphs.append((n, raw))
         }
-        // Boost's biconnected_components_test: G(100, 500) with parallel edges and no loops,
+        // G(100, 500) with parallel edges and no loops,
         // checked by vertex removal; and sparser graphs, which have articulation points to find.
         for (n, m) in [(100, 500), (100, 100), (100, 120), (300, 320)] {
             var raw: [(Int, Int)] = []

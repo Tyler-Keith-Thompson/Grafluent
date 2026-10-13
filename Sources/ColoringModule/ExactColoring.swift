@@ -576,10 +576,9 @@ extension Graph {
     /// fewest colours of a proper colouring. 0 for the empty graph, 1 without edges, 2 when
     /// bipartite with an edge (BipartiteGraphs' two-colouring, O(n + m)). Otherwise the greatest
     /// over the connected components, each non-bipartite one decided by DSatur branch and bound
-    /// (Brélaz 1979) between a greedy clique and greedy DSatur (Sage `chromatic_number`, JGraphT
-    /// `BrownBacktrackColoring.getChromaticNumber`, Mathematica `VertexChromaticNumber`).
-    /// Exponential in the worst case: Mycielski graphs, whose χ exceeds ω by a lot, are the hard
-    /// ones. The search does not check for task cancellation.
+    /// (Brélaz 1979) between a greedy clique and greedy DSatur. Exponential in the worst case:
+    /// Mycielski graphs, whose χ exceeds ω by a lot, are the hard ones. The search does not check
+    /// for task cancellation.
     @inlinable
     public func chromaticNumber() -> Int {
         _exactColoring(_runOnUndirectedRows(_CopySimpleRows(recordsLoops: false)).rows, goal: .chromaticNumber).chi
@@ -591,9 +590,8 @@ extension Graph {
     /// search finds, so it costs the same: a bipartite graph gets its `bipartition()` sides (left
     /// 0), and each other component the colouring that DSatur branch and bound found for it, or
     /// greedy DSatur's when that already uses no more colours than another component needs.
-    /// Sage `vertex_coloring()` and JGraphT `BrownBacktrackColoring.getColoring`, which also return
-    /// the optimal colouring their search finds; Mathematica `FindVertexColoring`. Deterministic, but which optimal colouring it is depends on the search; for one fixed
-    /// by a rule, see `lexicographicallyFirstMinimumColoring()`. Exponential in the worst case, as
+    /// Deterministic, but which optimal colouring it is depends on the search; for one fixed by a
+    /// rule, see `lexicographicallyFirstMinimumColoring()`. Exponential in the worst case, as
     /// `chromaticNumber()` is; the search does not check for task cancellation.
     @inlinable
     public func minimumColoring() -> Coloring<Self> {
@@ -613,15 +611,13 @@ extension Graph {
     ///
     /// First fit in index order (the lexicographically first proper colouring of all) when it is
     /// already optimal. Otherwise each vertex in turn takes the least colour its prefix still
-    /// extends with (k-colouring's self-reduction to its decision problem): a Kempe swap of the last
-    /// colouring found when one avoids the prefix, else DSatur branch and bound over the parts
+    /// extends with (k-colouring's self-reduction to its decision problem): a Kempe swap of the
+    /// last colouring found when one avoids the prefix, else DSatur branch and bound over the parts
     /// after the prefix that the vertex touches (on sparse components with conflict-directed
     /// backjumping and restarts). Khuller and Vazirani show the lexicographically first
     /// four-colouring of a planar graph is NP-hard to find, though some four-colouring is found in
-    /// polynomial time. It can be far slower than `minimumColoring()`: on random sparse
-    /// 3-colourable graphs with 2n edges it took about 0.2 s at 1,000 vertices, 2.7 s at 2,000 and
-    /// over 100 s at 5,000, where `minimumColoring()` takes about a millisecond. The search does not
-    /// check for task cancellation.
+    /// polynomial time. It can be far slower than `minimumColoring()`, and its time grows steeply
+    /// with n even on sparse 3-colourable graphs. The search does not check for task cancellation.
     @inlinable
     public func lexicographicallyFirstMinimumColoring() -> Coloring<Self> {
         let numbering = _vertexNumbering()

@@ -2,8 +2,7 @@ import GraphProtocols
 import Walks
 
 extension DirectedGraph {
-    /// `descendants(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: the
-    /// `checked:` spelling (README Principle 6), for a vertex that may not belong to the graph.
+    /// `descendants(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
     ///
     /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
@@ -13,7 +12,7 @@ extension DirectedGraph {
     }
 
     /// Every vertex reachable from `vertex` by at least one edge, `vertex` itself excluded even on a
-    /// cycle (NetworkX's `descendants`).
+    /// cycle.
     ///
     /// - Precondition: `vertex` is a vertex.
     @inlinable
@@ -67,8 +66,7 @@ extension DirectedGraph {
 }
 
 extension BidirectionalDirectedGraph {
-    /// `ancestors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: the
-    /// `checked:` spelling (README Principle 6).
+    /// `ancestors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
     ///
     /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
@@ -77,8 +75,7 @@ extension BidirectionalDirectedGraph {
         return ancestors(of: vertex)
     }
 
-    /// Every vertex from which a path leads to `vertex`, `vertex` itself excluded (NetworkX's
-    /// `ancestors`).
+    /// Every vertex from which a path leads to `vertex`, `vertex` itself excluded.
     ///
     /// - Precondition: `vertex` is a vertex.
     @inlinable
@@ -93,11 +90,11 @@ extension BidirectionalDirectedGraph {
         return reached
     }
 
-    /// A shortest path from `source` to `target` by edge count, searching forward from the source
-    /// and backward from the target at once, one whole level at a time from whichever frontier is
-    /// smaller (NetworkX's `bidirectional_shortest_path`). `nil` when there is none. Its edges are
-    /// the ones the searches crossed: an out-edge for each step found forward, an in-edge for each
-    /// step found backward.
+    /// A shortest path from `source` to `target` by edge count, or `nil` when there is none.
+    ///
+    /// Searches forward from the source and backward from the target at once, one whole level at
+    /// a time from whichever frontier is smaller. The path's edges are the ones the searches
+    /// crossed: an out-edge for each step found forward, an in-edge for each step found backward.
     ///
     /// - Precondition: both are vertices.
     @inlinable

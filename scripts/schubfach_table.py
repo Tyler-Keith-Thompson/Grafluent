@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Writes Sources/GraphFormats/SchubfachTable.swift: the table of Giulietti's Schubfach (Java's
-`MathUtils.g1`/`g0`, used by `DoubleToDecimal`), one entry per decimal exponent k in -324...292.
+"""Writes Sources/GraphFormats/SchubfachTable.swift: the table of Giulietti's Schubfach algorithm
+(g1 and g0), one entry per decimal exponent k in -324...292.
 
 Entry k is g = floor(10^-k / 2^r) + 1 for the r that puts g in [2^125, 2^126), split as
 g1 = g >> 63 and g0 = g mod 2^63: the 126-bit approximation from above that the algorithm's

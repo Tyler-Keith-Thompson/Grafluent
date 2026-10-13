@@ -1,11 +1,11 @@
 // `twoOptTour(weight:)` and `twoOptTour(improving:weight:)` (catalog §TwoOptTour,
-// §TwoOptTourImproving): JGraphT's best-improvement procedure's tour exactly; checked here as
-// 2-optimal (no improving exchange, by an O(n²) loop), no heavier than its start tour, starting
-// where that tour does, a Hamiltonian cycle through the lightest copies; on up to 9 vertices against
-// the brute-force optimum. Directed rows are `AdjacencyList`, or `DirectedPseudograph` with a
-// self-loop or a repeated edge; undirected rows `UndirectedAdjacencyList`, or `Pseudograph` with a
-// self-loop or parallel edges; each built by inserting the row's vertices, then its edges in order,
-// so positions are the catalog's. In-test checks number vertices by their index in `vertices`.
+// §TwoOptTourImproving): the best-improvement procedure's tour exactly; checked here as 2-optimal
+// (no improving exchange, by an O(n²) loop), no heavier than its start tour, starting where that
+// tour does, a Hamiltonian cycle through the lightest copies; on up to 9 vertices against the
+// brute-force optimum. Directed rows are `AdjacencyList`, or `DirectedPseudograph` with a self-loop
+// or a repeated edge; undirected rows `UndirectedAdjacencyList`, or `Pseudograph` with a self-loop
+// or parallel edges; each built by inserting the row's vertices, then its edges in order, so
+// positions are the catalog's. In-test checks number vertices by their index in `vertices`.
 // Generated from cases.md by swiftgen.py, which re-evaluates each row with ref.py's models; see
 // README.md.
 

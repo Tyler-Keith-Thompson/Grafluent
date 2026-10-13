@@ -1,5 +1,5 @@
-// §A: the basic cases every entry point agrees on — the empty graph, K₁, K₂, a few vertices, and
-// small graphs ported from NetworkX, petgraph, rustworkx, Boost and LEMON.
+// §A: the basic cases every entry point agrees on: the empty graph, K₁, K₂, a few vertices, and
+// small graphs with pinned answers.
 // Each case runs on the ReferencePseudograph in written order, and on an UndirectedAdjacencyList
 // built in the same order when no edge repeats, so positions and vertices order are the written
 // ones and every value is exact. Expected values come from the catalog's reference (brute force

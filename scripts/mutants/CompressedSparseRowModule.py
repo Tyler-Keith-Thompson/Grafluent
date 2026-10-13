@@ -1,8 +1,8 @@
-# Planted bugs for CompressedSparseRowModule's `checked:` spellings (README Principle 6): the range
+# Planted bugs for CompressedSparseRowModule's `checked:` spellings: the range
 # guard of each row lookup and of the checked edge endpoints, and each twin calling its own
 # trapping spelling. Run with `just mutate CompressedSparseRowModule`. See scripts/mutate.py.
 #
-# The rest of the representation predates the mutation suite and has no mutants here yet.
+# The rest of the representation has no mutants.
 #
 # Known equivalent mutants (they survive by design): none.
 

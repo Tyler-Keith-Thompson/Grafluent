@@ -1,5 +1,5 @@
 // GENERATED: the 128-bit truncated powers of five 5^q, q in -342...308, normalized so the top bit
-// is set (fast_float's table, from its generator script), for the Eisel–Lemire algorithm in
+// is set, for the Eisel–Lemire algorithm in
 // DecimalParsing.swift. High word then low word per power.
 
 @usableFromInline internal let _powersOfFive: [UInt64] = [

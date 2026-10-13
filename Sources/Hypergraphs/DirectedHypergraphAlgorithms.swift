@@ -5,8 +5,8 @@ import GraphProtocols
 import OrderedCollections
 
 // Algorithms written once on `DirectedHypergraph`, in index space (see HypergraphAlgorithms.swift).
-// The definitions follow G. Gallo, G. Longo, S. Pallottino, S. Nguyen, "Directed hypergraphs and
-// applications", Discrete Applied Mathematics 42(2–3):177–201, 1993, doi:10.1016/0166-218X(93)90045-P.
+// The definitions follow Gallo, Longo, Pallottino and Nguyen, "Directed hypergraphs and
+// applications" (1993).
 
 extension DirectedHypergraph {
     /// Both index bounds, trapping with a message when a conformer lacks one.
@@ -42,8 +42,7 @@ extension DirectedHypergraph {
 // MARK: - Dual, classes, histograms
 
 extension DirectedHypergraph {
-    /// The dual: the transpose of each plane (SimpleDirectedHypergraphs.jl's convention, and
-    /// `OrientedIncidenceMatrix.transposed()`). Its vertices are this hypergraph's positions, in
+    /// The dual: the transpose of each plane. Its vertices are this hypergraph's positions, in
     /// order, and its hyperedge `i` has sources `outHyperedges(ofIndex: i)` and targets
     /// `inHyperedges(ofIndex: i)`. An isolated vertex becomes the empty hyperedge `{} → {}`, and
     /// back.
@@ -57,8 +56,8 @@ extension DirectedHypergraph {
                              targets: _transposedPlane(vertexCount: n, hyperedgeCount: m, targets: true))
     }
 
-    /// Whether every hyperedge has exactly one target: a B-graph (Gallo et al.'s backward
-    /// hypergraph; halp's `is_B_hypergraph`). Vacuously true with no hyperedges. O(m).
+    /// Whether every hyperedge has exactly one target: a B-graph (backward hypergraph). Vacuously
+    /// true with no hyperedges. O(m).
     @inlinable
     public var isBHypergraph: Bool {
         hyperedges.indices.allSatisfy { targetSize(ofHyperedgeAt: $0) == 1 }
@@ -101,16 +100,14 @@ extension DirectedHypergraph {
         _histogram(count: _indexBounds().n) { inDegree(ofIndex: $0) }
     }
 
-    /// Element `k` counts the hyperedges with `k` sources (XGI's `tail_size`); `[]` with no
-    /// hyperedges. O(m).
+    /// Element `k` counts the hyperedges with `k` sources; `[]` with no hyperedges. O(m).
     @inlinable
     public func sourceSizeHistogram() -> [Int] {
         let positions = _positions()
         return _histogram(count: positions.count) { sourceSize(ofHyperedgeAt: positions[$0]) }
     }
 
-    /// Element `k` counts the hyperedges with `k` targets (XGI's `head_size`); `[]` with no
-    /// hyperedges. O(m).
+    /// Element `k` counts the hyperedges with `k` targets; `[]` with no hyperedges. O(m).
     @inlinable
     public func targetSizeHistogram() -> [Int] {
         let positions = _positions()
@@ -121,10 +118,10 @@ extension DirectedHypergraph {
 // MARK: - Clique expansion
 
 extension DirectedHypergraph {
-    /// The directed clique expansion (SimpleDirectedHypergraphs.jl's `TwoSectionView`): every
-    /// vertex, isolated ones included, in vertex-index order, and an arc `u → v` when some
-    /// hyperedge has `u` among its sources and `v` among its targets, `u ≠ v`, once per pair.
-    /// Arcs ascend by (index of u, index of v). A hyperedge with an empty side adds none.
+    /// The directed clique expansion: every vertex, isolated ones included, in vertex-index order,
+    /// and an arc `u → v` when some hyperedge has `u` among its sources and `v` among its targets,
+    /// `u ≠ v`, once per pair. Arcs ascend by (index of u, index of v). A hyperedge with an empty
+    /// side adds none.
     ///
     /// - Complexity: O(n + Σ |S|·|T| + e log d) for e arcs. Building the result hashes each vertex
     ///   once (none for the vertices `0..<n` in order) and no vertex per arc.
@@ -191,9 +188,8 @@ extension DirectedHypergraph {
     /// The strongly connected components: `u` and `v` are together when each reaches the other
     /// along source → hyperedge → target steps (Gallo et al.'s "connected": a path in the
     /// incidence graph). They are the strong components of `incidenceGraphView` restricted to the
-    /// vertices, ordered by least vertex index, each in index order. Mutual B-connection
-    /// (SimpleDirectedHypergraphs.jl's `get_strongly_connected_components`) is a different,
-    /// finer relation.
+    /// vertices, ordered by least vertex index, each in index order. Mutual B-connection is a
+    /// different, finer relation.
     ///
     /// - Complexity: O(n + m + p): the incidence graph's rows copied into flat arrays, then
     ///   Tarjan's algorithm, iteratively.
@@ -301,16 +297,13 @@ extension DirectedHypergraph {
     }
 
     /// Every vertex B-connected to `source`, `source` included, in vertex-index order: Gallo et
-    /// al.'s B-Visit (halp's `b_visit`). A hyperedge fires once every one of its sources has been
-    /// reached, and then reaches all its targets. On a directed graph read as a hypergraph this is
-    /// reachability.
+    /// al.'s B-Visit. A hyperedge fires once every one of its sources has been reached, and then
+    /// reaches all its targets. On a directed graph read as a hypergraph this is reachability.
     ///
-    /// B-connection here is path-based, as B-Visit computes it: `v` is B-connected to `source`
-    /// when `v` is `source`, or some hyperedge with `v` among its targets is entered along a path
-    /// from `source` (it has a source, and all its sources are B-connected). So **a hyperedge with
-    /// no sources never fires**: no path enters it, and B-Visit scans only the forward stars of
-    /// reached vertices. The recursive reading ("every source is B-connected") would fire it
-    /// vacuously from any start; Gallo et al.'s visit and halp do not.
+    /// B-connection is path-based, as B-Visit computes it: `v` is B-connected to `source` when `v`
+    /// is `source`, or some hyperedge with `v` among its targets is entered along a path from
+    /// `source` (it has a source, and all its sources are B-connected). A hyperedge with no
+    /// sources therefore never fires.
     ///
     /// - Precondition: `source` is a vertex.
     /// - Complexity: O(n + m + p): one counter per hyperedge and one queue; one hash.
@@ -330,10 +323,9 @@ extension DirectedHypergraph {
     }
 
     /// Every vertex `s` such that `target` is F-connected to `s`, `target` included, in
-    /// vertex-index order. Gallo et al.: "the F-Visit must start from the destination of the
-    /// F-paths to retain a linear time complexity"; it is B-Visit on the symmetric image, so it
-    /// equals `reversed.bConnectedVertices(from: target)` (halp's `f_visit`), and a hyperedge with
-    /// no targets never fires.
+    /// vertex-index order: Gallo et al.'s F-Visit, which is B-Visit on the symmetric image. It
+    /// equals `reversed.bConnectedVertices(from: target)`, and a hyperedge with no targets never
+    /// fires.
     ///
     /// - Precondition: `target` is a vertex.
     /// - Complexity: O(n + m + p); one hash.

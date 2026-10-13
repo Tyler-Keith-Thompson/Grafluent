@@ -36,7 +36,7 @@ struct DirectedAcyclicGraphStressTests {
         // A shortcut is forward and changes nothing in the order.
         #expect(try graph.insert(edge: DirectedEdge(from: 0, to: n - 1)) == n - 1)
         #expect(graph.longestPath()?.length == n - 1)
-        // Each removal from the front closes a gap at place 0, shifting the whole order.
+        // Each removal from the front trims the order's front, and every place drops by one.
         let cut = 300
         for i in 0 ..< cut {
             #expect(graph.remove(i) == i)

@@ -1,6 +1,5 @@
 // Disconnected graphs: every entry point but `primMinimumSpanningTree(from:)` returns a forest of
-// n − c edges, one tree per component; `from:` returns the root's component only, as Boost's
-// predecessor map does. Case IDs (ST-nn) refer to the catalog; see README.md.
+// n − c edges, one tree per component; `from:` returns the root's component only. Case IDs (ST-nn) refer to the catalog; see README.md.
 
 import GraphProtocols
 import GrafluentTestSupport
@@ -122,7 +121,7 @@ struct ForestTests {
         #expect(prim.edges.count == 6)
         #expect(Set(prim.edges) == Set(canonical))
         #expect(prim.weight == 60)
-        // JGraphT's expected set: ab, ac, bd, eg, gh, fh.
+        // Expected set: ab, ac, bd, eg, gh, fh.
         let expected: Set = [
             UndirectedEdge("A", "B"), UndirectedEdge("A", "C"), UndirectedEdge("B", "D"), UndirectedEdge("E", "G"), UndirectedEdge("G", "H"),
             UndirectedEdge("F", "H"),

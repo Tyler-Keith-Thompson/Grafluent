@@ -3,17 +3,15 @@ import OrderedCollections
 
 /// One plane of incidences, stored both ways: the hyperedges as compressed sparse rows of vertex
 /// indices, and each vertex's row of incidence numbers. `UndirectedIncidenceList` keeps one plane,
-/// `IncidenceList` two (sources and targets), as SimpleDirectedHypergraphs.jl keeps `hg_tail` and
-/// `hg_head`.
+/// `IncidenceList` two (sources and targets).
 ///
 /// Incidence `q` is the `q`th entry of `members`: hyperedge `p` is
 /// `members[memberOffsets[p] ..< memberOffsets[p + 1]]`, ascending, and `hyperedgeOfIncidence[q]`
 /// is the hyperedge holding incidence `q`. Vertex `i`'s row in `incidences` lists the incidence
 /// numbers of its memberships, ascending, because hyperedges are only appended, and its row in
-/// `positions`, parallel to it, the hyperedges of those incidences: so `incidentHyperedges` is a
-/// stored row, read without a dependent load per entry, as `UndirectedAdjacencyList` keeps its
-/// neighbor and incident-edge rows side by side. The incidence graph views use the incidence
-/// numbers as edge positions.
+/// `positions`, parallel to it, the hyperedges of those incidences. `incidentHyperedges` is
+/// therefore a stored row, read without a dependent load per entry. The incidence graph views use
+/// the incidence numbers as edge positions.
 @frozen
 @usableFromInline
 package struct _IncidencePlane {

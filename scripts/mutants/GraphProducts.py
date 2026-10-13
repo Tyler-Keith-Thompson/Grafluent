@@ -1,9 +1,9 @@
 # Planted bugs for GraphProducts; run with `just mutate GraphProducts`. See scripts/mutate.py.
 #
-# Scope: the products' `checked:` lookups, so far. The products have none of their own: they are
+# Scope: the products' `checked:` lookups. The products have none of their own: they are
 # GraphProtocols' defaults (`contains(_:)`, then the trapping read), planted here and run against
 # the product suite, which reaches every one of them on a directed or an undirected product. The
-# products' own rows, edges and indices have no mutants here yet.
+# products' own rows, edges and indices have no mutants.
 #
 # Known equivalent mutants: none.
 

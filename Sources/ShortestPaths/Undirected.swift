@@ -3,8 +3,7 @@ import Walks
 
 // Undirected graphs through `directedView`: each edge is two arcs sharing its position, so both
 // directions weigh the same, and `weight` is called per examined arc (up to twice per edge). A
-// negative undirected edge is a negative 2-cycle for Bellman–Ford, as in Boost, NetworkX, petgraph
-// and JGraphT, and a trap for Dijkstra. Results are over the directed view, whose parent edges say
+// negative undirected edge is a negative 2-cycle for Bellman–Ford and a trap for Dijkstra. Results are over the directed view, whose parent edges say
 // which way each was taken.
 //
 // Since any reachable negative edge is a negative cycle, Bellman–Ford and the negative-cycle

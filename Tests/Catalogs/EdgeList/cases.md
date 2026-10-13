@@ -1,8 +1,8 @@
 # Test catalog: `EdgeList<Vertex: Hashable>` (a flat, mutable list of directed edges)
 
-This catalog collects test cases for Grafluent's planned `EdgeList`, harvested from mature graph libraries and from the Swift standard library's collection contracts. Cases are grouped by behavior and deduplicated across libraries.
+This catalog collects test cases for Grafluent's `EdgeList`, harvested from mature graph libraries and from the Swift standard library's collection contracts. Cases are grouped by behavior and deduplicated across libraries.
 
-The type under test, as the README sketches it, is "a flat list of edges", mutable, and a `RandomAccessCollection` of `DirectedEdge<Vertex>` ("this one really is a sequence of edges"). It is Kruskal's input format. Unlike its siblings it is a *sequence*, not a set: the questions this catalog has to settle are whether repeats are kept, whether order is part of the value, and where (if anywhere) isolated vertices live.
+The type under test is a flat, mutable list of edges, a `RandomAccessCollection` of `DirectedEdge<Vertex>`. It is Kruskal's input format. Unlike its siblings it is a *sequence*, not a set: the questions this catalog has to settle are whether repeats are kept, whether order is part of the value, and where (if anywhere) isolated vertices live.
 
 It is a companion to `test-catalog-adjacency-list.md`, `test-catalog-adjacency-matrix.md` and `test-catalog-csr.md` in this folder. Those cover the set-based conventions (degree laws for simple digraphs, set equality, CSR canonical form). This file covers what is specific to an ordered multiset of edges.
 

@@ -1,4 +1,4 @@
-"""Prints the exact expected values used in test-catalog-disjoint-set.md."""
+"""Prints the exact expected values used in cases.md (output: cases.out)."""
 import os
 import sys
 
@@ -24,10 +24,10 @@ def seq(n, pairs, title):
     return d
 
 
-# petgraph uf_test (tests/unionfind.rs:10-35)
+# DS-10
 seq(8, [(0, 1), (1, 3), (1, 4), (4, 7), (5, 6)], "petgraph uf_test")
 
-# petgraph labeling (tests/unionfind.rs:167-180)
+# DS-11: two chains joined
 d = DS(48)
 for i in range(24):
     d.union(i + 1, i)
@@ -37,22 +37,22 @@ print("--- petgraph labeling: before joining, sets", d.sets, "reps", sorted(set(
 d.union(23, 25); d.union(24, 23)
 print("    after: setCount", d.sets, "reps", sorted(set(d.reps())), "labels all 0:", all(l == 0 for l in d.labeling()))
 
-# Boost disjoint_set_test.cpp:28-55
+# DS-13
 d = DS(4)
 d.union(0, 1); d.union(2, 3)
 a, b = d.find(0), d.find(2)
 print("--- boost test: a", a, "b", b, "find(3)", d.find(3), "union(a,b)", d.union(a, b), "setCount", d.sets, "reps", d.reps())
 
-# Boost example disjoint_sets.cpp
+# DS-14
 seq(6, [(0, 1), (1, 2), (3, 4)], "boost example")
 
-# NetworkX test_subtree_union (test_unionfind.py:15-24); elements 1..5, 0 unused
+# DS-15: elements 1..5, 0 unused
 seq(6, [(1, 2), (3, 4), (4, 5), (1, 5)], "nx subtree union")
 
-# NetworkX test_unionfind_weights: union(1,4,7) etc as pairwise chains
+# DS-17: three-element unions as pairwise chains
 seq(10, [(1, 4), (4, 7), (2, 5), (5, 8), (3, 6), (6, 9), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)], "nx weights")
 
-# NetworkX test_unbalanced_merge_weights
+# DS-16
 d = DS(10)
 for p in [(1, 2), (2, 3), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)]:
     d.union(*p)
@@ -60,7 +60,7 @@ print("--- nx unbalanced: size(1)", d.set_size(1), "size(4)", d.set_size(4), "fi
 d.union(1, 4)
 print("    after union(1,4): find(1)", d.find(1), "size", d.set_size(1), "reps", d.reps())
 
-# JGraphT UnionFindTest.testUnionFind (aaa..eee = 0..4)
+# DS-12: elements 0..4
 d = DS(5)
 log = []
 for p in [(0, 1), (2, 3), (2, 4), (2, 4), (0, 4)]:
@@ -69,7 +69,7 @@ print("--- jgrapht:", log, "reps", d.reps())
 x = d.make_set()
 print("    makeSet ->", x, "setCount", d.sets, "count", len(d))
 
-# LEMON unionfind_test.cc:36-73 (UnionFindEnum), items 1..10, 0 unused
+# DS-18: items 1..10, 0 unused
 d = DS(11)
 r = []
 r.append(d.union(1, 2))
@@ -94,7 +94,7 @@ print("--- same partition, different reps: A", A.reps(), A.labeling(), " B", B.r
 d = DS(5); d.union(3, 0); d.union(4, 1)
 print("--- labeling example:", d.labeling(), d.subsets(), d.reps())
 
-# scipy test_linear_union_sequence (test_disjoint_set.py:96-117)
+# DS-21
 for n in (10, 100):
     for direction in ("forwards", "backwards"):
         d = DS(n)
@@ -107,7 +107,7 @@ for n in (10, 100):
             counts.append(d.sets)
         print(f"--- scipy linear n={n} {direction}: reps set {sorted(set(d.reps()))}, counts {counts[:3]}..{counts[-1]}, union(0,n-1) {d.union(0, n - 1)}")
 
-# scipy test_equal_size_ordering n=10 (test_disjoint_set.py:136-154)
+# DS-22: n = 10
 for n in (10,):
     rng = np.random.RandomState(seed=0)
     indices = np.arange(n); rng.shuffle(indices)
@@ -120,7 +120,7 @@ for n in (10,):
             assert d.union(a, b)
         print(f"--- scipy equal size n=10 order {order}: pairs {pairs} reps {d.reps()}")
 
-# scipy test_binary_tree (test_disjoint_set.py:157-176), kmax = 5
+# DS-23: kmax = 5
 for kmax in (5, 10):
     n = 2 ** kmax
     rng = np.random.RandomState(seed=0)
@@ -139,7 +139,7 @@ for kmax in (5, 10):
         ok &= d.reps() == expected
     print(f"--- scipy binary tree kmax={kmax}: reps law ok {ok}; first-round picks {picks[:4]}")
 
-# scipy test_subsets n=10 (test_disjoint_set.py:179-199)
+# DS-28: n = 10
 n = 10
 rng = np.random.RandomState(seed=0)
 pairs = [(int(i), int(j)) for i, j in rng.randint(0, n, (n, 2))]

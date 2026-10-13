@@ -206,9 +206,8 @@ extension Tree: Graph {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex that is not in the tree, where the trapping
-// spellings are the fast path. Each makes the one lookup its trapping spelling makes; `try?` gives
-// an Optional.
+// The `checked:` spellings throw `VertexNotFound` for a vertex that is not in the tree, where the
+// plain spellings trap. Each makes the same lookup as its plain spelling.
 
 extension Tree {
     /// `neighbors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One

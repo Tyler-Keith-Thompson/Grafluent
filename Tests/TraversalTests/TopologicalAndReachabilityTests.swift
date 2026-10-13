@@ -102,7 +102,7 @@ struct TopologicalSortTests {
         #expect(graph.lexicographicalTopologicalSort() == [1, 2, 3, 4, 5, 6])
         #expect(graph.lexicographicalTopologicalSort(by: >) == [1, 5, 4, 2, 6, 3])
         // Equal keys: the order must not need to compare the vertices themselves, and ties go in the
-        // order they became ready, which gives NetworkX's [0, 1, 2, 3].
+        // order they became ready, which gives [0, 1, 2, 3].
         let ties = ReferenceDirectedMultigraph(edges: [(0, 1), (0, 2), (0, 3), (2, 3)].map { DirectedEdge(from: $0.0, to: $0.1) })
         let order = ties.lexicographicalTopologicalSort { _, _ in false }
         #expect(order == [0, 1, 2, 3])
@@ -115,7 +115,7 @@ struct TopologicalSortTests {
 
     @Test("TR-99 / TR-100 generations from NetworkX and the pathfinding crate")
     func generations() {
-        // NetworkX: the reverse of {1: [2, 3], 2: [4, 5], 3: [7], 5: [6, 7]}.
+        // The reverse of {1: [2, 3], 2: [4, 5], 3: [7], 5: [6, 7]}.
         let forward: [(Int, Int)] = [(1, 2), (1, 3), (2, 4), (2, 5), (3, 7), (5, 6), (5, 7)]
         let reversed = AdjacencyList(edges: forward.map { DirectedEdge(from: $0.1, to: $0.0) })
         #expect(reversed.topologicalGenerations()?.map(Set.init) == [[4, 6, 7], [3, 5], [2], [1]])
@@ -150,7 +150,7 @@ struct TopologicalSortTests {
 
     @Test("TR-105 parallel edges count in the in-degrees, and every order stays valid")
     func parallelEdges() {
-        // NetworkX: 9 vertices, edge i→i+1 written i times.
+        // 9 vertices, edge i→i+1 written i times.
         var edges: [DirectedEdge<Int>] = []
         for i in 1 ..< 9 { edges += Array(repeating: DirectedEdge(from: i, to: i + 1), count: i) }
         let graph = ReferenceDirectedMultigraph(edges: edges)
@@ -174,7 +174,7 @@ struct TopologicalSortTests {
             #expect(sparse.topologicalSort() == nil, "\(fixture.name)")
             #expect(!sparse.isAcyclic, "\(fixture.name)")
         }
-        // NetworkX test_topological_sort2 and 3.
+        // Two cyclic graphs.
         let two = AdjacencyMatrix(vertexCount: 16, edges: [(1, 2), (2, 3), (3, 4), (4, 5), (5, 1), (11, 12), (12, 13), (13, 14), (14, 15)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(two.findCycle()?.vertices == [1, 2, 3, 4, 5])
     }
@@ -319,7 +319,7 @@ struct ShortestSearchTests {
     @Test("TR-174 the smaller frontier is expanded, so the backward search can decide which shortest path is found")
     func smallerFrontier() {
         // Two shortest paths, 0-1-5-6 and 0-2-4-6. After one forward level the frontier is
-        // [1, 2, 3] against [6]; the backward levels reach 2 first, as NetworkX does.
+        // [1, 2, 3] against [6]; the backward levels reach 2 first.
         let edges = [(0, 1), (0, 2), (0, 3), (1, 5), (2, 4), (4, 6), (5, 6)].map { DirectedEdge(from: $0.0, to: $0.1) }
         #expect(AdjacencyMatrix(vertexCount: 7, edges: edges).bidirectionalShortestPath(from: 0, to: 6)?.vertices == [0, 2, 4, 6])
     }
@@ -408,7 +408,6 @@ struct ClosureSearchTests {
 
     @Test("TR-135 / TR-136 topological sorting from roots over a closure")
     func topological() {
-        // The pathfinding crate's documentation examples.
         let acyclic = topologicalSort(from: [5, 1], successors: { (n: Int) -> [Int] in
             n <= 7 ? [n + 1, n + 2] : n == 8 ? [9] : []
         })

@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Isomorphism: VF2, VF2++, Weisfeiler–Leman, canonical labeling.
+# Isomorphism and subgraph isomorphism (VF2++), canonical labeling, automorphism groups, Weisfeiler–Leman hashing.
 swift_library(
     name = "IsomorphismModule",
     srcs = glob(["**/*.swift"]),

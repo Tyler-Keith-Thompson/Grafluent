@@ -1,6 +1,7 @@
 // Algorithms written once against DirectedGraph give the same answers on every representation.
 // Each test declares its algorithm as a local generic function. Expected values were computed
-// with NetworkX, not with Grafluent. Case IDs (DG-Ann) refer to the catalog in README.md.
+// with NetworkX, not with Grafluent. Case IDs (DG-Ann) refer to
+// Tests/Catalogs/GraphProtocols/directed-graph.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule

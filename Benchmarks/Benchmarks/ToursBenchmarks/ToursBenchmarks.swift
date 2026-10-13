@@ -7,9 +7,9 @@ import Multigraphs
 import Tours
 
 // Instances from the catalog's 64-bit LCG (Tests/Catalogs/Tours/cases.md, Notation), so the same
-// inputs can be rebuilt outside Swift to time igraph's C functions and JGraphT on them: the torus
-// (each vertex joined to its right and lower neighbours, wrapping), a closed random walk, and
-// random points in the unit square with Euclidean distances.
+// inputs can be rebuilt outside Swift: the torus (each vertex joined to its right and lower
+// neighbours, wrapping), a closed random walk, and random points in the unit square with
+// Euclidean distances.
 
 struct LCG {
     var x: UInt64

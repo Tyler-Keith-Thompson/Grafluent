@@ -399,7 +399,7 @@ counts["DegenerateGraphTests.swift"] = section_file(
     """// §A: the empty graph, K₁, K₁ with a self-loop, two isolated vertices, K₂ and K₂ as three parallel
 // edges, every op on each (CQ-001 – CQ-060), and the 0-core, a loop adding no degree, the 0-shell,
 // and one-vertex queries (CQ-061 – CQ-067). The empty graph has no cliques, ω = 0, degeneracy 0,
-// transitivity and average clustering 0 (NetworkX raises on the average; igraph gives NaN). An
+// transitivity and average clustering 0. An
 // isolated vertex is a clique of one; a loop and parallel copies are ignored by every op. Each
 // test also checks the one-shot calls against the members of the returned value and the same op on
 // `graph.directedView.undirectedView` (every edge as two arcs, read back as two parallel edges). Every
@@ -429,8 +429,7 @@ counts["MaximumCliqueTests.swift"] = section_file(
     """// §C: the maximum clique and the clique number (CQ-201 – CQ-220). `maximumClique()` is the
 // lexicographically least largest clique by vertex index: of two disjoint triangles the one with the
 // least index, also when `vertices` is reversed (CQ-203) or the edges are written the other way
-// round (CQ-205); the first vertex of an edgeless graph (CQ-207, where NetworkX's
-// `max_weight_clique` returns the last); [0, 1, 2, 3, 7] over [0, 1, 2, 3, 13] on the karate club
+// round (CQ-205); the first vertex of an edgeless graph (CQ-207); [0, 1, 2, 3, 7] over [0, 1, 2, 3, 13] on the karate club
 // (CQ-211). Each test also checks `maximumClique().count == cliqueNumber()`, `cliqueNumber() <=
 // degeneracy + 1` and `graph.directedView.undirectedView`. Every literal is a catalog cell (`ref.py`:
 // brute force over the maximal cliques, NetworkX 3.7). Case IDs (CQ-nnn) refer to the catalog; see
@@ -440,8 +439,7 @@ counts["MaximumCliqueTests.swift"] = section_file(
 counts["CoreNumberTests.swift"] = section_file(
     "CoreNumberTests.swift",
     """// §D: core numbers, degeneracy, the degeneracy ordering, k-cores and k-shells (CQ-301 – CQ-349), all
-// on the simple graph: a parallel pair or a loop adds nothing (CQ-328 – CQ-333; igraph counts them,
-// NetworkX raises). Core numbers are checked by index, by vertex and on `graph.directedView.undirectedView`;
+// on the simple graph: a parallel pair or a loop adds nothing (CQ-328 – CQ-333). Core numbers are checked by index, by vertex and on `graph.directedView.undirectedView`;
 // the degeneracy ordering exactly (api.md pins Batagelj–Zaversnik's removal order: a stable counting
 // sort by degree, neighbours in row order), together with its defining property (at most core(v)
 // neighbours after each v, core numbers nondecreasing along it). `~rev` rows use a conformer private
@@ -452,9 +450,9 @@ counts["CoreNumberTests.swift"] = section_file(
 counts["TriangleClusteringTests.swift"] = section_file(
     "TriangleClusteringTests.swift",
     """// §E: triangle counts, local clustering, transitivity and average clustering (CQ-401 – CQ-465), on
-// the simple graph: a parallel edge and a loop change nothing (CQ-441; JGraphT would count 2). Local
-// clustering is 2T/(d(d − 1)) with d the simple degree, 0 when d < 2 (igraph: NaN); transitivity 0
-// with no triangle, even with no connected triple (CQ-459; igraph NaN); the average over every
+// the simple graph: a parallel edge and a loop change nothing (CQ-441). Local clustering is
+// 2T/(d(d − 1)) with d the simple degree, 0 when d < 2; transitivity 0 with no triangle, even with
+// no connected triple (CQ-459); the average over every
 // vertex, zeros included. Doubles are compared exactly: api.md computes each ratio as one integer
 // division converted once, and sums the average plainly in `vertices` order, and the catalog pins
 // those bits. Per-vertex values are checked by index, by vertex on the value, one vertex at a time
@@ -466,9 +464,7 @@ counts["TriangleClusteringTests.swift"] = section_file(
 counts["DigraphUndirectedTests.swift"] = section_file(
     "DigraphUndirectedTests.swift",
     """// §F: directed graphs through `digraph.undirectedView` (CQ-501 – CQ-515). The view keeps two opposite
-// arcs as two parallel edges; the simple graph merges them, which is igraph's "directions ignored"
-// reading (NetworkX raises for cliques and triangles on a DiGraph and counts in + out degree for
-// cores). Digraphs are `ReferenceDirectedMultigraph`s with arcs in written order. Every literal is
+// arcs as two parallel edges; the simple graph merges them. Digraphs are `ReferenceDirectedMultigraph`s with arcs in written order. Every literal is
 // a catalog cell (`ref.py`). Case IDs (CQ-nnn) refer to the catalog; see README.md.""",
     IMPORTS, "Directed graphs through undirected", "DigraphUndirectedTests", ids_in(501, 599), set())
 

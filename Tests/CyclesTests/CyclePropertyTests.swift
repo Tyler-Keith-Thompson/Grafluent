@@ -3,7 +3,7 @@
 // rows in position order) and prints the smallest input that still fails. Graphs are multigraphs
 // with self-loops on the vertices 0..<6 (0..<4 for the exhaustive oracle), directed and undirected,
 // with rows in position order or shuffled. Every oracle is written inside its test: a naive
-// backtracking enumeration with api.md's order key computed per cycle, every ordered vertex subset
+// backtracking enumeration with the documented order key computed per cycle, every ordered vertex subset
 // times every choice of parallel edges, union–find components, a breadth-first forest built by
 // hand, and Gaussian elimination over GF(2). Case IDs (CY-nnn) refer to the catalog; see README.md.
 
@@ -242,7 +242,7 @@ struct CyclePropertyTests {
 
     @Test("CY-754 collapsing edge identity gives NetworkX's cycles: vertex sequences up to rotation, and reversal when undirected")
     func collapsedToVertexSequences() async {
-        // NetworkX's simple_cycles on a Multi(Di)Graph lists each vertex cycle once: a loop, a pair of
+        // Collapsed to vertex sequences, each vertex cycle appears once: a loop, a pair of
         // vertices joined twice (undirected) or both ways (directed), or a longer sequence of
         // adjacent distinct vertices. Brute force over every sequence of distinct vertices.
         let edges = zip(Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 4)).array(of: 0 ... 10)

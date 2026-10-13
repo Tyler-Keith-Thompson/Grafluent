@@ -41,7 +41,7 @@ struct _UndirectedComponents: _UndirectedRowsAlgorithm {
                     let w = rows.neighbor(v, k)
                     precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A neighbor index is out of range")
                     // Both ends of each edge: the second finds the two already joined. Skipping it
-                    // with `v < w` was slower, an unpredictable branch on every edge end.
+                    // with `v < w` costs an unpredictable branch on every edge end.
                     var a = find(v), b = find(w)
                     if a == b { continue }
                     if parent[a] > parent[b] { swap(&a, &b) }

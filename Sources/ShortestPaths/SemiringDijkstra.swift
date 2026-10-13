@@ -72,8 +72,8 @@ struct _SemiringDijkstra<G: DirectedGraph, W: SelectiveSemiring>: _IndexSpaceAlg
 extension DirectedGraph {
     /// Best paths from `source` over a selective semiring by Dijkstra's algorithm: each vertex's
     /// distance is the best, by the natural order `<`, of the ⊗-products of the paths reaching it.
-    /// `TropicalSemiring` gives shortest paths, `BottleneckSemiring` widest paths (igraph's
-    /// `widest_path_widths_dijkstra`) and `BooleanSemiring` reachability:
+    /// `TropicalSemiring` gives shortest paths, `BottleneckSemiring` widest paths and
+    /// `BooleanSemiring` reachability:
     ///
     ///     graph.dijkstraShortestPaths(from: s) { BottleneckSemiring(capacity[$0]) }
     ///

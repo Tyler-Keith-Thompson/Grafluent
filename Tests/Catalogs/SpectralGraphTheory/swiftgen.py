@@ -5,7 +5,7 @@
     # default OUT_DIR: Tests/SpectralGraphTheoryTests
 
 First checks that ref.py's model reproduces cases.md byte for byte. Then it re-evaluates every
-phase 1 row on the model at full precision, asserts that the model's value renders to the catalog
+row before SGT-205 on the model at full precision, asserts that the model's value renders to the catalog
 cell, and writes one @Test per row with the full-precision values as literals:
 
 - a matrix: its exact CSR arrays (`offsets`, `columns`), its stored values (relative 1e-12), every
@@ -21,7 +21,7 @@ cell, and writes one @Test per row with the full-precision values as literals:
   effective graph resistance and the Kemeny constant 1e-9 · max(1, |value|); exact 0 and nil.
 
 Trap rows become exit tests followed by the same setup without the fault. The hand-written exit
-tests in extra_traps.swift are spliced into the precondition file. Phase 2 rows (SGT-205 onward) are
+tests in extra_traps.swift are spliced into the precondition file. Rows SGT-205 onward are
 written to SpectralPhase2Tests.swift only with --phase2.
 """
 import os

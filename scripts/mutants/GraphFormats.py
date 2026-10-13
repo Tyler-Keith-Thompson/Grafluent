@@ -4,13 +4,9 @@
 # AdjacencyListModule and Multigraphs the readers build through. Run with `just mutate
 # GraphFormats`; see scripts/mutate.py.
 #
-# Removed as equivalent or dead (2026-10-11):
-# - undirectedreserve: `_ReadTarget.reserve` was only ever called on `_BulkTarget`; removed from the
-#   protocol and from `_DirectedTarget`/`_UndirectedTarget`.
-# - sfinteger (`q > -53` → `q > -52`): only q = -52 changes, i.e. [1, 2), whose one integer is 1.0;
-#   the general path gives it the same shortest digits.
-# - sfcount: a significand is below 9.1 × 10¹⁶, so `_decimalDigitCount` never sees 10⁹; its last
-#   comparison was dropped.
+# Not planted, being equivalent: `q > -53` → `q > -52` in Schubfach's integer shortcut (only
+# q = -52 changes, i.e. [1, 2), whose one integer is 1.0, and the general path gives it the same
+# shortest digits).
 
 TESTS = ["GraphFormatsTests"]
 

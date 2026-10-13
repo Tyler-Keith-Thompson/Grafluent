@@ -5,11 +5,10 @@ import GraphProtocols
 /// vertices.
 ///
 /// When the edges of positive capacity leave more than one component, the cut is the first
-/// vertex's component against the rest (value zero). Otherwise Nagamochi–Ibaraki (LEMON's
-/// `NagamochiIbaraki`) on those edges. The capacities are summed in a type wide enough for every
-/// sum the algorithm forms (`Int` or `Int128` for fixed-width integers, `Double` for `Float` and
-/// `Double`), so a group's connection may pass `C` while the answer, at most the least vertex
-/// capacity sum, need not fit anywhere but in its cut's edges.
+/// vertex's component against the rest (value zero). Otherwise Nagamochi–Ibaraki on those edges.
+/// The capacities are summed in a type wide enough for every sum the algorithm forms (`Int` or
+/// `Int128` for fixed-width integers, `Double` for `Float` and `Double`). A group's connection may
+/// pass `C`; only the answer, at most the least vertex capacity sum, has to fit.
 @inlinable
 func _globalMinimumCut<C: Comparable & AdditiveArithmetic>(_ edges: _FlowEdges, _ capacities: [C]) -> [Bool] {
     let n = edges.vertexCount
@@ -49,7 +48,7 @@ struct _NagamochiIbarakiSides<Capacity: Comparable & AdditiveArithmetic>: _WideC
     }
 }
 
-/// Nagamochi and Ibaraki's minimum cut (1992; LEMON `NagamochiIbaraki`) on a network whose
+/// Nagamochi and Ibaraki's minimum cut (1992) on a network whose
 /// positive edges connect it: the sink side (without the first vertex) and the value.
 ///
 /// Zero edges and self-loops are dropped and parallel edges merged. The first bound is the least
@@ -461,21 +460,23 @@ struct _MaximumAdjacencyHeap<K: Comparable & AdditiveArithmetic> {
 }
 
 extension Graph {
-    /// A global minimum cut, over `directedView`: the least capacity of the edges between a nonempty
-    /// proper vertex set and the rest, the set holding the first vertex as the source side; nil
-    /// below two vertices. By Nagamochi–Ibaraki (LEMON `NagamochiIbaraki`; the same value as
-    /// NetworkX `stoer_wagner`, Boost `stoer_wagner_min_cut`, rustworkx `stoer_wagner_min_cut`
-    /// and igraph `mincut()`): maximum adjacency orderings that contract every edge whose scanned
-    /// connection is at least the best cut so far, so later phases run on smaller graphs. Which
-    /// minimum cut is returned when several exist is not specified, but the same input always
-    /// gives the same cut. When the edges of positive capacity do not connect the graph, the cut
-    /// of value zero whose source side is the first vertex's component, with every crossing edge
-    /// (all of capacity zero). Parallel capacities add; self-loops are ignored. `capacity` is
-    /// called once per non-loop edge, in position order, before any work (self-loops are never
-    /// asked). O(nm log n) in the worst case, far less when contractions are many.
+    /// A global minimum cut over `directedView`, or nil below two vertices.
+    ///
+    /// The cut minimizes the capacity of the edges between a nonempty proper vertex set and the
+    /// rest. The side holding the first vertex is the source side. Computed by Nagamochi–Ibaraki:
+    /// maximum adjacency orderings that contract every edge whose scanned connection is at least
+    /// the best cut so far. Which minimum cut is returned when several exist is unspecified, but
+    /// the same input always gives the same cut.
+    ///
+    /// When the edges of positive capacity do not connect the graph, the result is the cut of
+    /// value zero whose source side is the first vertex's component, with every crossing edge.
+    /// Parallel capacities add and self-loops are ignored. `capacity` is called once per non-loop
+    /// edge, in position order, before any work.
     ///
     /// Sums are formed in a wider type than `C` where needed (`Int` or `Int128` for fixed-width
-    /// integers, `Double` for `Float`), so a contracted group's connection may pass `C`'s range.
+    /// integers, `Double` for `Float`), so a contracted group's connection may exceed `C`'s range.
+    ///
+    /// - Complexity: O(nm log n) in the worst case.
     ///
     /// - Precondition: every capacity is at least zero, not NaN and finite, and the minimum cut's
     ///   value fits in `C` (it is at most every vertex's capacity sum).
@@ -491,16 +492,18 @@ extension Graph {
 
 extension DirectedGraph {
     /// A minimum cut over all nonempty proper vertex sets S, by the capacity of the edges leaving
-    /// S (igraph `mincut()` on a directed graph): Hao and Orlin's algorithm (LEMON `HaoOrlin`),
-    /// one push–relabel run that moves the sink through every vertex, then the same on the
-    /// reversed graph, so both the cuts with the first vertex on the source side and those with it
-    /// on the sink side are seen. Which minimum cut is returned when several exist is not
-    /// specified, but the same input always gives the same cut. nil below two vertices.
-    /// `capacity` is called once per non-loop edge, in position order, before any work.
-    /// O(n²m) in the worst case.
+    /// S, or nil below two vertices.
+    ///
+    /// Computed by Hao and Orlin's algorithm: one push–relabel run that moves the sink through
+    /// every vertex, then the same on the reversed graph, covering cuts with the first vertex on
+    /// either side. Which minimum cut is returned when several exist is unspecified, but the same
+    /// input always gives the same cut. `capacity` is called once per non-loop edge, in position
+    /// order, before any work.
     ///
     /// Sums are formed in a wider type than `C` where needed (`Int` or `Int128` for fixed-width
-    /// integers, `Double` for `Float`), so a vertex's excess may pass `C`'s range.
+    /// integers, `Double` for `Float`), so a vertex's excess may exceed `C`'s range.
+    ///
+    /// - Complexity: O(n²m) in the worst case.
     ///
     /// - Precondition: every capacity is at least zero, not NaN and finite, and the minimum cut's
     ///   value fits in `C`.

@@ -1,5 +1,5 @@
-// §E: graph families — paths, cycles, stars, complete and complete bipartite graphs, grids, wheels,
-// chains of blocks — and the canonical block order.
+// §E: graph families (paths, cycles, stars, complete and complete bipartite graphs, grids, wheels,
+// chains of blocks) and the canonical block order.
 // Each case runs on the ReferencePseudograph in written order, and on an UndirectedAdjacencyList
 // built in the same order when no edge repeats, so positions and vertices order are the written
 // ones and every value is exact. Expected values come from the catalog's reference (brute force

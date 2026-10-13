@@ -1,7 +1,7 @@
 // §A: the empty graph, K₁, K₁ with a self-loop, two isolated vertices, K₂ and K₂ as three parallel
 // edges, every op on each (CQ-001 – CQ-060), and the 0-core, a loop adding no degree, the 0-shell,
 // and one-vertex queries (CQ-061 – CQ-067). The empty graph has no cliques, ω = 0, degeneracy 0,
-// transitivity and average clustering 0 (NetworkX raises on the average; igraph gives NaN). An
+// transitivity and average clustering 0. An
 // isolated vertex is a clique of one; a loop and parallel copies are ignored by every op. Each
 // test also checks the one-shot calls against the members of the returned value and the same op on
 // `graph.directedView.undirectedView` (every edge as two arcs, read back as two parallel edges). Every

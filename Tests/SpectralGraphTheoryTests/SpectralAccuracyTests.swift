@@ -97,7 +97,7 @@ struct SpectralAccuracyTests {
             var error = 0.0
             for i in 0 ..< n { error = max(error, abs(fiedler.values[i] - vector[i])) }
             #expect(error <= 1e-6, "\(name): Fiedler entries off by \(error)")
-            // The residual for L itself, not only for the operator iterated on (found by FuzzSpectral):
+            // The residual for L itself, not only for the operator iterated on:
             // relative to λ₂, plus the rounding of the product, ε · max weighted degree.
             let lx = graph.laplacianMatrix(weight: { c[$0] }) * fiedler.values
             var residual = 0.0

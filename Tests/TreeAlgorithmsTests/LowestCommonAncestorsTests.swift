@@ -229,7 +229,7 @@ struct LowestCommonAncestorsTests {
             }
         }
         #expect(checked == 49)
-        // NetworkX's TestTreeLCA gold pairs (TA-012 – TA-015).
+        // The NX pairs of TA-012 – TA-015.
         #expect(lca.lowestCommonAncestor(of: 3, 4) == 1)
         #expect(lca.lowestCommonAncestor(of: 3, 5) == 0)
         #expect(lca.lowestCommonAncestor(of: 5, 6) == 2)

@@ -1,9 +1,9 @@
 # Planted bugs for GraphOperations; run with `just mutate GraphOperations`. See scripts/mutate.py.
 #
-# Scope: the `checked:` lookups on the views, so far: the directed complement's checked endpoint
+# Scope: the `checked:` lookups on the views: the directed complement's checked endpoint
 # reads, and the GraphProtocols defaults (`contains(_:)`, then the trapping read) that the views
 # reach; and a subgraph view's attached-map reads, each membership check dropped. The views' own
-# rows, edges and indices have no mutants here yet.
+# rows, edges and indices have no mutants.
 #
 # Known equivalent mutants: none.
 

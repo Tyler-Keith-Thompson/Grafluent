@@ -2,13 +2,10 @@
 
 Cases for the TreeAlgorithms module (api.md): the one-shot `lowestCommonAncestor(of:_:)` on
 `RootedTree` and `Arborescence`, `LowestCommonAncestors`, `RootedTree.eulerTour`,
-`HeavyLightDecomposition`, and `Tree`'s `center`, `centroid`, `centroidDecomposition`,
-`diameter` and `diameterPath`, unweighted and weighted. Harvested from NetworkX
-(`algorithms/tests/test_lowest_common_ancestors.py` `TestTreeLCA`, `tree/tests/test_distance_measures.py`
-and the `tree.center` / `tree.centroid` docstrings), JGraphT's LCA finders' shapes (path, star,
-binary tree), cp-algorithms (HLD, Euler tour) and the edge cases the design calls out. Every value
-is recomputed by `ref.py`, which checks it against a naive implementation and NetworkX 3.7 (see
-its docstring), and the large cases against closed forms.
+`HeavyLightDecomposition`, and `Tree`'s `center`, `centroid`, `centroidDecomposition`, `diameter`
+and `diameterPath`, unweighted and weighted. Every value is recomputed by `ref.py`, which checks it
+against a naive implementation and NetworkX 3.7 (see its docstring), and the large cases against
+closed forms.
 
 ## Notation
 
@@ -21,7 +18,7 @@ As the Trees catalog (`trees/cases.md`), with these additions.
 | `U: [vertices] edges` | an undirected graph: the listed vertices (duplicates dropped), then endpoints by first appearance; edges in **position order** |
 | `D: [vertices] arcs` | a directed graph, the same way |
 | `parents: [p0, p1, …]` | `RootedTree<Int>(parents:)` / `Arborescence<Int>(parents:)`; `_` is the root |
-| `P(a,b,…)`, `S(c;a..b)`, `kary(n,k)`, `a..b` | path, star, igraph `kary_tree` (vertex i to k·i+1 … k·i+k below n), integer range |
+| `P(a,b,…)`, `S(c;a..b)`, `kary(n,k)`, `a..b` | path, star, k-ary tree (vertex i to k·i+1 … k·i+k below n), integer range |
 
 **Op**: `Step > Step : query`. First step: `Tree` is `Tree(g)!`, `RootedTree(root: r)` is
 `RootedTree(g, root: r)!` (or `RootedTree(parents:)!`), `Arborescence` is `Arborescence(g)!` (or
@@ -46,7 +43,7 @@ Fixtures used below:
   children(1) = [3, 4], children(4) = [6, 7], children(2) = [5], children(5) = [8].
 * **F1b** the same edge set in another position order, `4-7, 0-2, 1-4, 5-8, 0-1, 4-6, 1-3, 2-5`,
   so children(0) = [2, 1] and children(4) = [7, 6].
-* **NX** NetworkX's `TestTreeLCA` arborescence `0>1, 0>2, 1>3, 1>4, 2>5, 2>6`.
+* **NX** the arborescence `0>1, 0>2, 1>3, 1>4, 2>5, 2>6`.
 
 ## A. One-shot lowest common ancestor (`RootedTree`, `Arborescence`)
 

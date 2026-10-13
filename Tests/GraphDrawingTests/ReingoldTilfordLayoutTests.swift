@@ -1,6 +1,6 @@
 // reingoldTilfordLayout and its circular form (catalog DR-033 – DR-063): Walker's algorithm in
 // Buchheim, Jünger and Leipert's linear form, separation 1, y = depth, root at x = 0, exact; the
-// circular form is igraph's polar map, compared within 1e-9.
+// circular form is its polar map, compared within 1e-9.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphDrawing

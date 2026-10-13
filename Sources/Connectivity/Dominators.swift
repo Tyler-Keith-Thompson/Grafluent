@@ -297,8 +297,7 @@ public struct DominatorTree<G: DirectedGraph> {
     /// Whether `a` is an ancestor of `b` in this tree, or `b` itself: for a dominator tree, every
     /// path from the root to `b` passes through `a`; for a post-dominator tree, every path from
     /// `b` to the exit does. False when `b` is not in the tree (the root does not reach it, or it
-    /// does not reach the exit), where LLVM's `DominatorTree::dominates`, whose name this is,
-    /// answers true. O(1).
+    /// does not reach the exit). O(1).
     @inlinable
     public func dominates(_ a: G.Vertex, _ b: G.Vertex) -> Bool {
         let u = _number(a)
@@ -310,11 +309,10 @@ public struct DominatorTree<G: DirectedGraph> {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex that is not in the graph the tree was
-// computed from, where the trapping spellings are the fast path. Each checks membership once with
-// the graph copy's `contains(_:)`, then calls its trapping spelling. A nil keeps its meaning (the
-// root, or a vertex the root does not reach); `try?` flattens that nil with a missing vertex's, so
-// a caller that must tell them apart catches.
+// `VertexNotFound` for a vertex that is not in the graph the tree was computed from. Each checks
+// membership once with the graph copy's `contains(_:)`, then calls its trapping spelling. A nil
+// keeps its meaning (the root, or a vertex the root does not reach); `try?` flattens that nil with
+// a missing vertex's, so a caller that must tell them apart catches.
 
 extension DominatorTree {
     /// `immediateDominator(of: vertex)`, throwing instead of trapping when `vertex` is not a
@@ -480,9 +478,9 @@ extension DirectedGraph {
         return DominatorTree(vertices: vertices, root: r, result)
     }
 
-    /// The dominance frontiers of the vertices reachable from `root` (NetworkX's
-    /// `dominance_frontiers`). Computes the dominators again rather than taking a
-    /// `DominatorTree`, which does not keep the predecessors the frontiers need.
+    /// The dominance frontiers of the vertices reachable from `root`. Computes the dominators
+    /// again rather than taking a `DominatorTree`, which does not keep the predecessors the
+    /// frontiers need.
     ///
     /// - Precondition: `root` is a vertex.
     @inlinable
@@ -494,8 +492,8 @@ extension DirectedGraph {
 
 extension BidirectionalDirectedGraph {
     /// The post-dominator tree for `exit`: the dominator tree of the graph with every edge
-    /// reversed, so `a` post-dominates `b` when every path from `b` to `exit` passes through `a`
-    /// (LLVM's `PostDominatorTree`). Vertices that cannot reach `exit` have no post-dominators.
+    /// reversed, so `a` post-dominates `b` when every path from `b` to `exit` passes through `a`.
+    /// Vertices that cannot reach `exit` have no post-dominators.
     /// For a `CompressedSparseRow`, use the dominator tree of `transposed()`.
     ///
     /// - Precondition: `exit` is a vertex.

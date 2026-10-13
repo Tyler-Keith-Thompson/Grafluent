@@ -15,7 +15,7 @@ just bench-cross --instances gnm-1e6 --repeat 9
 
 1. Checks the toolchains. It installs `boost` and `igraph` with Homebrew if missing, and fetches
    LEMON 1.3.1 into `.deps/` (checked by SHA-256). LEMON is not in Homebrew: the `lemon` formula
-   there is SQLite's parser generator. LEMON's CMake script no longer configures with current
+   there is SQLite's parser generator. LEMON's CMake script does not configure with current
    CMake, so `run.py` writes its one generated header itself and compiles `lemon/base.cc` with
    the harness. The graph algorithms are header-only.
 2. Writes the instances once, to `data/<scale>/` (`gen.py`).
@@ -61,9 +61,9 @@ The ratio column is the fastest Grafluent time divided by the fastest other libr
 All randomness comes from the catalogs' 64-bit LCG (Knuth's MMIX constants, output `x >> 33`), as
 in `Tests/Catalogs/Isomorphism/ref.py` and `Tests/Catalogs/DirectedAcyclicGraph/timings.py`. The
 flow networks are FlowsBenchmarks' generators, with the same seeds at full size: `lcgnet(5000,
-50000, 11, 1000)`, genrmf long (8, 256, 12) and wide (32, 16, 13), and vision 256 × 256 (16). So
-the flow rows line up with the Flows row of `Benchmarks/README.md`. The other Swift benchmarks
-draw from xoroshiro128+ through `Int.random(in:)`. Their instances have the same shapes and sizes
+50000, 11, 1000)`, genrmf long (8, 256, 12) and wide (32, 16, 13), and vision 256 × 256 (16), so
+they are the graphs FlowsBenchmarks times. The other Swift benchmarks draw from xoroshiro128+
+through `Int.random(in:)`. Their instances have the same shapes and sizes
 (G(10⁵, 10⁶), G(2000, 10⁴) for betweenness, G(10⁵, 5·10⁵) for PageRank, G(10⁵, 1.2·10⁵) for
 bridges, G(2·10⁴, 6·10⁴) and 10⁵ + 10⁵ for matching, G(1000, 10⁴) for Floyd–Warshall), but they
 are not the same graphs.
@@ -133,8 +133,8 @@ branch of its articulation-point test.
 - igraph: no Dinic and no general (non-bipartite) matching. Its Dijkstra, Bellman–Ford, MST and
   flows take `double` weights. igraph caches graph properties in `igraph_t`, so the harness
   clears the cache before each timed run. At full size, `igraph_isomorphic_vf2` is not run on
-  the 100 × 100 grid pair (`SKIP_FULL` in `run.py`). It took 45 ms at 30 × 30, 21 s at 40 × 40
-  and over 120 s at 50 × 50.
+  the 100 × 100 grid pair (`SKIP_FULL` in `run.py`), where its search does not finish in
+  reasonable time.
 
 ## Layout
 

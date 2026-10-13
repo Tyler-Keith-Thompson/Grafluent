@@ -4,7 +4,7 @@ extension Graph {
     /// The number of spanning trees τ(G), weighted: the sum over spanning trees of the product of
     /// their weights, which is any cofactor of the Laplacian (Kirchhoff's matrix-tree theorem).
     /// Loops never lie on a tree; parallel edges each count. 0 for the empty graph and for a
-    /// disconnected one, 1 for one vertex. NetworkX `number_of_spanning_trees`.
+    /// disconnected one, 1 for one vertex.
     ///
     /// A `Double`: counts pass `Int` quickly (K₂₅ has 25²³). The Laplacian with one vertex removed
     /// is eliminated densely as Grassmann, Taksar and Heyman eliminate (each pivot a sum of
@@ -22,7 +22,7 @@ extension Graph {
     /// The number of spanning trees τ(G), weighted: the sum over spanning trees of the product of
     /// their weights, which is any cofactor of the Laplacian (Kirchhoff's matrix-tree theorem).
     /// Loops never lie on a tree; parallel edges each count. 0 for the empty graph and for a
-    /// disconnected one, 1 for one vertex. NetworkX `number_of_spanning_trees`.
+    /// disconnected one, 1 for one vertex.
     ///
     /// A `Double`: counts pass `Int` quickly (K₂₅ has 25²³). The Laplacian with one vertex removed
     /// is eliminated densely as Grassmann, Taksar and Heyman eliminate (each pivot a sum of
@@ -45,7 +45,7 @@ extension Graph {
     /// The number of spanning trees τ(G), weighted: the sum over spanning trees of the product of
     /// their weights, which is any cofactor of the Laplacian (Kirchhoff's matrix-tree theorem).
     /// Loops never lie on a tree; parallel edges each count. 0 for the empty graph and for a
-    /// disconnected one, 1 for one vertex. NetworkX `number_of_spanning_trees`.
+    /// disconnected one, 1 for one vertex.
     ///
     /// A `Double`: counts pass `Int` quickly (K₂₅ has 25²³). The Laplacian with one vertex removed
     /// is eliminated densely as Grassmann, Taksar and Heyman eliminate (each pivot a sum of
@@ -65,12 +65,11 @@ extension Graph {
         _spectralAdjacency(_spectralWeights(weight), numbering: nil).spanningTreeCount()
     }
 
-    /// The resistance distance between `source` and `target` (Klein and Randić 1993): the
-    /// effective resistance between them when each edge is a conductance (its weight; 1 without
-    /// `weight:`), (e_s − e_t)ᵀ L⁺ (e_s − e_t). 0 when they are the same vertex, without reading
-    /// any weight; nil when they lie in different components. Symmetric. NetworkX
-    /// `resistance_distance`, whose default `invert_weight=True` reads weights as resistances
-    /// instead: pass `{ 1 / r($0) }` for that.
+    /// The resistance distance between `source` and `target` (Klein and Randić 1993): the effective
+    /// resistance between them when each edge is a conductance (its weight; 1 without `weight:`),
+    /// (e_s − e_t)ᵀ L⁺ (e_s − e_t). 0 when they are the same vertex, without reading any weight;
+    /// nil when they lie in different components. Symmetric. To read weights as resistances
+    /// instead, pass `{ 1 / r($0) }`.
     ///
     /// Conjugate gradients on the Laplacian grounded at `target`, from 0, until the residual's
     /// Euclidean norm is at most `tolerance` (relative to the right-hand side, which has norm 1),
@@ -95,12 +94,11 @@ extension Graph {
         return try _spectralAdjacency(nil, numbering: numbering).resistance(from: s, to: t, tolerance: tolerance, maxIterations: maxIterations)
     }
 
-    /// The resistance distance between `source` and `target` (Klein and Randić 1993): the
-    /// effective resistance between them when each edge is a conductance (its weight; 1 without
-    /// `weight:`), (e_s − e_t)ᵀ L⁺ (e_s − e_t). 0 when they are the same vertex, without reading
-    /// any weight; nil when they lie in different components. Symmetric. NetworkX
-    /// `resistance_distance`, whose default `invert_weight=True` reads weights as resistances
-    /// instead: pass `{ 1 / r($0) }` for that.
+    /// The resistance distance between `source` and `target` (Klein and Randić 1993): the effective
+    /// resistance between them when each edge is a conductance (its weight; 1 without `weight:`),
+    /// (e_s − e_t)ᵀ L⁺ (e_s − e_t). 0 when they are the same vertex, without reading any weight;
+    /// nil when they lie in different components. Symmetric. To read weights as resistances
+    /// instead, pass `{ 1 / r($0) }`.
     ///
     /// Conjugate gradients on the Laplacian grounded at `target`, from 0, until the residual's
     /// Euclidean norm is at most `tolerance` (relative to the right-hand side, which has norm 1),
@@ -128,12 +126,11 @@ extension Graph {
         return try _spectralAdjacency(_spectralWeights(weight), numbering: numbering).resistance(from: s, to: t, tolerance: tolerance, maxIterations: maxIterations)
     }
 
-    /// The resistance distance between `source` and `target` (Klein and Randić 1993): the
-    /// effective resistance between them when each edge is a conductance (its weight; 1 without
-    /// `weight:`), (e_s − e_t)ᵀ L⁺ (e_s − e_t). 0 when they are the same vertex, without reading
-    /// any weight; nil when they lie in different components. Symmetric. NetworkX
-    /// `resistance_distance`, whose default `invert_weight=True` reads weights as resistances
-    /// instead: pass `{ 1 / r($0) }` for that.
+    /// The resistance distance between `source` and `target` (Klein and Randić 1993): the effective
+    /// resistance between them when each edge is a conductance (its weight; 1 without `weight:`),
+    /// (e_s − e_t)ᵀ L⁺ (e_s − e_t). 0 when they are the same vertex, without reading any weight;
+    /// nil when they lie in different components. Symmetric. To read weights as resistances
+    /// instead, pass `{ 1 / r($0) }`.
     ///
     /// Conjugate gradients on the Laplacian grounded at `target`, from 0, until the residual's
     /// Euclidean norm is at most `tolerance` (relative to the right-hand side, which has norm 1),
@@ -163,8 +160,7 @@ extension Graph {
 
     /// The effective graph resistance (the Kirchhoff index of Klein and Randić): the sum of
     /// `resistanceDistance` over unordered pairs of vertices, n · Σ_{i≥2} 1/λᵢ over the Laplacian
-    /// spectrum; nil when the graph is not connected, 0 for zero or one vertex. NetworkX
-    /// `effective_graph_resistance` (which returns ∞ when disconnected).
+    /// spectrum; nil when the graph is not connected, 0 for zero or one vertex.
     ///
     /// n · tr(L_g⁻¹) − 1ᵀ L_g⁻¹ 1 with L_g the Laplacian grounded at the vertex of largest degree,
     /// from its GTH elimination (as `numberOfSpanningTrees`): every term is a sum of positive ones,
@@ -177,8 +173,7 @@ extension Graph {
 
     /// The effective graph resistance (the Kirchhoff index of Klein and Randić): the sum of
     /// `resistanceDistance` over unordered pairs of vertices, n · Σ_{i≥2} 1/λᵢ over the Laplacian
-    /// spectrum; nil when the graph is not connected, 0 for zero or one vertex. NetworkX
-    /// `effective_graph_resistance` (which returns ∞ when disconnected).
+    /// spectrum; nil when the graph is not connected, 0 for zero or one vertex.
     ///
     /// n · tr(L_g⁻¹) − 1ᵀ L_g⁻¹ 1 with L_g the Laplacian grounded at the vertex of largest degree,
     /// from its GTH elimination (as `numberOfSpanningTrees`): every term is a sum of positive ones,
@@ -196,8 +191,7 @@ extension Graph {
 
     /// The effective graph resistance (the Kirchhoff index of Klein and Randić): the sum of
     /// `resistanceDistance` over unordered pairs of vertices, n · Σ_{i≥2} 1/λᵢ over the Laplacian
-    /// spectrum; nil when the graph is not connected, 0 for zero or one vertex. NetworkX
-    /// `effective_graph_resistance` (which returns ∞ when disconnected).
+    /// spectrum; nil when the graph is not connected, 0 for zero or one vertex.
     ///
     /// n · tr(L_g⁻¹) − 1ᵀ L_g⁻¹ 1 with L_g the Laplacian grounded at the vertex of largest degree,
     /// from its GTH elimination (as `numberOfSpanningTrees`): every term is a sum of positive ones,
@@ -217,7 +211,6 @@ extension Graph {
     /// transition rates, a loop taken with probability 2w/d(v)) from a vertex to a target drawn
     /// from the stationary distribution, which does not depend on the start; Σ_{i≥2} 1/μᵢ over the
     /// normalized Laplacian spectrum. nil when the graph is not connected, 0 for zero or one vertex.
-    /// NetworkX `kemeny_constant`.
     ///
     /// vol · (Σᵢ πᵢ (L_g⁻¹)ᵢᵢ − πᵀ L_g⁻¹ π), π the stationary distribution, which is
     /// (1/2vol) Σᵢⱼ dᵢ dⱼ R(i, j) (commute times are vol · R), with L_g the Laplacian grounded at
@@ -233,7 +226,6 @@ extension Graph {
     /// transition rates, a loop taken with probability 2w/d(v)) from a vertex to a target drawn
     /// from the stationary distribution, which does not depend on the start; Σ_{i≥2} 1/μᵢ over the
     /// normalized Laplacian spectrum. nil when the graph is not connected, 0 for zero or one vertex.
-    /// NetworkX `kemeny_constant`.
     ///
     /// vol · (Σᵢ πᵢ (L_g⁻¹)ᵢᵢ − πᵀ L_g⁻¹ π), π the stationary distribution, which is
     /// (1/2vol) Σᵢⱼ dᵢ dⱼ R(i, j) (commute times are vol · R), with L_g the Laplacian grounded at
@@ -254,7 +246,6 @@ extension Graph {
     /// transition rates, a loop taken with probability 2w/d(v)) from a vertex to a target drawn
     /// from the stationary distribution, which does not depend on the start; Σ_{i≥2} 1/μᵢ over the
     /// normalized Laplacian spectrum. nil when the graph is not connected, 0 for zero or one vertex.
-    /// NetworkX `kemeny_constant`.
     ///
     /// vol · (Σᵢ πᵢ (L_g⁻¹)ᵢᵢ − πᵀ L_g⁻¹ π), π the stationary distribution, which is
     /// (1/2vol) Σᵢⱼ dᵢ dⱼ R(i, j) (commute times are vol · R), with L_g the Laplacian grounded at

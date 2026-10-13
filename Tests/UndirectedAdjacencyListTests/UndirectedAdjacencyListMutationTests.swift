@@ -15,7 +15,6 @@ struct UndirectedAdjacencyListMutationTests {
         var graph = UndirectedAdjacencyList(edges: UndirectedFixture<Int>.petgraphUndirected.edges)
         #expect(graph.remove(0) == 0)
         func check<G: Graph<Int>>(_ g: G) {
-            // petgraph: node_count() == 3, edge_count() == 1, neighbors(b) == [c].
             #expect(g.vertexCount == 3)
             #expect(g.edgeCount == 1)
             #expect(Array(g.edges) == [UndirectedEdge(1, 2)])
@@ -35,7 +34,6 @@ struct UndirectedAdjacencyListMutationTests {
         #expect(graph.remove(0) == 0)
         #expect(graph.remove(0) == nil)
         func check<G: Graph<Int>>(_ g: G) {
-            // NetworkX: edges [(1, 2)].
             #expect(Set(g.vertices) == [1, 2])
             #expect(Array(g.edges) == [UndirectedEdge(1, 2)])
             #expect(g.degree(of: 1) == 1)

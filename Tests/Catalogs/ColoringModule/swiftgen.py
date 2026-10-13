@@ -296,7 +296,7 @@ PROC = {
         "#expect(coloring.colorCount <= degeneracy + 1)",
     ],
     "saturationLargestFirst": [
-        "// DSatur written out (NetworkX's rule): the uncoloured vertex with the most distinct neighbour",
+        "// DSatur written out: the uncoloured vertex with the most distinct neighbour",
         "// colours, then the greatest simple degree, then the lesser index, takes the least colour free.",
         "var expected = [Int](repeating: -1, count: n)",
         "for _ in 0 ..< n {",
@@ -969,7 +969,7 @@ def greedy_rows(swift):
 FILES = [
     ("GreedyLargestFirstTests.swift", greedy_rows("largestFirst"), "greedyColoring(strategy: .largestFirst)", "GreedyLargestFirstTests",
      "`greedyColoring(strategy: .largestFirst)` (catalog §Greedy.largestFirst): Welsh–Powell, first fit in "
-     "simple degree descending, the lesser index on ties, NetworkX `largest_first`'s colours; exact; proper, "
+     "simple degree descending, the lesser index on ties; exact; proper, "
      "with every colour used and the classes in `vertices` order (checked here); at most Δ + 1 colours; a "
      "first-fit colouring (a vertex of colour c sees every colour below c); the strategy written out; at least "
      "`chromaticNumber()` colours; the default strategy."),
@@ -980,8 +980,8 @@ FILES = [
      "strategy written out; at least `chromaticNumber()` colours."),
     ("GreedySaturationLargestFirstTests.swift", greedy_rows("saturationLargestFirst"), "greedyColoring(strategy: .saturationLargestFirst)", "GreedySaturationLargestFirstTests",
      "`greedyColoring(strategy: .saturationLargestFirst)` (catalog §Greedy.saturationLargestFirst): DSatur with "
-     "NetworkX's tie rule (saturation, then simple degree in the whole graph, then the lesser index), "
-     "NetworkX's colours; exact; proper (checked here); at most Δ + 1 colours; a first-fit colouring; the "
+     "its tie rule (saturation, then simple degree in the whole graph, then the lesser index); "
+     "exact; proper (checked here); at most Δ + 1 colours; a first-fit colouring; the "
      "strategy written out; at least `chromaticNumber()` colours."),
     ("GreedyIndependentSetTests.swift", greedy_rows("independentSet"), "greedyColoring(strategy: .independentSet)", "GreedyIndependentSetTests",
      "`greedyColoring(strategy: .independentSet)` (catalog §Greedy.independentSet): colour k a maximal "
@@ -995,8 +995,8 @@ FILES = [
      "vertex, each from its least vertex, neighbours in row order; exact; proper (checked here); at most Δ + 1 "
      "colours; a first-fit colouring; the search written out; at least `chromaticNumber()` colours."),
     ("GreedyOrderTests.swift", lambda kind, args: kind == "order", "greedyColoring(order:)", "GreedyOrderTests",
-     "`greedyColoring(order:)` (catalog §Greedy.order): first fit in the given order (Boost "
-     "`sequential_vertex_coloring`, NetworkX with a callable strategy); exact; proper (checked here); at most "
+     "`greedyColoring(order:)` (catalog §Greedy.order): first fit in the given order; "
+     "exact; proper (checked here); at most "
      "Δ + 1 colours; a first-fit colouring; first fit written out; the order as a lazy sequence."),
     ("ChromaticNumberTests.swift", lambda kind, args: kind == "chi", "chromaticNumber()", "ChromaticNumberTests",
      "`chromaticNumber()` (catalog §ChromaticNumber): χ of the simple graph, exact; `minimumColoring()` a proper "

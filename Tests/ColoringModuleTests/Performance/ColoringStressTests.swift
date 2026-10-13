@@ -122,7 +122,7 @@ struct ColoringStressTests {
     @Test("1,000 disjoint Grötzsch graphs (11,000 vertices): χ = 4; lexicographicallyFirstMinimumColoring() and DSatur give each copy CO-185's and CO-082's colours; minimumColoring() proper with 4", .timeLimit(.minutes(1)))
     func grotzschCopies() async {
         await Task {
-            // NetworkX's mycielski_graph(4), copy c shifted by 11c.
+            // The Grötzsch graph (Mycielski M₄), copy c shifted by 11c.
             let grotzsch = [(0, 1), (0, 3), (0, 6), (0, 8), (1, 2), (1, 7), (1, 5), (2, 4), (2, 9), (2, 6), (3, 4), (3, 9), (3, 5), (4, 7), (4, 8), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10)]
             let copies = 1_000
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 11 * copies, edges: (0 ..< copies).flatMap { c in grotzsch.map { UndirectedEdge(11 * c + $0.0, 11 * c + $0.1) } })

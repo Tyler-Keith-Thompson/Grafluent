@@ -74,7 +74,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // The review measured each slice mutation copying the whole list.
+    // A slice mutation in place must not copy the whole list.
     Benchmark("EdgeList: sort 8 edges through a slice of a 1M-edge list, 100 times (must not copy the list)", configuration: .init(metrics: [.wallClock, .mallocCountTotal])) { benchmark in
         for _ in benchmark.scaledIterations {
             var copy = list

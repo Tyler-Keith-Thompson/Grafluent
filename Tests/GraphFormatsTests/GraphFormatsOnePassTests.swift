@@ -1,4 +1,4 @@
-// The document readers' one-pass reads against their general ones. Node-link JSON in NetworkX's
+// The document readers' one-pass reads against their general ones. Node-link JSON in the common
 // layout is read in one pass; any other layout in two (the document checked first). GraphML's
 // first walk reads the nodes and edges ahead while it can tell the second walk would read them the
 // same way; a key after the graph sends every document to the second walk. Each document here is

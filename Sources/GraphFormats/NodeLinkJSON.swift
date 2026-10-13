@@ -1,5 +1,4 @@
-/// NetworkX's node-link JSON (`node_link_data` / `node_link_graph`): `directed`, `multigraph`,
-/// `graph`, `nodes`, and `edges` (or `links`, NetworkX before 3.4).
+/// Node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or `links`).
 
 /// The default mapping of a node id into a `String` target: a string as itself, an integer as its
 /// decimal text.
@@ -25,10 +24,10 @@
 
 /// Reads node-link JSON into a bulk target and returns the graph `build` makes of it, after which
 /// it reports the edge attributes with the positions `build` gives (each edge number's; `build` is
-/// told whether they are needed). A document of the layout NetworkX writes is read in one pass
+/// told whether they are needed). A document in the common layout is read in one pass
 /// (`_NodeLinkOnePass`); any other, and any with an error, in two: the whole document is checked as
-/// JSON first, then the members are read in NetworkX's order: `directed`, `multigraph`, `graph`,
-/// the nodes, the edges.
+/// JSON first, then the members are read in the order `directed`, `multigraph`, `graph`, the
+/// nodes, the edges.
 @inlinable func _readNodeLinkJSON<Vertex: Hashable, Direction: _Direction, Graph, Position>(
     _ text: UnsafeBufferPointer<UInt8>, as _: _BulkTarget<Vertex, Direction>.Type,
     map: (AttributeValue) -> Vertex?,
@@ -197,10 +196,9 @@
         return firsts
     }
 
-    /// For each edge, the edge it is in NetworkX's `node_link_graph` (`add_edge(u, v, key=…)`):
-    /// itself when its key is new between its pair, else the earlier edge with that key; an edge
-    /// without a key gets `new_edge_key` (the number of keys between the pair, raised past any
-    /// taken). Only pairs with several edges keep a table of their keys.
+    /// For each edge, the edge it is: itself when its key is new between its pair, else the
+    /// earlier edge with that key. An edge without a key gets the number of keys between the pair,
+    /// raised past any taken. Only pairs with several edges keep a table of their keys.
     @inlinable func networkXKeys(firsts: [Int]) -> [Int] {
         var sameAs = firsts
         var groups: [Int: (keys: [AttributeValue: Int], count: Int)] = [:]
@@ -236,8 +234,8 @@
     }
 }
 
-/// `value` as a Python dictionary key compares, for NetworkX's edge keys: a boolean or an
-/// integral double as its integer (`True == 1 == 1.0`); the string `"1"` stays apart from 1.
+/// `value` as an edge key compares: a boolean or an integral double as its integer (`true`, `1`
+/// and `1.0` are one key); the string `"1"` stays apart from 1.
 @inlinable func _pythonKey(_ value: AttributeValue) -> AttributeValue {
     switch value {
     case .boolean(let b): return .integer(b ? 1 : 0)
@@ -356,7 +354,7 @@
         let u = try endpoint(source, into: &target, map: map)
         guard let targetOffset else { throw ParseError(.syntax, at: edge) }
         let v = try endpoint(targetOffset, into: &target, map: map)
-        // A `null` key is no key (`dict.get` returns None); a container cannot be one.
+        // A `null` key is no key; a container cannot be one.
         var name: AttributeValue?
         if keyed, let keyOffset, json.kind(keyOffset) != .null {
             guard let scalar = json.scalar(keyOffset, scratch: &scratch) else { throw ParseError(.unsupported, at: keyOffset) }
@@ -383,8 +381,8 @@
 
 // MARK: - One pass
 
-/// A node-link document read in one pass, for the layout NetworkX writes: the top-level members in
-/// its order (`directed`, `multigraph`, `graph`, `nodes`, then `edges` or `links`, each at most
+/// A node-link document read in one pass, for the common layout: the top-level members in the
+/// order (`directed`, `multigraph`, `graph`, `nodes`, then `edges` or `links`, each at most
 /// once), keys without escapes, node and edge members that are scalars, and edges that name nodes
 /// declared before them. The pass checks the JSON grammar as `_JSONScanner.validateDocument` does
 /// and every check of the two-pass reader but the `vertex` mapping, which comes after it in node
@@ -936,8 +934,7 @@
 
 // MARK: - Writer
 
-/// Appends `s` as a JSON string the way Python's `json.dumps` writes it with `ensure_ascii`:
-/// `"` and `\` escaped, `\n \r \t \b \f`, every other character outside ` `…`~` as `\uXXXX`
+/// Appends `s` as an ASCII JSON string: `"` and `\` escaped, `\n \r \t \b \f`, every other character outside ` `…`~` as `\uXXXX`
 /// (lowercase hexadecimal, astral characters as surrogate pairs).
 @inlinable func _appendJSONString<Sink: _ByteSink & ~Copyable>(_ s: String, to sink: inout Sink) {
     let digits: StaticString = "0123456789abcdef"
@@ -983,7 +980,7 @@
     sink.append(UInt8(ascii: "\""))
 }
 
-/// Appends a JSON value as Python writes it; a double must be finite.
+/// Appends a JSON value, a double as `_appendPythonDouble` writes it; a double must be finite.
 @inlinable func _appendJSONValue<Sink: _ByteSink & ~Copyable>(_ value: AttributeValue, to sink: inout Sink) {
     switch value {
     case .string(let s): _appendJSONString(s, to: &sink)
@@ -1007,7 +1004,7 @@
     }
 }
 
-/// Writes node-link JSON byte-equal to `json.dumps(nx.node_link_data(G, edges="edges"))`.
+/// Writes node-link JSON for `writeNodeLinkJSON`.
 ///
 /// Always inlined, with every part but the loops out of line in `_NodeLinkWriter`: the caller's
 /// attribute closures are then inlined into the loops of a small frame, where the arrays they
@@ -1046,8 +1043,8 @@
 @usableFromInline internal struct _NodeLinkWriter<Source: _WriteSource>: ~Copyable {
     @usableFromInline let source: Source
     @usableFromInline var ids: _IDCache
-    /// Each edge's key when the graph is a multigraph (NetworkX's `new_edge_key`: the number of
-    /// earlier edges between its pair).
+    /// Each edge's key when the graph is a multigraph: the number of earlier edges between its
+    /// pair.
     @usableFromInline var keys: [Int32]?
     @usableFromInline var node = 0
     @usableFromInline var cursor: Source.EdgeCursor

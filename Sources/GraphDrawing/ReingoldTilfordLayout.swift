@@ -16,14 +16,13 @@ extension RootedTree {
     ///
     /// The root is at (0, 0) and a vertex at depth d has y = d. Children are placed left to right
     /// in `children(of:)` order, vertices at one depth at least 1 apart along each subtree's
-    /// contour, and every parent centred over its first and last child. Where two subtrees had to
-    /// be pushed apart, the smaller subtrees between them are spaced evenly (Walker's
-    /// improvement), so a mirrored tree draws as the reflection of the drawing and isomorphic
-    /// subtrees are drawn identically up to translation. Coordinates are `Double` arithmetic:
-    /// separations and centring alone give multiples of a power of ½, which are exact, but the even
-    /// spacing divides a shift by the number of gaps it is spread over, so values such as ±5/6
-    /// occur and are rounded (and a mirrored tree's drawing then matches the reflection only to
-    /// rounding).
+    /// contour, and every parent centred over its first and last child. Where two subtrees are
+    /// pushed apart, the smaller subtrees between them are spaced evenly. A mirrored tree draws as
+    /// the reflection of the drawing, and isomorphic subtrees are drawn identically up to
+    /// translation. Separations and centring give multiples of a power of ½, which are exact in
+    /// `Double`. The even spacing divides a shift by the number of gaps, so values such as ±5/6
+    /// occur and are rounded, and a mirrored tree's drawing then matches the reflection only to
+    /// rounding.
     ///
     /// - Reingold and Tilford, "Tidier drawings of trees", IEEE Transactions on Software
     ///   Engineering SE-7(2), 1981.
@@ -39,8 +38,9 @@ extension RootedTree {
         return Drawing(_vertices: layout.vertices, positions: _walkerPositions(layout), offsets: layout.dense ? nil : layout.slots)
     }
 
-    /// The tidy drawing bent into a disc (igraph's `layout_reingold_tilford_circular`): a vertex
-    /// at (x, d) in `reingoldTilfordLayout()` goes to d · (cos φ, sin φ), with
+    /// The tidy drawing bent into a disc.
+    ///
+    /// A vertex at (x, d) in `reingoldTilfordLayout()` goes to d · (cos φ, sin φ), with
     /// φ = 2π · (n − 1)/n · (x − x₀)/(x₁ − x₀) for the least and greatest x, x₀ and x₁ (no division
     /// when they are equal). The root is at the origin, and each depth on the circle of that
     /// radius.
@@ -213,7 +213,7 @@ func _walker(root: Int, parent: [Int], depth: [Int], childStart: [Int], children
     return positions
 }
 
-/// igraph's polar map of a tree drawing: x across 2π(n − 1)/n, depth as the radius.
+/// The polar map of a tree drawing: x across 2π(n − 1)/n, depth as the radius.
 @usableFromInline
 func _polarPositions(_ positions: [SIMD2<Double>]) -> [SIMD2<Double>] {
     let n = positions.count

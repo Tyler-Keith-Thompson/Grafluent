@@ -10,20 +10,16 @@
 - `DirectedAcyclicGraph.erdosRenyi`;
 - a public seedable generator, `Xoshiro256StarStar`.
 
-The tests come from the proposed API (`api.md` in
-[`Tests/Catalogs/RandomGraphs/`](../Catalogs/RandomGraphs/)), with its open questions decided as
-recommended:
+The tests follow `api.md` in [`Tests/Catalogs/RandomGraphs/`](../Catalogs/RandomGraphs/):
 
 - the families live on the `NamedGraphs` protocols, with `Int` vertices `0..<n`;
 - every factory takes `inout some RandomNumberGenerator`, and has an overload without `using:`;
 - the stream is pinned: each procedure draws only `uniform01` (the top 53 bits) and `below(n)`
-  (CPython's rejection on the top bit-length-of-n bits), each NetworkX's procedure draw for draw,
-  except that Barabási–Albert and the SBM use ascending order where NetworkX uses set order;
-- Barabási–Albert's directed form points new → old, as igraph's does;
+  (rejection on the top bit-length-of-n bits);
+- Barabási–Albert's directed form points new → old;
 - Watts–Strogatz, random geometric and random regular graphs give both arcs of every edge in their
   directed form, as the symmetric named families do;
-- `randomGeometric` returns `(graph:, positions:)`, with the positions as a flat `[Double]`;
-- the further families (the configuration model, `powerlawCluster`, …) are deferred to phase 2.
+- `randomGeometric` returns `(graph:, positions:)`, with the positions as a flat `[Double]`.
 
 The suite uses only the public API, and each test is self-contained. Nothing is shared but the tags
 in `GrafluentTestSupport`. `RandomGraphsTests` depends on `NamedGraphs` for one row, RG-094, whose
@@ -97,8 +93,10 @@ generated them from `cases.md`; it sits next to `ref.py` and `cases.md` in
 uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 python3 Tests/Catalogs/RandomGraphs/swiftgen.py
 ```
 
-It first checks that `ref.py` reproduces `cases.md` byte for byte. `ref.py` checks the generator's
-published vectors, and NetworkX on the same stream, as it builds the rows. `swiftgen.py` then
+It first checks that `ref.py` reproduces `cases.md` byte for byte. As it builds the rows, `ref.py`
+checks the generator's published vectors and runs NetworkX 3.7 on the same stream, which gives the
+same graphs except that Barabási–Albert and the SBM use ascending order where NetworkX uses set
+order. igraph 1.0 checks the structural laws. `swiftgen.py` then
 re-runs every row on the model, asserts that each value is the row's cell, and writes the test.
 
 ## Hand-written files
@@ -106,7 +104,7 @@ re-runs every row on the model, asserts that each value is the row's cell, and w
 **Scenarios** (`RandomGraphScenarioTests.swift`):
 
 - the geometric cell grid against a check of every pair written in the test, at n ≈ 2000 with
-  irregular radii, at radius 0 (which used to fall back to every pair), and where 3^d > n makes the
+  irregular radii, at radius 0, and where 3^d > n makes the
   factory check every pair itself; both forms, the directed one as both arcs;
 - radius 0 at n = 5·10⁴ through the grid, and a radius past 1/2;
 - pairs exactly r apart are edges, on the points a generator of fixed words places: coincident
@@ -144,9 +142,7 @@ re-runs every row on the model, asserts that each value is the row's cell, and w
 
 ## Planted bugs
 
-The suite was checked against a model of `api.md` written outside the repository, built by Bazel
-in a scratch copy of the workspace. It passed there, and caught every one of the bugs below,
-planted one at a time.
+Each bug below, planted one at a time, makes the listed tests fail.
 
 | Planted bug | Caught by |
 |---|---|
@@ -164,7 +160,3 @@ planted one at a time.
 | The SBM rounds its skip to nearest | RG-084 – RG-088, RG-092, RG-093 |
 | `Tree.random` draws `below(n − 1)` | RG-097 – RG-103 and the property |
 | The random DAG takes its pairs from the directed sweep | RG-104, RG-105 and the G(n, p) property |
-
-An earlier candidate was equivalent in the model, and the table above replaces it: G(n, m) taking
-the complement branch from 2m ≥ N. At 2m = N, the two branches draw the same number of pairs, so
-it changes nothing.

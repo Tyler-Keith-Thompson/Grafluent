@@ -1,44 +1,47 @@
 /// A directed hypergraph: a finite set of vertices and a finite collection of hyperedges, each an
-/// ordered pair of vertex sets, its sources (tail) and its targets (head). Gallo, Longo, Pallottino
-/// and Nguyen, "Directed hypergraphs and applications", *Discrete Applied Mathematics*
-/// 42(2–3):177–201, 1993, define a hyperarc as "an ordered pair … of (possibly empty) disjoint
-/// subsets"; here either side may be empty and a vertex may be on both, the hypergraph form of a
-/// self-loop (XGI's `DiHypergraph` allows both).
+/// ordered pair of vertex sets, its sources (tail) and its targets (head).
 ///
-/// Not a `DirectedGraph`, and independent of `Hypergraph`, as `DirectedGraph` is of `Graph`. The
-/// `Hypergraphs` module's `incidenceGraphView` reads a directed hypergraph as a
-/// `BidirectionalDirectedGraph`, sources → hyperedge → targets.
+/// Gallo, Longo, Pallottino and Nguyen ("Directed hypergraphs and applications", *Discrete Applied
+/// Mathematics* 42(2–3):177–201, 1993) define a hyperarc as an ordered pair of disjoint, possibly
+/// empty, vertex sets. Here either side may be empty, and a vertex may be on both sides, which is
+/// the hypergraph form of a self-loop.
 ///
-/// **Hyperedges and their identity.** As for `Hypergraph`: a hyperedge's position in `hyperedges`
-/// is its identity. `outHyperedges(of: v)` lists the hyperedges with `v` among their sources,
-/// Gallo's forward star FS(v), and `inHyperedges(of: v)` those with `v` among their targets, the
-/// backward star BS(v). Both stars are requirements, so there is no bidirectional refinement.
+/// A directed hypergraph is not a `DirectedGraph`, and the protocol is independent of
+/// `Hypergraph`. The `Hypergraphs` module's `incidenceGraphView` reads a directed hypergraph as a
+/// `BidirectionalDirectedGraph`, with arcs from the sources to the hyperedge and from the hyperedge
+/// to the targets.
 ///
-/// **Laws.** Every conformer satisfies:
+/// As in `Hypergraph`, a hyperedge's position in `hyperedges` is its identity.
+/// `outHyperedges(of: v)` lists the hyperedges with `v` among their sources, the forward star
+/// FS(v), and `inHyperedges(of: v)` lists those with `v` among their targets, the backward star
+/// BS(v). Both stars are requirements.
+///
+/// Every conformer satisfies these laws:
 /// - `vertexCount == vertices.count`, the vertices are distinct, and
-///   `hyperedgeCount == hyperedges.count`; each side of a hyperedge has distinct vertices.
+///   `hyperedgeCount == hyperedges.count`. Each side of a hyperedge has distinct vertices.
 /// - `p` is in `outHyperedges(of: v)` exactly when `v` is a source of `p`, and in
-///   `inHyperedges(of: v)` exactly when `v` is a target of `p`; each list has `p` once, in
+///   `inHyperedges(of: v)` exactly when `v` is a target of `p`. Each list has `p` once, in
 ///   `hyperedges` order. `outDegree` and `inDegree` are their lengths, so they sum to the side
-///   sizes, and `degree(of:)` is `outDegree + inDegree`: a vertex on both sides of a hyperedge
+///   sizes. `degree(of:)` is `outDegree + inDegree`, so a vertex on both sides of a hyperedge
 ///   counts it twice.
 /// - `contains(sources:targets:)` is true exactly when some hyperedge has those two sets, the
 ///   empty pair included, and never traps.
-/// - The index laws of `Hypergraph`, side by side: `sourceIndices` and `targetIndices` are the
+/// - `Hypergraph`'s index laws hold for each side. `sourceIndices` and `targetIndices` are the
 ///   sides mapped through `vertexIndex(of:)`, the `(ofIndex:)` reads equal the vertex reads, and
 ///   with hyperedge indices `hyperedges` is in index order.
-/// - The hash law: index-space members hash no vertex, and a vertex-space read looks its vertex up
-///   once.
+/// - Index-space members hash no vertex, and a vertex-space read looks its vertex up once.
 ///
-/// **Defaults.** As for `Hypergraph`. The protocol has no mutation and does not refine `Sendable`.
+/// As in `Hypergraph`, members with default implementations are still requirements. The protocol
+/// has no mutating members and does not refine `Sendable`.
 public protocol DirectedHypergraph<Vertex> {
     associatedtype Vertex: Hashable
     associatedtype Vertices: Collection<Vertex>
     /// One side of a hyperedge.
     associatedtype Members: Collection<Vertex>
-    /// The hyperedges, one element per position. The element type is the representation's own (the
-    /// library's are `(sources:, targets:)` pairs); generic code reads a hyperedge's sides through
-    /// `sources(ofHyperedgeAt:)` and `targets(ofHyperedgeAt:)`, which is how `Members` is inferred.
+    /// The hyperedges, one element per position. The element type is the representation's own;
+    /// the library's representations use `(sources:, targets:)` pairs. Generic code reads a
+    /// hyperedge's sides through `sources(ofHyperedgeAt:)` and `targets(ofHyperedgeAt:)`, which is
+    /// how `Members` is inferred.
     associatedtype Hyperedges: Collection where Hyperedges.Index: Hashable
     associatedtype IncidentHyperedges: Sequence<Hyperedges.Index>
     associatedtype MemberIndices: Sequence<Int> = LazyMapSequence<Members, Int>
@@ -50,14 +53,14 @@ public protocol DirectedHypergraph<Vertex> {
     /// Every hyperedge at its position.
     var hyperedges: Hyperedges { get }
 
-    /// The positions of the hyperedges with `vertex` among their sources, Gallo's forward star
-    /// FS(v), each once, in `hyperedges` order.
+    /// The positions of the hyperedges with `vertex` among their sources (the forward star FS(v)),
+    /// each once, in `hyperedges` order.
     ///
     /// - Precondition: `contains(vertex)`. A representation may trap or return an empty sequence
     ///   when this does not hold; generic code must rely on neither.
     func outHyperedges(of vertex: Vertex) -> IncidentHyperedges
 
-    /// The positions of the hyperedges with `vertex` among their targets, the backward star BS(v),
+    /// The positions of the hyperedges with `vertex` among their targets (the backward star BS(v)),
     /// each once, in `hyperedges` order.
     ///
     /// - Precondition: `contains(vertex)`, as for `outHyperedges(of:)`.
@@ -73,13 +76,13 @@ public protocol DirectedHypergraph<Vertex> {
     /// - Precondition: `position` is a position in `hyperedges`.
     func targets(ofHyperedgeAt position: Hyperedges.Index) -> Members
 
-    /// The number of sources of the hyperedge at `position` (XGI's `tail_size`). Default:
+    /// The number of sources of the hyperedge at `position`. Default:
     /// `sources(ofHyperedgeAt: position).count`.
     ///
     /// - Precondition: `position` is a position in `hyperedges`.
     func sourceSize(ofHyperedgeAt position: Hyperedges.Index) -> Int
 
-    /// The number of targets of the hyperedge at `position` (XGI's `head_size`). Default:
+    /// The number of targets of the hyperedge at `position`. Default:
     /// `targets(ofHyperedgeAt: position).count`.
     ///
     /// - Precondition: `position` is a position in `hyperedges`.
@@ -106,7 +109,7 @@ public protocol DirectedHypergraph<Vertex> {
     func contains(_ vertex: Vertex) -> Bool
 
     /// Whether some hyperedge has exactly these sources and these targets, ignoring order and
-    /// repeats within each. Never traps: false when a vertex is not one. Default: two sets,
+    /// repeats within each. Never traps; false when a vertex is not one. Default: two sets,
     /// compared with every hyperedge.
     func contains(sources: some Sequence<Vertex>, targets: some Sequence<Vertex>) -> Bool
 
@@ -163,14 +166,14 @@ public protocol DirectedHypergraph<Vertex> {
     func inHyperedgeIndices(ofIndex index: Int) -> IncidentHyperedgeIndices
 
     /// Calls `body` with each vertex index on either side of the hyperedge at `position`, at least
-    /// once (a vertex on both sides may come twice). Default: `sourceIndices`, then
+    /// once. A vertex on both sides may come twice. Default: `sourceIndices`, then
     /// `targetIndices`. `OrientedIncidenceMatrix` ORs the two planes' words, so each comes once.
     ///
     /// Not for use outside the library.
     func _forEachMemberIndex(ofHyperedgeAt position: Hyperedges.Index, _ body: (Int) -> Void)
 
     /// `Hypergraph._memberRank` for one side: the number of entries before `index` in
-    /// `sourceIndices` (`targets: false`) or `targetIndices`. Default: a walk, O(k).
+    /// `sourceIndices` (when `targets` is false) or `targetIndices`. Default: a walk, O(k).
     /// `OrientedIncidenceMatrix` counts set bits, O(⌈n/64⌉).
     ///
     /// Not for use outside the library.
@@ -181,15 +184,16 @@ public protocol DirectedHypergraph<Vertex> {
     /// Not for use outside the library.
     func _memberIndex(atRank rank: Int, inHyperedgeAt position: Hyperedges.Index, targets: Bool) -> Int
 
-    /// The graph's current generation, which every structural mutation replaces: a structure
-    /// derived from the graph stores it and asks `GraphGeneration.isCurrent(for:)` before relying
-    /// on the graph again. Default: `GraphGeneration.untracked`, current for no graph. A wrapper
-    /// reports its base's.
+    /// The hypergraph's current generation. Every structural mutation replaces it. A structure
+    /// derived from the hypergraph stores the generation and calls
+    /// `GraphGeneration.isCurrent(for:)` before relying on it again. Default:
+    /// `GraphGeneration.untracked`, which is current for no hypergraph. A wrapper reports its
+    /// base's generation.
     var generation: GraphGeneration { get }
 }
 
 extension DirectedHypergraph {
-    /// `GraphGeneration.untracked`: a conformer that does not track its mutations.
+    /// `GraphGeneration.untracked`, for a conformer that does not track its mutations.
     @inlinable
     public var generation: GraphGeneration { .untracked }
 

@@ -2,8 +2,8 @@
 
 `UndirectedAdjacencyList<Vertex: Hashable>` is an undirected graph: a set of vertices and a set of
 undirected edges, each an unordered pair {u, v}. Parallel edges are not allowed; self-loops are. It
-is the undirected twin of `AdjacencyList`, in the same module. This suite was written before the
-implementation, so it is the specification. It uses only the public API.
+is the undirected twin of `AdjacencyList`, in the same module. This suite is the type's
+specification. It uses only the public API.
 
 ## API under test
 
@@ -57,19 +57,19 @@ struct UndirectedAdjacencyList<Vertex: Hashable>
 
 ## Conventions
 
-| Question | Choice | Why | Disagreement |
-|---|---|---|---|
-| Parallel edges | Not allowed; inserting an existing edge, in either orientation, returns `inserted: false` | The simple-with-loops class is the default undirected graph in NetworkX, JGraphT and petgraph's `GraphMap`; parallel edges belong to `Pseudograph` | petgraph `Graph` allows them |
-| Self-loops | Allowed | As `AdjacencyList` | JGraphT `SimpleGraph` rejects them |
-| A self-loop's contribution | 1 to `edgeCount`; 2 to `degree`; its vertex twice in `neighbors`, its position twice in `incidentEdges` | `degree == neighbors.count` and Σ degree = 2 · edgeCount | NetworkX, JGraphT and petgraph list the loop once among the neighbors |
-| Orientation | An edge keeps the orientation it was first inserted with; `memberAfterInsert` and `remove(edge:)` return the stored one | `UndirectedEdge`'s `u` and `v` are not part of its value, but are observable | igraph canonicalizes, which needs `Comparable` |
-| Edge positions | `0..<edgeCount`, in insertion order until a removal; a removal moves the last edge into the hole | A weight is an array lookup, the same from both ends | — |
-| Row order | Before any removal, `neighbors` and `incidentEdges` are in insertion order, a loop's two entries side by side | What Boost's `vecS` lists give; tested for one fixture (UG-R06) | — |
-| Absent vertex | `neighbors`, `incidentEdges`, `degree` and `vertexIndex` trap, and their `checked:` spellings throw `VertexNotFound`; `contains` and removals never do; `insert(checked:)` throws instead of inserting it | As `AdjacencyList` | petgraph returns empty |
-| `oppositeVertex(to:acrossEdgeAt:)` off the edge | Traps | A programming error | — |
-| `==` | Equal vertex sets and equal edge sets, as unordered pairs; independent of insertion order and orientation | Value semantics | — |
-| `description` | `[0, 1, 2]; [0–1, 1–2]`, the form every representation shares, with `–` | Equal graphs print alike | — |
-| Encoded form (`Codable`) | Unspecified, except that decoding keeps each edge's position and orientation and rejects a repeated edge | | |
+| Question | Choice | Why |
+|---|---|---|
+| Parallel edges | Not allowed; inserting an existing edge, in either orientation, returns `inserted: false` | Parallel edges belong to `Pseudograph` |
+| Self-loops | Allowed | As `AdjacencyList` |
+| A self-loop's contribution | 1 to `edgeCount`; 2 to `degree`; its vertex twice in `neighbors`, its position twice in `incidentEdges` | `degree == neighbors.count` and Σ degree = 2 · edgeCount |
+| Orientation | An edge keeps the orientation it was first inserted with; `memberAfterInsert` and `remove(edge:)` return the stored one | `UndirectedEdge`'s `u` and `v` are not part of its value, but are observable |
+| Edge positions | `0..<edgeCount`, in insertion order until a removal; a removal moves the last edge into the hole | A weight is an array lookup, the same from both ends |
+| Row order | Before any removal, `neighbors` and `incidentEdges` are in insertion order, a loop's two entries side by side | Tested for one fixture (UG-R06) |
+| Absent vertex | `neighbors`, `incidentEdges`, `degree` and `vertexIndex` trap, and their `checked:` spellings throw `VertexNotFound`; `contains` and removals never do; `insert(checked:)` throws instead of inserting it | As `AdjacencyList` |
+| `oppositeVertex(to:acrossEdgeAt:)` off the edge | Traps | A programming error |
+| `==` | Equal vertex sets and equal edge sets, as unordered pairs; independent of insertion order and orientation | Value semantics |
+| `description` | `[0, 1, 2]; [0–1, 1–2]`, the form every representation shares, with `–` | One textual form for every representation |
+| Encoded form (`Codable`) | Unspecified, except that decoding keeps each edge's position and orientation and rejects a repeated edge | |
 
 ## Files
 
@@ -79,7 +79,7 @@ fixtures (`UndirectedFixtures.swift`), the pseudograph test conformer and `Minim
 
 | File | Covers |
 |---|---|
-| `UndirectedAdjacencyListQueryTests.swift` | The named fixtures through generic code: the empty and trivial graphs, a lone self-loop, K₃ with and without a loop, a loop on a path in insertion order, petgraph's graph with repeats, Petersen, cube, karate, isolated vertices, positions |
+| `UndirectedAdjacencyListQueryTests.swift` | The named fixtures through generic code: the empty and trivial graphs, a lone self-loop, K₃ with and without a loop, a loop on a path in insertion order, a graph built with repeats, Petersen, cube, karate, isolated vertices, positions |
 | `UndirectedAdjacencyListMutationTests.swift` | Removing vertices (with incident loops, and so a slot with a loop moves) and edges, with the laws after every step; reversed duplicate inserts; clearing |
 | `UndirectedAdjacencyListPreconditionTests.swift` | Exit tests for every trapping precondition; membership and removal never trap |
 | `UndirectedAdjacencyListEqualityTests.swift` | `Equatable`/`Hashable` over equivalence classes; all 64 graphs on 3 vertices with loops |
@@ -88,14 +88,14 @@ fixtures (`UndirectedFixtures.swift`), the pseudograph test conformer and `Minim
 | `UndirectedAdjacencyListCodableTests.swift` | JSON and property list round trips |
 | `UndirectedAdjacencyListCheckedTests.swift` | The `checked:` lookups against their trapping spellings, throwing for a non-vertex and after a removal moved a slot; `insert(checked:)` between existing vertices, in either orientation, a loop, and throwing with nothing changed for a missing endpoint |
 | `UndirectedAdjacencyListConstructionTests.swift` | Dictionary literals, adjacency mappings, initializers, order independence, conversion from any `Graph` |
-| `UndirectedAdjacencyListReviewTests.swift` | Added after the critical review, for bugs that survived the first suite: `removeAllEdges` forgets edges (UG-R21); edgeless graphs compare vertices and hashes see both sets (UG-R16); `memberAfterInsert` returns stored instances and orientation (UG-R10); decoding keeps orientation and rejects repeated edges (UG-R19); edge indices (UG-R22); seeded random mutations against a set model, every law after every step (UG-P02) |
+| `UndirectedAdjacencyListReviewTests.swift` | Cases the other files miss: `removeAllEdges` forgets edges (UG-R21); edgeless graphs compare vertices and hashes see both sets (UG-R16); `memberAfterInsert` returns stored instances and orientation (UG-R10); decoding keeps orientation and rejects repeated edges (UG-R19); edge indices (UG-R22); seeded random mutations against a set model, every law after every step (UG-P02) |
 
 The `Graph` laws on this type (with Int and String vertices), its associated types, the builder,
 the `directedView` view and conversions are tested in `Tests/GraphProtocolsTests`, beside the other
 conformers.
 
-Case IDs in test names (UG-R01, UG-L16, ...) refer to the undirected protocol catalog (`Tests/Catalogs/GraphProtocols/graph.md`); see
-`Tests/GraphProtocolsTests/README.md`. Fixtures cite their sources in
+Case IDs in test names (UG-R01, UG-L16, ...) refer to the undirected protocol catalog
+(`Tests/Catalogs/GraphProtocols/graph.md`); see `Tests/GraphProtocolsTests/README.md`. Fixtures cite their sources in
 `Tests/GrafluentTestSupport/UndirectedFixtures.swift`.
 
 Properties that can only be observed internally (O(1) `degree` and `contains(edge:)`, O(degree)

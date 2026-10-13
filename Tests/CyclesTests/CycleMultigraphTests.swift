@@ -1,9 +1,9 @@
 // §E: parallel edges and self-loops. A loop is one 1-cycle per loop edge (though an undirected row
 // lists it twice), k parallel undirected edges give C(k, 2) 2-cycles, one undirected edge is no
 // cycle, opposite arcs are one 2-cycle, and parallel arcs give one cycle per copy; `g.directedView`
-// reads every edge as two arcs (Boost's undirected count). Graphs written as the catalog writes
-// them on the reference conformers, so positions are exact. Expected values come from the
-// catalog's reference (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see README.md.
+// reads every edge as two arcs. Graphs are written as the catalog writes them on the reference
+// conformers, so positions are exact. Expected values come from the catalog's reference (`ref.py`).
+// Case IDs (CY-nnn) refer to the catalog; see README.md.
 
 import Cycles
 import GraphProtocols

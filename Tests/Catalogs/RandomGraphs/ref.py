@@ -946,7 +946,7 @@ def build_rows():
     N = 60 * 59 // 2
     stat_row("RandomDAG", "law: E[m] = p·C(n, 2); topologicalOrder == 0..<n", "G(60, 0.1)", z_text(tot, S, N * 0.1, N * 0.1 * 0.9))
 
-    # ---- rows added after the review, numbered after the first 108 so those keep their IDs
+    # ---- directed symmetric families and the geometric grid
     # Directed forms of the symmetric families: both arcs of every edge.
     exact_row("WattsStrogatz", "directed: both arcs of every edge, the undirected draws",
               f"{CSR}.wattsStrogatz(vertexCount: 8, nearestNeighborCount: 2, rewiringProbability: 0.5, using: &Xoshiro256StarStar(seed: SEED))",
@@ -1029,7 +1029,7 @@ def build_rows():
     tot = sum(len(random_bipartite(30, 20, 0.1, Xoshiro256StarStar(s), True).edges) for s in range(S))
     stat_row("RandomBipartite", "law: E[m] = 2·a·b·p", "G(30, 20, 0.1) directed", z_text(tot, S, 1200 * 0.1, 1200 * 0.1 * 0.9))
 
-    # ---- rows added after the mutation pass, numbered after RG-141 so those keep their IDs
+    # ---- further edge cases and traps
     exact_row("WattsStrogatz", "n 4, k 2, p 0.8: a vertex rewired away from loses degree, so it is not full",
               f"{UL}.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &Xoshiro256StarStar(seed: SEED))",
               "ws", (4, 2, 0.8), 0, lambda rng: watts_strogatz(4, 2, 0.8, rng))

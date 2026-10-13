@@ -1,8 +1,7 @@
-// Cases added after the critical review: a conformer with edge indices but no vertex indices,
-// a conformer whose index rows break the protocol's laws (it traps rather than reading garbage),
-// and UndirectedAdjacencyList after mutations that repack its rows (many vertex removals,
-// removing every edge with and without keeping capacity, removing the last slot while it has a
-// self-loop). Each compares every result with a ReferencePseudograph holding the same vertices
+// A conformer with edge indices but no vertex indices, a conformer whose index rows break the
+// protocol's laws (it traps rather than reading garbage), and UndirectedAdjacencyList after
+// mutations that repack its rows (many vertex removals, removing every edge with and without
+// keeping capacity, removing the last slot while it has a self-loop). Each compares every result with a ReferencePseudograph holding the same vertices
 // and edges in the same order, whose answers the rest of the suite pins. Case IDs (CN-nn) refer
 // to the catalog; see README.md.
 

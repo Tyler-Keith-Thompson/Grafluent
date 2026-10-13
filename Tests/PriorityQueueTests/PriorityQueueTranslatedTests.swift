@@ -1,7 +1,9 @@
-// Tests of LEMON, igraph, NetworkX and swift-collections, translated to the index-and-priority
-// API with their exact data. Where priorities tie, the order is unspecified, so tied indices are
-// compared as sets. Expected values come from the catalog's reference (`ref.py`, `cases.out`).
-// igraph's trace is GPL-licensed and is used as data only.
+// Fixed operation sequences with exact expected values: heap sort and priority increases
+// (PQ-20, PQ-21), a Dijkstra graph checked against Bellman–Ford (PQ-22), a recorded Dijkstra
+// trace (PQ-23), mixed operation lists with an upsert written at the call site (PQ-24, PQ-25),
+// and pop, replacement, tie and removal sequences (PQ-26 – PQ-29). Where priorities tie, the
+// order is unspecified, so tied indices are compared as sets. Expected values come from the
+// catalog's reference (`ref.py`, `cases.out`).
 // Case IDs (PQ-nn) refer to the catalog; see README.md.
 
 import GrafluentTestSupport
@@ -47,7 +49,7 @@ struct PriorityQueueTranslatedTests {
 
     @Test("PQ-22 LEMON dijkstraHeapTest graph: a Dijkstra on the queue equals Bellman–Ford")
     func lemonDijkstra() {
-        // test_lgf: 10 nodes, 20 arcs (source, target, length), source node 3.
+        // 10 nodes, 20 arcs (source, target, length), source node 3.
         let arcs = [(0, 5, 94), (3, 9, 11), (8, 7, 83), (1, 2, 94), (5, 7, 35), (7, 4, 84), (9, 5, 38),
                     (0, 4, 96), (6, 7, 6), (3, 1, 27), (5, 2, 77), (5, 6, 69), (6, 5, 41), (4, 6, 70),
                     (3, 2, 45), (7, 9, 93), (5, 9, 50), (9, 0, 94), (9, 6, 67), (0, 9, 86)]
@@ -88,7 +90,7 @@ struct PriorityQueueTranslatedTests {
         }
         #expect(dist == bellmanFord)
 
-        // LEMON's checks: no arc can be relaxed, and every tree arc is tight.
+        // No arc can be relaxed, and every tree arc is tight.
         for (u, v, w) in arcs {
             guard let du = dist[u] else { continue }
             #expect(dist[v]! - du <= w)
@@ -213,8 +215,8 @@ struct PriorityQueueTranslatedTests {
     @Test("PQ-25 NetworkX _test_heap_class coverage loop, with its insert written at the call site")
     func networkXCoverageLoop() {
         var q = IndexedPriorityQueue<Int>(indexBound: 100)
-        // NetworkX's MinHeap.insert: insert when absent, decrease when smaller, increase only when
-        // allowed; returns whether it inserted or decreased.
+        // An upsert written at the call site: insert when absent, decrease when smaller, increase
+        // only when allowed. Returns whether it inserted or decreased.
         func networkXInsert(_ i: Int, _ p: Int, allowIncrease: Bool = false) -> Bool {
             guard let old = q.priority(of: i) else {
                 q.insert(i, priority: p)
@@ -301,7 +303,7 @@ struct PriorityQueueTranslatedTests {
             indices.append(i)
             priorities.append(p)
         }
-        // Exactly the priorities Heap's test pops.
+        // The exact popped priorities, ties included.
         #expect(priorities == [1, 2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 11, 12, 12, 13, 13, 14, 15, 16, 17, 18, 19, 20])
         #expect(Array(indices[0 ..< 3]) == [10, 11, 12])
         #expect(Set(indices[3 ..< 5]) == [5, 13])

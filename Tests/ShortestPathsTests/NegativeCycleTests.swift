@@ -59,7 +59,7 @@ struct NegativeCycleTests {
         #expect(loop.bellmanFordShortestPaths(from: 1) { _ in -1 } == nil)
         #expect(AdjacencyList(edges: [DirectedEdge(from: 1, to: 1)]).findNegativeCycle(from: 1) { _ in -1 }?.vertices == [1])
 
-        // petgraph's find_neg_cycle1, on CSR (ascending, so edge indices are written positions).
+        // On CSR (ascending, so edge indices are written positions).
         let petgraph: [(Int, Int, Double)] = [(0, 1, 0.5), (0, 2, 2), (1, 0, 1), (1, 1, -1), (1, 2, 1), (1, 3, 1), (2, 3, 3)]
         let sparse = CompressedSparseRow(vertexCount: 4, edges: petgraph.map { DirectedEdge(from: $0.0, to: $0.1) })
         let weights = petgraph.map(\.2)

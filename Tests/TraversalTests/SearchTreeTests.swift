@@ -1,8 +1,7 @@
 // breadthFirstTree(from:depthLimit:) and depthFirstTree(from:depthLimit:): the search trees as
-// arborescences, after NetworkX's bfs_tree and dfs_tree. Each tree is checked against the search
-// it comes from: vertices in discovery order, edges in tree-edge order, parents and depths.
-// Undirected NetworkX graphs are written as both directions. Case IDs (TR-nn) refer to the
-// catalog; see README.md.
+// arborescences. Each tree is checked against the search it comes from: vertices in discovery
+// order, edges in tree-edge order, parents and depths. Undirected graphs are written as both
+// directions. Case IDs (TR-nn) refer to the catalog; see README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -17,7 +16,7 @@ import Trees
 struct SearchTreeTests {
     @Test("TR-184 NetworkX's test_bfs_tree and test_dfs_tree graph")
     func networkX() {
-        // NetworkX test_bfs.py / test_dfs.py: edges (0, 1), (1, 2), (1, 3), (2, 4), (3, 4), undirected.
+        // Edges (0, 1), (1, 2), (1, 3), (2, 4), (3, 4), undirected.
         var edges: [DirectedEdge<Int>] = []
         for (a, b) in [(0, 1), (1, 2), (1, 3), (2, 4), (3, 4)] {
             edges += [DirectedEdge(from: a, to: b), DirectedEdge(from: b, to: a)]

@@ -4,8 +4,8 @@
 Package.swift and every Sources/*/BUILD.bazel are generated from this table, so SwiftPM and Bazel
 cannot drift. Run `just modules` after editing it.
 
-Module names follow swift-collections: named after the concept they hold, with a `Module` suffix
-only where the module would otherwise share a name with its main type (as DequeModule/Deque).
+Modules are named after the concept they hold, with a `Module` suffix only where the module
+would otherwise share a name with its main type (AdjacencyListModule and AdjacencyList).
 """
 
 # External packages: (identity, url, minimum version). A dependency written "identity/Product"
@@ -22,7 +22,7 @@ PACKAGES = [
 # (name, group, description, dependencies)
 MODULES = [
     # Vocabulary
-    ("GraphProtocols", "Vocabulary", "DirectedGraph, Graph and their refinements; Arc and Edge; the result builders that construct graphs; NoConvergence, the error of iterative methods.", ["swift-algorithms/Algorithms"]),
+    ("GraphProtocols", "Vocabulary", "DirectedGraph, Graph and their refinements; DirectedEdge and UndirectedEdge; the result builders that construct graphs; NoConvergence, the error of iterative methods.", ["swift-algorithms/Algorithms"]),
     ("Walks", "Vocabulary", "Walk, Trail, Path, Circuit and Cycle: vertex sequences with the edge positions between them, their invariants enforced by construction.", ["GraphProtocols"]),
     ("Semirings", "Vocabulary", "The Semiring protocol and the tropical, bottleneck, Boolean and counting semirings, for algebraic path problems.", []),
 
@@ -37,36 +37,36 @@ MODULES = [
     ("CompressedSparseRowModule", "Representations", "CompressedSparseRow: an immutable directed graph on vertices 0..<n in compressed sparse row form.", ["GraphProtocols"]),
     ("EdgeListModule", "Representations", "EdgeList: a directed multigraph as an ordered, mutable list of edges.", ["GraphProtocols"]),
     ("ImplicitGraphs", "Representations", "ImplicitDirectedGraph: out-neighbors computed on demand, never stored.", ["GraphProtocols"]),
-    ("LabeledGraphs", "Representations", "LabeledGraph: Hashable vertex labels over CompressedSparseRow or AdjacencyMatrix, kept in an OrderedSet whose element i names base vertex i, with every index-space member forwarded to the base (BGL's labeled_graph).", ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyMatrixModule", "swift-collections/OrderedCollections"]),
+    ("LabeledGraphs", "Representations", "LabeledGraph: Hashable vertex labels over CompressedSparseRow or AdjacencyMatrix, kept in an OrderedSet whose element i names base vertex i, with every index-space member forwarded to the base.", ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyMatrixModule", "swift-collections/OrderedCollections"]),
 
     # Graph classes with invariants
     ("DirectedAcyclicGraphModule", "Structures", "DirectedAcyclicGraph: a wrapper over any MutableDirectedGraph that rejects an edge closing a cycle and keeps a topological order by Pearce–Kelly, with every read member forwarded to the base; transitive closure and reduction, longest paths (unit and weighted).", ["GraphProtocols", "Walks", "StableGraphs"]),
     ("Trees", "Structures", "Tree, RootedTree, Forest and Arborescence.", ["GraphProtocols", "Walks"]),
     ("BipartiteGraphs", "Structures", "BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses.", ["GraphProtocols", "Walks", "AdjacencyListModule"]),
     ("Multigraphs", "Structures", "Pseudograph, Multigraph, DirectedPseudograph and DirectedMultigraph: parallel edges, with and without self-loops.", ["GraphProtocols", "AdjacencyListModule"]),
-    ("StableGraphs", "Structures", "StableDirectedGraph: a directed pseudograph whose vertex and edge positions survive removals (petgraph's StableDiGraph), in pages freed once dead, with VertexMap and EdgeMap side data (LEMON's NodeMap and ArcMap).", ["GraphProtocols"]),
+    ("StableGraphs", "Structures", "StableDirectedGraph: a directed pseudograph whose vertex and edge positions survive removals, stored in pages freed once dead.", ["GraphProtocols"]),
     ("Hypergraphs", "Structures", "UndirectedIncidenceList and IncidenceList, the hypergraph algorithms, and the incidence-graph views through which graph algorithms reach a hypergraph.", ["GraphProtocols", "AdjacencyListModule", "DisjointSetModule", "swift-collections/OrderedCollections", "Connectivity"]),
     ("FunctionalGraphs", "Structures", "FunctionalGraph: every vertex has outdegree 1; Floyd's and Brent's cycle detection.", ["GraphProtocols", "Walks"]),
 
     # Operations
-    ("GraphOperations", "Operations", "Subgraph, induced subgraph, converse, underlying graph, complement, line graph, condensation, quotient graph, union, intersection and join.", ["GraphProtocols", "DirectedAcyclicGraphModule", "Connectivity", "CompressedSparseRowModule", "swift-atomics/Atomics"]),
+    ("GraphOperations", "Operations", "Subgraph, induced subgraph, transposed and complement views, line graph, condensation, quotient graph, disjoint union and join.", ["GraphProtocols", "DirectedAcyclicGraphModule", "Connectivity", "CompressedSparseRowModule", "swift-atomics/Atomics"]),
     ("GraphProducts", "Operations", "Cartesian, tensor, strong and lexicographic products.", ["GraphProtocols"]),
 
     # Algorithms
     ("Traversal", "Algorithms", "Breadth-first and depth-first search as event sequences, reachability, topological ordering, cycle finding.", ["GraphProtocols", "Walks", "Trees"]),
-    ("ShortestPaths", "Algorithms", "Dijkstra, Bellman–Ford, A*, DAG, unweighted and Floyd–Warshall shortest paths, over numeric weights or a selective semiring, and Mohri's DAG shortest distances over any semiring; later Johnson, Yen, Δ-stepping, contraction hierarchies.", ["GraphProtocols", "Walks", "Semirings", "PriorityQueueModule", "DirectedAcyclicGraphModule", "Trees", "Connectivity"]),
-    ("SpanningTrees", "Algorithms", "Minimum and maximum spanning forests by Kruskal, Prim and Borůvka; later Chu–Liu/Edmonds and Steiner tree approximation.", ["GraphProtocols", "DisjointSetModule", "PriorityQueueModule", "Trees"]),
+    ("ShortestPaths", "Algorithms", "Dijkstra, Bellman–Ford, A*, DAG, unweighted and Floyd–Warshall shortest paths, over numeric weights or a selective semiring, and Mohri's DAG shortest distances over any semiring.", ["GraphProtocols", "Walks", "Semirings", "PriorityQueueModule", "DirectedAcyclicGraphModule", "Trees", "Connectivity"]),
+    ("SpanningTrees", "Algorithms", "Minimum and maximum spanning forests by Kruskal, Prim and Borůvka.", ["GraphProtocols", "DisjointSetModule", "PriorityQueueModule", "Trees"]),
     ("Connectivity", "Algorithms", "Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected and bi-edge-connected components and the block–cut tree of undirected graphs.", ["GraphProtocols", "CompressedSparseRowModule", "Trees"]),
-    ("Cycles", "Algorithms", "Cycle detection, cycle bases, elementary circuits, girth.", ["GraphProtocols", "Walks", "DisjointSetModule", "Connectivity"]),
-    ("Tours", "Algorithms", "Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman heuristics.", ["GraphProtocols", "Walks", "MatchingModule", "SpanningTrees"]),
+    ("Cycles", "Algorithms", "Cycle detection, cycle bases, elementary circuits, girth, feedback arc sets.", ["GraphProtocols", "Walks", "DisjointSetModule", "Connectivity"]),
+    ("Tours", "Algorithms", "Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman tours (exact and heuristic).", ["GraphProtocols", "Walks", "MatchingModule", "SpanningTrees"]),
     ("Flows", "Algorithms", "Maximum flow (push–relabel, Dinic, Edmonds–Karp), minimum cuts (s–t, Nagamochi–Ibaraki, Hao–Orlin), Gomory–Hu trees, minimum-cost flow (network simplex), edge and vertex connectivity, disjoint paths.", ["GraphProtocols", "Trees", "Walks"]),
     ("MatchingModule", "Algorithms", "Matching: Hopcroft–Karp, Hungarian, Edmonds' blossom, Gale–Shapley.", ["GraphProtocols", "BipartiteGraphs"]),
     ("ColoringModule", "Algorithms", "Vertex coloring (greedy strategies, exact chromatic number), edge coloring (Misra–Gries, König, greedy).", ["GraphProtocols", "BipartiteGraphs", "Cliques"]),
     ("Cliques", "Algorithms", "Bron–Kerbosch, k-cores, triangle counting, clustering coefficient.", ["GraphProtocols"]),
     ("Covering", "Algorithms", "Vertex cover, independent set, dominating set, edge cover.", ["GraphProtocols", "MatchingModule", "BipartiteGraphs", "Cliques"]),
     ("Centrality", "Algorithms", "Degree, closeness, harmonic, betweenness, eigenvector, Katz, PageRank, HITS.", ["GraphProtocols", "PriorityQueueModule"]),
-    ("CommunityDetection", "Algorithms", "Louvain, Leiden, label propagation, Girvan–Newman, modularity.", ["GraphProtocols", "PriorityQueueModule"]),
-    ("IsomorphismModule", "Algorithms", "Isomorphism: VF2, VF2++, Weisfeiler–Leman, canonical labeling.", ["GraphProtocols"]),
+    ("CommunityDetection", "Algorithms", "Modularity, Louvain, label propagation and greedy modularity communities.", ["GraphProtocols", "PriorityQueueModule"]),
+    ("IsomorphismModule", "Algorithms", "Isomorphism and subgraph isomorphism (VF2++), canonical labeling, automorphism groups, Weisfeiler–Leman hashing.", ["GraphProtocols"]),
     ("Planarity", "Algorithms", "Planarity testing and planar embeddings by the left-right test, Kuratowski subgraphs by Boyer–Myrvold, outerplanarity.", ["GraphProtocols", "Walks"]),
     ("TreeAlgorithms", "Algorithms", "Lowest common ancestor, Euler tour, heavy–light decomposition, center, centroid, diameter.", ["GraphProtocols", "Trees", "Walks"]),
     ("Distances", "Algorithms", "Eccentricity, radius, diameter, center, periphery, centroid, Wiener index, average shortest path length, density.", ["GraphProtocols", "Walks", "PriorityQueueModule"]),
@@ -81,8 +81,8 @@ MODULES = [
     ("GraphFormats", "Formats", "Readers and writers for DOT, GraphML, node-link JSON, Matrix Market, edge lists, adjacency lists and Mermaid flowcharts, with their own UTF-8, XML and JSON scanners (no Foundation).", ["GraphProtocols"]),
 ]
 
-# Test targets that exist. SwiftPM rejects a target with no sources, so one is added here when a
-# module's first suite is written. (name, dependencies)
+# Test targets. SwiftPM rejects a target with no sources, so list a target only once its directory
+# holds tests. (name, dependencies)
 TEST_TARGETS = [
     ("GrafluentTestSupportTests", ["GraphProtocols", "GrafluentTestSupport"]),
     ("AdjacencyListTests", ["GraphProtocols", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
@@ -129,12 +129,11 @@ TEST_TARGETS = [
     ("SemiringsTests", ["Semirings", "ShortestPaths", "GraphProtocols", "Multigraphs", "AdjacencyListModule", "DirectedAcyclicGraphModule", "StableGraphs", "Traversal", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphDrawingTests", ["GraphProtocols", "GraphDrawing", "Cycles", "Trees", "RandomGraphs", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "StableGraphs", "DirectedAcyclicGraphModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("SpectralGraphTheoryTests", ["GraphProtocols", "SpectralGraphTheory", "CompressedSparseRowModule", "AdjacencyListModule", "AdjacencyMatrixModule", "Multigraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("GrafluentTests", ["Grafluent"]),
 ]
 
 # Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more
 # than about 15 s and so can pass 60 s when other builds load the machine. "medium" is 300 s.
-# Solo debug runs, measured 2026-10-10: Coloring 16 s, Distances 19 s, ShortestPaths, Trees and
-# TreeAlgorithms 16 s, PriorityQueue 14 s; the rest at most 13 s.
 TEST_SIZES = {name: "medium" for name in ["ColoringModuleTests", "DistancesTests", "ShortestPathsTests", "TreesTests", "TreeAlgorithmsTests", "PriorityQueueTests", "IsomorphismTests", "SpectralGraphTheoryTests", "GraphFormatsTests"]}
 
 # Test targets whose speed-reliant tests live in Performance/ under the target's directory: tests
@@ -278,7 +277,7 @@ def package_swift():
         "let package = Package(",
         '    name: "Grafluent",',
         "    // macOS 15 / iOS 18 is the floor for `Synchronization.Mutex`, used by the test support target.",
-        "    // Revisit with open question 6 in README.md. Keep in step with .bazelrc.",
+        "    // Keep in step with .bazelrc.",
         f"    platforms: {PLATFORMS},",
         "    products: products,",
         "    dependencies: dependencies,",
@@ -315,7 +314,7 @@ def build_bazel(name, description, deps, umbrella=False):
         '    catalog_generator = "//scripts:extensions.py",\n'
         '    catalog_generator_srcs = ["//scripts:modules.py"],\n'
     ) if umbrella else ""
-    # The generator's output is gitignored, but may be in the checkout from an older `just docs`.
+    # The generator writes Extensions/, which is gitignored; a local `just docs` can leave it in the checkout.
     catalog = 'glob(["*.docc/**"], exclude = ["*.docc/Extensions/**"])' if umbrella else 'glob(["*.docc/**"], allow_empty = True)'
     return (
         "# GENERATED by scripts/modules.py — edit the table there, then run `just modules`.\n\n"
@@ -425,9 +424,10 @@ def differential_package_swift():
         "import PackageDescription\n\n"
         "// GENERATED by scripts/modules.py (DIFFERENTIAL_DEPENDENCIES): edit the list there, then run `just modules`.\n"
         "//\n"
-        "// Differential testing against NetworkX and scipy: this executable answers a batch of queries\n"
-        "// with the library, and scripts/differential.py asks the reference libraries the same questions\n"
-        "// and compares. In its own package so the library never depends on Foundation's JSON coding.\n"
+        "// Differential testing against NetworkX, scipy, rustworkx and igraph: this executable answers a\n"
+        "// batch of queries with the library, and scripts/differential.py asks the reference libraries\n"
+        "// the same questions and compares. In its own package so the library never depends on\n"
+        "// Foundation's JSON coding.\n"
         "// `just diff` builds it through Bazel (Differential/BUILD.bazel); this package is the\n"
         "// `--swiftpm` fallback. See Differential/README.md.\n\n"
         f"let products: [Target.Dependency] = [{deps}].map {{ .product(name: $0, package: \"Grafluent\") }}\n\n"
@@ -471,7 +471,7 @@ def main():
         # sources, it carries a file holding only its description.
         if not any(fn.endswith(".swift") for _, _, fns in os.walk(d) for fn in fns):
             with open(os.path.join(d, f"{name}.swift"), "w") as f:
-                f.write(f"// {name}: {description}\n//\n// No implementation yet; see README.md.\n")
+                f.write(f"// {name}: {description}\n")
     for name, deps in TEST_TARGETS:
         d = os.path.join(root, "Tests", name)
         os.makedirs(d, exist_ok=True)

@@ -1,41 +1,41 @@
 /// An undirected hypergraph: a finite set of vertices and a finite collection of hyperedges, each a
-/// set of vertices of any size, the empty set included (Berge, *Hypergraphs*, 1989). Not a `Graph`,
-/// and no shared parent with one: a hyperedge is not an edge. The `Hypergraphs` module's
-/// `incidenceGraphView` reads a hypergraph as its bipartite incidence graph (the Levi graph), which is
-/// how the graph algorithms reach it.
+/// set of vertices of any size, the empty set included (Berge, *Hypergraphs*, 1989).
 ///
-/// **Hyperedges and their identity.** `hyperedges` lists every hyperedge once, a repeated one at
-/// each of its positions, and a hyperedge's position is its identity, as an edge's is in `Graph`.
-/// `incidentHyperedges(of:)` lists the positions of the hyperedges a vertex is a member of. A value
-/// keyed by `Hyperedges.Index` (a weight) is the same from every member. Positions are valid until
-/// the hypergraph is mutated.
+/// A hypergraph is not a `Graph` and shares no parent protocol with one, because a hyperedge is
+/// not an edge. The `Hypergraphs` module's `incidenceGraphView` reads a hypergraph as its
+/// bipartite incidence graph (the Levi graph), which is how the graph algorithms reach it.
 ///
-/// **Vertex and hyperedge indices.** As for `Graph`: with `vertexIndexBound`, `vertexIndex(of:)`
-/// maps the vertices one-to-one onto `0..<vertexIndexBound`, and `memberIndices(ofHyperedgeAt:)`
-/// and `incidentHyperedges(ofIndex:)` read incidence in index space. With `hyperedgeIndexBound`,
-/// `hyperedgeIndex(of:)` maps the positions one-to-one onto `0..<hyperedgeIndexBound`, so
-/// per-hyperedge state lives in arrays. The algorithms in `Hypergraphs` need both bounds.
+/// `hyperedges` lists every hyperedge once, a repeated one at each of its positions. A hyperedge's
+/// position is its identity, as an edge's is in `Graph`. `incidentHyperedges(of:)` lists the
+/// positions of the hyperedges a vertex is a member of, so a value keyed by `Hyperedges.Index`,
+/// such as a weight, is the same from every member. Positions are valid until the hypergraph is
+/// mutated.
 ///
-/// **Laws.** Every conformer satisfies:
+/// With `vertexIndexBound`, `vertexIndex(of:)` maps the vertices one-to-one onto
+/// `0..<vertexIndexBound`, and `memberIndices(ofHyperedgeAt:)` and `incidentHyperedges(ofIndex:)`
+/// read incidence in index space. With `hyperedgeIndexBound`, `hyperedgeIndex(of:)` maps the
+/// positions one-to-one onto `0..<hyperedgeIndexBound`, so per-hyperedge state lives in arrays.
+/// The algorithms in `Hypergraphs` need both bounds.
+///
+/// Every conformer satisfies these laws:
 /// - `vertexCount == vertices.count`, the vertices are distinct, and
 ///   `hyperedgeCount == hyperedges.count`.
 /// - The members of a hyperedge are distinct vertices.
 /// - A position `p` is in `incidentHyperedges(of: v)` exactly when `v` is a member of the
 ///   hyperedge at `p`, once, in `hyperedges` order. `degree(of: v)` is the length of that list and
-///   `size(ofHyperedgeAt: p)` the number of members, so the degrees sum to the sizes.
+///   `size(ofHyperedgeAt: p)` is the number of members, so the degrees sum to the sizes.
 /// - `contains(hyperedge:)` is true exactly when some hyperedge has those members, the empty set
-///   included; it and `contains(_:)` never trap.
+///   included. It and `contains(_:)` never trap.
 /// - With vertex indices, `vertices` is in index order, `memberIndices(ofHyperedgeAt:)` is the
 ///   members mapped through `vertexIndex(of:)` in the same order, and the `(ofIndex:)` reads equal
 ///   the vertex reads.
 /// - With hyperedge indices, `hyperedgeIndexBound == hyperedgeCount`, and `hyperedges` is in index
 ///   order: the `k`th position has index `k`.
-/// - The hash law: index-space members hash no vertex, and a vertex-space read looks its vertex up
-///   once.
+/// - Index-space members hash no vertex, and a vertex-space read looks its vertex up once.
 ///
-/// **Defaults.** As for `Graph`, members with default implementations are requirements, so a
-/// representation's faster version is the one generic code calls, and a wrapper must forward
-/// every one. The protocol has no mutation and does not refine `Sendable`.
+/// Members with default implementations are still requirements. Generic code calls a
+/// representation's own version when it has one, and a wrapper must forward every one. The
+/// protocol has no mutating members and does not refine `Sendable`.
 public protocol Hypergraph<Vertex> {
     associatedtype Vertex: Hashable
     associatedtype Vertices: Collection<Vertex>
@@ -49,8 +49,8 @@ public protocol Hypergraph<Vertex> {
     /// Every vertex once, in an order the representation documents.
     var vertices: Vertices { get }
 
-    /// Every hyperedge, as its members, at its position: a repeated hyperedge at each of its
-    /// positions, an empty one as an empty collection.
+    /// Every hyperedge, as its members, at its position. A repeated hyperedge appears at each of
+    /// its positions, and an empty one as an empty collection.
     var hyperedges: Hyperedges { get }
 
     /// The positions of the hyperedges `vertex` is a member of, each once, in `hyperedges` order.
@@ -86,7 +86,7 @@ public protocol Hypergraph<Vertex> {
     func contains(_ vertex: Vertex) -> Bool
 
     /// Whether some hyperedge has exactly the members of `members`, ignoring their order and
-    /// repeats; for an empty sequence, whether there is an empty hyperedge. Never traps: false when
+    /// repeats. For an empty sequence, whether there is an empty hyperedge. Never traps; false when
     /// a member is not a vertex. Default: a set of the members, compared with every hyperedge.
     func contains(hyperedge members: some Sequence<Vertex>) -> Bool
 
@@ -132,24 +132,26 @@ public protocol Hypergraph<Vertex> {
     /// - Precondition: `vertexIndexBound` is not `nil`, and `index` is in `0..<vertexIndexBound`.
     func degree(ofIndex index: Int) -> Int
 
-    /// The indices of the hyperedges the vertex whose index is `index` is a member of, in
-    /// `incidentHyperedges` order: `incidentHyperedges(ofIndex: index)` mapped through
-    /// `hyperedgeIndex(of:)`. Default: exactly that.
+    /// The indices of the hyperedges that the vertex at `index` is a member of:
+    /// `incidentHyperedges(ofIndex: index)` mapped through `hyperedgeIndex(of:)`. Default: exactly
+    /// that.
     ///
     /// - Precondition: both index bounds are non-nil, and `index` is in `0..<vertexIndexBound`.
     func incidentHyperedgeIndices(ofIndex index: Int) -> IncidentHyperedgeIndices
 
     /// Calls `body` with each of `memberIndices(ofHyperedgeAt: position)`, in order. Default: a
-    /// loop over `memberIndices`. `IncidenceMatrix` scans the column's words in place, which a
-    /// loop over every hyperedge (union–find) runs faster than through an iterator.
+    /// loop over `memberIndices(ofHyperedgeAt:)`. `IncidenceMatrix` scans the column's words in
+    /// place, which is faster for algorithms that visit every hyperedge.
     ///
     /// Not for use outside the library.
     func _forEachMemberIndex(ofHyperedgeAt position: Hyperedges.Index, _ body: (Int) -> Void)
 
-    /// The number of members before `index` in `memberIndices(ofHyperedgeAt: position)`, where
-    /// `index` is a member: its place in the hyperedge. Default: a walk of `memberIndices`, O(k).
+    /// The number of members before `index` in `memberIndices(ofHyperedgeAt: position)`, which is
+    /// the member's place in the hyperedge. Default: a walk of `memberIndices`, O(k).
     /// `IncidenceMatrix` counts the column's set bits below `index`, O(⌈n/64⌉). The
     /// incidence-graph view numbers a vertex's incidences with it.
+    ///
+    /// - Precondition: `index` is a member of the hyperedge.
     ///
     /// Not for use outside the library.
     func _memberRank(ofIndex index: Int, inHyperedgeAt position: Hyperedges.Index) -> Int
@@ -161,14 +163,16 @@ public protocol Hypergraph<Vertex> {
     /// Not for use outside the library.
     func _memberIndex(atRank rank: Int, inHyperedgeAt position: Hyperedges.Index) -> Int
 
-    /// Calls `body` with the incidences as flat rows, valid only during the call. Incidence `q`
-    /// is the `q`th member, hyperedge by hyperedge in index order and within a hyperedge in
-    /// `memberIndices` order: hyperedge `h`'s are `memberOffsets[h] ..< memberOffsets[h + 1]`
-    /// (`m + 1` offsets) and `members[q]` is incidence `q`'s vertex index. Vertex `i`'s row in
-    /// `incidences` lists its incidence numbers, ascending, and its row in `hyperedges` the
-    /// hyperedge indices beside them; each row table has three entries per vertex (start, length,
-    /// unused), as `Graph._withIncidentIndexRows`'s do. The incidence-graph views number their
-    /// edges this way.
+    /// Calls `body` with the incidences as flat rows, valid only during the call. The
+    /// incidence-graph views number their edges this way.
+    ///
+    /// Incidence `q` is the `q`th member, counting hyperedge by hyperedge in index order and within
+    /// a hyperedge in `memberIndices` order. Hyperedge `h`'s incidences are
+    /// `memberOffsets[h] ..< memberOffsets[h + 1]` (`m + 1` offsets), and `members[q]` is
+    /// incidence `q`'s vertex index. Vertex `i`'s row in `incidences` lists its incidence numbers
+    /// in ascending order, and its row in `hyperedges` lists the hyperedge indices beside them.
+    /// Each row table has three entries per vertex (start, length, unused), as in
+    /// `Graph._withIncidentIndexRows`.
     ///
     /// Default: the rows written out for the call, O(n + m + p) plus the cost of reading every
     /// `memberIndices` once. `UndirectedIncidenceList` lends its storage.
@@ -182,15 +186,16 @@ public protocol Hypergraph<Vertex> {
         ) -> Result
     ) -> Result
 
-    /// The graph's current generation, which every structural mutation replaces: a structure
-    /// derived from the graph stores it and asks `GraphGeneration.isCurrent(for:)` before relying
-    /// on the graph again. Default: `GraphGeneration.untracked`, current for no graph. A wrapper
-    /// reports its base's.
+    /// The hypergraph's current generation. Every structural mutation replaces it. A structure
+    /// derived from the hypergraph stores the generation and calls
+    /// `GraphGeneration.isCurrent(for:)` before relying on it again. Default:
+    /// `GraphGeneration.untracked`, which is current for no hypergraph. A wrapper reports its
+    /// base's generation.
     var generation: GraphGeneration { get }
 }
 
 extension Hypergraph {
-    /// `GraphGeneration.untracked`: a conformer that does not track its mutations.
+    /// `GraphGeneration.untracked`, for a conformer that does not track its mutations.
     @inlinable
     public var generation: GraphGeneration { .untracked }
 

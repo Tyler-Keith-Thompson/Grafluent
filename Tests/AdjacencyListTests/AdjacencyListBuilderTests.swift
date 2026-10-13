@@ -107,7 +107,7 @@ struct AdjacencyListBuilderTests {
 
     @Test("builder output equals init(vertices:edges:)")
     func matchesInitializer() {
-        // The Boost.Graph "house and lollipop" graph, test/test_graph.hpp.
+        // The "house and lollipop" graph.
         let edges = [
             DirectedEdge(from: 5, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 4, to: 0),
             DirectedEdge(from: 4, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 0),
@@ -121,7 +121,7 @@ struct AdjacencyListBuilderTests {
 
     @Test("String vertices")
     func stringVertices() {
-        // NetworkX test_digraph_historical.py.
+        // The ABCD graph.
         let graph = AdjacencyList<String> {
             DirectedEdge(from: "A", to: "B")
             DirectedEdge(from: "A", to: "C")

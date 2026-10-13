@@ -1,8 +1,8 @@
 import GraphProtocols
 
-/// The core decomposition of an undirected graph (Batagelj–Zaversnik; NetworkX `core_number`,
-/// igraph `coreness`, JGraphT `Coreness`), over its simple graph: a vertex's core number
-/// is the largest k such that it lies in a subgraph where every vertex has at least k neighbors.
+/// The core decomposition of an undirected graph (Batagelj–Zaversnik), over its simple graph. A
+/// vertex's core number is the largest k such that it lies in a subgraph where every vertex has at
+/// least k neighbors.
 @frozen
 public struct CoreNumbers<G: Graph> {
     @usableFromInline let _graph: G

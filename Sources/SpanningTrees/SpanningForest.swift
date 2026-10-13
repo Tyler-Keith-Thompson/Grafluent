@@ -2,19 +2,17 @@ import GraphProtocols
 import Trees
 
 /// A spanning forest of an undirected graph: one spanning tree per connected component, as edge
-/// positions in the graph's `edges`, with the sum of their weights (JGraphT's `SpanningTree`,
-/// whose `getEdges` and `getWeight` these are).
+/// positions in the graph's `edges`, with the sum of their weights.
 ///
 /// Equality compares the edges in order and the weight, not which graph the forest came from.
-/// The canonical forests (`minimumSpanningTree(weight:)`, Kruskal, the maximum) come in a fixed
-/// order, so equal answers are equal values; Prim's and Borůvka's orders differ, so compare their
-/// edges as sets.
+/// `minimumSpanningTree(weight:)`, Kruskal and `maximumSpanningTree(weight:)` list their edges in
+/// a fixed order, so equal answers are equal values. Prim and Borůvka list edges in other orders;
+/// compare their edges as sets.
 ///
 /// A forest of a graph with `n` vertices and `c` connected components has `n − c` edges. It never
-/// contains a self-loop, and of a set of parallel edges at most one.
+/// contains a self-loop, and holds at most one of a set of parallel edges.
 ///
-/// The forest does not hold a copy of the graph. Its positions are valid for as long as the
-/// graph's positions are, that is, until the graph is mutated.
+/// The forest holds no copy of the graph. Its positions stay valid until the graph is mutated.
 @frozen
 public struct SpanningForest<G: Graph, Weight: Comparable & AdditiveArithmetic> {
     /// The forest's edges, as positions in the graph's `edges`, in the order the algorithm added
@@ -37,14 +35,14 @@ extension SpanningForest: Hashable where Weight: Hashable {}
 extension SpanningForest: Sendable where G.Edges.Index: Sendable, Weight: Sendable {}
 
 extension Forest {
-    /// The spanning forest as a `Forest` of the graph it came from: every vertex of `graph`, in
-    /// `vertices` order (an isolated vertex is a one-vertex tree), and the forest's edges, in
-    /// `forest.edges` order, each as `graph.edges` holds it. The edge at position k is
-    /// `graph.edges[forest.edges[k]]`. SpanningForest keeps no copy of the graph, so it is passed
-    /// here; NetworkX's `minimum_spanning_tree` returns this graph directly. O(n) expected: each
-    /// vertex and each edge end is hashed once, unless the vertices are the `Int`s `0..<n` in
-    /// order, when nothing is.
+    /// The spanning forest as a `Forest` of the graph it came from.
     ///
+    /// The result holds every vertex of `graph` in `vertices` order (an isolated vertex is a
+    /// one-vertex tree) and the forest's edges in `forest.edges` order. The edge at position k is
+    /// `graph.edges[forest.edges[k]]`.
+    ///
+    /// - Complexity: O(n) expected. Each vertex and edge end is hashed once, unless the vertices
+    ///   are the `Int`s `0..<n` in order.
     /// - Precondition: `forest` is a spanning forest of `graph` as it is now: its positions are
     ///   valid, and its edges hold no cycle.
     @inlinable

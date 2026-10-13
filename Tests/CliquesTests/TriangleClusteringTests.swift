@@ -1,7 +1,7 @@
 // §E: triangle counts, local clustering, transitivity and average clustering (CQ-401 – CQ-465), on
-// the simple graph: a parallel edge and a loop change nothing (CQ-441; JGraphT would count 2). Local
-// clustering is 2T/(d(d − 1)) with d the simple degree, 0 when d < 2 (igraph: NaN); transitivity 0
-// with no triangle, even with no connected triple (CQ-459; igraph NaN); the average over every
+// the simple graph: a parallel edge and a loop change nothing (CQ-441). Local clustering is
+// 2T/(d(d − 1)) with d the simple degree, 0 when d < 2; transitivity 0 with no triangle, even with
+// no connected triple (CQ-459); the average over every
 // vertex, zeros included. Doubles are compared exactly: api.md computes each ratio as one integer
 // division converted once, and sums the average plainly in `vertices` order, and the catalog pins
 // those bits. Per-vertex values are checked by index, by vertex on the value, one vertex at a time

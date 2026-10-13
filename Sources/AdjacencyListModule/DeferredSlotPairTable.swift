@@ -2,13 +2,12 @@ import Atomics
 
 /// The pair table of a bulk-built `AdjacencyList`, built from its records on the first lookup
 /// rather than with the rows. A bulk build (the condensation as a `DirectedAcyclicGraph`, a line
-/// graph, a named graph) writes its rows once; filling the table beside them cost as much again
-/// (3.5–4 ms of 10 for 5·10⁵ edges, a 2²⁰-bucket table), and a result that is only traversed never
-/// reads it.
+/// graph, a named graph) writes its rows once, and a result that is only traversed never reads
+/// the table.
 ///
 /// Copies of the graph share it, and every copy saw the same records, so it is immutable once
-/// built: the first lookup builds the table and publishes it through swift-atomics'
-/// `ManagedAtomicLazyReference` (a racing builder's table is dropped), and later lookups load it.
+/// built. The first lookup builds the table and publishes it through swift-atomics'
+/// `ManagedAtomicLazyReference`, dropping a racing builder's table, and later lookups load it.
 /// A mutation takes the table into the graph's own storage and drops this object first.
 @usableFromInline
 package final class _DeferredSlotPairTable: Sendable {

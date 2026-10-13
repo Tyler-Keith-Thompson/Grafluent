@@ -1,9 +1,8 @@
 import GraphProtocols
 
-// Bulk construction builds the base as the base builds itself, then orders it once by Kahn's
-// algorithm, FIFO with the sources in `vertices` order: Traversal's `topologicalGenerations()`
-// flattened. That costs O(n + m), against O(m · δ) for inserting the edges one at a time, so the
-// two can give different (equally valid) orders.
+// Bulk construction builds the base, then orders it once by Kahn's algorithm, FIFO with the
+// sources in `vertices` order, in O(n + m). Inserting the same edges one at a time can give a
+// different valid order.
 
 extension DirectedAcyclicGraph {
     /// A graph with the given vertices and no edges, ordered as listed. A repeat is inserted once.

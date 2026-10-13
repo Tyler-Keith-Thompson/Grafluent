@@ -75,8 +75,8 @@ extension ComplementView: DirectedGraph where Base: DirectedGraph {
     }
 
     /// The first cell of the complement in row `row` above column `after`, or in a later row; the
-    /// end cell when there is none. One `contains(edge:)` per column passed: stepping from the
-    /// column, not rescanning the row from its start, keeps a walk of every cell O(n²) tests.
+    /// end cell when there is none. It resumes from `column` rather than the row's start, so a
+    /// walk of every cell costs O(n²) `contains(edge:)` tests in all.
     @inlinable
     func _nextCell(row: Int, after column: Int) -> Cell {
         let n = _n

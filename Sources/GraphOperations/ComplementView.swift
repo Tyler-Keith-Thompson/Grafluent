@@ -2,10 +2,9 @@ import GraphProtocols
 
 extension DirectedGraph {
     /// The complement: the same vertices, and an edge u→v for every ordered pair of distinct
-    /// vertices that the graph does not join (NetworkX's `complement`, igraph's `complementer`
-    /// with `loops=False`). Self-loops and parallel edges of the graph are ignored, so the
-    /// complement is simple and loop-free, and the complement of the complement is the graph
-    /// made simple and loop-free. O(1); a lazy view.
+    /// vertices that the graph does not join. Self-loops and parallel edges of the graph are
+    /// ignored. The complement is simple and loop-free, and the complement of the complement is
+    /// the graph made simple and loop-free. O(1); a lazy view.
     ///
     /// - Precondition: the graph has vertex indices.
     @inlinable
@@ -30,16 +29,16 @@ extension Graph {
 /// The complement of a graph, as a lazy view. Made by `complementView`.
 ///
 /// The vertices and their indices are the base's. Row `i` lists every index `j ≠ i` that the
-/// base's row `i` lacks, ascending: the row iterator marks the base row in a mask of ⌈n/64⌉ words,
-/// O(deg + n/64), then yields the clear bits. A row costs O(n/64 + output) and one allocation.
-/// The complement of a sparse graph has Θ(n²) edges, so a traversal is Θ(n²) whatever the layout.
+/// base's row `i` lacks, in ascending order. Producing a row costs O(deg + n/64 + output) and one
+/// allocation. The complement of a sparse graph has Θ(n²) edges, so a full traversal is Θ(n²).
 ///
 /// An edge's position is its cell of the adjacency matrix, `Cell(source: i, target: j)`, ordered
-/// row-major as `AdjacencyMatrix`'s positions are; an undirected edge has `source < target`. There
+/// row-major as `AdjacencyMatrix`'s positions are. An undirected edge has `source < target`. There
 /// are no edge indices.
 ///
 /// As a `GraphAdaptor`, its generation is the base's, and it reads the base's attached vertex
-/// maps (`[map, of:]`, `values(of:)`). Its edges are not the base's, so no edge map reads through.
+/// maps (`[map, of:]`, `values(of:)`). Its edges are not the base's, so edge maps don't read
+/// through.
 @frozen
 public struct ComplementView<Base>: GraphAdaptor {
     /// The graph the view complements.

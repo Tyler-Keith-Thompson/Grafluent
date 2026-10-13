@@ -102,9 +102,8 @@ public struct DistanceMatrix<G: DirectedGraph, Distance> {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex that is not in the graph, where the trapping
-// spellings are the fast path; `try?` gives an Optional. A nil the trapping spelling returns (no
-// path) is still nil.
+// `VertexNotFound` for a vertex that is not in the graph; `try?` gives an Optional. A nil the
+// trapping spelling returns (no path) is still nil.
 
 extension DistanceMatrix {
     /// `distance(from: source, to: target)`, throwing instead of trapping when either is not a

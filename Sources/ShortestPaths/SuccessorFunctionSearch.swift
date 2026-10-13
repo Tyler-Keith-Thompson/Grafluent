@@ -1,7 +1,6 @@
 // Weighted searches over a successor function, for state spaces that are not finite graphs (an
-// unbounded grid, a puzzle's positions): the vertices are whatever the function reaches. Rust's
-// `pathfinding` crate offers the same shape (`dijkstra`, `astar`); Traversal has the unweighted
-// searches (`breadthFirstSearch(from:successors:)` and the others).
+// unbounded grid, a puzzle's positions): the vertices are whatever the function reaches.
+// Traversal has the unweighted searches (`breadthFirstSearch(from:successors:)` and the others).
 
 /// The heap entry of the closure searches: a state's number, its priority, and its distance when
 /// it was queued (a stale entry has a larger distance than the state's best).
@@ -138,8 +137,9 @@ func _closureShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic, S: Se
 }
 
 /// A shortest path from `start` to the nearest state satisfying `success`, by Dijkstra's algorithm
-/// over a successor function (decision D19; the `pathfinding` crate's `dijkstra`), for state spaces
-/// that are not stored graphs. `successors(v)` lists each state reachable in one step from `v` with
+/// over a successor function, for state spaces that are not stored graphs.
+///
+/// `successors(v)` lists each state reachable in one step from `v` with
 /// the step's cost, and is called once per expanded state; states need only be `Hashable`, and are
 /// numbered in a dictionary as they are reached.
 ///
@@ -153,8 +153,7 @@ func _closureShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic, S: Se
 /// as `ShortestPaths.dijkstraShortestPath(from:cutoff:successors:success:)` there.
 ///
 /// - Parameter cutoff: When given, states other than `start` are reached only at distance at most
-///   `cutoff` (inclusive, as the stored-graph `dijkstraShortestPaths(from:cutoff:weight:)` and
-///   NetworkX's `cutoff`), and `nil` is returned when no goal is that close. The search then ends
+///   `cutoff` (inclusive, as for `dijkstraShortestPaths(from:cutoff:weight:)`), and `nil` is returned when no goal is that close. The search then ends
 ///   whenever finitely many states are within the cutoff, even on an infinite space. `start` is
 ///   always reached, at zero, and expanded, even under a negative cutoff.
 /// - Precondition: every examined cost is at least `.zero` and not NaN (a cost is examined, and
@@ -167,8 +166,7 @@ public func dijkstraShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic
 }
 
 /// A shortest path from `start` to the nearest state satisfying `success`, by A* over a successor
-/// function (decision D19; the `pathfinding` crate's `astar`), guided by `heuristic`, an estimate
-/// of each state's cost to the nearest goal. Returns as `dijkstraShortestPath(from:cutoff:
+/// function, guided by `heuristic`, an estimate of each state's cost to the nearest goal. Returns as `dijkstraShortestPath(from:cutoff:
 /// successors:success:)` does, and calls `heuristic` once each time a state is queued.
 ///
 /// With an admissible heuristic (never more than the true remaining cost, and so zero or less at a
@@ -178,8 +176,8 @@ public func dijkstraShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic
 /// algorithm.
 ///
 /// - Parameter cutoff: As for `dijkstraShortestPath(from:cutoff:successors:success:)`: it bounds
-///   the distance from `start`, not the distance plus the estimate (NetworkX's `astar_path` bounds
-///   the sum), so the answer does not depend on the heuristic.
+///   the distance from `start`, not the distance plus the estimate, so the answer does not depend
+///   on the heuristic.
 /// - Precondition: as for `dijkstraShortestPath(from:cutoff:successors:success:)`; no priority
 ///   (a distance plus its state's estimate) is NaN, so no estimate is NaN, and no estimate is an
 ///   infinity opposite to an infinite distance.

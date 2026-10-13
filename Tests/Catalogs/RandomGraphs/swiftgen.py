@@ -198,7 +198,7 @@ def directed_check(r, draws, seed, ind, dag=False, positions=False):
     L.append(i + "#expect(graph.vertexCount == %d && graph.edgeCount == %d && graph.edges.count == %d, \"\\(type)\")" % (n, m, m))
     L.append(i + "#expect(Array(graph.vertices) == Array(0 ..< %d), \"\\(type)\")" % n)
     L.append(i + "#expect(graph.edges.map { [$0.source, $0.target] } == %s, \"\\(type)\")" % pairs(r.edges))
-    # The geometric rows (added with positions) write a large empty graph's degrees as a rule.
+    # The geometric rows write a large empty graph's degrees as a rule.
     if n <= 64 or not positions:
         L.append(i + "#expect((0 ..< %d).map { graph.outDegree(of: $0) } == %s, \"\\(type)\")" % (n, ints(out)))
         L.append(i + "var inDegrees = [Int](repeating: 0, count: %d)" % n)
@@ -876,11 +876,11 @@ FILES = [
      "// standard library's random APIs accept it."),
     ("ErdosRenyiTests.swift", "RandomGraphs Erdős–Rényi exact outputs", ids("ErdosRenyiGnp", "ErdosRenyiGnm", stats=False),
      "G(n, p) and G(n, m) for fixed seeds (catalog RG-009 – RG-039): Batagelj–Brandes skipping and\n"
-     "// NetworkX's rejection loop, draw for draw, on every conformer, with the number of draws."),
+     "// the rejection loop, draw for draw, on every conformer, with the number of draws."),
     ("PreferentialAttachmentTests.swift", "RandomGraphs Barabási–Albert and Watts–Strogatz exact outputs",
      ids("BarabasiAlbert", "WattsStrogatz", stats=False),
      "Barabási–Albert and Watts–Strogatz for fixed seeds (catalog RG-047 – RG-068, RG-109,\n"
-     "// RG-142, RG-144): the repeated-nodes list with targets appended in ascending order, and NetworkX's ring rewiring."),
+     "// RG-142, RG-144): the repeated-nodes list with targets appended in ascending order, and the ring rewiring."),
     ("GeometricBlockModelTests.swift", "RandomGraphs random geometric graphs and block models exact outputs",
      ids("RandomGeometric", "StochasticBlockModel", stats=False),
      "Random geometric graphs and stochastic block models for fixed seeds (catalog RG-074 – RG-094,\n"
@@ -892,7 +892,7 @@ FILES = [
      "// topological order."),
     ("RegularBipartiteTests.swift", "RandomGraphs random regular and random bipartite exact outputs",
      ids("RandomRegular", "RandomBipartite", stats=False),
-     "Random regular and random bipartite graphs for fixed seeds (catalog RG-114 – RG-135, RG-143): NetworkX's\n"
+     "Random regular and random bipartite graphs for fixed seeds (catalog RG-114 – RG-135, RG-143): the\n"
      "// stub pairing with its repair rounds, and Batagelj–Brandes skipping over the left–right pairs."),
     ("StatisticalLawTests.swift", "RandomGraphs statistical laws", ids(*STAT_GROUPS, stats=True),
      "Statistical laws (catalog rows with seeds 0..<S): the exact aggregate of the pinned procedure over\n"

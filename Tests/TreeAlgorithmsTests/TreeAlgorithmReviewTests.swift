@@ -1,5 +1,5 @@
-// Cases added after the review: floating-point weights whose sums differ by summation order
-// (diameterPath used to look one sum up in the other and trap), all-zero weights, the centroid
+// Floating-point weights whose sums differ by summation order (diameterPath must not look one
+// sum up in the other), all-zero weights, the centroid
 // decomposition of a tree rooted away from vertex 0, lowest common ancestors at sizes that reach
 // the sparse table's higher levels, and the index-space forms. Case IDs (TA-nnn) refer to the
 // catalog; see README.md.

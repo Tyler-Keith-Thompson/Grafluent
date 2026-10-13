@@ -6,8 +6,7 @@ import HeapModule
 import PriorityQueueModule
 
 /// A hand-written indexed 4-ary heap of (priority, index) pairs with a position array, every step
-/// in raw buffers and no checks: the floor for PQ-B01 – B03 (the research prototype's
-/// `IndexedHeap<_, Int, 4, 0>`, tightened after review).
+/// in raw buffers and no checks. The baseline for PQ-B01 – B03.
 struct HandWrittenIndexedHeap<P: Comparable> {
     var heap: [(priority: P, index: Int)] = []
     var slots: [Int]
@@ -89,7 +88,7 @@ struct HandWrittenIndexedHeap<P: Comparable> {
 }
 
 /// A hand-written lazy 4-ary heap of (priority, index) pairs with no positions: push duplicates,
-/// skip stale pops (petgraph, NetworkX, scipy), in raw buffers.
+/// skip stale pops, in raw buffers.
 struct HandWrittenLazyHeap<P: Comparable> {
     var heap: [(priority: P, index: Int)] = []
 

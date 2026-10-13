@@ -1,6 +1,6 @@
-// The `checked:` spellings (README Principle 6): each throws `VertexNotFound` or `EdgeNotFound`
+// The `checked:` spellings: each throws `VertexNotFound` or `EdgeNotFound`
 // where its trapping spelling would trap (CSR-P01, CSR-P02, CSR-P06), and otherwise returns what
-// the trapping spelling returns. Case IDs CSR-P08 and CSR-P09 refer to the harvested test catalog.
+// the trapping spelling returns. Case IDs CSR-P08 and CSR-P09 refer to the case catalog.
 
 import CompressedSparseRowModule
 import GraphProtocols

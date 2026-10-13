@@ -12,8 +12,7 @@ import Testing
 struct CompressedSparseRowEdgeValueTests {
     @Test("CSR-C08 values given with unsorted edges follow their edges into place")
     func valuesFollowEdges() {
-        // scipy sparse/tests/test_base.py constructor4: the dense result is arange(12).reshape(4, 3),
-        // so the value of edge (i, j) is 3i + j. Entry (0, 0) = 0 is absent.
+        // The dense result is arange(12).reshape(4, 3), so the value of edge (i, j) is 3i + j. Entry (0, 0) = 0 is absent.
         let rows = [2, 3, 1, 3, 0, 1, 3, 0, 2, 1, 2]
         let columns = [0, 1, 0, 0, 1, 1, 2, 2, 2, 2, 1]
         let data = [6, 10, 3, 9, 1, 4, 11, 2, 8, 5, 7]
@@ -33,7 +32,7 @@ struct CompressedSparseRowEdgeValueTests {
 
     @Test("CSR-C27 on already sorted input, the edge indices are the input positions")
     func sortedInputIndices() {
-        // petgraph csr.rs Bellman–Ford test: weights in input order; row 1 is [1, 1, 1, 1].
+        // Weights in input order; row 1 is [1, 1, 1, 1].
         let weights = [0.5, 2, 1, 1, 1, 1, 3, 1, 2, 1, 3]
         var edgeIndices: [Int] = []
         let graph = CompressedSparseRow(vertexCount: 9, edges: DirectedFixture<Int>.petgraphBellmanFord.edges, edgeIndices: &edgeIndices)
@@ -130,9 +129,8 @@ struct CompressedSparseRowEdgeValueTests {
 
     @Test("CSR-E10 each transposed edge reports the index of the edge it reverses")
     func transposeForwardIndices() {
-        // Boost.Graph csr_graph_test.cpp unsorted input. Grafluent's forward rows are canonical:
-        // 0→2 (0), 3→2 (1), 4→0 (2), 4→1 (3), 5→0 (4), 5→2 (5). Boost keeps input order within a
-        // row, so its indices for 4→0 and 4→1 are swapped.
+        // Unsorted input. The forward rows are canonical: 0→2 (0), 3→2 (1), 4→0 (2), 4→1 (3),
+        // 5→0 (4), 5→2 (5).
         let graph = CompressedSparseRow(vertexCount: 6, edges: DirectedFixture<Int>.boostCsrUnsorted.edges)
         var forward: [Int] = []
         let transposed = graph.transposed(forwardEdgeIndices: &forward)
@@ -158,7 +156,7 @@ struct CompressedSparseRowEdgeValueTests {
 
     @Test("CSR-E15 a weight array follows the transpose: in-edge weights read through forward indices")
     func weightsThroughTranspose() {
-        // Boost.Graph csr_usage distances, keyed by forward edge index.
+        // Distances keyed by forward edge index.
         let graph = CompressedSparseRow(vertexCount: 4, edges: [
             DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3),
         ])

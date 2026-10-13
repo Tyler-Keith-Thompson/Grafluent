@@ -1,4 +1,4 @@
-// Cases added after the review: weighted betweenness where a floating-point path sum absorbs a
+// Weighted betweenness where a floating-point path sum absorbs a
 // weight (d + w == d), so two vertices at the same distance are joined by an edge. Brandes'
 // dependency must then use only the vertices settled later (the shortest-path DAG the forward pass
 // counted), never a dependency from another source; the values are the ones exact arithmetic gives

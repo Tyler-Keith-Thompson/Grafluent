@@ -1,7 +1,6 @@
-/// A `String` that compares and hashes by its Unicode scalars (its UTF-8 bytes), as NetworkX
-/// compares Python strings, rather than by canonical equivalence as `String` does. Attribute names
-/// and IDs are compared this way throughout the module: `"é"` precomposed and decomposed are two
-/// names, as they are two names to Graphviz, NetworkX and an XML parser.
+/// A `String` that compares and hashes by its Unicode scalars (its UTF-8 bytes) rather than by
+/// canonical equivalence as `String` does. Attribute names and IDs are compared this way throughout
+/// the module: `"é"` precomposed and decomposed are two names, as they are in DOT, XML and JSON.
 @usableFromInline internal struct _ScalarKey: Hashable {
     @usableFromInline let string: String
 

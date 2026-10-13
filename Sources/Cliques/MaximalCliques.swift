@@ -297,8 +297,7 @@ extension MaximalCliques.Iterator: Sendable where G: Sendable, G.Vertex: Sendabl
 
 extension Graph {
     /// Every maximal clique once, lazily, each in `vertices` order; see `MaximalCliques` for the
-    /// order. Self-loops and parallel edges are ignored, and an isolated vertex is a clique of one
-    /// (NetworkX `find_cliques`, igraph `maximal_cliques`, JGraphT's Bron–Kerbosch finders).
+    /// order. Self-loops and parallel edges are ignored, and an isolated vertex is a clique of one.
     @inlinable
     public func maximalCliques() -> MaximalCliques<Self> { MaximalCliques(self) }
 }

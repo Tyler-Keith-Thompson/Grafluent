@@ -1,17 +1,13 @@
 # Tours test suite
 
-`Tours` finds walks that cover a graph, on `DirectedGraph` and `Graph`: `isEulerian`,
-`hasEulerianTrail`, `eulerianCircuit()` / `(from:)` and `eulerianTrail()` / `(from:)` (Hierholzer,
-pinned by each vertex's row order), `hamiltonianPath()` / `(from:)` / `(from:to:)` and
-`hamiltonianCycle()` (the first path or cycle of a documented depth-first search), and, on `Graph`,
-tours of the simple graph: `nearestNeighborTour`, `christofidesTour`, `twoOptTour` (JGraphT's
-procedure) and `shortestTour` (Held–Karp). Every result is a `Walks` value (`Circuit`, `Trail`,
-`Path`, `Cycle`). The tests were written before the implementation, from the proposed API
-(`api.md` in [`Tests/Catalogs/Tours/`](../Catalogs/Tours/), phase 1), with its open questions
-decided as recommended: empty and edgeless graphs are Eulerian and have no circuit; Held–Karp is in
-phase 1; directed tours, eulerize and the Chinese postman, and tours on non-complete graphs (other
-than Held–Karp's) are phase 2; no `isHamiltonian` or `isSemiEulerian`; tours below three vertices
-are nil; 2-opt starts from nearest neighbour. The suite uses only the public API, and each test is
+Tests for `Tours`, which finds walks that cover a graph, on `DirectedGraph` and `Graph`:
+`isEulerian`, `hasEulerianTrail`, `eulerianCircuit()` / `(from:)` and `eulerianTrail()` / `(from:)`
+(Hierholzer, determined by each vertex's row order), `hamiltonianPath()` / `(from:)` / `(from:to:)`
+and `hamiltonianCycle()` (the first path or cycle of a documented depth-first search), and, on
+`Graph`, tours of the simple graph: `nearestNeighborTour`, `christofidesTour`, `twoOptTour` (best
+improvement) and `shortestTour` (Held–Karp, also on `DirectedGraph`). Every result is a `Walks`
+value (`Circuit`, `Trail`, `Path`, `Cycle`). The API and its semantics are in `api.md` in
+[`Tests/Catalogs/Tours/`](../Catalogs/Tours/). The suite uses only the public API, and each test is
 self-contained: the procedures, brute-force searches and definitions it checks against are written
 out inside it. The shared material is `ReferenceDirectedMultigraph`, `ReferencePseudograph`,
 `Collider`, the seeded generator and the tags in `GrafluentTestSupport`; two conformers with no
@@ -40,7 +36,7 @@ extension DirectedGraph {
 
 ## Conventions
 
-| Question | Choice | Cases |
+| Question | Rule | Cases |
 |---|---|---|
 | Eulerian definitions | Degrees (a self-loop adds 2, or one in and one out), the vertices with edges weakly connected; isolated vertices ignored; every edgeless graph, the empty one included, Eulerian with a trail | TO-001 – TO-260; every IsEulerian and HasEulerianTrail row checks the definition in the test |
 | Relations | `isEulerian == (eulerianCircuit() != nil \|\| no edges)`, `hasEulerianTrail == (eulerianTrail() != nil \|\| no vertex)` | every IsEulerian / HasEulerianTrail row, the Eulerian properties |
@@ -54,14 +50,14 @@ extension DirectedGraph {
 | Directed tours | `shortestTour` on a digraph: each ordered pair's lightest arc, every step along an arc, the lexicographically least optimal tour from the first vertex; nil below three vertices | TO-507 – TO-531, `heldKarpWrittenOut` |
 | Preconditions | A start or end not a vertex; a heuristic on a missing pair; a tour to improve that does not list every vertex once; a NaN or infinite weight (any tour, either sign, any copy, directed too); Christofides' matching bound on every weight as it is read (Double, Float, a large negative integer, Int8 past 15 vertices or past `Int8.max`); a Held–Karp table past 4 GiB (26 vertices with 8-byte weights, 27 with `Float`) | `ToursPreconditionTests.swift` |
 
-## How values are pinned
+## How values are checked
 
 Every catalog row is written as the catalog writes it: directed rows on `AdjacencyList` (or
 `DirectedPseudograph` with a self-loop or a repeated edge) and undirected rows on
 `UndirectedAdjacencyList` (or `Pseudograph` with a self-loop or parallel edges), built by inserting
 the listed vertices and then the edges in written order, so every vertex index and edge position is
-the catalog's. The catalog-row files were generated from `cases.md` by a script (`swiftgen.py`,
-next to `ref.py` and `cases.md` in [`Tests/Catalogs/Tours/`](../Catalogs/Tours/)). It runs
+the catalog's. The catalog-row files are generated from `cases.md` by `swiftgen.py`, next to `ref.py` and
+`cases.md` in [`Tests/Catalogs/Tours/`](../Catalogs/Tours/). It runs
 `ref.py`'s catalog with every case builder instrumented, so each graph is kept as a structured
 value, checks that the rendered catalog equals `cases.md` byte for byte, then re-evaluates each row
 with `ref.py`'s models, asserts that the result renders to its catalog cell exactly, and writes one
@@ -108,53 +104,28 @@ property tests (swift-property-based, shrinking) use multigraphs with self-loops
 vertices in a seed-shuffled vertex order: the Eulerian definitions and Hierholzer's walk written out,
 from every start; the first Hamiltonian path (from every start, and to a target) and cycle by brute
 force over every ordering (at most 6! orderings), undirected and directed; tours on complete
-multigraphs with extra copies and loops against nearest neighbour and JGraphT's 2-opt written out
+multigraphs with extra copies and loops against nearest neighbour and 2-opt written out
 (also from a scrambled tour) and the brute-force optimum; Christofides within 3/2 on Manhattan points
-in Int and in Double quarters; Held–Karp on graphs that need not be complete. Three larger ones
-written after the critical review: 2-opt on complete graphs of 15 … 40 vertices with many ties, from
-a scrambled tour, against JGraphT's loop written out (so the incremental row cache must find the
-same moves); Christofides against its pinned composition written out (dense Prim under (weight,
+in Int and in Double quarters; Held–Karp on graphs that need not be complete. Three larger ones:
+2-opt on complete graphs of 15 … 40 vertices with many ties, from a scrambled tour, against the
+best-improvement loop written out (so the incremental row cache must find the same moves);
+Christofides against its composition written out (dense Prim under (weight,
 edge number), the odd vertices, every minimum perfect matching by enumeration, Hierholzer from vertex
 0, the first visits: the tour must be the composition of one minimum matching, and of the only one
 when it is unique); Held–Karp on up to 10 vertices, undirected and directed, complete or not, against
-JGraphT's memoized recursion and reconstruction written out. Stress values are known
+a memoized recursion and reconstruction written out. Stress values are known
 by construction: a 200 × 200 torus and a seeded directed closed walk of 200,000 arcs (their walks
 checked edge by edge; the open walk's trail from its start to its end), C(10⁵), Cd(10⁵) and P(10⁵)
 (their walks are themselves, and from the middle backwards), C(3,000), P(3,000) and K(60) as their own
 first Hamiltonian cycle and path, two disjoint K(12) and a transitive tournament on 40 vertices with
 none, nearest neighbour along 400 collinear points, points on a circle (Christofides and 2-opt give
-the hull order, Held–Karp the hull order in its least direction), C(16) with one tour, and two K(14) at a cut vertex (no cycle and no path from it; only the
-reachability test fails the search early, without it the search tries 13! orderings). Each runs in
-a `Task` with a one-minute limit.
+the hull order, Held–Karp the hull order in its least direction), C(16) with one tour, and two K(14)
+at a cut vertex (no cycle and no path from it; only the reachability test fails the search early,
+without it the search tries 13! orderings). Each runs in a `Task` with a one-minute limit.
 
 In the property and stress files, conditions that contain a closure are computed into a named
 constant before `#expect`: inside `propertyCheck`'s and `Task`'s closures, a closure in an `#expect`
-expansion failed SIL verification ("function type mismatch") with the toolchain this suite was
-written on (it happened here too, on a condition beside an `allSatisfy` closure).
-
-The whole suite was run against a Swift model of api.md before the implementation existed (index
-space; Hierholzer with a cursor per vertex; backtracking with a reachability prune; nearest neighbour,
-JGraphT's 2-opt and Held–Karp on a lightest-copy matrix; Christofides with Kruskal and
-`minimumWeightMatching` on a private complete graph; built in a scratch copy of the workspace
-through Bazel, with warnings as errors). All 1,013 tests pass against it in about 8 seconds in a
-debug build. It was also run against 38 planted bugs in that model, each of which fails tests
-(failing tests in parentheses): the empty graph not Eulerian (JGraphT's; 9), isolated vertices
-counted (NetworkX's; 67), a self-loop adding 1 to the degree (62), no connectivity check (36),
-directed balance read as undirected parity (19), the trail from the second odd vertex (25), the
-directed trail from the vertex with in − out = 1 (14), Hierholzer taking the last unused edge (156), a
-self-loop walked twice (59), the circuit listed backwards from its start (NetworkX's direction; 69),
-`eulerianCircuit(from:)` from a vertex without edges not nil (4), the circuit from the last vertex
-with an edge (56), the edgeless trail nil (17), `eulerianTrail(from:)` from any vertex (8), the
-Hamiltonian search taking rows backwards (97), no self-loop cycle on one vertex (5),
-`hamiltonianPath(from: s, to: s)` not nil (3), no two-vertex cycle from parallel edges (6), the last
-closing edge (3), the path searched from the first vertex only (6), nearest neighbour's last on ties
-(30), its start ignored (7), 2-opt's last best move on ties (3), its first improving move (11), its
-result rotated to vertex 0 (4), `twoOptTour(weight:)` from index order rather than nearest neighbour
-(15), Held–Karp's highest index on ties (41), Held–Karp nil on graphs that are not complete (4),
-self-loops weighed (6), no NaN check (2), a pair's first copy rather than its lightest (10), the
-latest copy on ties (9), two parallel edges a tour (8), `weight` called twice (18), the spanning
-tree's ties to the later position (13), Hierholzer on Christofides' multigraph from the last vertex
-(38), the last visit kept rather than the first (38), and a greedy matching (11).
+expansion fails SIL verification ("function type mismatch").
 
 ## Files
 
@@ -170,21 +141,21 @@ tree's ties to the later position (13), Hierholzer on Christofides' multigraph f
 | `ToursConformanceTests.swift` | 9 | Generic code, `String` and `Collider` vertices, Int8 / UInt8 / UInt / Int32 / Float weights, results as `Walks` values (and `Sendable`), the `directedView` view, every edgeless graph, `improving:` reading only vertices, tours below three vertices, `weight` asked once |
 | `ToursPropertyTests.swift` | 9 | See above |
 | `Performance/ToursStressTests.swift` | 8 | See above |
-| `ToursRegressionTests.swift` | 7 | Inputs from planted-bug testing (`scripts/mutants/Tours.py`) and fuzzing (`FuzzTours`): a directed graph with ±1 vertices and ±2 vertices (no trail), a directed trail whose first vertex with an edge reaches nothing, Hierholzer on edges in two components (self-loops at two vertices); a Hamiltonian cycle through a cut vertex (K(5) and K(14), undirected and directed), which only the reachability prune makes fast; `twoOptTour(improving:)` against JGraphT's procedure written out on 400 seeded graphs of 9 to 16 vertices with weights 0 – 2 (tied moves); `improving:` below three vertices; Christofides' `Int8` bound at n = 3 (2 accepted, ±3 traps) |
+| `ToursRegressionTests.swift`, `Performance/ToursRegressionScaleTests.swift` | 6, 1 | Inputs that pin rules no catalog row isolates, including fuzzing inputs (`FuzzTours`): a directed graph with ±1 vertices and ±2 vertices (no trail), a directed trail whose first vertex with an edge reaches nothing, Hierholzer on edges in two components (self-loops at two vertices); a Hamiltonian cycle through a cut vertex (K(5) and K(14), undirected and directed), which only the reachability prune makes fast; `twoOptTour(improving:)` against the best-improvement procedure written out on 400 seeded graphs of 9 to 16 vertices with weights 0 – 2 (tied moves); `improving:` below three vertices; Christofides' `Int8` bound at n = 3 (2 accepted, ±3 traps) |
 
 505 value rows and 26 trap rows, the 505 representation tests, and 41 more tests (8 precondition, 9
 conformance, 9 property, 8 stress, 7 regression): 1,077 tests in all.
 
 ## Case IDs
 
-Case IDs (TO-001 … TO-501) refer to the catalog (`cases.md`), whose values `ref.py` computes with
-api.md's models and checks against NetworkX 3.7, igraph 1.0's C Eulerian functions, JGraphT 1.5.2
-and brute force. Each test's name starts with its ID; tests without an ID check conventions,
-properties or scale that the catalog does not list.
+Case IDs (TO-001 … TO-531) refer to the catalog (`cases.md`), whose values `ref.py` computes with
+api.md's models and checks against brute force, NetworkX 3.7, and, when the native libraries are
+present, igraph 1.0's C Eulerian functions and JGraphT 1.5.2. Each test's name starts with its ID;
+tests without an ID check conventions, properties or scale that the catalog does not list.
 
-## Readings of what api.md leaves open
+## Further behaviour checked
 
-| Question | Reading taken | Where |
+| Question | Behaviour | Where |
 |---|---|---|
 | A tour that repeats a vertex (TO-496) | A `Cycle` cannot repeat a vertex, so the row's input cannot be built through the public API; the test checks that `Cycle(vertices: [0, 1, 2, 1], …)` is nil and exit-tests a four-vertex cycle with a vertex that is not the graph's instead | TO-496 |
 | "nil below three vertices, before any other check" | Before the completeness, NaN and start checks too, and whether `weight` is called is not checked there | `smallTours`; tour rows below three vertices assert only nil |
@@ -197,9 +168,7 @@ properties or scale that the catalog does not list.
 
 | Case | Why |
 |---|---|
-| Which pruning the Hamiltonian search uses, or a DP below a size cut-off | Internal; only the first result in search order is pinned. The stress test's failing searches (two cliques, a transitive tournament) assume the documented reachability pruning |
+| Which pruning the Hamiltonian search uses | Internal; only the first result in search order is pinned. The stress test's failing searches (two cliques, a transitive tournament) assume the documented reachability pruning |
 | Floating Held–Karp ties "as computed" | Catalog rows use dyadic weights; the circle stress test uses integer millionths so a tour and its reverse weigh the same |
-| JGraphT's −1e-8 stop threshold | api.md stops at 0; the same on integers and dyadic rows |
-| Complexity bounds and the performance targets | Benchmarks |
-| NetworkX's, igraph's and JGraphT's outputs on random graphs | Not Swift tests; `ref.py` checks every catalog row and its `--stress` graphs against them |
-| Directed heuristics (nearest neighbour on a digraph), eulerize, the Chinese postman, tours on distance closures | Phase 2 (api.md, open questions 3 – 5) |
+| Complexity bounds | Benchmarks |
+| Other libraries' outputs on random graphs | Not Swift tests; `ref.py` checks every catalog row and its `--stress` graphs against them |

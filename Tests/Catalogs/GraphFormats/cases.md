@@ -62,10 +62,10 @@ offending character, the column counted in Unicode scalars (api.md, Errors).
 | GF-027 | DOT read | graph into a directed target | `DirectedPseudograph<String>(dot:)` | `"graph { a -- b }"` | **kindMismatch** at 1:1 |
 | GF-028 | DOT read | digraph into an undirected target | `Pseudograph<String>(dot:)` | `"digraph { a -> b }"` | **kindMismatch** at 1:1 |
 | GF-029 | DOT read | -- in a digraph | `DirectedPseudograph<String>(dot:)` | `"digraph { a -- b }"` | **syntax** at 1:13 |
-| GF-030 | DOT read | subgraph (phase 2) | `DirectedPseudograph<String>(dot:)` | `"digraph { subgraph s { a } }"` | **unsupported** at 1:11 |
-| GF-031 | DOT read | anonymous subgraph as an endpoint (phase 2) | `DirectedPseudograph<String>(dot:)` | `"digraph { a -> { b c } }"` | **unsupported** at 1:16 |
-| GF-032 | DOT read | port (phase 2) | `DirectedPseudograph<String>(dot:)` | `"digraph { a:p -> b }"` | **unsupported** at 1:12 |
-| GF-033 | DOT read | a second graph (phase 2) | `DirectedPseudograph<String>(dot:)` | `"digraph { a }\ndigraph { b }"` | **unsupported** at 2:1 |
+| GF-030 | DOT read | subgraph (unsupported) | `DirectedPseudograph<String>(dot:)` | `"digraph { subgraph s { a } }"` | **unsupported** at 1:11 |
+| GF-031 | DOT read | anonymous subgraph as an endpoint (unsupported) | `DirectedPseudograph<String>(dot:)` | `"digraph { a -> { b c } }"` | **unsupported** at 1:16 |
+| GF-032 | DOT read | port (unsupported) | `DirectedPseudograph<String>(dot:)` | `"digraph { a:p -> b }"` | **unsupported** at 1:12 |
+| GF-033 | DOT read | a second graph (unsupported) | `DirectedPseudograph<String>(dot:)` | `"digraph { a }\ndigraph { b }"` | **unsupported** at 2:1 |
 | GF-034 | DOT read | unterminated quoted string | `DirectedPseudograph<String>(dot:)` | `"digraph { \"a }"` | **unexpectedEndOfInput** at 1:11 |
 | GF-035 | DOT read | unterminated comment | `DirectedPseudograph<String>(dot:)` | `"digraph { /* a }"` | **unexpectedEndOfInput** at 1:11 |
 | GF-036 | DOT read | missing closing brace | `DirectedPseudograph<String>(dot:)` | `"digraph { a -> b"` | **unexpectedEndOfInput** at 1:17 |
@@ -105,10 +105,10 @@ offending character, the column counted in Unicode scalars (api.md, Errors).
 | GF-070 | GraphML read | int value that is not an integer | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><key id=\"k\" for=\"node\" attr.type=\"int\"/><graph edgedefault=\"directed\"><node id=\"a\"><data key=\"k\">1.5</data></node></graph></graphml>"` | **invalidValue** at 1:139 |
 | GF-071 | GraphML read | long beyond Int64 | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><key id=\"k\" for=\"node\" attr.type=\"long\"/><graph edgedefault=\"directed\"><node id=\"a\"><data key=\"k\">9223372036854775808</data></node></graph></graphml>"` | **numberOutOfRange** at 1:140 |
 | GF-072 | GraphML read | boolean is true, false, 1 or 0 | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><key id=\"k\" for=\"node\" attr.type=\"boolean\"/><graph edgedefault=\"directed\"><node id=\"a\"><data key=\"k\">True</data></node></graph></graphml>"` | **invalidValue** at 1:143 |
-| GF-073 | GraphML read | nested graph (phase 2) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"><graph edgedefault=\"directed\"/></node></graph></graphml>"` | **unsupported** at 1:99 |
-| GF-074 | GraphML read | a second graph (phase 2) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"/><graph edgedefault=\"directed\"/></graphml>"` | **unsupported** at 1:87 |
-| GF-075 | GraphML read | hyperedge (phase 2) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><hyperedge/></graph></graphml>"` | **unsupported** at 1:100 |
-| GF-076 | GraphML read | an edge whose directed differs from edgedefault (phase 2) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><edge source=\"a\" target=\"a\" directed=\"false\"/></graph></graphml>"` | **unsupported** at 1:128 |
+| GF-073 | GraphML read | nested graph (unsupported) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"><graph edgedefault=\"directed\"/></node></graph></graphml>"` | **unsupported** at 1:99 |
+| GF-074 | GraphML read | a second graph (unsupported) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"/><graph edgedefault=\"directed\"/></graphml>"` | **unsupported** at 1:87 |
+| GF-075 | GraphML read | hyperedge (unsupported) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><hyperedge/></graph></graphml>"` | **unsupported** at 1:100 |
+| GF-076 | GraphML read | an edge whose directed differs from edgedefault (unsupported) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><edge source=\"a\" target=\"a\" directed=\"false\"/></graph></graphml>"` | **unsupported** at 1:128 |
 | GF-077 | GraphML read | encoding other than UTF-8 | `DirectedPseudograph<String>(graphML:)` | `"<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"/></graphml>"` | **unsupported** at 1:31 |
 | GF-078 | GraphML read | duplicate attribute | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\" edgedefault=\"directed\"/></graphml>"` | **duplicateKey** at 1:86 |
 | GF-079 | GraphML read | nesting deeper than 64 elements | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"><desc><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x><x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></x></desc></node></graph></graphml>"` | **nestingTooDeep** at 1:285 |
@@ -159,10 +159,10 @@ offending character, the column counted in Unicode scalars (api.md, Errors).
 | GF-124 | Matrix Market read | no newline at the end | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix coordinate pattern general\n2 2 1\n2 1"` | `D: 0, 1; 1>0` |
 | GF-125 | Matrix Market read | missing banner | `DirectedPseudograph<Int>(matrixMarket:)` | `"3 3 0\n"` | **syntax** at 1:1 |
 | GF-126 | Matrix Market read | banner is case-sensitive (mmio.c) | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MATRIXMARKET matrix coordinate pattern general\n1 1 0\n"` | **syntax** at 1:1 |
-| GF-127 | Matrix Market read | array format (phase 2) | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix array real general\n2 2\n1\n0\n0\n1\n"` | **unsupported** at 1:23 |
-| GF-128 | Matrix Market read | complex (phase 2) | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix coordinate complex general\n1 1 1\n1 1 1 0\n"` | **unsupported** at 1:34 |
-| GF-129 | Matrix Market read | hermitian (phase 2) | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix coordinate real hermitian\n1 1 0\n"` | **unsupported** at 1:39 |
-| GF-130 | Matrix Market read | vector (phase 2) | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket vector coordinate real general\n3 0\n"` | **unsupported** at 1:16 |
+| GF-127 | Matrix Market read | array format (unsupported) | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix array real general\n2 2\n1\n0\n0\n1\n"` | **unsupported** at 1:23 |
+| GF-128 | Matrix Market read | complex (unsupported) | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix coordinate complex general\n1 1 1\n1 1 1 0\n"` | **unsupported** at 1:34 |
+| GF-129 | Matrix Market read | hermitian (unsupported) | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix coordinate real hermitian\n1 1 0\n"` | **unsupported** at 1:39 |
+| GF-130 | Matrix Market read | vector (unsupported) | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket vector coordinate real general\n3 0\n"` | **unsupported** at 1:16 |
 | GF-131 | Matrix Market read | general into an undirected target | `Pseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix coordinate pattern general\n2 2 0\n"` | **kindMismatch** at 1:42 |
 | GF-132 | Matrix Market read | not square | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix coordinate pattern general\n2 3 0\n"` | **notSquare** at 2:3 |
 | GF-133 | Matrix Market read | index 0 | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix coordinate pattern general\n2 2 1\n0 1\n"` | **indexOutOfRange** at 3:1 |
@@ -209,10 +209,10 @@ offending character, the column counted in Unicode scalars (api.md, Errors).
 | GF-174 | Mermaid read | o right after the dashes is a circle head | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  A---oB\n"` | `D: A, B; A>B` |
 | GF-175 | Mermaid read | open link into a directed target | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  A --- B\n"` | **kindMismatch** at 2:5 |
 | GF-176 | Mermaid read | arrow into an undirected target | `Pseudograph<String>(mermaid:)` | `"flowchart TD\n  A --> B\n"` | **kindMismatch** at 2:5 |
-| GF-177 | Mermaid read | subgraph ... end (phase 2) | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  subgraph one\n    A --> B\n  end\n"` | **unsupported** at 2:3 |
-| GF-178 | Mermaid read | bidirectional link (phase 2) | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  A <--> B\n"` | **unsupported** at 2:5 |
-| GF-179 | Mermaid read | invisible link (phase 2) | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  A ~~~ B\n"` | **unsupported** at 2:5 |
-| GF-180 | Mermaid read | @{ } shape syntax (phase 2) | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  A@{ shape: rect }\n"` | **unsupported** at 2:4 |
+| GF-177 | Mermaid read | subgraph ... end (unsupported) | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  subgraph one\n    A --> B\n  end\n"` | **unsupported** at 2:3 |
+| GF-178 | Mermaid read | bidirectional link (unsupported) | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  A <--> B\n"` | **unsupported** at 2:5 |
+| GF-179 | Mermaid read | invisible link (unsupported) | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  A ~~~ B\n"` | **unsupported** at 2:5 |
+| GF-180 | Mermaid read | @{ } shape syntax (unsupported) | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  A@{ shape: rect }\n"` | **unsupported** at 2:4 |
 | GF-181 | Mermaid read | another diagram type | `DirectedPseudograph<String>(mermaid:)` | `"sequenceDiagram\n  A->>B: hi\n"` | **unsupported** at 1:1 |
 | GF-182 | Mermaid read | missing header | `DirectedPseudograph<String>(mermaid:)` | `"A --> B\n"` | **syntax** at 1:1 |
 | GF-183 | Mermaid read | a label cannot span lines | `DirectedPseudograph<String>(mermaid:)` | `"flowchart TD\n  A[box\n"` | **syntax** at 2:8 |

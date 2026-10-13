@@ -1,5 +1,5 @@
-/// DOT, Graphviz's language: the phase 1 subset of its grammar (no subgraphs, no ports), with
-/// scan.l's lexical rules, read into any target; and a canonical writer.
+/// DOT without subgraphs or ports (both `unsupported`), read into any target; and a canonical
+/// writer.
 
 // MARK: - Lexer
 
@@ -457,8 +457,8 @@
     return q == n
 }
 
-/// Appends `bytes` as a DOT ID: bare when an identifier or a numeral, otherwise quoted so that
-/// scan.l reads back exactly these bytes.
+/// Appends `bytes` as a DOT ID: bare when an identifier or a numeral, otherwise quoted so that a
+/// DOT reader reads back exactly these bytes.
 @inlinable func _appendDOTID(_ bytes: UnsafeBufferPointer<UInt8>, to out: inout [UInt8], bareIdentifier: Bool = true) {
     if (bareIdentifier && _isBareDOTIdentifier(bytes)) || _isDOTNumeral(bytes) {
         out.append(contentsOf: bytes)

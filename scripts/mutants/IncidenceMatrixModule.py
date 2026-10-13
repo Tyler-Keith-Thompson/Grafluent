@@ -22,14 +22,6 @@
 #   memberindexcheck  (the views, the algorithms) only pass members and positions in range.
 #   foreachcheck
 #   oforeachcheck
-#
-# Removed as dead code after planting: the range checks in both matrices' map subscripts (each
-# map holds exactly one value per column or row, so its own bounds check traps on the same
-# positions). Also removed: the members' range precondition in
-# `init(vertexCount:hyperedges:)` and the pre-checks of `insert(hyperedge:)` and
-# `insert(sources:targets:)` (the bit write traps on the same members), the shape precondition of
-# the planes' union (both planes always share a shape), and the decoder's `v >= 0` (a negative
-# member already fails the strictly-ascending check, whose `previous` starts at -1).
 
 TESTS = ["IncidenceMatrixTests"]
 
@@ -226,7 +218,7 @@ MUTANTS = [
     Mutant("odescribe", O, 'entry < 0 ? "-" : entry > 0 ? "+" : "0"', 'entry < 0 ? "+" : entry > 0 ? "-" : "0"'),
 
 
-    # The checked: spellings (README Principle 6): each guard removed lets the plain spelling trap.
+    # The checked: spellings: each guard removed lets the plain spelling trap.
     Mutant("ckincident", M, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
     Mutant("ckdegree", M, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
     Mutant("ckvertexindex", M, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=2),

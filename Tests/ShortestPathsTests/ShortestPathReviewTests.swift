@@ -1,6 +1,6 @@
-// Cases from the critical review: A* with a negative estimate at the target, several sources in
-// Bellman–Ford, parallel edges in paths and witnesses, undirected negative edges with and without
-// vertex indices, the native undirected path, and the NaN cutoff. Case IDs (SP-nn) refer to the
+// A* with a negative estimate at the target, several sources in Bellman–Ford, parallel edges in
+// paths and witnesses, undirected negative edges with and without vertex indices, the native
+// undirected path, and the NaN cutoff. Case IDs (SP-nn) refer to the
 // catalog; see README.md.
 
 import AdjacencyListModule
@@ -68,7 +68,7 @@ struct ShortestPathReviewTests {
 
     @Test("SP-133 Bellman–Ford treats several sources as one super-source")
     func bellmanFordSuperSource() {
-        // 0→1 is negative, so source 1 is improved from source 0 (NetworkX's convention); Dijkstra
+        // 0→1 is negative, so source 1 is improved from source 0; Dijkstra
         // has no negative weights and never improves a source.
         let edges: [(Int, Int, Int)] = [(0, 1, -5), (1, 2, 1), (3, 0, 1)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 4, edges: edges.map { DirectedEdge(from: $0.0, to: $0.1) })
@@ -163,7 +163,7 @@ struct ShortestPathReviewTests {
 
     @Test("SP-136 the native undirected path: heuristics, unreachable targets, several sources, cutoff, orientation")
     func nativeUndirected() {
-        // NetworkX GH 3464, undirected; the heuristic is admissible but not consistent.
+        // Undirected; the heuristic is admissible but not consistent.
         let edges: [(String, String, Int)] = [("n5", "n1", 11), ("n5", "n2", 9), ("n2", "n1", 1), ("n1", "n0", 32)]
         let estimate = ["n5": 36, "n2": 4, "n1": 0, "n0": 0, "z": 0]
         let indexed = ReferencePseudograph(vertices: ["n5", "n2", "n1", "n0", "z"], edges: edges.map { UndirectedEdge($0.0, $0.1) })

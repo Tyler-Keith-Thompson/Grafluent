@@ -170,6 +170,7 @@ let targets: [Target] = [
     .testTarget(name: "SemiringsTests", dependencies: ["Semirings", "ShortestPaths", "GraphProtocols", "Multigraphs", "AdjacencyListModule", "DirectedAcyclicGraphModule", "StableGraphs", "Traversal", "Walks", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "GraphDrawingTests", dependencies: ["GraphProtocols", "GraphDrawing", "Cycles", "Trees", "RandomGraphs", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "StableGraphs", "DirectedAcyclicGraphModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md", "Performance"]),
     .testTarget(name: "SpectralGraphTheoryTests", dependencies: ["GraphProtocols", "SpectralGraphTheory", "CompressedSparseRowModule", "AdjacencyListModule", "AdjacencyMatrixModule", "Multigraphs", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md", "Performance"]),
+    .testTarget(name: "GrafluentTests", dependencies: ["Grafluent"], exclude: bazelFiles),
 
     // Speed-reliant tests, split from the target of the same module (PERFORMANCE_TESTS in scripts/modules.py).
     .testTarget(name: "CyclesPerformanceTests", dependencies: ["GraphProtocols", "Cycles", "Walks", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], path: "Tests/CyclesTests/Performance"),
@@ -203,7 +204,7 @@ let targets: [Target] = [
 let package = Package(
     name: "Grafluent",
     // macOS 15 / iOS 18 is the floor for `Synchronization.Mutex`, used by the test support target.
-    // Revisit with open question 6 in README.md. Keep in step with .bazelrc.
+    // Keep in step with .bazelrc.
     platforms: [.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)],
     products: products,
     dependencies: dependencies,

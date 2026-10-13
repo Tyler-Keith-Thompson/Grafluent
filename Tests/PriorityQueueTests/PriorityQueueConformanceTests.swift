@@ -1,6 +1,6 @@
-// Value semantics (a copy is independent, unlike Boost's d_ary_heap_indirect, whose copies share
-// the index map), `Sendable`, and the descriptions: the pairs sorted by priority, then index, at
-// most 16, so equal contents print alike whatever the heap layout.
+// Value semantics (a copy and its original never share the heap or the position array),
+// `Sendable`, and the descriptions. A description lists the pairs sorted by priority, then index,
+// at most 16, so equal contents print alike whatever the heap layout.
 // Case IDs (PQ-nn) refer to the catalog; see README.md.
 
 import GrafluentTestSupport

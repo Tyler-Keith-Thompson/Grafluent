@@ -3,11 +3,10 @@
 // pseudographs, and over CompressedSparseRow and AdjacencyMatrix bases), and every result must be
 // exactly the same algorithm's result on a materialized copy of the view: `DirectedPseudograph(view)`
 // or `Pseudograph(view)`, which keeps the vertices in order and puts the view's k-th edge (in `edges`
-// order) at position k. So a view position p maps to its offset in `view.edges`, and the
-// subgraph and reverse views' positions are the base's own. Then the materialized operations agree
-// across their construction targets, and the condensation DAG's order is a topological order. The
-// complement's edges.indices walk relies on speed and is in
-// Performance/ComplementIndicesWalkTests.swift. See README.md.
+// order) at position k. A view position p maps to its offset in `view.edges`, and the subgraph
+// and reverse views' positions are the base's own. The materialized operations agree across their
+// construction targets, and the condensation DAG's order is a topological order. The timed walk of
+// a complement's edges.indices is in Performance/ComplementIndicesWalkTests.swift. See README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule

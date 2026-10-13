@@ -1,8 +1,7 @@
 import GraphProtocols
 
 /// The graph of a function f on the vertices `0..<n`: every vertex `v` has exactly one out-edge,
-/// `v → f(v)`, and a fixed point is a self-loop. Also called a successor graph (Laaksonen,
-/// *Competitive Programmer's Handbook*, §16.3).
+/// `v → f(v)`, and a fixed point is a self-loop. Also called a successor graph.
 ///
 /// Following any vertex's edges eventually repeats, so each weakly connected component holds
 /// exactly one cycle, with rooted trees hanging off its vertices (Flajolet and Odlyzko, "Random
@@ -12,7 +11,7 @@ import GraphProtocols
 /// For f given as a closure over a state space too large to store, use `floydCycleDetection` or
 /// `brentCycleDetection`, which need only `Equatable` states and O(1) memory.
 ///
-/// **Storage.** One `Int` per vertex, `f(v)`. The edge leaving `v` has position `v`, so edge
+/// The graph stores one `Int` per vertex, `f(v)`. The edge leaving `v` has position `v`, so edge
 /// positions and edge indices are both the source. For `Hashable` vertex labels, use
 /// `LabeledGraph<Label, FunctionalGraph>`; `LabeledGraph(FunctionalGraph(g)!, labels: g.vertices)`
 /// gives a graph `g` its labels back.

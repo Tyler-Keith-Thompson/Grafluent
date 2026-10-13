@@ -9,7 +9,7 @@ import StableGraphs
 import Traversal
 
 /// The 64-bit LCG of `Tests/Catalogs/DirectedAcyclicGraph/timings.py` (Knuth's MMIX constants), so
-/// the NetworkX and rustworkx reference timings run on the same instances.
+/// the reference timings in timings.py run on the same instances.
 struct LCG {
     var state: UInt64
 
@@ -126,9 +126,7 @@ let benchmarks: @Sendable () -> Void = {
     // hidden order inserted in random order.
     for (n, m) in [(10_000, 50_000), (10_000, 100_000), (100_000, 200_000)] {
         let pairs = hiddenOrderPairs(n, m, seed: 13)
-        // The bare bases on the same pairs: what the DAG costs above them is the order's, the part
-        // to set against rustworkx's PyDiGraph(check_cycle=True), whose add_edge is keyed by node
-        // index where ours hashes each endpoint.
+        // The bare bases on the same pairs. The DAG's cost above them is the order's.
         Benchmark("DirectedAcyclicGraph: BASELINE DirectedPseudograph insert(edge:), hidden-order model n = \(n), m = \(m)") { benchmark in
             for _ in benchmark.scaledIterations {
                 var g = DirectedPseudograph(vertices: 0 ..< n)
@@ -215,9 +213,8 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     // Complexity guard: a chain whose sources arrive last. Each new source is placed first, so no
-    // insert reorders and the chain builds in O(n), as the bare base does. Placed last, as before
-    // the review, each insert moved the whole chain: Θ(n²), 635 ms at n = 8000, and minutes at
-    // n = 10⁵. Likewise new targets arrive last on a chain built forward.
+    // insert reorders and the chain builds in O(n), as the bare base does. Likewise new targets
+    // arrive last on a chain built forward.
     for n in [8_000, 100_000] {
         Benchmark("DirectedAcyclicGraph: BASELINE DirectedPseudograph, a chain of \(n) whose sources arrive last") { benchmark in
             for _ in benchmark.scaledIterations {
@@ -249,7 +246,7 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     // Vertex removal: 10% of the vertices. Each leaves a hole in the order, O(1) plus a Fenwick
-    // update, O(log n); before the review each closed its gap with a memmove, O(n).
+    // update, O(log n).
     Benchmark("DirectedAcyclicGraph: BASELINE DirectedPseudograph remove 10% of vertices") { benchmark in
         let built = DirectedPseudograph(vertices: 0 ..< 100_000, edges: forward)
         for _ in benchmark.scaledIterations {
@@ -296,9 +293,8 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Places after removals: without a hole, a place is the slot less the free front slots; with
-    // one, a Fenwick tree counts the holes before the slot, O(log n). Before the review one early
-    // removal made every lookup a binary search (143 against 16 ns).
+    // Places after removals. Without a hole, a place is the slot less the free front slots. With
+    // one, a Fenwick tree counts the holes before the slot, O(log n).
     let placed = DirectedAcyclicGraph(stableBuilt)!
     let placedOrder = Array(placed.topologicalOrder)
     var holed = placed
@@ -334,7 +330,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // MARK: Reads through the wrapper, against the bare base (target: within 1.05×)
+    // MARK: Reads through the wrapper, against the bare base
 
     let pseudograph = DirectedPseudograph(vertices: 0 ..< 100_000, edges: forward)
     let pseudographDAG = DirectedAcyclicGraph(pseudograph)!

@@ -3,7 +3,7 @@ import io, contextlib
 with contextlib.redirect_stdout(io.StringIO()):
     from ports import S_of, sym
 def iddfs(S, s, t):
-    # pathfinding semantics: simple paths, first found at minimal depth, successors in order
+    # Simple paths, first found at minimal depth, successors in order
     def step(path, depth):
         if depth == 0: return 'none'
         if path[-1] == t: return 'found'

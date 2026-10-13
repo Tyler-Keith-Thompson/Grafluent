@@ -1,6 +1,6 @@
 import GraphProtocols
 
-/// What a breadth-first search reports, in order (Boost's `bfs_visitor` event points).
+/// What a breadth-first search reports, in order.
 ///
 /// Each source is discovered first. Then, for each vertex in the order discovered, every edge out
 /// of it is reported once per copy, as a tree edge (to an undiscovered vertex, which is then

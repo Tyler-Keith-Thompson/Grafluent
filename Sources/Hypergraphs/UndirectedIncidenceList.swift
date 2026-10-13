@@ -2,27 +2,23 @@ import GraphProtocols
 import OrderedCollections
 
 /// An undirected hypergraph stored as an incidence list: a row per hyperedge of its members and a
-/// row per vertex of its memberships. The undirected counterpart of `IncidenceList`, named as
-/// `UndirectedAdjacencyList` is. (`IncidenceMatrix`, the bit-matrix representation, is the
-/// undirected one of its pair, because "oriented incidence matrix" is the established name of the
-/// other.)
+/// row per vertex of its memberships. The undirected counterpart of `IncidenceList`.
 ///
 /// The vertices are any `Hashable` values, kept in an `OrderedSet` whose element `i` is vertex
-/// index `i`: the vertices listed first, then new members by first appearance, as `LabeledGraph`
-/// assigns them. A hyperedge is a set of vertices of any size, the empty set included; repeated
-/// hyperedges are kept, each at its own position `0..<hyperedgeCount`, and a member listed twice
-/// is stored once. Members are stored in vertex-index order.
+/// index `i`: the vertices listed first, then new members by first appearance. A hyperedge is a
+/// set of vertices of any size, the empty set included; repeated hyperedges are kept, each at its
+/// own position `0..<hyperedgeCount`, and a member listed twice is stored once. Members are stored
+/// in vertex-index order.
 ///
 /// Storage is compressed sparse rows: the members of every hyperedge in one array, and for every
 /// vertex its incidence numbers and, beside them, its hyperedge positions, in rows of shared
-/// pools. So `memberIndices` and `incidentHyperedges(ofIndex:)` are stored `ArraySlice<Int>` rows
-/// read without hashing, and the
-/// hypergraph makes a constant number of allocations however many vertices it has. Every
-/// vertex-space read hashes its vertex once; index-space reads and the `Hypergraphs` algorithms
-/// hash none.
+/// pools. `memberIndices` and `incidentHyperedges(ofIndex:)` are stored `ArraySlice<Int>` rows
+/// read without hashing, and the hypergraph makes a constant number of allocations however many
+/// vertices it has. Every vertex-space read hashes its vertex once; index-space reads and the
+/// `Hypergraphs` algorithms hash none.
 ///
-/// Hyperedges can be appended but not removed (removal, and with it a decision on positions, is
-/// left for later). Equality ignores the order of the vertices and of the hyperedges.
+/// Hyperedges can be appended but not removed. Equality ignores the order of the vertices and of
+/// the hyperedges.
 ///
 /// Maps from the vertices and the hyperedges to values can be attached (`PropertyGraph`): a
 /// vertex map is read by vertex index or by vertex, an edge map by hyperedge position.
@@ -164,7 +160,7 @@ extension UndirectedIncidenceList {
     }
 
     /// Appends a hyperedge with `members`, inserting the members that are not vertices yet, by
-    /// first appearance (XGI's `add_edge`). A member listed twice is stored once; an empty
+    /// first appearance. A member listed twice is stored once; an empty
     /// sequence appends an empty hyperedge.
     ///
     /// - Returns: The new hyperedge's position, the old `hyperedgeCount`.
@@ -508,17 +504,17 @@ extension UndirectedIncidenceList: PropertyGraph {
     @inlinable public static var _vertexMapLayout: _MapLayout { .dense }
     @inlinable public static var _edgeMapLayout: _MapLayout { .dense }
 
-    /// Attaches a map from the hyperedges to `Value`, every hyperedge's value `value` (LEMON's
-    /// `ArcMap`), and returns its handle. A new hyperedge's value is the default. Copies of the
-    /// hypergraph carry the map, copy-on-write. O(m).
+    /// Attaches a map from the hyperedges to `Value`, every hyperedge's value `value`, and
+    /// returns its handle. A new hyperedge's value is the default. Copies of the hypergraph carry
+    /// the map, copy-on-write. O(m).
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _plane.hyperedgeCount)
         return EdgeMap(_token: token, hint: hint)
     }
 
-    /// Attaches a map from the vertices to `Value`, every vertex's value `value` (LEMON's
-    /// `NodeMap`), and returns its handle. A new vertex's value is the default. O(n).
+    /// Attaches a map from the vertices to `Value`, every vertex's value `value`, and
+    /// returns its handle. A new vertex's value is the default. O(n).
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _vertices.count)
@@ -650,7 +646,7 @@ extension UndirectedIncidenceList: PropertyGraph {
 
 extension UndirectedIncidenceList: Equatable {
     /// Equal when the vertex sets are equal and the hyperedges are equal as a multiset of member
-    /// sets, whatever the vertex order and the hyperedge order (the representations' rule).
+    /// sets, whatever the vertex order and the hyperedge order.
     ///
     /// - Complexity: O(n) expected to match the vertices (one hash each, none when both list
     ///   them in the same order), then O(p log m) index comparisons to match the hyperedges.

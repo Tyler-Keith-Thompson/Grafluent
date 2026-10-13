@@ -4,16 +4,14 @@
 `complementView`) hold their base and compute every row from the base's rows. The materialized results
 (the line graph, the condensation as a `DirectedAcyclicGraph`, the quotient, the disjoint union and
 the join) are built in one step through the construction hooks, on a target type the caller picks.
-The tests come from the proposed API (`api.md` in
-[`Tests/Catalogs/GraphOperations/`](../Catalogs/GraphOperations/), phase 1), with its open questions
-decided as recommended:
+The API is described in `api.md` in [`Tests/Catalogs/GraphOperations/`](../Catalogs/GraphOperations/).
 
-- the reversal view is `transposedView` (`TransposedView<Base>`), and it needs a bidirectional base;
-- the subgraph views renumber the kept vertices densely in base order and keep the base's positions;
-- the materialized operations are static factories on any `_DirectedGraphConstruction` or
-  `_GraphConstruction` target;
-- the condensation becomes a DAG through an initializer, `DirectedAcyclicGraph<Base>(g.condensation())`;
-- inputs with self-loops trap where the result would need one (phase 1).
+- The reversal view is `transposedView` (`TransposedView<Base>`), and it needs a bidirectional base.
+- The subgraph views renumber the kept vertices densely in base order and keep the base's positions.
+- The materialized operations are static factories on any `_DirectedGraphConstruction` or
+  `_GraphConstruction` target.
+- The condensation becomes a DAG through an initializer, `DirectedAcyclicGraph<Base>(g.condensation())`.
+- Inputs with self-loops trap where the result would need one.
 
 The suite uses only the public API, and each test is self-contained. The only shared material is
 the seeded generator and the tags in `GrafluentTestSupport`.
@@ -38,10 +36,10 @@ DirectedAcyclicGraph<Base>(_ condensation: Condensation<G>)
 | Subgraph numbering | Kept vertices in base index order, whatever the listed order; repeats once | GO-013, GO-014 |
 | Subgraph positions | The base's, in base `edges` order | GO-017, GO-031 |
 | Edge indices | None for an induced subgraph; with an edge set, the rank in base index order among edges whose ends are kept | GO-012, GO-031, GO-041 |
-| Edge with a dropped end | Dropped, as in JGraphT's `AsSubgraph` | GO-040, GO-041 |
+| Edge with a dropped end | Dropped | GO-040, GO-041 |
 | Undirected self-loop | Twice in its row, in every view | GO-027, GO-038 |
 | Complement | Every pair of distinct vertices the base lacks; rows ascending; loops and parallel edges ignored | GO-048 – GO-061 |
-| Complement positions | Index pairs in row-major order; undirected `(u, v)` with `u < v`. The tests read them through `sourceIndex`/`targetIndex` and `endpointIndices`, since api.md does not name the fields | GO-050, GO-058 |
+| Complement positions | Index pairs in row-major order; undirected `(u, v)` with `u < v`. The tests read them through `sourceIndex`/`targetIndex` and `endpointIndices` | GO-050, GO-058 |
 | Line graph | Vertex k is the edge with `edgeIndex` k, or the k-th position of `edges` | GO-064 – GO-077 |
 | Condensation | Vertex i is component i; the order is n−1, …, 0 | GO-078 – GO-084 |
 | Quotient | Block i is vertex i; edges merged; none inside a block; an empty block is isolated | GO-085 – GO-091 |
@@ -84,7 +82,7 @@ uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 python3 Te
 ```
 
 It first checks that `ref.py` reproduces `cases.md` byte for byte. Then it re-runs each row on
-`ref.py`'s model, with NetworkX, igraph and the laws checked, asserts that every value matches the
+`ref.py`'s model, checked against NetworkX and igraph and the laws, asserts that every value matches the
 catalog cell, and writes the test. The precondition file also takes the hand-written exit tests in
 `extra_traps.swift`.
 
@@ -105,15 +103,15 @@ catalog cell, and writes the test. The precondition file also takes the hand-wri
   forwards), and the undirected views of directed views get the same checks; the latter's rows are
   ordered out-row first, so components and layers (as sets) are compared. Walking
   `complementView.edges.indices` on 1500 vertices, directed and undirected, must finish within a minute
-  and list every cell once, ascending (it was O(n³) before). The materialized operations must agree
+  and list every cell once, ascending. The materialized operations must agree
   across `CompressedSparseRow`, `AdjacencyList<Int>`, `AdjacencyMatrix` and `StableDirectedGraph<Int>`
   targets, and the condensation DAG over two bases.
-- **Properties** (swift-property-based, with shrinking), against written-out models: the three
+- **Properties.** swift-property-based checks, with shrinking, against written-out models: the three
   subgraph views directed and undirected (vertices, positions, every row by label and index, edge
   indices by rank, membership of every pair); the transposed view's laws; the complement, directed and
   undirected, and the complement of the complement; the line graph's definition (also over a view
   without edge indices); the quotient, the disjoint union and the join; the condensation DAG.
-- **Views as adaptors** (`ViewMapTests.swift`). Each view's generation is its base's. The
+- **Views as adaptors.** `ViewMapTests.swift`. Each view's generation is its base's. The
   transposed and subgraph views read the base's edge and vertex maps at the base's positions, and
   the complement reads vertex maps. A subgraph view's `[map, of:]` and `[map, ofEdgeAt:]` trap
   (exit tests) for a dropped vertex, a dropped edge or a dead position, and the `checked:` forms
@@ -121,13 +119,12 @@ catalog cell, and writes the test. The precondition file also takes the hand-wri
   maps. A property check compares a subgraph view's reads with a dictionary model under random
   insertions and removals.
 - **Boundary law.** A counting vertex type on random pseudographs: every index-space row of every
-  view hashes nothing, the reverse view's degrees and edge ends by index included (it forwards them
-  to the base, whose own read the stored rows and records).
+  view hashes nothing, including the reverse view's degrees and edge ends by index, which it
+  forwards to the base.
 
 ## Planted bugs
 
-The suite was checked against bugs planted in a model of `api.md` built in a scratch copy of the
-workspace, and it caught every one.
+Each bug below, planted in a model of the API, is caught by the listed tests.
 
 | Planted bug | Caught by |
 |---|---|

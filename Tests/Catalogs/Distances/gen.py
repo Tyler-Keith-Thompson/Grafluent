@@ -452,7 +452,7 @@ FILES = [
 // `Graph`, and must equal the catalog cell. Every literal is a catalog cell (`ref.py`: api.md's
 // model, Floyd–Warshall, NetworkX 3.7 and scipy 1.18.1). DI-042 (not a vertex) is an exit test in
 // `DistancePreconditionTests.swift`. Case IDs (DI-nnn) refer to the catalog; see README.md."""),
-    ("UndirectedDistanceTests.swift", "Undirected, unweighted", "UndirectedDistanceTests", 100, 199, """// §B: connected undirected graphs without weights: NetworkX's docstring graph and grid, cycles and
+    ("UndirectedDistanceTests.swift", "Undirected, unweighted", "UndirectedDistanceTests", 100, 199, """// §B: connected undirected graphs without weights: a small example graph and a grid, cycles and
 // complete graphs (vertex-transitive: every vertex central and peripheral, the bounding
 // algorithm's worst shape), K₃,₄, Petersen, Zachary's karate club, two triangles joined by a path,
 // and a path with 12 pseudo-random chords. Every `eccentricities` row also checks
@@ -474,9 +474,8 @@ FILES = [
 // Case IDs (DI-nnn) refer to the catalog; see README.md."""),
     ("DisconnectedGraphTests.swift", "Disconnected undirected graphs", "DisconnectedGraphTests", 300, 399, """// §D: undirected graphs that are not connected. Every eccentricity is infinite (nil), so the radius
 // and the diameter are nil, every vertex is in the center and the periphery and the centroid
-// (nil == nil, as JGraphT and scipy's infinities give), the Wiener index and the average are nil,
-// and `diameterPath()` is nil; density still counts edges (DI-310). An isolated vertex is not a
-// center of eccentricity 0 (igraph's reading). Literals are catalog cells. Case IDs (DI-nnn) refer
+// (nil == nil), the Wiener index and the average are nil, and `diameterPath()` is nil; density
+// still counts edges (DI-310). An isolated vertex is not a center of eccentricity 0. Literals are catalog cells. Case IDs (DI-nnn) refer
 // to the catalog; see README.md."""),
     ("DirectedDistanceTests.swift", "Directed graphs", "DirectedDistanceTests", 400, 499, """// §E: directed graphs, over out-distances. A digraph that is not strongly connected has a finite
 // radius when some vertex reaches every vertex (DI-402, DI-426: the dipath and the acyclic

@@ -1,4 +1,4 @@
-"""Tours phase 1: reference models and independent checks for every catalog row.
+"""Tours: reference models and independent checks for every catalog row.
 
 Run:  uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with rustworkx==0.18.1
       python3 Tests/Catalogs/Tours/ref.py [--stress] [--write]
@@ -1807,7 +1807,7 @@ def build():
     trap("ShortestTour", "NaN weight", "Double K(3) weights 1.0, nan, 2.0", "shortestTour(weight:)", "a weight is NaN")
     trap("ShortestTour", "too many vertices", "K(32) weight 1", "shortestTour(weight:)", "the table needs more than 4 GiB (at most 25 vertices with 8-byte weights)")
 
-    # ----- After the critical review: infinite weights, the table's size, directed Held–Karp
+    # ----- Infinite weights, the table's size, directed Held–Karp
     trap("ShortestTour", "26 vertices: 2²⁵ · 25 entries of 9 bytes, past 4 GiB", "K(26) weight 1", "shortestTour(weight:)", "the table needs more than 4 GiB (at most 25 vertices with 8-byte weights)")
     trap("NearestNeighborTour", "infinite weight", "Double K(3) weights 1.0, inf, 2.0", "nearestNeighborTour(weight:)", "a weight is infinite")
     trap("TwoOptTour", "negative infinite weight", "Double K(3) weights 1.0, -inf, 2.0", "twoOptTour(weight:)", "a weight is infinite")
@@ -1890,7 +1890,7 @@ def stress():
         if facts["is_eulerian"] != nx_expect:
             fail(f"stress {trial}: NetworkX is_eulerian {facts['is_eulerian']} vs {nx_expect} on {E}")
         if not directed and not g.multi() and g.m and tr and nx.has_eulerian_path(nx_graph(g)):
-            # NetworkX's Hierholzer is ours on G.copy()'s adjacency (api.md).
+            # NetworkX's Hierholzer is ours on G.copy()'s adjacency.
             h = nx_graph(g)
             c = h.copy()
             pos = {(min(u, v), max(u, v)): e for e, (u, v) in enumerate(g.E)}

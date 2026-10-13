@@ -1,5 +1,5 @@
-// Cases added after the critical review: bugs that survived the first suite. Each one names what
-// it guards against. Case IDs (UG-Rnn) continue the protocol catalog; see README.md.
+// Cases the other files miss. Each one names what it guards against. Case IDs (UG-Rnn) continue
+// the protocol catalog; see README.md.
 
 import AdjacencyListModule
 import Foundation

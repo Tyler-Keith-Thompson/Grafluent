@@ -1,14 +1,14 @@
 import AdjacencyListModule
 import GraphProtocols
 
-/// A directed graph with parallel edges and no self-loops (JGraphT's `DirectedMultigraph`).
+/// A directed graph with parallel edges and no self-loops.
+///
 /// Inserting an edge always adds a copy, and each copy has its own position in `edges`, which is
 /// its identity. Opposite edges, `u→v` and `v→u`, are allowed.
 ///
-/// The invariant is the type: every initializer from unchecked input is failable, and inserting a
-/// self-loop throws `LooplessEdgeError.selfLoop`. Storage, costs and the order rules are
-/// `DirectedPseudograph`'s, which it wraps as a `GraphDelegator`: every read is the base's, at the
-/// base's speed, and so are attached maps (`PropertyGraph`) and `generation`.
+/// Every initializer from unchecked input is failable, and inserting a self-loop throws
+/// `LooplessEdgeError.selfLoop`. The graph wraps a `DirectedPseudograph` as a `GraphDelegator`, so
+/// storage, costs, ordering, attached maps (`PropertyGraph`) and `generation` are the base's.
 /// `DirectedPseudograph(directedMultigraph)` is O(1) and keeps the maps.
 @frozen
 public struct DirectedMultigraph<Vertex: Hashable> {
@@ -91,8 +91,8 @@ extension DirectedMultigraph {
     @inlinable
     public func edges(from source: Vertex, to target: Vertex) -> EdgesConnecting { _base.edges(from: source, to: target) }
 
-    /// The number of copies from `source` to `target`: `edges(from: source, to: target).count`, in
-    /// O(1) (NetworkX's `number_of_edges(u, v)`). 0 when either is not a vertex.
+    /// The number of copies from `source` to `target`, which is
+    /// `edges(from: source, to: target).count`, in O(1). 0 when either is not a vertex.
     @inlinable
     public func edgeCount(from source: Vertex, to target: Vertex) -> Int { _base.edgeCount(from: source, to: target) }
 
@@ -188,10 +188,7 @@ extension DirectedMultigraph {
     }
 
     /// Adds a copy of `edge` only when both endpoints are already vertices and it is not a
-    /// self-loop; otherwise throws and changes nothing. The `checked:` spelling of README
-    /// Principle 6: JGraphT's `addEdge` requires the endpoints (it throws
-    /// `IllegalArgumentException`), as petgraph's `try_add_edge` does (`GraphError::NodeMissed`).
-    /// O(1) amortized.
+    /// self-loop. Otherwise throws and changes nothing. O(1) amortized.
     ///
     /// - Returns: The new copy's position in `edges`, which is the old `edgeCount`.
     /// - Throws: `LooplessEdgeError.missingEndpoint` when an endpoint is not a vertex (checked
@@ -213,8 +210,8 @@ extension DirectedMultigraph {
     @discardableResult
     public mutating func remove(_ vertex: Vertex) -> Vertex? { _base.remove(vertex) }
 
-    /// Removes the newest copy of `edge` (NetworkX's `remove_edge(u, v)`). The last edge moves into
-    /// its position, unless it was the last. O(1).
+    /// Removes the newest copy of `edge`. The last edge moves into its position, unless it was the
+    /// last. O(1).
     ///
     /// - Returns: The removed edge, or `nil` if no copy of `edge` was an edge.
     @inlinable

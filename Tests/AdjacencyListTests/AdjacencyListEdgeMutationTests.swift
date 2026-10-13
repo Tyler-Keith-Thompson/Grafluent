@@ -1,4 +1,4 @@
-// Inserting and removing edges. Case IDs (E-nn, P-nn) refer to the harvested test catalog.
+// Inserting and removing edges. Case IDs (E-nn, P-nn) refer to the case catalog.
 //
 // Tests taking `isShared` run twice: once on a uniquely referenced graph, and once while a copy
 // of it exists, which must come through the mutation unchanged.
@@ -14,7 +14,7 @@ struct AdjacencyListEdgeMutationTests {
 
     @Test("inserting a new edge between existing vertices", arguments: [false, true])
     func insertNew(isShared: Bool) {
-        // The Boost.Graph house DAG.
+        // The house DAG.
         var graph = AdjacencyList(edges: [
             DirectedEdge(from: 5, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 4, to: 0),
             DirectedEdge(from: 4, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 0),
@@ -218,7 +218,7 @@ struct AdjacencyListEdgeMutationTests {
 
     @Test("E-18 Boost.Graph disconnect sequence on the house DAG")
     func boostDisconnectSequence() {
-        // Boost.Graph test/test_destruction.hpp.
+        // Removals that leave vertex 0 isolated.
         var graph = AdjacencyList(edges: [
             DirectedEdge(from: 5, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 4, to: 0),
             DirectedEdge(from: 4, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 0),
@@ -227,7 +227,7 @@ struct AdjacencyListEdgeMutationTests {
         #expect(graph.edgeCount == 6)
         graph.remove(edge: DirectedEdge(from: 3, to: 2))
         #expect(graph.edgeCount == 5)
-        // Boost's clear_vertex(0): remove the edges incident to 0 but keep the vertex.
+        // Remove the edges incident to 0 but keep the vertex.
         for u in Array(graph.predecessors(of: 0)) { graph.remove(edge: DirectedEdge(from: u, to: 0)) }
         for w in Array(graph.successors(of: 0)) { graph.remove(edge: DirectedEdge(from: 0, to: w)) }
         #expect(graph.edgeCount == 3)

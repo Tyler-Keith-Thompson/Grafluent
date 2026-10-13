@@ -4,12 +4,10 @@
 (G □ H), `tensorProductView(_:_:)` (G × H), `strongProductView(_:_:)` (G ⊠ H) and
 `lexicographicProductView(_:_:)` (G ∘ H). Each returns a struct holding both factors. Its vertex is
 `Pair(g, h)`, with index `index(g)·|V(H)| + index(h)`. Its rows are computed from the factors'
-index rows, so it stores no edge. The tests come from the proposed API (`api.md` in
-[`Tests/Catalogs/GraphProducts/`](../Catalogs/GraphProducts/), phase 1), with its open questions
-decided as recommended:
+index rows, so it stores no edge. The API is specified in `api.md` in
+[`Tests/Catalogs/GraphProducts/`](../Catalogs/GraphProducts/). The tests pin these choices:
 
-- the vertex type is the shared `Pair<First, Second>` (not a nested type per product, not
-  `OrderedPair`);
+- the vertex type is the shared `Pair<First, Second>`;
 - free functions, one overload for two `DirectedGraph`s and one for two `Graph`s;
 - every product of loop-free or looped, simple or multigraph factors is defined edge by edge, with
   each generating tuple its own edge;
@@ -40,16 +38,15 @@ CartesianProductView<First, Second> (and Tensor-, Strong-, LexicographicProductV
 | Edge order | □: every G-edge at every H-vertex, then every G-vertex with every H-edge; ⊠: □'s, then ×'s; ∘: G-edges by H-vertex pairs, then H-moves | GP-003, GP-032, GP-046 |
 | Undirected × | Two edges per pair of non-loop factor edges, straight then crossed; one when either is a loop | GP-017, GP-023 – GP-025 |
 | Undirected ∘ over a loop | Only h ≤ h′ | GP-051, GP-053 |
-| Self-loops | Each generating tuple is its own edge, so counts can exceed NetworkX's MultiGraph | GP-011, GP-039, GP-051, GP-053 |
+| Self-loops | Each generating tuple is its own edge | GP-011, GP-039, GP-051, GP-053 |
 | Edge indices | □ always; directed ×, ⊠, ∘; never undirected ×, ⊠, ∘ | GP-066 – GP-068 |
 | Hashing | Index-space rows hash nothing; a pair lookup hashes twice (one lookup per factor) | GP-014, GP-028, GP-042, GP-056 |
 | Preconditions | A factor without vertex indices, a vertex count that overflows `Int`, a pair whose part is not a vertex | GP-069 – GP-071 |
 
 ## How values are pinned
 
-api.md leaves the Swift spelling of the position types open (enum or struct, case and field
-names, initializers). So the tests never name a position's parts. They pin each position through
-what the protocols expose:
+The tests never name a position's parts. They pin each position through what the protocols
+expose:
 
 - its place in `edges` (positions are distinct, and `edges.indices` is sorted);
 - its endpoints by value (`edges[p]`, `source`/`target`) and by index (`sourceIndex`/`targetIndex`,
@@ -130,25 +127,3 @@ which stores only its count.
     nothing;
   - `vertexIndex(of:)`, `contains(_:)` and a label-space row each hash twice;
   - a BFS over a strong product hashes the same with a path factor as with a complete one.
-
-## Planted bugs
-
-The suite was checked against 14 bugs planted in a Swift model of api.md, in a scratch copy of the
-workspace. It caught every one.
-
-| Planted bug | Caught by |
-|---|---|
-| `Pair`'s `<` comparing the second parts first | Pair laws, directed conformance |
-| Directed × arcs with the H-ends swapped | GP-020 – GP-022, GP-027, properties, conformance |
-| Undirected × without the crossed edge | GP-017, GP-018, GP-023 – GP-028, properties |
-| Undirected × pairing a G-loop at both of its ends | GP-023, GP-025, GP-037, GP-039, properties, conformance |
-| A pair lookup hashing a third time | GP-014, GP-028, GP-042, GP-056, hash law |
-| Index rows looking their vertex up | GP-014, GP-028, GP-042, GP-056, hash law |
-| □ H-part edge index g + eH·nG instead of g·mH + eH | GP-010, GP-057, properties, conformance |
-| The loop-free degree formula used with self-loops | GP-023 – GP-025, GP-037 – GP-039, properties |
-| Directed ∘ in-rows without the H-moves | GP-048 – GP-050, GP-055, properties, conformance |
-| Column-major vertex numbering | GP-003 onwards, properties |
-| □ rows listing H-moves before G-moves | most undirected rows |
-| Undirected ∘ over a loop listing both (h, h′) and (h′, h) | GP-051, properties, conformance |
-| No overflow check | GP-070, extra traps |
-| A factor without vertex indices accepted | GP-069, extra traps |

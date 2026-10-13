@@ -7,16 +7,16 @@ toolchain has no libFuzzer runtime, so they are built with a swift.org toolchain
 
     python3 scripts/fuzz.py run                         # every target, 60 s each, all at once
     python3 scripts/fuzz.py run FuzzShortestPaths -t 600
-    python3 scripts/fuzz.py regress                     # replay every committed corpus once
+    python3 scripts/fuzz.py regress                     # replay every local corpus once
     python3 scripts/fuzz.py repro FuzzShortestPaths Fuzz/Crashes/FuzzShortestPaths/crash-…
 
 A run is bounded by time, not by inputs: each target gets `--seconds` of wall time on
 `--jobs` worker processes (libFuzzer's fork mode), with every target running at once. New inputs
 are written to a scratch directory and then merged into Fuzz/Corpus/<target>/, keeping only the
 ones that add coverage, so every run starts where the last one stopped. The corpus is local (a
-few hundred inputs per target, not committed); `regress` replays it after a change. Crashes go to Fuzz/Crashes/<target>/ (not committed); a crash becomes a test in the
-module's suite, and then its file is deleted. `repro` replays one and also writes a minimized
-copy next to it.
+few hundred inputs per target, not committed); `regress` replays it after a change. Crashes go
+to Fuzz/Crashes/<target>/ (not committed); a crash becomes a test in the module's suite, and
+then its file is deleted. `repro` replays one and also writes a minimized copy next to it.
 """
 
 import argparse
@@ -35,8 +35,8 @@ BIN = os.path.join(FUZZ, ".build", "release")
 VERSION = os.environ.get("GRAFLUENT_FUZZ_SWIFT", "6.3.3")
 
 # Common to every libFuzzer invocation. Inputs decode into operation sequences, so a few hundred
-# bytes is already a long sequence; longer inputs only slow each run. The memory limit follows
-# the experience that the 2 GB default stops long runs early.
+# bytes is already a long sequence; longer inputs only slow each run. The default 2 GB memory
+# limit stops long runs early.
 COMMON = ["-max_len=512", "-rss_limit_mb=4096", "-timeout=10", "-use_value_profile=1", "-print_final_stats=1"]
 
 
@@ -73,7 +73,7 @@ def run(target, seconds, jobs):
     log = os.path.join(FUZZ, ".build", f"{target}.log")
     started = time.time()
     with open(log, "w") as out:
-        # The scratch directory comes first, so new inputs land there; the committed corpus seeds
+        # The scratch directory comes first, so new inputs land there; the corpus seeds
         # the run. Fork mode runs from the working directory, so that is the scratch one too.
         subprocess.run([os.path.join(BIN, target), f"-fork={jobs}", f"-max_total_time={seconds}",
                         f"-artifact_prefix={crashes}/", *COMMON, scratch, corpus],

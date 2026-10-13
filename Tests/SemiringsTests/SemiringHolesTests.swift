@@ -7,8 +7,8 @@ import Testing
 
 @Suite("Semiring DAG paths over a base with position holes")
 struct SemiringHolesTests {
-    // A StableDirectedGraph with a removed vertex has a hole at position 0, so its positions are
-    // no longer its dense numbers: the maintained order must be translated through the numbering.
+    // A StableDirectedGraph with a removed vertex has a hole at position 0, so its positions differ
+    // from its dense numbers, and the maintained order must be translated through the numbering.
     @Test("dagShortestPaths on a DirectedAcyclicGraph over a StableDirectedGraph with a removed vertex")
     func shortestPathsAcrossAHole() throws {
         var base = StableDirectedGraph(vertices: 0 ..< 5, edges: [

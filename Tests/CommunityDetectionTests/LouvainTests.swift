@@ -1,4 +1,4 @@
-// §D: Louvain (Blondel et al.) with NetworkX's arithmetic and stop rule: vertices in index order,
+// §D: Louvain (Blondel et al.): vertices in index order,
 // a vertex stays when its own community ties the best gain, other ties go to the greatest community
 // label; parallel edges are weight, self-loops count in degrees; the Dugué–Perez gain on
 // `DirectedGraph`; `resolution`, `threshold`, weights, and `using:` on graphs where every order gives

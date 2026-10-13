@@ -4,12 +4,11 @@
 `BipartiteGraph<Vertex>`, a simple undirected graph whose two sides are part of the value (each
 vertex inserted on a side and kept there, every edge across, stored left endpoint first), built on
 `UndirectedAdjacencyList` and mutable like it; `isBipartite`, `bipartition()` and `findOddCycle()`
-on any `Graph`; and `projectedGraph(onto:)`. The tests were written before the implementation, from
-the proposed API (`api.md` in [`Tests/Catalogs/BipartiteGraphs/`](../Catalogs/BipartiteGraphs/), phase 1, with the open questions decided: `BipartiteGraph` is simple,
-`insert(edge:)` throws `BipartitionError` on a same-side edge (decided later, replacing a trap),
-no `density`, no
-`isBipartition(left:)`, recognition on `Graph` only, no side-local indices, no moving a vertex
-between sides). The suite uses only the public API, and each test is self-contained. The shared
+on any `Graph`; and `projectedGraph(onto:)`. The API is listed in `api.md` in
+[`Tests/Catalogs/BipartiteGraphs/`](../Catalogs/BipartiteGraphs/). `BipartiteGraph` is simple,
+`insert(edge:)` throws `BipartitionError` on a same-side edge, recognition is on `Graph`, and a
+vertex never moves between sides. The suite uses only the public API, and each test is
+self-contained. The shared
 material is the `ReferencePseudograph` test conformer, the seeded generator and the tags in
 `GrafluentTestSupport`. A conformer private to a file models what the package does not have: a
 graph with no vertex or edge indices.
@@ -99,22 +98,6 @@ components, a model of sides and edges, the projection's definition, api.md's br
 written out over the graph's public rows, and closed forms. The grid's odd cycle at 300 × 300
 generalizes BP-039 and was also computed with `ref.py`'s model.
 
-The whole suite was run against a Swift model of the API (a port of `ref.py`'s `BG`, `two_color` and
-`normalize_cycle` over the real `UndirectedAdjacencyList`, `Cycle` and representations) before the
-implementation existed, compiled with warnings as errors; it passes in about 5 seconds in a debug
-build. It was also run against 21 planted bugs in that model, each of which fails tests (count of
-failing tests in parentheses): rows read in reverse (32), components rooted from the last vertex
-(107), isolated vertices put right (21), the cycle not rotated to its least vertex (9), the cycle
-not turned to its lesser edge (9), self-loops ignored by `isBipartite` (11), overlapping sides
-accepted (1), a non-vertex in `left:` ignored (2), edges not swapped to put the left endpoint first
-(22), `insert(_:on:)` accepting the other side (1), `insert(edge:)` accepting a same-side edge (3),
-sides ignored by `==` (3), a hash that ignores the edges (1), decoding accepting overlapping sides
-(1) or a same-side edge (1), self-loops in projections (13), sides listed in breadth-first order
-instead of `vertices` order (31), the cycle closed through the root instead of the lowest common
-ancestor (12), `BipartiteGraph(graph)` inserting edges in reverse (7), `insert(edge:)` returning the
-edge as given instead of as stored (5), and the moved slot not renamed after a vertex removal
-(crashes the run on a stale side entry).
-
 ## Files
 
 | File | Tests | Covers |
@@ -145,10 +128,9 @@ and generations): 307 tests in all.
 
 ## Case IDs
 
-Case IDs (BP-001 … BP-166) refer to the catalog (`cases.md`), whose values `ref.py` computes with
+Case IDs (BP-001 … BP-172) refer to the catalog (`cases.md`), whose values `ref.py` computes with
 api.md's model and checks against NetworkX 3.7 (`is_bipartite`, `sets`, `color`,
-`is_bipartite_node_set`, `projected_graph`; odd cycles for validity, since no other library
-returns the same one). Each test's name starts with its ID; tests without an ID check laws,
+`is_bipartite_node_set`, `projected_graph`; odd cycles for validity only). Each test's name starts with its ID; tests without an ID check laws,
 representations, properties or conformance that the catalog does not list.
 
 | Cases | Section | File |
@@ -167,16 +149,16 @@ Rows with parallel edges (BP-010 – BP-014, BP-089) are not repeated on the adj
 matrix, which cannot hold them; they run on the unindexed conformer. Rows whose vertices are not
 exactly `0..<n` (BP-059, BP-060) or that have an arc twice are not repeated on the matrix.
 
-## Readings of what api.md leaves open
+## Other conventions
 
-| Question | Reading taken | Where |
+| Question | Convention | Where |
 |---|---|---|
 | The description of `String` vertices | Written as every representation writes them (`String(reflecting:)`): `["a"] \| ["x", "y"]; ["a"–"x"]`; api.md's example `[a, b] \| [x]; [a–x, b–x]` reads as the shape | `descriptions` |
 | Decoded vertex order | `left` then `right`: the only order the encoding carries; edge positions are kept | `roundTrip`, `mutationAgainstModel` |
-| Coding keys | Not named by api.md, so the invalid payloads are made by editing a valid encoding, its keys found by their values; the edges are a flat `[Int]` of offsets into `left ++ right`, left endpoint first, as `UndirectedAdjacencyList` encodes | `decodeInvalid` |
+| Coding keys | The invalid payloads are made by editing a valid encoding, its keys found by their values; the edges are a flat `[Int]` of offsets into `left ++ right`, left endpoint first, as `UndirectedAdjacencyList` encodes | `decodeInvalid` |
 | Which decoding errors | Overlapping sides, an edge inside a side, a loop, an endpoint out of range or negative, an odd edge list: `dataCorrupted`; wrong types and missing keys: any error | `decodeInvalid` |
 | `remove(edge:)`'s result | The stored edge (left endpoint first), as `UndirectedAdjacencyList` returns it; every catalog removal is written in the stored orientation anyway | BP-141, `mutationAgainstModel` |
-| `BipartiteGraph(graph)` on a `BipartiteGraph` whose sides are not the canonical ones | The canonical sides, so a different value (api.md: "the canonical sides of `bipartition()`"); no shortcut that returns the graph itself | `storedSidesAreNotRecomputed` |
+| `BipartiteGraph(graph)` on a `BipartiteGraph` whose sides are not the canonical ones | The canonical sides of `bipartition()`, so a different value; no shortcut that returns the graph itself | `storedSidesAreNotRecomputed` |
 | `BipartiteSide.description` | Contains the case name | `sides` |
 | Hash quality | Equal values hash alike; twelve graphs with the same counts but different edges or sides hash differently | `hashing` |
 
@@ -184,9 +166,9 @@ exactly `0..<n` (BP-059, BP-060) or that have an arc twice are not repeated on t
 
 | Case | Why |
 |---|---|
-| Decoding a repeated edge, or a vertex repeated within one side | api.md does not say whether decoding rejects them (as `UndirectedAdjacencyList` does) or drops them (as `init?(left:right:edges:)` does) |
-| `Bipartition` equality across different graphs with the same sides | api.md: "compares sides by vertex, as `Components` compares groups"; the tests compare bipartitions of one graph, of the same graph rebuilt with edges in another order, and of graphs with different sides |
+| Decoding a repeated edge, or a vertex repeated within one side | Not pinned by the catalog |
+| `Bipartition` equality across different graphs with the same sides | The tests compare bipartitions of one graph, of the same graph rebuilt with edges in another order, and of graphs with different sides |
 | `debugDescription`, `customMirror`, `Bipartition.description` | Formats unspecified; checked non-empty |
 | Complexity (O(1) `side(of:)`, recognition reading `_withIncidentIndexRows` without hashing, a rejected `insert(edge:)` not copying, no recursion) | Benchmarks; the stress tests bound costs loosely and run on a `Task`'s small stack |
-| Recognition on `CompressedSparseRow` and `DirectedGraph` directly | Out of phase 1 (open question 5): recognition is on `Graph`, and compressed sparse row has no `.undirectedView`; it is tested through `AdjacencyList(csr).undirectedView` |
-| NetworkX and igraph on random graphs (`just diff`) | Not Swift tests; `ref.py` checks every catalog row against NetworkX 3.7, and the property tests use definition oracles |
+| Recognition on `CompressedSparseRow` and `DirectedGraph` directly | Recognition is on `Graph`, and compressed sparse row has no `.undirectedView`; it is tested through `AdjacencyList(csr).undirectedView` |
+| Random graphs against NetworkX | Not Swift tests; `ref.py` checks every catalog row against NetworkX 3.7, and the property tests use definition oracles |

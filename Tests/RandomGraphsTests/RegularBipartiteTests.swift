@@ -1,4 +1,4 @@
-// Random regular and random bipartite graphs for fixed seeds (catalog RG-114 – RG-135, RG-143): NetworkX's
+// Random regular and random bipartite graphs for fixed seeds (catalog RG-114 – RG-135, RG-143): the
 // stub pairing with its repair rounds, and Batagelj–Brandes skipping over the left–right pairs.
 // Generated from cases.md by swiftgen.py; see README.md.
 

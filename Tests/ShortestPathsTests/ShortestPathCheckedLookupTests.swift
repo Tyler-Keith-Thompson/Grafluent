@@ -1,4 +1,4 @@
-// The `checked:` lookups of the results (README Principle 6), `Arborescence(checked:)` and
+// The `checked:` lookups of the results, `Arborescence(checked:)` and
 // `Forest(_: ShortestPathTree)`. Each lookup throws `VertexNotFound` where its plain spelling
 // traps, and otherwise returns the plain spelling's value, a nil included (an unreached vertex, a
 // source). The graphs cover the three ways a result finds a vertex's index: the graph's own vertex

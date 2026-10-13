@@ -1,5 +1,5 @@
-"""Cross-checks the reference DS against scipy's DisjointSet, NetworkX's
-UnionFind, and the naive oracle.
+"""Cross-checks the reference DS against the naive oracle, scipy's DisjointSet and NetworkX's
+UnionFind.
 Run: uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 python3 check.py"""
 import os
 import random
@@ -10,7 +10,6 @@ sys.path.insert(0, HERE)
 
 from ref import DS, Naive  # noqa: E402
 
-# scipy's DisjointSet (scipy.cluster.hierarchy, from scipy/_lib/_disjoint_set.py).
 from scipy.cluster.hierarchy import DisjointSet as ScipyDS  # noqa: E402
 
 import networkx as nx  # noqa: E402

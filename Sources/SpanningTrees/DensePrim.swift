@@ -1,11 +1,11 @@
 import GraphProtocols
 
-/// Prim's algorithm with an array of keys in place of a heap (Prim's original form, and the dense
-/// case in Cormen et al.): each step scans the keys of the vertices outside the tree for the
-/// least, takes it, and relaxes that vertex's arcs. O(n² + m), which beats the heap's O(m log n)
-/// once m is near n². Keys are compared under the strict order (weight, rank), so with distinct
-/// ranks the forest is the unique minimum spanning forest under that order, whichever vertex each
-/// tree starts from.
+/// Prim's algorithm with an array of keys in place of a heap.
+///
+/// Each step scans the keys of the vertices outside the tree for the least, takes it, and relaxes
+/// that vertex's arcs. O(n² + m), which beats the heap's O(m log n) once m is near n². Keys are
+/// compared under the strict order (weight, rank), so with distinct ranks the forest is the unique
+/// minimum spanning forest under that order, whichever vertex each tree starts from.
 ///
 /// `arcs(u)` gives `(v, position)` for every edge end at `u`; `weight` and `rank` read an edge
 /// once, from the end spanned first, and never for a self-loop. With no keyed vertex left

@@ -1,7 +1,6 @@
 // §J: deep and wide undirected graphs, and the real-world fixtures read as undirected graphs. Deep
 // graphs run inside a Task, whose stack is much smaller than the main thread's, so a recursive
-// depth-first search to the depth of a 100 000-vertex path overflows (JGraphT's
-// BiconnectivityInspector is recursive and does). Each entry point is called once per graph, on
+// depth-first search to the depth of a 100 000-vertex path overflows. Each entry point is called once per graph, on
 // one representation, and per-element checks are folded into one expectation each to keep each
 // test well under two seconds in a debug build: so the sizes are half the catalog's or less (a
 // 50 000-vertex path, cycle and star, a 25 000-vertex doubled path and lasso, a 150 × 150 grid,

@@ -28,10 +28,10 @@ func _balancedTreePairs(_ r: Int, _ h: Int) -> (vertexCount: Int, pairs: [Direct
 
 extension _GraphConstruction {
     /// The balanced tree: every vertex above the last level has `branchingFactor` children, down to
-    /// `height` levels below the root (NetworkX `balanced_tree(r, h)`, igraph `Tree(n, r)`). Vertices
-    /// in breadth-first order: root 0, and the children of p are r·p + 1 … r·p + r. (r^(h+1) − 1)/(r − 1)
-    /// vertices (h + 1 when r = 1, and the root alone when r = 0 or h = 0), one fewer edges,
-    /// sorted. As a `Tree`, `Tree.balancedTree(branchingFactor:height:)`. O(n).
+    /// `height` levels below the root. Vertices are numbered in breadth-first order: root 0, and the
+    /// children of p are r·p + 1 … r·p + r. (r^(h+1) − 1)/(r − 1) vertices (h + 1 when r = 1, and
+    /// the root alone when r = 0 or h = 0), one fewer edges, sorted. As a `Tree`,
+    /// `Tree.balancedTree(branchingFactor:height:)`. O(n).
     ///
     /// - Precondition: `branchingFactor ≥ 0` and `height ≥ 0`, and the vertex count fits in `Int`.
     @inlinable
@@ -42,8 +42,8 @@ extension _GraphConstruction {
 }
 
 extension _DirectedGraphConstruction {
-    /// The balanced tree with every edge from parent to child (NetworkX `balanced_tree(r, h,
-    /// create_using=nx.DiGraph)`): the out-tree from root 0, in row-major order. O(n).
+    /// The balanced tree with every edge directed from parent to child: the out-tree from root 0,
+    /// in row-major order. O(n).
     ///
     /// - Precondition: `branchingFactor ≥ 0` and `height ≥ 0`, and the vertex count fits in `Int`.
     @inlinable
@@ -55,8 +55,8 @@ extension _DirectedGraphConstruction {
 
 extension Tree where Vertex == Int {
     /// The balanced tree as a tree: edge k joins vertex k + 1 to its parent k/r, numbered as
-    /// `balancedTree(branchingFactor:height:)` on the representations. Built on the dense layout
-    /// with no vertex dictionary, as `Tree.path(vertexCount:)` is. O(n).
+    /// `balancedTree(branchingFactor:height:)` on the representations. Uses the dense layout with
+    /// no vertex dictionary. O(n).
     ///
     /// - Precondition: `branchingFactor ≥ 0` and `height ≥ 0`, and the vertex count fits in `Int`.
     @inlinable

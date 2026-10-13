@@ -23,7 +23,7 @@ func _canonicalSign(_ x: inout [Double]) {
 /// `NoConvergence`; the public methods take `maxIterations` in place of the limit that throws.
 @usableFromInline
 enum _SpectralLimits {
-    /// The root-free QL/QR iterations of a dense spectrum, in all (LAPACK's `dsterf`).
+    /// The root-free QL/QR iterations of a dense spectrum, in all.
     @usableFromInline static func dense(_ n: Int) -> Int { 30 * n }
     /// Lanczos on σI − L before switching to shift-invert (not a failure).
     @usableFromInline static func shifted(_ n: Int) -> Int { 4_000 + 20 * Int(Double(n).squareRoot()) }
@@ -37,8 +37,8 @@ enum _SpectralLimits {
 
 /// σ/λ₂ above which λ₂ comes from shift-invert rather than from σI − L: there the residual
 /// `tolerance` · λ₂ is near the rounding floor of the shifted operator (ε · σ). The caller also
-/// switches above 20 n, measured: path-like graphs (σ/λ₂ ≈ 0.4 n²) and weight spreads run 2–20×
-/// faster by shift-invert, grids (≈ 0.8 n) 2–3× slower.
+/// switches above 20 n: path-like graphs (σ/λ₂ ≈ 0.4 n²) and wide weight spreads converge faster by
+/// shift-invert, grids (≈ 0.8 n) slower.
 @inline(__always)
 func _shiftInvertRatio(_ tolerance: Double) -> Double {
     min(1e7, max(1e3, 0.05 * tolerance / Double.ulpOfOne))

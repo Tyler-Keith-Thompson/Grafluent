@@ -1,8 +1,7 @@
 import GraphProtocols
 import NamedGraphs
 
-/// Barabási–Albert preferential attachment, NetworkX's `barabasi_albert_graph` with its default
-/// star seed. The star on 0…m (hub 0), then each new vertex s draws `repeated[below(count)]` until
+/// Barabási–Albert preferential attachment from the star on 0…m (hub 0): each new vertex s draws `repeated[below(count)]` until
 /// it has m distinct targets, and appends them in ascending order, then itself m times, to the
 /// list in which each vertex appears once per edge end. Pairs: undirected (t, s), sorted; directed
 /// s → t (new to old), already in row-major order.
@@ -63,12 +62,11 @@ extension _GraphConstruction {
     /// > *Science* 286(5439), 509–512 (1999). doi:10.1126/science.286.5439.509
     ///
     /// The degree-proportional draw reads the repeated-endpoints list of Batagelj–Brandes'
-    /// algorithm BA (Phys. Rev. E 71, 036113, 2005), sampled as NetworkX does: the list holds each
-    /// vertex once per edge end, and a new vertex draws uniform entries until it has m distinct
-    /// targets. m(n − m) edges, sorted.
-    /// O(n·m) expected. The draws are NetworkX's `barabasi_albert_graph(n, m)` on the same
-    /// stream, except that each vertex's targets are appended to the list in ascending order
-    /// where NetworkX appends them in its set's order.
+    /// algorithm BA (Phys. Rev. E 71, 036113, 2005). The list holds each vertex once per edge end,
+    /// and a new vertex draws uniform entries until it has m distinct targets, which are then
+    /// appended to the list in ascending order. The result has m(n − m) edges.
+    ///
+    /// - Complexity: O(n·m) expected.
     ///
     /// - Precondition: `edgesPerVertex` in `1..<vertexCount`.
     @inlinable
@@ -88,10 +86,11 @@ extension _GraphConstruction {
 }
 
 extension _DirectedGraphConstruction {
-    /// The Barabási–Albert graph with each edge directed from the newer vertex to the older one,
-    /// as igraph's `Barabasi(directed=True)`: the same draws as the undirected form, so the star's
-    /// leaves point at hub 0 and each new vertex has out-degree m. Arcs in row-major order, with no
-    /// sort. O(n·m) expected.
+    /// The Barabási–Albert graph with each edge directed from the newer vertex to the older one.
+    /// It makes the same draws as the undirected form. The star's leaves point at hub 0, and each
+    /// new vertex has out-degree m.
+    ///
+    /// - Complexity: O(n·m) expected.
     ///
     /// - Precondition: `edgesPerVertex` in `1..<vertexCount`.
     @inlinable

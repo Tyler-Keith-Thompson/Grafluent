@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Differential testing: the library against NetworkX and scipy on the same random graphs.
+"""Differential testing: the library against NetworkX, scipy, rustworkx and python-igraph on the
+same random graphs.
 
     python3 scripts/differential.py                  # 2,000 cases, every module
     python3 scripts/differential.py --cases 20000 --seed 7
@@ -15,9 +16,9 @@ output base `just test-release` uses), or through SwiftPM with `--swiftpm`.
 
 Runs under `uv` with pinned reference versions (the script re-executes itself through
 `uv run` when they are not importable), so nothing is installed globally. The library side is
-Differential/ (an executable that answers a batch of JSON cases, the chosen sections only). Each case is a simple graph on
-0..<n, directed or undirected, self-loops allowed, with integer weights (some zero, some
-negative), one to three sources, an optional cutoff and a target.
+Differential/, an executable that answers a batch of JSON cases for the chosen sections. Each
+case is a simple graph on 0..<n, directed or undirected, self-loops allowed, with integer weights
+(some zero, some negative), one to three sources, an optional cutoff and a target.
 
 Only answers that ties cannot change are compared: distances, reachability, whether a negative
 cycle is reachable or exists, and the validity of every returned path and witness (each step an
@@ -996,9 +997,8 @@ def compare_centrality(case, mine, G):
     return problems
 
 
-# ---- Community detection: the library's documented deterministic rules (NetworkX's arithmetic,
-# vertices in index order, ties kept, else to the greatest label), as checked against NetworkX's
-# own code with a fixed order in the design's reference model.
+# ---- Community detection: models of the library's documented deterministic rules (NetworkX's
+# arithmetic, vertices in index order, ties kept, else to the greatest label).
 
 
 class CG:

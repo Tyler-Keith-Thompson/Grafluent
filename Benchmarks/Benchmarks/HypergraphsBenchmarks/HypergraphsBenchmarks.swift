@@ -10,9 +10,8 @@ import Traversal
 
 // Tests/Catalogs/Hypergraphs/api.md's workload: n = 10⁵ vertices, m = 2·10⁵ hyperedges of sizes
 // 2–8 (p ≈ 10⁶ incidences), `Int` vertices; the directed form splits each hyperedge in half,
-// sources then targets. Each measure runs beside its BASELINE (api.md's Performance table); the
-// Python references (XGI 0.10.2, HyperNetX 2.4.3, halp 1.0.0) are timed by
-// `ref.py --baseline` and quoted in Benchmarks/README.md.
+// sources then targets. Each measure runs beside its BASELINE; `ref.py --baseline` runs the same
+// workload on the Python references (XGI 0.10.2, HyperNetX 2.4.3, halp 1.0.0).
 
 /// Vertex hashes so far: every `CountingVertex.hash(into:)` call.
 nonisolated(unsafe) var vertexHashes = 0
@@ -36,7 +35,7 @@ func hashes(_ body: () -> Void) -> Int {
     return vertexHashes - before
 }
 
-/// A bare union–find over the hyperedge rows: what `connectedComponents()` must stay near.
+/// A bare union–find over the hyperedge rows, the baseline for `connectedComponents()`.
 func bareComponents(vertexCount n: Int, rows: [[Int]]) -> Int {
     var sets = DisjointSet(count: n)
     for row in rows {
@@ -203,8 +202,8 @@ let benchmarks: @Sendable () -> Void = {
     // The n vertices, then the m hyperedges one at a time, with 0, 1 (an edge map) or 2 (an edge
     // map and a vertex map) attached maps; the BASELINE rows append to as many arrays instead, kept
     // by the caller's own hypergraph type inside its mutating methods (`SideArrayHypergraph`).
-    // The 0-map row attaches nothing: an attach call in the loop, even one run zero times, costs the
-    // optimizer facts a caller without maps keeps.
+    // The 0-map row has no attach call in the loop at all: even one run zero times costs the
+    // optimizer facts that a caller without maps keeps.
     Benchmark("Hypergraphs: insert(_:) then insert(hyperedge:), 0 attached maps") { benchmark in
         for _ in benchmark.scaledIterations {
             var built = UndirectedIncidenceList<Int>()
@@ -277,7 +276,7 @@ let benchmarks: @Sendable () -> Void = {
     }
 }
 
-/// The fair baseline of the attached-map rows: a caller's own hypergraph type that holds the
+/// The baseline of the attached-map rows: a caller's own hypergraph type that holds the
 /// hypergraph, an edge side array and (with `vertexArray`) a vertex side array, appending to each
 /// inside its own insertions.
 struct SideArrayHypergraph {

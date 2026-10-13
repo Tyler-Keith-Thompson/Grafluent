@@ -1,5 +1,4 @@
-// The complement view's edges.indices, split from GraphOperationsConformanceTests.swift because it
-// relies on speed: each step starts from the current cell rather than rescanning the row, so every
+// The complement view's edges.indices at scale. Each step starts from the current cell, so every
 // cell of n = 1500 is walked within a one-minute limit. See README.md.
 
 import AdjacencyListModule
@@ -20,8 +19,7 @@ import Traversal
 struct ComplementIndicesWalkTests {
     @Test("Walking a complement's edges.indices steps from the current cell: every cell of n = 1500 in time", .timeLimit(.minutes(1)))
     func complementIndicesWalk() {
-        // Before, index(after:) rescanned the row from its start, O(n) a step and O(n³) in all:
-        // 800× iteration at n = 2000. Now one contains(edge:) per column passed.
+        // index(after:) costs one contains(edge:) per column passed, O(n²) for the whole walk.
         let n = 1500
         var rng = SeededRandomNumberGenerator(seed: 71)
         var arcs = Set<[Int]>()

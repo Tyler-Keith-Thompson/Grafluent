@@ -284,7 +284,7 @@ struct NamedGraphPropertyTests {
                     #expect(common == (graph.contains(edge: UndirectedEdge(u, v)) ? 0 : 1), "\(u), \(v)")
                 }
             }
-            // NetworkX's numbering: outer cycle 0–1–2–3–4, spokes i – i + 5, inner pentagram 5–7–9–6–8.
+            // The numbering: outer cycle 0–1–2–3–4, spokes i – i + 5, inner pentagram 5–7–9–6–8.
             for i in 0 ..< 5 {
                 #expect(graph.contains(edge: UndirectedEdge(i, (i + 1) % 5)) && graph.contains(edge: UndirectedEdge(i, i + 5)))
                 #expect(graph.contains(edge: UndirectedEdge(5 + i, 5 + (i + 2) % 5)))

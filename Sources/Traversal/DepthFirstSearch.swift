@@ -4,13 +4,13 @@ import GraphProtocols
 /// a tree, back, forward or cross edge. It holds a copy of the graph and can be iterated more than
 /// once. The search keeps its own stack, so a deep graph cannot overflow the call stack.
 ///
-/// Two ways to consume it. `for event in search` pulls events one at a time, lazily, so stopping
-/// the loop stops the search; to skip a vertex's out-edges, iterate by hand and call `prune()`
-/// right after its `discover` event. `search.forEach { … }` pushes every event to a closure in a
-/// single loop, faster than pulling, for when every event is wanted.
+/// `for event in search` pulls events one at a time, and stopping the loop stops the search. To
+/// skip a vertex's out-edges, iterate by hand and call `prune()` right after its `discover` event.
+/// `search.forEach { … }` pushes every event to a closure in one loop, which is faster when every
+/// event is wanted.
 ///
-/// With a depth limit, a vertex first reached by a path longer than the limit is not explored from
-/// a later, shorter path either: the search goes depth-first, not by distance (as in NetworkX).
+/// With a depth limit, a vertex first reached at the limit is not explored from a later, shorter
+/// path either. The search goes depth-first, not by distance.
 @frozen
 public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
     public typealias Element = DepthFirstSearchEvent<G.Vertex>
@@ -67,14 +67,14 @@ public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
         if let failure { throw failure }
     }
 
-    /// The vertices in the order discovered (NetworkX's `dfs_preorder_nodes`).
+    /// The vertices in the order discovered.
     @inlinable
     public var preorder: some Sequence<G.Vertex> {
         lazy.compactMap { if case .discover(let v) = $0 { v } else { nil } }
     }
 
-    /// The vertices in the order finished (NetworkX's `dfs_postorder_nodes`). With a depth limit,
-    /// the vertices at the limit are finished too.
+    /// The vertices in the order finished. With a depth limit, the vertices at the limit are
+    /// finished too.
     @inlinable
     public var postorder: some Sequence<G.Vertex> {
         lazy.compactMap { if case .finish(let v) = $0 { v } else { nil } }

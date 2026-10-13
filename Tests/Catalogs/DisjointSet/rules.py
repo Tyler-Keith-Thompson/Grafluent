@@ -1,4 +1,5 @@
-"""Representatives under each library's linking rule (find never changes a root)."""
+"""Representatives under alternative linking rules: by size or by rank, with ties won by the
+first argument's root, the second's, or the smaller index. Find never changes a root."""
 def sim(n, pairs, by, tie):
     par = list(range(n)); w = [1 if by == "size" else 0] * n
     def f(x):

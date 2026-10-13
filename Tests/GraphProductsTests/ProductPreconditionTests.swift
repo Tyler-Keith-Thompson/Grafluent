@@ -12,7 +12,7 @@ import Testing
 
 @Suite("GraphProducts preconditions", .tags(.precondition))
 struct ProductPreconditionTests {
-    @Test("GP-069 factor without vertex indices traps (phase 1)")
+    @Test("GP-069 factor without vertex indices traps")
     func gp069() async {
         // G = Stable (with holes) V [a]; E []; H = AL V [x]; E [] / cartesianProductView(G, H) → **trap** (a factor has no vertex indices (vertexIndexBound is nil))
         await #expect(processExitsWith: .failure) {

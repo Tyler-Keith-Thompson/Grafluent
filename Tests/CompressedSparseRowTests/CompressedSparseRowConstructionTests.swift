@@ -1,7 +1,5 @@
-// Construction and validation. Case IDs (CSR-Cnn, CSR-Inn) refer to the catalog of cases harvested
-// from petgraph, Boost.Graph, scipy, neo4j's graph crate, GAP, NetworkX, JGraphT, GraphBLAS and
-// Ligra; see README.md. Expected arrays come from those suites or were computed independently of
-// the code under test.
+// Construction and validation. Case IDs (CSR-Cnn, CSR-Inn) refer to the case catalog; see
+// README.md. Expected arrays were computed independently of the code under test.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -42,7 +40,6 @@ struct CompressedSparseRowConstructionTests {
 
     @Test("CSR-C03 an explicit vertex count is kept even with no edges")
     func explicitCountWithoutEdges() {
-        // neo4j infers one vertex from an empty edge list, petgraph infers none; neither is right.
         let graph = CompressedSparseRow(vertexCount: 4, edges: [])
         #expect(graph.vertexCount == 4)
         #expect(graph.offsets == [0, 0, 0, 0, 0])
@@ -50,7 +47,6 @@ struct CompressedSparseRowConstructionTests {
 
     @Test("CSR-C04 trailing isolated vertices survive")
     func trailingIsolated() {
-        // neo4j directed_from_node_values_exceeding_edge_list_max_id.
         let graph = CompressedSparseRow(vertexCount: 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
         #expect(graph.offsets == [0, 1, 2, 2, 2])
         #expect(graph.targets == [1, 2])
@@ -59,7 +55,6 @@ struct CompressedSparseRowConstructionTests {
 
     @Test("CSR-C05 leading and middle empty rows")
     func leadingEmptyRows() {
-        // scipy sparse/tests/test_base.py constructor2.
         let graph = CompressedSparseRow(vertexCount: 6, edges: [DirectedEdge(from: 3, to: 4)])
         #expect(graph.offsets == [0, 0, 0, 0, 1, 1, 1])
         #expect(graph.targets == [4])
@@ -69,7 +64,6 @@ struct CompressedSparseRowConstructionTests {
 
     @Test("CSR-C06 unsorted input produces sorted rows")
     func unsortedInput() {
-        // Boost.Graph test/csr_graph_test.cpp. Boost itself keeps input order: targets [2,2,1,0,0,2].
         let graph = CompressedSparseRow(vertexCount: 6, edges: [
             DirectedEdge(from: 5, to: 0), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 4, to: 1),
             DirectedEdge(from: 4, to: 0), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 5, to: 2),
@@ -95,7 +89,6 @@ struct CompressedSparseRowConstructionTests {
 
     @Test("CSR-C09 rows already grouped by source but unsorted within come out sorted")
     func unsortedWithinRows() {
-        // neo4j sort_targets_test: rows [1, 0], [4, 2, 3], [], [5, 6, 7].
         let rows: [[Int]] = [[1, 0], [4, 2, 3], [], [5, 6, 7]]
         let edges = rows.enumerated().flatMap { source, targets in targets.map { DirectedEdge(from: source, to: $0) } }
         let graph = CompressedSparseRow(vertexCount: 8, edges: edges)
@@ -105,7 +98,6 @@ struct CompressedSparseRowConstructionTests {
 
     @Test("CSR-C10 duplicate edges collapse")
     func duplicatesCollapse() {
-        // scipy: entries at (0,0), (2,1), (2,1), (0,0).
         let graph = CompressedSparseRow(vertexCount: 3, edges: [
             DirectedEdge(from: 0, to: 0), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 0, to: 0),
         ])
@@ -116,7 +108,6 @@ struct CompressedSparseRowConstructionTests {
 
     @Test("CSR-C11 duplicates and self-loops together")
     func duplicateSelfLoops() {
-        // Boost keeps all four: rowstart [0,2,4,4], column [1,1,1,1].
         let graph = CompressedSparseRow(vertexCount: 3, edges: [
             DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 1), DirectedEdge(from: 1, to: 1),
         ])
@@ -127,7 +118,7 @@ struct CompressedSparseRowConstructionTests {
 
     @Test("CSR-C12 deduplicating keeps self-loops, unlike neo4j's Deduplicated layout and GAP's squish")
     func dedupKeepsSelfLoops() {
-        // neo4j's kernel input; neo4j drops 0→0, Grafluent keeps it.
+        // The self-loop 0→0 is kept.
         let rows: [[Int]] = [[1, 1, 0], [4, 2, 3, 2], [], [5, 6, 7]]
         let edges = rows.enumerated().flatMap { source, targets in targets.map { DirectedEdge(from: source, to: $0) } }
         let graph = CompressedSparseRow(vertexCount: 8, edges: edges)
@@ -153,7 +144,6 @@ struct CompressedSparseRowConstructionTests {
         #expect(single.targets == [0])
         #expect(single.contains(edge: DirectedEdge(from: 0, to: 0)))
 
-        // petgraph src/csr.rs csr1.
         let mixed = CompressedSparseRow(vertexCount: 3, edges: DirectedFixture<Int>.petgraphCsr1.edges)
         #expect(mixed.offsets == [0, 2, 5, 6])
         #expect(mixed.targets == [0, 2, 0, 1, 2, 2])
@@ -237,7 +227,7 @@ struct CompressedSparseRowConstructionTests {
 
     @Test("CSR-C29 from a dense matrix, row = source")
     func fromDenseMatrix() {
-        // scipy constructor1: [[0,4,0],[3,0,0],[0,2,0]], read as a 0/1 matrix.
+        // [[0,4,0],[3,0,0],[0,2,0]], read as a 0/1 matrix.
         let matrix: AdjacencyMatrix = [[0, 1, 0], [1, 0, 0], [0, 1, 0]]
         let graph = CompressedSparseRow(vertexCount: matrix.vertexCount, edges: matrix.edges)
         #expect(graph.offsets == [0, 1, 2, 3])

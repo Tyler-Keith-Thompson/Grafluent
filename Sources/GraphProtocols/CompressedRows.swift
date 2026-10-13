@@ -1,6 +1,5 @@
 /// Index-space copies of a graph's adjacency for algorithms that walk it many times: compressed
-/// sparse rows (BGL's `compressed_sparse_row_graph`), each edge's ends by number, and each edge's
-/// weight by number.
+/// sparse rows, each edge's ends by number, and each edge's weight by number.
 
 /// A graph's arcs in index space, in compressed sparse row form: vertex `v`'s arcs are slots
 /// `offsets[v] ..< offsets[v + 1]` of `targets` and, when the copy reads edges, of `edges` (the
@@ -155,13 +154,14 @@ extension Graph {
 }
 
 extension DirectedGraph {
-    /// The out-arcs in compressed sparse row form, edge numbers (edge indices, or offsets in
-    /// `edges`) only when `readsEdges`, self-loops dropped when `dropsLoops`; and the vertices
-    /// listed and numbered when the graph has no vertex indices. Rows a representation lends
-    /// (`_withSuccessorIndexRows`) are copied whole when no loop is dropped, with slot `k` as
-    /// edge `k`; pooled rows (`_withOutIndexRows`) into storage sized once, each row's targets
-    /// checked and copied in one pass (appending a row at a time cost pageRank() 27% on an
-    /// `AdjacencyList` of 5·10⁵ arcs).
+    /// The out-arcs in compressed sparse row form, with the vertices listed and numbered when the
+    /// graph has no vertex indices. Edge numbers (edge indices, or offsets in `edges`) are filled
+    /// only when `readsEdges`, and self-loops are dropped when `dropsLoops`.
+    ///
+    /// Rows a representation lends through `_withSuccessorIndexRows` are copied whole when no loop
+    /// is dropped, with slot `k` as edge `k`. Pooled rows from `_withOutIndexRows` go into storage
+    /// sized once, each row's targets checked and copied in one pass, which is faster than
+    /// appending a row at a time.
     @inlinable
     package func _compressedRows(readsEdges: Bool, dropsLoops: Bool) -> (rows: _CompressedRows, numbering: (listed: [Vertex], numbers: [Vertex: Int])?) {
         if let n = vertexIndexBound {

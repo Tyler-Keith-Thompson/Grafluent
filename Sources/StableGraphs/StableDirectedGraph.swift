@@ -1,72 +1,73 @@
 import GraphProtocols
 
 /// A directed graph that allows parallel edges and self-loops, in which a vertex's or an edge's
-/// position never changes while it exists (petgraph's `StableDiGraph`).
+/// position never changes while it exists.
 ///
-/// **Positions.** Each vertex and each edge, every copy included, has a position: its index in
-/// `vertices` or `edges`. A new vertex or edge always gets the current `endIndex`, and removing one
-/// leaves a hole instead of moving another element in, so a position names the same element for as
-/// long as it exists and is never handed out again. `vertices.indices.contains(p)` and
-/// `edges.indices.contains(p)` tell, in O(1), whether a position is still live, and data kept by
-/// position (weights, labels) goes in an attached map, which a removal keeps in step. Only `removeAll(keepingCapacity:)` and `removeAllEdges(keepingCapacity:)` reset an
-/// `endIndex`, which invalidates every position of that kind, like assigning
-/// `StableDirectedGraph()`.
+/// ## Positions
 ///
-/// Unlike petgraph, which reuses vacated indices from a free list, positions are never reused:
-/// every order is position order, which is insertion order. `vertices`, `edges`,
-/// `outEdges(of:)` and `inEdges(of:)` list the oldest live element first, across removals; a
-/// re-inserted vertex is new and comes last.
+/// Each vertex and each edge, every copy included, has a position: its index in `vertices` or
+/// `edges`. A new vertex or edge gets the current `endIndex`. Removing one leaves a hole instead of
+/// moving another element in, so a position names the same element for as long as it exists and is
+/// never handed out again. `vertices.indices.contains(p)` and `edges.indices.contains(p)` tell, in
+/// O(1), whether a position is still live. Keep data by position (weights, labels) in an attached
+/// map, which every removal keeps in step. Only `removeAll(keepingCapacity:)` and
+/// `removeAllEdges(keepingCapacity:)` reset an `endIndex`, which invalidates every position of that
+/// kind.
 ///
-/// **Indices and holes.** While no vertex has been removed, positions are dense vertex indices
-/// (`vertexIndexBound == vertexCount`), and likewise for edges; algorithms then run on the
-/// array-backed index path. While holes exist, the matching bound is `nil`, and algorithms number
-/// the live vertices themselves (one hash per vertex per run). Vertex and edge holes are
-/// independent: removing only edges keeps the vertex indices. For a hot loop over a graph with
-/// holes, `DirectedPseudograph(graph)` compacts in O(n + m), with edge `k` of the copy at the `k`th
-/// live position.
+/// Every order is position order, which is insertion order. `vertices`, `edges`, `outEdges(of:)`
+/// and `inEdges(of:)` list the oldest live element first, across removals. A re-inserted vertex is
+/// new and comes last.
 ///
-/// **Storage.** Vertices sit in slots, with a tombstone at a removed one. Edges are records at their
-/// positions. Each slot keeps an out-row and an in-row: contiguous arrays of edge positions in
-/// increasing order, with the far ends' slots beside them (`DirectedPseudograph`'s row pools,
-/// order kept instead of swap-remove). An edge appends to both rows in O(1) amortized, and its
-/// record keeps its offset in each; removing it marks both entries dead, and a row is compacted
-/// once more than half of it is dead, so removal is O(1) amortized and walking a row is a
-/// contiguous read over at most twice its degree. The bulk initializers lay the rows out in slot
-/// order, so a pass over the whole graph reads memory in order. (Doubly linked lists threaded
-/// through the records, as in LEMON's `ListDigraph`, unlink in O(1) but walked 3.6–5.4× slower
-/// in strong and weak components on a random graph, a cache miss per edge, so rows are arrays.)
+/// ## Indices and holes
 ///
-/// **Pages.** Slots and records live in fixed-size pages of 1024 positions; a vertex page also
-/// holds its slots' rows. A page whose positions have all been handed out and are all dead is
-/// freed, rows and all, and a run of freed pages at the front of a table is dropped, so under
-/// churn where old elements die, memory follows the live count, not the insertions. What stays
-/// is one page per 1024 positions that still holds a live element (a long-lived element keeps
-/// its page), plus a table entry (128 bytes for vertices, 16 for edges) for each freed page
-/// between the oldest live position and the end. Positions are still never reused. Iterating
-/// `vertices` or `edges`, and numbering the vertices for an algorithm, costs O(live elements +
-/// pages), skipping a freed page whole. A copy shares every page, and the first mutation after a
-/// copy copies the page table and only the pages it touches.
+/// While no vertex has been removed, positions are dense vertex indices
+/// (`vertexIndexBound == vertexCount`), and likewise for edges, and algorithms run on the
+/// array-backed index path. While holes exist, the matching bound is `nil` and algorithms number the
+/// live vertices themselves, one hash per vertex per run. Vertex and edge holes are independent.
+/// Removing only edges keeps the vertex indices. For a hot loop over a graph with holes,
+/// `DirectedPseudograph(graph)` compacts in O(n + m), with edge `k` of the copy at the `k`th live
+/// position.
 ///
-/// **Attached maps.** `addEdgeMap(default:)` and `addVertexMap(default:)` attach a map from
-/// positions to values (LEMON's `ArcMap` and `NodeMap`, which observe their graph through its
-/// `AlterationNotifier`; see `PropertyGraph`): every element has the map's default until it is
-/// given another value, and `addEdgeMap(of: T.self)` is the map of `T?` whose default is `nil`.
-/// The graph stores each map paged like itself, and frees a map's page when it frees its own.
-/// Values are read and written through `graph[handle, ofEdgeAt: position]`; a removed element
-/// has no value, so reading or writing it traps, and `graph[handle, checkedEdgeAt: position]`
-/// throws `EdgeNotFound` instead.
+/// ## Storage
 ///
-/// **Missing vertices.** The lookups trap on a vertex that is not in the graph, like an `Array`
-/// subscript; `successors(checked:)`, `outDegree(checked:)` and the other `checked:` spellings
-/// throw `VertexNotFound` instead, `source(checkedEdgeAt:)` and `target(checkedEdgeAt:)` throw
-/// `EdgeNotFound` for a dead position, `changeTarget(ofEdgeAt:checked:)` and
-/// `changeSource(ofEdgeAt:checked:)` throw `ElementNotFound` for either, and `insert(checked:)`
-/// inserts only between existing vertices. `remove(_:)`, `remove(edge:)` and the `removeAllEdges`
-/// family return `nil` or 0 rather than trap.
+/// Vertices sit in slots, with a tombstone at a removed one. Edges are records at their positions.
+/// Each slot keeps an out-row and an in-row, contiguous arrays of edge positions in increasing
+/// order with the far ends' slots beside them. An edge appends to both rows in O(1) amortized, and
+/// its record keeps its offset in each. Removing it marks both entries dead, and a row is compacted
+/// once more than half of it is dead. Removal is O(1) amortized, and walking a row reads at most
+/// twice its degree contiguously. The bulk initializers lay the rows out in slot order, so a pass
+/// over the whole graph reads memory in order.
 ///
-/// There is no map from vertex pairs to copies: `contains(edge:)`, `edges(from:to:)` and
-/// `remove(edge:)` scan the shorter of the two endpoints' rows, as petgraph's `find_edge` scans
-/// one.
+/// Slots and records live in pages of 1024 positions. A vertex page also holds its slots' rows. A
+/// page whose positions have all been handed out and are all dead is freed, rows and all, and a run
+/// of freed pages at the front of a table is dropped. Under churn where old elements die, memory
+/// follows the live count, not the insertions. What stays is one page per 1024 positions that still
+/// holds a live element, plus a table entry (128 bytes for vertices, 16 for edges) for each freed
+/// page between the oldest live position and the end. Iterating `vertices` or `edges`, and
+/// numbering the vertices for an algorithm, costs O(live elements + pages). A copy shares every
+/// page, and the first mutation after a copy copies the page table and only the pages it touches.
+///
+/// ## Attached maps
+///
+/// `addEdgeMap(default:)` and `addVertexMap(default:)` attach a map from positions to values (see
+/// `PropertyGraph`). Every element has the map's default until it is given another value.
+/// `addEdgeMap(of: T.self)` makes a map of `T?` whose default is `nil`. Each map is paged like the
+/// graph, and its page is freed with the graph's. Read and write values through
+/// `graph[handle, ofEdgeAt: position]`. A removed element has no value, so reading or writing it
+/// traps, and `graph[handle, checkedEdgeAt: position]` throws `EdgeNotFound` instead.
+///
+/// ## Missing vertices and edges
+///
+/// The lookups trap on a vertex that is not in the graph, like an `Array` subscript.
+/// `successors(checked:)`, `outDegree(checked:)` and the other `checked:` spellings throw
+/// `VertexNotFound` instead. `source(checkedEdgeAt:)` and `target(checkedEdgeAt:)` throw
+/// `EdgeNotFound` for a dead position. `changeTarget(ofEdgeAt:checked:)` and
+/// `changeSource(ofEdgeAt:checked:)` throw `ElementNotFound` for either. `insert(checked:)` inserts
+/// only between existing vertices. `remove(_:)`, `remove(edge:)` and the `removeAllEdges` family
+/// return `nil` or 0 rather than trap.
+///
+/// `contains(edge:)`, `edges(from:to:)` and `remove(edge:)` scan the shorter of the two endpoints'
+/// rows.
 @frozen
 public struct StableDirectedGraph<Vertex: Hashable> {
     /// The vertex pages: page `_vertexBase + k` is entry `k`.
@@ -251,8 +252,8 @@ extension StableDirectedGraph {
     }
 
     /// Whether at least one copy of `edge` is an edge of the graph. False when either endpoint is
-    /// not a vertex. O(min(`outDegree(of: edge.source)`, `inDegree(of: edge.target)`)): it scans
-    /// the shorter row, as petgraph's `find_edge` scans one list.
+    /// not a vertex. Scans the shorter row, in O(min(`outDegree(of: edge.source)`,
+    /// `inDegree(of: edge.target)`)).
     @inlinable
     public func contains(edge: DirectedEdge<Vertex>) -> Bool {
         guard let source = _slots[edge.source], let target = _slots[edge.target] else { return false }
@@ -274,8 +275,8 @@ extension StableDirectedGraph {
         return EdgesConnecting(ends: _inPages[tk].endSlice(tl), positions: _inPages[tk].positionSlice(tl), other: s)
     }
 
-    /// The number of copies from `source` to `target`: `edges(from: source, to: target)`'s length
-    /// (NetworkX's `number_of_edges(u, v)`). 0 when either is not a vertex.
+    /// The number of copies from `source` to `target`, the length of
+    /// `edges(from: source, to: target)`. 0 when either is not a vertex.
     /// O(min(`outDegree(of: source)`, `inDegree(of: target)`)).
     @inlinable
     public func edgeCount(from source: Vertex, to target: Vertex) -> Int {
@@ -305,7 +306,7 @@ extension StableDirectedGraph {
     }
 
     /// The positions of the edges leaving `vertex`, in increasing order, so the oldest live edge
-    /// comes first (petgraph's lists iterate newest first): the stored row. O(1).
+    /// comes first. O(1).
     ///
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
@@ -347,9 +348,8 @@ extension StableDirectedGraph {
         return _outDegree(slot) + _inDegree(slot)
     }
 
-    // The `checked:` lookups (README Principle 6): they throw `VertexNotFound` for a vertex that
-    // is not in the graph, where the trapping spellings above are the fast path (Rust's
-    // `checked_*`). Each is one hash, the same as its trapping spelling; `try?` gives an Optional.
+    // The `checked:` lookups throw `VertexNotFound` for a vertex that is not in the graph. Each
+    // costs one hash, the same as its trapping spelling.
 
     /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
     /// to make.
@@ -585,12 +585,8 @@ extension StableDirectedGraph {
     }
 
     /// Adds a copy of `edge` at position `edges.endIndex` only when both endpoints are already
-    /// vertices; otherwise throws and changes nothing. O(1) amortized.
-    ///
-    /// `insert(edge:)` inserts a missing endpoint (NetworkX's `add_edge`). Requiring the endpoints
-    /// is JGraphT's `addEdge` precondition (it throws `IllegalArgumentException`) and petgraph's
-    /// `try_add_edge` (`GraphError::NodeMissed`); this library spells it with the `checked:` label
-    /// of the lookups (README Principle 6), for callers whose vertices may come from another graph.
+    /// vertices; otherwise throws and changes nothing. O(1) amortized. `insert(edge:)` inserts a
+    /// missing endpoint instead.
     ///
     /// - Returns: The new copy's position: the old `edges.endIndex`.
     /// - Throws: `VertexNotFound` when either endpoint is not a vertex.
@@ -679,7 +675,7 @@ extension StableDirectedGraph {
     }
 
     /// Removes `vertex` and every edge at it, copies and self-loops included. Its position and its
-    /// edges' positions become holes; nothing else moves (petgraph's `remove_node`).
+    /// edges' positions become holes, and nothing else moves.
     /// O(degree) amortized, plus one hash.
     ///
     /// - Returns: The removed vertex instance, or `nil` if `vertex` was not a vertex.
@@ -770,7 +766,7 @@ extension StableDirectedGraph {
         }
     }
 
-    /// Removes the newest copy of `edge` (NetworkX's `remove_edge(u, v)`). Its position becomes a
+    /// Removes the newest copy of `edge`. Its position becomes a
     /// hole; nothing moves. Never inserts or removes a vertex.
     /// O(min(`outDegree(of: edge.source)`, `inDegree(of: edge.target)`)) to find it, by scanning
     /// the shorter row, plus O(1) amortized to remove it.
@@ -788,9 +784,8 @@ extension StableDirectedGraph {
         return DirectedEdge(from: _vertex(atSlot: source), to: _vertex(atSlot: target))
     }
 
-    /// Removes the edge at `position`, leaving a hole: no other edge moves, and the position is
-    /// never handed out again (until a reset). O(1) amortized, where
-    /// petgraph's `remove_edge` walks the endpoints' singly linked lists.
+    /// Removes the edge at `position`, leaving a hole. No other edge moves, and the position is
+    /// not handed out again until a reset. O(1) amortized.
     ///
     /// - Returns: The removed edge.
     /// - Precondition: `position` is a live edge position: `edges.indices.contains(position)`.
@@ -802,11 +797,11 @@ extension StableDirectedGraph {
         return DirectedEdge(from: _vertex(atSlot: record.source), to: _vertex(atSlot: record.target))
     }
 
-    /// Re-points the edge at `position` to `newTarget`, keeping its position and its source (LEMON's
-    /// `ListDigraph::changeTarget`). The edge keeps its place among the source's out-edges, joins
-    /// `newTarget`'s in-edges at its place in position order, and data kept by its position (an
-    /// `EdgeMap`) still applies. Changing to the current target changes nothing; self-loops before
-    /// and after are allowed. O(1) amortized to leave the old target's row, plus
+    /// Re-points the edge at `position` to `newTarget`, keeping its position and its source. The
+    /// edge keeps its place among the source's out-edges and joins `newTarget`'s in-edges at its
+    /// place in position order. Its values in attached maps stay. Changing to the current target
+    /// changes nothing. Self-loops before and after are allowed. O(1) amortized to leave the old
+    /// target's row, plus
     /// O(`inDegree(of: newTarget)`) to insert into the new one.
     ///
     /// - Precondition: `position` is a live edge position and `newTarget` is a vertex.
@@ -816,8 +811,8 @@ extension StableDirectedGraph {
         _changeTarget(position, record, to: _slot(of: newTarget))
     }
 
-    /// Re-points the edge at `position` to `newSource`, keeping its position and its target (LEMON's
-    /// `ListDigraph::changeSource`): the mirror of `changeTarget(ofEdgeAt:to:)`. The edge keeps
+    /// Re-points the edge at `position` to `newSource`, keeping its position and its target, the
+    /// mirror of `changeTarget(ofEdgeAt:to:)`. The edge keeps
     /// its place among the target's in-edges and joins `newSource`'s out-edges in position order.
     /// O(1) amortized plus O(`outDegree(of: newSource)`).
     ///
@@ -829,8 +824,7 @@ extension StableDirectedGraph {
     }
 
     /// `changeTarget(ofEdgeAt: position, to: newTarget)`, throwing instead of trapping, and
-    /// changing nothing, when no edge is at `position` or `newTarget` is not a vertex (README
-    /// Principle 6).
+    /// changing nothing, when no edge is at `position` or `newTarget` is not a vertex.
     ///
     /// - Throws: `ElementNotFound.edge` when `position` is out of range or its edge was removed,
     ///   checked first; otherwise `ElementNotFound.vertex` when `newTarget` is not a vertex.
@@ -842,8 +836,7 @@ extension StableDirectedGraph {
     }
 
     /// `changeSource(ofEdgeAt: position, to: newSource)`, throwing instead of trapping, and
-    /// changing nothing, when no edge is at `position` or `newSource` is not a vertex (README
-    /// Principle 6).
+    /// changing nothing, when no edge is at `position` or `newSource` is not a vertex.
     ///
     /// - Throws: `ElementNotFound.edge` when `position` is out of range or its edge was removed,
     ///   checked first; otherwise `ElementNotFound.vertex` when `newSource` is not a vertex.
@@ -914,8 +907,8 @@ extension StableDirectedGraph {
         return try _killAll(inRow: slot, outward: true) { (_, position) throws(E) -> Bool in try shouldBeRemoved(position) }
     }
 
-    /// Removes every edge whose position `shouldBeRemoved` returns true for: petgraph's
-    /// `retain_edges` with the predicate inverted, after `Array.removeAll(where:)`. The predicate is
+    /// Removes every edge whose position `shouldBeRemoved` returns true for, like
+    /// `Array.removeAll(where:)`. The predicate is
     /// called once per edge, with its position, vertex by vertex in `vertices` order and each
     /// vertex's out-edges in `outEdges(of:)` order, and must not mutate the graph. Each out-row is
     /// compacted once. O(`vertexCount` + `edgeCount` + pages), plus O(1) amortized per removed
@@ -1091,7 +1084,7 @@ extension StableDirectedGraph {
     }
 
     /// Removes every vertex and edge, and resets both `endIndex`es to 0: every position is
-    /// invalidated, like assigning `StableDirectedGraph()` (petgraph's `clear`).
+    /// invalidated, like assigning `StableDirectedGraph()`. Attached maps stay attached, emptied.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
         // The maps stay attached, emptied.
@@ -1118,7 +1111,7 @@ extension StableDirectedGraph {
     }
 
     /// Removes every edge, keeping every vertex at its position, and resets `edges.endIndex` to 0:
-    /// every edge position is invalidated (petgraph's `clear_edges`).
+    /// every edge position is invalidated.
     @inlinable
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
         guard _edgeEnd > 0 else { return }
@@ -1160,15 +1153,14 @@ extension StableDirectedGraph {
 
 extension StableDirectedGraph {
     /// The live vertices, in position order, which is insertion order. Its indices are the
-    /// positions, and `endIndex` is the next position `insert(_:)` hands out (petgraph's
-    /// `node_bound()`).
+    /// positions, and `endIndex` is the next position `insert(_:)` hands out.
     @inlinable
     public var vertices: Vertices {
         Vertices(pages: _vertexPages, base: _vertexBase, end: _vertexEnd, slots: _slots, first: _firstVertex, count: _vertexCount)
     }
 
     /// The live edges, in position order, which is insertion order. Its indices are the positions,
-    /// and `endIndex` is the next position `insert(edge:)` hands out (petgraph's `edge_bound()`).
+    /// and `endIndex` is the next position `insert(edge:)` hands out.
     @inlinable
     public var edges: Edges {
         Edges(vertexPages: _vertexPages, vertexBase: _vertexBase, pages: _edgePages, base: _edgeBase, end: _edgeEnd, first: _firstEdge, count: _edgeCount)

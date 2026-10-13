@@ -1,7 +1,7 @@
-/// Doubles written as text: the shortest digits that round-trip (Giulietti's Schubfach, as Java's
-/// `DoubleToDecimal` computes them; the same digits as Swift's `description` and Python's `repr`),
-/// laid out by Python's `repr` rule or by SciPy's Matrix Market rule. Only public API: the table
-/// is generated (`scripts/schubfach_table.py`), and the arithmetic is 64-bit multiplications.
+/// Doubles written as text: the shortest digits that round-trip (Giulietti's Schubfach; the same
+/// digits as `description`), laid out in the form DOT, GraphML, node-link JSON and the edge list
+/// write, or in the Matrix Market form. The table is generated (`scripts/schubfach_table.py`), and
+/// the arithmetic is 64-bit multiplications.
 
 /// The shortest round-trip decimal digits of a finite, nonzero `|x|`: `count` digits in `digits`,
 /// with no leading or trailing zeros, and the decimal exponent of the first, so that
@@ -47,9 +47,8 @@
 }
 
 /// The shortest decimal `f × 10^e` that rounds to the finite, positive `x` (Schubfach): `f` may
-/// end in zeros. Java's `DoubleToDecimal.toDecimal` without its case for the two smallest
-/// subnormals (`c < C_TINY`): the general path gives them the same digits, which the tests check
-/// against `description` with the rest.
+/// end in zeros. The two smallest subnormals take the general path too; the tests check their
+/// digits against `description` with the rest.
 @inline(__always)
 @inlinable func _schubfach(_ x: Double) -> (significand: UInt64, exponent: Int) {
     let bits = x.bitPattern
@@ -169,9 +168,9 @@
     return result
 }
 
-/// Appends `x` as Python's `repr` writes it: the shortest round-trip digits, positional when the
-/// decimal exponent is in `-4 ..< 16` (with `.0` when integral), otherwise `d.ddde±XX` with at
-/// least two exponent digits; `inf`, `-inf`, `nan`.
+/// Appends `x` as DOT, GraphML, node-link JSON and the edge list write it: the shortest round-trip
+/// digits, positional when the decimal exponent is in `-4 ..< 16` (with `.0` when integral),
+/// otherwise `d.ddde±XX` with at least two exponent digits; `inf`, `-inf`, `nan`.
 @inlinable func _appendPythonDouble<Sink: _ByteSink & ~Copyable>(_ x: Double, to sink: inout Sink) {
     if x.isNaN { return sink.appendASCII("nan") }
     if x.isInfinite { return sink.appendASCII(x < 0 ? "-inf" : "inf") }
@@ -247,8 +246,7 @@
     }
 }
 
-/// Appends `x` as SciPy's `mmwrite` (fast_matrix_market) writes it: the shortest round-trip
-/// digits as `d[.ddd]E<e>`, the exponent omitted when it is 0; `Infinity`, `-Infinity`, `NaN`;
+/// Appends `x` as the Matrix Market writer writes it: the shortest round-trip digits as `d[.ddd]E<e>`, the exponent omitted when it is 0; `Infinity`, `-Infinity`, `NaN`;
 /// `0` and `-0`.
 @inlinable func _appendMatrixMarketDouble<Sink: _ByteSink & ~Copyable>(_ x: Double, to sink: inout Sink) {
     if x.isNaN { return sink.appendASCII("NaN") }

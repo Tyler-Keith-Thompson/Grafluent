@@ -1,12 +1,12 @@
 // `approximateMinimumDominatingSet()` and `approximateMinimumDominatingSet(weight:)` (catalog
-// §ApproxDS, CV-148 – CV-166): Chvátal's greedy set cover, NetworkX `min_weighted_dominating_set`'s
-// output, exact; dominating (checked here); its weight; within H(Δ + 1) of the least weight, found
-// by brute force. Graphs are `UndirectedAdjacencyList` built by inserting the row's vertices, then
-// its edges in order, so rows are in position order (a self-loop twice); `multigraph` rows are
-// `ReferencePseudograph`, whose rows are in position order too; `L …; R …` rows are
-// `BipartiteGraph(left:right:edges:)`. Brute force numbers vertices by their index in `vertices`
-// (bit i of a mask is the vertex at index i). Generated from cases.md by swiftgen.py, which
-// re-evaluates each row with ref.py's model; see README.md.
+// §ApproxDS, CV-148 – CV-166): Chvátal's greedy set cover, exact; dominating (checked here); its
+// weight; within H(Δ + 1) of the least weight, found by brute force. Graphs are
+// `UndirectedAdjacencyList` built by inserting the row's vertices, then its edges in order, so rows
+// are in position order (a self-loop twice); `multigraph` rows are `ReferencePseudograph`, whose
+// rows are in position order too; `L …; R …` rows are `BipartiteGraph(left:right:edges:)`. Brute
+// force numbers vertices by their index in `vertices` (bit i of a mask is the vertex at index i).
+// Generated from cases.md by swiftgen.py, which re-evaluates each row with ref.py's model; see
+// README.md.
 
 import AdjacencyListModule
 import Covering

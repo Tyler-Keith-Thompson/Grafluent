@@ -26,7 +26,7 @@ Cross-checks: NetworkX 3.7 (circular_layout, rescale_layout, spring_layout, kama
 spectral_layout, bfs_layout, multipartite_layout, forceatlas2_layout) and python-igraph 1.0.0
 (layout_reingold_tilford, layout_reingold_tilford_circular, layout_sugiyama). --write regenerates
 cases.md; without it the run fails if cases.md differs. --stress adds random trees, DAGs and graphs.
---bench prints the baseline timings api.md quotes.
+--bench prints baseline timings.
 """
 import math
 import os
@@ -1255,7 +1255,7 @@ def sugiyama_rows():
         if any(res["bends"]):
             b = "; ".join(f"{e}: {pts(bs)}" for e, bs in enumerate(res["bends"]) if bs)
             row(G_, case + ": bends", f"`{spec}`", "sugiyamaLayout() bends(ofEdgeAt:) where non-empty", b)
-    # caller layers (igraph's layers=)
+    # caller layers
     g = parse("D: 0>1, 0>2, 1>3")
     res = sugiyama(g.n, g.edges, layers=[0, 2, 1, 3])
     row(G_, "caller layers: a long arc and its bend", "`D: 0>1, 0>2, 1>3`", "sugiyamaLayout(layers: [0, 2, 1, 3]) positions", pts(res["pos"]))
@@ -1354,7 +1354,7 @@ def stress_rows():
             bound = 1.02 * nk + 1e-4
             extra = ""
             if ns > bound:
-                # The default tolerance (Graphviz's 1e-4) stops on a plateau above Kamada-Kawai;
+                # The default tolerance (1e-4) stops on a plateau above Kamada-Kawai;
                 # the row bounds the model's own value + 1%, and says so.
                 note("model", f"stress above Kamada-Kawai at the default tolerance on {case}")
                 bound = 1.01 * ns + 1e-4
@@ -1551,12 +1551,12 @@ HEADER = """# GraphDrawing: case catalog (DR-001 – DR-{last:03d}, {count} rows
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 igraph==1.0.0 --with numpy==2.3.4 --with scipy==1.18.1 python3 Tests/Catalogs/GraphDrawing/ref.py`;
 `--write` regenerates this file, `--stress` adds random trees, digraphs and graphs, `--bench` prints
-the baselines in api.md). Coordinates only: every expected value is a list of points, a layer, a
+baseline timings). Coordinates only: every expected value is a list of points, a layer, a
 count or a bound. The model implements every layout from the definitions in api.md. Circular
 positions and `rescaled` are compared with NetworkX 3.7; tree layouts with python-igraph 1.0.0's
 `layout_reingold_tilford` and `layout_reingold_tilford_circular`; Sugiyama layers with igraph's
-`layout_sugiyama`; stress majorization with NetworkX's `kamada_kawai_layout`; spectral (phase 2)
-with NetworkX's `spectral_layout` up to the sign of each axis. Disagreements are in api.md.
+`layout_sugiyama`; stress majorization with NetworkX's `kamada_kawai_layout`; the spectral rows
+with NetworkX's `spectral_layout` up to the sign of each axis. api.md lists where the tools differ.
 
 ## Notation
 
@@ -1587,8 +1587,8 @@ is x >> 33 after the step.
 list is exact (multiples of 1/2ⁿ from separation-1 arithmetic). `≤ v` rows are quality bounds on a
 median over seeds 1…20 of `Xoshiro256StarStar(seed:)` (normalized stress or crossing count, as
 defined in api.md, computed in the test from `positions`); `≈ v (±1%)` rows are a converged value.
-`#N` is a count. `**trap**` rows are preconditions. Phase 2 rows are pinned now and not run until
-the phase 2 entry points exist.
+`#N` is a count. `**trap**` rows are preconditions. Rows in the Phase 2 group have no tests;
+`swiftgen.py` writes them only with `--phase2`.
 
 """
 

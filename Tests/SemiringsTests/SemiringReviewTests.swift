@@ -1,6 +1,6 @@
-// Hand-written tests from the Semirings review: the binary floating-point Floyd–Warshall overload
-// (+∞ is "no edge", as in scipy), DistanceMatrix.hasPath(from:to:), the bottleneck order being the
-// reverse of the values', and the Double tropical carrier ℝ ∪ {+∞}.
+// Hand-written tests: the binary floating-point Floyd–Warshall overload (+∞ is "no edge"),
+// DistanceMatrix.hasPath(from:to:), the bottleneck order being the reverse of the values', and the
+// Double tropical carrier ℝ ∪ {+∞}.
 
 import GraphProtocols
 import Multigraphs

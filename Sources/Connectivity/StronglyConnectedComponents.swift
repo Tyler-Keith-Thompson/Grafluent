@@ -2,7 +2,7 @@ import CompressedSparseRowModule
 import GraphProtocols
 
 /// Tarjan's algorithm over vertex numbers `0..<count`, iterative, roots in increasing number, in
-/// Pearce's space-efficient form (as petgraph's): one word per vertex holds its preorder number
+/// Pearce's space-efficient form: one word per vertex holds its preorder number
 /// while it is on the stack, its lowlink as that improves, and finally its component. Returns a
 /// component label per vertex, components numbered in the order they complete, and the number of
 /// components. With `stopAfterFirst`, returns as soon as one component completes, with a count of
@@ -115,15 +115,14 @@ extension DirectedGraph {
         }
     }
 
-    /// The strongly connected components: maximal sets of vertices each reaching every other.
-    /// Tarjan's algorithm, iterative, O(V + E).
+    /// The strongly connected components: maximal sets of vertices each reaching every other, by
+    /// Tarjan's algorithm.
     ///
     /// Components are in the order Tarjan's algorithm completes them, on a depth-first search
-    /// with roots in `vertices` order and successors in `successors(of:)` order (the order of
-    /// NetworkX, petgraph and Boost). That is a reverse topological order of the condensation:
-    /// every edge between components goes from a later component to an earlier one, so
-    /// `reversed()` lists the components with every edge going forward. Each component lists its
-    /// vertices in `vertices` order.
+    /// with roots in `vertices` order and successors in `successors(of:)` order. That is a reverse
+    /// topological order of the condensation: every edge between components goes from a later
+    /// component to an earlier one, so `reversed()` lists the components with every edge going
+    /// forward. Each component lists its vertices in `vertices` order.
     ///
     /// Each component's first vertex is its earliest in `vertices`, so on a graph whose vertex
     /// positions are insertion order (`StableDirectedGraph`), one sort by that vertex's position
@@ -143,6 +142,8 @@ extension DirectedGraph {
     ///     return component.first == vertex ? component : nil
     /// }
     /// ```
+    ///
+    /// - Complexity: O(V + E).
     @inlinable
     public func stronglyConnectedComponents() -> Components<Self> {
         let vertices = _DenseVertices(self)
@@ -162,8 +163,7 @@ extension DirectedGraph {
 
     /// The condensation: the strongly connected components, and the acyclic graph with a vertex
     /// per component and an edge from one component to another wherever an edge of this graph
-    /// joins them (NetworkX's and petgraph's `condensation`, Boost's
-    /// `create_condensation_graph`).
+    /// joins them.
     @inlinable
     public func condensation() -> Condensation<Self> {
         let vertices = _DenseVertices(self)
@@ -201,8 +201,8 @@ extension DirectedGraph {
     }
 
     /// The attracting components: the strongly connected components that no edge leaves, in
-    /// component order (NetworkX's `attracting_components`). A self-loop does not leave. Each is a
-    /// slice of one shared array, as in `Components`, so its indices do not start at 0.
+    /// component order. A self-loop does not leave. Each is a slice of one shared array, as in
+    /// `Components`, so its indices do not start at 0.
     @inlinable
     public func attractingComponents() -> [ArraySlice<Vertex>] {
         let vertices = _DenseVertices(self)

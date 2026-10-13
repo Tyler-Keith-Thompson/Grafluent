@@ -1,7 +1,8 @@
 // The Graph laws on every conformer: UndirectedAdjacencyList with Int and String vertices (simple,
 // with self-loops), and the pseudograph test conformer (ReferencePseudograph.swift), where
 // parallel edges count once per copy and a self-loop twice; and seeded random graphs observed
-// identically through both. Case IDs (UG-Lnn, UG-Pnn) refer to the catalog in README.md.
+// identically through both. Case IDs (UG-Lnn, UG-Pnn) refer to
+// Tests/Catalogs/GraphProtocols/graph.md.
 
 import AdjacencyListModule
 import GraphProtocols
@@ -383,7 +384,7 @@ struct GraphLawTests {
             for (v, expected) in neighbors { #expect(Array(g.neighbors(of: v)) == expected, "neighbors(of: \(v))") }
             for (v, d) in degree { #expect(g.degree(of: v) == d, "degree(of: \(v))") }
         }
-        // petgraph tests/graph.rs: neighbors(b) == [a, c, a]; a's loop adds a twice to a's own list.
+        // neighbors(b) == [a, c, a]; a's loop adds a twice to a's own list.
         let petgraph = ReferencePseudograph(edges: UndirectedFixture<Int>.petgraphUndirected.edges)
         #expect(petgraph.edgeCount == 7)
         check(petgraph, neighbors: [1: [0, 2, 0], 0: [1, 2, 2, 0, 0, 1, 3]], degree: [0: 7, 1: 3, 2: 3, 3: 1])

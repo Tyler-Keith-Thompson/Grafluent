@@ -7,13 +7,13 @@ import OrderedCollections
 
 extension LabeledGraph: Equatable where Base: DirectedGraph<Int> & Equatable {
     /// Equal when the label sets are equal and the labeled edge sets are equal, whatever index
-    /// each graph gave each label, as `AdjacencyList` compares regardless of insertion order.
+    /// each graph gave each label.
     ///
-    /// When the labels are equal in order, this is `lhs.base == rhs.base`. Otherwise: the label
-    /// sets are compared (n hashes), the right graph's indices are mapped into the left's, and
-    /// each mapped edge is looked up with the left base's `contains(edge:)`, O(m log d) for
+    /// When the labels are equal in order, this is `lhs.base == rhs.base`. Otherwise the label sets
+    /// are compared with n hashes, the right graph's indices are mapped into the left's, and each
+    /// mapped edge is looked up with the left base's `contains(edge:)`. That is O(m log d) for
     /// `CompressedSparseRow` and O(m) for `AdjacencyMatrix`. A base that allows parallel edges is
-    /// compared by edge multiplicity instead, through a dictionary.
+    /// compared by edge multiplicity through a dictionary.
     @inlinable
     public static func == (lhs: LabeledGraph, rhs: LabeledGraph) -> Bool {
         if lhs._labels == rhs._labels { return lhs._base == rhs._base }
@@ -46,10 +46,13 @@ extension LabeledGraph: Equatable where Base: DirectedGraph<Int> & Equatable {
 // MARK: - Hashable
 
 extension LabeledGraph: Hashable where Base: DirectedGraph<Int> & Hashable {
-    /// A hash of the label set and the labeled edges that ignores the index assignment, so that
-    /// graphs equal under `==` hash alike: the counts, the sum of the labels' hash values, and the
-    /// sum over the edges (every copy, for a base with parallel edges) of a hash of the two ends'
-    /// hash values. O(n + m): each label is hashed once, and no label per edge.
+    /// Hashes the label set and the labeled edges independently of the index assignment, so graphs
+    /// equal under `==` hash alike.
+    ///
+    /// The hash combines the counts, the sum of the labels' hash values, and the sum over the edges
+    /// of a hash of the two endpoints' hash values. Each parallel edge counts separately.
+    ///
+    /// - Complexity: O(n + m). Each label is hashed once.
     @inlinable
     public func hash(into hasher: inout Hasher) {
         hasher.combine(_labels.count)
@@ -83,17 +86,18 @@ extension LabeledGraph: Codable where Label: Codable, Base: DirectedGraph<Int> &
         case base
     }
 
-    /// Encodes `{"labels": [...], "base": ...}`: the labels in index order, and the base in its own
-    /// form.
+    /// Encodes `{"labels": [...], "base": ...}`, with the labels in index order and the base in its
+    /// own form.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: _CodingKeys.self)
         try container.encode(_labels.elements, forKey: .labels)
         try container.encode(_base, forKey: .base)
     }
 
-    /// Decodes and re-checks the requirements of `init(_:labels:)`. A `LabelingError` becomes a
-    /// `DecodingError.dataCorrupted` at `labels` (a count mismatch or a repeated label) or at
-    /// `base` (vertices that are not `0..<vertexCount` in index order).
+    /// Decodes and checks the requirements of `init(_:labels:)`.
+    ///
+    /// - Throws: `DecodingError.dataCorrupted` at `labels` for a count mismatch or a repeated
+    ///   label, and at `base` for vertices that are not `0..<vertexCount` in index order.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: _CodingKeys.self)
         let labels = try container.decode([Label].self, forKey: .labels)
@@ -115,9 +119,9 @@ extension LabeledGraph: Codable where Label: Codable, Base: DirectedGraph<Int> &
 // MARK: - Descriptions
 
 extension LabeledGraph: CustomStringConvertible, CustomDebugStringConvertible where Base: DirectedGraph<Int> {
-    /// The labels and the labeled edges, at most 16 of each: `["a", "b"]; ["a"→"b"]`. The same form
-    /// as every other representation, so a labeled graph prints like an `AdjacencyList` of the same
-    /// vertices and edges in the same order.
+    /// The labels and the labeled edges, at most 16 of each, as in `["a", "b"]; ["a"→"b"]`. A
+    /// labeled graph prints like an `AdjacencyList` of the same vertices and edges in the same
+    /// order.
     public var description: String {
         GraphDescription.graph(vertices: vertices, vertexCount: vertexCount, edges: edges, edgeCount: edgeCount)
     }

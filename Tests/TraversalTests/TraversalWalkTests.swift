@@ -13,7 +13,7 @@ import Walks
 struct TraversalWalkTests {
     @Test("WK-1202 the cycle found keeps its vertex order, and equals any rotation of itself")
     func cycleRotation() {
-        // igraph's Wikipedia DAG with 5→0 added, at position 9.
+        // Wikipedia's example DAG with 5→0 added, at position 9.
         let edges = [(0, 3), (0, 4), (1, 3), (2, 4), (2, 7), (3, 5), (3, 6), (3, 7), (4, 6), (5, 0)].map { DirectedEdge(from: $0.0, to: $0.1) }
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 8, edges: edges)
         let cycle = graph.findCycle()
@@ -31,7 +31,7 @@ struct TraversalWalkTests {
 
     @Test("WK-1203 NetworkX's find_cycle digraph: the cycle names the first 1→0 copy the search meets")
     func networkXFindCycle() {
-        // NetworkX: [(-1, 0), (0, 1), (1, 0), (1, 0), (2, 1), (3, 1)] from [0, 1, 2, 3] is [(0, 1), (1, 0)].
+        // From [0, 1, 2, 3] the cycle is [(0, 1), (1, 0)].
         let edges = [(-1, 0), (0, 1), (1, 0), (1, 0), (2, 1), (3, 1)].map { DirectedEdge(from: $0.0, to: $0.1) }
         let graph = ReferenceDirectedMultigraph(edges: edges)
         let cycle = graph.findCycle(from: [0, 1, 2, 3])
@@ -42,10 +42,9 @@ struct TraversalWalkTests {
 
     @Test("WK-1204 NetworkX's undirected find_cycle answer is a cycle of the pseudograph")
     func networkXUndirectedFindCycle() {
-        // NetworkX's undirected graph merges the 0–1 copies; the pseudograph keeps them, at 1, 2, 3.
+        // The pseudograph keeps the three 0–1 copies, at 1, 2, 3.
         let edges = [(-1, 0), (0, 1), (1, 0), (1, 0), (2, 1), (3, 1), (2, 0)].map { UndirectedEdge($0.0, $0.1) }
         let graph = ReferencePseudograph(edges: edges)
-        // NetworkX: [(0, 1), (1, 2), (2, 0)].
         #expect(Cycle(vertices: [0, 1, 2], edges: [1, 4, 6], in: graph) != nil)
         #expect(Cycle(vertices: [0, 1, 2], edges: [1, 4, 5], in: graph) == nil)
         // In the directed view the first cycle found is the 2-cycle over one edge's two arcs.
@@ -54,7 +53,7 @@ struct TraversalWalkTests {
 
     @Test("WK-1205 an orientation-ignoring cycle of a DAG is a cycle of its undirected view, not of the DAG")
     func orientationIgnoringCycle() {
-        // NetworkX find_cycle(orientation='ignore'): [(0, 1, forward), (1, 2, forward), (0, 2, reverse)].
+        // Ignoring orientation, the cycle is 0→1, 1→2, then 0→2 crossed backward.
         let dag = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2)])
         #expect(dag.findCycle() == nil)
         #expect(Cycle(vertices: [0, 1, 2], edges: [0, 2, 1], in: dag.undirectedView) != nil)

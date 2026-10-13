@@ -1,8 +1,7 @@
 // Model-based randomized tests. A long random sequence of operations is applied both to an
 // AdjacencyList and to a deliberately naive model (out-neighbor sets in a Dictionary); after every
-// step the return values and the complete observable state must agree. Modeled on Boost.Graph's
-// test/graph.cpp (seeded random operations, checked after each one) and petgraph's quickcheck
-// properties (P-01, P-03, P-06). Each seed is its own reproducible test case.
+// step the return values and the complete observable state must agree (P-01, P-03, P-06). Each
+// seed is its own reproducible test case.
 //
 // Each test is self-contained, so the model is written out in each.
 

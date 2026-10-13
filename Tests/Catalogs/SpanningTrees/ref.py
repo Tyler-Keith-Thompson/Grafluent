@@ -12,7 +12,7 @@ answers. This file recomputes each expected value with its own implementations a
   * unique_by_cycle_property(): uniqueness for graphs too large to enumerate.
 
 and then cross-checks the weights against NetworkX 3.7 (kruskal, prim, boruvka) and scipy 1.18.1
-(where scipy can express the graph), and records where those libraries behave differently.
+(where scipy can express the graph), and prints where those libraries behave differently.
 
 Run:  uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 python3 ref.py
 """
@@ -296,7 +296,7 @@ PETGRAPH_CASES = [
 FRUCHT_FLAT = [0, 1, 0, 2, 0, 11, 1, 3, 1, 6, 2, 5, 2, 10, 3, 4, 3, 6, 4, 8, 4, 11, 5, 9, 5, 10, 6,
                7, 7, 8, 7, 9, 8, 9, 10, 11]
 FRUCHT_EDGES = [(FRUCHT_FLAT[2 * i], FRUCHT_FLAT[2 * i + 1]) for i in range(18)]
-# igraph's example weighs the Frucht graph by edge betweenness; every value is a multiple of 1/4.
+# The Frucht graph weighed by edge betweenness; every value is a multiple of 1/4.
 FRUCHT_W4 = [45, 38, 27, 19, 30, 29, 13, 33, 18, 39, 46, 49, 24, 38, 18, 32, 25, 33]  # 4 × betweenness
 FRUCHT = [(u, v, w / 4) for (u, v), w in zip(FRUCHT_EDGES, FRUCHT_W4)]
 
@@ -544,7 +544,7 @@ def verify(case):
 for c in CASES:
     verify(c)
 
-# ST-19: the Frucht weights are 4 × NetworkX's unnormalized edge betweenness (igraph's values).
+# ST-19: the Frucht weights are 4 × NetworkX's unnormalized edge betweenness.
 Gf = nx.Graph(FRUCHT_EDGES)
 bt = nx.edge_betweenness_centrality(Gf, normalized=False)
 check(all(bt.get((u, v), bt.get((v, u))) * 4 == w4 for (u, v), w4 in zip(FRUCHT_EDGES, FRUCHT_W4)),
@@ -584,8 +584,8 @@ for trial in range(400):
             check(r[0] == w and r[1] == len(ks), f"random {trial}: NetworkX {algo} {r} != {w}")
         agree += 1
 
-# Larger agreement: G(200, 0.5)-like graphs with random doubles (JGraphT's testRandomInstances,
-# scaled down to 10 repetitions), compared as edge sets since distinct doubles make the MST unique.
+# Larger agreement: 10 G(200, 0.5)-like graphs with random doubles, compared as edge sets since
+# distinct doubles make the MST unique.
 for trial in range(10):
     n = 200
     vs = V(n)
@@ -596,17 +596,17 @@ for trial in range(10):
     T = nx.minimum_spanning_tree(nx_graph(vs, es)[0])
     check({frozenset(e) for e in T.edges()} == as_pairs(es, ks), "G(200,0.5): NetworkX edge set")
 
-# scipy's planted path (test_minimum_spanning_tree): weights in [3, 4) plus a path of weight 1.
+# A planted path: weights in [3, 4) plus a path of weight 1.
 for N in (5, 10, 15, 20):
     es = [(u, v, 1.0 if v == u + 1 else 3 + rng.random()) for u, v in itertools.combinations(range(N), 2)]
     ks = kruskal(V(N), es)
     check(as_pairs(es, ks) == {frozenset((i, i + 1)) for i in range(N - 1)}, f"planted path {N}")
 
-# ST-36: 128 spanning trees in the doubled multigraph (NetworkX's iterator counts down from 127).
+# ST-36: 128 spanning trees in the doubled multigraph.
 check(brute(V(5), [(u, v, 0) for u, v, _ in DOUBLED])[1] == 128, "ST-36: 128 spanning trees")
 
 # ---------------------------------------------------------------------------------------------
-# Library behaviours the catalog quotes
+# Library behaviours, printed for reference
 # ---------------------------------------------------------------------------------------------
 
 probes = []

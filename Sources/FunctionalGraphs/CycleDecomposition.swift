@@ -3,7 +3,7 @@ import GraphProtocols
 extension FunctionalGraph {
     /// Every cycle of a functional graph, and for each vertex its tail and the cycle it reaches, in
     /// Flajolet and Odlyzko's terms: walking from `v`, the first vertex on a cycle is `root(of: v)`,
-    /// `tailLength(of: v)` steps away (Sage's "preperiod"), on a cycle of `cycleLength(of: v)`
+    /// `tailLength(of: v)` steps away, on a cycle of `cycleLength(of: v)`
     /// vertices. For a permutation, `cycles` is its cycle decomposition and every tail is zero.
     ///
     /// Built by `cycleDecomposition()` in O(n); every query is O(1) except
@@ -179,8 +179,8 @@ extension FunctionalGraph {
             return record.tail == 0 ? vertex : record.root
         }
 
-        /// The number of steps from `vertex` to `root(of: vertex)` (Flajolet and Odlyzko's tail
-        /// length, Sage's preperiod); 0 on a cycle. O(1).
+        /// The number of steps from `vertex` to `root(of: vertex)`, Flajolet and Odlyzko's tail
+        /// length; 0 on a cycle. O(1).
         ///
         /// - Precondition: `vertex` is a vertex of the graph.
         @inlinable
@@ -251,9 +251,8 @@ extension FunctionalGraph {
             return _byDepth[start + offset]
         }
 
-        // README Principle 6: `VertexNotFound` for a vertex outside `0..<vertexCount`, where the
-        // trapping spellings are the fast path. Each checks the range once, then calls its
-        // trapping spelling.
+        // Each throws `VertexNotFound` for a vertex outside `0..<vertexCount`. Each checks the range
+        // once, then calls its trapping spelling.
 
         /// `component(of: vertex)`, throwing instead of trapping when `vertex` is not in
         /// `0..<vertexCount`. O(1).
@@ -410,8 +409,8 @@ extension FunctionalGraph {
                 // 2. Peel, leaves first; a vertex leaves the queue after all its preimages, so its
                 //    subtree size is final when it is queued, and goes in its entry. As in step 1,
                 //    the entry is written either way, and `end` advances by the sign bit of the
-                //    remaining in-degree minus one: a branch on it mispredicts about half the time
-                //    on a random mapping, which cost a third of this step.
+                //    remaining in-degree minus one, since a branch on it mispredicts about half the
+                //    time on a random mapping.
                 var head = 0
                 while head < end {
                     let entry = queue[head]
@@ -453,11 +452,7 @@ extension FunctionalGraph {
                 //    A tree vertex's record holds the last free number of its run until its
                 //    children have taken theirs, which leaves its own number. The tree vertices go
                 //    to `byNumber` with their depths, by preorder number, and each depth is
-                //    counted after the cyclic part of `keysByDepth`. (A breadth-first search from
-                //    the cycles, which lays each depth out in preorder directly, took twice as
-                //    long on a random mapping: it reads each parent's row and record at random. A
-                //    16-byte build record holding the next free number beside the key, copied into
-                //    the records at the end, took about 1.3 times as long as this.)
+                //    counted after the cyclic part of `keysByDepth`.
                 let byNumber = scratch.bindMemory(to: Placed.self, capacity: n)
                 var deepest: Int32 = 0
                 var i = end

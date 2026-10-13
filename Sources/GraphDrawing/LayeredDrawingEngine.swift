@@ -15,7 +15,7 @@ struct _LayeredResult: Sendable {
     @usableFromInline var crossings: Int
 }
 
-/// The Sugiyama pipeline (api.md, Semantics: Layered): cycle removal by Eades–Lin–Smyth (or the
+/// The Sugiyama pipeline: cycle removal by Eades–Lin–Smyth (or the
 /// caller's layers), minimum-span layering by network simplex, one dummy vertex per inner layer
 /// of a long edge, barycenter crossing reduction keeping the best order seen, Brandes–Köpf
 /// coordinates with longest-path compaction.
@@ -296,7 +296,7 @@ struct _LayerGraph {
         guard nodeCount > 0 else { return [] }
         let marked = typeOneConflicts(order, position)
         // Every node's upper and lower neighbours by position, by one pass over the layers in
-        // order (a sort per node would be O(d log d), an insertion sort O(d²) on a hub).
+        // order, which avoids a sort per node.
         var sortedUp = [Int](repeating: 0, count: up.count), sortedDown = [Int](repeating: 0, count: down.count)
         do {
             var upFill = upStart, downFill = downStart

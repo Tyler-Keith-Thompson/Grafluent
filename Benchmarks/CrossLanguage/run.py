@@ -77,7 +77,7 @@ ALGORITHM_TITLES = {
     "bridges": "bridges", "fw": "Floyd–Warshall",
 }
 
-# Cases not run at full size, with the reason (measured, not guessed).
+# Cases not run at full size, with the reason.
 SKIP_FULL = {
     ("igraph", "iso", "iso-grid"): "igraph_isomorphic_vf2 grows explosively on grids (45 ms at 30×30, 21 s at 40×40, "
                                    "over 120 s at 50×50); 100×100 would only hit the timeout",
@@ -148,7 +148,7 @@ def setup():
             sys.exit(f"{tarball}: sha256 {digest}, expected {LEMON_SHA256}")
         with tarfile.open(tarball) as t:
             t.extractall(DEPS)
-        # LEMON's CMake script no longer configures with current CMake; the graph algorithms are
+        # LEMON's CMake script does not configure with current CMake; the graph algorithms are
         # header-only apart from base.cc, so write the one generated header by hand.
         with open(os.path.join(lemon, "lemon", "config.h"), "w") as f:
             f.write(f'#define LEMON_VERSION "{LEMON_VERSION}"\n#define LEMON_HAVE_LONG_LONG 1\n')

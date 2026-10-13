@@ -24,16 +24,6 @@
 #   vendpointcheck    the view's endpoint precondition: every base's own read traps on the same
 #                     positions (the plane's array, the defaults' and the matrices' rank checks).
 #
-# Removed as dead code after planting: the plane's vertex-index precondition (the row pools' arrays
-# trap on the same indices), `vertex(atIndex:)`'s precondition on both lists (the OrderedSet traps),
-# `_hyperedgePosition` (unused), the directed `_withIncidenceRows(targets:)` requirement with its
-# default and `IncidenceList`'s (no caller: the directed view keeps no row tables), the plane's `transposed(vertexCount:)` and `_sortUniqueTail`
-# (unused since the row builder), the decoders' `i >= 0` (a negative index already fails the
-# strictly-ascending check, whose `previous` starts at -1), `isConnected` and `isWeaklyConnected`'s
-# empty guards (a union–find of no elements has no set), the default `contains(hyperedge:)` and
-# `contains(sources:targets:)` membership loops (a non-vertex cannot be in a set of vertices of the
-# same size), and the undirected view's always-zero row shift.
-#
 # Not planted, being equivalent: the plain `storageMayHaveMoved` for the maps spelling in
 # `reserveCapacity`: it reserves in each attached map first, which makes that map's table the
 # graph's own, so the tables are its own before the identity array moves.

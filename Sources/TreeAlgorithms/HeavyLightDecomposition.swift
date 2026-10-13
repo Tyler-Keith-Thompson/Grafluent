@@ -199,9 +199,9 @@ public struct HeavyLightDecomposition<Vertex: Hashable> {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex that is not in the tree, where the trapping
-// spellings are the fast path. Each makes the one lookup per vertex its trapping spelling makes;
-// `try?` gives an Optional. `heavyChild(checked:)` still returns nil at a leaf.
+// These throw `VertexNotFound` for a vertex that is not in the tree, where the trapping spellings
+// trap. Each makes the same one lookup per vertex as its trapping spelling. `heavyChild(checked:)`
+// returns nil at a leaf.
 
 extension HeavyLightDecomposition {
     /// `heavyChild(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: nil

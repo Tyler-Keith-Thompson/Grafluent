@@ -1,7 +1,7 @@
 # Planted bugs for Traversal's Walks results; run with `just mutate Traversal`. See
-# scripts/mutate.py. (Traversal's search itself was mutation-tested before these tools existed.)
+# scripts/mutate.py.
 #
-# Known equivalent mutants (they survive by design): none yet.
+# Known equivalent mutants (they survive by design): none.
 
 TESTS = ["TraversalTests"]
 

@@ -1,6 +1,6 @@
 // Equatable and Hashable. Equality means equal vertex sets and equal edge sets; it is not
 // isomorphism, and it does not depend on insertion order. Case IDs (K-nn, D-14, FX-21) refer to
-// the harvested test catalog.
+// the case catalog.
 
 import AdjacencyListModule
 import GraphProtocols
@@ -12,7 +12,7 @@ struct AdjacencyListEqualityTests {
     @Test("K-01 – K-07, D-14 equality and hashing follow the equivalence classes")
     func equivalenceClassLaws() {
         // Graphs grouped so that two graphs are equal exactly when they share a group. The base
-        // graph is JGraphT's triangle with a reciprocal edge: 1→2, 2→1, 2→3, 3→1.
+        // graph is a triangle with a reciprocal edge: 1→2, 2→1, 2→3, 3→1.
         let edges = [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 1)]
 
         var addedThenRemovedEdge = AdjacencyList(edges: edges)
@@ -136,7 +136,6 @@ struct AdjacencyListEqualityTests {
     @Test("FX-21 every directed graph on 3 labeled vertices is distinct, and each is order-independent", .tags(.exhaustive))
     func allGraphsOnThreeVertices() {
         // 9 possible edges (self-loops included), so 2⁹ = 512 graphs; 2⁶ = 64 without self-loops.
-        // petgraph tests/graph.rs enumerates the same space.
         let possibleEdges = (0 ..< 3).flatMap { u in (0 ..< 3).map { DirectedEdge(from: u, to: $0) } }
         var seen = Set<AdjacencyList<Int>>()
         var withoutSelfLoops = Set<AdjacencyList<Int>>()

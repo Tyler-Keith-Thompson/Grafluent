@@ -78,7 +78,7 @@ struct UndirectedWalkTests {
         let cycles = orders.compactMap { Cycle($0, in: u) }
         #expect(cycles.count == 6)
         #expect(Set(cycles).count == 2)
-        // Deduplicating up to reflection, as an enumerating algorithm does, leaves NetworkX's one.
+        // Deduplicating up to reflection, as an enumerating algorithm does, leaves one.
         var upToReflection: [Cycle<Int, Int>] = []
         for c in cycles where !upToReflection.contains(where: { $0 == c || $0 == c.reversed() }) {
             upToReflection.append(c)

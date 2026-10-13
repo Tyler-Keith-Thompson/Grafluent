@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Minimum and maximum spanning forests by Kruskal, Prim and Borůvka; later Chu–Liu/Edmonds and Steiner tree approximation.
+# Minimum and maximum spanning forests by Kruskal, Prim and Borůvka.
 swift_library(
     name = "SpanningTrees",
     srcs = glob(["**/*.swift"]),

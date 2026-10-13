@@ -1,6 +1,5 @@
-// Bit-packing boundaries. No graph library tests matrices whose rows straddle 64-bit words; these
-// cases are adapted from bitset suites (swift-collections BitArray, fixedbitset, swift-algorithm-club
-// BitSet). Case IDs (AM-Wnn, AM-Znn) refer to the harvested test catalog.
+// Bit-packing boundaries: matrices whose rows straddle 64-bit words. Case IDs (AM-Wnn, AM-Znn)
+// refer to the case catalog.
 
 import AdjacencyMatrixModule
 import GraphProtocols

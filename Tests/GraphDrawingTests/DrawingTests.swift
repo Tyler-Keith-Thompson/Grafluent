@@ -1,7 +1,6 @@
 // Drawing (catalog DR-001 – DR-021): a position per vertex in the order given, lookup by vertex
 // (`position(of:)`, `position(checked:)`, `setPosition(_:of:)`), (vertex, position) elements, equality
-// in order, the bounding box, and `rescaled(scale:center:)` (NetworkX's rescale_layout, then a
-// translation). Exact.
+// in order, the bounding box, and `rescaled(scale:center:)`. Exact.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphDrawing

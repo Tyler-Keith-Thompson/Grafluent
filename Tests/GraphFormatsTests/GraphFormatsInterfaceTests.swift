@@ -302,7 +302,7 @@ struct GraphFormatsInterfaceTests {
         Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)]).writeMatrixMarket(to: &text); outputs["matrixMarket"] = text
         for (format, output) in outputs {
             #expect(output.hasSuffix("\n") == (format != "nodeLinkJSON"), "\(format)")
-            // DOT keeps a carriage return inside a quoted string (scan.l reads it back); it never ends a line.
+            // DOT keeps a carriage return inside a quoted string (a DOT reader reads it back); it never ends a line.
             #expect(!output.contains("\r\n") || format == "dot", "\(format)")
             #expect(!output.unicodeScalars.contains("\r") || format == "dot", "\(format)")
         }

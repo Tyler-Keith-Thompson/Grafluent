@@ -1,5 +1,5 @@
 // Breadth-first layers, depth-first preorder and postorder, depth limits, pruning and early exit.
-// Undirected NetworkX graphs are written as both directions. Case IDs (TR-nn) refer to the
+// Undirected graphs are written as both directions. Case IDs (TR-nn) refer to the
 // catalog; see README.md.
 
 import AdjacencyListModule
@@ -14,7 +14,7 @@ import Traversal
 struct BreadthFirstLayerTests {
     @Test("TR-19 layers of a tree")
     func treeLayers() {
-        // NetworkX test_bfs.py: path 0…6 plus 2–7–8–9–10, undirected.
+        // Path 0…6 plus 2–7–8–9–10, undirected.
         var edges: [DirectedEdge<Int>] = []
         for (a, b) in [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (2, 7), (7, 8), (8, 9), (9, 10)] {
             edges += [DirectedEdge(from: a, to: b), DirectedEdge(from: b, to: a)]
@@ -89,7 +89,7 @@ struct BreadthFirstLayerTests {
         #expect(parents(AdjacencyMatrix(vertexCount: 6, edges: house.edges), from: 5) == [3: 5, 2: 3, 4: 3, 1: 2, 0: 4])
         let edgesDirected = DirectedFixture<Int>.petgraphEdgesDirected
         #expect(parents(CompressedSparseRow(vertexCount: 7, edges: edgesDirected.edges), from: 0) == [1: 0, 2: 0, 3: 0, 5: 0, 4: 2])
-        // JGraphT BreadthFirstIteratorTest: an undirected tree, so the parents are unique.
+        // An undirected tree, so the parents are unique.
         var tree: [DirectedEdge<String>] = []
         for (a, b) in [("a", "b"), ("b", "c"), ("b", "z"), ("b", "d"), ("d", "e")] {
             tree += [DirectedEdge(from: a, to: b), DirectedEdge(from: b, to: a)]
@@ -181,7 +181,7 @@ struct DepthFirstOrderTests {
         #expect(treeEdges(descending.depthFirstSearch(from: 0)) == [
             DirectedEdge(from: 0, to: 4), DirectedEdge(from: 4, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 3),
         ])
-        // NetworkX dfs_successors from 1.
+        // Depth-first successors from 1.
         var successors: [Int: [Int]] = [:]
         for edge in treeEdges(ascending.depthFirstSearch(from: 1)) { successors[edge.source, default: []].append(edge.target) }
         #expect(successors == [1: [0], 0: [3, 4], 4: [2]])
@@ -193,7 +193,7 @@ struct DepthFirstOrderTests {
         let graph = ReferenceDirectedMultigraph(vertices: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "orphan"], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(Array(graph.depthFirstSearch().preorder) == ["1", "2", "4", "3", "5", "6", "7", "8", "9", "orphan"])
         #expect(Array(graph.depthFirstSearch().postorder) == ["4", "2", "6", "8", "9", "7", "5", "3", "1", "orphan"])
-        // JGraphT visits successors in reverse insertion order: written that way, its preorder appears.
+        // With the edges written in reverse, the preorder follows the reversed successor lists.
         let reversed = ReferenceDirectedMultigraph(vertices: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "orphan"], edges: pairs.reversed().map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(Array(reversed.depthFirstSearch().preorder) == ["1", "3", "6", "5", "7", "9", "4", "8", "2", "orphan"])
     }
@@ -239,7 +239,7 @@ struct SearchControlTests {
         }
         let graph = AdjacencyMatrix(vertexCount: 11, edges: edges)
         #expect(Array(graph.depthFirstSearch(from: 0, depthLimit: 2).preorder) == [0, 1, 2])
-        // NetworkX's postorder drops the vertices at the limit ([1, 0]); here every discovered vertex finishes.
+        // Every discovered vertex finishes, including the ones at the limit.
         #expect(Array(graph.depthFirstSearch(from: 0, depthLimit: 2).postorder) == [2, 1, 0])
         #expect(Array(graph.depthFirstSearch(from: 3, depthLimit: 3).preorder) == [3, 2, 1, 0, 7, 8, 4, 5, 6])
         #expect(Array(graph.depthFirstSearch(from: 3, depthLimit: 3).postorder) == [0, 1, 8, 7, 2, 6, 5, 4, 3])
@@ -282,7 +282,7 @@ struct SearchControlTests {
             events.append(event.description)
             if event == .discover(2) { search.prune() }
         }
-        // petgraph tests/graph.rs: "if we prune 2, we never see 4".
+        // Pruning 2 means 4 is never seen.
         #expect(events.joined(separator: " ") == "discover(0) treeEdge(0→1) discover(1) treeEdge(1→3) discover(3) finish(3) finish(1) treeEdge(0→2) discover(2) finish(2) forwardEdge(0→3) treeEdge(0→5) discover(5) finish(5) finish(0)")
         var root = graph.depthFirstSearch(from: 0).makeIterator()
         var rootEvents: [String] = []
@@ -342,7 +342,7 @@ struct SearchControlTests {
             var search = CompressedSparseRow(vertexCount: 1).breadthFirstSearch(from: 0).makeIterator()
             _ = search.next()
             _ = search.next()
-            // The last event was finish(0); petgraph panics here too.
+            // The last event was finish(0).
             search.prune()
         }
         await #expect(processExitsWith: .failure) {

@@ -1,11 +1,12 @@
 import GraphProtocols
 
-/// Every vertex's eccentricity, computed once (Boost's `all_eccentricities`), with the measures
-/// that follow from them: the radius (the least), the diameter (the greatest), the center and
-/// the periphery (the vertices that attain them). An eccentricity is `nil`, standing for
-/// infinity, when some vertex is not reachable from the vertex; so the diameter is `nil` exactly
-/// when the graph is not connected (or not strongly connected), and the radius when no vertex
-/// reaches every vertex.
+/// Every vertex's eccentricity, computed once, with the measures that follow from them: the
+/// radius (the least), the diameter (the greatest), the center and the periphery (the vertices
+/// that attain them).
+///
+/// An eccentricity is `nil`, standing for infinity, when some vertex is not reachable from the
+/// vertex. The diameter is `nil` exactly when the graph is not connected (or not strongly
+/// connected), and the radius is `nil` when no vertex reaches every vertex.
 @frozen
 public struct Eccentricities<G: DirectedGraph, Distance: Comparable & AdditiveArithmetic> {
     @usableFromInline let _graph: G

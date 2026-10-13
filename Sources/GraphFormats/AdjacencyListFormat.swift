@@ -1,4 +1,4 @@
-/// The adjacency list (NetworkX `read_adjlist`/`write_adjlist`): per line a vertex, then its
+/// The adjacency list: per line a vertex, then its
 /// neighbours, one edge to each; `#` comments.
 
 /// Reads an adjacency list into `target`: the first field of each line that has any is a vertex

@@ -1,4 +1,4 @@
-// The `checked:` spellings (README Principle 6) on `UndirectedAdjacencyList`: each agrees with its
+// The `checked:` spellings on `UndirectedAdjacencyList`: each agrees with its
 // trapping spelling for a vertex in the graph, and throws `VertexNotFound`, changing nothing, where
 // the trapping spelling would trap. `insert(checked:)` inserts only between existing vertices.
 

@@ -1,11 +1,10 @@
-// Behaviour the catalog rows leave open, found by planting bugs in a model of the API (see
-// README.md): the layering is optimal (a brute-force minimum total span on small DAGs, and a DAG
-// where a feasible tree without network simplex pivots is not); crossing reduction keeps the best order it
-// has seen, not the last one (a DAG whose last sweep is worse, values from ref.py's model); and
-// Fruchterman–Reingold's `weight:` scales attraction (weight 0 is no edge, and parallel edges add
-// their weights). From the second review: Walker's even spacing divides by 3 (positions are not
-// dyadic), coincident vertices separate under Fruchterman–Reingold, and caller layers with huge
-// numbers skip the empty layers.
+// Behaviour the catalog rows leave open. The layering is optimal (a brute-force minimum total span
+// on small DAGs, and a DAG where a feasible tree without network simplex pivots is not). Crossing
+// reduction keeps the best order it has seen, not the last one (a DAG whose last sweep is worse,
+// values from ref.py's model). Fruchterman–Reingold's `weight:` scales attraction (weight 0 is no
+// edge, and parallel edges add their weights). Walker's even spacing divides by 3 (positions are
+// not dyadic), coincident vertices separate under Fruchterman–Reingold, and caller layers with huge
+// numbers skip the empty layers. See README.md.
 
 import GraphDrawing
 import GraphProtocols

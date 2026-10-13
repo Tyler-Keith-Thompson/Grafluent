@@ -1,5 +1,5 @@
 // Equatable, Hashable, CustomStringConvertible and Codable. Case IDs (AM-Qnn, AM-Wnn) refer to the
-// harvested test catalog.
+// case catalog.
 //
 // Unlike AdjacencyList, the encoded form is specified, so malformed payloads can be tested:
 // `{"vertexCount": n, "edges": [source₀, target₀, source₁, target₁, …]}` with edges in row-major

@@ -44,7 +44,7 @@ struct FlowsConformanceTests {
         let secondEdgeCut = twoEdges.minimumCut(from: 0, to: 2, capacity: { [3, 2][$0] })
         #expect(firstEdgeCut.value == secondEdgeCut.value && firstEdgeCut != secondEdgeCut)
 
-        // FL-275, NetworkX's min-cost example: cost 24.
+        // FL-275, a four-vertex min-cost network: cost 24.
         let network = AdjacencyList<String>(vertices: ["a", "b", "c", "d"], edges: [
             DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "a", to: "c"), DirectedEdge(from: "b", to: "d"), DirectedEdge(from: "c", to: "d"),
         ])

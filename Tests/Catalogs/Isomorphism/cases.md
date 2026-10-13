@@ -7,7 +7,8 @@ definitions in api.md; rows with at most 7 target vertices are also checked agai
 over every injection, and every matching row with at most 6,000 mappings is compared, as a set of
 mappings, with NetworkX 3.7 (`GraphMatcher` and its directed and multigraph kinds, and the vf2pp
 functions), python-igraph 1.0.0 (VF2 and LAD) and rustworkx 0.18.1 (`vf2_mapping`), each where it
-supports the input. Disagreements are in api.md. Weisfeiler–Leman partitions are compared with
+supports the input; the known disagreements are listed in `ref.py`'s KNOWN. Weisfeiler–Leman
+partitions are compared with
 NetworkX's `weisfeiler_lehman_subgraph_hashes` and hash equality with its
 `weisfeiler_lehman_graph_hash` on simple undirected rows. Automorphism group orders and orbits
 come from enumeration and python-igraph's bliss, which must agree.

@@ -50,17 +50,6 @@
 #   ch_check             Christofides' own finite-weight check before its bound: a NaN or infinite
 #                        weight fails the bound (NaN compares false, ∞ is past it) and traps there,
 #                        and the matrix checks again; the first check gives the clearer message.
-#
-# Dead code the survivors showed, removed: the Eulerian start's "has edges" test (both
-# representations, the directed one scanning every target for an in-edge; Hierholzer from a vertex
-# without edges uses none, so with edges present its walk is nil anyway); the Hamiltonian search's
-# end test `target < 0 || v == target` (the target is entered only as the last vertex); 2-opt's
-# `guard column >= 0` after a row's partial scan (column −1 comes with gain zero, which never
-# replaces anything). The review's fixes had already removed 2-opt's `guard first <= q` and
-# `old < 0`, and the `improving:` repeat check (a Cycle repeats no vertex).
-#
-# The fuzzer (FuzzTours) found Hierholzer reading the edge below the bottom of its stack on the
-# last pop when the walk missed edges (out still positive there); the splice now tests the stack.
 
 TESTS = ["ToursTests"]
 

@@ -3,8 +3,7 @@ import GraphProtocols
 extension Hypergraph {
     /// The hypergraph's incidence graph, Berge's bipartite graph of vertices and hyperedges (the
     /// Levi graph), as a lazy `Graph`: vertex index `i` is vertex `i`, `n + p` is hyperedge `p`, and
-    /// each incidence is an edge, XGI's `to_bipartite_graph` numbering. Graph algorithms reach a
-    /// hypergraph through it.
+    /// each incidence is an edge. Graph algorithms reach a hypergraph through it.
     ///
     /// - Precondition: both index bounds are non-nil.
     /// - Complexity: O(1) for `UndirectedIncidenceList`; O(m) otherwise, for the hyperedges'
@@ -19,30 +18,29 @@ extension Hypergraph {
 /// (vertices on the left, hyperedges on the right), an empty hyperedge is an isolated vertex, and
 /// it loses nothing.
 ///
-/// **Edges.** Edge position `q` is incidence number `q`: the incidences hyperedge by hyperedge, in
-/// index order, and within a hyperedge in `memberIndices` order. So `edges[q]` is
+/// Edge position `q` is incidence number `q`: the incidences hyperedge by hyperedge, in index
+/// order, and within a hyperedge in `memberIndices` order. So `edges[q]` is
 /// `UndirectedEdge(i, n + p)`, the rows of the hyperedge side are contiguous ranges, and a
-/// per-incidence array (a weight of a vertex in a hyperedge) is indexed by edge position. A view
-/// is a snapshot, so its own positions never change, but they are valid for the hypergraph only
-/// until its next mutation: the view of the mutated hypergraph numbers the incidences afresh (on
-/// `IncidenceMatrix`, inserting one cell shifts every later incidence by one), and a
-/// per-incidence array must be rebuilt for it.
+/// per-incidence array (a weight of a vertex in a hyperedge) is indexed by edge position. A view is
+/// a snapshot, so its own positions never change, but they are valid for the hypergraph only until
+/// its next mutation: the view of the mutated hypergraph numbers the incidences afresh (on
+/// `IncidenceMatrix`, inserting one cell shifts every later incidence by one), and a per-incidence
+/// array must be rebuilt for it.
 ///
-/// **The LabeledGraph law.** Every index member reads the base's rows:
-/// `neighborIndices(ofIndex: i)` is `incidentHyperedgeIndices(ofIndex: i)` shifted by n, and of
-/// `n + p` it is `memberIndices(ofHyperedgeAt: p)`. So `Traversal`, `Connectivity`,
-/// `ShortestPaths` and the rest run on the view without hashing a vertex. `_withIncidentIndexRows`
-/// writes the view's rows out once per call from the base's `_withIncidenceRows`, in
-/// O(n + m + p), so whole-graph algorithms (components, bridges, cut vertices) run at an
-/// adjacency-list copy's speed on every base.
+/// Every index member reads the base's rows: `neighborIndices(ofIndex: i)` is
+/// `incidentHyperedgeIndices(ofIndex: i)` shifted by n, and of `n + p` it is
+/// `memberIndices(ofHyperedgeAt: p)`. `Traversal`, `Connectivity`, `ShortestPaths` and the rest
+/// therefore run on the view without hashing a vertex. `_withIncidentIndexRows` writes the view's
+/// rows out once per call from the base's `_withIncidenceRows`, in O(n + m + p), for whole-graph
+/// algorithms (components, bridges, cut vertices).
 ///
-/// **Costs.** The view keeps each hyperedge's first incidence number, so a hyperedge's
-/// `incidentEdges` is a range, O(1). On `UndirectedIncidenceList`, which stores its incidences,
-/// every read is O(1) plus the row. On any other base, `edges[q]` and `endpointIndices(ofEdgeAt:)`
-/// binary-search the hyperedge and find the member by its rank (`_memberIndex(atRank:…)`),
-/// O(log m + ⌈n/64⌉) on `IncidenceMatrix` and O(log m + k) by default, and a vertex's
-/// `incidentEdges` finds its place in each of its hyperedges: O(d·⌈n/64⌉) on `IncidenceMatrix`,
-/// which counts bits, and O(Σ k) over them on a base without a faster `_memberRank`.
+/// The view keeps each hyperedge's first incidence number, so a hyperedge's `incidentEdges` is a
+/// range, O(1). On `UndirectedIncidenceList`, which stores its incidences, every read is O(1) plus
+/// the row. On any other base, `edges[q]` and `endpointIndices(ofEdgeAt:)` binary-search the
+/// hyperedge and find the member by its rank (`_memberIndex(atRank:…)`), O(log m + ⌈n/64⌉) on
+/// `IncidenceMatrix` and O(log m + k) by default, and a vertex's `incidentEdges` finds its place in
+/// each of its hyperedges: O(d·⌈n/64⌉) on `IncidenceMatrix`, which counts bits, and O(Σ k) over
+/// them on a base without a faster `_memberRank`.
 ///
 /// `BipartiteGraph(h.incidenceGraphView, left: 0 ..< h.vertexCount)` gives the bipartite structure,
 /// and the view's components restricted to `0 ..< n` are the hypergraph's.
@@ -418,9 +416,7 @@ extension IncidenceGraphView {
     /// The view's rows in index space, written out once for the call from the base's
     /// `_withIncidenceRows`: the vertex side's hyperedge indices shifted by n, the hyperedge
     /// side's members, and the incidence numbers beside them. O(n + m + p) and two arrays of 2p
-    /// entries, which a whole-graph algorithm (components, bridges, cut vertices) recovers many
-    /// times over against reading row by row. Algorithms that may stop early read
-    /// `neighborIndices(ofIndex:)` instead.
+    /// entries. Algorithms that may stop early read `neighborIndices(ofIndex:)` instead.
     @inlinable
     public func _withIncidentIndexRows<Result>(
         _ body: (

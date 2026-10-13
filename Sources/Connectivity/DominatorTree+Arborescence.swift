@@ -3,9 +3,8 @@ import Trees
 
 extension Arborescence {
     /// The dominator tree as an arborescence rooted at its root: every vertex the root reaches,
-    /// each with its immediate dominator as parent (NetworkX's `immediate_dominators` map, LLVM's
-    /// `DominatorTree`). A post-dominator tree converts the same way: each vertex that reaches
-    /// the exit, with its immediate post-dominator as parent.
+    /// each with its immediate dominator as parent. A post-dominator tree converts the same way:
+    /// each vertex that reaches the exit, with its immediate post-dominator as parent.
     ///
     /// Vertices are listed in vertex-index order (`vertices` order without indices), the
     /// unreached ones left out, so the root need not come first. Edge positions are the

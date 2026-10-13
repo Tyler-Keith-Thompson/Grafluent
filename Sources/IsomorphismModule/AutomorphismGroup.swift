@@ -7,8 +7,7 @@ import GraphProtocols
 /// The search that finds it fixes a sequence of vertices, the base; `basicOrbitLengths[i]` is the
 /// number of places the automorphisms fixing the first i base vertices can send base vertex i, and
 /// their product is the order (a stabiliser chain). Which generators and which base come out is not
-/// specified (they depend on the search's choices, as in nauty and bliss); the orbits and the order
-/// do not.
+/// specified (they depend on the search's choices); the orbits and the order do not.
 ///
 /// It holds the graph; members exist when the graph is a `Graph` or a `DirectedGraph`.
 public struct AutomorphismGroup<G> {
@@ -30,7 +29,7 @@ public struct AutomorphismGroup<G> {
     public let basicOrbitLengths: [Int]
 
     /// The number of automorphisms, rounded to the nearest `Double` (25! for 25 isolated vertices
-    /// exceeds `Int`); nauty's `grpsize` and bliss's `get_group_size_approx`.
+    /// exceeds `Int`).
     public let order: Double
 
     @inlinable
@@ -91,15 +90,13 @@ final class _VertexList<Vertex> {
 /// vertices `0..<n` such that isomorphic graphs, renumbered by their labelings, become equal. The
 /// renumbered graph is `form`, so two graphs are isomorphic exactly when their forms are equal.
 ///
-/// The labeling itself is not specified (it depends on the search's refinement and target cells, as
-/// nauty's, bliss's and igraph's do); within one version of the library it is a function of the
-/// graph up to isomorphism.
+/// The labeling itself is not specified (it depends on the search's refinement and target cells);
+/// within one version of the library it is a function of the graph up to isomorphism.
 public struct CanonicalLabeling<G> {
     @usableFromInline let graph: G
     @usableFromInline let numbers: AnyObject?
 
-    /// By vertex number (index, or position in `vertices`): the vertex's canonical index. igraph's
-    /// `canonical_permutation` convention.
+    /// By vertex number (index, or position in `vertices`): the vertex's canonical index.
     public let permutation: [Int]
 
     /// The graph renumbered by `permutation`: equal for two graphs exactly when they are
@@ -254,9 +251,8 @@ extension Graph {
     /// Found by individualization–refinement with automorphism pruning (McKay & Piperno 2014;
     /// Junttila & Kaski 2007): the search tree of one graph, each later leaf compared with the
     /// first, the branches an automorphism found so far maps onto a searched one skipped. Runs to
-    /// completion (it does not check for task cancellation). Exponential in the worst case (as
-    /// nauty and bliss); near-linear refinement per search node, and on most graphs a few nodes per
-    /// base vertex.
+    /// completion (it does not check for task cancellation). Exponential in the worst case;
+    /// near-linear refinement per search node, and on most graphs a few nodes per base vertex.
     @inlinable
     public func automorphismGroup() -> AutomorphismGroup<Self> {
         _automorphismGroup(vertexColors: [], edgeColors: [])
@@ -283,8 +279,8 @@ extension Graph {
 
     /// A canonical labeling: a numbering of the vertices such that two graphs are isomorphic
     /// exactly when their `form`s are equal. The same search as `automorphismGroup()`, also keeping
-    /// the greatest leaf by a numbering-independent order (nauty's and bliss's canonical labeling).
-    /// Runs to completion; exponential in the worst case.
+    /// the greatest leaf by a numbering-independent order. Runs to completion; exponential in the
+    /// worst case.
     @inlinable
     public func canonicalLabeling() -> CanonicalLabeling<Self> {
         let numbers = _isomorphismNumbers()

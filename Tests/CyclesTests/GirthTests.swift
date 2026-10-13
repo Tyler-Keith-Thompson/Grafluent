@@ -1,9 +1,7 @@
-// §G: `girth()` on `Graph` and `DirectedGraph`: the least length of a cycle, so 1 with a loop and
-// 2 with a parallel pair (undirected) or opposite arcs (directed); `nil` when acyclic, where
-// NetworkX and igraph return inf, JGraphT Integer.MAX_VALUE and Boost 0. Named graphs from
-// NetworkX (edges in NetworkX's order), JGraphT's GraphMetricsTest, igraph and Boost. Expected
-// values come from the catalog's reference (`ref.py`), two independent computations. Case IDs
-// (CY-nnn) refer to the catalog; see README.md.
+// §G: `girth()` on `Graph` and `DirectedGraph`: the least length of a cycle, so 1 with a loop and 2
+// with a parallel pair (undirected) or opposite arcs (directed); `nil` when acyclic. Named graphs
+// have their edges in NetworkX's order. Expected values come from the catalog's reference
+// (`ref.py`), two independent computations. Case IDs (CY-nnn) refer to the catalog; see README.md.
 
 import Cycles
 import GraphProtocols

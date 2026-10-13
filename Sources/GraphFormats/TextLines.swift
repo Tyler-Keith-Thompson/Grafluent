@@ -1,8 +1,8 @@
 /// Line-oriented scanning for Matrix Market, the edge list and the adjacency list: lines end at a
 /// line feed, and one carriage return just before it (or before the end) is not content. Matrix
-/// Market fields are runs of characters other than space and tab (mmio.c); edge- and adjacency-list
-/// fields are runs of characters that are not whitespace as Python's `str.split()` reads it
-/// (NetworkX splits each line that way), and a `#` starts a comment.
+/// Market fields are runs of characters other than space and tab; edge- and adjacency-list fields
+/// are runs of characters that are not Unicode whitespace (`_whitespaceWidth`), and a `#` starts a
+/// comment.
 
 /// One line of `text`: its first byte, and the end of its content (before a CR LF, LF or CR at
 /// the end).
@@ -52,9 +52,8 @@
     }
 }
 
-/// The width in bytes of the whitespace character at `q`, or 0: what Python's `str.isspace()` is
-/// true for (U+0009 – U+000D, U+001C – U+001F, space, U+0085, U+00A0, U+1680, U+2000 – U+200A,
-/// U+2028, U+2029, U+202F, U+205F, U+3000), on valid UTF-8.
+/// The width in bytes of the whitespace character at `q`, or 0. Whitespace is U+0009 – U+000D, U+001C – U+001F, space, U+0085, U+00A0, U+1680, U+2000 – U+200A,
+/// U+2028, U+2029, U+202F, U+205F and U+3000, on valid UTF-8.
 @inline(__always)
 @inlinable func _whitespaceWidth(_ text: UnsafeBufferPointer<UInt8>, _ q: Int) -> Int {
     let c = text[q]
@@ -166,9 +165,8 @@
 }
 
 /// An edge-list column's value, typed by its text: an integer that fits `Int`; else a decimal
-/// double, or `inf`, `infinity` or `nan` in any case with an optional sign (what Python's
-/// `float` reads, so that a written non-finite double reads back as one; a decimal beyond
-/// `Double` is infinite, as `float` makes it); else the text.
+/// double, or `inf`, `infinity` or `nan` in any case with an optional sign (so that a written
+/// non-finite double reads back as one; a decimal beyond `Double` is infinite); else the text.
 @inlinable func _lexicalValue(_ text: UnsafeBufferPointer<UInt8>, _ start: Int, _ end: Int) -> AttributeValue {
     switch _scanNumber(text, start, end) {
     case .integer(let v): return .integer(v)

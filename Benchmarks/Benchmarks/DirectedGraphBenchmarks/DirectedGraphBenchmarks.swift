@@ -9,7 +9,7 @@ import GraphProtocols
 // Generic code over the protocol should cost what concrete code costs, once specialized; an
 // existential pays for dispatch. Each pair below measures the same work both ways.
 
-// Per-vertex state in an array when the graph has vertex indices, as algorithm modules will do.
+// Per-vertex state in an array when the graph has vertex indices, as the algorithm modules keep it.
 @inline(never)
 func reachedGeneric<G: DirectedGraph>(_ g: G, from source: G.Vertex) -> Int {
     guard let n = g.vertexIndexBound else { return reachedByDictionary(g, from: source) }

@@ -1,6 +1,6 @@
-// The `checked:` spellings (README Principle 6): each throws `VertexNotFound` or `EdgeNotFound`
+// The `checked:` spellings: each throws `VertexNotFound` or `EdgeNotFound`
 // where its trapping spelling would trap, and otherwise returns what the trapping spelling
-// returns. Case ID AM-R08 refers to the harvested test catalog.
+// returns. Case ID AM-R08 refers to the case catalog.
 
 import AdjacencyMatrixModule
 import BitCollections
@@ -11,7 +11,7 @@ import Testing
 struct AdjacencyMatrixCheckedTests {
     @Test("AM-R08 every checked: row lookup equals its trapping spelling on every vertex")
     func rowsAgree() throws {
-        // FX-03 (petgraph from_edges): a self-loop on 6 and an isolated-in vertex 5.
+        // FX-03: a self-loop on 6 and an isolated-in vertex 5.
         let matrix = AdjacencyMatrix(vertexCount: 7, edges: [
             DirectedEdge(from: 0, to: 5), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 0, to: 3),
             DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3),

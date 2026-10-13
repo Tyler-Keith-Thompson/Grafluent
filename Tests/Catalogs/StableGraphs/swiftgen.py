@@ -4,7 +4,7 @@
     # default OUT_DIR: Tests/StableGraphsTests
 
 First checks that ref.py's model reproduces cases.md byte for byte, then re-runs every row on the
-model (ref.py's port of the storage, checked against its plain specification and the laws after
+storage model (ref.py's Port, checked against its plain specification and the laws after
 every call), asserts that each value matches its catalog cell, and writes one @Test per row. Each
 call's result is checked; after each mutation the test checks the positions (`vertices` and
 `edges` with their indices and end indices, and the index bounds), and the final state is written
@@ -863,8 +863,8 @@ FILES = [
      "// identity, a position in a freed page reads as removed, and algorithms see only the live vertices."),
     ("StableGraphEdgeChangeTests.swift", "StableGraphs edge changes", ids("Edge change"),
      "Edge changes (catalog SG-123 – SG-130): `changeTarget(ofEdgeAt:to:)` and `changeSource(ofEdgeAt:to:)`\n"
-     "// (LEMON's `changeTarget` / `changeSource`) keep the position and the place in the unchanged\n"
-     "// endpoint's row, and join the new endpoint's row in position order; the `checked:` spellings throw\n"
+     "// keep the position and the place in the unchanged endpoint's row, and join the new endpoint's\n"
+     "// row in position order; the `checked:` spellings throw\n"
      "// `ElementNotFound.edge` for a dead position, then `.vertex` for a missing endpoint, and change\n"
      "// nothing."),
     ("StableGraphMapTests.swift", "StableGraphs maps", ids("Maps"),

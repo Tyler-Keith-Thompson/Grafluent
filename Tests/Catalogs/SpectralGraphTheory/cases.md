@@ -1,4 +1,4 @@
-# SpectralGraphTheory: case catalog (SGT-001 – SGT-217, 217 rows; SGT-205 onward are phase 2)
+# SpectralGraphTheory: case catalog (SGT-001 – SGT-217, 217 rows; SGT-205 onward have no entry point)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 scipy==1.18.1 --with numpy==2.5.4 python3 Tests/Catalogs/SpectralGraphTheory/ref.py`; `--write`
@@ -8,7 +8,7 @@ takes spectra from `numpy.linalg.eigvalsh`, and counts spanning trees, resistanc
 graph resistance exactly. Rows are also checked against closed forms (complete, path, cycle,
 star, complete bipartite, hypercube, grid, Petersen spectra), brute-force spanning-tree and
 arborescence enumeration (at most 16 edges), the Moore–Penrose pseudoinverse, NetworkX 3.7 and
-SciPy 1.18.1; the disagreements are in api.md.
+SciPy 1.18.1; the known disagreements are counted in `ref.py`'s DISAGREE.
 
 ## Notation
 

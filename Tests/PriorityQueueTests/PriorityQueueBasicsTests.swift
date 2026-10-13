@@ -2,7 +2,7 @@
 // removal, re-insertion, membership, counts, `unordered`, capacity and `indexBound`. Ties come
 // out in an unspecified order, so tied indices are compared as sets; only the documented
 // guarantee (`min` moves only for a strictly smaller priority) is pinned. Expected values come
-// from the catalog's reference (`ref.py`, `plant.py`).
+// from the catalog's reference (`ref.py`, `cases.out`).
 // Case IDs (PQ-nn) refer to the catalog; see README.md.
 
 import GrafluentTestSupport

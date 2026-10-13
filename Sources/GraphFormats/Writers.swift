@@ -48,8 +48,8 @@ extension DirectedGraph {
         }
     }
 
-    /// Writes node-link JSON byte-equal to Python's `json.dumps(nx.node_link_data(G))` for the same
-    /// graph: one line, no final line feed. `vertexID` gives each node's `id` (by default an
+    /// Writes node-link JSON: one line, `", "` and `": "` between items, every character outside
+    /// ASCII escaped, and no final line feed. `vertexID` gives each node's `id` (by default an
     /// `Int` vertex as a number, any other as its description).
     @inlinable public func writeNodeLinkJSON(
         to output: inout some TextOutputStream,
@@ -64,8 +64,7 @@ extension DirectedGraph {
         }
     }
 
-    /// Writes a Matrix Market `pattern` coordinate file, byte-equal to SciPy's `mmwrite`, with
-    /// 1-based indices in `vertices` order.
+    /// Writes a Matrix Market `pattern` coordinate file, with 1-based indices in `vertices` order.
     @inlinable public func writeMatrixMarket(to output: inout some TextOutputStream) {
         _withOutputBuffer(&output) { out in
             _writeMatrixMarket(_DirectedSource(self), to: &out, field: "pattern", hasValue: false, value: { _, _ in })
@@ -79,8 +78,8 @@ extension DirectedGraph {
         }
     }
 
-    /// Writes a Matrix Market `real` coordinate file, each edge's `weight` its value, in SciPy's
-    /// number form.
+    /// Writes a Matrix Market `real` coordinate file, each edge's `weight` its value, written as
+    /// its shortest round-trip digits in the form `d[.ddd]E<e>`.
     @inlinable public func writeMatrixMarket(to output: inout some TextOutputStream, weight: (Edges.Index) -> Double) {
         _withOutputBuffer(&output) { out in
             _writeMatrixMarket(_DirectedSource(self), to: &out, field: "real", hasValue: true, value: { position, out in _appendMatrixMarketDouble(weight(position), to: &out) })
@@ -159,8 +158,8 @@ extension Graph {
         }
     }
 
-    /// Writes node-link JSON byte-equal to Python's `json.dumps(nx.node_link_data(G))` for the same
-    /// graph: one line, no final line feed. `vertexID` gives each node's `id` (by default an
+    /// Writes node-link JSON: one line, `", "` and `": "` between items, every character outside
+    /// ASCII escaped, and no final line feed. `vertexID` gives each node's `id` (by default an
     /// `Int` vertex as a number, any other as its description).
     @inlinable public func writeNodeLinkJSON(
         to output: inout some TextOutputStream,
@@ -175,8 +174,7 @@ extension Graph {
         }
     }
 
-    /// Writes a Matrix Market `pattern` coordinate file, byte-equal to SciPy's `mmwrite`, with
-    /// 1-based indices in `vertices` order.
+    /// Writes a Matrix Market `pattern` coordinate file, with 1-based indices in `vertices` order.
     @inlinable public func writeMatrixMarket(to output: inout some TextOutputStream) {
         _withOutputBuffer(&output) { out in
             _writeMatrixMarket(_UndirectedSource(self), to: &out, field: "pattern", hasValue: false, value: { _, _ in })
@@ -190,8 +188,8 @@ extension Graph {
         }
     }
 
-    /// Writes a Matrix Market `real` coordinate file, each edge's `weight` its value, in SciPy's
-    /// number form.
+    /// Writes a Matrix Market `real` coordinate file, each edge's `weight` its value, written as
+    /// its shortest round-trip digits in the form `d[.ddd]E<e>`.
     @inlinable public func writeMatrixMarket(to output: inout some TextOutputStream, weight: (Edges.Index) -> Double) {
         _withOutputBuffer(&output) { out in
             _writeMatrixMarket(_UndirectedSource(self), to: &out, field: "real", hasValue: true, value: { position, out in _appendMatrixMarketDouble(weight(position), to: &out) })

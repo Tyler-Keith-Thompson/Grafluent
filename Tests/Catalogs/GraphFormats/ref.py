@@ -36,7 +36,8 @@ KNOWN with the reason, and in api.md under disagreements):
 --write regenerates cases.md; without it the run fails if cases.md differs. --stress writes random
 graphs in every format and reads them back (model, and the libraries where they read the format),
 and feeds 3,000 mutated inputs to every model reader, which must return a graph or a ParseError.
---bench prints the baselines api.md quotes.
+--bench times the same libraries on the benchmark graph (a random directed graph, 10⁵ vertices,
+10⁶ weighted edges).
 """
 import decimal
 import io
@@ -1882,10 +1883,10 @@ R("dot", "D", "statements need no separator", "digraph { a b -> c d }")
 E("dot", "D", "graph into a directed target", "graph { a -- b }")
 E("dot", "U", "digraph into an undirected target", "digraph { a -> b }")
 E("dot", "D", "-- in a digraph", "digraph { a -- b }")
-E("dot", "D", "subgraph (phase 2)", "digraph { subgraph s { a } }")
-E("dot", "D", "anonymous subgraph as an endpoint (phase 2)", "digraph { a -> { b c } }")
-E("dot", "D", "port (phase 2)", "digraph { a:p -> b }")
-E("dot", "D", "a second graph (phase 2)", "digraph { a }\ndigraph { b }")
+E("dot", "D", "subgraph (unsupported)", "digraph { subgraph s { a } }")
+E("dot", "D", "anonymous subgraph as an endpoint (unsupported)", "digraph { a -> { b c } }")
+E("dot", "D", "port (unsupported)", "digraph { a:p -> b }")
+E("dot", "D", "a second graph (unsupported)", "digraph { a }\ndigraph { b }")
 E("dot", "D", "unterminated quoted string", 'digraph { "a }')
 E("dot", "D", "unterminated comment", "digraph { /* a }")
 E("dot", "D", "missing closing brace", "digraph { a -> b")
@@ -1972,11 +1973,11 @@ E("graphML", "D", "long beyond Int64", H + '<key id="k" for="node" attr.type="lo
   '<graph edgedefault="directed"><node id="a"><data key="k">9223372036854775808</data></node></graph></graphml>')
 E("graphML", "D", "boolean is true, false, 1 or 0", H + '<key id="k" for="node" attr.type="boolean"/>'
   '<graph edgedefault="directed"><node id="a"><data key="k">True</data></node></graph></graphml>')
-E("graphML", "D", "nested graph (phase 2)", H + '<graph edgedefault="directed"><node id="a"><graph edgedefault="directed"/>'
+E("graphML", "D", "nested graph (unsupported)", H + '<graph edgedefault="directed"><node id="a"><graph edgedefault="directed"/>'
   '</node></graph></graphml>')
-E("graphML", "D", "a second graph (phase 2)", H + '<graph edgedefault="directed"/><graph edgedefault="directed"/></graphml>')
-E("graphML", "D", "hyperedge (phase 2)", H + '<graph edgedefault="directed"><node id="a"/><hyperedge/></graph></graphml>')
-E("graphML", "D", "an edge whose directed differs from edgedefault (phase 2)", H + '<graph edgedefault="directed">'
+E("graphML", "D", "a second graph (unsupported)", H + '<graph edgedefault="directed"/><graph edgedefault="directed"/></graphml>')
+E("graphML", "D", "hyperedge (unsupported)", H + '<graph edgedefault="directed"><node id="a"/><hyperedge/></graph></graphml>')
+E("graphML", "D", "an edge whose directed differs from edgedefault (unsupported)", H + '<graph edgedefault="directed">'
   '<node id="a"/><edge source="a" target="a" directed="false"/></graph></graphml>')
 E("graphML", "D", "encoding other than UTF-8", '<?xml version="1.0" encoding="ISO-8859-1"?>' + H +
   '<graph edgedefault="directed"/></graphml>')
@@ -2054,10 +2055,10 @@ R("matrixMarket", "DI", "empty matrix", MMH + "pattern general\n0 0 0\n")
 R("matrixMarket", "DI", "no newline at the end", MMH + "pattern general\n2 2 1\n2 1")
 E("matrixMarket", "DI", "missing banner", "3 3 0\n")
 E("matrixMarket", "DI", "banner is case-sensitive (mmio.c)", "%%MATRIXMARKET matrix coordinate pattern general\n1 1 0\n")
-E("matrixMarket", "DI", "array format (phase 2)", "%%MatrixMarket matrix array real general\n2 2\n1\n0\n0\n1\n")
-E("matrixMarket", "DI", "complex (phase 2)", MMH + "complex general\n1 1 1\n1 1 1 0\n")
-E("matrixMarket", "DI", "hermitian (phase 2)", MMH + "real hermitian\n1 1 0\n")
-E("matrixMarket", "DI", "vector (phase 2)", "%%MatrixMarket vector coordinate real general\n3 0\n")
+E("matrixMarket", "DI", "array format (unsupported)", "%%MatrixMarket matrix array real general\n2 2\n1\n0\n0\n1\n")
+E("matrixMarket", "DI", "complex (unsupported)", MMH + "complex general\n1 1 1\n1 1 1 0\n")
+E("matrixMarket", "DI", "hermitian (unsupported)", MMH + "real hermitian\n1 1 0\n")
+E("matrixMarket", "DI", "vector (unsupported)", "%%MatrixMarket vector coordinate real general\n3 0\n")
 E("matrixMarket", "UI", "general into an undirected target", MMH + "pattern general\n2 2 0\n")
 E("matrixMarket", "DI", "not square", MMH + "pattern general\n2 3 0\n")
 E("matrixMarket", "DI", "index 0", MMH + "pattern general\n2 2 1\n0 1\n")
@@ -2115,10 +2116,10 @@ R("mermaid", "D", "front matter is skipped", "---\ntitle: T\n---\nflowchart TD\n
 R("mermaid", "D", "o right after the dashes is a circle head", "flowchart TD\n  A---oB\n")
 E("mermaid", "D", "open link into a directed target", "flowchart TD\n  A --- B\n")
 E("mermaid", "U", "arrow into an undirected target", "flowchart TD\n  A --> B\n")
-E("mermaid", "D", "subgraph ... end (phase 2)", "flowchart TD\n  subgraph one\n    A --> B\n  end\n")
-E("mermaid", "D", "bidirectional link (phase 2)", "flowchart TD\n  A <--> B\n")
-E("mermaid", "D", "invisible link (phase 2)", "flowchart TD\n  A ~~~ B\n")
-E("mermaid", "D", "@{ } shape syntax (phase 2)", "flowchart TD\n  A@{ shape: rect }\n")
+E("mermaid", "D", "subgraph ... end (unsupported)", "flowchart TD\n  subgraph one\n    A --> B\n  end\n")
+E("mermaid", "D", "bidirectional link (unsupported)", "flowchart TD\n  A <--> B\n")
+E("mermaid", "D", "invisible link (unsupported)", "flowchart TD\n  A ~~~ B\n")
+E("mermaid", "D", "@{ } shape syntax (unsupported)", "flowchart TD\n  A@{ shape: rect }\n")
 E("mermaid", "D", "another diagram type", "sequenceDiagram\n  A->>B: hi\n")
 E("mermaid", "D", "missing header", "A --> B\n")
 E("mermaid", "D", "a label cannot span lines", "flowchart TD\n  A[box\n")
@@ -2192,7 +2193,7 @@ W("mermaid", "undirected", LABELS_U)
 W("mermaid", "empty", EMPTY_D)
 W("mermaid", "vertices without labels", ISO)
 
-# ---------------------------------------------------------------- added after review (GF-226 on)
+# ---------------------------------------------------------------- GF-226 – GF-231
 R("dot", "D", "a non-ASCII digit starts an identifier, not a numeral", "digraph { \u0663 -> x }")
 E("graphML", "D", "an end tag with no open element", "</graphml>")
 E("nodeLinkJSON", "D", "an id that is neither a string nor an integer", '{"directed": true, "nodes": [{"id": 1.5}], "edges": []}')
@@ -2200,7 +2201,7 @@ E("nodeLinkJSON", "D", "neither edges nor links", '{"directed": true, "nodes": [
 E("matrixMarket", "DI", "skew-symmetric: a mirrored weight outside Int", MMH + "integer skew-symmetric\n2 2 1\n2 1 -9223372036854775808\n")
 R("mermaid", "D", "a lone CR ends a statement", "flowchart TD\n  A\rB --> C\n")
 
-# ---------------------------------------------------------------- added after the second review (GF-232 on)
+# ---------------------------------------------------------------- GF-232 – GF-256
 E("matrixMarket", "DI", "a vertex count above maximumVertexCount (2^24)", MMH + "pattern general\n16777217 16777217 0\n")
 R("nodeLinkJSON", "D", "multigraph: an edge whose key is taken is that edge; no key gets new_edge_key",
   '{"directed": true, "multigraph": true, "nodes": [{"id": "a"}, {"id": "b"}], "edges": ['
@@ -2574,7 +2575,7 @@ def dot_text(x):
 
 # Library behaviour that differs from ours on purpose (api.md, Library disagreements).
 KNOWN = {
-    # Rows added after the second review (GF-232 on)
+    # GF-232 – GF-256
     "a vertex count above maximumVertexCount (2^24)": "SciPy makes the empty 2^24 + 1 square matrix lazily",
     "edgedefault with whitespace around it": "NetworkX compares edgedefault without collapsing whitespace, so reads it undirected",
     "pattern: a third field on an entry": "SciPy ignores extra columns",
@@ -2582,7 +2583,7 @@ KNOWN = {
     "one token before CR LF": "NetworkX skips lines with fewer than two tokens",
     "an entry cut short before CR LF": "",
     "NBSP between three fields makes three fields": "NetworkX ignores tokens past the declared data (it splits at NBSP too)",
-    # Rows added after review (GF-226 on)
+    # GF-226 – GF-231
     "an id that is neither a string nor an integer": "NetworkX takes any hashable JSON value as a node id (1.5 here)",
     "skew-symmetric: a mirrored weight outside Int": "SciPy negates in int64 and wraps -2^63 to itself",
     # DOT: pydot 4.0.1's grammar, not Graphviz's
@@ -2592,9 +2593,9 @@ KNOWN = {
     "graph into a directed target": "pydot has no target: it reads either kind",
     "digraph into an undirected target": "pydot has no target: it reads either kind",
     "-- in a digraph": "pydot accepts either edge operator in either kind (Graphviz: syntax error)",
-    "subgraph (phase 2)": "pydot reads subgraphs; phase 2 here",
-    "port (phase 2)": "pydot keeps the port in the vertex name (a:p)",
-    "a second graph (phase 2)": "pydot returns a list of graphs",
+    "subgraph (unsupported)": "pydot reads subgraphs",
+    "port (unsupported)": "pydot keeps the port in the vertex name (a:p)",
+    "a second graph (unsupported)": "pydot returns a list of graphs",
     "numeral followed by a letter": "pydot splits 1a into two IDs (Graphviz warns and splits)",
     "attribute without a value": "pydot accepts [k] (Graphviz: syntax error)",
     # GraphML: NetworkX 3.7 read_graphml
@@ -2606,8 +2607,8 @@ KNOWN = {
     "undirected into a directed target": "NetworkX has no target: it reads either kind",
     "edge to an undeclared node": "NetworkX adds the node",
     "duplicate node id": "NetworkX merges the two nodes",
-    "nested graph (phase 2)": "NetworkX flattens nested graphs",
-    "a second graph (phase 2)": "NetworkX reads the first graph only",
+    "nested graph (unsupported)": "NetworkX flattens nested graphs",
+    "a second graph (unsupported)": "NetworkX reads the first graph only",
     "encoding other than UTF-8": "NetworkX (expat) decodes ISO-8859-1",
     "nesting deeper than 64 elements": "NetworkX has no depth limit",
     # node-link JSON: json.loads + node_link_graph
@@ -2626,9 +2627,9 @@ KNOWN = {
     "NaN is not JSON": "json.loads accepts NaN, Infinity",
     "missing id": "NetworkX makes a node named None",
     # Matrix Market: SciPy 1.18.1 mmread (fast_matrix_market)
-    "array format (phase 2)": "SciPy reads array format; phase 2 here",
-    "complex (phase 2)": "SciPy reads complex; phase 2 here",
-    "hermitian (phase 2)": "SciPy reads hermitian; phase 2 here",
+    "array format (unsupported)": "SciPy reads array format",
+    "complex (unsupported)": "SciPy reads complex",
+    "hermitian (unsupported)": "SciPy reads hermitian",
     "general into an undirected target": "SciPy has no target",
     "not square": "SciPy reads rectangular matrices (NetworkX from_scipy_sparse_array raises)",
     "an extra column": "SciPy ignores extra columns",

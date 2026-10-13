@@ -1,8 +1,7 @@
 import GraphProtocols
 
 /// The Cartesian product G □ H of two directed graphs, as a lazy view: vertex (g, h) has an arc
-/// to (g′, h) for every arc g → g′ of G, and to (g, h′) for every arc h → h′ of H (NetworkX's
-/// `cartesian_product`, Mathematica's `GraphProduct[g, h, "Cartesian"]`).
+/// to (g′, h) for every arc g → g′ of G, and to (g, h′) for every arc h → h′ of H.
 ///
 /// O(1). The product stores no edge; see `CartesianProductView`.
 ///

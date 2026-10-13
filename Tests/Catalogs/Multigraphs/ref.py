@@ -1,12 +1,11 @@
-"""Reference model for the proposed Multigraphs API (api.md), checked against NetworkX 3.7.
+"""Reference model for the Multigraphs API (api.md), checked against NetworkX 3.7.
 
     uv run --quiet --no-project --with networkx==3.7 python3 ref.py           # validate cases.md
     uv run --quiet --no-project --with networkx==3.7 python3 ref.py --write   # regenerate it
 
-The model is an exact port of the storage the API proposes: `UndirectedAdjacencyList`'s and
-`AdjacencyList`'s slots, rows and swap-remove mutation, with the vertex-pair map replaced by a
-parallel class per pair (first, last, count) and a doubly linked list of copies threaded through
-the edge positions in insertion order. `remove(edge:)` takes the class's last (newest) copy.
+The model follows the storage: `UndirectedAdjacencyList`'s and `AdjacencyList`'s slots, rows and
+swap-remove mutation, with a parallel class per vertex pair (first, last, count) and a doubly
+linked list of copies threaded through the edge positions in insertion order. `remove(edge:)` takes the class's last (newest) copy.
 
 Every state the cases reach is checked three ways:
 * Laws: the Graph / BidirectionalDirectedGraph laws (each row lists each edge end once, rows parallel,
@@ -1147,7 +1146,7 @@ def define():
     for title, kind, call in traps:
         row("Trap", title, "%s %s" % (kind, call), "trap")
 
-    # The `checked:` spellings (README Principle 6), appended so earlier IDs stay stable
+    # The `checked:` spellings
     case("Checked", "insert(checked:) between vertices adds a copy, a loop too", P, [0, 1], [(0, 1)], [("insC", 0, 1), ("insC", 1, 1)])
     case("Checked", "insert(checked:) with a missing endpoint throws, nothing inserted", P, [0], [], [("insC", 0, 1), ("insC", 2, 2)])
     case("Checked", "directed insert(checked:)", DP, [0, 1], [], [("insC", 1, 0), ("insC", 0, 0), ("insC", 0, 9)])
@@ -1221,11 +1220,11 @@ def render():
     return "\n".join(out) + "\n"
 
 
-HEADER = """# Multigraphs: case catalog (phase 1)
+HEADER = """# Multigraphs: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 python3 ref.py`;
-`--write` regenerates this file). Every Expected is the model's output (an exact port of the
-proposed storage), and every state a row reaches is checked against the Graph laws, the class
+`--write` regenerates this file). Every Expected is the output of the model of the storage, and
+every state a row reaches is checked against the Graph laws, the class
 lists, the reference conformers' rows (for freshly built graphs), and a NetworkX 3.7
 MultiGraph / MultiDiGraph driven by the same calls (degrees, number_of_edges(u, v) for every pair,
 self-loop count, the copy remove_edge(u, v) removes, the key order of G[u][v]).
@@ -1241,7 +1240,7 @@ Conventions:
   `incidentEdges(of: v)` (a self-loop twice); directed `out` / `in` are `successors` /
   `predecessors` zipped with `outEdges` / `inEdges` (empty rows omitted).
 * `edges(between:and:)` / `edges(from:to:)` list positions oldest copy first; `remove(edge:)`
-  removes the newest copy (NetworkX's `remove_edge(u, v)`); a removal moves the last edge into
+  removes the newest copy; a removal moves the last edge into
   the hole and each row's last entry into its hole; removing a vertex moves the last slot into
   its place (UndirectedAdjacencyList's and AdjacencyList's rules).
 * `degrees(v)` (directed) is `outDegree`, `inDegree`, `degree`.

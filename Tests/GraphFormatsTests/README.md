@@ -4,15 +4,14 @@
 edge list, adjacency list and Mermaid flowcharts. A reader is a throwing initializer on any mutable
 representation. It reports vertex, edge and graph attributes through closures, by vertex and by
 edge position. A writer is a method on any `DirectedGraph` or `Graph` that streams text into an
-`inout some TextOutputStream`, and takes IDs and attributes from closures. The tests come from the
-proposed API (`api.md` in [`Tests/Catalogs/GraphFormats/`](../Catalogs/GraphFormats/), phase 1).
-Its open questions are decided as recommended:
+`inout some TextOutputStream`, and takes IDs and attributes from closures. The rules the tests pin
+are in `api.md` in [`Tests/Catalogs/GraphFormats/`](../Catalogs/GraphFormats/). Among them:
 
 - `MutableGraph` in `GraphProtocols` is the undirected counterpart of `MutableDirectedGraph`.
   `UndirectedAdjacencyList` and `Pseudograph` conform, so every reader also has an undirected form.
 - A Mermaid flowchart that mixes arrows and open links is `kindMismatch`.
 - The Matrix Market vertex count is inserted eagerly, bounded by `maximumVertexCount:` (default
-  2²⁴; decided after the second review).
+  2²⁴).
 - Writers trap on a string they cannot represent: XML control characters, whitespace or `#` in a
   list token, a Mermaid ID outside `[A-Za-z0-9_]+`, a non-finite double in JSON.
 - DOT HTML strings are read as `.string`, and the writer quotes them.
@@ -139,14 +138,14 @@ is checked, so the trap comes from the fault.
   - A 2 MB output that must reach a recording `TextOutputStream` in order, in pieces of at most
     64 KiB that are on average at least half full.
 
-- **Review cases** (`GraphFormatsReviewTests.swift`). Inputs whose cost grew faster than their
-  size: a Matrix Market size line over `maximumVertexCount` (every overload, and the 79-byte file
+- **Cost cases** (`GraphFormatsReviewTests.swift`, `Performance/GraphFormatsReviewScaleTests.swift`).
+  Inputs whose cost could grow faster than their size: a Matrix Market size line over `maximumVertexCount` (every overload, and the 79-byte file
   claiming 10¹² vertices in a child process under 256 MB), DOT default lists, Mermaid `&` groups (the
   45 KB, 9·10⁶-edge file in a child process), GraphML defaults against data, defaults multiplied by
   vertices and edge chains (the budget's exact crossing point), JSON objects and XML tags with many
   keys, and the writers' distinct-ID check. Costs are checked by timing two sizes eight times apart
-  (the least of five interleaved runs; a linear reader takes about 8×, a quadratic one 64×). The many-keys ratio shows
-  the old per-object index only in release builds.
+  (the least of five interleaved runs; a linear reader takes about 8×, a quadratic one 64×). The
+  many-keys ratio is meaningful only in release builds.
 - **Bulk construction** (`GraphFormatsBulkBuildTests.swift`). The line readers collect a file and
   build in one step; on seeded files with repeats, loops and aliased IDs, each representation must
   equal the graph insertion builds (vertices, positions, every row in order), mutate correctly
@@ -154,12 +153,12 @@ is checked, so the trap comes from the fault.
   first copy).
 - **Numbers** (`GraphFormatsNumberTests.swift`). Decimal columns against `Double(_:)` on random
   digits, near-ties and extremes, to the bit; written doubles with `description`'s digits and
-  Python's layout, read back to the same bits in the edge list, Matrix Market, GraphML and node-link
+  the writers' layout, read back to the same bits in the edge list, Matrix Market, GraphML and node-link
   JSON, on random bit patterns, both ends of every binade, subnormals and 9·10¹⁵ – 2⁵⁴.
 - **Identifiers** (`GraphFormatsIdentifierTests.swift`). IDs and attribute names compare by Unicode
   scalars: canonically equivalent IDs are two IDs (merged by a `String` target, kept apart by a
   scalar one), and two DOT default keys, two GraphML key names, two writer keys.
-- **One-pass reads** (`GraphFormatsOnePassTests.swift`). Node-link JSON in NetworkX's layout is read
+- **One-pass reads** (`GraphFormatsOnePassTests.swift`). Node-link JSON in the common layout is read
   in one pass, and GraphML's first walk reads the nodes and edges ahead; on seeded documents with
   errors of every kind, each must read as its general reader does (forced by an ignored member, or a
   key after the graph): the same graph, the same calls to every closure in order (the `vertex`
@@ -172,45 +171,4 @@ is checked, so the trap comes from the fault.
 ## Planted bugs
 
 `scripts/mutants/GraphFormats.py` plants bugs in the scanners, every reader and writer, the limits,
-the decimal parser, Schubfach and the bulk hooks (`just mutate GraphFormats`). The table below is
-from the first phase, before that file existed.
-
-## Planted bugs, phase 1
-
-The suite was checked against a partial Swift model of api.md (all seven readers and writers, ported
-from `ref.py`) built through Bazel in a scratch copy of the workspace. All 31 planted bugs
-were caught.
-
-| Planted bug | Caught by |
-|---|---|
-| DOT `strict` not merging parallel edges | GF-020, GF-021 |
-| DOT `node [..]` defaults not applied to later vertices | GF-005, GF-015 |
-| DOT writer: no line continuation after a trailing backslash | GF-191, DOT round trips |
-| DOT writer: keywords written bare | GF-191, DOT round trips |
-| GraphML `<default>` never applied | GF-046 |
-| GraphML attribute values not normalized (tab, LF, CR) | GF-054 |
-| GraphML writer: a tab in an attribute value written raw | GF-197, GraphML round trips |
-| GraphML writer: integer and double under one key typed `long` | GF-195, GF-198, GraphML round trip |
-| GraphML writer: XML-unrepresentable characters written | precondition test |
-| Nesting limit 1,000 instead of 64 | GF-079, GF-099, hostile nesting |
-| JSON duplicate keys accepted | GF-093 |
-| Node-link `"multigraph": false` not merging | GF-087 |
-| Node-link writer: non-ASCII not escaped | GF-206, node-link round trip |
-| Node-link writer: parallel-edge keys by ordered pair on an undirected graph | GF-205 |
-| Matrix Market: hexadecimal floats accepted | GF-140 |
-| Matrix Market: skew-symmetric mirror not negated | GF-116 |
-| Matrix Market writer: undirected entries in the upper triangle | GF-211, GF-212, Matrix Market round trip |
-| Edge list: extra tokens ignored | GF-154 |
-| Edge and adjacency list: `#` a comment only at line start | GF-148, GF-160 |
-| Adjacency list read neighbour to head | GF-156 – GF-159, interface tests |
-| Adjacency list writer: undirected edge on its stored first endpoint's line | GF-220, GF-221, round trip |
-| Mermaid entity codes not decoded | GF-166, Mermaid round trips, stress |
-| Mermaid: no kindMismatch for the other link kind | GF-175, GF-176 |
-| Python `repr` switching to exponent form at Swift's threshold | GF-188, GF-195, GF-198, GF-216 |
-| A key given twice for one element accepted | precondition test |
-| Byte-order mark not skipped | GF-025, BOM and invalid UTF-8 tests |
-| Byte offset counted in scalars | positions, truncation and mutation tests |
-| invalidUTF8 reported one byte late | invalid UTF-8 test |
-| The vertex closure called on every occurrence of an ID | vertex closure test |
-| Writer output sent in one piece | buffered output stress test |
-| Directed sink reporting itself undirected | 132 tests |
+the decimal parser, Schubfach and the bulk hooks (`just mutate GraphFormats`).

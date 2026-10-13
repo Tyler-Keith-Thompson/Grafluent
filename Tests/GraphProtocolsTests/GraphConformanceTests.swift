@@ -1,6 +1,6 @@
 // Which types conform to Graph, what their associated types are, generic and existential use,
-// Sendable, the result builder, and conditional Comparable. Case IDs (UG-Tnn) refer to the
-// catalog in README.md.
+// Sendable, the result builder, and conditional Comparable. Case IDs (UG-Tnn) refer to
+// Tests/Catalogs/GraphProtocols/graph.md.
 
 import AdjacencyListModule
 import GraphProtocols

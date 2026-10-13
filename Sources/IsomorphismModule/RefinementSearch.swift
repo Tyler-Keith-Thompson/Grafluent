@@ -108,9 +108,9 @@ final class _IsomorphismSearch: _MatchingSearch {
         return images
     }
 
-    /// Decides a pair with more than one component (bliss's component recursion): the
-    /// components must pair off by vertex and edge counts, then by canonical certificates; the
-    /// first isomorphism maps each component of G onto its partner by their canonical labelings.
+    /// Decides a pair with more than one component (component recursion): the components must pair
+    /// off by vertex and edge counts, then by canonical certificates; the first isomorphism maps
+    /// each component of G onto its partner by their canonical labelings.
     private func decideByComponents(_ gParts: [_IndexGraph.Component], _ hParts: [_IndexGraph.Component]) -> [Int]? {
         guard gParts.count == hParts.count else { return nil }
         func sizes(_ parts: [_IndexGraph.Component]) -> [Int] {

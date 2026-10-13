@@ -38,8 +38,7 @@ extension DirectedGraph {
         }
     }
 
-    /// Whether some edge goes from a vertex to itself (JGraphT's `GraphTests.hasSelfLoops`,
-    /// igraph's `has_loop`). O(V + E), stopping at the first self-loop.
+    /// Whether some edge goes from a vertex to itself. O(V + E), stopping at the first self-loop.
     ///
     /// Whether one vertex has a self-loop is `contains(edge: DirectedEdge(from: v, to: v))`.
     @inlinable
@@ -53,7 +52,7 @@ extension DirectedGraph {
     }
 
     /// The vertices with an edge to themselves, each once however many self-loops it has, in
-    /// `vertices` order (NetworkX's `nodes_with_selfloops`). O(V + E).
+    /// `vertices` order. O(V + E).
     @inlinable
     public func verticesWithSelfLoops() -> [Vertex] {
         var result: [Vertex] = []
@@ -64,9 +63,8 @@ extension DirectedGraph {
         return result
     }
 
-    /// The positions of the edges from a vertex to itself, every copy of a repeated one (NetworkX's
-    /// `selfloop_edges`; their count is its `number_of_selfloops`): by vertex in `vertices` order,
-    /// each vertex's in `outEdges(of:)` order. O(V + E).
+    /// The positions of the edges from a vertex to itself, including every copy of a repeated one.
+    /// Ordered by vertex in `vertices` order, then in `outEdges(of:)` order. O(V + E).
     @inlinable
     public func selfLoopEdges() -> [Edges.Index] {
         var result: [Edges.Index] = []
@@ -97,8 +95,7 @@ extension Graph {
         }
     }
 
-    /// Whether some edge joins a vertex to itself (JGraphT's `GraphTests.hasSelfLoops`, igraph's
-    /// `has_loop`). O(V + E), stopping at the first self-loop.
+    /// Whether some edge joins a vertex to itself. O(V + E), stopping at the first self-loop.
     ///
     /// Whether one vertex has a self-loop is `contains(edge: UndirectedEdge(v, v))`.
     @inlinable
@@ -112,7 +109,7 @@ extension Graph {
     }
 
     /// The vertices with an edge to themselves, each once however many self-loops it has, in
-    /// `vertices` order (NetworkX's `nodes_with_selfloops`). O(V + E).
+    /// `vertices` order. O(V + E).
     @inlinable
     public func verticesWithSelfLoops() -> [Vertex] {
         var result: [Vertex] = []
@@ -123,10 +120,9 @@ extension Graph {
         return result
     }
 
-    /// The positions of the edges from a vertex to itself, every copy of a repeated one, each once
-    /// although `incidentEdges(of:)` lists a self-loop twice (NetworkX's `selfloop_edges`; their
-    /// count is its `number_of_selfloops`): by vertex in `vertices` order, each vertex's in the
-    /// order of their first appearance in `incidentEdges(of:)`. O(V + E).
+    /// The positions of the edges from a vertex to itself, including every copy of a repeated one.
+    /// Each loop appears once, although `incidentEdges(of:)` lists it twice. Ordered by vertex in
+    /// `vertices` order, then by first appearance in `incidentEdges(of:)`. O(V + E).
     @inlinable
     public func selfLoopEdges() -> [Edges.Index] {
         var result: [Edges.Index] = []

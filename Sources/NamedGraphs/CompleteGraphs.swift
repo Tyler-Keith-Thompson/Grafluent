@@ -3,10 +3,9 @@ import BipartiteGraphs
 import GraphProtocols
 
 extension _GraphConstruction {
-    /// The complete graph Kₙ on `0..<vertexCount`: an edge between every pair of vertices
-    /// (NetworkX `complete_graph`, igraph `Full`). n(n − 1)/2 edges, `UndirectedEdge(u, v)` with
-    /// u < v in lexicographic order. O(n²), with the edges computed as the graph reads them, so no
-    /// edge list is allocated. `complete(vertexCount: 0)` is the null graph.
+    /// The complete graph Kₙ on `0..<vertexCount`: an edge between every pair of vertices.
+    /// n(n − 1)/2 edges, `UndirectedEdge(u, v)` with u < v in lexicographic order.
+    /// `complete(vertexCount: 0)` is the null graph. O(n²), with no edge list allocated.
     ///
     /// - Precondition: `vertexCount ≥ 0`, and n(n − 1)/2 fits in `Int`.
     @inlinable
@@ -17,7 +16,7 @@ extension _GraphConstruction {
     }
 
     /// The complete bipartite graph K_{a,b}: left side `0..<leftCount`, right side
-    /// `leftCount..<leftCount + rightCount` (NetworkX's numbering), an edge from every left vertex to
+    /// `leftCount..<leftCount + rightCount`, and an edge from every left vertex to
     /// every right one, left end first, in lexicographic order. a·b edges, O(a + b + ab), with no
     /// edge list allocated. The sides as a structure are `BipartiteGraph.completeBipartite`.
     ///
@@ -31,8 +30,7 @@ extension _GraphConstruction {
 
 extension _DirectedGraphConstruction {
     /// The complete directed graph on `0..<vertexCount`: both arcs between every pair, n(n − 1)
-    /// arcs in row-major order (NetworkX `complete_graph(n, create_using=nx.DiGraph)`). O(n²), with
-    /// no edge list allocated.
+    /// arcs in row-major order. O(n²), with no edge list allocated.
     ///
     /// - Precondition: `vertexCount ≥ 0`, and n(n − 1) fits in `Int`.
     @inlinable
@@ -43,9 +41,8 @@ extension _DirectedGraphConstruction {
     }
 
     /// K_{a,b} with both arcs of every edge, left side `0..<leftCount` and right side
-    /// `leftCount..<leftCount + rightCount` (igraph `Full_Bipartite(mode="all")`, the default):
-    /// 2ab arcs in row-major order, so the left rows come first. O(a + b + ab), with no edge list
-    /// allocated.
+    /// `leftCount..<leftCount + rightCount`. 2ab arcs in row-major order, the left rows first.
+    /// O(a + b + ab), with no edge list allocated.
     ///
     /// - Precondition: both counts are non-negative, and a + b and 2·a·b fit in `Int`.
     @inlinable

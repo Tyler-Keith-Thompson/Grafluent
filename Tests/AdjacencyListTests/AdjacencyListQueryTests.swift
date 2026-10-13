@@ -1,5 +1,5 @@
 // Queries: membership, neighborhoods, degrees, counts. Case IDs (Q-nn, D-nn) refer to the
-// harvested test catalog.
+// case catalog.
 
 import AdjacencyListModule
 import GraphProtocols
@@ -18,7 +18,7 @@ struct AdjacencyListQueryTests {
 
     @Test("Q-02 contains(edge) respects direction")
     func containsEdgeIsDirectional() {
-        // JGraphT SimpleDirectedGraphTest g4.
+        // The 4-cycle 1→2→3→4→1.
         let graph = AdjacencyList(edges: [DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 1)])
         #expect(graph.contains(edge: DirectedEdge(from: 1, to: 2)))
         #expect(!graph.contains(edge: DirectedEdge(from: 2, to: 1)))
@@ -54,7 +54,7 @@ struct AdjacencyListQueryTests {
 
     @Test("Q-05 Boost.Graph house DAG: exact neighborhoods")
     func houseNeighborhoods() {
-        // Boost.Graph test/test_direction.hpp.
+        // The house DAG.
         let graph = AdjacencyList(edges: [
             DirectedEdge(from: 5, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 4, to: 0),
             DirectedEdge(from: 4, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 0),
@@ -73,7 +73,7 @@ struct AdjacencyListQueryTests {
 
     @Test("Q-07 NetworkX ABCD: out- and in-neighbors")
     func abcdNeighborhoods() {
-        // NetworkX test_digraph_historical.py.
+        // The ABCD graph.
         let graph = AdjacencyList(
             vertices: ["G", "J", "K"],
             edges: [DirectedEdge(from: "A", to: "B"), DirectedEdge(from: "A", to: "C"), DirectedEdge(from: "B", to: "D"), DirectedEdge(from: "B", to: "C"), DirectedEdge(from: "C", to: "D")]
@@ -91,7 +91,7 @@ struct AdjacencyListQueryTests {
 
     @Test("Q-22 sources and sinks")
     func sourcesAndSinks() {
-        // The Boost.Graph house DAG has one source, 5, and one sink, 0.
+        // The house DAG has one source, 5, and one sink, 0.
         let graph = AdjacencyList(edges: [
             DirectedEdge(from: 5, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 4, to: 0),
             DirectedEdge(from: 4, to: 1), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 0),
@@ -154,7 +154,7 @@ struct AdjacencyListQueryTests {
 
     @Test("Q-14 a vertex with a self-loop appears once in its own out- and in-neighborhoods", .tags(.selfLoops))
     func selfLoopInNeighborhoods() {
-        // NetworkX test_function graph. Vertex 1: edges 1→1, 1→2, 1→0, and 0→1.
+        // Vertex 1 has edges 1→1, 1→2, 1→0, and 0→1.
         let graph = AdjacencyList(adjacency: [0: [1, 2, 3], 1: [1, 2, 0], 4: []])
         #expect(graph.successors(of: 1).sorted() == [0, 1, 2])
         #expect(graph.predecessors(of: 1).sorted() == [0, 1])
@@ -181,7 +181,7 @@ struct AdjacencyListQueryTests {
 
     @Test("X-10 1000 edges including a self-loop")
     func thousandEdges() {
-        // petgraph tests/graphmap.rs: (i / 2) → i for i in 0..<1000; i = 0 gives the self-loop 0 → 0.
+        // (i / 2) → i for i in 0..<1000; i = 0 gives the self-loop 0 → 0.
         let graph = AdjacencyList(edges: (0 ..< 1000).map { DirectedEdge(from: $0 / 2, to: $0) })
         #expect(graph.vertexCount == 1000)
         #expect(graph.edgeCount == 1000)

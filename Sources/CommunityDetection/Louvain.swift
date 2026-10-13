@@ -118,17 +118,16 @@ struct _LouvainRows {
     }
 }
 
-/// Local moving on one level (NetworkX's `_one_level` arithmetic): sweeps in `order` until one
-/// moves nothing. A vertex stays when its own community's gain ties the best; among others a tie
-/// goes to the greatest label. Returns each level vertex's community label (a level vertex number)
-/// and whether any vertex moved.
+/// Local moving on one level: sweeps in `order` until one moves nothing. A vertex stays when its
+/// own community's gain ties the best; among others a tie goes to the greatest label. Returns each
+/// level vertex's community label (a level vertex number) and whether any vertex moved.
 ///
-/// Two departures from NetworkX's code, neither changing a result it reaches:
+/// Two rules keep the sweeps finite and cheap:
 /// * **Gains within rounding are ties.** Two gains closer than 4 ulps of their largest term are
 ///   equal: with weights that are not dyadic, sums equal in exact arithmetic can round apart, and a
-///   vertex could move A → B → A forever, each move winning by an ulp (NetworkX hangs on such
-///   graphs). Integer weights keep every difference far above the bound while 4m² < 2⁵³. A stay
-///   writes no total, so totals change only when a vertex moves.
+///   vertex could move A → B → A forever, each move winning by an ulp. Integer weights keep every
+///   difference far above the bound while 4m² < 2⁵³. A stay writes no total, so totals change only
+///   when a vertex moves.
 /// * **Only vertices whose inputs changed are evaluated.** A vertex's decision reads the labels of
 ///   its neighbors and the totals of its own and its neighbors' communities; when u moves from A
 ///   to B, only the members of A and B and their neighbors can decide differently. Every other
@@ -265,10 +264,9 @@ func _louvainLevel(_ rows: _LouvainRows, directed: Bool, m: Double, resolution: 
     return (Array(community), moved)
 }
 
-/// Louvain (Blondel et al.) with NetworkX's stop rule: levels while the modularity of the original
-/// graph rises by more than `threshold`; each level's order from `order(k)`. The modularity is
-/// computed on the original graph (NetworkX: on the level graph), equal in exact arithmetic and
-/// possibly rounding apart within an ulp of `threshold`.
+/// Louvain (Blondel et al.): levels while the modularity of the original graph rises by more than
+/// `threshold`; each level's order from `order(k)`. The modularity is computed on the original
+/// graph, which equals the level graph's in exact arithmetic.
 @inlinable
 func _louvain(_ graph: _CommunityGraph, _ weights: [Double]?, resolution: Double, threshold: Double, order: (Int) -> [Int]) -> [Int] {
     let n = graph.count
@@ -336,12 +334,12 @@ extension Graph {
         return Partition(directedView, numbers: numbers, listed: listed, labels: labels)
     }
 
-    /// Louvain communities (Blondel et al.; NetworkX `louvain_communities`): each level moves
-    /// vertices, in index order, to the neighboring community of greatest modularity gain (staying
-    /// on a tie, otherwise the greatest community label), then merges each community into a vertex,
-    /// while the modularity rises by more than `threshold`. Deterministic: a function of the graph's
-    /// vertex numbering and weights. Parallel edges add; a self-loop counts in degrees and never
-    /// moves a vertex. O(m) per sweep.
+    /// Louvain communities (Blondel et al.): each level moves vertices, in index order, to the
+    /// neighboring community of greatest modularity gain (staying on a tie, otherwise the greatest
+    /// community label), then merges each community into a vertex, while the modularity rises by
+    /// more than `threshold`. Deterministic: a function of the graph's vertex numbering and
+    /// weights. Parallel edges add; a self-loop counts in degrees and never moves a vertex. O(m)
+    /// per sweep.
     ///
     /// - Precondition: `resolution` and `threshold` are finite and at least zero.
     @inlinable
@@ -359,9 +357,9 @@ extension Graph {
         _louvainCommunities(_communityWeights(weight), resolution: resolution, threshold: threshold) { Array(0 ..< $0) }
     }
 
-    /// Louvain communities with each level's visit order shuffled by `generator` (NetworkX's
-    /// `seed`): one Fisher–Yates shuffle per level, position i (from the last down to 1) swapped
-    /// with `generator.next(upperBound: i + 1)`.
+    /// Louvain communities with each level's visit order shuffled by `generator`: one Fisher–Yates
+    /// shuffle per level, position i (from the last down to 1) swapped with
+    /// `generator.next(upperBound: i + 1)`.
     ///
     /// - Precondition: `resolution` and `threshold` are finite and at least zero.
     @inlinable
@@ -389,8 +387,8 @@ extension DirectedGraph {
         return Partition(self, numbers: numbers, listed: listed, labels: labels)
     }
 
-    /// Louvain communities with the directed gain (Dugué and Perez; NetworkX
-    /// `louvain_communities`): as on `Graph`, maximizing directed modularity.
+    /// Louvain communities with the directed gain (Dugué and Perez): as on `Graph`, maximizing
+    /// directed modularity.
     ///
     /// - Precondition: `resolution` and `threshold` are finite and at least zero.
     @inlinable

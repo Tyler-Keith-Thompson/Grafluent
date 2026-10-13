@@ -3,8 +3,8 @@
 
 Mutants are written by hand, one file per module in scripts/mutants/<Module>.py, as a list of
 `Mutant(name, file, old, new, mode)`. Every mutant is compiled into one build of a scratch copy of
-the package, each behind a runtime switch (Muter's "mutant schemata"), so the package is built
-once rather than once per mutant:
+the package, each behind a runtime switch (mutant schemata), so the package is built once
+rather than once per mutant:
 
     mode "expr":  old  ->  (__mutant(k) ? (new) : (old))   an expression
     mode "stmt":  old  ->  if __mutant(k) { new } else { old }   whole statements
@@ -33,8 +33,8 @@ not counted as caught and is not kept, so the next run tries that mutant again.
     python3 scripts/mutate.py ShortestPaths --select   # coverage-based test selection
     python3 scripts/mutate.py ShortestPaths --jobs 2
 
-Stored results. Each mutant's outcome is kept in results/<Module>.json under the mutation directory (see BASE) under a
-key hashing everything it depends on: its definition and those of the mutants before it in the
+Stored results. Each mutant's outcome is kept in results/<Module>.json under the mutation
+directory (see BASE), under a key hashing everything it depends on: its definition and those of the mutants before it in the
 same file (their text can move where its `old` matches), every source file of the test bundles'
 modules and their dependencies (from scripts/modules.py), the bundles' own sources and
 GrafluentTestSupport, Package.swift and Package.resolved, and the compiler version. A run only
@@ -46,21 +46,19 @@ property test can take minutes on an unlucky input, so a mutant that times out r
 after the others, with less running; only a second timeout counts as caught.
 
 Test selection (`--select`, off by default). One coverage pass runs every test of the unmutated
-build in its own process, in a second copy (coverage/ under the mutation directory) where only the module under
-test is compiled with -profile-generate, writing profiles continuously so that exit tests'
+build in its own process, in a second copy (coverage/ under the mutation directory) where only the module
+under test is compiled with -profile-generate, writing profiles continuously so that exit tests'
 trapping children count too. llvm-cov maps each test to the lines it executed. A mutant then runs
 first only the tests that execute a line of its schema (a test that never reaches the mutated
 code behaves the same under the mutant, so it cannot catch it), or the full suite when no test
 reaches it. A mutant that survives them then runs every other test too (Swift Testing's --skip),
 so a survivor is always confirmed by the full suite and only kills get faster. The coverage pass
-is stored like the results. On ColoringModule it found the same 109 caught and 13 survivors as the
-full suite and was no faster: Swift Testing runs a suite in parallel and stops at the first
-failure, so most kills take under a second either way, and survivors run everything regardless.
-It may pay where kills come late, from slow tests.
+is stored like the results. Swift Testing runs a suite in parallel and stops at the first failure,
+so selection helps only where kills come late, from slow tests.
 
-The scratch copy lives in work/ under the mutation directory (~/Library/Caches/grafluent-mutation on macOS) and is kept between runs, so later builds are
-incremental; files whose contents did not change keep their timestamps. The real sources are
-never written.
+The scratch copy lives in work/ under the mutation directory (~/Library/Caches/grafluent-mutation
+on macOS) and is kept between runs, so later builds are incremental; files whose contents did not
+change keep their timestamps. The real sources are never written.
 """
 
 import argparse
@@ -81,8 +79,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# Outside the repository: root SwiftPM and Xcode builds manage .build/ and were seen to delete
-# files from a scratch copy kept there mid-run. GRAFLUENT_MUTATION_DIR overrides the location.
+# Outside the repository: root SwiftPM and Xcode builds manage .build/ and can delete files from
+# a scratch copy kept there mid-run. GRAFLUENT_MUTATION_DIR overrides the location.
 BASE = os.environ.get("GRAFLUENT_MUTATION_DIR") or os.path.join(
     os.path.expanduser("~/Library/Caches") if sys.platform == "darwin" else os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
     "grafluent-mutation")
@@ -406,7 +404,7 @@ def reap(run=None):
     """Kills test processes left over from the mutation workspace: those of one run (by the
     GRAFLUENT_MUTATION_RUN they inherited), or all of them. Exit tests run in child processes
     outside the runner's process group, and a mutant that removes a precondition can leave one
-    running forever; killing the group alone left a hundred of them behind."""
+    running forever; killing the group alone misses them."""
     listing = subprocess.run(["ps", "-A", "-E", "-ww", "-o", "pid=,command="], capture_output=True, text=True).stdout
     marker = f"GRAFLUENT_MUTATION_RUN={run} " if run is not None else None
     for line in listing.splitlines():

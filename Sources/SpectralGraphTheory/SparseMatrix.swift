@@ -4,8 +4,7 @@ import CompressedSparseRowModule
 /// entries: the result of `adjacencyMatrix()`, `laplacianMatrix()` and the other graph matrices.
 ///
 /// Row `i` holds the entries `values[offsets[i] ..< offsets[i + 1]]` in the columns
-/// `columns[offsets[i] ..< offsets[i + 1]]`, ascending (SciPy's `indptr`, `indices` and `data`;
-/// Eigen's outer index, inner index and value arrays). No stored value is 0, so two matrices are
+/// `columns[offsets[i] ..< offsets[i + 1]]`, ascending. No stored value is 0, so two matrices are
 /// equal exactly when every entry is, and `nonzeroCount` counts the nonzero entries.
 ///
 /// Not the representation `AdjacencyMatrix`, which is a graph stored as a bit matrix: this is a

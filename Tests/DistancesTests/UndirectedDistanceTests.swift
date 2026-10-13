@@ -1,4 +1,4 @@
-// §B: connected undirected graphs without weights: NetworkX's docstring graph and grid, cycles and
+// §B: connected undirected graphs without weights: a small example graph and a grid, cycles and
 // complete graphs (vertex-transitive: every vertex central and peripheral, the bounding
 // algorithm's worst shape), K₃,₄, Petersen, Zachary's karate club, two triangles joined by a path,
 // and a path with 12 pseudo-random chords. Every `eccentricities` row also checks

@@ -3,7 +3,7 @@
 # Known equivalent mutants:
 #   hitsauthority  the authorities' rescale to greatest 1 each step: h = Aa is rescaled to greatest
 #                  1 anyway and a is divided by its sum at the end, so only the range of the
-#                  intermediate values changes (kept, as NetworkX does, against overflow).
+#                  intermediate values changes (kept against overflow).
 #
 # Order matters where patterns overlap: harmoniclevel rewrites the in-loop level sum first, so
 # harmoniclast's pattern then matches only the final one.

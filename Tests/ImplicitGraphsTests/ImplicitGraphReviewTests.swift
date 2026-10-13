@@ -1,7 +1,7 @@
-// Cases the catalog does not list, each pinning behavior a planted bug changed while every catalog
-// row still passed: index ends and traps at endIndex, the one-pass `map`, the closure search's
-// heap order, its tie between equal priorities, the NaN check on the start's estimate, and the
-// cutoff on the distance alone. Hand-written; see README.md.
+// Cases the catalog does not list, each pinning behavior that a mutation changes while every
+// catalog row still passes: index ends and traps at endIndex, the one-pass `map`, the closure
+// search's heap order, its tie between equal priorities, the NaN check on the start's estimate, and
+// the cutoff on the distance alone. Hand-written; see README.md.
 
 import GraphProtocols
 import ImplicitGraphs

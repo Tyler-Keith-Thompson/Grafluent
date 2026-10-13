@@ -3,9 +3,8 @@
 // (vertices inserted by a hyperedge's insertion included), reads by index, by vertex and through
 // `values(of:)`, the checked reads, `removeAll` emptying the maps and keeping them attached,
 // several maps and removed maps, copy-on-write (two copies, whichever mutates first, keep their own
-// values), `reversed` carrying the maps, and equality,
-// hashing and `Codable` ignoring them. Hand-written: the catalog (cases.md) models the storage
-// against XGI and HyperNetX, which have no attached maps. See README.md.
+// values), `reversed` carrying the maps, and equality, hashing and `Codable` ignoring them.
+// Hand-written: the catalog (cases.md) does not cover the maps. See README.md.
 
 import Foundation
 import GraphProtocols

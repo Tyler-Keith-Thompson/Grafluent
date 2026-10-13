@@ -415,11 +415,11 @@ struct _KonigEdgeColoring: _UndirectedRowsAlgorithm {
     }
 }
 
-/// rustworkx's greedy edge colouring, its line graph's largest-first colouring: edges by the
-/// number of edges they meet, counted at each end (a parallel copy at both, a self-loop once at
-/// its vertex), most first, ties by number; each takes the least colour on no edge it meets
-/// coloured so far. The search for that colour starts at the greater of its ends' bounds below
-/// which every colour is used.
+/// The greedy edge colouring, the line graph's largest-first colouring: edges by the number of
+/// edges they meet, counted at each end (a parallel copy at both, a self-loop once at its vertex),
+/// most first, ties by number; each takes the least colour on no edge it meets coloured so far. The
+/// search for that colour starts at the greater of its ends' bounds below which every colour is
+/// used.
 @frozen
 @usableFromInline
 struct _GreedyEdgeColoring: _UndirectedRowsAlgorithm {
@@ -463,15 +463,13 @@ struct _GreedyEdgeColoring: _UndirectedRowsAlgorithm {
 
 extension Graph {
     /// An edge colouring with at most Δ + 1 colours (Vizing's bound), by Misra and Gries's
-    /// constructive proof (Boost `edge_coloring`, rustworkx `graph_misra_gries_edge_color`, with
-    /// their own choices; Sage `edge_coloring`). Edges in position order, each coloured through a
-    /// fan at its end with the lesser vertex index, every choice the least colour or vertex
-    /// available. At least Δ colours always, and Δ + 1 on class-2 graphs (odd cycles, odd complete
-    /// graphs, Petersen), but sometimes Δ + 1 on class-1 graphs too (K(4)); on a bipartite graph
-    /// `bipartiteEdgeColoring()` always gives Δ. O(m · (Δ² + n)) time: a fan has at most Δ
-    /// vertices, each found among the edges at u, and a path at most n edges. O(n + m) memory.
-    /// For a multigraph (`digraph.undirectedView` with an antiparallel pair is one), use
-    /// `greedyEdgeColoring()`.
+    /// constructive proof. Edges in position order, each coloured through a fan at its end with the
+    /// lesser vertex index, every choice the least colour or vertex available. At least Δ colours
+    /// always, and Δ + 1 on class-2 graphs (odd cycles, odd complete graphs, Petersen), but
+    /// sometimes Δ + 1 on class-1 graphs too (K(4)); on a bipartite graph `bipartiteEdgeColoring()`
+    /// always gives Δ. O(m · (Δ² + n)) time: a fan has at most Δ vertices, each found among the
+    /// edges at u, and a path at most n edges. O(n + m) memory. For a multigraph
+    /// (`digraph.undirectedView` with an antiparallel pair is one), use `greedyEdgeColoring()`.
     ///
     /// - Precondition: the graph is simple: no self-loops, no parallel edges.
     @inlinable
@@ -480,12 +478,11 @@ extension Graph {
     }
 
     /// An edge colouring with exactly Δ colours, Δ counting parallel edges, on a bipartite graph
-    /// (König's theorem; rustworkx `graph_bipartite_edge_color`), or nil when the graph is not
-    /// bipartite (`findOddCycle()` gives the witness; a self-loop makes it not bipartite).
-    /// Parallel edges are fine. Edges in position order: each takes the least colour free at its
-    /// end with the lesser vertex index, after the alternating path of that colour and the least
-    /// colour free at the other end is flipped from the other end, when the two differ there.
-    /// O(m · (n + Δ)) time, O(n + m) memory.
+    /// (König's theorem), or nil when the graph is not bipartite (`findOddCycle()` gives the
+    /// witness; a self-loop makes it not bipartite). Parallel edges are fine. Edges in position
+    /// order: each takes the least colour free at its end with the lesser vertex index, after the
+    /// alternating path of that colour and the least colour free at the other end is flipped from
+    /// the other end, when the two differ there. O(m · (n + Δ)) time, O(n + m) memory.
     @inlinable
     public func bipartiteEdgeColoring() -> EdgeColoring<Self>? {
         guard let colors = _runOnUndirectedRows(_KonigEdgeColoring()) else { return nil }
@@ -493,12 +490,12 @@ extension Graph {
     }
 
     /// A greedy edge colouring of any graph, parallel edges and self-loops included, with at most
-    /// 2Δ − 1 colours: rustworkx `graph_greedy_edge_color`, the largest-first colouring of the
-    /// line graph, with the same colours. Edges by the number of other edges they share an end
-    /// with, most first (a parallel copy counts at both ends, a self-loop meets each other edge at
-    /// its vertex once), ties in position order; each takes the least colour of no edge it shares
-    /// an end with that is already coloured. A self-loop is one edge at its vertex, as for
-    /// `isEdgeColoring(_:)`. O(n + m · Δ) time, O(n + m) memory, without building the line graph.
+    /// 2Δ − 1 colours: the largest-first colouring of the line graph. Edges by the number of other
+    /// edges they share an end with, most first (a parallel copy counts at both ends, a self-loop
+    /// meets each other edge at its vertex once), ties in position order; each takes the least
+    /// colour of no edge it shares an end with that is already coloured. A self-loop is one edge at
+    /// its vertex, as for `isEdgeColoring(_:)`. O(n + m · Δ) time, O(n + m) memory, without
+    /// building the line graph.
     @inlinable
     public func greedyEdgeColoring() -> EdgeColoring<Self> {
         EdgeColoring(self, colors: _runOnUndirectedRows(_GreedyEdgeColoring()))

@@ -69,9 +69,9 @@ public struct FiedlerVector<G: Graph> {
 extension FiedlerVector: Sendable where G: Sendable, G.Vertex: Sendable {}
 
 extension Graph {
-    /// The algebraic connectivity λ₂: the second smallest eigenvalue of the Laplacian L (of the
-    /// normalized Laplacian N with `normalized`), 0 exactly when the graph is not connected (a
-    /// weight-0 edge does not connect). NetworkX `algebraic_connectivity`; Fiedler 1973.
+    /// The algebraic connectivity λ₂ (Fiedler 1973): the second smallest eigenvalue of the
+    /// Laplacian L (of the normalized Laplacian N with `normalized`), 0 exactly when the graph is
+    /// not connected (a weight-0 edge does not connect).
     ///
     /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
     /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
@@ -100,9 +100,9 @@ extension Graph {
         return try _spectralAdjacency(nil, numbering: nil).algebraicConnectivity(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
     }
 
-    /// The algebraic connectivity λ₂: the second smallest eigenvalue of the Laplacian L (of the
-    /// normalized Laplacian N with `normalized`), 0 exactly when the graph is not connected (a
-    /// weight-0 edge does not connect). NetworkX `algebraic_connectivity`; Fiedler 1973.
+    /// The algebraic connectivity λ₂ (Fiedler 1973): the second smallest eigenvalue of the
+    /// Laplacian L (of the normalized Laplacian N with `normalized`), 0 exactly when the graph is
+    /// not connected (a weight-0 edge does not connect).
     ///
     /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
     /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
@@ -134,9 +134,9 @@ extension Graph {
         return try _spectralAdjacency(_spectralWeights(weight), numbering: nil).algebraicConnectivity(normalized: normalized, tolerance: tolerance, maxIterations: maxIterations)
     }
 
-    /// The algebraic connectivity λ₂: the second smallest eigenvalue of the Laplacian L (of the
-    /// normalized Laplacian N with `normalized`), 0 exactly when the graph is not connected (a
-    /// weight-0 edge does not connect). NetworkX `algebraic_connectivity`; Fiedler 1973.
+    /// The algebraic connectivity λ₂ (Fiedler 1973): the second smallest eigenvalue of the
+    /// Laplacian L (of the normalized Laplacian N with `normalized`), 0 exactly when the graph is
+    /// not connected (a weight-0 edge does not connect).
     ///
     /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
     /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
@@ -169,7 +169,7 @@ extension Graph {
     }
 
     /// The Fiedler vector: λ₂ and a unit eigenvector of it, with the canonical sign (see
-    /// `FiedlerVector`); nil when the graph is not connected. NetworkX `fiedler_vector`.
+    /// `FiedlerVector`); nil when the graph is not connected.
     ///
     /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
     /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
@@ -202,7 +202,7 @@ extension Graph {
     }
 
     /// The Fiedler vector: λ₂ and a unit eigenvector of it, with the canonical sign (see
-    /// `FiedlerVector`); nil when the graph is not connected. NetworkX `fiedler_vector`.
+    /// `FiedlerVector`); nil when the graph is not connected.
     ///
     /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
     /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
@@ -238,7 +238,7 @@ extension Graph {
     }
 
     /// The Fiedler vector: λ₂ and a unit eigenvector of it, with the canonical sign (see
-    /// `FiedlerVector`); nil when the graph is not connected. NetworkX `fiedler_vector`.
+    /// `FiedlerVector`); nil when the graph is not connected.
     ///
     /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
     /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
@@ -273,11 +273,10 @@ extension Graph {
         return FiedlerVector(self, numbers: numbering?.numbers, algebraicConnectivity: value, values: vector)
     }
 
-    /// The spectral ordering (NetworkX `spectral_ordering`; Barnard, Pothen and Simon): the
-    /// components in order of their least vertex index; a component of at most two vertices in
-    /// index order; a larger one ascending by the Fiedler vector of that component (for a connected
-    /// graph, `fiedlerVector()`'s), entries within 10⁻⁸ · max|x| of their predecessor kept in
-    /// index order. `[]` for the empty graph.
+    /// The spectral ordering (Barnard, Pothen and Simon): the components in order of their least
+    /// vertex index; a component of at most two vertices in index order; a larger one ascending by
+    /// the Fiedler vector of that component (for a connected graph, `fiedlerVector()`'s), entries
+    /// within 10⁻⁸ · max|x| of their predecessor kept in index order. `[]` for the empty graph.
     ///
     /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
     /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
@@ -308,11 +307,10 @@ extension Graph {
         return order.map { _vertex(number: $0, numbering?.listed) }
     }
 
-    /// The spectral ordering (NetworkX `spectral_ordering`; Barnard, Pothen and Simon): the
-    /// components in order of their least vertex index; a component of at most two vertices in
-    /// index order; a larger one ascending by the Fiedler vector of that component (for a connected
-    /// graph, `fiedlerVector()`'s), entries within 10⁻⁸ · max|x| of their predecessor kept in
-    /// index order. `[]` for the empty graph.
+    /// The spectral ordering (Barnard, Pothen and Simon): the components in order of their least
+    /// vertex index; a component of at most two vertices in index order; a larger one ascending by
+    /// the Fiedler vector of that component (for a connected graph, `fiedlerVector()`'s), entries
+    /// within 10⁻⁸ · max|x| of their predecessor kept in index order. `[]` for the empty graph.
     ///
     /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
     /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with
@@ -347,11 +345,10 @@ extension Graph {
         return order.map { _vertex(number: $0, numbering?.listed) }
     }
 
-    /// The spectral ordering (NetworkX `spectral_ordering`; Barnard, Pothen and Simon): the
-    /// components in order of their least vertex index; a component of at most two vertices in
-    /// index order; a larger one ascending by the Fiedler vector of that component (for a connected
-    /// graph, `fiedlerVector()`'s), entries within 10⁻⁸ · max|x| of their predecessor kept in
-    /// index order. `[]` for the empty graph.
+    /// The spectral ordering (Barnard, Pothen and Simon): the components in order of their least
+    /// vertex index; a component of at most two vertices in index order; a larger one ascending by
+    /// the Fiedler vector of that component (for a connected graph, `fiedlerVector()`'s), entries
+    /// within 10⁻⁸ · max|x| of their predecessor kept in index order. `[]` for the empty graph.
     ///
     /// Thick-restart Lanczos (Wu–Simon) with full reorthogonalization, the null space projected
     /// out, from a fixed start vector: on σI − L (σ twice the largest weighted degree; 2I − N with

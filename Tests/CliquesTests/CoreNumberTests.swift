@@ -1,6 +1,5 @@
 // §D: core numbers, degeneracy, the degeneracy ordering, k-cores and k-shells (CQ-301 – CQ-349), all
-// on the simple graph: a parallel pair or a loop adds nothing (CQ-328 – CQ-333; igraph counts them,
-// NetworkX raises). Core numbers are checked by index, by vertex and on `graph.directedView.undirectedView`;
+// on the simple graph: a parallel pair or a loop adds nothing (CQ-328 – CQ-333). Core numbers are checked by index, by vertex and on `graph.directedView.undirectedView`;
 // the degeneracy ordering exactly (api.md pins Batagelj–Zaversnik's removal order: a stable counting
 // sort by degree, neighbours in row order), together with its defining property (at most core(v)
 // neighbours after each v, core numbers nondecreasing along it). `~rev` rows use a conformer private

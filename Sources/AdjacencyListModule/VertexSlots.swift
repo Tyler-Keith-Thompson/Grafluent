@@ -1,9 +1,9 @@
-/// The slot of each vertex, as a `[Vertex: Int]` would hold it, except while the vertices are the
-/// `Int`s `0..<count`, each in its own slot: then nothing is stored and a vertex is its own slot, as
-/// in the trees' dense layout. Building a generator's graph, or inserting `0, 1, 2, …` in order,
-/// then hashes no vertex. The first change that breaks the identity (a vertex out of order, or a
-/// removal that moves a slot) writes the table out once, in O(n), and from then on it is a
-/// dictionary.
+/// The slot of each vertex, as a `[Vertex: Int]` would hold it.
+///
+/// While the vertices are the `Int`s `0..<count`, each in its own slot, nothing is stored and a
+/// vertex is its own slot. Building a generator's graph, or inserting `0, 1, 2, …` in order, then
+/// hashes no vertex. The first change that breaks the identity (a vertex out of order, or a removal
+/// that moves a slot) writes the table out once, in O(n), and from then on it is a dictionary.
 @frozen
 @usableFromInline
 package struct _VertexSlots<Vertex: Hashable> {

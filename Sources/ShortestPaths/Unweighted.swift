@@ -48,10 +48,10 @@ struct _Unweighted<G: DirectedGraph>: _IndexSpaceAlgorithm {
 }
 
 extension DirectedGraph {
-    /// Shortest paths from `source` counted in edges (NetworkX's `single_source_shortest_path`),
-    /// by breadth-first search; for weighted paths, see `dijkstraShortestPaths(from:cutoff:weight:)`
-    /// and `bellmanFordShortestPaths(from:weight:)`. Fully determined: each vertex's parent is the vertex it was first
-    /// discovered from.
+    /// Shortest paths from `source` counted in edges, by breadth-first search.
+    ///
+    /// Each vertex's parent is the vertex it was first discovered from. For weighted paths, see
+    /// `dijkstraShortestPaths(from:cutoff:weight:)` and `bellmanFordShortestPaths(from:weight:)`.
     ///
     /// - Precondition: `source` is a vertex.
     @inlinable

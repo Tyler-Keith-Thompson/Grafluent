@@ -1,6 +1,6 @@
 // Large shapes, each inside a Task with a one-minute limit, meant to finish within a few seconds in a
 // debug build; the benchmarks take timings. Every expected value is known by construction: a matrix
-// from a multigraph at n = 2 048, m = 2 × 10⁴ (5 MB per orientation, api.md's benchmark shape),
+// from a multigraph at n = 2 048, m = 2 × 10⁴ (5 MB per orientation),
 // checked against the graph's rows; 10⁵ cell edits against a set, growing past many word
 // boundaries; and the components of a matrix at density 1/8 against an incidence-list copy.
 // See README.md.

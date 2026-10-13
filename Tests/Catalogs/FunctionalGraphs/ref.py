@@ -3,13 +3,12 @@
 
 Run: uv run --quiet --no-project --with networkx==3.7 python3 Tests/Catalogs/FunctionalGraphs/ref.py [--write] [--stress]
 
-The model ports the proposed storage (one successor array f over the vertices 0..<n) and the
-proposed algorithms:
+The model ports the storage (one successor array f over the vertices 0..<n) and the algorithms:
   * the cycle decomposition: one O(n) walk per unvisited vertex with a three-state mark, the cycles
     rotated to start at their least vertex and listed by least vertex, the preimage rows (a counting
     sort of f), and level-ancestor queries by preorder number and binary search;
   * successor(of:steps:) on the graph (walk when k <= n, else Brent's rho, then a walk);
-  * floydCycleDetection / brentCycleDetection over a closure, in the formulation api.md pins,
+  * floydCycleDetection / brentCycleDetection over a closure, in the formulation api.md documents,
     counting every call of the closure.
 
 Every graph a case or the stress run reaches is checked against independent oracles:
@@ -409,7 +408,7 @@ def graph_row(group, title, succ, calls):
     row(group, title, f"FG {fmt(succ)}", [(t, (lambda fn: lambda: fn(g))(fn)) for t, fn in calls])
 
 
-# What a `checked:` spelling throws where its plain spelling traps (README Principle 6).
+# What a `checked:` spelling throws where its plain spelling traps.
 THROWS_VERTEX = "throws VertexNotFound"
 THROWS_EDGE = "throws EdgeNotFound"
 
@@ -603,7 +602,7 @@ def define():
         "encode FG [1, 2, 0] / decode [0, 3]", [("", lambda: "[1,2,0]"),
                                                 ("", lambda: "DecodingError.dataCorrupted")])
 
-    # --- checked: spellings (README Principle 6)
+    # --- checked: spellings
     graph_row("Reads", "checked: spellings answer a vertex as the plain ones do and throw for a non-vertex or a bad "
               "edge position", [1, 2, 0, 0], [
         ("successor(checked: 3)", lambda g: g.checked(g.successor, 3)),
@@ -647,7 +646,7 @@ def define():
 
 # ---------------------------------------------------------------- render, stress, main
 
-HEAD = """# FunctionalGraphs: case catalog (phase 1)
+HEAD = """# FunctionalGraphs: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 python3
 Tests/Catalogs/FunctionalGraphs/ref.py`; `--write` regenerates this file, `--stress` adds the random
@@ -667,8 +666,8 @@ Conventions:
   formulation in api.md.
 * `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`).
 * `throws VertexNotFound` / `throws EdgeNotFound` is what a `checked:` spelling throws where its plain
-  spelling traps (README Principle 6).
-* Group `Generic` pins cross-module agreement (Connectivity) and lives in the integration suite.
+  spelling traps.
+* Group `Generic` pins agreement with Connectivity (`FunctionalGraphGenericTests.swift`).
 
 | ID | Group | Case | Input / call | Expected |
 |---|---|---|---|---|

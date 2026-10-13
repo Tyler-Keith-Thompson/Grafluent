@@ -16,7 +16,6 @@ import Trees
 struct TreeRecognitionTests {
     @Test("TS-001 isTree is false: the null graph is not a tree")
     func nullGraphIsNotATree() {
-        // igraph and JGraphT agree; NetworkX raises; LEMON's tree() says true.
         // U: []
         let graph = ReferencePseudograph<Int>(edges: [])
         #expect(!graph.isTree)

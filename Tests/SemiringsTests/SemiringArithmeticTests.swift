@@ -1,6 +1,6 @@
 // Arithmetic at the edges of the scalars (SR-208 – SR-217, and the other widths from SR-413;
 // the trap rows are in SemiringPreconditionTests.swift): Int.max is the tropical zero and
-// absorbs (Boost's closed_plus), infinity absorbs, min of extremes never overflows, Double counts
+// absorbs, infinity absorbs, min of extremes never overflows, Double counts
 // round, and unsigned 0 is the bottleneck zero.
 // Generated from cases.md by swiftgen.py; see README.md.
 

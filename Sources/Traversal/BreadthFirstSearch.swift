@@ -4,10 +4,10 @@ import GraphProtocols
 /// so later changes to the original do not affect it, and it can be iterated more than once.
 /// Per-vertex state is kept in arrays indexed by the graph's vertex indices when it has them.
 ///
-/// Two ways to consume it. `for event in search` pulls events one at a time, lazily, so stopping
-/// the loop stops the search; to skip a vertex's out-edges, iterate by hand and call `prune()`
-/// right after its `discover` event. `search.forEach { … }` pushes every event to a closure in a
-/// single loop, faster than pulling, for when every event is wanted.
+/// `for event in search` pulls events one at a time, and stopping the loop stops the search. To
+/// skip a vertex's out-edges, iterate by hand and call `prune()` right after its `discover` event.
+/// `search.forEach { … }` pushes every event to a closure in one loop, which is faster when every
+/// event is wanted.
 @frozen
 public struct BreadthFirstSearch<G: DirectedGraph>: Sequence {
     public typealias Element = BreadthFirstSearchEvent<G.Vertex>
@@ -201,7 +201,7 @@ extension DirectedGraph {
     }
 
     /// The vertices reachable from `source`, by distance: layer k holds the vertices k edges away,
-    /// in the order a breadth-first search discovers them (NetworkX's `bfs_layers`).
+    /// in the order a breadth-first search discovers them.
     ///
     /// - Precondition: `source` is a vertex.
     @inlinable

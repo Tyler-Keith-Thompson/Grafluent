@@ -1,5 +1,5 @@
-// Review cases at scale (CycleReviewTests.swift has the rest): shapes on which a round or girth
-// used to cost the whole graph (a windmill whose hub is the last vertex, a large grid with a bound,
+// Cases at scale (CycleReviewTests.swift has the rest): shapes on which a round or girth must not
+// cost the whole graph (a windmill whose hub is the last vertex, a large grid with a bound,
 // forests and DAGs for girth), each with a one-minute limit. Case IDs (CY-nnn) refer to the
 // catalog; see README.md.
 
@@ -46,7 +46,7 @@ struct CycleReviewScaleTests {
                 if v + side < side * side { edges.append(UndirectedEdge(v, v + side)) }
             }
             let grid = UndirectedAdjacencyList(vertices: 0 ..< side * side, edges: edges)
-            // 99² unit squares; 2 · 99 · 98 dominoes (NetworkX on a 7 × 9 grid: 48 and 82).
+            // 99² unit squares; 2 · 99 · 98 dominoes.
             let squares = 99 * 99, dominoes = 2 * 99 * 98
             let upToFour = grid.simpleCycles(maxLength: 4).reduce(0) { n, _ in n + 1 }
             let upToSix = grid.simpleCycles(maxLength: 6).reduce(0) { n, _ in n + 1 }

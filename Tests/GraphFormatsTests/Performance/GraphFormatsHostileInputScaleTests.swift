@@ -44,7 +44,7 @@ struct GraphFormatsHostileInputScaleTests {
             #expect(error.kind == .nestingTooDeep)
             #expect([error.line, error.column, error.byteOffset] == [1, 407, 406])
         }
-        // DOT: a brace is a subgraph (phase 2), rejected at the first; an HTML string never closes.
+        // DOT: a brace is a subgraph (unsupported), rejected at the first; an HTML string never closes.
         do {
             let graph = try DirectedPseudograph<String>(dot: ("digraph { " + String(repeating: "{ ", count: 100_000)).utf8)
             Issue.record("expected unsupported, read \(graph)")
@@ -129,7 +129,7 @@ struct GraphFormatsHostileInputScaleTests {
         }
 
         // An edge-list column is typed by its text: an integer past Int is a double, and a decimal
-        // past Double is infinite, as Python's float reads them.
+        // past Double is infinite.
         var edgeValues: [Int: [String: AttributeValue]] = [:]
         let huge = String(repeating: "9", count: 100_000), wide = "1" + String(repeating: "0", count: 400)
         _ = try DirectedPseudograph<String>(edgeList: "a b \(huge)\nb c \(wide)\nc a 99999999999999999999\n".utf8, columns: ["w"],

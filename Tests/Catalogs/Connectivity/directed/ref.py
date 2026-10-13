@@ -83,7 +83,7 @@ def tarjan(V, S):
 
 
 def kosaraju(V, S):
-    """Kosaraju–Sharir as Boost/CLRS: DFS on G for finish order, then DFS on G^T in decreasing
+    """Kosaraju–Sharir as in CLRS: DFS on G for finish order, then DFS on G^T in decreasing
     finish order. Gives a *topological* order of components (sources first); reversed below to
     compare with Tarjan as sets."""
     P = preds_of(V, S)

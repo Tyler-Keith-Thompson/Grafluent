@@ -2,15 +2,9 @@ import AdjacencyMatrixModule
 import GraphProtocols
 import OrderedCollections
 
-// Mutation over `AdjacencyMatrix`: vertices are appended (the matrix cannot remove one), edges are
-// inserted and removed. `CompressedSparseRow` is immutable; rebuild it through `init(_:)`.
-//
-// Vertex removal is not offered, because no base here supports it. A future base that removes a
-// vertex by swap-remove (index n − 1 moving into the hole) must keep the labels in step in the same
-// mutation, with `_labels.swapAt(i, n - 1)` and `_labels.removeLast()`, O(1) expected. LEMON's
-// `RangeIdMap` (lemon/maps.h) does the same on erase, moving the largest id into the hole ("the ids
-// can change when deleting an item"). BGL's `labeled_graph` instead erases from the middle of its
-// label vector, shifting every later label.
+// Over `AdjacencyMatrix`, vertices are appended and edges are inserted and removed. The matrix
+// cannot remove a vertex, so neither can the labeled graph. `CompressedSparseRow` is immutable and
+// is rebuilt through `init(_:)`.
 
 extension LabeledGraph where Base == AdjacencyMatrix {
     /// Inserts `label` as a new vertex with the next index, unless it is already a vertex.
@@ -34,11 +28,11 @@ extension LabeledGraph where Base == AdjacencyMatrix {
         return (inserted, index)
     }
 
-    /// Inserts `edge`, first inserting each endpoint that is not yet a vertex, source first (so a
-    /// new source gets the lower index), as NetworkX's `add_edge` does.
+    /// Inserts `edge`, first inserting each endpoint that is not a vertex. The source is inserted
+    /// first, so a new source gets the lower index.
     ///
-    /// - Returns: Whether the edge was new, and the edge as stored, with the labels stored in the
-    ///   graph (an existing label, not the equal one in `edge`).
+    /// - Returns: Whether the edge was new, and the edge with the labels stored in the graph. Those
+    ///   are the existing labels, not the equal ones in `edge`.
     /// - Complexity: Two hashes, plus `insert(_:)` for each new endpoint; O(1) for the edge.
     @inlinable
     @discardableResult
@@ -66,9 +60,8 @@ extension LabeledGraph where Base == AdjacencyMatrix {
 
     /// Removes `edge`, keeping both endpoints.
     ///
-    /// - Returns: The removed edge, with the labels stored in the graph (which may be told apart
-    ///   from the equal ones in `edge`), or `nil` when it was not an edge, including when an
-    ///   endpoint is not a vertex (the matrix's `remove(edge:)` contract).
+    /// - Returns: The removed edge with the labels stored in the graph, or `nil` when it was not an
+    ///   edge. An endpoint that is not a vertex also gives `nil`.
     /// - Complexity: Two hashes; O(1) for the edge.
     @inlinable
     @discardableResult
@@ -80,7 +73,7 @@ extension LabeledGraph where Base == AdjacencyMatrix {
         return DirectedEdge(from: _labels[source], to: _labels[target])
     }
 
-    /// Removes every edge leaving `label`, keeping the vertex: the matrix's `removeEdges(from:)`.
+    /// Removes every edge leaving `label`, keeping the vertex.
     ///
     /// - Returns: The number of edges removed.
     /// - Precondition: `label` is a vertex.
@@ -102,7 +95,7 @@ extension LabeledGraph where Base == AdjacencyMatrix {
         return _base.removeEdges(from: index)
     }
 
-    /// Removes every edge entering `label`, keeping the vertex: the matrix's `removeEdges(to:)`.
+    /// Removes every edge entering `label`, keeping the vertex.
     ///
     /// - Returns: The number of edges removed.
     /// - Precondition: `label` is a vertex.
@@ -124,8 +117,7 @@ extension LabeledGraph where Base == AdjacencyMatrix {
         return _base.removeEdges(to: index)
     }
 
-    /// Removes every edge leaving or entering `label`, keeping the vertex (Boost.Graph's
-    /// `clear_vertex`): the matrix's `removeEdges(incidentTo:)`.
+    /// Removes every edge leaving or entering `label`, keeping the vertex.
     ///
     /// - Returns: The number of edges removed. A self-loop counts once.
     /// - Precondition: `label` is a vertex.
@@ -164,7 +156,7 @@ extension LabeledGraph where Base == AdjacencyMatrix {
 
     /// Reserves storage for at least `vertexCount` labels and matrix vertices.
     ///
-    /// - Precondition: the matrix's storage fits (see `AdjacencyMatrix.reserveCapacity(vertexCount:)`).
+    /// - Precondition: The matrix's storage fits (see `AdjacencyMatrix.reserveCapacity(vertexCount:)`).
     @inlinable
     public mutating func reserveCapacity(vertexCount: Int) {
         _labels.reserveCapacity(vertexCount)

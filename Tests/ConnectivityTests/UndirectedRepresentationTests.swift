@@ -233,7 +233,7 @@ struct UndirectedRepresentationTests {
         #expect(plain252.biEdgeConnectedComponents().map(Array.init) == [["A"], ["B"], ["C"], ["D"], ["E"], ["F"]])
         #expect(plain252.blockCutTree().edgeCount == 4)
 
-        // CN-294: petgraph's undirected graph with doubled edges and a loop at a.
+        // CN-294: an undirected graph with doubled edges and a loop at a.
         let fixture = UndirectedFixture<String>.petgraphUndirected
         let reference294 = ReferencePseudograph(vertices: fixture.vertices, edges: fixture.edges)
         let plain294 = PlainGraph(vertices: reference294.vertices, edges: reference294.edges)
@@ -296,7 +296,7 @@ struct UndirectedRepresentationTests {
 
     @Test("CN-347 a conformer with vertex indices only: CN-243, CN-245, CN-291 and CN-292 exactly")
     func vertexIndexedGraph() {
-        // CN-243: JGraphT's testWikiGraph.
+        // CN-243: 14 vertices, five articulation points, seven blocks.
         let wiki = [(1, 3), (1, 2), (2, 4), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (7, 9), (9, 10), (9, 11), (11, 12), (12, 13), (13, 14), (12, 14), (7, 14)]
         let once = VertexIndexedGraph(vertices: Array(1 ... 14), edges: wiki.map { UndirectedEdge($0.0, $0.1) })
         #expect(once.vertexIndexBound == 14 && once.edgeIndexBound == nil)
@@ -306,7 +306,7 @@ struct UndirectedRepresentationTests {
         let onceBlocks = once.biconnectedComponents()
         #expect(onceBlocks.map(Array.init) == [[0, 1, 2, 3], [4], [5], [6], [7], [8, 10, 11, 12, 13, 14, 15], [9]])
         #expect(onceBlocks.indices.map { Array(onceBlocks.vertices(ofComponentAt: $0)) } == [[1, 2, 3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [7, 9, 11, 12, 13, 14], [9, 10]])
-        // JGraphT's getBlocks(7): three blocks.
+        // Vertex 7 is in three blocks.
         #expect(Array(onceBlocks.components(containing: 7)) == [3, 4, 5])
         #expect(once.biEdgeConnectedComponents().map(Array.init) == [[1, 2, 3, 4], [5], [6], [7, 9, 11, 12, 13, 14], [8], [10]])
         let onceTree = once.blockCutTree()

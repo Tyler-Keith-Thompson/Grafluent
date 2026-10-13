@@ -103,8 +103,8 @@ extension _GraphConstruction {
     /// The grid (lattice) graph with the given side lengths: vertex x = (x₀, …, x_{k−1}) is
     /// Σ xᵢ·Πⱼ₍ⱼ>ᵢ₎ dⱼ (row-major, the last dimension fastest), with an edge x–(x + eᵢ) for each
     /// dimension. With `periodic`, each dimension of length 3 or more also wraps around (a torus);
-    /// a dimension of length 1 or 2 never wraps, so there is no self-loop or repeat. NetworkX's
-    /// `grid_2d_graph(r, c)` node (i, j) is vertex i·c + j. A dimension of 0 gives the null graph.
+    /// a dimension of length 1 or 2 never wraps, so there is no self-loop or repeat. In an r × c
+    /// grid, cell (i, j) is vertex i·c + j. A dimension of 0 gives the null graph.
     /// O(n + m), with m = Σᵢ (dᵢ − 1, or dᵢ when it wraps)·Πⱼ≠ᵢ dⱼ.
     ///
     /// - Precondition: at least one dimension, none negative, and the vertex and edge counts fit
@@ -116,8 +116,7 @@ extension _GraphConstruction {
     }
 
     /// The hypercube Q_d on `0..<2^d`: bit k of a vertex is its coordinate k, and u–v when they
-    /// differ in one bit (NetworkX `hypercube_graph`, numbered by bits). d·2^(d − 1) edges.
-    /// `hypercube(dimension: 0)` is K₁, as in igraph. O(n + m).
+    /// differ in one bit. d·2^(d − 1) edges. `hypercube(dimension: 0)` is K₁. O(n + m).
     ///
     /// - Precondition: `0 ≤ dimension ≤ 62`, and the edge count fits in `Int`.
     @inlinable
@@ -128,8 +127,8 @@ extension _GraphConstruction {
 }
 
 extension _DirectedGraphConstruction {
-    /// The grid with both arcs for every edge (NetworkX's `grid_2d_graph` as a `DiGraph`), in
-    /// row-major order; numbering as the undirected `grid(dimensions:periodic:)`. O(n + m).
+    /// The grid with both arcs for every edge, in row-major order, numbered as the undirected
+    /// `grid(dimensions:periodic:)`. O(n + m).
     ///
     /// - Precondition: as for the undirected grid, with twice the edge count fitting in `Int`.
     @inlinable

@@ -117,7 +117,7 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(g)
         }
     }
-    // The fair baseline of the row above: the caller's own graph type holds two side arrays by
+    // The baseline for the row above: the caller's own graph type holds two side arrays by
     // position, which a removal leaves alone (positions are never reused, and a trivial value needs
     // no release).
     Benchmark("StableGraphs: StableDirectedGraph remove every other edge by position, BASELINE 2 side arrays in the caller's graph type") { benchmark in
@@ -279,9 +279,8 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     // Vertex churn: each step inserts a fresh vertex with an edge and removes the previous one,
-    // so the row table only grows. Linear in the steps (each row pool packs only once its garbage
-    // outweighs the row table); 10⁴ steps took 33.6 s before that bound, 10⁵ took longer than
-    // anyone waited.
+    // so the row table only grows. Linear in the steps, because a row pool packs only once its
+    // garbage outweighs the row table.
     for steps in [10_000, 100_000] {
         Benchmark("StableGraphs: StableDirectedGraph vertex churn, \(steps) steps") { benchmark in
             for _ in benchmark.scaledIterations {
@@ -360,9 +359,8 @@ let benchmarks: @Sendable () -> Void = {
             }
         }
     }
-    // The bound, asserted: a graph (with an attached edge map) churned 3× as long holds the same
-    // bytes, since paged storage frees the dead pages; storage that grew with insertions held
-    // 3.3× after 10× the steps (21 → 69 MB in the edge churn benchmark below).
+    // Asserts the memory bound. A graph with an attached edge map, churned 3× as long, holds about
+    // the same bytes, because paged storage frees the dead pages.
     func churnedBytes(steps: Int) -> Int {
         let before = bytesInUse()
         var state: UInt64 = 5
@@ -378,7 +376,7 @@ let benchmarks: @Sendable () -> Void = {
         return bytes
     }
     // Rows keep the largest capacity they reached, so the footprint settles once the degrees'
-    // extremes have been seen: 2.2 MB after 10⁵ steps, 3.7 MB after 10⁶, 3·10⁶ and 6·10⁶.
+    // extremes have been seen.
     let longChurn = churnedBytes(steps: 1_000_000), longerChurn = churnedBytes(steps: 3_000_000)
     precondition(longerChurn < longChurn + longChurn / 10 + 262_144, "churn memory grows with insertions: \(longChurn) → \(longerChurn) bytes")
 
@@ -490,7 +488,7 @@ let benchmarks: @Sendable () -> Void = {
     }
 }
 
-/// The fair baseline of the attached-map rows: a caller's own graph type that holds the graph and
+/// The baseline for the attached-map rows: a caller's own graph type that holds the graph and
 /// two side arrays by edge position, kept inside its own mutating methods; positions are never
 /// reused, so a removal leaves them alone.
 struct SideArrayStableGraph {

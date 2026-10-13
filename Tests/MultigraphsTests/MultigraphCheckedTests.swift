@@ -1,4 +1,4 @@
-// The `checked:` spellings (catalog MG-193 – MG-211, README Principle 6): `insert(checked:)` adds a
+// The `checked:` spellings (catalog MG-193 – MG-211): `insert(checked:)` adds a
 // copy only between existing vertices, else throws `VertexNotFound` (the multigraphs:
 // `LooplessEdgeError.missingEndpoint`, checked before `.selfLoop`) and changes nothing; the vertex
 // lookups throw `VertexNotFound` where the plain spellings trap, and `source(checkedEdgeAt:)` /

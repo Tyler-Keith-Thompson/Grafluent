@@ -1148,7 +1148,7 @@ FILES = [
      "of it where the weights are a metric; nil below three vertices."),
     ("TwoOptTourTests.swift", ("TwoOptTour", "TwoOptTourImproving"), "twoOptTour", "TwoOptTourTests",
      "`twoOptTour(weight:)` and `twoOptTour(improving:weight:)` (catalog §TwoOptTour, §TwoOptTourImproving): "
-     "JGraphT's best-improvement procedure's tour exactly; checked here as 2-optimal (no improving exchange, "
+     "the best-improvement procedure's tour exactly; checked here as 2-optimal (no improving exchange, "
      "by an O(n²) loop), no heavier than its start tour, starting where that tour does, a Hamiltonian cycle "
      "through the lightest copies; on up to 9 vertices against the brute-force optimum."),
     ("ShortestTourTests.swift", ("ShortestTour", "ShortestTourDirected"), "shortestTour", "ShortestTourTests",

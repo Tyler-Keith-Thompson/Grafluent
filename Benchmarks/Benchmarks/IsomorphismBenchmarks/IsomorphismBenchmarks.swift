@@ -6,15 +6,12 @@ import GraphProtocols
 import IsomorphismModule
 import RandomGraphs
 
-// Targets and baselines: Tests/Catalogs/Isomorphism/api.md, Performance. The pairs are the ones
-// `ref.py --bench` times igraph's bliss and VF2, NetworkX vf2pp and rustworkx VF2 on, exported by
+// The pairs are the ones `ref.py --bench` times, exported by
 // `ref.py --export Benchmarks/Data/Isomorphism` (raw deflate of the vertex count and one edge per
 // line), so both sides time the same edge lists.
 //
 // Two kinds of rows, not to be compared with each other: `isIsomorphic(to:)` is a decision on a
-// pair (igraph's `isomorphic_bliss` computes two canonical labelings for it); `canonicalLabeling()`
-// and `automorphismGroup()` work on one graph (bliss `canonical_permutation` and
-// `count_automorphisms`).
+// pair; `canonicalLabeling()` and `automorphismGroup()` work on one graph.
 
 /// A bench pair from Benchmarks/Data/Isomorphism.
 func benchPair(_ name: String) -> (UndirectedAdjacencyList<Int>, UndirectedAdjacencyList<Int>) {
@@ -62,7 +59,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Pattern counts in a random graph with 10⁴ edges: C4, C5, P4. Target: ≤ igraph VF2.
+    // Pattern counts in a random graph with 10⁴ edges: C4, C5, P4.
     var seen = Set<UndirectedEdge<Int>>()
     let sparse = UndirectedAdjacencyList(vertices: 0 ..< 2000, edges: Inputs.randomEdges(vertexCount: 2000, edgeCount: 10_000, seed: 12)
         .map { UndirectedEdge($0.source, $0.target) }.filter { !$0.isSelfLoop && seen.insert($0).inserted })
@@ -78,7 +75,7 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Weisfeiler–Leman on 10⁶ edges. Target: ≥ 50× NetworkX (pure Python).
+    // Weisfeiler–Leman on 10⁶ edges.
     var wlSeen = Set<UndirectedEdge<Int>>()
     let large = UndirectedAdjacencyList(vertices: 0 ..< 200_000, edges: Inputs.randomEdges(vertexCount: 200_000, edgeCount: 1_000_000, seed: 13)
         .map { UndirectedEdge($0.source, $0.target) }.filter { !$0.isSelfLoop && wlSeen.insert($0).inserted })

@@ -16,13 +16,13 @@ Every expected value is computed at least two ways, then cross-checked against N
     computed per cycle, never from a search;
   - acyclic: no cycle in (a); also edgeCount == vertexCount - components;
   - girth: the least length in (a);
-  - chordless (deferred): cycles of (a) whose vertex set induces exactly `length` edges;
-  - minimum cycle basis (deferred): greedy over (a) by length with GF(2) independence;
-* the algorithms api.md proposes, written here in Python: iterative Johnson (unbounded) and
+  - chordless (no Swift API): cycles of (a) whose vertex set induces exactly `length` edges;
+  - minimum cycle basis (no Swift API): greedy over (a) by length with GF(2) independence;
+* the algorithms api.md describes, written here in Python: iterative Johnson (unbounded) and
   Gupta–Suzumura (bounded) in rounds over a heap of pieces (strong components, or blocks plus
   self-loop vertices) keyed by least vertex, re-decomposing only the pieces of the vertex just
   removed; undirected closures through the edge just taken, or in the non-canonical orientation,
-  count as "found" for unblocking (igraph's rule) but are not emitted. Their output must equal
+  count as "found" for unblocking but are not emitted. Their output must equal
   brute force in content AND order;
 * findCycle and cycleBasis follow api.md's specification (depth-first / breadth-first forests)
   and are checked for validity, count and GF(2) independence.
@@ -400,7 +400,7 @@ def brute_cycles_perm(g):
     return found
 
 
-# --------------------------- proposed algorithm (api.md), Python -----------------------------
+# ------------------------------ the algorithm (api.md), Python -------------------------------
 
 
 def _scc_groups(g, members):
@@ -861,7 +861,7 @@ def small(g):
     return g.directed and g.n <= 9 or (not g.directed and g.m - g.n + components(g) <= 12)
 
 
-# --------------------------------- deferred: chordless, MCB ------------------------------------
+# ------------------------- chordless, MCB (no Swift API) ---------------------------------------
 
 
 def brute_chordless(g):
@@ -1283,7 +1283,7 @@ def properties(trials=600):
 
 def properties_reordered(trials=400):
     """Rows not in position order (a representation such as UndirectedAdjacencyList after
-    removals): the proposed algorithm still matches brute force in content and order."""
+    removals): the algorithm still matches brute force in content and order."""
     rng = random.Random(77)
     problems = []
     for t in range(trials):
@@ -1302,7 +1302,7 @@ def properties_reordered(trials=400):
 
 
 def stress(problems):
-    """§K, by the proposed algorithm and closed forms (brute force cannot)."""
+    """§K, by the algorithm and closed forms (brute force cannot)."""
     import time
     t0 = time.time()
     for k in list(range(3, 10)) + [1000]:  # CY-800, CY-801

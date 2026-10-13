@@ -8,7 +8,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal, .peakMemoryResident]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
 
-    // 4096² cells, about 1/8 of them set: the size the AdjacencyMatrix review measured.
+    // 4096² cells, about 1/8 of them set.
     let n = 4096
     let dense = AdjacencyMatrix(vertexCount: n, edges: Inputs.randomEdges(vertexCount: n, edgeCount: n * n / 8))
     let sparse = AdjacencyMatrix(vertexCount: n, edges: (0 ..< n).map { DirectedEdge(from: $0, to: ($0 &* 7919) % n) })

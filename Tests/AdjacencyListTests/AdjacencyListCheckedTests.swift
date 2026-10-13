@@ -1,5 +1,6 @@
-// The `checked:` spellings (README Principle 6) on `AdjacencyList`: each agrees with its trapping spelling for a vertex or position in the graph, and throws
-// `VertexNotFound` or `EdgeNotFound`, changing nothing, where the trapping spelling would trap.
+// The `checked:` spellings on `AdjacencyList`: each agrees with its trapping spelling for a vertex
+// or position in the graph, and throws `VertexNotFound` or `EdgeNotFound`, changing nothing, where
+// the trapping spelling would trap.
 // `insert(checked:)` inserts only between existing vertices. See README.md.
 
 import AdjacencyListModule

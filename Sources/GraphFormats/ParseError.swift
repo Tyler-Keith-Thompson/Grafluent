@@ -33,8 +33,7 @@ public struct ParseError: Error, Hashable, Sendable, CustomStringConvertible {
     /// For example `syntax error at 3:7`.
     public var description: String { "\(kind) error at \(line):\(column)" }
 
-    /// The kinds of error, from XML 1.0's well-formedness terms, the Matrix Market specification and
-    /// JSON (RFC 8259).
+    /// The kinds of error.
     @frozen
     public enum Kind: Hashable, Sendable {
         /// Bytes that are not UTF-8, at the first byte of the bad sequence.
@@ -74,7 +73,7 @@ public struct ParseError: Error, Hashable, Sendable, CustomStringConvertible {
         case entityNotAllowed
         /// An end tag that does not close the open element.
         case mismatchedTag
-        /// A feature this version does not read, another diagram or object type, or another encoding.
+        /// A construct the reader does not support, another diagram or object type, or another encoding.
         case unsupported
         /// The file asks for more than a reader builds: a Matrix Market vertex count above
         /// `maximumVertexCount`, or more expansion than the input's size allows (DOT and GraphML

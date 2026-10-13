@@ -1,4 +1,4 @@
-// `Bipartition.side(checked:)` (README Principle 6): the side `side(of:)` gives for a vertex of the
+// `Bipartition.side(checked:)`: the side `side(of:)` gives for a vertex of the
 // graph, and `VertexNotFound` where `side(of:)` would trap. Read on an indexed graph and on one
 // without indices, whose bipartition looks vertices up in its own numbers.
 

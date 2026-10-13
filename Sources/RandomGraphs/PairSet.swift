@@ -1,9 +1,9 @@
 import AdjacencyListModule
 
-/// A set of vertex pairs, for the membership tests of G(n, m) and Watts–Strogatz: the adjacency
-/// lists' `_SlotPairTable` with no values, so one 8-byte bucket per pair, a multiplicative hash and
-/// backward-shift deletion. `Set` hashes with SipHash, several times the cost of one multiply, and
-/// these loops do little else. Both vertices must be below 2³² − 1.
+/// A set of vertex pairs for the membership tests of G(n, m) and Watts–Strogatz. It is the
+/// adjacency lists' `_SlotPairTable` with no values: one 8-byte bucket per pair, a multiplicative
+/// hash, and backward-shift deletion. `Set`'s SipHash would dominate these loops. Both vertices
+/// must be below 2³² − 1.
 @frozen
 @usableFromInline
 struct _PairSet {

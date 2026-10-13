@@ -1,7 +1,6 @@
 /// Edmonds–Karp: shortest augmenting paths by breadth-first search over the rows in
-/// edge-position order, stopping when the sink is discovered, each augmented by its bottleneck
-/// (the family of Boost's `edmonds_karp_max_flow`, whose search runs to completion before it
-/// augments). The flow is pinned by this procedure. O(n m²).
+/// edge-position order, stopping when the sink is discovered, each augmented by its bottleneck.
+/// This procedure determines the flow exactly. O(n m²).
 @inlinable
 func _edmondsKarp<C: Comparable & AdditiveArithmetic>(_ network: _ResidualNetwork<C>, from source: Int, to sink: Int) -> C {
     let n = network.count
@@ -65,8 +64,8 @@ func _edmondsKarp<C: Comparable & AdditiveArithmetic>(_ network: _ResidualNetwor
 
 /// Dinic's blocking flows (Dinitz 1970): breadth-first levels from the source, stopped at the
 /// sink's level, then an iterative depth-first search with current-arc pointers and an explicit
-/// stack of arcs. `cutoff`, when given, stops as soon as the value reaches it (connectivity uses
-/// it to stop at the best value found so far). O(n² m); O(m √n) on unit networks.
+/// stack of arcs. `cutoff`, when given, stops as soon as the value reaches it. Connectivity
+/// passes the best value found so far. O(n² m); O(m √n) on unit networks.
 @inlinable
 func _dinic<C: Comparable & AdditiveArithmetic>(_ network: _ResidualNetwork<C>, from source: Int, to sink: Int, cutoff: C? = nil) -> C {
     let n = network.count

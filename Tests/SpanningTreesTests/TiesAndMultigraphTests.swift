@@ -1,6 +1,6 @@
 // The tie rule (weight, position), self-loops (never in the forest and never weighed), parallel
-// edges (the lightest copy, and among equal copies the first), zero weights, and NetworkX's and
-// Boost's multigraphs. Where the optimum is not unique Prim is checked on its weight and on being
+// edges (the lightest copy, and among equal copies the first), zero weights, and multigraphs.
+// Where the optimum is not unique Prim is checked on its weight and on being
 // one of the optima. Case IDs (ST-nn) refer to the catalog; see README.md.
 
 import GraphProtocols
@@ -67,7 +67,7 @@ struct TiesAndMultigraphTests {
         let tree = graph.minimumSpanningTree { edges[$0].2 }
         #expect(tree.edges == canonical)
         #expect(tree.weight == 4)
-        // Boost's expected output: 0–2, 3–4, 4–0, 1–3.
+        // Expected output: 0–2, 3–4, 4–0, 1–3.
         #expect(Set(tree.edges.map { graph.edges[$0] }) == [UndirectedEdge(0, 2), UndirectedEdge(3, 4), UndirectedEdge(4, 0), UndirectedEdge(1, 3)])
         #expect(graph.kruskalMinimumSpanningTree { edges[$0].2 } == tree)
         let boruvka = graph.boruvkaMinimumSpanningTree { edges[$0].2 }
@@ -252,7 +252,7 @@ struct TiesAndMultigraphTests {
         #expect(prim.edges.count == 2)
         #expect(Set(prim.edges) == [1, 2])
         #expect(prim.weight == 2)
-        // NetworkX's expected maximum: {0–1, 0–2}; 0–2 and 1–2 tie and the earlier position wins.
+        // Expected maximum: {0–1, 0–2}; 0–2 and 1–2 tie and the earlier position wins.
         let maximum = graph.maximumSpanningTree { edges[$0].2 }
         #expect(maximum.edges == [0, 1])
         #expect(maximum.weight == 8)

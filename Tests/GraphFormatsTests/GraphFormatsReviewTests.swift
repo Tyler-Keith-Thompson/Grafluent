@@ -1,10 +1,8 @@
-// Cases added after the second review: inputs whose cost used to grow faster than their size (a
-// Matrix Market size line, DOT default lists, Mermaid `&` groups, GraphML defaults against data,
-// defaults multiplied by vertices, objects and tags with many keys), each checked for its result
-// and, where the fix is about cost, by timing two sizes eight times apart (a linear reader takes
-// about 8× as long, a quadratic one 64×; each time is the least of five interleaved runs) or by the peak memory of
-// a child process. Expected values are known by construction. The timed cases are in
-// Performance/GraphFormatsReviewScaleTests.swift. See README.md.
+// Inputs whose cost could grow faster than their size (a Matrix Market size line, DOT default
+// lists, Mermaid `&` groups, GraphML defaults against data, defaults multiplied by vertices,
+// objects and tags with many keys), each checked for its result and, where the case is about cost,
+// by the peak memory of a child process. Expected values are known by construction. The timed cases
+// are in Performance/GraphFormatsReviewScaleTests.swift. See README.md.
 
 #if canImport(Darwin)
 import Darwin

@@ -5,7 +5,7 @@ Run:  uv run --quiet --no-project --with networkx==3.7 python3 ref.py
       ... python3 ref.py --emit TA-101  print the computed value of one case
 
 Every value is computed by the model of api.md written here, in index space the way the Swift
-implementation will run (incidence rows in position order, the Trees rooting: parent, parent
+implementation runs (incidence rows in position order, the Trees rooting: parent, parent
 edge, depth, preorder, subtree size; preorder RMQ for LCA; heavy-first preorder for HLD; one
 rerooting pass for eccentricities), then checked two more ways:
 
@@ -16,8 +16,7 @@ rerooting pass for eccentricities), then checked two more ways:
   into the path they cover;
 * NetworkX 3.7: lowest_common_ancestor (on the arborescence), tree_all_pairs_lowest_common_ancestor,
   shortest_path / shortest_path_length, dfs_labeled_edges (Euler tour), dfs_preorder_nodes
-  (heavy-first preorder), tree.center, center(weight=), tree.centroid, centroid (the 3.7 name of
-  barycenter), diameter(weight=), eccentricity.
+  (heavy-first preorder), tree.center, center(weight=), tree.centroid, centroid, diameter(weight=), eccentricity.
 
 Cases with more than BIG vertices skip NetworkX and the naive checks; their values are checked
 against closed forms (CLOSED below), derived by hand from the shape of the input.

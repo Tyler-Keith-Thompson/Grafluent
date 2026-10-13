@@ -1,7 +1,7 @@
-// Review cases at scale (CliqueReviewTests.swift has the rest): shapes that used to cost a
-// quadratic setup or memory in a hub's degree (a star whose hub comes last in degeneracy order, a
-// star whose hub has index 0, a hub with many 5-cycles), a complete graph whose clique number used
-// to restart its search at every size, and dense seeded graphs whose candidate sets span several
+// The large CQ-1001 – CQ-1004 shapes (CliqueReviewTests.swift has the rest): shapes that would
+// cost a quadratic setup or memory in a hub's degree if handled naively (a star whose hub comes
+// last in degeneracy order, a star whose hub has index 0, a hub with many 5-cycles), a complete
+// graph whose clique number must not restart its search at every size, and dense seeded graphs whose candidate sets span several
 // 64-bit words, with values from NetworkX 3.7 (find_cliques, core_number, triangles) on the same
 // edges: each pair (u, v), u < v, is an edge when the generator's next value is below the
 // probability. Each has a one-minute limit. Case IDs (CQ-nnn) refer to the catalog; see README.md.

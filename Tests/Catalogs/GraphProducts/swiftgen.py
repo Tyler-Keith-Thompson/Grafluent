@@ -11,7 +11,7 @@ bounds, every edge in `edges` order by value and by index (`sourceIndex`/`target
 `endpointIndices`), the edge indices, and every row by vertex and by index, with each row's
 positions given as their offsets in `edges`; then membership and `contains(edge:)` for every
 ordered pair of vertices. Positions are pinned through that order and those endpoints, never by
-naming the position type's cases, which api.md leaves open. Rows that read `hashes` also run on a
+naming the position type's cases. Rows that read `hashes` also run on a
 vertex type whose `hash(into:)` counts. Hand-written exit tests spliced into the precondition
 file: extra_traps.swift.
 """
@@ -271,7 +271,7 @@ def row_test(n):
     lines.append("        let product = %s(g, h)" % FUNC[kind])
     lines.append("        #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))")
     if "NetworkX MultiGraph" in cell(n):
-        lines.append("        // NetworkX's MultiGraph merges coincident loop products; here each generating tuple is its own edge.")
+        lines.append("        // Each generating tuple is its own edge, coincident loop products included.")
     lines += state(p)
     if "hashes" in cell(n):
         lines += counted_lines(kind, g, h)

@@ -1,7 +1,6 @@
-// Cases added after planting bugs and after the critical review: a NaN weight traps when it is
-// read, even on an edge the algorithm never takes; the default's dense path (Prim under
-// (weight, position)) on every kind of conformer, its total added up in the listed order, and
-// Prim from a root on a disconnected graph. Case IDs (ST-nn) refer to the catalog; see README.md.
+// A NaN weight traps when it is read, even on an edge the algorithm never takes; the default's
+// dense path (Prim under (weight, position)) on every kind of conformer, its total added up in the
+// listed order, and Prim from a root on a disconnected graph. Case IDs (ST-nn) refer to the catalog; see README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule

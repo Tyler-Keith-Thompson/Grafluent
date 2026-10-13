@@ -5,18 +5,14 @@
 It is a lawful `DirectedGraph`, so every generic algorithm runs on it with no edge storage. The
 suite also covers the closure searches over unbounded spaces that sit beside it:
 
-- Traversal's existing `breadthFirstSearch(from:depthLimit:successors:)`;
-- ShortestPaths decision D19: `dijkstraShortestPath(from:cutoff:successors:success:)` and
-  `aStarShortestPath(from:cutoff:successors:heuristic:success:)`.
+- Traversal's `breadthFirstSearch(from:depthLimit:successors:)`;
+- ShortestPaths' `dijkstraShortestPath(from:cutoff:successors:success:)` and
+  `aStarShortestPath(from:cutoff:successors:heuristic:success:)`, called D19 below after their
+  entry in the ShortestPaths catalog.
 
-The tests come from the proposed API (`api.md` in
-[`Tests/Catalogs/ImplicitGraphs/`](../Catalogs/ImplicitGraphs/), phase 1), with its open questions
-decided as recommended:
-
-- `Int` vertices, with labels through `LabeledGraph`;
-- no `Sendable`, `BidirectionalDirectedGraph` or undirected variant;
-- no `GridGraph`;
-- D19 implemented in `ShortestPaths`, with its catalog rows tested here.
+The API is described in `api.md` in [`Tests/Catalogs/ImplicitGraphs/`](../Catalogs/ImplicitGraphs/).
+Vertices are `Int`, and labels come through `LabeledGraph`. The type is not `Sendable`, and it has
+no `BidirectionalDirectedGraph` conformance and no undirected variant.
 
 The suite uses only the public API, and each test is self-contained. The only shared material is
 the seeded generator and the tags in `GrafluentTestSupport`.
@@ -129,25 +125,12 @@ into an array in one pass and reports an `underestimatedCount` of 0, so `Array.i
     it says.
 - **Generation** (`ImplicitGraphGenerationTests.swift`): stamped once, shared by copies, and
   another graph's even when built from the same closure.
-- **Review cases** (`ImplicitGraphReviewTests.swift`), each added for a planted bug in
-  `just mutate ImplicitGraphs` that every other test let through: `targetIndex(ofEdgeAt:)`, the
-  one-pass `edges.map`, `index(after:)` and the subscript trapping at `endIndex` under a closure
-  that accepts any `Int`, the closure Dijkstra's heap order on a queue deep enough to misplace an
-  entry, A* preferring the farther of equal priorities (an exact estimate on an open grid expands
-  one shortest path; a farther goal beats a nearer state queued after it), the NaN check on the start's estimate, and the cutoff bounding the distance
-  alone.
-
-## Planted bugs
-
-The suite was checked against 7 bugs planted in a Swift model of the API, outside the repository, and
-it caught every one:
-
-| Planted bug | Caught by |
-|---|---|
-| No range check on successors | IG-014, IG-015, extra traps |
-| `startIndex` and `index(after:)` stopping at an empty row instead of skipping it | the conformance tests (the suite dies on a fatal error) |
-| Ranks counted from 1 | IG-004 – IG-010, conformance |
-| `edgeCount` iterating twice | IG-007, every graph row's state, properties |
-| `contains(edge:)` scanning the row for a target off `0..<n` | properties |
-| D19 paths returned goal first | IG-024 – IG-027, properties, stress |
-| D19 testing the goal when it is pushed, not when it is settled | IG-030, IG-031 (step costs that depend on both ends), properties. With costs that depend only on the cell entered, as in IG-026 and IG-027, the first push of the goal is already optimal |
+- **Mutation cases** (`ImplicitGraphReviewTests.swift`). Each catches a mutation from
+  `just mutate ImplicitGraphs` that the other tests let through:
+  - `targetIndex(ofEdgeAt:)` and the one-pass `edges.map`;
+  - `index(after:)` and the subscript trapping at `endIndex` under a closure that accepts any `Int`;
+  - the closure Dijkstra's heap order, on a queue deep enough to misplace an entry;
+  - A* preferring the farther of equal priorities. An exact estimate on an open grid expands one
+    shortest path, and a farther goal beats a nearer state queued after it;
+  - the NaN check on the start's estimate;
+  - the cutoff bounding the distance alone.

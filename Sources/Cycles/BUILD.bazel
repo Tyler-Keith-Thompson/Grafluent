@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Cycle detection, cycle bases, elementary circuits, girth.
+# Cycle detection, cycle bases, elementary circuits, girth, feedback arc sets.
 swift_library(
     name = "Cycles",
     srcs = glob(["**/*.swift"]),

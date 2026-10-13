@@ -37,8 +37,8 @@
     }
 }
 
-/// Whether `c` ends a field on the fast path: ASCII whitespace as Python's `str.split()` reads it,
-/// or `#`.
+/// Whether `c` ends a field on the fast path: ASCII whitespace (U+0009 – U+000D, U+001C – U+001F,
+/// space) or `#`.
 @inline(__always)
 @inlinable func _endsIntegerField(_ c: UInt8) -> Bool {
     c == 0x20 || (c &- 0x09) < 5 || (c &- 0x1C) < 4 || c == UInt8(ascii: "#")

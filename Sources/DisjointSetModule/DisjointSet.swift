@@ -1,7 +1,5 @@
 /// A partition of the elements `0..<count` into disjoint sets, with union by size and path
-/// halving: O(α(n)) amortized per operation. The interface is that of Boost's `disjoint_sets`,
-/// petgraph's `UnionFind` and scipy's `DisjointSet`; the linking rule is scipy's (Boost and
-/// petgraph link by rank).
+/// halving. O(α(n)) amortized per operation.
 ///
 /// Each set's representative is one of its members. `union(a, b)` keeps the representative of
 /// the larger set, or, for sets of the same size, the smaller of the two representatives, whatever
@@ -13,8 +11,8 @@
 /// set by different representatives.
 ///
 /// Storage is one array of `count` integers, copied on write. `find` and `union(_:_:)` are
-/// `mutating` because they shorten paths; every other query works on a `let`, walking at most
-/// ⌊log₂ count⌋ steps (union by size bounds the height).
+/// `mutating` because they shorten paths. Every other query works on a `let` and walks at most
+/// ⌊log₂ count⌋ steps, since union by size bounds the height.
 @frozen
 public struct DisjointSet {
     /// For a representative, minus the size of its set; for any other element, its parent.
@@ -80,8 +78,8 @@ public struct DisjointSet {
         preconditionFailure("Element \(element) is out of range 0..<\(_storage.count)")
     }
 
-    /// The representative of `element`'s set, without shortening the path. At most ⌊log₂ count⌋
-    /// steps.
+    /// The representative of `element`'s set, without shortening the path. Takes at most
+    /// ⌊log₂ count⌋ steps.
     @inlinable
     @inline(__always)
     func _root(_ element: Int) -> Int {
@@ -93,10 +91,12 @@ public struct DisjointSet {
     }
 
     /// The representative of `element`'s set, pointing each element on the way at its
-    /// grandparent. A `find` along a path already flat writes nothing, so it does not copy storage
-    /// shared with another value; one that shortens a path copies it once, O(count). To ask
-    /// whether two elements are together on a shared or borrowed value, use `inSameSet(_:_:)`,
-    /// which never writes.
+    /// grandparent.
+    ///
+    /// A `find` along a path that is already flat writes nothing, so it does not copy storage
+    /// shared with another value. One that shortens a path copies the storage once, in O(count).
+    /// To ask whether two elements are together on a shared or borrowed value, use
+    /// `inSameSet(_:_:)`, which never writes.
     ///
     /// The representative is not part of the value: equal disjoint sets can return different
     /// representatives for the same element.
@@ -119,8 +119,8 @@ public struct DisjointSet {
     public mutating func union(_ a: Int, _ b: Int) -> Bool {
         _checkElement(a)
         _checkElement(b)
-        // Two elements a step or less from the same representative: nothing to write, so no
-        // uniqueness check (the common case late in Kruskal).
+        // Two elements at most a step from the same representative need no write and so no
+        // uniqueness check. This is the common case late in Kruskal's algorithm.
         let settled = _storage.withUnsafeBufferPointer { storage in
             let pa = storage[a], pb = storage[b]
             let ra = pa < 0 ? a : storage[pa] < 0 ? pa : -1
@@ -143,7 +143,7 @@ public struct DisjointSet {
     }
 
     /// Whether `a` and `b` are in the same set. Never writes, so it works on a `let` and never
-    /// copies shared storage (petgraph's `equiv`).
+    /// copies shared storage.
     ///
     /// - Precondition: `a` and `b` are in `0..<count`.
     @inlinable
@@ -162,14 +162,13 @@ public struct DisjointSet {
         return -_storage[_root(element)]
     }
 
-    /// For each element, the position of its set in `sets()`: labels run over `0..<setCount`, in
-    /// the order of each set's smallest element. O(count). (Not petgraph's `into_labeling`, which
-    /// gives representatives.)
+    /// For each element, the position of its set in `sets()`. Labels run over `0..<setCount`, in
+    /// the order of each set's smallest element, and are not representatives. O(count).
     @inlinable
     public func labels() -> [Int] {
         let n = _storage.count
         var labels = [Int](repeating: -1, count: n)
-        // Each element's representative, found once: a walk stops at the first element whose
+        // Each element's representative, found once. A walk stops at the first element whose
         // representative is known, and then records it along the way.
         var roots = [Int](repeating: -1, count: n)
         labels.withUnsafeMutableBufferPointer { labels in

@@ -6,7 +6,7 @@ import GraphProtocols
 import Traversal
 
 /// An adjacency list without its own successorIndices, so a search maps each neighbor back to
-/// its index through a hash: what every traversal paid before index-based adjacency.
+/// its index through a hash.
 struct WithoutSuccessorIndices: DirectedGraph {
     let base: AdjacencyList<Int>
     var vertices: AdjacencyList<Int>.Vertices { base.vertices }

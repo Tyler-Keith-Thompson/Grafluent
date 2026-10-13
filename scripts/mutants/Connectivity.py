@@ -140,7 +140,7 @@ MUTANTS = [
            "position &+ targetRows[3 &* row &+ 1]",
            "targetRows[3 &* row &+ 1]", module="GraphProtocols"),
 
-    # The checked: result queries (README Principle 6): each drops its membership check, so the
+    # The checked: result queries: each drops its membership check, so the
     # trapping spelling traps, or throws for a member.
     Mutant("ckcomponent", "Components.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
     Mutant("ckcomponentthrow", "Components.swift", "guard _vertices.graph.contains(vertex) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt"),

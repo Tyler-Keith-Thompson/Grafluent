@@ -2,13 +2,9 @@
 
 Cases for the Centrality module (api.md): degree, in- and out-degree, closeness, harmonic and
 betweenness centrality, eigenvector and Katz centrality, PageRank and HITS, on `Graph` and
-`DirectedGraph`, unweighted and weighted. Harvested from NetworkX 3.7 (`test_degree_centrality`,
-`test_closeness_centrality`, `test_harmonic_centrality`, `test_betweenness_centrality`,
-`test_eigenvector_centrality`, `test_katz_centrality`, `test_pagerank`, `test_hits` and their
-docstrings), python-igraph 1.0 (`probe.py`, `probe2.py` here), Brandes 2001 / 2008 and the edge
-cases api.md calls out. Every Expected cell is recomputed by `ref.py`, which also checks it
-against the definition (Floyd–Warshall distances; betweenness as Σ σ_sv·σ_vt/σ_st over edge
-sequences), dense numpy / scipy linear algebra for the iterative measures, and NetworkX 3.7
+`DirectedGraph`, unweighted and weighted. Every Expected cell is recomputed by `ref.py`, which also
+checks it against the definition (Floyd–Warshall distances; betweenness as Σ σ_sv·σ_vt/σ_st over
+edge sequences), dense numpy / scipy linear algebra for the iterative measures, and NetworkX 3.7
 wherever NetworkX shares the semantics (see its docstring). `uv run --quiet --no-project --with
 networkx==3.7 --with scipy==1.18.1 python3 ref.py` prints "all values agree".
 

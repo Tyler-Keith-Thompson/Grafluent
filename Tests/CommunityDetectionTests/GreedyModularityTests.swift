@@ -1,5 +1,5 @@
 // §E: greedy modularity (Clauset–Newman–Moore): merge the adjacent pair of greatest ΔQ while ΔQ ≥ 0,
-// ties to the least pair (i, j) with i merged into j, NetworkX's `greedy_modularity_communities`;
+// ties to the least pair (i, j) with i merged into j;
 // `resolution`, weights, parallel edges, loops and `DirectedGraph`. CD-173 (total weight 0, not a
 // trap) is here too.
 // Expected values are ref.py's model at full precision (the catalog cells are the same values

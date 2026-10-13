@@ -1,10 +1,9 @@
 // Large inputs, each inside a Task with a one-minute limit, meant to finish within seconds in a
 // debug build; the benchmarks take timings. Every expected value is a closed form or a theorem:
-// grids, where λ₂ is tiny against the spectrum's width (SciPy's `eigsh(which="SA")` returns a
-// wrong λ₂ on the 100 × 100 grid, api.md) and the square grid's λ₂ is double; random 3-regular
-// multigraphs, whose λ₂ is 3 − 2√2 up to o(1) (Alon–Boppana and Friedman) and whose spectral radius
-// is 3; spanning-tree counts of K_n up to and past Double's range; resistances on a cycle and a
-// weighted binary tree; and the matrices of a 300 × 300 grid. See README.md.
+// grids, where λ₂ is tiny against the spectrum's width and the square grid's λ₂ is double; random
+// 3-regular multigraphs, whose λ₂ is 3 − 2√2 up to o(1) (Alon–Boppana and Friedman) and whose
+// spectral radius is 3; spanning-tree counts of K_n up to and past Double's range; resistances on a
+// cycle and a weighted binary tree; and the matrices of a 300 × 300 grid. See README.md.
 
 import GrafluentTestSupport
 import GraphProtocols

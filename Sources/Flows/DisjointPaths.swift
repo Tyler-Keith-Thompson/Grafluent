@@ -1,9 +1,8 @@
 import GraphProtocols
 import Walks
 
-// Edge- and vertex-disjoint paths (NetworkX `edge_disjoint_paths`, `node_disjoint_paths`; igraph
-// `edge_disjoint_paths`, `vertex_disjoint_paths`, which return the counts): Menger's witnesses,
-// read off a unit maximum flow by path decomposition.
+// Edge- and vertex-disjoint paths: Menger's witnesses, read off a unit maximum flow by path
+// decomposition.
 
 /// A unit flow's arcs, decomposed into paths from `s` to `t`: `arcs[x]` lists the arcs that
 /// carry flow out of x, as (head, edge number, against the stored orientation). Each walk from `s`
@@ -125,12 +124,14 @@ func _vertexDisjointPaths(_ edges: _FlowEdges, _ s: Int, _ t: Int) -> [(vertices
 }
 
 extension DirectedGraph {
-    /// A largest set of edge-disjoint paths from `source` to `target` (NetworkX
-    /// `edge_disjoint_paths`; igraph `edge_disjoint_paths` gives their number): as many as
-    /// `edgeConnectivity(from:to:)`, each a simple path, no edge position in two of them.
-    /// Parallel edges are distinct edges; self-loops are never used. A unit maximum flow by Dinic,
-    /// decomposed into paths (flow cycles dropped). Which paths are returned is not specified, but
-    /// the same input always gives the same paths. O(m min(√m, n^(2/3))).
+    /// A largest set of edge-disjoint paths from `source` to `target`.
+    ///
+    /// There are `edgeConnectivity(from:to:)` paths, each simple, and no edge position is in two
+    /// of them. Parallel edges are distinct edges, and self-loops are never used. The paths come
+    /// from a unit maximum flow by Dinic, decomposed with its cycles dropped. Which paths are
+    /// returned is unspecified, but the same input always gives the same paths.
+    ///
+    /// - Complexity: O(m min(√m, n^(2/3))).
     ///
     /// - Precondition: `source` and `target` are distinct vertices.
     @inlinable
@@ -141,13 +142,15 @@ extension DirectedGraph {
         return _directedPaths(_edgeDisjointPaths(edges, s, t), vertices)
     }
 
-    /// A largest set of internally vertex-disjoint paths from `source` to `target` (NetworkX
-    /// `node_disjoint_paths`; igraph `vertex_disjoint_paths` gives their number): as many as
-    /// `vertexConnectivity(from:to:)`, each a simple path, no vertex but the two ends in two of
-    /// them. An edge from `source` to `target` is one such path, whatever its multiplicity (the
-    /// first in position order, listed last). A unit flow on the split network (each other vertex
-    /// an arc of capacity 1), decomposed. Which paths are returned is not specified, but the same
-    /// input always gives the same paths. O(m √n).
+    /// A largest set of internally vertex-disjoint paths from `source` to `target`.
+    ///
+    /// There are `vertexConnectivity(from:to:)` paths, each simple, and no vertex but the two ends
+    /// is in two of them. Edges from `source` to `target` give one path, whatever their
+    /// multiplicity: the first in position order, listed last. The paths come from a unit flow on
+    /// the split network (each other vertex an arc of capacity 1). Which paths are returned is
+    /// unspecified, but the same input always gives the same paths.
+    ///
+    /// - Complexity: O(m √n).
     ///
     /// - Precondition: `source` and `target` are distinct vertices.
     @inlinable
@@ -169,9 +172,11 @@ extension DirectedGraph {
 }
 
 extension Graph {
-    /// A largest set of edge-disjoint paths between `source` and `target`, over `directedView` (each
-    /// edge an arc in the direction the path uses it): as many as `edgeConnectivity(from:to:)`, no
-    /// edge in two of them. See `DirectedGraph.edgeDisjointPaths(from:to:)`.
+    /// A largest set of edge-disjoint paths between `source` and `target`, over `directedView`,
+    /// each edge given as the arc in the direction the path uses it.
+    ///
+    /// There are `edgeConnectivity(from:to:)` paths, and no edge is in two of them. See
+    /// `DirectedGraph.edgeDisjointPaths(from:to:)`.
     ///
     /// - Precondition: `source` and `target` are distinct vertices.
     @inlinable
@@ -183,8 +188,10 @@ extension Graph {
     }
 
     /// A largest set of internally vertex-disjoint paths between `source` and `target`, over
-    /// `directedView`: as many as `vertexConnectivity(from:to:)`; an edge between them is one path.
-    /// See `DirectedGraph.vertexDisjointPaths(from:to:)`.
+    /// `directedView`.
+    ///
+    /// There are `vertexConnectivity(from:to:)` paths, and edges between the two ends give one
+    /// path. See `DirectedGraph.vertexDisjointPaths(from:to:)`.
     ///
     /// - Precondition: `source` and `target` are distinct vertices.
     @inlinable

@@ -386,11 +386,10 @@ extension RootedTree: Graph {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex that is not in the tree, where the trapping
-// spellings are the fast path. Each makes the one lookup per vertex its trapping spelling makes;
-// `try?` gives an Optional. `parent(checked:)` and `parentEdge(checked:)` still return nil at the
-// root; `try?` flattens that nil with a missing vertex's, so a caller that must tell them apart
-// catches.
+// The `checked:` spellings throw `VertexNotFound` for a vertex that is not in the tree, where the
+// plain spellings trap. Each makes the same lookups as its plain spelling. `parent(checked:)` and
+// `parentEdge(checked:)` return nil at the root, and `try?` merges that nil with a missing
+// vertex's, so a caller that must tell them apart catches.
 
 extension RootedTree {
     /// `parent(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: nil still

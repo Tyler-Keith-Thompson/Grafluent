@@ -17,10 +17,6 @@
 #   requiredindexundirected  call still traps; only the message differs.
 #   requiredrows      a numbered graph without the membership check: StableDirectedGraph's
 #                     vertexPosition(of:) traps on a non-vertex itself.
-#
-# Removed as dead code after planting: the precondition of vertex(atIndex:) (the labels' subscript
-# traps out of range anyway) and `_numbered(_:)`'s distinct-vertices check (a conforming graph's
-# vertices are distinct and number vertexIndexBound).
 
 TESTS = ["LabeledGraphsTests", "TraversalTests", "AdjacencyMatrixTests", "ShortestPathsTests", "CyclesTests"]
 

@@ -1,14 +1,14 @@
 import GraphProtocols
 
-/// An immutable directed graph on the vertices `0..<vertexCount`, in compressed sparse row form:
+/// An immutable directed graph on the vertices `0..<vertexCount`, in compressed sparse row form.
 /// `offsets` has `vertexCount + 1` entries, and the successors of `v` are
 /// `targets[offsets[v] ..< offsets[v + 1]]`.
 ///
-/// Rows are canonical: sorted ascending with no repeats, so parallel edges cannot be represented
+/// Rows are canonical, sorted ascending with no repeats, so parallel edges cannot be represented
 /// and `contains(edge:)` is a binary search. Self-loops are kept. The graph is built once by its
-/// initializers; there is no mutation, because inserting one edge would move O(m) others.
+/// initializers. There is no mutation, because inserting one edge would move O(m) others.
 ///
-/// Every edge has an index in `0..<edgeCount`: its position in `targets`, which is its position in
+/// Every edge has an index in `0..<edgeCount`, its position in `targets`, which is its position in
 /// row-major order. Because the rows are canonical, an edge's index depends only on the graph, never
 /// on the order edges were given in, so an array of edge values indexed by it stays aligned. The
 /// initializers and `transposed` can report where each edge went, to carry such values along.
@@ -28,7 +28,7 @@ public struct CompressedSparseRow {
     @usableFromInline
     internal var _edgeMaps: _AttachedMaps
 
-    /// The generation: stamped once by every initializer but `init()`, and never advanced.
+    /// The generation, stamped once by every initializer but `init()` and never advanced.
     @usableFromInline
     internal var _generation: _GenerationStamp
 
@@ -78,9 +78,9 @@ public struct CompressedSparseRow {
     }
 
     /// A graph of `vertexCount` vertices with the given edges, in any order. Repeated edges are
-    /// stored once. O(n + m) for any input: two counting sorts, by target and then by source, or a
-    /// single pass when the edges are already in row-major order without repeats. A sequence that
-    /// is not a collection is copied first, since it must be read twice.
+    /// stored once. O(n + m) for any input. That is two counting sorts, by target and then by
+    /// source, or a single pass when the edges are already in row-major order without repeats. A
+    /// sequence that is not a collection is copied first, because it must be read twice.
     ///
     /// - Precondition: `vertexCount` is in `0 ..< Int.max`, and every endpoint is in
     ///   `0..<vertexCount`.
@@ -98,7 +98,7 @@ public struct CompressedSparseRow {
     }
 
     /// A graph of `vertexCount` vertices with the edges of a collection, also reporting where each
-    /// one went: `edgeIndices[i]` is the index in the graph of the `i`th input edge. Repeated edges
+    /// one went. `edgeIndices[i]` is the index in the graph of the `i`th input edge. Repeated edges
     /// get the same index, so the caller decides how to combine values given with them.
     @inlinable
     public init(vertexCount: Int, edges: some Collection<DirectedEdge<Int>>, edgeIndices: inout [Int]) {
@@ -107,7 +107,7 @@ public struct CompressedSparseRow {
 
     /// A graph from parallel arrays: edge `i` goes from `sources[i]` to `targets[i]`.
     ///
-    /// - Precondition: the arrays have the same length, `vertexCount` is in `0 ..< Int.max`, and
+    /// - Precondition: The arrays have the same length, `vertexCount` is in `0 ..< Int.max`, and
     ///   every entry is in `0..<vertexCount`.
     @inlinable
     public init(vertexCount: Int, sources: [Int], targets: [Int]) {
@@ -246,8 +246,8 @@ public struct CompressedSparseRow {
             }
             initializedCount = kept
         }
-        // The graph keeps its arrays forever, so drop the capacity the repeats took. (`Array(_:)` of
-        // a slice would hand back the same oversized buffer, since every element is in the slice.)
+        // The graph keeps its arrays forever, so drop the capacity the repeats took. `Array(_:)` of
+        // a slice would hand back the same oversized buffer, because every element is in the slice.
         if kept < m {
             targets = targets.withUnsafeBufferPointer { kept in
                 [Int](unsafeUninitializedCapacity: kept.count) { exact, initializedCount in
@@ -312,12 +312,12 @@ public struct CompressedSparseRow {
         case duplicateEdge(vertex: Int)
     }
 
-    /// A graph from its arrays, which must already be canonical. O(n + m); the arrays are stored,
-    /// not copied. Only the first violation is reported, checking in the order listed below.
+    /// A graph from its arrays, which must already be canonical. O(n + m). The arrays are stored,
+    /// not copied.
     ///
-    /// - Throws: `ValidationError` if the arrays break any invariant: `offsets` has at least one
-    ///   entry, starts at 0, never decreases, and ends at `targets.count`; every target is in
-    ///   `0..<offsets.count - 1`; and every row is strictly ascending.
+    /// - Throws: `ValidationError` for the first invariant broken, checked in this order. `offsets`
+    ///   has at least one entry, starts at 0, never decreases, and ends at `targets.count`. Every
+    ///   target is in `0..<offsets.count - 1`. Every row is strictly ascending.
     @inlinable
     public init(offsets: [Int], targets: [Int]) throws(ValidationError) {
         guard let first = offsets.first else { throw .emptyOffsets }
@@ -415,7 +415,7 @@ extension CompressedSparseRow {
     }
 
     /// The vertices `vertex` has an edge to, ascending. The slice's indices are the edges' indices,
-    /// not 0-based: `successors(of: v).first`, never `successors(of: v)[0]`.
+    /// not 0-based, so use `successors(of: v).first`, never `successors(of: v)[0]`.
     ///
     /// - Precondition: `vertex` is in `0..<vertexCount`.
     @inlinable
@@ -434,7 +434,7 @@ extension CompressedSparseRow {
     }
 
     /// The number of edges entering each vertex, indexed by vertex, in one O(n + m) pass over
-    /// `targets`. (Rows hold only out-edges, so one vertex's in-degree costs as much as all.)
+    /// `targets`. Rows hold only out-edges, so one vertex's in-degree costs as much as all.
     @inlinable
     public var inDegrees: [Int] {
         var degrees = [Int](repeating: 0, count: vertexCount)
@@ -528,7 +528,7 @@ extension CompressedSparseRow {
         return _transposed(forwardEdgeIndices: &unused, recording: false)
     }
 
-    /// The graph with every edge reversed, also reporting where each edge came from:
+    /// The graph with every edge reversed, also reporting where each edge came from.
     /// `forwardEdgeIndices[k]` is the index in this graph of the transpose's edge `k`, so values
     /// indexed by this graph's edges can be read in the transpose's order.
     @inlinable
@@ -592,10 +592,11 @@ extension CompressedSparseRow {
     @inlinable
     public var edges: Edges { Edges(offsets: _offsets, targets: _targets, bounds: 0 ..< edgeCount) }
 
-    /// The edges of a graph, or a contiguous run of them. Positions are edge indices. Iterating is
-    /// O(1) per edge, including over a slice, which is itself an `Edges`; subscripting a single
-    /// position is O(log n), a search for its source, so prefer iteration to index loops. It
-    /// holds the graph's two arrays, not the graph, so its maps are not retained.
+    /// The edges of a graph, or a contiguous run of them. Positions are edge indices.
+    ///
+    /// Iterating is O(1) per edge, including over a slice, which is itself an `Edges`.
+    /// Subscripting a single position is O(log n), a search for its source, so prefer iteration to
+    /// index loops. It holds the graph's two arrays, not the graph, so its maps are not retained.
     @frozen
     public struct Edges: RandomAccessCollection {
         @usableFromInline let _offsets: [Int]
@@ -695,8 +696,8 @@ extension CompressedSparseRow {
 // MARK: - Conformances
 
 extension CompressedSparseRow: Hashable {
-    /// Equal when the vertex counts and the edges are equal: because rows are canonical, exactly
-    /// when the arrays are equal.
+    /// Equal when the vertex counts and the edges are equal. Because rows are canonical, that is
+    /// exactly when the arrays are equal.
     @inlinable
     public static func == (lhs: CompressedSparseRow, rhs: CompressedSparseRow) -> Bool {
         lhs._offsets == rhs._offsets && lhs._targets == rhs._targets
@@ -752,8 +753,8 @@ extension CompressedSparseRow: Codable {
 }
 
 extension CompressedSparseRow: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
-    /// The vertices and the edges, at most 16 of each: `[0, 1, 2]; [0→1, 1→2]`. The same form as
-    /// every other representation, so equal graphs print alike.
+    /// The vertices and the edges, at most 16 of each, as in `[0, 1, 2]; [0→1, 1→2]`. Every
+    /// representation uses this form, and equal graphs print alike.
     public var description: String {
         GraphDescription.graph(vertices: vertices, vertexCount: vertexCount, edges: edges, edgeCount: edgeCount)
     }
@@ -774,8 +775,8 @@ extension CompressedSparseRow: CustomStringConvertible, CustomDebugStringConvert
 // MARK: - DirectedGraph
 
 extension CompressedSparseRow: DirectedGraph {
-    /// The edge indices of the edges leaving `vertex`: `offsets[vertex] ..< offsets[vertex + 1]`,
-    /// the indices of `successors(of: vertex)`. O(1).
+    /// The edge indices of the edges leaving `vertex`, `offsets[vertex] ..< offsets[vertex + 1]`,
+    /// which are the indices of `successors(of: vertex)`. O(1).
     ///
     /// - Precondition: `vertex` is in `0..<vertexCount`.
     @inlinable
@@ -784,7 +785,7 @@ extension CompressedSparseRow: DirectedGraph {
         return _offsets[vertex] ..< _offsets[vertex + 1]
     }
 
-    /// The edges' positions are their own indices: slot `k` of `targets`.
+    /// The edges' positions are their own indices, slot `k` of `targets`.
     @inlinable
     public var edgeIndexBound: Int? { edgeCount }
 
@@ -841,9 +842,9 @@ extension CompressedSparseRow: DirectedGraph {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex outside `0..<vertexCount`, `EdgeNotFound` for
-// an edge index outside `0..<edgeCount`, where the trapping spellings above are the fast path.
-// Each checks the range once and then calls its trapping spelling; `try?` gives an Optional.
+// These throw `VertexNotFound` for a vertex outside `0..<vertexCount` and `EdgeNotFound` for an
+// edge index outside `0..<edgeCount`. Each checks the range once and then calls its trapping
+// spelling.
 
 extension CompressedSparseRow {
     /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not in
@@ -914,8 +915,8 @@ extension CompressedSparseRow {
     /// whether `graph` has changed since. The result has no attached maps, except that a
     /// `CompressedSparseRow` is returned as it is, maps included.
     ///
-    /// - Precondition: the vertices are exactly `0..<graph.vertexCount`. Other numberings are not
-    ///   inferred or renumbered; use `init(vertexCount:edges:)`.
+    /// - Precondition: The vertices are exactly `0..<graph.vertexCount`. Other numberings are not
+    ///   renumbered; use `init(vertexCount:edges:)` for them.
     @inlinable
     public init(_ graph: some DirectedGraph<Int>) {
         if let same = graph as? CompressedSparseRow {
@@ -932,7 +933,7 @@ extension CompressedSparseRow {
     }
 
     /// The generation of the graph `init(_:)` built this one from, when that graph tracks
-    /// generations; `.untracked` for a graph built any other way. Not part of equality.
+    /// generations, or `.untracked` for a graph built any other way. Not part of equality.
     @inlinable
     public var sourceGeneration: GraphGeneration { _sourceGeneration }
 
@@ -944,8 +945,8 @@ extension CompressedSparseRow {
         _sourceGeneration.isCurrent(for: graph)
     }
 
-    /// The generation of this graph, which never changes: the graph is immutable. A structure
-    /// derived from this graph is current for it and its copies, and for no other graph.
+    /// The generation of this graph, which never changes because the graph is immutable. A
+    /// structure derived from this graph is current for it and its copies, and for no other graph.
     /// `init()`'s empty graph has no generation and is current for nothing.
     @inlinable
     public var generation: GraphGeneration { _generation.generation }

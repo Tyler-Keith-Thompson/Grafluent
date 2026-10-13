@@ -2,7 +2,7 @@ import GraphProtocols
 
 /// The lexicographic product G ∘ H of two directed graphs, as a lazy view: an arc
 /// (g, h) → (g′, h′) for every arc g → g′ of G and every h, h′, and (g, h) → (g, h′) for every arc
-/// h → h′ of H (NetworkX's `lexicographic_product`). Also called the composition G[H]. O(1).
+/// h → h′ of H. Also called the composition G[H]. O(1).
 ///
 /// - Precondition: both factors have vertex indices, and |V(G)|·|V(H)| fits in an `Int`.
 @inlinable

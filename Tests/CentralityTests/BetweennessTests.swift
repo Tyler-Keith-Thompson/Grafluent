@@ -1,4 +1,4 @@
-// §D: Brandes betweenness with NetworkX's rescaling (normalized, endpoints, directed ordered pairs),
+// §D: Brandes betweenness with its rescaling (normalized, endpoints, directed ordered pairs),
 // parallel edges as distinct shortest paths (edge sequences), self-loops on no path, `Int` and
 // `Double` weights with ties by exact equality (CE-114).
 // Expected values are ref.py's model at full precision (the catalog cells are the same values

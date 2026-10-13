@@ -1,6 +1,6 @@
 // Weak components: ordered by their first vertex in `vertices` order, members in `vertices` order,
 // with edge directions ignored. Exact on the matrix and CSR (ascending) and the ReferenceDirectedMultigraph
-// (written order). Expected values come from the catalog's reference, which matches NetworkX's
+// (written order). Expected values come from the catalog's reference, checked against NetworkX's
 // order of first vertices. Case IDs (CN-nn) refer to the catalog; see README.md.
 
 import AdjacencyListModule
@@ -93,7 +93,7 @@ struct WeakComponentTests {
         #expect(CompressedSparseRow(vertexCount: 5, edges: rustworkx).weaklyConnectedComponents().map(Array.init) == [[0, 1, 2], [3, 4]])
         let lemon = ReferenceDirectedMultigraph(vertices: 1 ... 6, edges: [(1, 3), (3, 2), (2, 1), (4, 2), (4, 3), (5, 6), (6, 5)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(lemon.weaklyConnectedComponents().map(Array.init) == [[1, 2, 3, 4], [5, 6]])
-        // NetworkX test_weakly_connected uses test_strongly_connected's five graphs: each is weakly connected.
+        // The five strong-connectivity graphs are each weakly connected.
         let networkX: [([(Int, Int)], ClosedRange<Int>)] = [
             ([(1, 2), (2, 3), (2, 8), (3, 4), (3, 7), (4, 5), (5, 3), (5, 6), (7, 4), (7, 6), (8, 1), (8, 7)], 1 ... 8),
             ([(1, 2), (1, 3), (1, 4), (4, 2), (3, 4), (2, 3)], 1 ... 4),

@@ -224,7 +224,7 @@ struct DisjointSetDescriptionTests {
 
     @Test("DS-46 consumer patterns: connected components and cycle detection")
     func consumerPatterns() {
-        // petgraph's connected_components example: a→b→c→d→a and e→f→g→h→e.
+        // Two 4-cycles: a→b→c→d→a and e→f→g→h→e.
         var d = DisjointSet(count: 8)
         let edges = [(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4)]
         #expect(edges.map { d.union($0.0, $0.1) } == [true, true, true, false, true, true, true, false])

@@ -16,9 +16,9 @@ extension Tree: PropertyGraph {
     @inlinable public static var _vertexMapLayout: _MapLayout { .dense }
     @inlinable public static var _edgeMapLayout: _MapLayout { .dense }
 
-    /// Attaches a map from edge positions to `Value`, every edge's value `value` (LEMON's
-    /// `ArcMap`), and returns its handle. Attaching is `mutating`, though the tree is not: the
-    /// map lives in this value and its copies. O(n): the values are allocated now, one per edge.
+    /// Attaches a map from edge positions to `Value`, every edge's value `value`, and returns its
+    /// handle. Attaching is `mutating`, though the tree is not: the map lives in this value and
+    /// its copies. O(n): the values are allocated now, one per edge.
     ///
     /// Map contents take no part in equality, hashing or `Codable`: a decoded tree has no maps.
     @inlinable
@@ -27,8 +27,8 @@ extension Tree: PropertyGraph {
         return EdgeMap(_token: token, hint: hint)
     }
 
-    /// Attaches a map from the vertices to `Value`, every vertex's value `value` (LEMON's
-    /// `NodeMap`), and returns its handle. O(n).
+    /// Attaches a map from the vertices to `Value`, every vertex's value `value`, and returns its
+    /// handle. O(n).
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _layout.count)
@@ -172,9 +172,9 @@ extension RootedTree: PropertyGraph {
     @inlinable public static var _vertexMapLayout: _MapLayout { .dense }
     @inlinable public static var _edgeMapLayout: _MapLayout { .dense }
 
-    /// Attaches a map from edge positions to `Value`, every edge's value `value` (LEMON's
-    /// `ArcMap`), and returns its handle. Attaching is `mutating`, though the tree is not: the
-    /// map lives in this value and its copies. O(n): the values are allocated now, one per edge.
+    /// Attaches a map from edge positions to `Value`, every edge's value `value`, and returns its
+    /// handle. Attaching is `mutating`, though the tree is not: the map lives in this value and
+    /// its copies. O(n): the values are allocated now, one per edge.
     ///
     /// Map contents take no part in equality, hashing or `Codable`: a decoded tree has no maps.
     @inlinable
@@ -183,8 +183,8 @@ extension RootedTree: PropertyGraph {
         return EdgeMap(_token: token, hint: hint)
     }
 
-    /// Attaches a map from the vertices to `Value`, every vertex's value `value` (LEMON's
-    /// `NodeMap`), and returns its handle. O(n).
+    /// Attaches a map from the vertices to `Value`, every vertex's value `value`, and returns its
+    /// handle. O(n).
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _layout.count)
@@ -328,9 +328,9 @@ extension Arborescence: PropertyGraph {
     @inlinable public static var _vertexMapLayout: _MapLayout { .dense }
     @inlinable public static var _edgeMapLayout: _MapLayout { .dense }
 
-    /// Attaches a map from edge positions to `Value`, every edge's value `value` (LEMON's
-    /// `ArcMap`), and returns its handle. Attaching is `mutating`, though the arborescence is not: the
-    /// map lives in this value and its copies. O(n): the values are allocated now, one per edge.
+    /// Attaches a map from edge positions to `Value`, every edge's value `value`, and returns its
+    /// handle. Attaching is `mutating`, though the arborescence is not: the map lives in this value and
+    /// its copies. O(n): the values are allocated now, one per edge.
     ///
     /// Map contents take no part in equality, hashing or `Codable`: a decoded arborescence has no maps.
     @inlinable
@@ -339,8 +339,8 @@ extension Arborescence: PropertyGraph {
         return EdgeMap(_token: token, hint: hint)
     }
 
-    /// Attaches a map from the vertices to `Value`, every vertex's value `value` (LEMON's
-    /// `NodeMap`), and returns its handle. O(n).
+    /// Attaches a map from the vertices to `Value`, every vertex's value `value`, and returns its
+    /// handle. O(n).
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _layout.count)
@@ -484,9 +484,9 @@ extension Forest: PropertyGraph {
     @inlinable public static var _vertexMapLayout: _MapLayout { .dense }
     @inlinable public static var _edgeMapLayout: _MapLayout { .dense }
 
-    /// Attaches a map from edge positions to `Value`, every edge's value `value` (LEMON's
-    /// `ArcMap`), and returns its handle. Attaching is `mutating`, though the forest is not: the
-    /// map lives in this value and its copies. O(n): the values are allocated now, one per edge.
+    /// Attaches a map from edge positions to `Value`, every edge's value `value`, and returns its
+    /// handle. Attaching is `mutating`, though the forest is not: the map lives in this value and
+    /// its copies. O(n): the values are allocated now, one per edge.
     ///
     /// Map contents take no part in equality, hashing or `Codable`: a decoded forest has no maps.
     @inlinable
@@ -495,8 +495,8 @@ extension Forest: PropertyGraph {
         return EdgeMap(_token: token, hint: hint)
     }
 
-    /// Attaches a map from the vertices to `Value`, every vertex's value `value` (LEMON's
-    /// `NodeMap`), and returns its handle. O(n).
+    /// Attaches a map from the vertices to `Value`, every vertex's value `value`, and returns its
+    /// handle. O(n).
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _layout.count)

@@ -25,11 +25,11 @@ docstring lists the reference for each entry point.
   join; `weight` is `Matching.weight` (the sum in `edges` order; unweighted entry points have
   `weight == edges.count`); `perfect` when `isPerfect`. Hopcroft–Karp rows add the König cover
   (the vertices of a minimum vertex cover built from the matching by an alternating search from
-  the free left vertices, in `vertices` order: the test-side certificate of maximality, and
-  Covering's future `minimumVertexCover()`) and the number of phases (a benchmark-only property;
+  the free left vertices, in `vertices` order: the test-side certificate of maximality) and the
+  number of phases (a benchmark-only property;
   tests do not assert it).
 * **Assignment.** A row-major matrix, rows separated by `;`, `∞` a forbidden entry (the closure
-  returns nil). Expected: scipy's `(row_ind, col_ind)` as `rows`, `columns`, and the total cost.
+  returns nil). Expected: `rows`, `columns`, and the total cost.
 * **Stable matching.** `P` lists each proposer's preference list (reviewer indices, best first,
   written as digits; `·` an empty list), `R` each reviewer's. Expected: `mate(ofProposer:)` for
   each proposer.

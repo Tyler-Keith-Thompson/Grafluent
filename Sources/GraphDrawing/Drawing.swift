@@ -148,9 +148,8 @@ public struct Drawing<Vertex: Hashable> {
     }
 
     /// The drawing centred on `center` and scaled so that its largest absolute coordinate,
-    /// measured from the mean position over both axes, is `scale` (NetworkX's `rescale_layout`,
-    /// then a translation). The aspect ratio is kept; a drawing whose points all coincide goes to
-    /// `center`.
+    /// measured from the mean position over both axes, is `scale`. The aspect ratio is kept; a
+    /// drawing whose points all coincide goes to `center`.
     @inlinable
     public func rescaled(scale: Double = 1, center: SIMD2<Double> = .zero) -> Drawing {
         var copy = self

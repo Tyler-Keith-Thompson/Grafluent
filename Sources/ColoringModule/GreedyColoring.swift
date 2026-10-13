@@ -62,13 +62,13 @@ func _smallestLastOrder(_ rows: _CompressedRows) -> [Int] {
     return order
 }
 
-/// DSatur as NetworkX runs it: the uncoloured vertex with the most distinct neighbour colours,
-/// then the greatest degree, then the least index, through an indexed heap keyed by the
-/// complement of (saturation, degree), lowered when the saturation rises (it only rises). Each
-/// vertex keeps a bitset of the colours 0...degree among its neighbours, which holds its own
-/// least free colour; a neighbour colour above its degree goes in one shared hash set instead, at
-/// most once per edge end. With `preset`, those vertices start coloured, their colours counted in
-/// their neighbours' saturation. O((n + m) log n).
+/// DSatur: the uncoloured vertex with the most distinct neighbour colours, then the greatest
+/// degree, then the least index, through an indexed heap keyed by the complement of (saturation,
+/// degree), lowered when the saturation rises (it only rises). Each vertex keeps a bitset of the
+/// colours 0...degree among its neighbours, which holds its own least free colour; a neighbour
+/// colour above its degree goes in one shared hash set instead, at most once per edge end. With
+/// `preset`, those vertices start coloured, their colours counted in their neighbours' saturation.
+/// O((n + m) log n).
 @inlinable
 func _saturationColoring(_ rows: _CompressedRows, preset: [Int]? = nil) -> [Int] {
     let n = rows.count
@@ -124,13 +124,13 @@ func _saturationColoring(_ rows: _CompressedRows, preset: [Int]? = nil) -> [Int]
     return colors
 }
 
-/// NetworkX's independent-set strategy, with the least index on ties: class after class, each a
-/// maximal independent set of the uncoloured vertices grown by least degree among the available
-/// ones (an indexed heap keyed by that degree), the vertex taken and its neighbours made
-/// unavailable, lowering their neighbours' degrees. With `preset`, those vertices start coloured,
-/// and class k starts with the neighbours of the ones preset to k unavailable (rustworkx). After
-/// each class the rows are cut down to the uncoloured vertices. Returns the colours directly:
-/// each class's vertices get its number, which is what first fit in that order gives them.
+/// The independent-set strategy, with the least index on ties: class after class, each a maximal
+/// independent set of the uncoloured vertices grown by least degree among the available ones (an
+/// indexed heap keyed by that degree), the vertex taken and its neighbours made unavailable,
+/// lowering their neighbours' degrees. With `preset`, those vertices start coloured, and class k
+/// starts with the neighbours of the ones preset to k unavailable. After each class the rows are
+/// cut down to the uncoloured vertices. Returns the colours directly: each class's vertices get its
+/// number, which is what first fit in that order gives them.
 @inlinable
 func _independentSetColoring(_ rows: _CompressedRows, preset: [Int]? = nil) -> [Int] {
     let n = rows.count
@@ -210,20 +210,19 @@ func _independentSetColoring(_ rows: _CompressedRows, preset: [Int]? = nil) -> [
     return colors
 }
 
-/// igraph's colored-neighbours colouring, step for step: first the vertex of greatest degree
-/// (the least index on ties), then repeatedly the one at the top of igraph's two-way indexed
-/// max-heap (`igraph_2wheap_t`) of the uncoloured vertices keyed by their coloured neighbours,
-/// pushed in index order and raised neighbour by neighbour in ascending order, each coloured by
-/// first fit. That heap moves an entry above an equal parent on the way up and prefers the left
-/// child on equal children on the way down, so its ties follow neither index nor age. With
-/// `preset`, those vertices start coloured, the others are pushed with their counts of preset
-/// neighbours, and the first vertex comes from the heap too.
+/// The colored-neighbours colouring: first the vertex of greatest degree (the least index on ties),
+/// then repeatedly the one at the top of a two-way indexed max-heap of the uncoloured vertices
+/// keyed by their coloured neighbours, pushed in index order and raised neighbour by neighbour in
+/// ascending order, each coloured by first fit. That heap moves an entry above an equal parent on
+/// the way up and prefers the left child on equal children on the way down, so its ties follow
+/// neither index nor age. With `preset`, those vertices start coloured, the others are pushed with
+/// their counts of preset neighbours, and the first vertex comes from the heap too.
 @inlinable
 func _coloredNeighborsColoring(_ rows: _CompressedRows, preset: [Int]? = nil) -> [Int] {
     let n = rows.count
     var colors = preset ?? [Int](repeating: -1, count: n)
     guard n > 0 else { return colors }
-    // Rows in ascending order, as igraph_neighbors lists them.
+    // Rows in ascending order: the heap's ties depend on the order neighbours are raised in.
     var sorted = [Int](repeating: 0, count: rows.targets.count)
     var fill = Array(rows.offsets.dropLast())
     for v in 0 ..< n {
@@ -365,15 +364,10 @@ struct _FirstFitRows: _UndirectedRowsAlgorithm {
 extension Graph {
     /// A greedy colouring of the simple graph (self-loops ignored, parallel edges once): each
     /// vertex in the strategy's order takes the least colour none of its already coloured
-    /// neighbours has. NetworkX `greedy_color(G, strategy)`, the same colours on simple graphs for
-    /// `.largestFirst` and `.saturationLargestFirst`, and for the others wherever NetworkX's set
-    /// iteration is ascending (NetworkX counts a self-loop in degrees, and its smallest last
-    /// raises on one); igraph `vertex_coloring_greedy` for `.coloredNeighbors`; Boost
-    /// `sequential_vertex_coloring` in the strategy's order; rustworkx `graph_greedy_color`.
-    /// Colours are first-fit numbers, not renumbered: colour 0 goes to the first vertex coloured.
-    /// At most Δ + 1 colours (`.smallestLast`: degeneracy + 1). O(n + m) for largest first and
-    /// connected sequential, O((n + m) log n) for smallest last, DSatur and colored neighbours,
-    /// O(χ (n + m) log n) for independent set.
+    /// neighbours has. Colours are first-fit numbers, not renumbered: colour 0 goes to the first
+    /// vertex coloured. At most Δ + 1 colours (`.smallestLast`: degeneracy + 1). O(n + m) for
+    /// largest first and connected sequential, O((n + m) log n) for smallest last, DSatur and
+    /// colored neighbours, O(χ (n + m) log n) for independent set.
     @inlinable
     public func greedyColoring(strategy: ColoringStrategy = .largestFirst) -> Coloring<Self> {
         let numbering = _vertexNumbering()
@@ -381,19 +375,17 @@ extension Graph {
         return Coloring(self, numbering: numbering, colors: _greedyColors(rows, strategy))
     }
 
-    /// The greedy colouring with some colours fixed in advance (rustworkx
-    /// `graph_greedy_color(preset_color_fn=)`): `presetColor` gives a vertex's colour, or nil to
-    /// leave it to the strategy. Preset vertices keep their colours and count as coloured from the
-    /// start; the others are coloured as by `greedyColoring(strategy:)`, each taking the least
-    /// colour no coloured neighbour has. The orders of `.largestFirst`, `.smallestLast` and the
-    /// connected sequential strategies are those of the whole graph with the preset vertices
-    /// skipped (rustworkx's largest first: whole-graph degrees, preset vertices left out);
-    /// DSatur counts preset colours in saturation from the start (rustworkx's saturation);
-    /// `.independentSet`'s class k starts without the neighbours of the vertices preset to k
-    /// (rustworkx's independent set); `.coloredNeighbors` counts preset neighbours as coloured and
-    /// takes its first vertex from its heap. `colorCount` is one more than the greatest colour,
-    /// so preset colours may leave some colours unused. `presetColor` is called once per vertex,
-    /// in `vertices` order. The strategy's time, plus O(n + m) to check the presets.
+    /// The greedy colouring with some colours fixed in advance: `presetColor` gives a vertex's
+    /// colour, or nil to leave it to the strategy. Preset vertices keep their colours and count as
+    /// coloured from the start; the others are coloured as by `greedyColoring(strategy:)`, each
+    /// taking the least colour no coloured neighbour has. The orders of `.largestFirst`,
+    /// `.smallestLast` and the connected sequential strategies are those of the whole graph with
+    /// the preset vertices skipped (whole-graph degrees); DSatur counts preset colours in
+    /// saturation from the start; `.independentSet`'s class k starts without the neighbours of the
+    /// vertices preset to k; `.coloredNeighbors` counts preset neighbours as coloured and takes its
+    /// first vertex from its heap. `colorCount` is one more than the greatest colour, so preset
+    /// colours may leave some colours unused. `presetColor` is called once per vertex, in
+    /// `vertices` order. The strategy's time, plus O(n + m) to check the presets.
     ///
     /// - Precondition: every preset colour is non-negative, and no two adjacent vertices have the
     ///   same preset colour.
@@ -420,10 +412,8 @@ extension Graph {
     }
 
     /// First fit in `order` on the simple graph: each vertex in turn takes the least colour none of
-    /// its already coloured neighbours has (Boost `sequential_vertex_coloring(g, order, color)`,
-    /// JGraphT `GreedyColoring`, NetworkX `greedy_color` with a callable strategy). A shuffled
-    /// `vertices` is NetworkX's `random_sequential`. At most Δ + 1 colours. O(n + m) after one
-    /// lookup per vertex.
+    /// its already coloured neighbours has. A shuffled `vertices` gives a random sequential
+    /// colouring. At most Δ + 1 colours. O(n + m) after one lookup per vertex.
     ///
     /// - Precondition: `order` lists every vertex of the graph exactly once.
     @inlinable

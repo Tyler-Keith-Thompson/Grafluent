@@ -1,41 +1,30 @@
-# Trees: proposed API (phase 1)
+# Trees: API
 
-Four immutable, copy-on-write value types whose invariant is the type (README principle 4), the
-two recognition predicates, and Prüfer codes. Values are pinned by `cases.md` (TS-001 – TS-813),
-recomputed by `ref.py`.
+Four immutable, copy-on-write value types whose invariant is the type, the two recognition
+predicates, and Prüfer codes. Values are pinned by `cases.md` (TS-001 – TS-995), recomputed by
+`ref.py`.
 
-## Scope
+## Contents
 
-**In, phase 1**
-
-| Entry point | Why |
+| Entry point | What it is |
 |---|---|
-| `Tree<Vertex>`: connected, acyclic, undirected, at least one vertex; conforms to `Graph` | README Structures row. Every library has the concept (NetworkX/JGraphT/igraph `is_tree`, LEMON `tree()`), and none has the type: they recheck a mutable graph. A type is what principle 4 asks for |
-| `RootedTree<Vertex>`: a `Tree` with a root; `Graph`, plus `root`, `parent(of:)`, `children(of:)`, `depth(of:)` and the queries below | README row. The undirected rooted tree is what tree algorithms read (LCA, Euler tour, HLD in TreeAlgorithms) |
-| `Arborescence<Vertex>`: every edge points away from the root; `BidirectionalDirectedGraph`, with the same rooted queries | README row. NetworkX `is_arborescence`, Edmonds' and LEMON's `MinCostArborescence`; igraph's "out-tree". It is the directed form, so it conforms to the directed protocols, and `RootedTree` to the undirected one: no type conforms to both (README open question 8) |
-| `Forest<Vertex>`: acyclic, undirected, possibly empty; `Graph`, with `trees` (a `Collection` of `Tree`) and `component(of:)` | README row ("the components are a `Collection` of `Tree`") |
-| `Graph.isTree`, `DirectedGraph.isArborescence` | NetworkX `is_tree` / `is_arborescence`, JGraphT `GraphTests.isTree`, igraph `is_tree` (mode `OUT` for the arborescence), LEMON `tree()`. O(1) rejection by counts, no allocation of a tree |
-| Construction from a graph, from vertices and edges, from a parent function, from another tree type | The ways trees arrive: a checked graph, a parent array (BFS/DFS, shortest paths, dominators: igraph `tree_from_parent_vector`, Boost's predecessor map), or rerooting |
+| `Tree<Vertex>` | Connected, acyclic, undirected, at least one vertex; a `Graph` |
+| `RootedTree<Vertex>` | A `Tree` with a root; a `Graph`, plus `root`, `parent(of:)`, `children(of:)`, `depth(of:)` and the queries below |
+| `Arborescence<Vertex>` | Every edge points away from the root; a `BidirectionalDirectedGraph` with the same rooted queries |
+| `Forest<Vertex>` | Acyclic, undirected, possibly empty; a `Graph`, with `trees` (a `Collection` of `Tree`) and `component(of:)` |
+| `Graph.isTree`, `DirectedGraph.isArborescence` | The predicates, without building a tree; O(1) rejection by counts |
+| Initializers | From a graph, from vertices and edges, from a parent function or array, from another tree type |
 | `path(from:to:) -> Walks.Path` | The unique path, with its edge positions, in O(length) |
-| `preorder`, `postorder`, `descendants(of:)`, `ancestors(of:)`, `isAncestor(_:of:)`, `height` | The rooted-tree basics every tree algorithm starts from; preorder is the storage layout, so these are O(1) or O(answer) |
-| `Tree.pruferSequence`, `Tree<Int>(pruferSequence:)` | NetworkX `to/from_prufer_sequence`, igraph `to/from_prufer`, JGraphT `PruferTreeGenerator`; RandomGraphs' random trees (README) are built on it |
+| `preorder`, `postorder`, `descendants(of:)`, `ancestors(of:)`, `isAncestor(_:of:)`, `height` | The rooted-tree basics; preorder is the storage layout, so these are O(1) or O(answer) |
+| `Tree.pruferSequence`, `Tree<Int>(pruferSequence:)` | Prüfer codes |
 
-**Out, and where it goes**
-
-| Not in phase 1 | Reason |
-|---|---|
-| Lowest common ancestor, Euler tour, heavy–light decomposition, centroid, center, diameter, tree isomorphism (AHU) | `TreeAlgorithms` (README); isomorphism in `IsomorphismModule`. They take `RootedTree` / `Arborescence` (and `Tree`, rooting it); this module gives them preorder, depth and subtree intervals in index space |
-| A `RootedTree` **protocol** for `ShortestPathTree` / `DominatorTree` | The name is the struct's (README). No surveyed library has such a protocol (Boost's `tree_traits` is undocumented and unused by its algorithms). And neither type satisfies the invariant over the graph's vertices: a shortest-path tree with several sources is a forest, and both leave vertices out (unreached). Convert instead: `Arborescence(vertices: reached, parent: tree.parent(of:))` (TS-169 shape); for `DominatorTree`, `parent: dt.immediateDominator(of:)` gives the same `children(of:)` order (vertex order) as `dt.children(of:)`. Revisit if TreeAlgorithms needs to be generic |
-| `breadthFirstTree(from:)`, `depthFirstTree(from:)` | **Traversal**, which then imports Trees (NetworkX `bfs_tree` / `dfs_tree`). Result: `Arborescence` on `DirectedGraph`, `RootedTree` on `Graph`, over the reached vertices in discovery order, with the graph's positions of the tree edges returned beside it (CSR's `forwardEdgeIndices:` pattern), since a tree has its own positions |
-| `SpanningForest` → `Forest` | One line with the existing initializer: `Forest(vertices: g.vertices, edges: sf.edges.map { g.edges[$0] })!`. A convenience can go in SpanningTrees later |
-| Mutation (insert leaf, graft, prune, reroot in place) | Immutable, initializers only, as `CompressedSparseRow` (principle 2 allows it). The layout is preorder with subtree intervals, so an insertion moves O(n) entries; and no library offers a mutable tree that keeps its invariant (NetworkX and JGraphT mutate a general graph and recheck). Rerooting is `RootedTree(tree, root:)`, O(n) |
-| `leaves`, `subtreeSize(of:)`, `levelOrder` | One-liners: `vertices.filter { children(of: $0).isEmpty }` (and "leaf" means degree 1 unrooted but childless rooted, so it would need two definitions); `descendants(of: v).count + 1`, O(1); `breadthFirstSearch(from: root)` on an `Arborescence`. No library names `subtreeSize` |
-| `Branching` (a rooted forest; NetworkX `is_branching`) | Not in the README; needed with Chu–Liu/Edmonds (SpanningTrees phase 2) and multi-source BFS. Phase 2 |
-| In-trees (igraph `IGRAPH_IN`, "anti-arborescence") | `Arborescence(g.reversed)` once GraphOperations' `reversed` view exists |
-| `isForest` | It is Cycles' `isAcyclic` (and `Forest(g) != nil`); one name per concept, as the Cycles design decided |
-| `isTree` on a digraph (NetworkX: underlying graph is a tree, a "polytree") | `digraph.undirectedView.isTree` on a `BidirectionalDirectedGraph` |
-| Nested tuples (NetworkX `to_nested_tuple`), `join_trees`, `junction_tree`, igraph `unfold_tree` | One library each; nested heterogeneous tuples have no Swift type; junction trees belong with chordal graphs |
-| Result builder (`@GraphBuilder`) initializers | A failable result-builder initializer reads badly; `Tree(edges: [...])` covers it |
+Tree algorithms (lowest common ancestor, Euler tour, heavy–light decomposition, centroid, center,
+diameter) are in `TreeAlgorithms`; tree isomorphism is in `IsomorphismModule`; search trees
+(`breadthFirstTree(from:)`, `depthFirstTree(from:)`) are in `Traversal`. Other modules' tree-shaped
+results convert through the parent-function initializer, for example
+`Arborescence(vertices: reached, parent: tree.parent(of:))` (TS-169's shape). A forest is acyclic
+exactly when Cycles' `isAcyclic` holds, so there is no separate `isForest`. In-trees are
+arborescences of the reversed graph.
 
 ## Summary
 
@@ -146,54 +135,33 @@ All four: `Equatable`, `Hashable`, `Sendable` when `Vertex` is, `Codable` when `
 `CustomStringConvertible`, `CustomDebugStringConvertible`. Not `Comparable`. `Forest.Trees`,
 `RootedTree.Preorder` and the other views are `Sendable` under the same condition.
 
-## Names
-
-| Grafluent | Used by | Not chosen, and why |
-|---|---|---|
-| `Tree`, `Forest`, `isTree` | NetworkX `is_tree`/`is_forest`, JGraphT `isTree`/`isForest`, igraph `is_tree`/`is_forest`, LEMON `tree()` | `FreeTree` (Knuth's unrooted tree): no library |
-| `RootedTree` | README; NetworkX's documentation ("rooted tree": `random_labeled_rooted_tree`, `join_trees(rooted_trees)`, `to_nested_tuple(T, root)`), igraph's | |
-| `Arborescence`, `isArborescence` | NetworkX `is_arborescence`, LEMON `MinCostArborescence`, Edmonds (1967) | igraph's "out-tree" (one library); "directed tree" (NetworkX means polytree by it) |
-| `root`, `parent(of:)`, `children(of:)` | README Terminology ("all"), `DominatorTree.root`/`children(of:)`, `ShortestPathTree.parent(of:)`, Swing `TreeNode.getParent()`/`children()`/`getRoot()` | `predecessor` (Boost, scipy): in Grafluent `predecessors(of:)` means in-neighbours, which for an `Arborescence` it is, through the protocol |
-| `parentEdge(of:)` | `ShortestPathTree.parentEdge(of:)` | |
-| `depth(of:)`, `height` | README row (`depth(of:)`); CLRS and Knuth ("depth of a node", "height of a tree") | Swing's `getLevel()` is our depth and its `getDepth()` is our **height**: the opposite of CLRS, so not followed |
-| `preorder`, `postorder` | NetworkX `dfs_preorder_nodes`/`dfs_postorder_nodes`, Swing `preorderEnumeration`/`postorderEnumeration`, Knuth | `dfsPreorder`: the tree's order needs no search qualifier |
-| `descendants(of:)`, `ancestors(of:)` | README Terminology (NetworkX); both exclude the vertex, as NetworkX's do | |
-| `isAncestor(_:of:)` | Swing `isNodeAncestor` (which is reflexive; ours is strict, to agree with `ancestors(of:)`, TS-215) | `dominates` (DominatorTree, LLVM): dominance is a different relation that happens to be the tree's |
-| `path(from:to:)` | Walks' `Path`; NetworkX `shortest_path(T, u, v)`; Swing `getPath()` (root to node) | |
-| `trees`, `component(of:)` | JGraphT ("a forest is a set of disjoint trees"); `component(of:)` is Connectivity's `Components.component(of:)` | `components`: Connectivity's `Components` holds vertex slices; these elements are `Tree` values |
-| `pruferSequence`, `init?(pruferSequence:)` | NetworkX `to_prufer_sequence`/`from_prufer_sequence`, igraph `to_prufer`/`from_prufer`, JGraphT `PruferTreeGenerator` | `pruferCode`: less common |
-| `init?(vertices:parent:)`, `init?(parents:)` | igraph `tree_from_parent_vector(parents)`; README Terminology `parent(of:)` | `predecessors:` (Boost, scipy, NetworkX `bfs_predecessors`): the same clash as above |
-
 ## Semantics
 
 ### What is a tree here
 
 * **Tree**: at least one vertex, connected, acyclic; a self-loop and a parallel pair are cycles,
-  so a tree has neither and has exactly n − 1 edges. **No empty tree**: a `RootedTree` needs a
-  root and every `Tree` converts to one. The libraries disagree on the null graph: igraph and
-  JGraphT say not a tree, NetworkX raises, LEMON's `tree()` says it is one (TS-001).
-* **Forest**: acyclic; the empty forest exists (igraph and LEMON agree; NetworkX raises;
-  JGraphT's `isForest` returns false although its comment says "this includes the empty graph",
-  TS-003). Isolated vertices are one-vertex trees.
+  so a tree has neither and has exactly n − 1 edges. There is no empty tree: a `RootedTree` needs
+  a root and every `Tree` converts to one (TS-001).
+* **Forest**: acyclic; the empty forest exists (TS-003). Isolated vertices are one-vertex trees.
 * **Arborescence**: at least one vertex, exactly one vertex (the root) of in-degree 0, every
   other of in-degree 1, n − 1 arcs, every vertex reachable from the root. In-degree ≤ 1 and n − 1
-  arcs do not imply reachability (TS-068: a root plus a separate 2-cycle). NetworkX's
-  `is_arborescence` (polytree plus in-degree ≤ 1) is the same predicate (cross-checked on every
-  `D:` case).
+  arcs do not imply reachability (TS-068: a root plus a separate 2-cycle). `ref.py` checks the
+  predicate against NetworkX's `is_arborescence` on every `D:` case.
 * `isTree` ⇔ `Tree(g) != nil`, `isArborescence` ⇔ `Arborescence(g) != nil`, and
   `isAcyclic` (Cycles) ⇔ `Forest(g) != nil` (checked on every case).
+* A digraph whose underlying graph is a tree (a polytree) is `digraph.undirectedView.isTree`
+  (TS-054).
 
 ### Failure is `nil`
 
-Every initializer from unchecked input is failable. A thrown error would have to be `Sendable`,
-so it could not carry vertices (README, the DAG row: witnesses, not errors), and the witnesses
-already exist: `g.findCycle()` (Cycles) for a cycle, `g.connectedComponents()` (Connectivity) for
-disconnection. A root that is not a vertex is a precondition, as Cycles' `findCycle(from:)`
+Every initializer from unchecked input is failable. The witnesses for a rejection are
+`g.findCycle()` (Cycles) for a cycle and `g.connectedComponents()` (Connectivity) for
+disconnection. A root that is not a vertex is a precondition, as for Cycles' `findCycle(from:)`
 (TS-109); a query on a non-vertex traps, as `DominatorTree`'s do (TS-246, TS-315). Each such
-query also has a `checked:` spelling (README Principle 6, added after phase 1) that throws
-`VertexNotFound` instead, or `EdgeNotFound` for an `Arborescence` edge position, with the one
-lookup the trapping spelling makes; a nil the plain spelling returns (the root's parent, a path
-across trees or not downward) keeps its meaning (§L, TS-900 – TS-995).
+query also has a `checked:` spelling that throws `VertexNotFound` instead, or `EdgeNotFound` for
+an `Arborescence` edge position, with the same lookup as the trapping spelling; a nil the plain
+spelling returns (the root's parent, a path across trees or not downward) keeps its meaning (§L,
+TS-900 – TS-995).
 
 ### Vertex order and edge positions
 
@@ -205,27 +173,27 @@ across trees or not downward) keeps its meaning (§L, TS-900 – TS-995).
   appearance, edges in the order given: `UndirectedAdjacencyList(vertices:edges:)`'s rule
   (TS-100 – TS-102). The same edge written twice (either orientation) is a parallel pair (TS-011).
 * From a parent function: `vertices` with duplicates dropped (TS-165); one edge per non-root
-  vertex, **in vertex order**, `(parent, child)` (igraph `tree_from_parent_vector`, TS-151,
-  TS-163). Fails on: no root or several (TS-153, TS-154), a parent outside `vertices` (TS-156,
-  TS-164), a self-parent (TS-155; Boost marks roots with `p[r] == r`, igraph rejects it, so do
-  we), a cycle (TS-157). In `init?(parents: [Int?])`, a negative entry is an out-of-range parent,
-  not a root (TS-158; igraph uses negatives for roots, Swift has `Optional`).
+  vertex, **in vertex order**, `(parent, child)` (TS-151, TS-163). Fails on no root or several
+  (TS-153, TS-154), a parent outside `vertices` (TS-156, TS-164), a self-parent (TS-155), or a
+  cycle (TS-157). In `init?(parents: [Int?])` the root's entry is `nil`; a negative entry is an
+  out-of-range parent, not a root (TS-158).
 * Conversions keep vertices and positions: `Tree(rooted)`, `RootedTree(tree, root:)`,
   `Arborescence(rooted)`, `RootedTree(arborescence)`, `Forest(tree)` (TS-112, TS-241, TS-607).
-  `RootedTree → Arborescence` orients every edge parent → child (TS-607).
+  `RootedTree → Arborescence` orients every edge parent → child (TS-607). There is no
+  `Tree(forest)`; a forest's trees are `forest.trees[i]` (TS-111, TS-113, TS-406).
 * Prüfer decoding: vertices `0..<n`, edges in decoding order, edge k joining the k-th removed
   leaf to the k-th code element, the last edge joining the two remaining vertices (TS-501,
-  TS-510). The linear decoder (Wang et al., NetworkX's and igraph's) emits edges in the same
-  order as the textbook least-leaf loop (checked).
+  TS-510). The linear decoder (Wang et al.) emits edges in the same order as the textbook
+  least-leaf loop (checked).
 
 ### Rooted queries
 
 * `children(of:)`: the vertex's incidence row without its parent edge, so **in position order of
   the child edges**, not vertex order (TS-225). After rerooting, the old parent is wherever its
   edge sits in the row (TS-219). From a parent function, edges are numbered in vertex order, so
-  children come in vertex order (TS-160): exactly `DominatorTree.children(of:)`'s order.
-* `preorder`: root, then each child's subtree in `children` order (NetworkX
-  `dfs_preorder_nodes` on the same adjacency order, checked on every rooted case).
+  children come in vertex order (TS-160), which is `DominatorTree.children(of:)`'s order.
+* `preorder`: root, then each child's subtree in `children` order (`ref.py` checks it against
+  NetworkX's `dfs_preorder_nodes` on the same adjacency order on every rooted case).
   `postorder` the same with each vertex after its subtree. `descendants(of: v)` is v's subtree
   in preorder, without v: a slice of `preorder`, O(1), so `descendants(of: v).count + 1` is the
   subtree size (TS-209, TS-210). `ancestors(of: v)` runs parent first up to the root (TS-212).
@@ -246,26 +214,24 @@ O(size of tree i), so a forest of 10⁶ isolated vertices costs nothing until re
 
 ### Prüfer codes
 
-By **vertex index** (`vertices` order), the package's "least vertex" (Cycles' canonical form):
-for `Int` vertices listed in value order that is NetworkX's and igraph's code; listed out of
-order, it is the code of the tree relabeled by index (TS-515: `[2,1]`, where ranking by value
-would give `[1,2]`). nil for fewer than 2 vertices (NetworkX raises
-`NetworkXPointlessConcept`, igraph `EINVAL`, TS-504); the empty code decodes to K₂ (TS-502).
-Decoding rejects elements outside `0..<count+2` (TS-506, TS-507).
+By **vertex index** (`vertices` order): for `Int` vertices `0..<n` listed in value order this is
+the standard code; listed out of order, it is the code of the tree relabeled by index (TS-515:
+`[2,1]`, where ranking by value would give `[1,2]`). nil for fewer than 2 vertices (TS-504); the
+empty code decodes to K₂ (TS-502). Decoding rejects elements outside `0..<count+2` (TS-506,
+TS-507).
 
 ### Equality, hashing, coding
 
-Equality is the README's rule for representations: **equal vertex sets and equal edge sets**,
-regardless of order and (undirected) orientation (TS-700); `RootedTree` also compares the root
-(TS-703); `Arborescence` compares arcs as ordered pairs, which fixes the root (TS-705). So two
-equal values can differ in `children(of:)` order or edge positions, as two equal adjacency lists
-can differ in row order. Testing an edge {u, v} of the left side on the right is O(1) without
-hashing an edge: `parent(u) == v || parent(v) == u` in the right side's (internal) rooting, so
-`==` is O(n). `hash(into:)` follows `UndirectedAdjacencyList`: a commutative sum of per-vertex and
-per-edge hashes (an `UndirectedEdge` hashes without orientation). `Codable` uses the
-`UndirectedAdjacencyList` format (vertices, then edges as pairs of vertex offsets; `RootedTree`
-adds the root's offset); decoding re-checks the invariant and throws `DecodingError.dataCorrupted`
-(as Walks' types do), and also rejects a repeated vertex.
+Equality is **equal vertex sets and equal edge sets**, regardless of order and (undirected)
+orientation (TS-700); `RootedTree` also compares the root (TS-703); `Arborescence` compares arcs
+as ordered pairs, which fixes the root (TS-705). So two equal values can differ in
+`children(of:)` order or edge positions, as two equal adjacency lists can differ in row order. An
+edge {u, v} of the left side is tested on the right as `parent(u) == v || parent(v) == u` in the
+right side's internal rooting, so `==` is O(n). `hash(into:)` is a commutative sum of per-vertex
+and per-edge hashes, as for `UndirectedAdjacencyList` (an `UndirectedEdge` hashes without
+orientation). `Codable` uses the `UndirectedAdjacencyList` format (vertices, then edges as pairs of
+vertex offsets; `RootedTree` adds the root's offset); decoding re-checks the invariant and throws
+`DecodingError.dataCorrupted`, and also rejects a repeated vertex.
 
 ### Attached maps and generations
 
@@ -284,7 +250,7 @@ handle from the source traps on it. Equality, hashing and coding ignore maps and
 
 | Operation | Cost |
 |---|---|
-| `isTree`, `isArborescence` | O(1) when the edge count is not n − 1; else O(n), no allocation beyond a visited mark and a stack |
+| `isTree`, `isArborescence` | O(1) when the edge count is not n − 1; else O(n), with a visited mark and a stack |
 | Any initializer | O(n) after hashing the input vertices (none with dense `Int` vertices `0..<n`, below) |
 | `RootedTree(tree, root:)` | O(n); O(1) when the root is the tree's internal root |
 | Conversions otherwise | O(1) (shared storage) |
@@ -297,56 +263,38 @@ handle from the source traps on it. Equality, hashing and coding ignore maps and
 
 ## Implementation notes (index space)
 
-* **One layout for all four types.** A `@usableFromInline final class` (or a few arrays shared
-  by copy-on-write) holding, with vertex numbers 0..<n in `vertices` order:
-  `ends: [Int]` (2 per edge), `rowOffsets: [Int]` (n + 1) and `rowEdges: [Int]` (2(n − 1)) for
+* **One layout for all four types.** `_TreeLayout` holds, with vertex numbers 0..<n in `vertices`
+  order: `ends` (2 per edge), `rowOffsets` (n + 1), `rowNeighbors` and `rowEdges` (2(n − 1)) for
   the incidence rows (a counting sort over edges in position order leaves every row ascending),
-  and the **rooting**: `parent`, `parentEdge`, `depth`, `preorder`, `preorderPosition`,
-  `subtreeSize`, `parentOffsetInRow`. `Tree` stores a rooting at vertex 0, which is never
-  observable but makes `path(from:to:)` O(length) and `Tree ↔ RootedTree` O(1); `Forest` roots
-  each tree at its least vertex, with `component` per vertex and the vertices and edges grouped
-  by tree (counting sort, stable) so `trees[i]` copies contiguous runs. About 12 `Int`s per vertex.
+  `twin` (each row slot's offset in the other end's row), and the **rooting**: a root per tree,
+  the preorder, and one `_TreeNode` record of `Int32`s per vertex (parent, parent edge, offset of
+  the parent edge in the row, depth, preorder position, subtree size, tree). `Tree` stores a
+  rooting at vertex 0, which is never observable but makes `path(from:to:)` O(length) and
+  `Tree ↔ RootedTree` O(1); `Forest` roots each tree at its least vertex, and keeps the vertices
+  and edges grouped by tree (counting sort, stable) so `trees[i]` copies contiguous runs.
 * **Children without a children array.** `children(of: v)` is v's row with one hole, the parent
-  edge at `parentOffsetInRow[v]`: a `RandomAccessCollection` with O(1) `count` and subscript.
+  edge at its row offset: a `RandomAccessCollection` with O(1) `count` and subscript.
   `Arborescence.outEdges(of:)` is the same view over edge positions; `inEdges(of:)` and
   `predecessors(of:)` hold zero or one element.
 * **No recursion.** The rooting is one iterative depth-first walk with a stack of
-  (vertex, row cursor), skipping the parent edge by position (not the parent vertex: in a tree it
-  is the same, but the build must also survive invalid input until rejected). It writes parent,
-  parent edge, depth and preorder; `subtreeSize` is one pass over `preorder` in reverse.
-  `postorder` needs no second walk: post(v) = pre(v) + size(v) − 1 − depth(v) (checked on every
-  rooted case). `path` climbs `parent` by `depth`. The 10⁶-vertex path (TS-801 – TS-806), the
-  10⁶-leaf star (TS-807) and the 10⁶-vertex binary tree (TS-812) are the stress shapes.
+  (vertex, row cursor), skipping the parent edge by position (not the parent vertex, so a
+  parallel pair is found). It writes each vertex's record when the vertex is reached and adds its
+  subtree size to its parent's when it is left. `postorder` needs no second walk:
+  post(v) = pre(v) + size(v) − 1 − depth(v) (checked on every rooted case). `path` climbs
+  `parent` by `depth`. The 10⁶-vertex path (TS-801 – TS-806), the 10⁶-leaf star (TS-807) and the
+  10⁶-vertex binary tree (TS-812) are the stress shapes.
 * **Validation.** Undirected tree: n ≥ 1, m == n − 1, and the walk reaches n vertices; with
   m = n − 1 connectivity implies acyclicity, and a loop or a parallel pair leaves a vertex
-  unreached (TS-020, TS-025). Forest: one walk over every root counting c trees; valid iff
-  m == n − c (no union–find, so no DisjointSetModule dependency). Arborescence: in-degree counts
-  (> 1 fails at once), one root, then the walk over out-rows reaches n (TS-068). Parent
-  function: gather parent numbers (one dictionary lookup each), exactly one root, counting-sort
-  the children rows, then the walk from the root reaches n iff there is no cycle (every non-root
-  has exactly one parent, so n − 1 edges).
-* **Reading the source graph.** With vertex and edge indices, read the index-space rows
-  (`_withIncidentIndexRows`, `incidentEdgeIndices(ofIndex:)`), so building a `Tree` from an
-  `UndirectedAdjacencyList` hashes nothing; else one pass over `edges` with a vertex dictionary.
-  `isTree` uses the same rows. This wants the row helpers moved from Connectivity to
-  GraphProtocols as `package`, which the Cycles design already asks for.
-* **Vertex lookup.** Generic vertices need a vertex → number map; reuse the dense-slot table of
-  `AdjacencyList` (or `_DenseVertices`' shape). When `Vertex == Int` and the vertices are exactly
-  `0..<n` in order (every `init?(parents:)`, Prüfer, most index-space use), set a flag and skip the
-  table: `vertexIndex(of: v)` is `v` after a bounds check.
-* **Dependencies.** Trees → GraphProtocols and **Walks** (for `Path`; today only GraphProtocols:
-  update `scripts/modules.py`). Traversal → Trees for `breadthFirstTree`. Connectivity and
-  ShortestPaths need not depend on Trees (the parent-function initializer is the bridge).
-
-## Library disagreements found
-
-| Where | What | Catalog |
-|---|---|---|
-| Null graph, `is_tree` | igraph, JGraphT: false; LEMON `tree()`: true; NetworkX raises | TS-001 |
-| Null graph, `is_forest` | igraph, LEMON (`acyclic`): true; JGraphT `isForest`: false, contradicting its own Javadoc ("this includes the empty graph"); NetworkX raises | TS-003 |
-| Directed "tree" | NetworkX `is_tree` on a digraph tests the underlying graph (a polytree) and calls an arborescence a "tree" in "another convention"; igraph `is_tree(mode=OUT)` is the arborescence | TS-054 |
-| Root marker in a parent array | Boost: `p[r] == r`; igraph: any negative; scipy: −9999; NetworkX dicts: absent. Ours: `nil`, and a self-parent fails | TS-155, TS-158 |
-| Depth and height | Swing's `getDepth()` is the height and `getLevel()` the depth; CLRS/Knuth (ours) the other way | TS-207, TS-208 |
-| Ancestor | NetworkX `ancestors` strict; Swing `isNodeAncestor` reflexive; `DominatorTree.dominates` reflexive. Ours strict | TS-215 |
-| Prüfer for n < 2 | NetworkX raises `NetworkXPointlessConcept`, igraph `IGRAPH_EINVAL`; ours `nil` | TS-504 |
-| Prüfer labels | NetworkX requires the node set to be exactly {0, …, n − 1} (`KeyError` otherwise) and ranks by value; ours ranks by index for any vertex type | TS-514, TS-515 |
+  unreached (TS-020, TS-025). Forest: m ≤ n − 1, then one walk from each vertex not yet reached;
+  reaching a vertex twice is a cycle. Arborescence: in-degree counts (> 1 fails at once), one
+  root, then the walk from the root, which fails on an arc pointing toward it and must reach n
+  (TS-068). Parent function: gather parent numbers (one dictionary lookup each), exactly one
+  root, no self-parent, then the walk from the root reaches n iff there is no cycle.
+* **Reading the source graph.** With vertex and edge indices, the build reads the index-space
+  rows, so building a `Tree` from an `UndirectedAdjacencyList` hashes nothing; otherwise it makes
+  one pass over `edges` with a vertex dictionary. `isTree` reads the same rows.
+* **Vertex lookup.** When `Vertex == Int` and the vertices are exactly `0..<n` in order (every
+  `init?(parents:)`, Prüfer, most index-space use), a flag replaces the table and
+  `vertexIndex(of: v)` is `v` after a bounds check. Trees of at most 8 vertices find a vertex by a
+  linear scan; larger ones use a vertex → number dictionary.
+* **Dependencies.** Trees depends on GraphProtocols and Walks (for `Path`).

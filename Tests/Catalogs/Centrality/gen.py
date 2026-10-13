@@ -348,7 +348,7 @@ SECTIONS = {
     "A": ("DegenerateGraphTests.swift", "Degenerate graphs", "CentralityDegenerateGraphTests", [
         "§A: the empty graph (both kinds), K₁, three isolated vertices and K₂: every measure. The empty graph",
         "gives an empty result for every measure, iterative ones included (no throw: there is nothing to",
-        "iterate); one vertex scores 1 for degree (NetworkX's rule) and 0 for closeness, harmonic and",
+        "iterate); one vertex scores 1 for degree and 0 for closeness, harmonic and",
         "betweenness; edgeless graphs are uniform for eigenvector, Katz, PageRank and HITS (api.md).",
     ]),
     "B": ("DegreeCentralityTests.swift", "Degree", "DegreeCentralityTests", [
@@ -363,7 +363,7 @@ SECTIONS = {
         "row also checks each `closenessCentrality(of:)` / `harmonicCentrality(of:)` against the vector.",
     ]),
     "D": ("BetweennessTests.swift", "Betweenness", "BetweennessTests", [
-        "§D: Brandes betweenness with NetworkX's rescaling (normalized, endpoints, directed ordered pairs),",
+        "§D: Brandes betweenness with its rescaling (normalized, endpoints, directed ordered pairs),",
         "parallel edges as distinct shortest paths (edge sequences), self-loops on no path, `Int` and",
         "`Double` weights with ties by exact equality (CE-114).",
     ]),

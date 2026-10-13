@@ -1,7 +1,8 @@
-// Cases added after planting bugs: a forest with a parallel pair (caught only by skipping the edge
+// Edge cases of the tree layout: a forest with a parallel pair (detected only by skipping the edge
 // a vertex was reached by, not its parent vertex), edges keeping the orientation they had in the
-// source graph, and hashes that depend on the edges. Case IDs (TS-nnn) refer to the catalog; see
-// README.md.
+// source graph, hashes that depend on the edges, dense and hashed vertex numbering, children with
+// the parent edge anywhere in the row, and rooted-tree decoding errors. Case IDs (TS-nnn) refer to
+// the catalog; see README.md.
 
 import AdjacencyListModule
 import Foundation

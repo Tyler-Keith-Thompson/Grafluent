@@ -24,7 +24,7 @@ extension DirectedGraph {
 
     /// The vertices in generations by Kahn's algorithm: the first generation has no in-edges, and
     /// each later one has in-edges only from earlier generations, so generation k holds the
-    /// vertices whose longest incoming path has k edges (NetworkX's `topological_generations`).
+    /// vertices whose longest incoming path has k edges.
     /// Within a generation, vertices are in the order they became ready. `nil` when the graph has a
     /// cycle.
     @inlinable
@@ -56,8 +56,7 @@ extension DirectedGraph {
     }
 
     /// The topological order that is smallest by `areInIncreasingOrder`: at each step, the least
-    /// vertex all of whose in-edges come from vertices already placed (NetworkX's
-    /// `lexicographical_topological_sort`). Vertices that compare equal are placed in the order they
+    /// vertex all of whose in-edges come from vertices already placed. Vertices that compare equal are placed in the order they
     /// became ready. `nil` when the graph has a cycle.
     @inlinable
     public func lexicographicalTopologicalSort(by areInIncreasingOrder: (Vertex, Vertex) -> Bool) -> [Vertex]? {
@@ -172,8 +171,7 @@ extension DirectedGraph {
 }
 
 extension DirectedGraph where Vertex: Comparable {
-    /// The topological order that is smallest by `<` (NetworkX's
-    /// `lexicographical_topological_sort`). `nil` when the graph has a cycle.
+    /// The topological order that is smallest by `<`. `nil` when the graph has a cycle.
     @inlinable
     public func lexicographicalTopologicalSort() -> [Vertex]? {
         lexicographicalTopologicalSort(by: <)

@@ -1,5 +1,5 @@
 // GraphML (catalog GF-043 – GF-082 and GF-227 read, GF-193 – GF-199 write): the XML subset (no DTD, no
-// entities but the five), typed keys with defaults, edges resolved after the nodes, the phase 2
+// entities but the five), typed keys with defaults, edges resolved after the nodes, unsupported
 // features rejected precisely; the writer's keys by first appearance, graph keys first.
 // Generated from cases.md by swiftgen.py; see README.md.
 
@@ -657,7 +657,7 @@ struct GraphFormatsGraphMLTests {
         }
     }
 
-    @Test("GF-073 nested graph (phase 2)")
+    @Test("GF-073 nested graph (unsupported)")
     func gf073() {
         // DirectedPseudograph<String>(graphML:) → **unsupported** at 1:99
         let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"><graph edgedefault=\"directed\"/></node></graph></graphml>"
@@ -670,7 +670,7 @@ struct GraphFormatsGraphMLTests {
         }
     }
 
-    @Test("GF-074 a second graph (phase 2)")
+    @Test("GF-074 a second graph (unsupported)")
     func gf074() {
         // DirectedPseudograph<String>(graphML:) → **unsupported** at 1:87
         let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"/><graph edgedefault=\"directed\"/></graphml>"
@@ -683,7 +683,7 @@ struct GraphFormatsGraphMLTests {
         }
     }
 
-    @Test("GF-075 hyperedge (phase 2)")
+    @Test("GF-075 hyperedge (unsupported)")
     func gf075() {
         // DirectedPseudograph<String>(graphML:) → **unsupported** at 1:100
         let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><hyperedge/></graph></graphml>"
@@ -696,7 +696,7 @@ struct GraphFormatsGraphMLTests {
         }
     }
 
-    @Test("GF-076 an edge whose directed differs from edgedefault (phase 2)")
+    @Test("GF-076 an edge whose directed differs from edgedefault (unsupported)")
     func gf076() {
         // DirectedPseudograph<String>(graphML:) → **unsupported** at 1:128
         let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><edge source=\"a\" target=\"a\" directed=\"false\"/></graph></graphml>"

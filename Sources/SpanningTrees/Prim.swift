@@ -2,15 +2,15 @@ import GraphProtocols
 import PriorityQueueModule
 
 extension Graph {
-    /// Prim's algorithm over every component (NetworkX, JGraphT, igraph): grows a tree from the
-    /// first unspanned vertex in `vertices` order, joining the lightest edge out of it each step,
-    /// and repeats until every vertex is spanned. A minimum spanning forest; among equal weights,
-    /// which edges it chooses is unspecified (a canonical choice is measurably slower; see the
-    /// benchmarks). Edges are listed in the order their far vertices joined, so each joins a
-    /// spanned vertex to a new one; the weight is added up in that order.
+    /// A minimum spanning forest by Prim's algorithm, over every component.
     ///
-    /// Each edge that is not a self-loop is weighed once, from the end spanned first: an edge
-    /// whose far end is already spanned is skipped before it is weighed.
+    /// Grows a tree from the first unspanned vertex in `vertices` order, taking the lightest edge
+    /// out of it each step, and repeats until every vertex is spanned. Among equal weights, which
+    /// edge it takes is unspecified. Edges are listed in the order their far vertices joined, and
+    /// the weight is added up in that order.
+    ///
+    /// Each edge that is not a self-loop is weighed at most once, from the end spanned first. An
+    /// edge whose far end is already spanned is skipped without being weighed.
     ///
     /// - Complexity: O(m log n), with a 4-ary indexed heap.
     /// - Precondition: as for `minimumSpanningTree(weight:)`.
@@ -22,9 +22,9 @@ extension Graph {
         return SpanningForest(edges: edges.map(\.position), weight: total)
     }
 
-    /// Prim's algorithm from `root` (Boost's `prim_minimum_spanning_tree` with `root_vertex`): a
-    /// minimum spanning tree of `root`'s connected component only. Only that component's edges
-    /// are weighed.
+    /// A minimum spanning tree of `root`'s connected component, by Prim's algorithm from `root`.
+    ///
+    /// Only that component's edges are weighed.
     ///
     /// - Precondition: `contains(root)`; weights as for `primMinimumSpanningTree(weight:)`.
     @inlinable
@@ -35,11 +35,10 @@ extension Graph {
         return SpanningForest(edges: edges.map(\.position), weight: total)
     }
 
-    /// Prim with the strict order (weight, rank), so its forest is the canonical one, sorted into
-    /// that order and added up in it: the forest of `minimumSpanningTree(weight:)`, exactly as
-    /// Kruskal gives it, total included. With vertex indices and at least n²/4 edges, Prim scans
-    /// an array of keys instead of a heap (`_densePrim`), O(n² + m); the forest is the same, as it
-    /// is unique under the order.
+    /// Prim under the strict order (weight, rank), sorted into that order and added up in it: the
+    /// forest Kruskal gives, total included. With vertex indices and at least n²/4 edges it scans
+    /// an array of keys instead of a heap (`_densePrim`), O(n² + m); the forest is unique under
+    /// the order, so it is the same.
     @inlinable
     func _canonicalPrim<W: Comparable & AdditiveArithmetic>(_ weight: (Edges.Index) -> W) -> SpanningForest<Self, W> {
         var edges = _prefersDensePrim ? _densePrim(weight)
@@ -53,8 +52,9 @@ extension Graph {
     /// Prim over `root`'s component, or over every component in `vertices` order, with heap
     /// priorities `key(weight, rank)`. Returns the edges in the order taken, with their weights
     /// and, when `ranked`, their ranks (otherwise -1, and no ranks are computed); and, when not
-    /// `ranked`, the total added up in that order (otherwise zero: a caller that reorders the
-    /// edges sums them itself, since a sum in another order can overflow where its own does not).
+    /// `ranked`, the total added up in that order. When `ranked` the total is zero; the caller
+    /// reorders the edges and sums them in its own order, which can avoid an overflow this order
+    /// would hit.
     @inlinable
     func _prim<W: Comparable & AdditiveArithmetic, Key: Comparable>(
         root: Vertex?, _ weight: (Edges.Index) -> W, ranked: Bool, key: (W, Int) -> Key

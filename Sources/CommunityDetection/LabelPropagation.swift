@@ -3,9 +3,8 @@ import GraphProtocols
 /// Votes for one vertex's label: each slot of its row to another vertex adds the edge's weight to
 /// that neighbor's label, labels kept in order of first vote; zero-weight edges cast no vote, so
 /// every change strictly raises the weight of edges whose ends agree, and propagation stops (with
-/// non-dyadic weights a change decided by rounded sums could in principle be no gain; fuzzing
-/// found no such cycle).
-/// Reused across vertices.
+/// non-dyadic weights a change decided by rounded sums could in principle be no gain). Reused
+/// across vertices.
 @frozen
 @usableFromInline
 struct _Votes {
@@ -56,9 +55,9 @@ struct _Votes {
     func isBest(_ l: Int) -> Bool { stamp[l] == round && total[l] == most }
 }
 
-/// Semi-synchronous label propagation (Cordasco and Gargano; NetworkX
-/// `label_propagation_communities`): a greedy coloring in largest-degree-first order, then rounds
-/// over the color classes until every vertex with votes holds a most-voted label.
+/// Semi-synchronous label propagation (Cordasco and Gargano): a greedy coloring in
+/// largest-degree-first order, then rounds over the color classes until every vertex with votes
+/// holds a most-voted label.
 @inlinable
 func _semisynchronousLabelPropagation(_ graph: _CommunityGraph, _ weights: [Double]?) -> [Int] {
     let n = graph.count
@@ -84,8 +83,8 @@ func _semisynchronousLabelPropagation(_ graph: _CommunityGraph, _ weights: [Doub
     for v in 0 ..< n { classes[color[v]].append(v) }
     var label = Array(0 ..< n)
     var votes = _Votes(count: n)
-    // A round that changes nothing is NetworkX's stop test (every vertex with votes holds a
-    // most-voted label): if some vertex does not, it or a vertex before it changes in the round.
+    // Stop after a round that changes nothing (every vertex with votes holds a most-voted label):
+    // if some vertex does not, it or a vertex before it changes in the round.
     var changed = true
     while changed {
         changed = false
@@ -106,9 +105,9 @@ func _semisynchronousLabelPropagation(_ graph: _CommunityGraph, _ weights: [Doub
     return label
 }
 
-/// Asynchronous label propagation (Raghavan, Albert and Kumara; NetworkX `asyn_lpa_communities`):
-/// sweeps in `order()` (index order when it returns nil) until one changes nothing; a vertex not
-/// holding a most-voted label takes `choose(best)`.
+/// Asynchronous label propagation (Raghavan, Albert and Kumara): sweeps in `order()` (index order
+/// when it returns nil) until one changes nothing; a vertex not holding a most-voted label takes
+/// `choose(best)`.
 @inlinable
 func _asynchronousLabelPropagation(_ graph: _CommunityGraph, _ weights: [Double]?, order: () -> [Int]?, choose: ([Int]) -> Int) -> [Int] {
     var label = Array(0 ..< graph.count)
@@ -140,11 +139,10 @@ extension Graph {
         return Partition(directedView, numbers: numbers, listed: listed, labels: labels)
     }
 
-    /// Label propagation communities, semi-synchronous (Cordasco and Gargano; NetworkX
-    /// `label_propagation_communities`): every vertex starts with its own label and repeatedly
-    /// takes the label most of its edges lead to (each parallel edge votes; self-loops vote for
-    /// nothing), keeping its own on a tie, otherwise taking the greatest; vertices of one color of a
-    /// greedy coloring update together. Deterministic.
+    /// Label propagation communities, semi-synchronous (Cordasco and Gargano): every vertex starts
+    /// with its own label and repeatedly takes the label most of its edges lead to (each parallel
+    /// edge votes; self-loops vote for nothing), keeping its own on a tie, otherwise taking the
+    /// greatest; vertices of one color of a greedy coloring update together. Deterministic.
     @inlinable
     public func labelPropagationCommunities() -> Partition<DirectedView<Self>> {
         _labelPropagation(nil) { _semisynchronousLabelPropagation($0, nil) }
@@ -160,11 +158,10 @@ extension Graph {
         return _labelPropagation(weights) { _semisynchronousLabelPropagation($0, weights) }
     }
 
-    /// Asynchronous label propagation communities (Raghavan, Albert and Kumara; NetworkX
-    /// `asyn_lpa_communities`): sweeps in vertex index order, each vertex not holding a most-voted
-    /// label taking the greatest of them, until a sweep changes nothing. Deterministic; on
-    /// symmetric graphs (a ring of cliques) one label can flood the graph, which the `using:` form
-    /// usually avoids.
+    /// Asynchronous label propagation communities (Raghavan, Albert and Kumara): sweeps in vertex
+    /// index order, each vertex not holding a most-voted label taking the greatest of them, until a
+    /// sweep changes nothing. Deterministic; on symmetric graphs (a ring of cliques) one label can
+    /// flood the graph, which the `using:` form usually avoids.
     @inlinable
     public func asynchronousLabelPropagationCommunities() -> Partition<DirectedView<Self>> {
         _labelPropagation(nil) { graph in
@@ -183,11 +180,10 @@ extension Graph {
         }
     }
 
-    /// Asynchronous label propagation with each sweep's order shuffled by `generator` (NetworkX's
-    /// `seed`): each sweep shuffles a fresh `0 ..< n` by Fisher–Yates (as
-    /// `louvainCommunities(using:)`), and every vertex not holding a most-voted label draws once,
-    /// even when one label is most voted, taking the `generator.next(upperBound: t)`-th of the t
-    /// most-voted labels in order of first vote.
+    /// Asynchronous label propagation with each sweep's order shuffled by `generator`: each sweep
+    /// shuffles a fresh `0 ..< n` by Fisher–Yates (as `louvainCommunities(using:)`), and every
+    /// vertex not holding a most-voted label draws once, even when one label is most voted, taking
+    /// the `generator.next(upperBound: t)`-th of the t most-voted labels in order of first vote.
     @inlinable
     public func asynchronousLabelPropagationCommunities(using generator: inout some RandomNumberGenerator) -> Partition<DirectedView<Self>> {
         _labelPropagation(nil) { graph in

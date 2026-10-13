@@ -2,7 +2,7 @@ import Connectivity
 import GraphProtocols
 import Semirings
 
-/// Bellman–Ford over a selective semiring, in LEMON's weak rounds as `_BellmanFord`. Distances
+/// Bellman–Ford over a selective semiring, in weak rounds as `_BellmanFord`. Distances
 /// start at `.zero`, so only a strictly better candidate relaxes. Work left after `count` rounds
 /// means a cycle better than `.one` is reachable. A −∞ distance (`Int.min`, `-.infinity`) cannot
 /// improve, so a cycle on vertices already at −∞ stops relaxing instead of running out of rounds;

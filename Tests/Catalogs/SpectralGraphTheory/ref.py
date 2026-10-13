@@ -22,9 +22,9 @@ Moore–Penrose pseudoinverse for resistances, and NetworkX 3.7 (matrices, spect
 algebraic_connectivity, fiedler_vector, spectral_ordering, number_of_spanning_trees,
 resistance_distance, effective_graph_resistance, kemeny_constant, spectral_bisection) and SciPy
 1.18.1 (csgraph.laplacian, eigsh) wherever they share the semantics; the known disagreements are
-counted in DISAGREE and listed in api.md. --write regenerates cases.md; without it the run fails if
-cases.md differs. --stress adds random multigraphs with loops and weights. --bench prints the
-baseline timings api.md quotes (several minutes).
+counted in DISAGREE. --write regenerates cases.md; without it the run fails if
+cases.md differs. --stress adds random multigraphs with loops and weights. --bench prints
+baseline timings (several minutes).
 """
 import itertools
 import math
@@ -1179,7 +1179,7 @@ def render():
     return "\n".join(lines) + "\n"
 
 
-HEADER = """# SpectralGraphTheory: case catalog (SGT-001 – SGT-{last:03d}, {count} rows; {p2} onward are phase 2)
+HEADER = """# SpectralGraphTheory: case catalog (SGT-001 – SGT-{last:03d}, {count} rows; {p2} onward have no entry point)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 scipy==1.18.1 --with numpy==2.5.4 python3 Tests/Catalogs/SpectralGraphTheory/ref.py`; `--write`
@@ -1189,7 +1189,7 @@ takes spectra from `numpy.linalg.eigvalsh`, and counts spanning trees, resistanc
 graph resistance exactly. Rows are also checked against closed forms (complete, path, cycle,
 star, complete bipartite, hypercube, grid, Petersen spectra), brute-force spanning-tree and
 arborescence enumeration (at most 16 edges), the Moore–Penrose pseudoinverse, NetworkX 3.7 and
-SciPy 1.18.1; the disagreements are in api.md.
+SciPy 1.18.1; the known disagreements are counted in `ref.py`'s DISAGREE.
 
 ## Notation
 

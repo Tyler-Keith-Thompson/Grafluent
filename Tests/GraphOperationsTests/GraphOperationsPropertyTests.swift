@@ -188,7 +188,7 @@ struct GraphOperationsPropertyTests {
         let input = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 0 ... 14)
         await propertyCheck(count: 300, input: input) { raw in
             let names = (0 ..< 6).map { "l\($0)" }
-            // Directed, without self-loops (a directed self-loop traps in phase 1).
+            // Directed, without self-loops: a directed self-loop traps.
             let arcs = raw.filter { $0.0 != $0.1 }
             let directed = DirectedPseudograph<String>(vertices: names, edges: arcs.map { DirectedEdge(from: names[$0.0], to: names[$0.1]) })
             var expected: [[Int]] = []
@@ -309,7 +309,7 @@ struct GraphOperationsPropertyTests {
             let complement = directed.complementView
             let undirectedInduced = undirected.inducedSubgraphView(on: keep)
             let undirectedComplement = undirected.complementView
-            // The reverse view forwards its degrees by index to the base, whose own read the stored rows.
+            // The reverse view forwards its degrees by index to the base.
             tally.hashes = 0
             var total = 0
             for i in 0 ..< reverse.vertexIndexBound! {

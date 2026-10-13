@@ -45,9 +45,7 @@ extension DirectedAcyclicGraph {
     }
 
     /// Inserts `edge` only when both endpoints are already vertices and the edge would not close a
-    /// cycle. The `checked:` spelling of README Principle 6: JGraphT's `addEdge` requires the
-    /// endpoints (it throws `IllegalArgumentException`), as petgraph's `Acyclic::try_add_edge`
-    /// does (`AcyclicEdgeError::InvalidEdge`). Costs as `insert(edge:)`.
+    /// cycle. Costs as `insert(edge:)`.
     ///
     /// - Returns: The edge's position, as `insert(edge:)`'s.
     /// - Throws: `AcyclicEdgeError.missingEndpoint` when an endpoint is not a vertex (checked
@@ -221,8 +219,8 @@ extension DirectedAcyclicGraph {
         return removed
     }
 
-    /// Removes one copy of `edge`, the newest on a base with parallel edges (NetworkX's
-    /// `remove_edge(u, v)`), as the base removes it. The order is kept. The base's cost.
+    /// Removes one copy of `edge`, the newest on a base with parallel edges, as the base removes
+    /// it. The order is kept. Costs as the base's removal.
     ///
     /// - Returns: The removed edge, or `nil` if no copy of `edge` was an edge.
     @inlinable

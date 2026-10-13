@@ -1,7 +1,9 @@
-/// Dense identifiers for the vertices a search meets, so its state lives in arrays: the graph's
-/// own vertex indices when it has them; for a `SparselyIndexedDirectedGraph` with holes, the live
-/// vertices numbered in `vertices` order with arrays, and its rows copied once in that numbering
-/// ("numbered"); otherwise numbers handed out in the order vertices are first seen.
+/// Dense identifiers for the vertices a search meets, so its state lives in arrays.
+///
+/// The identifiers are the graph's own vertex indices when it has them. For a
+/// `SparselyIndexedDirectedGraph` with holes, the live vertices are numbered in `vertices` order
+/// and its rows are copied once in that numbering ("numbered"). Otherwise identifiers are handed
+/// out in the order vertices are first seen.
 @frozen
 @usableFromInline
 package struct _VertexIdentifiers<G: DirectedGraph> {
@@ -54,17 +56,18 @@ package struct _VertexIdentifiers<G: DirectedGraph> {
         return id
     }
 
-    /// The identifier of `vertex`, trapping when it is not a vertex: one lookup instead of
-    /// `contains` followed by `identifier(of:)`. On an indexed graph this is
-    /// `_requiredVertexIndex(of:_:)`: the graph's own `vertexIndex(of:)` usually traps first, with
-    /// its own message; `message` is for a representation whose `vertexIndex(of:)` returns an
-    /// index for a non-vertex, caught by checking that index against `vertex(atIndex:)` with `==`
-    /// (an array read, not a second hash). Otherwise the trap is `message`.
+    /// The identifier of `vertex`, trapping with `message` when it is not a vertex. One lookup
+    /// instead of `contains` followed by `identifier(of:)`.
+    ///
+    /// On an indexed graph this is `_requiredVertexIndex(of:_:)`. The graph's own `vertexIndex(of:)`
+    /// usually traps first, with its own message. `message` covers a representation whose
+    /// `vertexIndex(of:)` returns an index for a non-vertex, which a comparison against
+    /// `vertex(atIndex:)` catches with an array read instead of a second hash.
     @inlinable
     package mutating func requiredIdentifier(of vertex: G.Vertex, _ message: @autoclosure () -> String) -> Int {
         if isIndexed {
-            // `_requiredVertexIndex(of:_:)`, written out: calling it made `breadthFirstLayers`,
-            // which inlines this, too large to inline its per-edge closure (1.3× on CSR).
+            // `_requiredVertexIndex(of:_:)`, written out. Calling it makes callers that inline
+            // this, such as `breadthFirstLayers`, too large to inline their per-edge closure.
             let index = graph.vertexIndex(of: vertex)
             precondition(index >= 0 && index < count && graph.vertex(atIndex: index) == vertex, message())
             return index
@@ -77,15 +80,17 @@ package struct _VertexIdentifiers<G: DirectedGraph> {
         return identifier(of: vertex)
     }
 
-    /// The number of `vertex` in a numbered graph. - Precondition: `vertex` is a vertex.
+    /// The number of `vertex` in a numbered graph.
+    ///
+    /// - Precondition: `vertex` is a vertex.
     @inlinable
     package func _number(of vertex: G.Vertex, _ rows: _NumberedRows) -> Int {
         guard let sparse, graph.contains(vertex) else { preconditionFailure("\(vertex) is not a vertex of the graph") }
         return rows.numbers[sparse.vertexPosition(of: vertex)]
     }
 
-    /// The identifier of `vertex` without handing out a new one: nil when it is not a vertex (or,
-    /// unindexed, not yet seen).
+    /// The identifier of `vertex` without handing out a new one. Nil when it is not a vertex, or,
+    /// without indices or numbering, when it has not been seen yet.
     @inlinable
     package func existingIdentifier(of vertex: G.Vertex) -> Int? {
         if isIndexed { return graph.contains(vertex) ? graph.vertexIndex(of: vertex) : nil }
@@ -110,10 +115,10 @@ package struct _VertexIdentifiers<G: DirectedGraph> {
         }
     }
 
-    /// The label-space fallback of `forEachSuccessor(of:_:)`, kept out of line: inlined, a
-    /// representation's `Successors` iterator made the callers (`breadthFirstLayers`) too large to
-    /// inline their per-edge closure, 1.2× on a labeled CSR. A graph without vertex indices hashes
-    /// each successor here anyway, so the call costs it nothing measurable.
+    /// The label-space fallback of `forEachSuccessor(of:_:)`, kept out of line. Inlined, a
+    /// representation's `Successors` iterator makes callers such as `breadthFirstLayers` too large
+    /// to inline their per-edge closure. A graph without vertex indices hashes each successor here
+    /// anyway, so the call adds little.
     @inlinable
     @inline(never)
     package mutating func _forEachUnindexedSuccessor(of id: Int, _ body: (Int) -> Void) {
@@ -155,7 +160,7 @@ extension _VertexIdentifiers where G: BidirectionalDirectedGraph {
     }
 }
 
-/// Grows `array` with `value` until `index` is valid.
+/// Appends `value` to `array` until it has at least `count` elements.
 @inlinable
 package func _grow<T>(_ array: inout [T], to count: Int, with value: T) {
     if array.count < count { array.append(contentsOf: repeatElement(value, count: count - array.count)) }

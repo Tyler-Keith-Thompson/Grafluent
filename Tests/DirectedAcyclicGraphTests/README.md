@@ -2,21 +2,17 @@
 
 `DirectedAcyclicGraphModule` has one type, `DirectedAcyclicGraph<Base>`. It wraps a mutable directed
 representation, rejects any edge that would close a cycle, and keeps a topological order of its
-vertices current under insertions and removals, using Pearce–Kelly as JGraphT and petgraph do. It is
-a `GraphDelegator`: every read member, `generation` and the attached maps are the base's. The tests come from the proposed API (`api.md` in
-[`Tests/Catalogs/DirectedAcyclicGraph/`](../Catalogs/DirectedAcyclicGraph/), phase 1). Its open
-questions are decided as recommended, with these exceptions:
+vertices current under insertions and removals with Pearce–Kelly. It is a `GraphDelegator`: every
+read member, `generation` and the attached maps are the base's. The API is listed in `api.md` in
+[`Tests/Catalogs/DirectedAcyclicGraph/`](../Catalogs/DirectedAcyclicGraph/).
 
-- **No `EdgeInsertion` type.** `insert(edge:) throws(AcyclicEdgeError) -> Edges.Index` returns the
-  new position, or throws `.cycle` when the edge would close a cycle and `.selfLoop` for a
-  self-loop. `insert(checked:)` also throws `.missingEndpoint`, changing nothing, when an endpoint
-  is missing.
-- **The witness for a rejected u→v** is Traversal's existing query
-  `bidirectionalShortestPath(from: v, to: u)`. The tests check that it exists and is a genuine
-  shortest path. They do not pin a particular depth-first path.
-- **`Base: MutableDirectedGraph`**, a GraphProtocols protocol after BGL's `MutableGraph`. Its
-  phase-1 conformers are `AdjacencyList`, `DirectedPseudograph` and `StableDirectedGraph`. The tests
-  use only these three concrete bases and never name the protocol or its hooks.
+- `insert(edge:) throws(AcyclicEdgeError) -> Edges.Index` returns the new position, or throws
+  `.cycle` when the edge would close a cycle and `.selfLoop` for a self-loop. `insert(checked:)`
+  also throws `.missingEndpoint`, changing nothing, when an endpoint is missing.
+- The witness for a rejected u→v is Traversal's `bidirectionalShortestPath(from: v, to: u)`. The
+  tests check that it exists and is a shortest path. They do not pin a particular path.
+- `Base` is any `MutableDirectedGraph`. The tests use the three concrete bases `AdjacencyList`,
+  `DirectedPseudograph` and `StableDirectedGraph`, and never name the protocol or its hooks.
 
 The suite uses only the public API, and each test is self-contained. The only shared material is
 the seeded generator and the tags in `GrafluentTestSupport`.
@@ -59,8 +55,8 @@ struct DirectedAcyclicGraph<Base: MutableDirectedGraph>: BidirectionalDirectedGr
 | `insert(checked:)` | Throws `.missingEndpoint` for a missing endpoint (checked first), otherwise as `insert(edge:)` | DAG-044 – DAG-048 |
 | Removal | Keeps the order. `remove(_:)` leaves a hole in the vertex's slot (trimmed at either end; the slots are compacted once holes outnumber vertices), places count past the holes, and a swap-removed base's moved vertex keeps its slot; `removeAllEdges()` keeps the order; `removeAll()` clears it | DAG-049 – DAG-069 |
 | Order queries | `topologicalPosition`, the order's subscript, and an order-pruned `hasPath` (true for the same vertex) | DAG-070 – DAG-078 |
-| Equality | The base's: the order is history and does not count | DAG-079, DAG-080 |
-| Algorithms | `transitiveClosure()` appends the missing edges per source in topological order. `transitiveReduction()` keeps the first copy, at fresh positions. `longestPath()` takes the first tying in-edge and the first end in topological order; `longestPath(weight:)` is NetworkX's `dag_longest_path(weight=)`, restarting at zero where the best is negative; `dagShortestPaths` (ShortestPaths) relaxes in the order, and agrees with the generic run on `base` | DAG-081 – DAG-111 |
+| Equality | The base's. The order does not count | DAG-079, DAG-080 |
+| Algorithms | `transitiveClosure()` appends the missing edges per source in topological order. `transitiveReduction()` keeps the first copy, at fresh positions. `longestPath()` takes the first tying in-edge and the first end in topological order. `longestPath(weight:)` restarts at zero where the best is negative. `dagShortestPaths` (ShortestPaths) relaxes in the order and agrees with the generic run on `base` | DAG-081 – DAG-111 |
 | Codable | `{base, order}`, with the order as offsets into `base.vertices`. Decoding re-checks the payload: a cycle (at `base`), an order that is not a permutation (too short, too long, a repeat, an offset out of range) or a backward edge (at `order`) is `dataCorrupted`. On every base, holes included; a Stable vertex at position 2⁵⁰ costs one page | DAG-112 – DAG-123 |
 
 ## How values are pinned
@@ -140,12 +136,13 @@ not from the setup.
   path. Churn on each base puts new sources first and new targets last, reorders and removes
   anywhere (so the free front slots grow, holes are made, trimmed and compacted), and after each
   round checks every place three ways and every subscript against the order.
-- **Review findings.** The attached maps of a `StableDirectedGraph` base, through the wrapper
-  (README Q9); `remove(_:)` as a `MutableDirectedGraph` requirement, from generic code; vertex
-  removal through the wrapper hashing as the bare base's removal does (one more on the stable
-  base, whose removal finds and drops the vertex in one dictionary operation), compared between
-  two copies of one base since a dictionary removal rehashes the entries it shifts; the three
-  errors of `insert(checked:)`, each with nothing changed.
+- **Wrapper behavior** (`DirectedAcyclicGraphReviewTests.swift`). The attached maps of a
+  `StableDirectedGraph` base, through the wrapper. `remove(_:)` as a `MutableDirectedGraph`
+  requirement, from generic code. Vertex removal through the wrapper hashing as the bare base's
+  removal does (one more on the stable base, whose removal finds and drops the vertex in one
+  dictionary operation), compared between two copies of one base since a dictionary removal
+  rehashes the entries it shifts. The three errors of `insert(checked:)`, each with nothing
+  changed.
 - **Attached maps and generations** (swift-property-based, with shrinking). On each base, random
   insertions (some rejected), removals by vertex, pair and position, resets, value writes and copies
   run with three maps attached through the wrapper, against a model that keys each edge by an
@@ -157,35 +154,3 @@ not from the setup.
 - **ShortestPaths** (`Tests/ShortestPathsTests/DAGShortestPathTests.swift`): `dagShortestPaths`
   on every representation, `nil` exactly when a cycle is reachable, several sources, ties, and
   random DAGs with holes against Bellman–Ford.
-
-## Planted bugs
-
-The suite was checked against 19 bugs planted in a Swift model of the API, built over the real
-bases in a scratch copy of the workspace. It caught 17 of them. The other two are equivalent: they
-drop Pearce–Kelly's bounds on the searches, letting the forward search pass the source's place or
-the backward search pass the target's. The extra vertices then sort to the ends of the moved list
-and take back their own places, so the order comes out the same and only the work grows. That is a
-benchmark property, not a test one. A first run let `transitiveClosure()` appending in `vertices`
-order survive, because every closure row had the two orders equal; DAG-075 was added for it.
-
-| Planted bug | Caught by |
-|---|---|
-| A self-loop accepted | DAG-030, DAG-031, DAG-044, conformance, properties |
-| Missing endpoints inserted target first | DAG-014, DAG-029, DAG-057 |
-| `insert(checked:)` inserting missing endpoints | DAG-045, properties |
-| A backward edge inserted without the reorder | 45 tests: reordering rows, conformance, properties, stress |
-| F placed before B | DAG-014, DAG-016, 27 more |
-| B and F each placed in reverse old order | DAG-014, DAG-016, DAG-023, DAG-027, DAG-028 |
-| A cycle-closing edge inserted anyway | DAG-029, DAG-032 – DAG-035, properties |
-| `remove(_:)` leaving the shifted tail's places stale | properties (a trap) |
-| `removeAll()` keeping the order | resets, properties |
-| `insert(_:)` of an existing vertex appending it again | DAG-012 – DAG-015, 30 more |
-| `hasPath` pruning at the source's place | DAG-066, conformance, stress |
-| `transitiveClosure()` appending in `vertices` order | DAG-075 |
-| `transitiveReduction()` keeping parallel copies | DAG-077 |
-| `longestPath()` taking the last tying in-edge | DAG-086 |
-| Decoding without the backward-edge check | DAG-090 |
-| Equality comparing the order | DAG-068, equality, descriptions |
-| The bulk order taking roots in reverse | DAG-002, DAG-003, DAG-005, 18 more |
-
-The suite also passes against the implementation in `Sources/DirectedAcyclicGraphModule`.

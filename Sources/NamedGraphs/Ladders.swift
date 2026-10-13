@@ -29,7 +29,7 @@ func _ladderPairs(_ n: Int, circular: Bool) -> [DirectedEdge<Int>] {
 
 extension _GraphConstruction {
     /// The ladder graph L_n with `rungCount` rungs: the paths 0–1–…–(n − 1) and n–(n + 1)–…–(2n − 1),
-    /// and the rungs i–(i + n) (NetworkX `ladder_graph`, numbered the same way). 2n vertices and
+    /// and the rungs i–(i + n). 2n vertices and
     /// 3n − 2 edges (none when n = 0), sorted. `ladder(rungCount: 1)` is K₂. O(n).
     ///
     /// - Precondition: `rungCount ≥ 0`, and 2n fits in `Int`.
@@ -40,11 +40,10 @@ extension _GraphConstruction {
     }
 
     /// The circular ladder graph CL_n (the n-prism) with `rungCount` rungs: the cycles
-    /// 0–1–…–(n − 1)–0 and n–(n + 1)–…–(2n − 1)–n, and the rungs i–(i + n) (NetworkX
-    /// `circular_ladder_graph`, numbered the same way). 2n vertices, 3n edges, sorted. O(n).
+    /// 0–1–…–(n − 1)–0 and n–(n + 1)–…–(2n − 1)–n, and the rungs i–(i + n). 2n vertices, 3n
+    /// edges, sorted. O(n).
     ///
     /// - Precondition: `rungCount ≥ 3`, so that each rail is a cycle, as for `cycle(vertexCount:)`.
-    ///   NetworkX accepts 2 and returns the 4-cycle, the ladder L₂.
     @inlinable
     public static func circularLadder(rungCount n: Int) -> Self {
         let pairs = _ladderPairs(n, circular: true)

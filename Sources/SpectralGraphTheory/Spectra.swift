@@ -2,16 +2,16 @@ import GraphProtocols
 
 extension Graph {
     /// Every eigenvalue of the adjacency matrix A (`adjacencyMatrix()`), ascending, with multiplicity.
-    /// NetworkX `adjacency_spectrum`.
+    ///
     ///
     /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     ///
     /// - Precondition: `maxIterations`, when given, is at least 1.
-    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil, as
-    ///   LAPACK's `dsterf`), with that count and the off-diagonal entry being reduced, relative to
-    ///   the largest entry of its block. The iteration converges cubically, about two iterations
-    ///   per eigenvalue, so only a much smaller limit reaches it.
+    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil),
+    /// with that count and the off-diagonal entry being reduced, relative to the largest entry of
+    /// its block. The iteration converges cubically, about two iterations per eigenvalue, so only a
+    /// much smaller limit reaches it.
     @inlinable
     public func adjacencySpectrum(maxIterations: Int? = nil) throws(NoConvergence) -> [Double] {
         _checkMaxIterations(maxIterations)
@@ -19,7 +19,7 @@ extension Graph {
     }
 
     /// Every eigenvalue of the adjacency matrix A (`adjacencyMatrix()`), ascending, with multiplicity.
-    /// NetworkX `adjacency_spectrum`.
+    ///
     ///
     /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
@@ -27,10 +27,10 @@ extension Graph {
     /// `weight` gives the weight of the edge at each position, read once per position.
     ///
     /// - Precondition: every weight is finite, and `maxIterations`, when given, is at least 1.
-    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil, as
-    ///   LAPACK's `dsterf`), with that count and the off-diagonal entry being reduced, relative to
-    ///   the largest entry of its block. The iteration converges cubically, about two iterations
-    ///   per eigenvalue, so only a much smaller limit reaches it.
+    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil),
+    /// with that count and the off-diagonal entry being reduced, relative to the largest entry of
+    /// its block. The iteration converges cubically, about two iterations per eigenvalue, so only a
+    /// much smaller limit reaches it.
     @inlinable
     public func adjacencySpectrum<W: BinaryInteger>(weight: (Edges.Index) -> W, maxIterations: Int? = nil) throws(NoConvergence) -> [Double] {
         _checkMaxIterations(maxIterations)
@@ -38,7 +38,7 @@ extension Graph {
     }
 
     /// Every eigenvalue of the adjacency matrix A (`adjacencyMatrix()`), ascending, with multiplicity.
-    /// NetworkX `adjacency_spectrum`.
+    ///
     ///
     /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
@@ -46,10 +46,10 @@ extension Graph {
     /// `weight` gives the weight of the edge at each position, read once per position.
     ///
     /// - Precondition: every weight is finite, and `maxIterations`, when given, is at least 1.
-    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil, as
-    ///   LAPACK's `dsterf`), with that count and the off-diagonal entry being reduced, relative to
-    ///   the largest entry of its block. The iteration converges cubically, about two iterations
-    ///   per eigenvalue, so only a much smaller limit reaches it.
+    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil),
+    /// with that count and the off-diagonal entry being reduced, relative to the largest entry of
+    /// its block. The iteration converges cubically, about two iterations per eigenvalue, so only a
+    /// much smaller limit reaches it.
     @inlinable
     public func adjacencySpectrum<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, maxIterations: Int? = nil) throws(NoConvergence) -> [Double] {
         _checkMaxIterations(maxIterations)
@@ -57,16 +57,16 @@ extension Graph {
     }
 
     /// Every eigenvalue of the Laplacian L (`laplacianMatrix()`), ascending, with multiplicity: 0
-    /// once per component. NetworkX `laplacian_spectrum`.
+    /// once per component.
     ///
     /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     ///
     /// - Precondition: `maxIterations`, when given, is at least 1.
-    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil, as
-    ///   LAPACK's `dsterf`), with that count and the off-diagonal entry being reduced, relative to
-    ///   the largest entry of its block. The iteration converges cubically, about two iterations
-    ///   per eigenvalue, so only a much smaller limit reaches it.
+    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil),
+    /// with that count and the off-diagonal entry being reduced, relative to the largest entry of
+    /// its block. The iteration converges cubically, about two iterations per eigenvalue, so only a
+    /// much smaller limit reaches it.
     @inlinable
     public func laplacianSpectrum(maxIterations: Int? = nil) throws(NoConvergence) -> [Double] {
         _checkMaxIterations(maxIterations)
@@ -74,7 +74,7 @@ extension Graph {
     }
 
     /// Every eigenvalue of the Laplacian L (`laplacianMatrix()`), ascending, with multiplicity: 0
-    /// once per component. NetworkX `laplacian_spectrum`.
+    /// once per component.
     ///
     /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
@@ -84,10 +84,10 @@ extension Graph {
     ///
     /// - Precondition: every weight is finite and nonnegative, and `maxIterations`, when given, is
     ///   at least 1.
-    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil, as
-    ///   LAPACK's `dsterf`), with that count and the off-diagonal entry being reduced, relative to
-    ///   the largest entry of its block. The iteration converges cubically, about two iterations
-    ///   per eigenvalue, so only a much smaller limit reaches it.
+    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil),
+    /// with that count and the off-diagonal entry being reduced, relative to the largest entry of
+    /// its block. The iteration converges cubically, about two iterations per eigenvalue, so only a
+    /// much smaller limit reaches it.
     @inlinable
     public func laplacianSpectrum<W: BinaryInteger>(weight: (Edges.Index) -> W, maxIterations: Int? = nil) throws(NoConvergence) -> [Double] {
         _checkMaxIterations(maxIterations)
@@ -95,7 +95,7 @@ extension Graph {
     }
 
     /// Every eigenvalue of the Laplacian L (`laplacianMatrix()`), ascending, with multiplicity: 0
-    /// once per component. NetworkX `laplacian_spectrum`.
+    /// once per component.
     ///
     /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
@@ -105,10 +105,10 @@ extension Graph {
     ///
     /// - Precondition: every weight is finite and nonnegative, and `maxIterations`, when given, is
     ///   at least 1.
-    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil, as
-    ///   LAPACK's `dsterf`), with that count and the off-diagonal entry being reduced, relative to
-    ///   the largest entry of its block. The iteration converges cubically, about two iterations
-    ///   per eigenvalue, so only a much smaller limit reaches it.
+    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil),
+    /// with that count and the off-diagonal entry being reduced, relative to the largest entry of
+    /// its block. The iteration converges cubically, about two iterations per eigenvalue, so only a
+    /// much smaller limit reaches it.
     @inlinable
     public func laplacianSpectrum<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, maxIterations: Int? = nil) throws(NoConvergence) -> [Double] {
         _checkMaxIterations(maxIterations)
@@ -116,17 +116,16 @@ extension Graph {
     }
 
     /// Every eigenvalue of the normalized Laplacian N (`normalizedLaplacianMatrix()`), ascending,
-    /// with multiplicity, in [0, 2]; also the spectrum of the random-walk Laplacian. NetworkX
-    /// `normalized_laplacian_spectrum`.
+    /// with multiplicity, in [0, 2]; also the spectrum of the random-walk Laplacian.
     ///
     /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
     ///
     /// - Precondition: `maxIterations`, when given, is at least 1.
-    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil, as
-    ///   LAPACK's `dsterf`), with that count and the off-diagonal entry being reduced, relative to
-    ///   the largest entry of its block. The iteration converges cubically, about two iterations
-    ///   per eigenvalue, so only a much smaller limit reaches it.
+    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil),
+    /// with that count and the off-diagonal entry being reduced, relative to the largest entry of
+    /// its block. The iteration converges cubically, about two iterations per eigenvalue, so only a
+    /// much smaller limit reaches it.
     @inlinable
     public func normalizedLaplacianSpectrum(maxIterations: Int? = nil) throws(NoConvergence) -> [Double] {
         _checkMaxIterations(maxIterations)
@@ -134,8 +133,7 @@ extension Graph {
     }
 
     /// Every eigenvalue of the normalized Laplacian N (`normalizedLaplacianMatrix()`), ascending,
-    /// with multiplicity, in [0, 2]; also the spectrum of the random-walk Laplacian. NetworkX
-    /// `normalized_laplacian_spectrum`.
+    /// with multiplicity, in [0, 2]; also the spectrum of the random-walk Laplacian.
     ///
     /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
@@ -145,10 +143,10 @@ extension Graph {
     ///
     /// - Precondition: every weight is finite and nonnegative, and `maxIterations`, when given, is
     ///   at least 1.
-    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil, as
-    ///   LAPACK's `dsterf`), with that count and the off-diagonal entry being reduced, relative to
-    ///   the largest entry of its block. The iteration converges cubically, about two iterations
-    ///   per eigenvalue, so only a much smaller limit reaches it.
+    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil),
+    /// with that count and the off-diagonal entry being reduced, relative to the largest entry of
+    /// its block. The iteration converges cubically, about two iterations per eigenvalue, so only a
+    /// much smaller limit reaches it.
     @inlinable
     public func normalizedLaplacianSpectrum<W: BinaryInteger>(weight: (Edges.Index) -> W, maxIterations: Int? = nil) throws(NoConvergence) -> [Double] {
         _checkMaxIterations(maxIterations)
@@ -156,8 +154,7 @@ extension Graph {
     }
 
     /// Every eigenvalue of the normalized Laplacian N (`normalizedLaplacianMatrix()`), ascending,
-    /// with multiplicity, in [0, 2]; also the spectrum of the random-walk Laplacian. NetworkX
-    /// `normalized_laplacian_spectrum`.
+    /// with multiplicity, in [0, 2]; also the spectrum of the random-walk Laplacian.
     ///
     /// Dense: Householder tridiagonalization and the root-free QL iteration, O(n³) time and n²
     /// `Double`s, for graphs of up to a few thousand vertices. `[]` for the empty graph.
@@ -167,10 +164,10 @@ extension Graph {
     ///
     /// - Precondition: every weight is finite and nonnegative, and `maxIterations`, when given, is
     ///   at least 1.
-    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil, as
-    ///   LAPACK's `dsterf`), with that count and the off-diagonal entry being reduced, relative to
-    ///   the largest entry of its block. The iteration converges cubically, about two iterations
-    ///   per eigenvalue, so only a much smaller limit reaches it.
+    /// - Throws: `NoConvergence` after `maxIterations` QL/QR iterations in all (30 n when nil),
+    /// with that count and the off-diagonal entry being reduced, relative to the largest entry of
+    /// its block. The iteration converges cubically, about two iterations per eigenvalue, so only a
+    /// much smaller limit reaches it.
     @inlinable
     public func normalizedLaplacianSpectrum<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, maxIterations: Int? = nil) throws(NoConvergence) -> [Double] {
         _checkMaxIterations(maxIterations)

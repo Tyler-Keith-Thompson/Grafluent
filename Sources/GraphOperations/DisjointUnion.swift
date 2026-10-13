@@ -11,8 +11,9 @@ func _appendRow(_ row: inout [Int], from source: Int, offset: Int, to edges: ino
     }
 }
 
-/// Appends the rows of `graph`, sorted with repeats removed and offset, then `extra` targets for
-/// each source: the bulk edges of a disjoint union or a join.
+/// Appends the rows of `graph`, sorted with repeats removed and offset, with the `before` targets
+/// ahead of each row and the `after` targets behind it. These are the bulk edges of a disjoint
+/// union or a join.
 @inlinable
 func _appendRows<G: DirectedGraph>(
     of graph: G, count n: Int, offset: Int, before: Range<Int>, after: Range<Int>, to edges: inout [DirectedEdge<Int>]
@@ -55,13 +56,12 @@ func _appendUndirectedRows<G: Graph>(
 
 extension _DirectedGraphConstruction {
     /// The disjoint union of `g` and `h`: `g`'s vertices at indices `0..<|V(g)|`, then `h`'s, each
-    /// offset by `|V(g)|`, and the arcs of both (NetworkX's `disjoint_union`, igraph's
-    /// `disjoint_union`). Parallel arcs merge.
+    /// offset by `|V(g)|`, and the arcs of both. Parallel arcs merge.
     ///
     /// O(n + m + the row sorts).
     ///
-    /// - Precondition: both graphs have vertex indices and no self-loop (phase 1: the construction
-    ///   targets take none).
+    /// - Precondition: both graphs have vertex indices and no self-loop. The construction targets
+    ///   take no self-loops.
     @inlinable
     public static func disjointUnion(_ g: some DirectedGraph, _ h: some DirectedGraph) -> Self {
         let ng = _requireIndices(g.vertexIndexBound, "disjointUnion(_:_:)")
@@ -73,13 +73,12 @@ extension _DirectedGraphConstruction {
         return Self(_vertexCount: ng + nh, sortedEdges: edges, _ConstructionToken())
     }
 
-    /// The join of `g` and `h` (Harary's G + H; NetworkX's `full_join`, Mathematica's
-    /// `GraphJoin`): their disjoint union, numbered as there, plus an arc each way between every
-    /// vertex of `g` and every vertex of `h`. Parallel arcs merge.
+    /// The join of `g` and `h`, written G + H: their disjoint union, numbered as there, plus an arc
+    /// each way between every vertex of `g` and every vertex of `h`. Parallel arcs merge.
     ///
     /// O(n + m + |V(g)|·|V(h)| + the row sorts).
     ///
-    /// - Precondition: both graphs have vertex indices and no self-loop (phase 1).
+    /// - Precondition: both graphs have vertex indices and no self-loop.
     @inlinable
     public static func join(_ g: some DirectedGraph, _ h: some DirectedGraph) -> Self {
         let ng = _requireIndices(g.vertexIndexBound, "join(_:_:)")
@@ -98,7 +97,7 @@ extension _GraphConstruction {
     ///
     /// O(n + m + the row sorts).
     ///
-    /// - Precondition: both graphs have vertex indices and no self-loop (phase 1).
+    /// - Precondition: both graphs have vertex indices and no self-loop.
     @inlinable
     public static func disjointUnion(_ g: some Graph, _ h: some Graph) -> Self {
         let ng = _requireIndices(g.vertexIndexBound, "disjointUnion(_:_:)")
@@ -110,13 +109,13 @@ extension _GraphConstruction {
         return Self(_vertexCount: ng + nh, sortedEdges: edges, _ConstructionToken())
     }
 
-    /// The join of `g` and `h` (Harary's G + H, Zykov's join): their disjoint union plus an edge
-    /// between every vertex of `g` and every vertex of `h`. K_m + K_n is K_{m+n}. Parallel edges
+    /// The join of `g` and `h`, written G + H: their disjoint union plus an edge between every
+    /// vertex of `g` and every vertex of `h`. K_m + K_n is K_{m+n}. Parallel edges
     /// merge.
     ///
     /// O(n + m + |V(g)|·|V(h)| + the row sorts).
     ///
-    /// - Precondition: both graphs have vertex indices and no self-loop (phase 1).
+    /// - Precondition: both graphs have vertex indices and no self-loop.
     @inlinable
     public static func join(_ g: some Graph, _ h: some Graph) -> Self {
         let ng = _requireIndices(g.vertexIndexBound, "join(_:_:)")

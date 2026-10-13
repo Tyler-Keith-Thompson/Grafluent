@@ -83,8 +83,7 @@ func _colorWeight(_ id: Int) -> UInt64 {
 
 
 /// An ordered partition of `0..<count` refined to the coarsest equitable partition below it, with
-/// an undo trail (McKay 1981; McKay & Piperno 2014; bliss's sparse refinement, Junttila & Kaski
-/// 2007).
+/// an undo trail (McKay 1981; McKay & Piperno 2014; sparse refinement, Junttila & Kaski 2007).
 ///
 /// Cells are ranges of `elements`, named by their first position; `cellOf` maps a vertex to its
 /// cell. Splitting a cell keeps the untouched part (or the first fragment) at the cell's start and
@@ -98,10 +97,10 @@ func _colorWeight(_ id: Int) -> UInt64 {
 /// singletons. Removing a cell from the list keeps its own links, and the trail undoes every change
 /// in reverse order, so a removed cell goes back between the same neighbours (dancing links).
 ///
-/// In balanced mode (isomorphism, on the union of G and H) every cell must hold as many vertices
-/// of G as of H; a split that breaks this fails the refinement, which is the search's pruning.
+/// In balanced mode (isomorphism, on the union of G and H) every cell must hold as many vertices of
+/// G as of H; a split that breaks this fails the refinement, which is the search's pruning.
 /// Otherwise (one graph) the refinement is label-invariant: touched cells split in position order,
-/// and `trace` hashes the cell structure each step produces (the node invariant of nauty and bliss).
+/// and `trace` hashes the cell structure each step produces (the search's node invariant).
 final class _PartitionRefinement {
     let graph: _RefinementGraph
     let count: Int

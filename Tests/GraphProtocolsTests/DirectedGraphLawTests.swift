@@ -1,6 +1,6 @@
-// The protocol's laws on a multigraph (the test conformer in ReferenceDirectedMultigraph.swift), where parallel
-// edges must count once per copy, and on seeded random graphs through every representation.
-// Case IDs (DG-Lnn, DG-Rnn, DG-Pnn) refer to the catalog in README.md.
+// The protocol's laws on a multigraph (the test conformer ReferenceDirectedMultigraph), where
+// parallel edges must count once per copy, and on seeded random graphs through every
+// representation. Case IDs (DG-Lnn, DG-Rnn, DG-Pnn) refer to Tests/Catalogs/GraphProtocols/directed-graph.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule

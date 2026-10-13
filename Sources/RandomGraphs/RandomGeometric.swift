@@ -22,8 +22,8 @@ import NamedGraphs
 ///
 /// Every pair is checked instead, in O(n²·d), when the grid would have one cell per side (r ≥ 1/2,
 /// where most pairs are edges anyway) or when 3^d > n: then each point would visit more
-/// neighboring cells than there are points, and c^d ≤ n leaves c ≤ 2 in any case. A caller with a
-/// large n in high dimension pays O(n·3^d), which for 3^d close to n is no better than all pairs.
+/// neighboring cells than there are points, and c^d ≤ n leaves c ≤ 2 in any case. For 3^d close
+/// to n, the grid's O(n·3^d) is no better than all pairs.
 ///
 /// The points are visited cell by cell, with their coordinates copied into cell order, so the
 /// distance checks read memory in order. Each pair of neighboring cells is visited once, so each
@@ -215,17 +215,15 @@ func _randomGeometric<G: RandomNumberGenerator>(
 
 extension _GraphConstruction {
     /// A random geometric graph: n points uniform in the unit cube [0, 1)^dimension, and an edge
-    /// u–v when their Euclidean distance is at most `radius` (Gilbert's random plane network;
-    /// NetworkX `random_geometric_graph`, igraph `GRG`). The positions are drawn vertex by vertex,
-    /// coordinate by coordinate, each one `uniform01`, and returned beside the graph:
-    /// `positions[v * dimension + i]` is coordinate i of vertex v. The test is the squared
-    /// distance, summed in coordinate order, against r², as NetworkX computes it, so the draws and
-    /// edges are NetworkX's on the same stream. Edges sorted. Close pairs are found through a grid
-    /// of cells of side at least r, so the cost is O(n + m) expected for uniform points, plus 3^d
-    /// per point, r = 0 included. Every pair is checked instead, O(n²·d), when r ≥ 1/2 (most pairs
-    /// are then edges) or when 3^d > n (each point would visit more cells than there are points).
+    /// u–v when their Euclidean distance is at most `radius` (Gilbert's random plane network). The
+    /// positions are drawn vertex by vertex, coordinate by coordinate, and returned beside the
+    /// graph: `positions[v * dimension + i]` is coordinate i of vertex v. The edge test compares
+    /// the squared distance, summed in coordinate order, against r².
     ///
-    /// - Precondition: `vertexCount ≥ 0`, `radius ≥ 0` (not NaN), `dimension ≥ 1`.
+    /// - Complexity: O(n + m) expected for uniform points, plus 3^d per point. Close pairs are
+    ///   found through a grid of cells of side at least r. When r ≥ 1/2 or 3^d > n, every pair is
+    ///   checked instead, in O(n²·d).
+    /// - Precondition: `vertexCount ≥ 0`, `radius ≥ 0` (not NaN), and `dimension ≥ 1`.
     @inlinable
     public static func randomGeometric(
         vertexCount n: Int, radius r: Double, dimension: Int = 2, using generator: inout some RandomNumberGenerator
@@ -245,12 +243,11 @@ extension _GraphConstruction {
 
 extension _DirectedGraphConstruction {
     /// The random geometric graph with both arcs for every edge, as the directed `complete` and
-    /// `grid` have them: the undirected form's draws, positions and pairs, then u → v and v → u in
-    /// row-major order. The relation is symmetric, so neither NetworkX nor igraph has a separate
-    /// directed model; this is `randomGeometric(…)` as a `DiGraph`. O(n + m) expected, as the
-    /// undirected form.
+    /// `grid` have them. It makes the undirected form's draws and returns its positions, with each
+    /// edge as u → v and v → u.
     ///
-    /// - Precondition: `vertexCount ≥ 0`, `radius ≥ 0` (not NaN), `dimension ≥ 1`.
+    /// - Complexity: As for the undirected form.
+    /// - Precondition: `vertexCount ≥ 0`, `radius ≥ 0` (not NaN), and `dimension ≥ 1`.
     @inlinable
     public static func randomGeometric(
         vertexCount n: Int, radius r: Double, dimension: Int = 2, using generator: inout some RandomNumberGenerator

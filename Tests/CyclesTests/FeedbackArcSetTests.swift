@@ -1,8 +1,6 @@
 // feedbackArcSet() and feedbackArcSet(weight:): Eades, Lin and Smyth's greedy feedback arc set,
-// with every self-loop in it (igraph's feedback_arc_set(method="eades") includes loops). Expected
-// sets were checked against python-igraph 1.0 on each graph here; on other graphs igraph's bucket
-// order can break ties differently. Removing the returned edges leaves an acyclic graph, checked
-// by Kahn's algorithm inside each test.
+// with every self-loop in it. Removing the returned edges leaves an acyclic graph, checked by
+// Kahn's algorithm inside each test.
 
 import Cycles
 import GraphProtocols
@@ -16,7 +14,7 @@ struct FeedbackArcSetTests {
     func selfLoops() {
         let graph = ReferenceDirectedMultigraph(edges: [(0, 0), (0, 1), (1, 0)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(graph.feedbackArcSet() == [0, 2])
-        // Weights do not keep a loop out; here they move the other arc (igraph: [0, 1]).
+        // Weights do not keep a loop out; here they move the other arc.
         #expect(graph.feedbackArcSet(weight: { [5.0, 1, 2][$0] }) == [0, 1])
         // A graph whose only cycles are loops.
         let loops = ReferenceDirectedMultigraph(edges: [(0, 1), (1, 1), (1, 2), (2, 2), (2, 2)].map { DirectedEdge(from: $0.0, to: $0.1) })
@@ -27,11 +25,11 @@ struct FeedbackArcSetTests {
     @Test("Weights steer the set toward light arcs (igraph's weights)")
     func weightsSteer() {
         // A triangle 0 → 1 → 2 → 0 with a second 0 → 1: unweighted the heuristic takes 2 → 0;
-        // with 2 → 0 heavy it takes 1 → 2 instead (igraph: [2], then [1]).
+        // with 2 → 0 heavy it takes 1 → 2 instead.
         let triangle = ReferenceDirectedMultigraph(edges: [(0, 1), (1, 2), (2, 0), (0, 1)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(triangle.feedbackArcSet() == [2])
         #expect(triangle.feedbackArcSet(weight: { [1.0, 1, 5, 1][$0] }) == [1])
-        // A 4-cycle 0 → 1 → 2 → 3 → 0 with the chord 1 → 3 (igraph: [0], then [2, 4]).
+        // A 4-cycle 0 → 1 → 2 → 3 → 0 with the chord 1 → 3.
         let square = ReferenceDirectedMultigraph(edges: [(0, 1), (1, 2), (2, 3), (3, 0), (1, 3)].map { DirectedEdge(from: $0.0, to: $0.1) })
         #expect(square.feedbackArcSet() == [0])
         #expect(square.feedbackArcSet(weight: { [1.0, 1, 1, 10, 1][$0] }) == [2, 4])
@@ -85,7 +83,7 @@ struct FeedbackArcSetTests {
             let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
             _ = graph.feedbackArcSet(weight: { _ in .greatestFiniteMagnitude })
         }
-        // Without the traps: negative and zero weights are allowed (igraph allows them).
+        // Without the traps: negative and zero weights are allowed.
         let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
         #expect(graph.feedbackArcSet(weight: { $0 == 0 ? -1 : 0 }).count == 1)
     }

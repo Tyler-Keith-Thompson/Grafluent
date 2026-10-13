@@ -35,7 +35,7 @@ struct DisjointSetPreconditionTests {
             d.union(8, 0)
         }
         await #expect(processExitsWith: .failure) {
-            // petgraph returns false here before checking the range.
+            // The range is checked even when both arguments are the same element.
             var d = DisjointSet(count: 8)
             d.union(8, 8)
         }

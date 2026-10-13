@@ -1,7 +1,7 @@
 // The views between the two protocols, `directedView` (each edge as two opposite arcs) and
-// `undirectedView` (each arc as an edge), and conversions through them. Expected values come from
-// NetworkX `to_directed` / `to_undirected` and JGraphT `AsUndirectedGraph`. Case IDs (UG-Cnn)
-// refer to the catalog in README.md.
+// `undirectedView` (each arc as an edge), and conversions through them. Expected values for the
+// converted graphs come from NetworkX `to_directed` / `to_undirected`. Case IDs (UG-Cnn) refer to
+// Tests/Catalogs/GraphProtocols/graph.md.
 
 import AdjacencyListModule
 import CompressedSparseRowModule
@@ -211,7 +211,7 @@ struct GraphViewTests {
             (g.edgeCount, Dictionary(uniqueKeysWithValues: g.vertices.map { ($0, g.degree(of: $0)) }))
         }
         let view = AdjacencyList(edges: DirectedFixture<Int>.triangleWithReciprocalEdge.edges).undirectedView
-        // JGraphT AsUndirectedGraph: a multigraph.
+        // The view keeps both arcs: a multigraph.
         #expect(summary(view).edges == 4)
         #expect(summary(view).degree == [1: 3, 2: 3, 3: 2])
         #expect(Array(view.neighbors(of: 1)).filter { $0 == 2 }.count == 2)

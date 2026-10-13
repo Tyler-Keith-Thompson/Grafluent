@@ -13,7 +13,7 @@ import GraphProtocols
 // MARK: - MutableDirectedGraph
 
 extension MutableDirectedGraph {
-    /// Reads DOT (Graphviz): `digraph` only; `node`/`edge` defaults, `strict` merging, every value a
+    /// Reads DOT: `digraph` only; `node`/`edge` defaults, `strict` merging, every value a
     /// string. `vertex` maps each new ID once (`nil`: `invalidVertex` at the ID).
     @inlinable public init(
         dot input: some Sequence<UInt8>,
@@ -46,7 +46,7 @@ extension MutableDirectedGraph {
         }
     }
 
-    /// Reads NetworkX's node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
+    /// Reads node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
     /// `links`). `vertex` maps each node `id` (a string or an integer) once.
     @inlinable public init(
         nodeLinkJSON input: some Sequence<UInt8>,
@@ -247,7 +247,7 @@ extension MutableDirectedGraph where Vertex == Int {
 // MARK: - MutableGraph
 
 extension MutableGraph {
-    /// Reads DOT (Graphviz): `graph` only; `node`/`edge` defaults, `strict` merging, every value a
+    /// Reads DOT: `graph` only; `node`/`edge` defaults, `strict` merging, every value a
     /// string. `vertex` maps each new ID once (`nil`: `invalidVertex` at the ID).
     @inlinable public init(
         dot input: some Sequence<UInt8>,
@@ -280,7 +280,7 @@ extension MutableGraph {
         }
     }
 
-    /// Reads NetworkX's node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
+    /// Reads node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
     /// `links`). `vertex` maps each node `id` (a string or an integer) once.
     @inlinable public init(
         nodeLinkJSON input: some Sequence<UInt8>,

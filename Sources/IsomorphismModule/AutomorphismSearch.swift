@@ -1,6 +1,6 @@
 /// The automorphism group of one graph, and optionally its canonical labeling, by
-/// individualization–refinement with automorphism pruning (McKay 1981; McKay & Piperno 2014, nauty
-/// and Traces; Junttila & Kaski 2007, bliss).
+/// individualization–refinement with automorphism pruning (McKay 1981; McKay & Piperno 2014;
+/// Junttila & Kaski 2007).
 ///
 /// The search tree: the root is the equitable refinement of the colour partition; a node
 /// individualizes each vertex of its target cell (the first largest cell) in turn and refines
@@ -18,8 +18,8 @@
 ///   node's individualized vertices, maps onto a smaller candidate. Candidates go in increasing
 ///   order, so the smaller one was searched or skipped for the same reason.
 /// - Without canonical labeling, a node whose events differ from the first path's is pruned, and
-///   its refinement stops at the first differing event (bliss's early abort): no leaf below it is
-///   the image of the first leaf.
+///   its refinement stops at the first differing event (Junttila & Kaski's early abort): no leaf
+///   below it is the image of the first leaf.
 /// - With canonical labeling, the canonical leaf is the greatest by (the events along its path,
 ///   its certificate: the graph relabelled by the leaf's ordering), both independent of the vertex
 ///   numbering. A node whose events are already less than the best leaf's (and differ from the

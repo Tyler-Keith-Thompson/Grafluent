@@ -6,26 +6,26 @@ extension Graph {
     ///
     /// Every pair of vertices repels with force k²/d and every edge attracts its ends with force
     /// `weight` · d²/k, where d is their distance (at least 0.01) and k is `optimalDistance`
-    /// (default √(1/n), NetworkX's). Each step moves every vertex along its net force by at most
-    /// the temperature, which starts at a tenth of the larger side of the start's bounding box
-    /// (k/10 when every vertex starts at one point) and falls by the same amount each step,
-    /// reaching 0 after `iterations + 1` steps (NetworkX's schedule). Two vertices at exactly the
-    /// same point repel as if 0.01 apart, along a direction fixed by their two `vertices`
-    /// offsets, so a start with coincident vertices separates them deterministically. The run stops after `iterations` steps, or earlier once the moves'
-    /// root-sum-square divided by n is below `threshold`. Self-loops are ignored; parallel edges
+    /// (default √(1/n)). Each step moves every vertex along its net force by at most the
+    /// temperature, which starts at a tenth of the larger side of the start's bounding box (k/10
+    /// when every vertex starts at one point) and falls by the same amount each step, reaching 0
+    /// after `iterations + 1` steps. Two vertices at exactly the same point repel as if 0.01
+    /// apart, along a direction fixed by their two `vertices` offsets, so coincident vertices
+    /// separate deterministically. The run stops after `iterations` steps, or earlier once the
+    /// moves' root-sum-square divided by n is below `threshold`. Self-loops are ignored; parallel edges
     /// add their weights. The drawing is in layout units (vertices end about k apart), not
     /// rescaled. A directed graph is drawn through `undirectedView`.
     ///
     /// The start takes exactly 2n draws: x then y for each vertex in `vertices` order, each the
-    /// top 53 bits of one `next()`. The same generator state gives the same drawing; positions are
-    /// otherwise not stable across library versions, as any change in summation order changes
-    /// the digits of a chaotic iteration without changing its quality.
+    /// top 53 bits of one `next()`. The same generator state gives the same drawing. Positions are
+    /// not stable across library versions, because the iteration is chaotic and any change in
+    /// summation order changes its digits.
     ///
     /// Repulsion is exact by default: O(n²) per step, for graphs up to a few thousand vertices.
     /// `barnesHutTheta: θ` approximates it with a Barnes–Hut quadtree, O(n log n) per step: a
     /// square cell of side s whose centre of mass is at distance D from the vertex, and which does
-    /// not contain the vertex, acts as one body when s/D < θ. 1.2 is a common choice past about
-    /// 5,000 vertices; θ = 0 is exact repulsion.
+    /// not contain the vertex, acts as one body when s/D < θ. θ = 1.2 suits graphs past about 5,000 vertices;
+    /// θ = 0 is exact repulsion.
     ///
     /// - Fruchterman and Reingold, "Graph drawing by force-directed placement", Software: Practice
     ///   and Experience 21(11), 1991.

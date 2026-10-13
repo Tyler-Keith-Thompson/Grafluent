@@ -6,9 +6,8 @@ points away from the root) and `Forest` (acyclic, possibly empty). The first thr
 `Graph`s; `Arborescence` is a `BidirectionalDirectedGraph`. Beside them: the predicates
 `Graph.isTree` and `DirectedGraph.isArborescence`, construction from a graph, from vertices and
 edges, from a parent function, and from another tree type; the rooted queries; `path(from:to:)` as a
-Walks `Path<Vertex, Int>`; `Forest.trees` and `component(of:)`; and Prüfer codes. The tests were
-written before the implementation, from the proposed API (`api.md`, phase 1). The suite uses only
-the public API and is self-contained per test; shared material is the `ReferencePseudograph` and
+Walks `Path<Vertex, Int>`; `Forest.trees` and `component(of:)`; and Prüfer codes. The API under
+test is specified in `api.md`. The suite uses only the public API and is self-contained per test; shared material is the `ReferencePseudograph` and
 `ReferenceDirectedMultigraph` test conformers, `Collider`, `HashableBox`, `MinimalSequence`, the
 seeded generator and the tags in `GrafluentTestSupport`. Conformers private to a file model
 representations the package does not have (rows out of position order, no indices, an implicit
@@ -91,27 +90,27 @@ is exact; parent arrays and closures go to the initializers directly. Rows are r
 `CompressedSparseRow` (arcs rewritten in its row-major positions), the views, a conformer with
 reversed rows and one with no indices. Adjacency lists after removals are checked against rows
 and a preorder computed inside the test from the graph's own `edges`. Each literal is the catalog
-cell, computed by the reference (`ref.py`: api.md's model in index space, a naive recursive
-implementation, and NetworkX 3.7); literals that are not catalog cells (a few extra queries on
-catalog sources, CSR's row-major positions, a parent closure in DominatorTree's order, the stress
-shapes' endpoints) were computed with the same reference. The whole suite was also run against an
-independent Swift model of the API before the implementation existed, and against planted bugs in
-that model. The property tests write their oracles inside each test.
+cell, computed by the reference (`ref.py`, which evaluates api.md's model in index space and a
+naive recursive implementation, and checks both against NetworkX 3.7); literals that are not
+catalog cells (a few extra queries on catalog sources, CSR's row-major positions, a parent closure
+in DominatorTree's order, the stress shapes' endpoints) were computed with the same reference. The
+property tests write their oracles inside each test.
 
 ## Files
 
 | File | Tests | Covers |
 |---|---|---|
-| `TreeRecognitionTests.swift` | 31 | §A: `isTree`, `Tree(g)`, `Forest(g)`, `isAcyclic`: the null graph, K₁, K₂, loops, parallel pairs, m = n − 1 that is not a tree, an isolated vertex, igraph's binary tree, String vertices, positions; the equivalences on every source |
-| `ArborescenceRecognitionTests.swift` | 20 | §B: `isArborescence`, `Arborescence(g)`: in-trees, polytrees, cycles, parallel and opposite arcs, loops, branchings, two roots, the root not first, NetworkX's docstring pair, the unreached 2-cycle; the equivalence on every source |
+| `TreeRecognitionTests.swift` | 31 | §A: `isTree`, `Tree(g)`, `Forest(g)`, `isAcyclic`: the null graph, K₁, K₂, loops, parallel pairs, m = n − 1 that is not a tree, an isolated vertex, the complete binary tree kary(15,2), String vertices, positions; the equivalences on every source |
+| `ArborescenceRecognitionTests.swift` | 20 | §B: `isArborescence`, `Arborescence(g)`: in-trees, polytrees, cycles, parallel and opposite arcs, loops, branchings, two roots, the root not first, a five-vertex arborescence and its one-arc edit, the unreached 2-cycle; the equivalence on every source |
 | `TreeConstructionTests.swift` | 15 | §C: vertex order, repeats, endpoints added, positions, rows, one-vertex trees, conversions; single-pass sequences, the edge initializers' rejections, `Collider` and `HashableBox` vertices |
 | `ParentFunctionTests.swift` | 22 | §D: `init?(parents:)` and `init?(vertices:parent:)` on both rooted types: roots, two roots, no root, self-parents, out-of-range and negative parents, cycles, the empty array, children and edges in vertex order; a thrown error propagates |
 | `RootedQueryTests.swift` | 48 | §E: every rooted query on E1, E2, K₁, stars, paths and kary(15,2), rerooting, String vertices, the arborescence's queries; index-space queries; the queries' mutual consistency at every root |
 | `TreePathTests.swift` | 16 | §F: paths on `Tree`, `RootedTree`, `Arborescence` and `Forest`; every pair of E1 against breadth-first distances |
 | `ForestTests.swift` | 14 | §G: `trees` by least vertex, renumbered edges, listed order, isolated vertices, the empty forest, `Forest(tree)`, `component(of:)`, rejections; the trees partition the forest |
-| `PruferTests.swift` | 20 | §H: NetworkX's and igraph's codes, paths, stars, n < 2, out-of-range elements, index order over value order; all 125 codes of length 3 (Cayley), any `Sequence<Int>` |
+| `PruferTests.swift` | 20 | §H: known codes and round trips, paths, stars, n < 2, out-of-range elements, index order over value order; all 125 codes of length 3 (Cayley), any `Sequence<Int>` |
 | `TreeGraphRowTests.swift` | 16 | §I: rows, degrees, in- and out-edges; the `Graph` laws for `Tree`, `RootedTree` (at every root) and `Forest`, and the `DirectedGraph` / `BidirectionalDirectedGraph` laws for `Arborescence` |
 | `TreeEqualityTests.swift` | 10 | §J: order and orientation ignored, the root, ordered arcs, isolated vertices; sets, hashes, conversions |
+| `TreeIndexHookTests.swift` | 4 | The index-space hooks (`degree(ofIndex:)`, `endpointIndices(ofEdgeAt:)`, `outDegree(ofIndex:)`, `inDegree(ofIndex:)`, `sourceIndex(ofEdgeAt:)`, `targetIndex(ofEdgeAt:)`) against the vertex-space members |
 | `TreeConformanceTests.swift` | 7 | Codable round trips and the adjacency-list format both ways, invalid encodings throwing `dataCorrupted`, descriptions, `Sendable`, generic code |
 | `TreeRepresentationTests.swift` | 10 | Catalog rows on `UndirectedAdjacencyList` (also after removals), `AdjacencyList`, `CompressedSparseRow`, `.directedView` and `.undirectedView`, reversed rows, no indices; `isTree` hashes no vertex on an indexed adjacency list |
 | `TreePropertyTests.swift` | 7 | PropertyBased, shrinking: recognition against union–find and in-degree counts, rooted queries against recursion, paths against BFS, Prüfer against the textbook loop, parent arrays, equality and Codable under shuffles |
@@ -119,18 +118,16 @@ that model. The property tests write their oracles inside each test.
 | `TreePreconditionTests.swift` | 5 | Exit tests: a root that is not a vertex (TS-109), queries and paths on a non-vertex (TS-246, TS-315 and the other rooted queries, `component(of:)`) |
 | `TreeCheckedLookupTests.swift` | 99 | §L: every `checked:` spelling on each type, its value against the plain spelling's and its throw on a vertex outside the tree (negative, `vertexCount`, absent) or a position outside `0..<edgeCount`; dense `Int`, small (no table) and hashed lookups; sweeps of every vertex and position; Arborescence's own `descendants(checked:)` and `ancestors(checked:)` |
 | `TreeMapTests.swift` | 7 | Attached maps on all four types: defaults, writes by index and by `String` vertex, the `checked` subscripts, `values(of:)` snapshots, copy-on-write, removal, equality and coding ignoring maps, conversions carrying no maps and stamping their own generation, traps (exit tests) off the tree and for foreign or removed handles; a model against dictionaries keyed by vertex and edge (PropertyBased) |
-| `TreeReviewTests.swift` | 10 | Added after planting bugs and the review (TS-1001 – TS-1010): a forest with a parallel pair, edges keeping their orientation, hashes that see edges, `Int` vertices by first appearance, small trees without a vertex table, one-vertex trees of a forest, children with the parent edge anywhere in the row, parent arrays, rooted-tree decoding errors, equal hashes under shuffles |
+| `TreeReviewTests.swift` | 10 | Layout edge cases (TS-1001 – TS-1010): a forest with a parallel pair, edges keeping their orientation, hashes that see edges, `Int` vertices by first appearance, small trees without a vertex table, one-vertex trees of a forest, children with the parent edge anywhere in the row, parent arrays, rooted-tree decoding errors, equal hashes under shuffles |
 
-366 tests in all.
+377 tests in all.
 
 ## Case IDs
 
-Case IDs (TS-001 … TS-995) refer to the catalog (`cases.md`, with `ref.py` and `api.md` in `Tests/Catalogs/Trees/`), harvested from NetworkX
-(`tree/tests/test_recognition.py`, `test_coding.py`, `traversal/tests/test_dfs.py`), igraph
-(`igraph_is_tree.c`, `igraph_is_forest.c`, `igraph_to_prufer.c`, `igraph_from_prufer.c`,
-`igraph_tree_from_parent_vector.c`), JGraphT (`GraphTestsTest`) and LEMON (`connectivity_test.cc`).
-Each test's name starts with its IDs; tests without an ID check laws, representations or
-properties the catalog does not list.
+Case IDs TS-001 … TS-995 refer to the catalog (`cases.md`, with `ref.py` and `api.md` in
+`Tests/Catalogs/Trees/`); TS-1001 – TS-1010 are numbered in this suite only. Each test's name
+starts with its IDs; tests without an ID check laws, representations or properties the catalog does
+not list.
 
 | Cases | Section | File |
 |---|---|---|
@@ -149,8 +146,7 @@ properties the catalog does not list.
 | TS-700 – TS-707 | J. Equality | `TreeEqualityTests.swift` |
 | TS-800 – TS-813 | K. Scale | `Performance/TreeStressTests.swift` |
 | TS-900 – TS-995 | L. `checked:` lookups | `TreeCheckedLookupTests.swift` |
-| TS-1001 – TS-1010 | Review: see the file table | `TreeMapTests.swift` | 7 | Attached maps on all four types: defaults, writes by index and by `String` vertex, the `checked` subscripts, `values(of:)` snapshots, copy-on-write, removal, equality and coding ignoring maps, conversions carrying no maps and stamping their own generation, traps (exit tests) off the tree and for foreign or removed handles; a model against dictionaries keyed by vertex and edge (PropertyBased) |
-| `TreeReviewTests.swift` |
+| TS-1001 – TS-1010 | Layout edge cases | `TreeReviewTests.swift` |
 
 ## Not tested
 
@@ -162,4 +158,4 @@ properties the catalog does not list.
 | The exact `description` of `RootedTree` | api.md does not say whether it shows the root; it is checked to be non-empty, and the others to print as the adjacency list copied from them |
 | The `root` key of `RootedTree`'s encoding | api.md says "adds the root's offset" without a key name; `RootedTree` is checked by round trips at every root, not by hand-written JSON |
 | `Forest.Trees` and `Preorder` index types | api.md gives only `RandomAccessCollection`; the tests index with `index(_:offsetBy:)` and offsets from `enumerated()`, not literal integer subscripts |
-| Mutation and copy-on-write | The types are immutable |
+| Mutation | The types are immutable; only attached maps change, in `TreeMapTests.swift` |

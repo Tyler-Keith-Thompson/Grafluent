@@ -1,9 +1,8 @@
 import GraphProtocols
 
 extension Graph {
-    /// Each vertex's degree over n − 1 (NetworkX `degree_centrality`): a self-loop counts 2 and each
-    /// parallel copy counts, so a multigraph can score above 1. One vertex scores 1. O(n) with an
-    /// O(1) `degree(of:)`.
+    /// Each vertex's degree over n − 1: a self-loop counts 2 and each parallel copy counts, so a
+    /// multigraph can score above 1. One vertex scores 1. O(n) with an O(1) `degree(of:)`.
     @inlinable
     public func degreeCentrality() -> CentralityScores<DirectedView<Self>> {
         let n = vertexCount
@@ -18,17 +17,16 @@ extension Graph {
 }
 
 extension DirectedGraph {
-    /// Each vertex's in-degree plus out-degree over n − 1 (NetworkX `degree_centrality` on a
-    /// digraph); a loop is one in-arc and one out-arc. One vertex scores 1. O(n + m).
+    /// Each vertex's in-degree plus out-degree over n − 1; a loop is one in-arc and one out-arc.
+    /// One vertex scores 1. O(n + m).
     @inlinable
     public func degreeCentrality() -> CentralityScores<Self> { _degreeCentrality(incoming: true, outgoing: true) }
 
-    /// Each vertex's in-degree over n − 1 (NetworkX `in_degree_centrality`). O(n + m).
+    /// Each vertex's in-degree over n − 1. O(n + m).
     @inlinable
     public func inDegreeCentrality() -> CentralityScores<Self> { _degreeCentrality(incoming: true, outgoing: false) }
 
-    /// Each vertex's out-degree over n − 1 (NetworkX `out_degree_centrality`). O(n) with an O(1)
-    /// `outDegree(of:)`.
+    /// Each vertex's out-degree over n − 1. O(n) with an O(1) `outDegree(of:)`.
     @inlinable
     public func outDegreeCentrality() -> CentralityScores<Self> { _degreeCentrality(incoming: false, outgoing: true) }
 

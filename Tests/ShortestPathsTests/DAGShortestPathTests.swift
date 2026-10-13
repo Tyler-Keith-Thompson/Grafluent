@@ -1,4 +1,4 @@
-// DAG shortest paths (Boost's `dag_shortest_paths`): negative weights, a cycle reachable from the
+// DAG shortest paths: negative weights, a cycle reachable from the
 // source (nil) and one that is not, several sources as one super-source, ties, every
 // representation's index space (indexed, compressed rows, a stable graph with holes), the
 // DirectedAcyclicGraph overload that relaxes in its maintained order, random DAGs against

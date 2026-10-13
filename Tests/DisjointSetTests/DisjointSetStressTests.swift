@@ -2,7 +2,8 @@
 // test. Deep cases run inside a Task, whose stack is much smaller than the main thread's, so a
 // recursive find would overflow there first. Per-element checks are folded into one expectation
 // each to keep the suite fast. Expected values come from the catalog's reference (`ref.py`,
-// `cases.py`), which is cross-checked against scipy's and NetworkX's own implementations.
+// `cases.py`), which `check.py` cross-checks against scipy's and NetworkX's union–find
+// implementations.
 // Case IDs (DS-nn) refer to the catalog; see README.md.
 
 import DisjointSetModule

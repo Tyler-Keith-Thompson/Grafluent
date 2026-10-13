@@ -1,5 +1,5 @@
-// Mermaid (catalog GF-161 – GF-185 and GF-231 read, GF-222 – GF-225 write): flowcharts with every shape and
-// link of phase 1, labels kept and styling skipped; the writer quotes every label.
+// Mermaid (catalog GF-161 – GF-185 and GF-231 read, GF-222 – GF-225 write): flowcharts with every
+// supported shape and link, labels kept and styling skipped; the writer quotes every label.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
@@ -246,7 +246,7 @@ struct GraphFormatsMermaidTests {
         }
     }
 
-    @Test("GF-177 subgraph ... end (phase 2)")
+    @Test("GF-177 subgraph ... end (unsupported)")
     func gf177() {
         // DirectedPseudograph<String>(mermaid:) → **unsupported** at 2:3
         let input = "flowchart TD\n  subgraph one\n    A --> B\n  end\n"
@@ -259,7 +259,7 @@ struct GraphFormatsMermaidTests {
         }
     }
 
-    @Test("GF-178 bidirectional link (phase 2)")
+    @Test("GF-178 bidirectional link (unsupported)")
     func gf178() {
         // DirectedPseudograph<String>(mermaid:) → **unsupported** at 2:5
         let input = "flowchart TD\n  A <--> B\n"
@@ -272,7 +272,7 @@ struct GraphFormatsMermaidTests {
         }
     }
 
-    @Test("GF-179 invisible link (phase 2)")
+    @Test("GF-179 invisible link (unsupported)")
     func gf179() {
         // DirectedPseudograph<String>(mermaid:) → **unsupported** at 2:5
         let input = "flowchart TD\n  A ~~~ B\n"
@@ -285,7 +285,7 @@ struct GraphFormatsMermaidTests {
         }
     }
 
-    @Test("GF-180 @{ } shape syntax (phase 2)")
+    @Test("GF-180 @{ } shape syntax (unsupported)")
     func gf180() {
         // DirectedPseudograph<String>(mermaid:) → **unsupported** at 2:4
         let input = "flowchart TD\n  A@{ shape: rect }\n"

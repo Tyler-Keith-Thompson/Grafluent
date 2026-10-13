@@ -1,4 +1,4 @@
-"""ColoringModule phase 1: reference model and independent checks for every catalog row.
+"""ColoringModule: reference model and independent checks for every catalog row.
 
 Run:  uv run --quiet --no-project --with networkx==3.7 [--with rustworkx==0.18.1] python3 ref.py
       [--stress] [--write]

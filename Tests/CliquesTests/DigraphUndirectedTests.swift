@@ -1,7 +1,5 @@
 // §F: directed graphs through `digraph.undirectedView` (CQ-501 – CQ-515). The view keeps two opposite
-// arcs as two parallel edges; the simple graph merges them, which is igraph's "directions ignored"
-// reading (NetworkX raises for cliques and triangles on a DiGraph and counts in + out degree for
-// cores). Digraphs are `ReferenceDirectedMultigraph`s with arcs in written order. Every literal is
+// arcs as two parallel edges; the simple graph merges them. Digraphs are `ReferenceDirectedMultigraph`s with arcs in written order. Every literal is
 // a catalog cell (`ref.py`). Case IDs (CQ-nnn) refer to the catalog; see README.md.
 
 import Cliques

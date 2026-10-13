@@ -1,25 +1,25 @@
 /// A min-priority queue of the indices `0..<indexBound`, each queued at most once with a
-/// priority: a 4-ary heap with a position array (Boost's `d_ary_heap_indirect`, LEMON's
-/// `QuadHeap`, Sedgewick's `IndexMinPQ`). `insert`, `popMin()`, `decreasePriority(of:to:)`,
-/// `updatePriority(of:to:)` and `remove(_:)` are O(log count); `min`, `contains(_:)` and
-/// `priority(of:)` are O(1).
+/// priority.
+///
+/// The queue is a 4-ary heap with a position array. `insert`, `popMin()`,
+/// `decreasePriority(of:to:)`, `updatePriority(of:to:)` and `remove(_:)` are O(log count). `min`,
+/// `contains(_:)` and `priority(of:)` are O(1).
+///
+/// Use it when items are dense indices whose priorities must be changed in place, as in Dijkstra's
+/// algorithm, Prim's algorithm and A*. For pushes and pops without priority changes, `Heap` from
+/// swift-collections stores bare elements and is the better fit.
 ///
 /// Indices with equal priorities leave in an unspecified order. `min` changes only when a
 /// strictly smaller priority arrives, or when the minimum leaves or its priority increases. To
 /// break ties a particular way, put the rule in `Priority`, for example `(distance, index)`.
 ///
-/// Priorities must not be NaN. Not a `Sequence`, as swift-collections' `Heap` is not:
-/// `unordered` lists the contents. Storage is two arrays, copied on write.
+/// Priorities must not be NaN. The queue is not a `Sequence`; `unordered` lists the contents.
+/// Storage is two arrays, copied on write.
 ///
-/// Use it when items are dense indices whose priorities must be lowered in place (Dijkstra, Prim,
-/// A*). `Heap` has no way to find or change a queued element, so it can only stand in by pushing
-/// duplicates and skipping stale ones: in Dijkstra that costs 1.1–1.4× (the gap narrows as graphs
-/// grow, and with few distinct weights), and about 2.6× when every item is decreased once. For pushes and pops alone, `Heap` is the
-/// better structure: it stores bare elements, and sorts 10⁶ `Int`s in about 0.7× the time.
-///
-/// An index that has left the queue is indistinguishable from one never queued. Dijkstra needs
-/// nothing more, since a settled vertex is never relaxed again; Prim must keep its own set of tree
-/// vertices, or `insertOrDecreasePriority(of:to:)` would queue them again.
+/// An index that has left the queue is indistinguishable from one never queued. Dijkstra's
+/// algorithm needs nothing more, since a settled vertex is never relaxed again. Prim's algorithm
+/// must keep its own set of tree vertices, or `insertOrDecreasePriority(of:to:)` would queue them
+/// again.
 @frozen
 public struct IndexedPriorityQueue<Priority: Comparable> {
     public typealias Element = (index: Int, priority: Priority)
@@ -75,7 +75,7 @@ public struct IndexedPriorityQueue<Priority: Comparable> {
     @inlinable
     @inline(__always)
     func _checkPriority(_ priority: Priority) {
-        // Only NaN is unequal to itself, among the standard library's types; a `Priority` whose
+        // Among the standard library's types only NaN is unequal to itself. A `Priority` whose
         // `==` is not reflexive traps here too.
         precondition(priority == priority, "A priority cannot be NaN")
     }
@@ -159,9 +159,10 @@ public struct IndexedPriorityQueue<Priority: Comparable> {
     }
 
     /// Queues `index` with `priority`, or lowers its priority to `priority` if it is queued with
-    /// a larger one; otherwise changes nothing. Returns whether the queue changed. O(log count).
-    /// One call for a relaxation step (Boost's `push_or_update`, LEMON's `set` restricted to
-    /// decreases).
+    /// a larger one. Otherwise changes nothing. This is one call for a relaxation step.
+    /// O(log count).
+    ///
+    /// - Returns: Whether the queue changed.
     ///
     /// - Precondition: `index` is in `0..<indexBound`; `priority` is not NaN.
     @inlinable
@@ -183,7 +184,6 @@ public struct IndexedPriorityQueue<Priority: Comparable> {
     }
 
     /// Sets the priority of a queued index, up or down, and returns the old one. O(log count).
-    /// (Unlike Boost's `update`, which only decreases.)
     ///
     /// - Precondition: `index` is queued; `priority` is not NaN.
     @inlinable
@@ -228,7 +228,7 @@ public struct IndexedPriorityQueue<Priority: Comparable> {
         }
     }
 
-    /// Dequeues every index, O(count). The result behaves as a fresh queue with the same bound;
+    /// Dequeues every index. O(count). The result behaves as a fresh queue with the same bound;
     /// only the reserved capacity may differ.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
@@ -236,8 +236,8 @@ public struct IndexedPriorityQueue<Priority: Comparable> {
         _heap.removeAll(keepingCapacity: keepingCapacity)
     }
 
-    /// Calls `body` with both arrays' buffers: one uniqueness check each per operation, and no
-    /// bounds checks inside.
+    /// Calls `body` with both arrays' buffers, so each operation does one uniqueness check per
+    /// array and no bounds checks inside.
     @inlinable
     @inline(__always)
     mutating func _withBuffers<Result>(_ body: (UnsafeMutableBufferPointer<Element>, UnsafeMutableBufferPointer<Int>) -> Result) -> Result {

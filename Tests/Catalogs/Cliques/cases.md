@@ -4,13 +4,10 @@ Cases for the Cliques module (api.md): `maximalCliques()`, `maximumClique()`, `c
 `coreNumbers()` and the `CoreNumbers` value (`degeneracy`, `degeneracyOrdering`, `kCore(_:)`,
 `kShell(_:)`), `clusteringCoefficients()` and the `ClusteringCoefficients` value, and the one-shot
 `triangleCount()`, `triangleCount(of:)`, `clusteringCoefficient(of:)`, `transitivity()`,
-`averageClustering()`, all on `Graph`. Harvested from NetworkX 3.7 (`clique.py`, `core.py`,
-`cluster.py` docstrings and behaviour), python-igraph 1.0.0 (`igprobe.py`, `igprobe2.py` here),
-JGraphT and Boost sources (read for conventions), and the edge cases api.md calls out. Every
-Expected cell is recomputed by `ref.py` and cross-checked against brute force (all vertex
-subsets up to 14 vertices, peeling for cores), NetworkX 3.7 and Latapy's compact-forward count
-(see its docstring); 250 random multigraphs with loops and 30 G(n, p) graphs are checked the same
-way.
+`averageClustering()`, all on `Graph`. Every Expected cell is recomputed by `ref.py` and
+cross-checked against brute force (all vertex subsets up to 14 vertices, peeling for cores),
+NetworkX 3.7 and Latapy's compact-forward count (see its docstring); 250 random multigraphs with
+loops and 30 G(n, p) graphs are checked the same way.
 
 ## Notation
 

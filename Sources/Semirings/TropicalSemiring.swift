@@ -1,16 +1,18 @@
-/// The tropical semiring (min, +) over `Value`: shortest paths (Mohri; GraphBLAS's
-/// `GrB_MIN_PLUS_SEMIRING`). Some libraries call max-plus "tropical"; this one is min-plus.
+/// The tropical semiring (min, +) over `Value`, for shortest paths (Mohri). This is the min-plus
+/// form.
 ///
 /// `zero` is +∞ (`Int.max`, `.infinity`), `one` is 0, ⊕ is `min` and ⊗ is `+`. `<` compares the
-/// values: shorter is better.
+/// values, so shorter is better.
 ///
-/// On integers ⊗ is Boost's `closed_plus`: `.max` (+∞, the zero) absorbs, then `.min` (−∞), and
-/// any other sum traps on overflow. A finite sum that lands exactly on `.max` is the zero, so an
-/// edge of that weight carries no path. On floating point the carrier is Mohri's ℝ ∪ {+∞}: ⊗ is
-/// `+`, where `.infinity` absorbs every finite value. −∞ is outside it (`-.infinity ⊗ .zero` is NaN,
-/// not `.zero`; checking for it cost 1.4–2.2× in Floyd–Warshall, and no algorithm here computes
-/// that product: each skips a `.zero` distance and treats a NaN candidate as no improvement). No
-/// operation checks for NaN; the ShortestPaths entry points trap on a NaN weight.
+/// On integers ⊗ is a closed sum. `.max` (+∞, the zero) absorbs, then `.min` (−∞), and any other
+/// sum traps on overflow. A finite sum that lands exactly on `.max` is the zero, so an edge of
+/// that weight carries no path.
+///
+/// On floating point the carrier is ℝ ∪ {+∞}, and ⊗ is `+`, where `.infinity` absorbs every finite
+/// value. −∞ is outside the carrier, and `-.infinity ⊗ .zero` is NaN, not `.zero`. No algorithm
+/// here computes that product, because each skips a `.zero` distance and treats a NaN candidate as
+/// no improvement. No operation checks for NaN. The ShortestPaths entry points trap on a NaN
+/// weight.
 ///
 ///     graph.dijkstraShortestPaths(from: s) { TropicalSemiring(length[$0]) }
 @frozen
@@ -60,9 +62,9 @@ extension TropicalSemiring: CustomStringConvertible {
     public var description: String { "\(value)" }
 }
 
-/// Underscored: a selective semiring with values that absorb ⊗ by everything but `zero`, as the
-/// tropical −∞ does. A distance at such a value cannot improve, so Bellman–Ford reads this to find
-/// a cycle better than `one` that the saturated distances hide. Not meant for other conformers.
+/// A selective semiring with values that absorb ⊗ by everything but `zero`, as the tropical −∞
+/// does. A distance at such a value cannot improve, so Bellman–Ford reads this to find a cycle
+/// better than `one` that the saturated distances hide. Not meant for other conformers.
 public protocol _SaturatingSemiring: SelectiveSemiring {
     /// Whether `self ⊗ x == self` for every `x` other than `zero`.
     var _isSaturated: Bool { get }

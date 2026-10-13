@@ -5,13 +5,10 @@ covers the adjacency, Laplacian, normalized, random-walk and signless Laplacian 
 `SparseMatrix`, and the full spectra of A, L and N. On large sparse graphs it gives the algebraic
 connectivity, the Fiedler vector, the spectral ordering and the spectral radius by Lanczos. It also
 gives the spanning-tree count, resistance distance, effective graph resistance and the Kemeny
-constant. The tests come from the proposed API (`api.md` in
-[`Tests/Catalogs/SpectralGraphTheory/`](../Catalogs/SpectralGraphTheory/), phase 1), written before
-the implementation existed. Its open questions are decided as recommended:
-
-- pure Swift, with no Accelerate or LAPACK;
-- the new `SparseMatrix` type, with `Double` elements only;
-- the relative sign rule: the first entry of magnitude at least 1e-4 of the largest is positive.
+constant. The API description (`api.md`) is in
+[`Tests/Catalogs/SpectralGraphTheory/`](../Catalogs/SpectralGraphTheory/). The module is pure Swift;
+matrices are `SparseMatrix` with `Double` elements; a vector's sign is fixed so that the first
+entry of magnitude at least 1e-4 of the largest is positive.
 
 The suite uses only the public API, and each test is self-contained. The only shared material is
 the `ReferencePseudograph` and `ReferenceDirectedMultigraph` conformers, the seeded generator and
@@ -45,11 +42,9 @@ Every `maxIterations:` is `Int? = nil`, nil meaning the method's default limit (
 iterations for a dense spectrum, 1,000 shift-invert products for λ₂, 20,000 + 20√n products for ρ,
 20,000 + 2n conjugate-gradient iterations for a resistance).
 
-api.md does not say where `weight:` goes in the argument list. The tests put it first, as
-Centrality does (`algebraicConnectivity(weight:normalized:tolerance:)`), and after the vertices in
-`resistanceDistance(from:to:weight:tolerance:)`, as `closenessCentrality(of:weight:)` does. The
-subscript is `subscript(row: Int, column: Int)` exactly as api.md writes it, so in Swift it is
-called `matrix[i, j]`, without labels.
+`weight:` comes first in the argument list (`algebraicConnectivity(weight:normalized:tolerance:)`),
+and after the vertices in `resistanceDistance(from:to:weight:tolerance:)`. The subscript is
+`subscript(row: Int, column: Int)`, called as `matrix[i, j]`, without labels.
 
 ## Conventions
 
@@ -79,13 +74,13 @@ The catalog-row files are every file except `CanonicalSignTests.swift`,
 uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 --with numpy==2.5.4 python3 Tests/Catalogs/SpectralGraphTheory/swiftgen.py
 ```
 
-It first checks that `ref.py` reproduces `cases.md` byte for byte. Then it re-evaluates each phase 1
-row on the model at full precision, asserts that the value renders to the catalog cell, and writes
-one `@Test` per row. With `--phase2` it also writes `SpectralPhase2Tests.swift`, the 13 rows
-SGT-205 – SGT-217, for when phase 2 lands. Each graph is the catalog's, on the reference conformer,
-with every vertex listed in `vertices` order and the edges in position order. Weights are `[Int]`
-when every weight is an integer, so that the `BinaryInteger` overload is exercised, and `[Double]`
-otherwise.
+It first checks that `ref.py` reproduces `cases.md` byte for byte. Then it re-evaluates each row
+(except SGT-205 – SGT-217) on the model at full precision, asserts that the value renders to the
+catalog cell, and writes one `@Test` per row. With `--phase2` it also writes
+`SpectralPhase2Tests.swift` for SGT-205 – SGT-217. Each graph is the catalog's, on the reference
+conformer, with every vertex listed in `vertices` order and the edges in position order. Weights are
+`[Int]` when every weight is an integer, so that the `BinaryInteger` overload is exercised, and
+`[Double]` otherwise.
 
 | Result | Pinned as | Tolerance (cases.md) |
 |---|---|---|
@@ -121,20 +116,19 @@ hand-written exit tests in `extra_traps.swift`:
 - **Conformance.** Seeded simple graphs with loops on `Pseudograph`, `UndirectedAdjacencyList`,
   `AdjacencyList.undirectedView` and String vertices without indices. Every entry point is checked
   against the reference: matrices with ==, weights as exact quarters by endpoint. Directed A and L
-  on `AdjacencyList`, `CompressedSparseRow` and `AdjacencyMatrix`. `graph.directedView` has the graph's
-  A and L. `digraph.undirectedView` is the multigraph of its arcs. The file also checks SparseMatrix
-  equality and hashing, bitwise determinism on both paths, the `tolerance:` parameter (λ₂ and ρ
-  relative to themselves, the Fiedler residual within tolerance · λ₂), `Sendable`, and that every
-  weighted entry point reads each position exactly once.
-- **Accuracy under weight spread** (added in review; each test failed on the phase 1 code).
-  References that keep their relative accuracy:
+  on `AdjacencyList`, `CompressedSparseRow` and `AdjacencyMatrix`. `graph.directedView` has the
+  graph's A and L. `digraph.undirectedView` is the multigraph of its arcs. The file also checks
+  SparseMatrix equality and hashing, bitwise determinism on both paths, the `tolerance:` parameter
+  (λ₂ and ρ relative to themselves, the Fiedler residual within tolerance · λ₂), `Sendable`, and
+  that every weighted entry point reads each position exactly once.
+- **Accuracy under weight spread.** References that keep their relative accuracy:
   - weighted λ₂ on random graphs of 64 to 500 vertices, weights log-uniform over five decades,
     against the dense λ₂ (relative 10⁻⁹ on L, 10⁻⁷ on N, whose dense form rounds more);
   - paths with one edge of 10⁶ or 10¹², and with conductances over twelve decades, against power
     iteration on the path's explicit grounded inverse: λ₂ and every Fiedler entry, and the
-    residual ‖Lx − λ₂x‖ within 10⁻⁷ · λ₂ (a FuzzSpectral finding);
+    residual ‖Lx − λ₂x‖ within 10⁻⁷ · λ₂;
   - barbells (two cliques joined by a path), against the dense λ₂, on L and on N;
-  - spanning-tree counts: {h, 1} is h up to 10³⁰⁰ (Cholesky gave 0 at 10¹⁶); 16 counts between
+  - spanning-tree counts: {h, 1} is h up to 10³⁰⁰; 16 counts between
     10¹³ and 2⁵³ exactly equal to `ref.py`'s exact determinant (simple graphs, and multigraphs
     with loops and integer weights); K₂₀, K₂₁ and a weighted 5-cycle past 2⁶², correctly rounded;
   - N, its spectrum, λ₂ of N and the Kemeny constant with weights 10²⁰⁰, 10³⁰⁰ and 10⁻³⁰⁰ equal to
@@ -172,8 +166,7 @@ hand-written exit tests in `extra_traps.swift`:
   conjugate-gradient iterations. A larger limit answers bit for bit as the default does. Below 64
   vertices, and for components of at most two, the limit is not read. `maxIterations` < 1 traps.
 - **Stress**, each with a one-minute limit:
-  - the 100 × 100 grid: λ₂ = 2 − 2cos(π/100), which is double, where SciPy's `eigsh(which="SA")`
-    returns 0.00888; ρ = 4cos(π/101);
+  - the 100 × 100 grid: λ₂ = 2 − 2cos(π/100), which is double; ρ = 4cos(π/101);
   - the 120 × 30 grid: λ₂ is simple, so the Fiedler vector is cos(π(i + ½)/120) by row and the
     ordering goes row block by row block;
   - a random 3-regular multigraph on 10⁴ vertices, the union of three random perfect matchings:
@@ -182,37 +175,3 @@ hand-written exit tests in `extra_traps.swift`:
   - resistances on C₂₀₀₀ and on a weighted binary tree of 2¹⁴ − 1 vertices;
   - K₂₀₀'s effective graph resistance and Kemeny constant;
   - the matrices of the 300 × 300 grid.
-
-## Validation
-
-The suite was run against a Swift model of the API, written outside the repository and built with
-Bazel in a scratch copy of the workspace. The model uses dense Jacobi below 64 vertices, Lanczos
-with full reorthogonalization on σI − L with the null space deflated above that, Cholesky for the
-counts and conjugate gradients for resistances. Every test passed. The suite was then run against
-23 planted bugs in that model, and each one failed tests:
-
-| Planted bug | Caught by |
-|---|---|
-| Explicit zeros stored (weight 0, cancelled diagonals) | SGT-002, SGT-022, SGT-023, matrix property, extra traps |
-| No negative-weight check | SGT-032, SGT-084, SGT-184, extra traps |
-| An undirected loop adds w, not 2w, to A | SGT-016 – SGT-019, matrix property, `graph.directedView` |
-| Directed L over in-degrees | SGT-041, SGT-043, SGT-045, SGT-046, directed conformance |
-| Weight-0 edges connect components | SGT-125, SGT-182, eigen-residual and ordering properties |
-| No canonical sign | Fiedler rows, canonical sign, grid stress |
-| Absolute 1e-9 sign threshold (GraphDrawing's rule) | canonical sign: the insignificant first entry |
-| λ₃ returned as λ₂ | Fiedler and λ₂ rows (and a crash on two vertices) |
-| λ₁ (0) returned as λ₂ | most λ₂ and Fiedler rows, properties |
-| Lanczos without deflating the null vector | SGT-092, grid and random-regular stress, P₆₅ |
-| Fiedler vector not unit length | Fiedler rows, canonical sign, stress |
-| Components ordered by size | ordering-by-components property |
-| Ordering descending | SGT-127 – SGT-129, grid stress, P₆₅ |
-| ρ as the smallest \|λ\| | SGT-135, SGT-137, SGT-139, SGT-141, spectra property |
-| The empty graph has one spanning tree | SGT-148, matrix-tree property |
-| Loops kept on L's diagonal for the count | SGT-164, matrix-tree property |
-| Resistance inverted (1/R) | SGT-169 onward, metric and series–parallel properties, stress |
-| Effective graph resistance ∞ instead of nil | SGT-192, metric property, conformance |
-| No trap below two vertices | SGT-106, SGT-107, extra traps |
-| Kemeny constant from L instead of N | SGT-197 – SGT-200, K₂₀₀ stress |
-| The weight closure read twice | weight-reading conformance |
-| Unindexed graphs numbered in reverse | String-vertex conformance |
-| `normalized: true` computed on L | SGT-101 – SGT-104, random-regular stress |

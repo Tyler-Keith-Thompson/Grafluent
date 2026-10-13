@@ -1,6 +1,6 @@
 // Grids, hypercubes, the Petersen graph and empty graphs (catalog NG-052 – NG-082): grids row-major
 // with the last dimension fastest, periodic wraps only in dimensions of length ≥ 3; Q_d by bits;
-// Petersen in NetworkX's numbering; both arcs when directed.
+// Petersen as outer 0–4, spokes i – i+5, inner pentagram; both arcs when directed.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule

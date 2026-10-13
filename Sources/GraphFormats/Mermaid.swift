@@ -1,5 +1,5 @@
-/// Mermaid flowcharts (the flowchart syntax page and `flow.jison` of mermaid-js 11): vertices with
-/// their labels, links with theirs; shapes, styling, classes and comments are read and dropped.
+/// Mermaid flowcharts: vertices with their labels, links with theirs; shapes, styling, classes and
+/// comments are read and dropped.
 
 @usableFromInline internal let _skippedStatements: [StaticString] = ["classDef", "class", "style", "linkStyle", "click"]
 @usableFromInline internal let _unsupportedStatements: [StaticString] = ["subgraph", "end", "direction"]

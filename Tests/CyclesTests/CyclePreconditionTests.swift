@@ -1,7 +1,7 @@
-// §L: preconditions, as exit tests. A negative length bound traps (NetworkX raises ValueError),
-// while a bound of 0 is an empty sequence (CY-850); a root that is not a vertex traps, as in
-// Traversal's directed findCycle(from:) (CY-851); index rows that break the protocol's laws trap
-// rather than being read out of step (CY-860, as Connectivity's CN-404). Each exit test builds its
+// §L: preconditions, as exit tests. A negative length bound traps, while a bound of 0 is an empty
+// sequence (CY-850); a root that is not a vertex traps, as in Traversal's directed
+// findCycle(from:) (CY-851); index rows that break the protocol's laws trap rather than being read
+// out of step (CY-860, as Connectivity's CN-404). Each exit test builds its
 // inputs inside the closure. Case IDs (CY-nnn) refer to the catalog; see README.md.
 
 import Cycles

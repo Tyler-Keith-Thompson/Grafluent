@@ -1,6 +1,6 @@
 // The default implementations, through minimal conformers that supply only the required members,
 // and dispatch: a conformer's own version of a requirement with a default is the one generic code
-// calls. Case IDs (DG-Dnn) refer to the catalog in README.md.
+// calls. Case IDs (DG-Dnn) refer to Tests/Catalogs/GraphProtocols/directed-graph.md.
 
 import GraphProtocols
 import GrafluentTestSupport

@@ -2,9 +2,8 @@
 // `vertices` order, rows in incidence order): one cycle per non-tree edge, loops and parallel
 // copies included, in ascending position of that edge, each in canonical form. Every graph is
 // written as the catalog writes it, on the `ReferencePseudograph`, so positions are exact.
-// Expected values come from the catalog's reference (`ref.py`). The minimum cycle basis rows
-// (CY-150 – CY-156) are phase 2 and not tested here. Case IDs (CY-nnn) refer to the catalog;
-// see README.md.
+// Expected values come from the catalog's reference (`ref.py`). Case IDs (CY-nnn) refer to the
+// catalog; see README.md.
 
 import Cycles
 import GraphProtocols

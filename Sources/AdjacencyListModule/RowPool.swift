@@ -21,9 +21,9 @@ package struct _Row {
 /// and otherwise moves to the end with twice the capacity, leaving its old block as garbage. Once
 /// garbage is more than half the storage and at least the number of rows, the live blocks are
 /// packed together again. Doubling abandons less than a row's current capacity, so growth alone
-/// never triggers packing; only removed rows do, and packing, O(rows + storage), is then paid for
-/// by the garbage they left (the row table never shrinks under `clearRow`, so without the second
-/// bound a long run of cleared rows would pack on nearly every clear).
+/// never triggers packing. Only removed rows do, and the garbage they left pays for packing's
+/// O(rows + storage). The row table never shrinks under `clearRow`, so without the second bound a
+/// long run of cleared rows would pack on nearly every clear.
 ///
 /// Positions within a row are offsets from its start, which moving and packing preserve.
 @frozen

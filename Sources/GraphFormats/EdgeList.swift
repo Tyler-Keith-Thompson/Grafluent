@@ -1,5 +1,4 @@
-/// The edge list (NetworkX `read_edgelist`/`write_edgelist`, igraph `Read_Ncol`, SNAP): `u v
-/// [column …]` per line, `#` comments, fields separated by spaces and tabs.
+/// The edge list: `u v [column …]` per line, `#` comments, fields separated by whitespace.
 
 /// Reads an edge list into `target`: exactly `2 + columnCount` fields per line that has any, the
 /// columns typed by their text and reported to `value` with the edge's number and the column's.
@@ -35,7 +34,7 @@
 }
 
 /// Whether `s` can be one field: non-empty, with no `#` and no whitespace as the readers split on
-/// it (Python's `str.split()`).
+/// it (`_whitespaceWidth`).
 @inlinable func _isListToken(_ bytes: UnsafeBufferPointer<UInt8>) -> Bool {
     guard !bytes.isEmpty else { return false }
     // Printable ASCII but `#` holds no whitespace: the usual ID, in one pass.

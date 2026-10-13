@@ -3,14 +3,10 @@
 Cases for the CommunityDetection module (api.md): `modularity(of:)`, `partitionQuality(of:)`,
 `louvainCommunities()`, `greedyModularityCommunities()`, `labelPropagationCommunities()` and
 `asynchronousLabelPropagationCommunities()`, on `Graph` and (modularity, quality, Louvain, greedy)
-`DirectedGraph`, unweighted and weighted. Harvested from NetworkX 3.7 (`test_quality.py`,
-`test_louvain.py`, `test_modularity_max.py`, `test_label_propagation.py` and their docstrings),
-python-igraph 1.0 (`probe.py` here), Newman 2006, Leicht–Newman 2008, Blondel et al. 2008,
-Clauset–Newman–Moore 2004, Raghavan–Albert–Kumara 2007, Cordasco–Gargano 2010, and the edge cases
-api.md calls out. Every Expected cell is recomputed by `ref.py`'s model of api.md and checked
-independently (its docstring lists how): `uv run --quiet --no-project --with networkx==3.7 --with
-scipy==1.18.1 python3 ref.py` prints "all values agree". `gen.py` wrote the rows with `?` cells
-and `ref.py --fill` filled them.
+`DirectedGraph`, unweighted and weighted. Every Expected cell is recomputed by `ref.py`'s model of
+api.md and checked independently (its docstring lists how): `uv run --quiet --no-project --with
+networkx==3.7 --with scipy==1.18.1 python3 ref.py` prints "all values agree". `gen.py` writes the
+rows with `?` cells, and `ref.py --fill` fills them.
 
 **Which reference decides.** Modularity, partition quality, greedy modularity and semi-synchronous
 label propagation are deterministic in NetworkX, and Expected is NetworkX 3.7's value wherever

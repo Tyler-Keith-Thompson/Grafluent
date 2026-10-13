@@ -13,11 +13,10 @@ extension StableDirectedGraph: PropertyGraph {
     @inlinable public static var _vertexMapLayout: _MapLayout { .paged }
     @inlinable public static var _edgeMapLayout: _MapLayout { .paged }
 
-    /// Attaches a map from edge positions to `Value`, every edge's value `value` (LEMON's
-    /// `ArcMap`), and returns its handle. Removing an edge removes its value in every attached
-    /// map, in the same mutation; `changeTarget` and `changeSource` keep it. Copies of the graph
-    /// carry the map, copy-on-write by page. O(1); storage is allocated a page (1024 positions)
-    /// at a time as values are set.
+    /// Attaches a map from edge positions to `Value`, with every edge's value `value`, and returns
+    /// its handle. Removing an edge removes its value in every attached map, in the same mutation.
+    /// `changeTarget` and `changeSource` keep it. Copies of the graph carry the map, copy-on-write
+    /// by page. O(1). Storage is allocated a page (1024 positions) at a time as values are set.
     ///
     /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps.
     @inlinable
@@ -27,8 +26,8 @@ extension StableDirectedGraph: PropertyGraph {
         return EdgeMap(_token: token, hint: hint)
     }
 
-    /// Attaches a map from vertex positions to `Value`, every vertex's value `value` (LEMON's
-    /// `NodeMap`), and returns its handle; removing a vertex removes its value. O(1).
+    /// Attaches a map from vertex positions to `Value`, with every vertex's value `value`, and
+    /// returns its handle. Removing a vertex removes its value. O(1).
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         let (token, hint) = _vertexMaps.add(default: value, layout: .paged, count: 0)
@@ -145,9 +144,8 @@ extension StableDirectedGraph: PropertyGraph {
         }
     }
 
-    /// A snapshot of `map`'s values by edge position: two array loads a read, against one for an
-    /// array of `edgePositionBound` values. At a removed position it reads an unspecified value
-    /// and never traps. O(1).
+    /// A snapshot of `map`'s values by edge position. Each read costs two array loads. At a removed
+    /// position it reads an unspecified value and never traps. O(1).
     ///
     /// - Precondition: `map` is attached to this graph.
     @inlinable

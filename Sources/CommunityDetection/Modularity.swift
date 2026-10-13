@@ -19,8 +19,8 @@ func _membership<C: Collection>(_ communities: C, count n: Int, _ number: (C.Ele
     return (labels, c)
 }
 
-/// Modularity with NetworkX's arithmetic: Σ_c L_c/m − γ · out_c · in_c · norm, norm 1/m² directed
-/// and 1/(2m)² undirected (each edge counted at both ends). 0 when m = 0.
+/// Modularity: Σ_c L_c/m − γ · out_c · in_c · norm, norm 1/m² directed and 1/(2m)² undirected (each
+/// edge counted at both ends). 0 when m = 0.
 @inlinable
 func _modularity(_ graph: _CommunityGraph, _ weights: [Double]?, labels: [Int], count k: Int, resolution gamma: Double) -> Double {
     var m = 0.0
@@ -101,8 +101,7 @@ struct _RowModularity: _UndirectedRowsAlgorithm {
     }
 }
 
-/// Coverage and performance (NetworkX `partition_quality`, without its multigraph refusal and
-/// with self-loops not counted as pairs).
+/// Coverage and performance, accepting multigraphs, with self-loops not counted as pairs.
 @inlinable
 func _partitionQuality(_ graph: _CommunityGraph, labels: [Int], count k: Int) -> PartitionQuality {
     let n = graph.count, m = graph.edgeCount
@@ -139,11 +138,10 @@ func _partitionQuality(_ graph: _CommunityGraph, labels: [Int], count k: Int) ->
 }
 
 extension Graph {
-    /// Modularity (Newman and Girvan; NetworkX `modularity`, with Reichardt and Bornholdt's
-    /// resolution γ): Σ_c [L_c/m − γ (d_c/2m)²], L_c the number of edges inside community c, d_c
-    /// its degree sum (a self-loop counts twice), m the number of edges. 0 without edges. Takes any
-    /// grouping of the vertices, such as a `Partition` or `connectedComponents()`. O(n + m) after
-    /// looking the vertices up.
+    /// Modularity (Newman and Girvan, with Reichardt and Bornholdt's resolution γ): Σ_c [L_c/m − γ
+    /// (d_c/2m)²], L_c the number of edges inside community c, d_c its degree sum (a self-loop
+    /// counts twice), m the number of edges. 0 without edges. Takes any grouping of the vertices,
+    /// such as a `Partition` or `connectedComponents()`. O(n + m) after looking the vertices up.
     ///
     /// - Precondition: `communities` lists every vertex exactly once (empty communities are
     ///   allowed); `resolution` is finite and at least zero.
@@ -169,8 +167,7 @@ extension Graph {
         return _runOnUndirectedRows(_RowModularity(labels: labels, count: k, weights: weights, resolution: resolution))
     }
 
-    /// Coverage and performance of a grouping of the vertices (NetworkX `partition_quality`).
-    /// O(n + m log m).
+    /// Coverage and performance of a grouping of the vertices. O(n + m log m).
     ///
     /// - Precondition: `communities` lists every vertex exactly once (empty communities are
     ///   allowed).
@@ -183,9 +180,9 @@ extension Graph {
 }
 
 extension DirectedGraph {
-    /// Directed modularity (Leicht and Newman; NetworkX `modularity`): Σ_c [L_c/m − γ out_c in_c/m²],
-    /// out_c and in_c the community's out- and in-degree sums. 0 without edges. O(n + m) after
-    /// looking the vertices up.
+    /// Directed modularity (Leicht and Newman): Σ_c [L_c/m − γ out_c in_c/m²], out_c and in_c the
+    /// community's out- and in-degree sums. 0 without edges. O(n + m) after looking the vertices
+    /// up.
     ///
     /// - Precondition: `communities` lists every vertex exactly once (empty communities are
     ///   allowed); `resolution` is finite and at least zero.
@@ -210,7 +207,7 @@ extension DirectedGraph {
         return _modularity(_communityGraph(numbers), weights, labels: labels, count: k, resolution: resolution)
     }
 
-    /// Coverage and performance over ordered pairs (NetworkX `partition_quality`). O(n + m log m).
+    /// Coverage and performance over ordered pairs. O(n + m log m).
     ///
     /// - Precondition: `communities` lists every vertex exactly once (empty communities are
     ///   allowed).

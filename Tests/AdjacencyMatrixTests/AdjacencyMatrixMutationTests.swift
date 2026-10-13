@@ -1,5 +1,5 @@
 // The cell subscript, edge insertion and removal, and clearing. Case IDs (AM-Snn, AM-Enn, AM-Vnn,
-// AM-Lnn) refer to the harvested test catalog.
+// AM-Lnn) refer to the case catalog.
 
 import AdjacencyMatrixModule
 import GraphProtocols
@@ -12,7 +12,7 @@ struct AdjacencyMatrixMutationTests {
 
     @Test("AM-S01 reading a cell tests for the edge, and direction matters")
     func readCell() {
-        // petgraph src/matrix_graph.rs: a→b, b→c.
+        // a→b, b→c.
         let matrix = AdjacencyMatrix(vertexCount: 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
         #expect(matrix[0, 1])
         #expect(matrix[1, 2])
@@ -23,7 +23,6 @@ struct AdjacencyMatrixMutationTests {
 
     @Test("AM-S02 / AM-S03 writing true inserts, writing false removes, and counts never drift", arguments: [false, true])
     func writeCell(isShared: Bool) {
-        // Boost.Graph test/adjacency_matrix_test.cpp test_remove_edges.
         var matrix = AdjacencyMatrix(vertexCount: 2)
         let copy: AdjacencyMatrix? = isShared ? matrix : nil
 
@@ -110,7 +109,7 @@ struct AdjacencyMatrixMutationTests {
 
     @Test("AM-E04 removing an edge leaves every other edge intact", .tags(.randomized), arguments: 0 ..< 10 as Range<UInt>)
     func removeLeavesOthers(seed: UInt) {
-        // gonum simple/densegraph_test.go: 100 vertices, 0–4 random successors each.
+        // 100 vertices, 0–4 random successors each.
         var rng = SeededRandomNumberGenerator(seed: seed)
         var edges = Set<DirectedEdge<Int>>()
         for u in 0 ..< 100 {
@@ -307,8 +306,8 @@ struct AdjacencyMatrixGrowthTests {
         }
     }
 
-    // Whether growth is amortized is a performance property, measured by the benchmarks; this
-    // checks that thousands of appends, crossing many restrides, keep every cell.
+    // Whether growth is amortized is a performance property for the benchmarks. This checks that
+    // thousands of appends, crossing many restrides, keep every cell.
     @Test("appending 4096 vertices one at a time keeps every cell")
     func manyAppends() {
         var matrix = AdjacencyMatrix()

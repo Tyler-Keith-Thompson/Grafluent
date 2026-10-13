@@ -1,13 +1,12 @@
-// `greedyColoring(strategy: .coloredNeighbors)`: igraph's `IGRAPH_COLORING_GREEDY_COLORED_NEIGHBORS`
-// (python-igraph `vertex_coloring_greedy(method="colored_neighbors")`). Each row's colours are
-// python-igraph 1.0's; each test also checks properness, the classes, at most Δ + 1 colours, the
-// first-fit property, at least `chromaticNumber()` colours, and igraph's procedure written out:
-// the vertex of greatest degree first (the least index on ties), then the top of igraph's two-way
-// indexed max-heap (`igraph_2wheap_t`) of the uncoloured vertices keyed by coloured neighbours,
+// `greedyColoring(strategy: .coloredNeighbors)`. Each row's colours are python-igraph 1.0's
+// `vertex_coloring_greedy(method="colored_neighbors")`; each test also checks properness, the
+// classes, at most Δ + 1 colours, the first-fit property, at least `chromaticNumber()` colours, and
+// the procedure written out: the vertex of greatest degree first (the least index on ties), then
+// the top of a two-way indexed max-heap of the uncoloured vertices keyed by coloured neighbours,
 // pushed in index order and raised neighbour by neighbour in ascending order, each vertex coloured
 // by first fit. That heap moves an entry above an equal parent going up and to the left child
 // unless the right one is strictly greater going down, so its ties are not by index. A multigraph
-// means its simple graph (igraph would count each parallel edge). See README.md.
+// means its simple graph. See README.md.
 
 import AdjacencyListModule
 import ColoringModule
@@ -42,7 +41,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -125,7 +124,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -208,7 +207,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -291,7 +290,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -374,7 +373,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -457,7 +456,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -540,7 +539,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -623,7 +622,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -706,7 +705,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -789,7 +788,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -872,7 +871,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -955,7 +954,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -1038,7 +1037,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {
@@ -1121,7 +1120,7 @@ struct GreedyColoredNeighborsTests {
         #expect(coloring.colorCount <= (adjacent.map(\.count).max() ?? 0) + 1)
         for v in 0 ..< n { #expect(Set(adjacent[v].map { colors[$0] }).isSuperset(of: 0 ..< colors[v]), "\(v)") }
         #expect(coloring.colorCount >= graph.chromaticNumber())
-        // igraph's procedure written out, with its heap: data, the item at each place, each item's
+        // The procedure written out, with its heap: data, the item at each place, each item's
         // place + 2 (0 when out).
         var expected = [Int](repeating: -1, count: n)
         if n > 0 {

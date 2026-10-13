@@ -1,8 +1,8 @@
 // §A: the one-shot `lowestCommonAncestor(of:_:)` on `RootedTree` and `Arborescence`. The deepest
-// vertex that is an ancestor of both, where a vertex counts as its own ancestor (NetworkX; CLRS
-// 21-3): if one is an ancestor of the other it is the answer (TA-006), and `lca(v, v) == v`
+// vertex that is an ancestor of both, where a vertex counts as its own ancestor (CLRS 21-3): if
+// one is an ancestor of the other it is the answer (TA-006), and `lca(v, v) == v`
 // (TA-008). The answer depends on the root (TA-009 against TA-003). F1 is
-// `U: [0..8] 0-1, 0-2, 1-3, 1-4, 2-5, 4-6, 4-7, 5-8`; NX is NetworkX's `TestTreeLCA` arborescence
+// `U: [0..8] 0-1, 0-2, 1-3, 1-4, 2-5, 4-6, 4-7, 5-8`; NX is the arborescence
 // `0>1, 0>2, 1>3, 1>4, 2>5, 2>6`. Sources are written on the `ReferencePseudograph` /
 // `ReferenceDirectedMultigraph` as the catalog writes them; parent arrays go to the
 // initializers. Expected values are the catalog's, computed by `ref.py` and checked against

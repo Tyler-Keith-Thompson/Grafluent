@@ -34,12 +34,7 @@
 #                     last-edge pointers never cycle.
 #   unemptysources    the undirected Bellman–Ford pre-pass's checks: an empty source list or a
 #   unvertex          non-vertex source traps in the directed Bellman–Ford it calls next.
-#   The range checks, the path guard and the pre-pass checks stay: removing them was declined as
-#   removing safety checks.
-#
-# Removed as dead code after planting: Bellman–Ford's `queuedIn[s] = 0` (rounds start at 1), its
-# `< .one` tests before `_isSaturated` (which implies them), and the undirected single-target
-# search's clearing of parents when the target is not reached (the target then has no parent).
+#   The range checks, the path guard and the pre-pass checks stay as safety checks.
 
 TESTS = ["SemiringsTests", "ShortestPathsTests"]
 

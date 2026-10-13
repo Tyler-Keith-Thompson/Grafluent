@@ -12,8 +12,7 @@ protocol _AssignmentCosts {
     func cost(_ column: Int) -> Cost?
 }
 
-/// Shortest augmenting paths with potentials, as scipy's `rectangular_lsap.cpp` (Crouse 2016) in
-/// operation order: rows in order; per row, Dijkstra-like scans of the remaining columns, which
+/// Shortest augmenting paths with potentials (Crouse 2016): rows in order; per row, Dijkstra-like scans of the remaining columns, which
 /// start in reverse order and are swap-removed as they are reached; among equal path costs the scan
 /// keeps the first, except that an unassigned column replaces an equal assigned one. Returns the
 /// column of each row, or nil when some row cannot be assigned.
@@ -125,7 +124,7 @@ struct _DenseCosts<Cost: SignedNumeric & Comparable>: _AssignmentCosts {
     func cost(_ column: Int) -> Cost? { allowed[start + column] ? values[start + column] : nil }
 }
 
-/// The result of `linearSumAssignment`: scipy's `(row_ind, col_ind)`, by ascending row.
+/// The result of `linearSumAssignment`: the assigned rows and their columns, by ascending row.
 @frozen
 public struct LinearSumAssignment<Cost: Comparable & AdditiveArithmetic>: Equatable {
     /// The assigned rows, ascending.
@@ -146,14 +145,15 @@ public struct LinearSumAssignment<Cost: Comparable & AdditiveArithmetic>: Equata
 extension LinearSumAssignment: Hashable where Cost: Hashable {}
 extension LinearSumAssignment: Sendable where Cost: Sendable {}
 
-/// The assignment problem on a `rowCount` × `columnCount` cost matrix (scipy
-/// `linear_sum_assignment`, the same assignment): min(rowCount, columnCount) pairs, no row or
-/// column twice, least total cost (greatest with `maximize`). `cost(row, column)` is nil for a
-/// forbidden pair. nil when no assignment avoids the forbidden pairs. A matrix with more rows than
-/// columns is solved transposed, as scipy does. O(r² c) time, r ≤ c the dimensions, and O(r c)
-/// memory: `cost` is called once per cell, into a matrix, as scipy takes one. Integer costs are
-/// exact (scipy converts to `Double`).
+/// The assignment problem on a `rowCount` × `columnCount` cost matrix: min(rowCount, columnCount)
+/// pairs, no row or column twice, least total cost (greatest with `maximize`), or nil when no
+/// assignment avoids the forbidden pairs.
 ///
+/// `cost(row, column)` is nil for a forbidden pair. It is called once per cell, and again for each
+/// assigned pair to sum the cost. A matrix with more rows than columns is solved transposed.
+/// Integer costs are exact.
+///
+/// - Complexity: O(r² c) time and O(r c) memory, r ≤ c the dimensions.
 /// - Precondition: both counts are at least zero; no cost is NaN or infinite.
 @inlinable
 public func linearSumAssignment<W: SignedNumeric & Comparable>(rowCount: Int, columnCount: Int, maximize: Bool = false, cost: (_ row: Int, _ column: Int) -> W?) -> LinearSumAssignment<W>? {
@@ -162,7 +162,7 @@ public func linearSumAssignment<W: SignedNumeric & Comparable>(rowCount: Int, co
     let transposed = columnCount < rowCount
     let nr = transposed ? columnCount : rowCount, nc = transposed ? rowCount : columnCount
     return withoutActuallyEscaping(cost) { cost in
-        // Read once per cell, transposed and negated, as scipy builds its matrix.
+        // Read once per cell, transposed and negated.
         let cells = nr * nc
         var values = [W](repeating: .zero, count: cells)
         var allowed = [Bool](repeating: false, count: cells)
@@ -283,7 +283,7 @@ extension Graph {
     @inlinable
     func _minimumWeightFullMatching<W: SignedNumeric & Comparable>(left: [Int], right: [Int], structure: _MatchingGraph, weight: (Edges.Index) -> W) -> Matching<Self, W>? {
         let weights = _matchingWeights(structure, weight, { $0 == $0 }, "A weight is NaN")
-        // A tall matrix is solved transposed, as scipy does.
+        // A tall matrix is solved transposed.
         let mateEdge = left.count <= right.count
             ? _fullMatching(structure, rowSide: left, columnSide: right, weights: weights)
             : _fullMatching(structure, rowSide: right, columnSide: left, weights: weights)
@@ -292,12 +292,14 @@ extension Graph {
     }
 
     /// A least-weight matching covering the smaller side of a bipartite graph, or nil when none
-    /// exists (NetworkX `minimum_weight_full_matching`): scipy's assignment on the biadjacency
-    /// matrix, rows `bipartition.left`, columns `bipartition.right` in these orders (NetworkX's
-    /// columns follow set iteration, so its matching can differ among equal-weight ones), missing
-    /// edges forbidden, each pair's lightest copy (NetworkX keeps the last copy on a multigraph). The matrix is never built: memory O(n + m). An empty
-    /// side gives the empty matching. `weight` is called once per edge, in position order.
-    /// O(s² t), s ≤ t the side sizes.
+    /// exists.
+    ///
+    /// Solves the assignment problem on the biadjacency matrix: rows `bipartition.left`, columns
+    /// `bipartition.right`, in these orders, missing edges forbidden, each pair weighed by its
+    /// lightest copy (the earliest on ties). The matrix is never built. An empty side gives the
+    /// empty matching. `weight` is called once per edge, in position order.
+    ///
+    /// - Complexity: O(s² t) time, s ≤ t the side sizes, and O(n + m) memory.
     ///
     /// - Precondition: `bipartition` is this graph's; no weight is NaN or infinite.
     @inlinable

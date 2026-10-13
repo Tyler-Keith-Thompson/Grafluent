@@ -88,8 +88,8 @@ extension _TreeLayout {
 }
 
 extension Tree {
-    /// The vertices of least eccentricity, in `vertices` order: one, or two adjacent ones
-    /// (NetworkX `tree.center`, JGraphT's `TreeMeasurer`). O(n).
+    /// The vertices of least eccentricity, in `vertices` order. There is one, or two adjacent
+    /// ones. O(n).
     @inlinable
     public func center() -> [Vertex] {
         _layout._center([Int](repeating: 1, count: edgeCount))
@@ -119,18 +119,17 @@ extension Tree {
         _layout._eccentricities(_layout._weights(weight)).max()!
     }
 
-    /// A longest path, as igraph's `get_diameter` returns one, with ties broken by vertex index:
-    /// from the first vertex in `vertices` order of greatest eccentricity to the first vertex
-    /// farthest from it, so the lexicographically least such pair. The trivial path at the first
-    /// vertex for one vertex. O(n).
+    /// A longest path, from the first vertex in `vertices` order of greatest eccentricity to the
+    /// first vertex farthest from it. This is the lexicographically least pair of ends. The
+    /// trivial path at the first vertex for one vertex. O(n).
     @inlinable
     public func diameterPath() -> Path<Vertex, Int> {
         _layout._diameterPath([Int](repeating: 1, count: edgeCount)).path
     }
 
     /// A longest path by weighted distance, chosen as `diameterPath()` chooses, and its weight
-    /// summed along the path (with floating point, it can differ from `diameter(weight:)` in the
-    /// last digit, the sums being taken in another order). O(n).
+    /// summed along the path. With floating-point weights the sum can differ from
+    /// `diameter(weight:)` in the last digit because it adds in a different order. O(n).
     ///
     /// - Precondition: Every weight is at least `.zero` and not NaN, and the sums fit in `W`.
     @inlinable

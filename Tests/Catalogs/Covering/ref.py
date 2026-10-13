@@ -1,4 +1,4 @@
-"""Covering phase 1: reference model and independent checks for every catalog row.
+"""Covering: reference model and independent checks for every catalog row.
 
 Run:  uv run --quiet --no-project --with networkx==3.7 [--with igraph==1.0.0] python3 ref.py [--stress] [--write]
       (add --with igraph to also check against igraph's independent-set functions)

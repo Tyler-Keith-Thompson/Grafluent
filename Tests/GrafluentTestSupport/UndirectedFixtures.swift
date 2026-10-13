@@ -1,12 +1,11 @@
 // Named undirected graphs with independently known properties.
 //
 // Graph definitions and expected values are mathematical facts, restated here from the test
-// suites and generators where they were found. Each fixture cites its origin. Degrees count edge
-// ends, so a self-loop adds 2 to its vertex's degree (NetworkX, JGraphT, Boost agree on the
-// number). Expected values are given twice: for a simple graph, where repeated edges collapse
-// (`edgeCount`, `degree`), and for a pseudograph, which keeps every edge as written
-// (`pseudographEdgeCount`, `pseudographDegree`, NetworkX `MultiGraph`). They differ only where an
-// edge is written twice.
+// suites and generators where they were found. Each fixture cites its origin in `source`. Degrees
+// count edge ends, so a self-loop adds 2 to its vertex's degree. Expected values are given twice:
+// for a simple graph, where repeated edges collapse (`edgeCount`, `degree`), and for a pseudograph,
+// which keeps every edge as written (`pseudographEdgeCount`, `pseudographDegree`). They differ
+// only where an edge is written twice.
 //
 // The graph itself is written with `GraphBuilder`. The builder only collects the edges and
 // vertices as written; the expected values beside it were computed by hand or with NetworkX,
@@ -356,7 +355,7 @@ extension UndirectedFixture where Vertex == String {
         UndirectedEdge("J", "K")
     }
 
-    /// The Int fixture of the same name, with petgraph's own vertex names.
+    /// The `Int` fixture of the same name, with letters for vertices.
     public static let petgraphUndirected = UndirectedFixture<String>(
         "petgraph undirected with repeats and a loop, named", source: "petgraph tests/graph.rs undirected",
         vertexCount: 4, edgeCount: 5, degree: ["a": 5, "b": 2, "c": 2, "d": 1],

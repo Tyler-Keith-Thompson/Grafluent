@@ -389,15 +389,14 @@ FILES = [
     ("GridHypercubePetersenTests.swift", "NamedGraphs grids, hypercubes, Petersen and empty graphs", ids("Grid", "Hypercube", "Petersen", "Empty"),
      "Grids, hypercubes, the Petersen graph and empty graphs (catalog NG-052 – NG-082): grids row-major\n"
      "// with the last dimension fastest, periodic wraps only in dimensions of length ≥ 3; Q_d by bits;\n"
-     "// Petersen in NetworkX's numbering; both arcs when directed."),
+     "// Petersen as outer 0–4, spokes i – i+5, inner pentagram; both arcs when directed."),
     ("RepresentationTests.swift", "NamedGraphs on every conformer", ids("Representations"),
      "Representations (catalog NG-084 – NG-090): one family on every conformer reads the same vertices\n"
      "// and the same edges in the same order."),
     ("LadderBarbellLollipopTests.swift", "NamedGraphs ladders, barbells and lollipops",
      ids("Ladder", "CircularLadder", "Barbell", "Lollipop"),
-     "Ladders, circular ladders, barbells and lollipops (catalog NG-091 – NG-109), numbered as NetworkX\n"
-     "// numbers them: rails 0..<n and n..<2n with rungs i – (i + n); cliques joined by a path. Both arcs\n"
-     "// when directed."),
+     "Ladders, circular ladders, barbells and lollipops (catalog NG-091 – NG-109): rails 0..<n and\n"
+     "// n..<2n with rungs i – (i + n); cliques joined by a path. Both arcs when directed."),
     ("MultipartiteBalancedTreeTests.swift", "NamedGraphs complete multipartite, Turán and balanced tree graphs",
      ids("CompleteMultipartite", "Turan", "BalancedTree"),
      "Complete multipartite and Turán graphs and balanced trees (catalog NG-112 – NG-135): parts as\n"

@@ -4,14 +4,14 @@
         checks cases.md against the model
     ... ref.py --write    regenerates cases.md
     ... ref.py --stress   also runs the random operation sequences (rustworkx and NetworkX shadows)
-    ... ref.py --bench    times rustworkx (petgraph StableGraph) on the benchmark instance
+    ... ref.py --bench    times rustworkx on the benchmark instance
 
-`Port` is a direct port of the proposed storage: vertex slots and edge records that are never
-reused, with tombstones, and doubly linked out- and in-lists threaded through the edge records.
+`Port` models the storage: vertex slots and edge records that are never reused, with tombstones,
+and out- and in-lists in position order threaded through the edge records.
 `Spec` is the specification written plainly: everything lives at a monotone position and every
 order is position order. Every state is checked port == spec, against the DirectedGraph and
 BidirectionalDirectedGraph laws (including the state-dependent index bounds), and, in --stress,
-against a rustworkx PyDiGraph (petgraph StableGraph) and a NetworkX MultiDiGraph driven by the
+against a rustworkx PyDiGraph and a NetworkX MultiDiGraph driven by the
 same calls.
 """
 import copy
@@ -62,7 +62,7 @@ ELEMENT_EDGE, ELEMENT_VERTEX = Throws("ElementNotFound.edge"), Throws("ElementNo
 
 
 # ---------------------------------------------------------------------------------------------
-# The port of the proposed storage.
+# The storage model.
 
 class Port:
     """Per-slot and per-position fields are dicts keyed by live slot or position: a hole, and every
@@ -668,7 +668,7 @@ def encode(g):
 
 
 def decode(d):
-    """Mirrors the proposed decoder. Returns a Port or an error string."""
+    """Mirrors the decoder. Returns a Port or an error string."""
     V, VP, vend = d["vertices"], d["vertexPositions"], d["vertexEnd"]
     E, EP, eend = d["edges"], d["edgePositions"], d["edgeEnd"]
     if len(V) != len(VP): return "dataCorrupted(vertexPositions): Count differs from vertices"
@@ -868,7 +868,7 @@ def define():
 
 
 def define_flow_navigation():
-    """The FlowNavigation additions and the review fixes, after the phase-1 rows (SG-097 on)."""
+    """Bulk removal, checked lookups, `insert(checked:)`, decoding bounds, paging, edge changes and maps (SG-097 on)."""
     R = "Edge removal"
     case(R, "removeAllEdges(from:where:) sees only the vertex's out-row, oldest first", [0, 1, 2],
          [(0, 1), (0, 2), (1, 2), (0, 1), (0, 0)], [("removeFromWhere", 0, [0, 2, 3, 4]), ("removeAt", 1), ("edge", 0, 2)])
@@ -1194,10 +1194,10 @@ def _roundtrip_then(g, ops):
 
 
 def render():
-    out = ["# StableGraphs: case catalog (phase 1)", "",
+    out = ["# StableGraphs: case catalog", "",
            "Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with rustworkx==0.18.1",
            "python3 Tests/Catalogs/StableGraphs/ref.py`; `--write` regenerates this file, `--stress` adds the random",
-           "sequences). Every Expected is the output of a port of the proposed storage, checked at every state",
+           "sequences). Every Expected is the output of a model of the storage, checked at every state",
            "against a plain specification model and the DirectedGraph / BidirectionalDirectedGraph laws.",
            "",
            "Conventions:",
@@ -1300,7 +1300,7 @@ def stress(seeds=300, steps=60):
             assert Counter((x, y) for _, x, y in port.edges()) == Counter((x, y) for x, y, _ in ng.edges(keys=True))
             for w in live:
                 outs = port.out_edges(w)
-                # petgraph lists a vertex's edges newest first; ours are oldest first.
+                # rustworkx lists a vertex's edges newest first; ours are oldest first.
                 assert list(reversed([p for _, _, p in rg.out_edges(rnode[w])])) == outs
                 assert list(reversed([p for _, _, p in rg.in_edges(rnode[w])])) == port.in_edges(w)
                 assert rg.out_degree(rnode[w]) == len(outs) == ng.out_degree(w)

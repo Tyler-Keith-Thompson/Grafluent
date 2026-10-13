@@ -96,7 +96,7 @@ struct BreadthFirstSearchTranscriptTests {
 
     @Test("TR-09 NetworkX's TestBFS graph")
     func tr09() {
-        // NetworkX test_bfs.py, undirected, written as both directions.
+        // Undirected, written as both directions.
         let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 3, to: 1), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 2), DirectedEdge(from: 4, to: 3)]
         let expected = "discover(0) treeEdge(0→1) discover(1) finish(0) nonTreeEdge(1→0) treeEdge(1→2) discover(2) treeEdge(1→3) discover(3) finish(1) nonTreeEdge(2→1) treeEdge(2→4) discover(4) finish(2) nonTreeEdge(3→1) nonTreeEdge(3→4) finish(3) nonTreeEdge(4→2) nonTreeEdge(4→3) finish(4)"
         let matrix = AdjacencyMatrix(vertexCount: 5, edges: edges)
@@ -107,7 +107,6 @@ struct BreadthFirstSearchTranscriptTests {
 
     @Test("TR-10 a directed 5-cycle with a loop")
     func tr10() {
-        // NetworkX test_bfs.py: tree ×4, (4, 0) reverse, (4, 4) level.
         let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 0), DirectedEdge(from: 4, to: 4)]
         let expected = "discover(0) treeEdge(0→1) discover(1) finish(0) treeEdge(1→2) discover(2) finish(1) treeEdge(2→3) discover(3) finish(2) treeEdge(3→4) discover(4) finish(3) nonTreeEdge(4→0) nonTreeEdge(4→4) finish(4)"
         let matrix = AdjacencyMatrix(vertexCount: 5, edges: edges)
@@ -118,7 +117,6 @@ struct BreadthFirstSearchTranscriptTests {
 
     @Test("TR-11 a 5-cycle with chords")
     func tr11() {
-        // NetworkX test_bfs.py: 1→2 level, 2→5 forward, 4→0 reverse.
         let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 5), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 2, to: 5), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 0)]
         let expected = "discover(0) treeEdge(0→1) discover(1) treeEdge(0→2) discover(2) finish(0) nonTreeEdge(1→2) treeEdge(1→5) discover(5) finish(1) treeEdge(2→3) discover(3) nonTreeEdge(2→5) finish(2) finish(5) treeEdge(3→4) discover(4) finish(3) nonTreeEdge(4→0) finish(4)"
         let matrix = AdjacencyMatrix(vertexCount: 6, edges: edges)
@@ -129,7 +127,7 @@ struct BreadthFirstSearchTranscriptTests {
 
     @Test("TR-12 every source is discovered before any edge")
     func tr12() {
-        // NetworkX bfs_labeled_edges doctest: K3 from [0, 1].
+        // K3 from [0, 1].
         let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0), DirectedEdge(from: 2, to: 1)]
         let expected = "discover(0) discover(1) nonTreeEdge(0→1) treeEdge(0→2) discover(2) finish(0) nonTreeEdge(1→0) nonTreeEdge(1→2) finish(1) nonTreeEdge(2→0) nonTreeEdge(2→1) finish(2)"
         let matrix = AdjacencyMatrix(vertexCount: 3, edges: edges)
@@ -184,7 +182,6 @@ struct BreadthFirstSearchTranscriptTests {
 
     @Test("TR-80 a depth-limited breadth-first transcript")
     func tr80() {
-        // NetworkX test_bfs.py depth limit.
         let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 2, to: 7), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 3), DirectedEdge(from: 4, to: 5), DirectedEdge(from: 5, to: 4), DirectedEdge(from: 5, to: 6), DirectedEdge(from: 6, to: 5), DirectedEdge(from: 7, to: 2), DirectedEdge(from: 7, to: 8), DirectedEdge(from: 8, to: 7), DirectedEdge(from: 8, to: 9), DirectedEdge(from: 9, to: 8), DirectedEdge(from: 9, to: 10), DirectedEdge(from: 10, to: 9)]
         let expected = "discover(1) treeEdge(1→0) discover(0) treeEdge(1→2) discover(2) finish(1) nonTreeEdge(0→1) finish(0) nonTreeEdge(2→1) treeEdge(2→3) discover(3) treeEdge(2→7) discover(7) finish(2) nonTreeEdge(3→2) treeEdge(3→4) discover(4) finish(3) nonTreeEdge(7→2) treeEdge(7→8) discover(8) finish(7) finish(4) finish(8)"
         let matrix = AdjacencyMatrix(vertexCount: 11, edges: edges)
@@ -279,7 +276,6 @@ struct DepthFirstSearchTranscriptTests {
 
     @Test("TR-39 petgraph's dfs_visit graph")
     func tr39() {
-        // petgraph tests/graph.rs dfs_visit.
         let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 0, to: 3), DirectedEdge(from: 0, to: 5), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 4, to: 0), DirectedEdge(from: 4, to: 5)]
         let expected = "discover(0) treeEdge(0→1) discover(1) treeEdge(1→3) discover(3) finish(3) finish(1) treeEdge(0→2) discover(2) crossEdge(2→3) treeEdge(2→4) discover(4) backEdge(4→0) treeEdge(4→5) discover(5) finish(5) finish(4) finish(2) forwardEdge(0→3) forwardEdge(0→5) finish(0)"
         let matrix = AdjacencyMatrix(vertexCount: 6, edges: edges)
@@ -290,7 +286,6 @@ struct DepthFirstSearchTranscriptTests {
 
     @Test("TR-40 NetworkX's TestDFS graph")
     func tr40() {
-        // NetworkX test_dfs.py; its nontree labels are these back and forward edges.
         let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 3), DirectedEdge(from: 0, to: 4), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 3, to: 0), DirectedEdge(from: 3, to: 1), DirectedEdge(from: 4, to: 0), DirectedEdge(from: 4, to: 2)]
         let expected = "discover(0) treeEdge(0→1) discover(1) backEdge(1→0) treeEdge(1→2) discover(2) backEdge(2→1) treeEdge(2→4) discover(4) backEdge(4→0) backEdge(4→2) finish(4) finish(2) treeEdge(1→3) discover(3) backEdge(3→0) backEdge(3→1) finish(3) finish(1) forwardEdge(0→3) forwardEdge(0→4) finish(0)"
         let matrix = AdjacencyMatrix(vertexCount: 5, edges: edges)
@@ -301,7 +296,6 @@ struct DepthFirstSearchTranscriptTests {
 
     @Test("TR-41 the whole of a disconnected graph")
     func tr41() {
-        // NetworkX test_dfs.py D.
         let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 2)]
         let expected = "discover(0) treeEdge(0→1) discover(1) backEdge(1→0) finish(1) finish(0) discover(2) treeEdge(2→3) discover(3) backEdge(3→2) finish(3) finish(2)"
         let matrix = AdjacencyMatrix(vertexCount: 4, edges: edges)
@@ -391,7 +385,6 @@ struct DepthFirstSearchTranscriptTests {
 
     @Test("TR-51 LEMON's test digraph")
     func tr51() {
-        // LEMON test/dfs_test.cc.
         let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 4), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 4, to: 2), DirectedEdge(from: 4, to: 5), DirectedEdge(from: 5, to: 0), DirectedEdge(from: 6, to: 3)]
         let expected = "discover(0) treeEdge(0→1) discover(1) treeEdge(1→2) discover(2) treeEdge(2→3) discover(3) finish(3) finish(2) treeEdge(1→4) discover(4) crossEdge(4→2) treeEdge(4→5) discover(5) backEdge(5→0) finish(5) finish(4) finish(1) finish(0)"
         let matrix = AdjacencyMatrix(vertexCount: 7, edges: edges)
@@ -514,7 +507,7 @@ struct DepthFirstSearchTranscriptTests {
 
     @Test("TR-76 depth-limited transcripts")
     func tr76() {
-        // NetworkX test_dfs.py: path 0…6 plus 2–7–8–9–10.
+        // Path 0…6 plus 2–7–8–9–10.
         let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 2, to: 7), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 3), DirectedEdge(from: 4, to: 5), DirectedEdge(from: 5, to: 4), DirectedEdge(from: 5, to: 6), DirectedEdge(from: 6, to: 5), DirectedEdge(from: 7, to: 2), DirectedEdge(from: 7, to: 8), DirectedEdge(from: 8, to: 7), DirectedEdge(from: 8, to: 9), DirectedEdge(from: 9, to: 8), DirectedEdge(from: 9, to: 10), DirectedEdge(from: 10, to: 9)]
         let expected = "discover(5) treeEdge(5→4) discover(4) finish(4) treeEdge(5→6) discover(6) finish(6) finish(5)"
         let matrix = AdjacencyMatrix(vertexCount: 11, edges: edges)
@@ -525,7 +518,6 @@ struct DepthFirstSearchTranscriptTests {
 
     @Test("TR-76 depth-limited transcripts, from 6")
     func tr76v2() {
-        // NetworkX: (5, 4) reverse-depth_limit, (5, 6) nontree.
         let edges = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 2, to: 7), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 3), DirectedEdge(from: 4, to: 5), DirectedEdge(from: 5, to: 4), DirectedEdge(from: 5, to: 6), DirectedEdge(from: 6, to: 5), DirectedEdge(from: 7, to: 2), DirectedEdge(from: 7, to: 8), DirectedEdge(from: 8, to: 7), DirectedEdge(from: 8, to: 9), DirectedEdge(from: 9, to: 8), DirectedEdge(from: 9, to: 10), DirectedEdge(from: 10, to: 9)]
         let expected = "discover(6) treeEdge(6→5) discover(5) treeEdge(5→4) discover(4) finish(4) backEdge(5→6) finish(5) finish(6)"
         let matrix = AdjacencyMatrix(vertexCount: 11, edges: edges)
@@ -536,7 +528,7 @@ struct DepthFirstSearchTranscriptTests {
 
     @Test("TR-79 depth limit 1 over the whole of a disconnected graph")
     func tr79() {
-        // NetworkX test_dfs.py: 8→7 and 10→9 nontree.
+        // 8→7 and 10→9 are cross edges.
         let graph = ReferenceDirectedMultigraph(vertices: [0, 1, 2, 3, 7, 8, 9, 10], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 2, to: 7), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 7, to: 2), DirectedEdge(from: 7, to: 8), DirectedEdge(from: 8, to: 7), DirectedEdge(from: 8, to: 9), DirectedEdge(from: 9, to: 8), DirectedEdge(from: 9, to: 10), DirectedEdge(from: 10, to: 9)])
         #expect(graph.depthFirstSearch(depthLimit: 1).map(\.description).joined(separator: " ") == "discover(0) treeEdge(0→1) discover(1) finish(1) finish(0) discover(2) treeEdge(2→3) discover(3) finish(3) treeEdge(2→7) discover(7) finish(7) finish(2) discover(8) crossEdge(8→7) treeEdge(8→9) discover(9) finish(9) finish(8) discover(10) crossEdge(10→9) finish(10)")
     }

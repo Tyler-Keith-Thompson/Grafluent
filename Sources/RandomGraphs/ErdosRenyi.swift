@@ -2,8 +2,8 @@ import DirectedAcyclicGraphModule
 import GraphProtocols
 import NamedGraphs
 
-// G(n, p) by geometric skipping and G(n, m) by rejection, NetworkX's `fast_gnp_random_graph` and
-// `gnm_random_graph` draw for draw, and the Barak–Erdős random DAG built on them.
+// G(n, p) by geometric skipping, G(n, m) by rejection, and the Barak–Erdős random DAG built on
+// them.
 
 /// One Batagelj–Brandes sweep over the pairs w < v of `0..<n`, in order of v, then w: each step
 /// skips a geometric number of pairs, `⌊log(1 − u) / log(1 − p)⌋`, and keeps the next. Appends
@@ -33,22 +33,21 @@ func _gnpSweep<G: RandomNumberGenerator>(
 @inlinable
 func _gnpPairs<G: RandomNumberGenerator>(_ n: Int, _ p: Double, directed: Bool, _ g: inout G) -> [DirectedEdge<Int>] {
     guard p > 0 else { return [] }
-    // `log(1 − p)`, as NetworkX computes it, and not `log1p(−p)`: for tiny p, 1 − p rounds to a
-    // neighbor of 1, so `lp` is off from the true log(1 − p) ≈ −p by up to about 1.1e-16 / p
-    // relative (for p = 1e-12, about 1e-4), and the skips are drawn for a slightly different p.
-    // `log1p` would be accurate, but would move edges against NetworkX on the same stream, which
-    // the catalog pins; the bias is below what any sample of the graph can detect.
+    // `log(1 − p)`, not `log1p(−p)`, because the catalog pins edges draw for draw against a
+    // reference that computes it this way. For tiny p, 1 − p rounds to a neighbor of 1, and `lp`
+    // is off by up to about 1.1e-16 / p relative (about 1e-4 for p = 1e-12). That bias is below
+    // what any sample of the graph can detect.
     let lp = _log(1 - p)
-    // p below about 1.1e-16: 1 − p is 1, so no pair can be drawn (NetworkX divides by zero).
+    // For p below about 1.1e-16, 1 − p is 1 and no pair can be drawn.
     guard lp != 0 else { return [] }
-    // One sweep covers the n(n − 1)/2 pairs w < v, directed or not: the directed form makes two
-    // sweeps, each into its own array.
+    // One sweep covers the n(n − 1)/2 pairs w < v. The directed form makes two sweeps, each into
+    // its own array.
     let expected = Double(n) * Double(n - 1) / 2 * p
     var first: [DirectedEdge<Int>] = []
     first.reserveCapacity(Int(Swift.min(expected * 1.05 + 16, Double(Int.max / 64))))
-    // The undirected sweep emits (w, v) with w < v ordered by v, then w: sorted by the larger end,
-    // so one stable pass by the smaller end sorts it. Directed, NetworkX sweeps the arcs w → v
-    // first, then v → w; each row is then its smaller targets (second sweep) before its larger
+    // The undirected sweep emits (w, v) with w < v ordered by v, then w, which is sorted by the
+    // larger end, so one stable pass by the smaller end sorts it. The directed form sweeps the arcs
+    // w → v first, then v → w. Each row lists its smaller targets (second sweep) before its larger
     // ones (first sweep), so the second sweep's arcs go into the sort first.
     _gnpSweep(n, logOneMinusP: lp, largerFirst: false, into: &first, &g)
     guard directed else { return _sortedBySource(n, first, []) }
@@ -94,16 +93,17 @@ func _gnmPairs<G: RandomNumberGenerator>(_ n: Int, _ m: Int, directed: Bool, _ g
 
 extension _GraphConstruction {
     /// The Erdős–Rényi random graph G(n, p): each of the n(n − 1)/2 pairs is an edge independently
-    /// with probability p (Gilbert's model). Drawn by geometric skipping, so the cost follows the
-    /// edges, not the pairs:
+    /// with probability p (Gilbert's model). It is drawn by geometric skipping, so the cost follows
+    /// the edges, not the pairs:
     ///
     /// > Vladimir Batagelj and Ulrik Brandes. Efficient generation of large random networks.
     /// > *Physical Review E* 71, 036113 (2005), algorithm G(n, p). doi:10.1103/PhysRevE.71.036113
     ///
-    /// One `log` and one draw per edge, plus one; O(n + m) expected. p = 0 gives no edges and
-    /// p = 1 the complete graph, with no draws; so does any p for which 1 − p rounds to 1. The
-    /// draws are NetworkX's `fast_gnp_random_graph` on the same stream; edges come sorted.
+    /// Each edge costs one `log` and one draw, plus one more at the end. p = 0 gives no edges and
+    /// p = 1 the complete graph, with no draws. Any p for which 1 − p rounds to 1 also gives no
+    /// edges and no draws.
     ///
+    /// - Complexity: O(n + m) expected.
     /// - Precondition: `vertexCount ≥ 0` and `edgeProbability` in 0...1.
     @inlinable
     public static func erdosRenyi(
@@ -128,11 +128,11 @@ extension _GraphConstruction {
     /// > Paul Erdős and Alfréd Rényi. On random graphs I. *Publicationes Mathematicae Debrecen* 6,
     /// > 290–297 (1959).
     ///
-    /// Pairs are drawn by rejection (two `below(n)` per try, a repeat or a self-pair
-    /// rejected) until m are distinct, as NetworkX's `gnm_random_graph`; when m is more than half
-    /// the pairs, the same loop draws the pairs left out. O(n + m) expected while 2m ≤ n(n − 1)/2,
-    /// O(n²) otherwise (the output's size). Edges come sorted.
+    /// Pairs are drawn by rejection until m are distinct. Each try draws two `below(n)` and rejects
+    /// a repeat or a self-pair. When m is more than half the pairs, the same loop draws the pairs
+    /// left out.
     ///
+    /// - Complexity: O(n + m) expected while 2m ≤ n(n − 1)/2, O(n²) otherwise.
     /// - Precondition: `vertexCount ≥ 0` and `edgeCount` in 0...n(n − 1)/2.
     @inlinable
     public static func erdosRenyi(
@@ -151,10 +151,10 @@ extension _GraphConstruction {
 
 extension _DirectedGraphConstruction {
     /// The directed G(n, p): each of the n(n − 1) ordered pairs u ≠ v is an arc independently with
-    /// probability p, by Batagelj and Brandes' skipping (see the undirected form): one sweep for
-    /// the arcs from lower to higher index, then one for the rest, as NetworkX's
-    /// `fast_gnp_random_graph(directed=True)`. O(n + m) expected; arcs in row-major order.
+    /// probability p. It uses Batagelj and Brandes' skipping, with one sweep for the arcs from lower
+    /// to higher index and then one for the rest.
     ///
+    /// - Complexity: O(n + m) expected.
     /// - Precondition: `vertexCount ≥ 0` and `edgeProbability` in 0...1.
     @inlinable
     public static func erdosRenyi(
@@ -174,7 +174,7 @@ extension _DirectedGraphConstruction {
     }
 
     /// The directed G(n, m): m arcs, uniform over the digraphs on `0..<n` with m arcs, by the
-    /// undirected form's rejection loop over ordered pairs. Arcs in row-major order.
+    /// undirected form's rejection loop over ordered pairs.
     ///
     /// - Precondition: `vertexCount ≥ 0` and `edgeCount` in 0...n(n − 1).
     @inlinable
@@ -193,16 +193,16 @@ extension _DirectedGraphConstruction {
 }
 
 extension DirectedAcyclicGraph where Base: _DirectedGraphConstruction {
-    /// A random DAG: the undirected G(n, p) on the same draws, each edge u–v (u < v) oriented
-    /// u → v, so `0..<n` is a topological order and becomes the graph's order with no Kahn pass.
-    /// This is the Barak–Erdős model:
+    /// A random DAG: the undirected G(n, p) on the same draws, with each edge u–v (u < v) oriented
+    /// u → v. `0..<n` is the graph's topological order. This is the Barak–Erdős model:
     ///
     /// > Amnon B. Barak and Paul Erdős. On the maximal number of strongly independent vertices in a
     /// > random acyclic directed graph. *SIAM Journal on Algebraic and Discrete Methods* 5(4),
     /// > 508–514 (1984). doi:10.1137/0605049
     ///
-    /// O(n + m) expected. A caller who wants the order hidden relabels the vertices.
+    /// To hide the order, relabel the vertices.
     ///
+    /// - Complexity: O(n + m) expected.
     /// - Precondition: `vertexCount ≥ 0` and `edgeProbability` in 0...1.
     @inlinable
     public static func erdosRenyi(
@@ -225,8 +225,9 @@ extension DirectedAcyclicGraph where Base: _DirectedGraphConstruction {
     }
 
     /// A random DAG with m edges: the undirected G(n, m) on the same draws, oriented from lower to
-    /// higher index, with `0..<n` as its order. O(n + m) expected while 2m ≤ n(n − 1)/2.
+    /// higher index, with `0..<n` as its order.
     ///
+    /// - Complexity: O(n + m) expected while 2m ≤ n(n − 1)/2.
     /// - Precondition: `vertexCount ≥ 0` and `edgeCount` in 0...n(n − 1)/2.
     @inlinable
     public static func erdosRenyi(

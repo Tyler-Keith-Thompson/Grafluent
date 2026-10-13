@@ -1,7 +1,6 @@
 // Queries on named graphs, read through a generic function declared inside each test, so these
-// check the Graph conformance. Expected values come from NetworkX and petgraph; where NetworkX lists
-// a self-loop's vertex once among its neighbors, Grafluent lists it once per end (twice). Case IDs
-// (UG-Rnn) refer to the protocol catalog; see Tests/GraphProtocolsTests/README.md.
+// check the Graph conformance. A self-loop's vertex is listed among its neighbors once per end
+// (twice). Case IDs (UG-Rnn) refer to the protocol catalog; see Tests/GraphProtocolsTests/README.md.
 
 import AdjacencyListModule
 import GraphProtocols
@@ -44,7 +43,7 @@ struct UndirectedAdjacencyListQueryTests {
         func check<G: Graph<Int>>(_ g: G) where G.Edges.Index == Int {
             #expect(Array(g.edges) == [UndirectedEdge(0, 0)])
             #expect(g.edgeCount == 1)
-            // NetworkX lists [0] with degree 2; here the neighborhood has the degree's length.
+            // The neighborhood has the degree's length.
             #expect(Array(g.neighbors(of: 0)) == [0, 0])
             #expect(Array(g.incidentEdges(of: 0)) == [0, 0])
             #expect(g.degree(of: 0) == 2)
@@ -86,7 +85,6 @@ struct UndirectedAdjacencyListQueryTests {
     @Test("UG-R06 a loop on the end of a path, in insertion order", .tags(.selfLoops))
     func loopAndPath() {
         func check<G: Graph<Int>>(_ g: G) where G.Edges.Index == Int {
-            // NetworkX: neighbors(0) == [0, 1], degree(0) == 3.
             #expect(Array(g.neighbors(of: 0)) == [0, 0, 1])
             #expect(Array(g.incidentEdges(of: 0)) == [0, 0, 1])
             #expect([g.degree(of: 0), g.degree(of: 1), g.degree(of: 2)] == [3, 2, 1])

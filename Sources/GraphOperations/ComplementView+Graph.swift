@@ -168,7 +168,7 @@ extension ComplementView: Graph where Base: Graph {
         preconditionFailure("A complement has no edge indices; check edgeIndexBound first")
     }
 
-    /// Never called: a complement has no edge indices.
+    /// Traps. A complement has no edge indices.
     @inlinable
     public func incidentEdgeIndices(ofIndex index: Int) -> LazyMapSequence<CellRow<Base.NeighborIndices>, Int> {
         preconditionFailure("A complement has no edge indices; check edgeIndexBound first")

@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Louvain, Leiden, label propagation, Girvan–Newman, modularity.
+# Modularity, Louvain, label propagation and greedy modularity communities.
 swift_library(
     name = "CommunityDetection",
     srcs = glob(["**/*.swift"]),

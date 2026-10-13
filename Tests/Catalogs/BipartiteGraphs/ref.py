@@ -1,4 +1,4 @@
-"""Reference model for the proposed BipartiteGraphs API (api.md), checked against NetworkX 3.7.
+"""Reference model for the BipartiteGraphs API (api.md), checked against NetworkX 3.7.
 
     uv run --quiet --no-project --with networkx==3.7 python3 ref.py           # validate cases.md
     uv run --quiet --no-project --with networkx==3.7 python3 ref.py --write   # regenerate it
@@ -926,7 +926,7 @@ def build_rows():
     return rows
 
 
-HEADER = """# BipartiteGraphs: case catalog (phase 1)
+HEADER = """# BipartiteGraphs: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 python3 ref.py`;
 `--write` regenerates this file). Every row's Expected is the model's output, and every row is
@@ -945,8 +945,7 @@ Conventions:
 * `findOddCycle()` rows give the exact cycle this API's breadth-first search returns, in Cycles'
   canonical form (starts at its least vertex, leaves through the lesser edge). Tests check the
   exact value **and** validity (an odd simple cycle of the graph, `Cycle(vertices:edges:in:)` not
-  nil). Other libraries return other odd cycles (Boost's `find_odd_cycle` searches depth-first;
-  NetworkX has none), so cross-library checks are validity only.
+  nil). `ref.py`'s NetworkX checks of odd cycles are validity only.
 * `BipartiteGraph` rows print `V` (`vertices` order), `L` (`left`), `R` (`right`), `E` (`edges`
   by position, each left endpoint first). Mutation rows list each call's result, separated by `/`.
 * `trap` rows are preconditions: tests run them as exit tests (`#expect(processExitsWith:)`).

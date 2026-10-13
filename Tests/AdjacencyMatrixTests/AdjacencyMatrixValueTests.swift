@@ -1,5 +1,5 @@
 // Value semantics, the Collection laws of the views, Sendable, and a model-based randomized test.
-// Case IDs (AM-Qnn, AM-Znn) refer to the harvested test catalog.
+// Case IDs (AM-Qnn, AM-Znn) refer to the case catalog.
 
 import AdjacencyMatrixModule
 import GraphProtocols

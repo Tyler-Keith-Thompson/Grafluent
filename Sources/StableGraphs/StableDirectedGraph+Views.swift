@@ -40,7 +40,7 @@ extension StableDirectedGraph {
         @inlinable
         public var startIndex: Int { _first }
 
-        /// One past the highest position ever handed out (petgraph's `node_bound()`). O(1).
+        /// One past the highest position ever handed out. O(1).
         @inlinable
         public var endIndex: Int { _end }
 
@@ -253,7 +253,7 @@ extension StableDirectedGraph {
         @inlinable
         public var startIndex: Int { _first }
 
-        /// One past the highest position ever handed out (petgraph's `edge_bound()`). O(1).
+        /// One past the highest position ever handed out. O(1).
         @inlinable
         public var endIndex: Int { _end }
 

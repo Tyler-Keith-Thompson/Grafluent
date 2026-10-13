@@ -1,17 +1,19 @@
 import AdjacencyListModule
 import GraphProtocols
 
-/// An undirected graph with two fixed sides, every edge joining a left vertex to a right vertex, so
-/// no self-loop. Simple: an edge is inserted once, in either orientation. Each edge is stored left
-/// endpoint first, so `edges[e].u` is its left end.
+/// An undirected graph with two fixed sides, every edge joining a left vertex to a right vertex.
 ///
-/// The invariant is the type: every initializer from unchecked input is failable, and a mutation
-/// that would break it throws `BipartitionError` and changes nothing (whether an edge may be
-/// inserted is an O(1) test with `side(of:)`).
-/// Storage and mutation costs are `UndirectedAdjacencyList`'s, which it wraps as a
-/// `GraphDelegator` (`base` reads it): vertex indices are slots (`vertices` order), edge indices
-/// are positions, and a removal moves the last slot or edge into the hole, so orders and positions
-/// change after a removal. Every read is the base's, at the base's speed, and so are attached maps
+/// The graph is simple and has no self-loop. An edge is inserted once, in either orientation, and
+/// is stored left endpoint first, so `edges[e].u` is its left end.
+///
+/// Every initializer from unchecked input is failable, and a mutation that would break the
+/// bipartition throws `BipartitionError` and changes nothing. Whether an edge may be inserted is an
+/// O(1) test with `side(of:)`.
+///
+/// `BipartiteGraph` wraps an `UndirectedAdjacencyList` as a `GraphDelegator` (`base` reads it), and
+/// storage and mutation costs are the list's. Vertex indices are slots (`vertices` order) and edge
+/// indices are positions. A removal moves the last slot or edge into the hole, so orders and
+/// positions change after a removal. Every read is the base's, and so are attached maps
 /// (`PropertyGraph`, which follow those moves) and `generation`. Equality compares vertex sets,
 /// edge sets and each vertex's side, not orders, and ignores maps.
 @frozen
@@ -112,8 +114,8 @@ public struct BipartiteGraph<Vertex: Hashable> {
     }
 
     /// The graph's vertices and edges with `left` as the left side and every other vertex on the
-    /// right (NetworkX `is_bipartite_node_set`, as a constructor; repeats in `left` are one
-    /// vertex). nil unless every edge goes across, or when `left` names a non-vertex.
+    /// right. Repeats in `left` are one vertex. `nil` unless every edge goes across, or when `left`
+    /// names a non-vertex.
     @inlinable
     public init?(_ graph: some Graph<Vertex>, left: some Sequence<Vertex>) {
         var leftSet = Set<Vertex>()
@@ -197,8 +199,7 @@ public struct BipartiteGraph<Vertex: Hashable> {
     }
 
     /// Inserts `edge`, stored left endpoint first, when both endpoints are vertices on different
-    /// sides. The `checked:` spelling of README Principle 6: JGraphT's `addEdge` throws
-    /// `IllegalArgumentException` for a missing endpoint. Costs as `insert(edge:)`.
+    /// sides. Costs as `insert(edge:)`.
     ///
     /// - Returns: As `insert(edge:)`.
     /// - Throws: `BipartitionError.missingEndpoint` when an endpoint is not a vertex (checked
@@ -292,9 +293,12 @@ public struct BipartiteGraph<Vertex: Hashable> {
     }
 
     /// The graph on one side's vertices (in `left` or `right` order, isolated ones included), with an
-    /// edge between two vertices that share a neighbor, once however many they share (NetworkX
-    /// `projected_graph`). Edges are inserted as found: for each vertex u in side order, each
-    /// neighbor w in u's row, each x ≠ u in w's row. O(Σ_{u ∈ side} Σ_{w ∈ N(u)} deg(w)).
+    /// edge between two vertices that share a neighbor, once however many they share.
+    ///
+    /// Edges are inserted as found: for each vertex u in side order, each neighbor w in u's row,
+    /// each x ≠ u in w's row.
+    ///
+    /// - Complexity: O(Σ_{u ∈ side} Σ_{w ∈ N(u)} deg(w)).
     @inlinable
     public func projectedGraph(onto side: BipartiteSide) -> UndirectedAdjacencyList<Vertex> {
         let slots = side == .left ? _left : _right
@@ -505,9 +509,8 @@ extension BipartiteGraph: PropertyGraph {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex that is not in the graph, where the trapping
-// spellings above are the fast path. Each is one hash, the same as its trapping spelling, and then
-// the underlying list's row; `try?` gives an Optional.
+// Each throws `VertexNotFound` for a vertex that is not in the graph. Each is one hash, the same
+// as its trapping spelling, and then the underlying list's row.
 
 extension BipartiteGraph {
     /// `side(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).

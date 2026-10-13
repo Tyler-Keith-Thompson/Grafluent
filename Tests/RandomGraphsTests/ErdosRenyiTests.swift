@@ -1,5 +1,5 @@
 // G(n, p) and G(n, m) for fixed seeds (catalog RG-009 – RG-039): Batagelj–Brandes skipping and
-// NetworkX's rejection loop, draw for draw, on every conformer, with the number of draws.
+// the rejection loop, draw for draw, on every conformer, with the number of draws.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule

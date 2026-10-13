@@ -29,7 +29,7 @@ extension Hypergraph {
 
 extension Hypergraph {
     /// The vertices that share a hyperedge with `vertex`, each once, in vertex-index order, never
-    /// `vertex` itself (XGI's `nodes.neighbors`).
+    /// `vertex` itself.
     ///
     /// - Precondition: `vertex` is a vertex.
     /// - Complexity: O(K log K), K = Σ k over the hyperedges at `vertex`: their members are
@@ -63,8 +63,7 @@ extension Hypergraph {
     }
 
     /// Whether every hyperedge has exactly `size` members (Berge's k-uniform). Singletons and
-    /// empty hyperedges count (XGI's `is_uniform` ignores singletons); vacuously true with no
-    /// hyperedges. O(m).
+    /// empty hyperedges count; vacuously true with no hyperedges. O(m).
     ///
     /// - Precondition: `size >= 0`.
     @inlinable
@@ -75,7 +74,7 @@ extension Hypergraph {
     }
 
     /// Element `d` counts the vertices of degree `d`, up to the greatest degree; `[]` with no
-    /// vertices (NetworkX's `degree_histogram` shape). O(n).
+    /// vertices. O(n).
     @inlinable
     public func degreeHistogram() -> [Int] {
         let (n, _) = _indexBounds()
@@ -105,11 +104,11 @@ extension Hypergraph {
 // MARK: - Dual
 
 extension Hypergraph {
-    /// The dual hypergraph (Berge's H*, XGI's and HyperNetX's `dual()`), the transpose of the
-    /// incidence: its vertices are this hypergraph's positions, in order, and its hyperedge `i` is
-    /// vertex `i`'s set of hyperedges. An isolated vertex becomes an empty hyperedge, and an empty
-    /// hyperedge an isolated vertex, so the dual is always defined; `dual().dual()` is this
-    /// hypergraph with its vertices relabeled to their indices and its positions kept.
+    /// The dual hypergraph (Berge's H*), the transpose of the incidence: its vertices are this
+    /// hypergraph's positions, in order, and its hyperedge `i` is vertex `i`'s set of hyperedges.
+    /// An isolated vertex becomes an empty hyperedge, and an empty hyperedge an isolated vertex, so
+    /// the dual is always defined; `dual().dual()` is this hypergraph with its vertices relabeled
+    /// to their indices and its positions kept.
     ///
     /// - Complexity: O(n + m + p) expected: m position hashes, no vertex hashed.
     @inlinable
@@ -131,11 +130,11 @@ extension Hypergraph {
 // MARK: - Expansions
 
 extension Hypergraph {
-    /// The clique expansion (XGI's `to_graph`, Berge's 2-section): every vertex, isolated ones
-    /// included, in vertex-index order, and an edge between every two vertices that share a
-    /// hyperedge, once, with no self-loops. Edges ascend by (index of u, index of v), u the lower.
-    /// Singletons and empty hyperedges add no edge. Lossy and quadratic: one hyperedge of k members
-    /// is k(k − 1)/2 edges.
+    /// The clique expansion (Berge's 2-section): every vertex, isolated ones included, in
+    /// vertex-index order, and an edge between every two vertices that share a hyperedge, once,
+    /// with no self-loops. Edges ascend by (index of u, index of v), u the lower. Singletons and
+    /// empty hyperedges add no edge. Lossy and quadratic: one hyperedge of k members is k(k − 1)/2
+    /// edges.
     ///
     /// - Complexity: O(n + Σ k² + e log d) for e edges: each vertex's neighbors are gathered with
     ///   a marker array and sorted. Building the result hashes each vertex once (n hashes,
@@ -166,10 +165,10 @@ extension Hypergraph {
         return UndirectedAdjacencyList(_uncheckedVertices: vertices, sortedSlotEdges: edges)
     }
 
-    /// The s-line graph (Aksoy et al. 2020; XGI's `to_line_graph(H, s)`, HyperNetX's
-    /// `get_linegraph`): every position `0..<m` as a vertex, in order, and an edge `p`–`q`
-    /// (`p < q`) when the two hyperedges share at least `s` members. An empty hyperedge, or one
-    /// sharing fewer than `s` members with every other, is isolated. Edges ascend by `(p, q)`.
+    /// The s-line graph (Aksoy et al. 2020): every position `0..<m` as a vertex, in order, and an
+    /// edge `p`–`q` (`p < q`) when the two hyperedges share at least `s` members. An empty
+    /// hyperedge, or one sharing fewer than `s` members with every other, is isolated. Edges ascend
+    /// by `(p, q)`.
     ///
     /// - Precondition: `s >= 1`.
     /// - Complexity: O(m + Σ_v d(v)² + e log e) with one counter array, no hashing beyond the
@@ -226,8 +225,7 @@ extension Hypergraph {
         return sets.sets().map { $0.map { self.vertex(atIndex: $0) } }
     }
 
-    /// Whether there is exactly one connected component: false with no vertices (the library's
-    /// rule; XGI raises). O(n + p α(n)).
+    /// Whether there is exactly one connected component: false with no vertices. O(n + p α(n)).
     @inlinable
     public var isConnected: Bool {
         let (n, _) = _indexBounds()
@@ -246,9 +244,8 @@ extension Hypergraph {
         }
     }
 
-    /// The hyperedge s-components (Aksoy et al. 2020; HyperNetX's `s_connected_components` with
-    /// `edges=True`): the connected components of `lineGraph(s:)`, as positions, without building
-    /// it. Singletons are kept (HyperNetX drops them by default), an empty hyperedge is its own
+    /// The hyperedge s-components (Aksoy et al. 2020): the connected components of `lineGraph(s:)`,
+    /// as positions, without building it. Singletons are kept, an empty hyperedge is its own
     /// component, and components are ordered by their least position, each ascending. The vertex
     /// s-components are `dual().sConnectedComponents(s:)`.
     ///

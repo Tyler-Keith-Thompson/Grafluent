@@ -11,8 +11,8 @@ extension UndirectedAdjacencyList: MutableGraph {
 
     @inlinable public mutating func _insertVertex(_ vertex: Vertex) -> Int { _appendSlot(for: vertex) }
 
-    /// The new edge's position, `edgeCount` before the call; or the position of the edge already
-    /// between the two slots, in either orientation, with nothing inserted.
+    /// The new edge's position, which is `edgeCount` before the call. When an edge already joins the
+    /// two slots, in either orientation, nothing is inserted and its position is returned.
     @inlinable
     public mutating func _insertEdge(fromKey u: Int, toKey v: Int) -> Int {
         if let position = _positions[u <= v ? _SlotPair(u, v) : _SlotPair(v, u)] { return position }

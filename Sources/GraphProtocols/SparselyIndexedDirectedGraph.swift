@@ -1,32 +1,32 @@
 /// A directed graph whose vertices and edges sit at integer positions in `0..<vertexPositionBound`
-/// and `0..<edgePositionBound` that may have holes: petgraph's `NodeIndexable` and
-/// `EdgeIndexable`, whose `node_bound()` and `edge_bound()` are "an upper bound of the indices,
-/// suitable for the size of a bitmap", as against `NodeCompactIndexable`, whose indices have no
-/// holes. `DirectedGraph`'s `vertexIndexBound` and `edgeIndexBound` are the compact kind and keep
-/// their laws; a conformer reports them only while it has no holes.
+/// and `0..<edgePositionBound`, with possible holes.
+///
+/// `DirectedGraph`'s `vertexIndexBound` and `edgeIndexBound` describe dense indices with no holes
+/// and keep their laws. A conformer reports them only while it has no holes.
 ///
 /// Algorithms use this refinement to number the live vertices and edges with arrays while holes
-/// exist, instead of hashing every vertex and edge they meet. The bounds are upper bounds only:
-/// positions are never reused, so a bound counts every position ever handed out, and nothing in
+/// exist, instead of hashing every vertex and edge they meet. The bounds are upper bounds only.
+/// Positions are never reused, so a bound counts every position ever handed out, and nothing in
 /// the library allocates by it. Position-keyed state goes through a paged map
 /// (`_PositionNumbers`), O(live elements + pages).
 ///
-/// **Laws.** In addition to `BidirectionalDirectedGraph`'s:
+/// In addition to `BidirectionalDirectedGraph`'s laws:
 /// - `containsVertex(atPosition: p)` is true exactly for the positions of live vertices, all in
-///   `0..<vertexPositionBound`; `vertexPosition(of:)` and `vertex(atPosition:)` are inverse; and
-///   `vertices` lists the live vertices in increasing position. Likewise `containsEdge(atPosition:)`
-///   for the positions in `edges`, all in `0..<edgePositionBound`, in increasing order.
+///   `0..<vertexPositionBound`. `vertexPosition(of:)` and `vertex(atPosition:)` are inverses, and
+///   `vertices` lists the live vertices in increasing position. Likewise
+///   `containsEdge(atPosition:)` is true exactly for the positions in `edges`, all in
+///   `0..<edgePositionBound`, which `edges` lists in increasing order.
 /// - Without holes, the bounds equal `vertexIndexBound` and `edgeIndexBound`, and positions are
 ///   indices.
 /// - `_numberedRows(outward:edges:)` numbers the live vertices `0..<vertexCount` in `vertices` order and
 ///   lists, for each number, the numbers of its successors (outward) or predecessors, with the edge
 ///   positions beside them, in `outEdges(of:)` or `inEdges(of:)` order.
 public protocol SparselyIndexedDirectedGraph<Vertex>: BidirectionalDirectedGraph where Edges.Index == Int {
-    /// One more than the highest vertex position ever handed out: `vertices.endIndex` for a
-    /// graph whose `Vertices.Index` is the position (petgraph's `node_bound()`).
+    /// One more than the highest vertex position ever handed out. For a graph whose
+    /// `Vertices.Index` is the position, this is `vertices.endIndex`.
     var vertexPositionBound: Int { get }
 
-    /// One more than the highest edge position ever handed out (petgraph's `edge_bound()`).
+    /// One more than the highest edge position ever handed out.
     var edgePositionBound: Int { get }
 
     /// The position of `vertex`. O(1) expected.
@@ -47,24 +47,24 @@ public protocol SparselyIndexedDirectedGraph<Vertex>: BidirectionalDirectedGraph
     /// O(1).
     func containsEdge(atPosition position: Int) -> Bool
 
-    /// The live vertices numbered in `vertices` order and their successor rows (`outward`) or
-    /// predecessor rows in that numbering, with each entry's edge position when `edges` (otherwise
-    /// `_NumberedRows.edges` is empty). `StableDirectedGraph`'s runs in O(`vertexCount` +
-    /// `edgeCount` + pages) with no hashing, its memory and time independent of how many
+    /// The live vertices numbered in `vertices` order, with their successor rows (`outward`) or
+    /// predecessor rows in that numbering. When `edges` is true, each entry carries its edge
+    /// position; otherwise `_NumberedRows.edges` is empty. `StableDirectedGraph`'s implementation
+    /// runs in O(`vertexCount` + `edgeCount` + pages) with no hashing, independent of how many
     /// positions were ever handed out.
     ///
-    /// Not for use outside the library: index-space algorithms call it once per run. A conformer
-    /// outside it gets a default built from the public members above.
+    /// Not for use outside the library. Index-space algorithms call it once per run. A conformer
+    /// outside the library gets a default built from the public members above.
     func _numberedRows(outward: Bool, edges: Bool) -> _NumberedRows
 }
 
 extension SparselyIndexedDirectedGraph {
-    /// The default: live vertices numbered by one pass over `vertices` (in increasing position, by
-    /// the laws), each position found through `vertexPosition(of:)`, and each row read through
-    /// `outEdges(of:)` or `inEdges(of:)`, the far end numbered through `vertexPosition(of:)`, so
-    /// one hash per vertex and per edge. O(`vertexCount` + `edgeCount`) plus the cost of iterating
-    /// `vertices`; the position map is paged, so its memory does not grow with
-    /// `vertexPositionBound`.
+    /// Numbers the live vertices in one pass over `vertices`, finding each position through
+    /// `vertexPosition(of:)`, and reads each row through `outEdges(of:)` or `inEdges(of:)`, with
+    /// the far end numbered through `vertexPosition(of:)`. That is one hash per vertex and per
+    /// edge. The position map is paged, so its memory does not grow with `vertexPositionBound`.
+    ///
+    /// - Complexity: O(`vertexCount` + `edgeCount`), plus the cost of iterating `vertices`.
     @inlinable
     public func _numberedRows(outward: Bool, edges withEdges: Bool) -> _NumberedRows {
         var builder = _PositionNumbers.Builder()
@@ -99,8 +99,8 @@ extension SparselyIndexedDirectedGraph {
     }
 }
 
-/// A graph's adjacency in a dense numbering of its live vertices: what
-/// `SparselyIndexedDirectedGraph._numberedRows(outward:edges:)` returns.
+/// A graph's adjacency in a dense numbering of its live vertices, returned by
+/// `SparselyIndexedDirectedGraph._numberedRows(outward:edges:)`.
 @frozen
 public struct _NumberedRows {
     /// Each live vertex position's number (-1 at any other position), paged: O(live pages + page

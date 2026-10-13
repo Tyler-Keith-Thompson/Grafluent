@@ -2,9 +2,8 @@ import GraphProtocols
 
 extension Graph {
     /// The subgraph induced by `vertices`: those vertices and every edge between them, as a lazy
-    /// view. As for a directed graph: the kept vertices are numbered in the graph's order, the
-    /// view keeps the graph's positions, a self-loop stays twice in its row, and there are no edge
-    /// indices.
+    /// view. The kept vertices are numbered in the graph's order, the view keeps the graph's
+    /// positions, a self-loop stays twice in its row, and there are no edge indices.
     ///
     /// O(n + listed), with one hash per listed vertex.
     ///
@@ -137,9 +136,9 @@ extension SubgraphView: Graph where Base: Graph {
             positions: state?.test == nil ? nil : base.incidentEdges(ofIndex: b), state: state)
     }
 
-    /// `neighborIndices(ofIndex:)` without a row value: with an edge set over a base with edge
-    /// indices, the mask's words are read at the base's `incidentEdgeIndices`, with no call per
-    /// entry and without retaining the mask.
+    /// `neighborIndices(ofIndex:)` without a row value. With an edge set over a base with edge
+    /// indices, it tests the mask's words at the base's `incidentEdgeIndices` without a call per
+    /// entry or retaining the mask.
     @inlinable
     @inline(__always)
     public func _forEachNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void) {
@@ -148,10 +147,9 @@ extension SubgraphView: Graph where Base: Graph {
         _forEachKeptNeighborIndex(ofIndex: index, body)
     }
 
-    /// The filtered neighbor row: with an edge set, the view's kept rows (`_KeptRows`),
-    /// built on the first call; otherwise the base's row filtered. Out of line: inlined beside the
-    /// keep-everything branch, it made breadth-first layers on a view of every vertex 1.2× the base
-    /// (the per-edge closure was no longer inlined); out of line, 1.0–1.06×.
+    /// The filtered neighbor row: with an edge set, the view's kept rows (`_KeptRows`) once built,
+    /// otherwise the base's row filtered. Kept out of line so the keep-everything branch in
+    /// `_forEachNeighborIndex` still inlines the caller's per-edge closure.
     @inlinable
     @inline(never)
     func _forEachKeptNeighborIndex(ofIndex index: Int, _ body: (Int) -> Void) {

@@ -7,8 +7,7 @@ import ShortestPaths
 import StableGraphs
 
 /// A hand-written indexed 4-ary heap of (priority, index) pairs with a position array, every step
-/// in raw buffers and no checks: the floor for PQ-B01 – B03 (the research prototype's
-/// `IndexedHeap<_, Int, 4, 0>`, tightened after review).
+/// in raw buffers and no checks: the floor for PQ-B01 – B03.
 struct HandWrittenIndexedHeap<P: Comparable> {
     var heap: [(priority: P, index: Int)] = []
     var slots: [Int]
@@ -150,7 +149,7 @@ let benchmarks: @Sendable () -> Void = {
 
     let gridWeights = (0 ..< grid.edgeCount).map { _ in Int.random(in: 1 ... 4, using: &generator) }
 
-    // The same weights attached as edge maps (§6.3 of the attached-maps plan): each algorithm fed
+    // The same weights attached as edge maps: each algorithm fed
     // by `values(of:)` against the same algorithm fed by the `[Int]` above, in one run. CSR and
     // AdjacencyList are dense (the read is one array load); StableDirectedGraph is paged, against
     // a side array of `edgePositionBound` weights.
@@ -214,7 +213,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(csr.shortestPaths(from: 0)) }
     }
     // SP-B05: weights from an attached edge map through `values(of:)`, against the `[Int]` rows
-    // above (same graph, same weights). Gate: ≤ 2 % dense, ≤ 10 % paged.
+    // above (same graph, same weights).
     Benchmark("ShortestPaths: dijkstraShortestPaths on CompressedSparseRow, weights from values(of:)") { benchmark in
         for _ in benchmark.scaledIterations {
             let w = weightedCSR.values(of: csrWeights)

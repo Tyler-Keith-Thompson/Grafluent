@@ -303,7 +303,7 @@ def generate(section):
         if not (lo <= n <= hi):
             continue
         if 150 <= n <= 156:
-            continue  # deferred (phase 2)
+            continue  # minimum cycle basis rows: no Swift API
         tests.append(test_for(cid, src, spec, op, expected, note))
     return tests
 
@@ -405,44 +405,41 @@ FILES = {
           "// `vertices` order, rows in incidence order): one cycle per non-tree edge, loops and parallel\n"
           "// copies included, in ascending position of that edge, each in canonical form. Every graph is\n"
           "// written as the catalog writes it, on the `ReferencePseudograph`, so positions are exact.\n"
-          "// Expected values come from the catalog's reference (`ref.py`). The minimum cycle basis rows\n"
-          "// (CY-150 – CY-156) are phase 2 and not tested here. Case IDs (CY-nnn) refer to the catalog;\n"
-          "// see README.md."),
+          "// Expected values come from the catalog's reference (`ref.py`). Case IDs (CY-nnn) refer to the\n"
+          "// catalog; see README.md."),
     "C": ("DirectedSimpleCycleTests", "Directed simple cycles",
           "// §C: `DirectedGraph.simpleCycles()`: every elementary circuit once, starting at its least vertex\n"
-          "// (in `vertices` order), emitted by least vertex and then lexicographically by each arc's offset\n"
-          "// in its vertex's `outEdges` row. Parallel arcs give one cycle per copy. Graphs from NetworkX,\n"
-          "// rustworkx, JGraphT, igraph and Boost, written as the catalog writes them on the\n"
-          "// `ReferenceDirectedMultigraph`, so positions are exact. Expected values come from the catalog's\n"
-          "// reference (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see README.md."),
+          "// (in `vertices` order), emitted by least vertex and then lexicographically by each arc's offset in\n"
+          "// its vertex's `outEdges` row. Parallel arcs give one cycle per copy. Graphs are written as the\n"
+          "// catalog writes them on the `ReferenceDirectedMultigraph`, so positions are exact. Expected values\n"
+          "// come from the catalog's reference (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see\n"
+          "// README.md."),
     "D": ("UndirectedSimpleCycleTests", "Undirected simple cycles",
           "// §D: `Graph.simpleCycles()`: every simple cycle once, in canonical form (its least vertex first,\n"
           "// leaving it through the lesser of its two edges there, by position), emitted by least vertex and\n"
-          "// then lexicographically by each edge's offset in its vertex's `incidentEdges` row. Graphs from\n"
-          "// NetworkX, igraph and Boost and the classic families, written as the catalog writes them on the\n"
+          "// then lexicographically by each edge's offset in its vertex's `incidentEdges` row. Graphs,\n"
+          "// including the classic families, are written as the catalog writes them on the\n"
           "// `ReferencePseudograph`, so positions are exact. Expected values come from the catalog's\n"
           "// reference (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see README.md."),
     "E": ("CycleMultigraphTests", "Cycles of multigraphs and self-loops",
           "// §E: parallel edges and self-loops. A loop is one 1-cycle per loop edge (though an undirected row\n"
           "// lists it twice), k parallel undirected edges give C(k, 2) 2-cycles, one undirected edge is no\n"
           "// cycle, opposite arcs are one 2-cycle, and parallel arcs give one cycle per copy; `g.directedView`\n"
-          "// reads every edge as two arcs (Boost's undirected count). Graphs written as the catalog writes\n"
-          "// them on the reference conformers, so positions are exact. Expected values come from the\n"
-          "// catalog's reference (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see README.md."),
+          "// reads every edge as two arcs. Graphs are written as the catalog writes them on the reference\n"
+          "// conformers, so positions are exact. Expected values come from the catalog's reference (`ref.py`).\n"
+          "// Case IDs (CY-nnn) refer to the catalog; see README.md."),
     "F": ("CycleLengthBoundTests", "Simple cycles with a length bound",
-          "// §F: `simpleCycles(maxLength:)`, directed and undirected. The bound counts edges: 0 gives\n"
-          "// nothing, 1 the loops, 2 adds 2-cycles; the result is the unbounded sequence filtered to\n"
-          "// `length <= maxLength`, in the same order. Cases from NetworkX, igraph, Boost (`max_length`) and\n"
-          "// JGraphT (`setPathLimit`), plus the planted bounded-search mistake CY-491. Graphs written as the\n"
-          "// catalog writes them, so positions are exact. Expected values come from the catalog's reference\n"
-          "// (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see README.md."),
-    "G": ("GirthTests", "Girth",
-          "// §G: `girth()` on `Graph` and `DirectedGraph`: the least length of a cycle, so 1 with a loop and\n"
-          "// 2 with a parallel pair (undirected) or opposite arcs (directed); `nil` when acyclic, where\n"
-          "// NetworkX and igraph return inf, JGraphT Integer.MAX_VALUE and Boost 0. Named graphs from\n"
-          "// NetworkX (edges in NetworkX's order), JGraphT's GraphMetricsTest, igraph and Boost. Expected\n"
-          "// values come from the catalog's reference (`ref.py`), two independent computations. Case IDs\n"
+          "// §F: `simpleCycles(maxLength:)`, directed and undirected. The bound counts edges: 0 gives nothing,\n"
+          "// 1 the loops, 2 adds 2-cycles; the result is the unbounded sequence filtered to\n"
+          "// `length <= maxLength`, in the same order. CY-491 catches a bounded search that does not count\n"
+          "// a closure in the other orientation as found. Graphs are written as the catalog writes them, so\n"
+          "// positions are exact. Expected values come from the catalog's reference (`ref.py`). Case IDs\n"
           "// (CY-nnn) refer to the catalog; see README.md."),
+    "G": ("GirthTests", "Girth",
+          "// §G: `girth()` on `Graph` and `DirectedGraph`: the least length of a cycle, so 1 with a loop and 2\n"
+          "// with a parallel pair (undirected) or opposite arcs (directed); `nil` when acyclic. Named graphs\n"
+          "// have their edges in NetworkX's order. Expected values come from the catalog's reference\n"
+          "// (`ref.py`), two independent computations. Case IDs (CY-nnn) refer to the catalog; see README.md."),
 }
 
 

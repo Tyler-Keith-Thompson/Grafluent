@@ -45,7 +45,7 @@ struct AStarTests {
 
     @Test("SP-71 an admissible but inconsistent heuristic still gives the shortest path")
     func inconsistentHeuristic() {
-        // NetworkX GH 3464: without reopening, n1 is expanded through the direct edge and the
+        // Without reopening, n1 is expanded through the direct edge and the
         // answer is ([n5, n1, n0], 43).
         let edges: [(String, String, Int)] = [("n5", "n1", 11), ("n5", "n2", 9), ("n2", "n1", 1), ("n1", "n0", 32)]
         let estimate = ["n5": 36, "n2": 4, "n1": 0, "n0": 0]

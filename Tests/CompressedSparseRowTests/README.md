@@ -3,9 +3,8 @@
 `CompressedSparseRow` is an immutable directed graph on the vertices `0..<vertexCount`, stored as
 `offsets` (`vertexCount + 1` entries) and `targets` (`edgeCount` entries): the successors of `v`
 are `targets[offsets[v] ..< offsets[v + 1]]`. Rows are canonical (strictly ascending), self-loops
-are kept, and parallel edges cannot be represented. The suite was written before the
-implementation, checked against a throwaway naive implementation, and uses only the public API.
-Every test is self-contained; shared material is limited to the fixtures and test types in
+are kept, and parallel edges cannot be represented. The suite uses only the public API. Every
+test is self-contained; shared material is limited to the fixtures and test types in
 `GrafluentTestSupport`.
 
 ## API under test
@@ -39,7 +38,7 @@ struct CompressedSparseRow: Hashable, Sendable, Codable,
     func edgeIndex(of: DirectedEdge<Int>) -> Int?
     func source(ofEdgeAt: Int) -> Int                            // binary search of offsets
     func target(ofEdgeAt: Int) -> Int
-    // checked: spellings throw instead of trapping (Principle 6)
+    // checked: spellings throw instead of trapping
     func successors(checked:) / outEdges(checked:) / outDegree(checked:) / vertexIndex(checked:)  // VertexNotFound
     func source(checkedEdgeAt: Int) / target(checkedEdgeAt: Int)                                // EdgeNotFound
     func transposed() -> CompressedSparseRow                     // the reverse graph, canonical
@@ -67,22 +66,22 @@ struct CompressedSparseRow: Hashable, Sendable, Codable,
 
 ## Conventions
 
-| Question | Choice | Why | Disagreement |
-|---|---|---|---|
-| Rows | Sorted and deduplicated, self-loops kept | Binary-search lookup, exact equality on arrays, and edge indices that do not depend on input order | Boost, JGraphT, scipy and neo4j's default keep input order; neo4j's "Deduplicated" layout and GAP also delete self-loops |
-| Mutation | None; build once | Inserting one edge moves O(m) others; petgraph's `add_edge` also shifts edge ids | Boost and petgraph offer it |
-| Vertex count | Always explicit | Trailing isolated vertices survive | petgraph and GAP infer `max + 1`; neo4j turns an empty edge list into one vertex |
-| Edge indices | Position in `targets`, `0..<edgeCount`, row-major | Dense and independent of input order, so an array indexed by edge index stays aligned (the README's plan for weights) | JGraphT and igraph number edges by input order |
-| Reverse direction | Not stored; `transposed()` builds it in O(n + m) | Halves memory for the many algorithms that only go forward | neo4j, GAP, igraph and Ligra always store both |
-| Index width | `Int` | Simple and never truncates | petgraph narrows targets to `u32` and silently truncates (`u8` accepts 300 nodes) |
-| Out-of-range | Initializer, `successors`, `outDegree`, edge-index accessors trap; their `checked:` spellings throw `VertexNotFound` / `EdgeNotFound`; `contains` and `edgeIndex(of:)` return `false`/`nil` | Same as the other representations | petgraph answers `out_degree(n)` with 0 |
-| Raw arrays | `offsets` and `targets` readable; a validating `init(offsets:targets:)` with typed errors | Interop without trusting input | Boost's "sorted" constructor trusts its input and crashed on two unsorted edges |
-| Edge values | Given with the edges: not stored. The initializer and `transposed` report each edge's new index; repeated edges share one, and the caller picks first-wins, last-wins, sum or anything else. Attached afterwards: dense maps (`addEdgeMap(default:)`), by edge index, carried by copies and dropped by `transposed` and every other new graph | One mechanism serves every duplicate policy; maps keep the values with the graph | scipy sums, GraphBLAS errors or keeps the last, neo4j keeps an arbitrary one |
-| Generation | Stamped once by every initializer but `init()` (which allocates nothing); `init(_:)` also keeps the source's as `sourceGeneration` | The graph never changes, so its generation only tells it from other graphs; the source's tells whether the source has changed since | — |
-| Construction | Two counting sorts (by target, then by source), O(n + m) for any degree distribution; a single pass when the input is already canonical; exactly sized storage afterwards | Real graphs are skewed; a per-row comparison sort is O(d log d) on a hub | Boost and igraph also sort by counting; scipy, neo4j and GAP sort each row |
-| Encoded form | `{"offsets": [...], "targets": [...]}`, fully validated | The payload is as large as the graph, so it cannot amplify an allocation; no "trusted" flag | No studied library validates deserialized arrays by default |
-| `description` | `[0, 1, 2]; [0→1, 1→2]`, at most 16 of each | Same as every representation | — |
-| Mirror | `offsets` and `targets` | They are the storage | — |
+| Question | Choice | Why |
+|---|---|---|
+| Rows | Sorted and deduplicated, self-loops kept | Binary-search lookup, exact equality on arrays, and edge indices that do not depend on input order |
+| Mutation | None; build once | Inserting one edge moves O(m) others |
+| Vertex count | Always explicit | Trailing isolated vertices survive |
+| Edge indices | Position in `targets`, `0..<edgeCount`, row-major | Dense and independent of input order, so an array indexed by edge index stays aligned |
+| Reverse direction | Not stored; `transposed()` builds it in O(n + m) | Halves memory for the many algorithms that only go forward |
+| Index width | `Int` | Simple and never truncates |
+| Out-of-range | Initializer, `successors`, `outDegree`, edge-index accessors trap; their `checked:` spellings throw `VertexNotFound` / `EdgeNotFound`; `contains` and `edgeIndex(of:)` return `false`/`nil` | Same as the other representations |
+| Raw arrays | `offsets` and `targets` readable; a validating `init(offsets:targets:)` with typed errors | Interop without trusting input |
+| Edge values | Given with the edges: not stored. The initializer and `transposed` report each edge's new index; repeated edges share one, and the caller picks first-wins, last-wins, sum or anything else. Attached afterwards: dense maps (`addEdgeMap(default:)`), by edge index, carried by copies and dropped by `transposed` and every other new graph | One mechanism serves every duplicate policy; maps keep the values with the graph |
+| Generation | Stamped once by every initializer but `init()` (which allocates nothing); `init(_:)` also keeps the source's as `sourceGeneration` | The graph never changes, so its generation only tells it from other graphs; the source's tells whether the source has changed since |
+| Construction | Two counting sorts (by target, then by source), O(n + m) for any degree distribution; a single pass when the input is already canonical; exactly sized storage afterwards | Real graphs are skewed; a per-row comparison sort is O(d log d) on a hub |
+| Encoded form | `{"offsets": [...], "targets": [...]}`, fully validated | The payload is as large as the graph, so it cannot amplify an allocation |
+| `description` | `[0, 1, 2]; [0→1, 1→2]`, at most 16 of each | Same as every representation |
+| Mirror | `offsets` and `targets` | They are the storage |
 
 ## Files
 
@@ -90,13 +89,12 @@ struct CompressedSparseRow: Hashable, Sendable, Codable,
 |---|---|
 | `CompressedSparseRowConstructionTests.swift` | Empty and isolated graphs, unsorted and duplicated input, self-loops, exact arrays for 19 published fixtures, the invariants for every fixture, agreement with `AdjacencyList` and `AdjacencyMatrix`, single-pass and lazy input, parallel arrays, storage sized to the edges after repeats, validating `init(offsets:targets:)` |
 | `CompressedSparseRowQueryTests.swift` | Successor slices, empty rows, row-major `edges`, every slice of `edges` and the slicing algorithms, binary-search `firstIndex`/`lastIndex`, exhaustive and boundary lookups, edge indices, property arrays aligned by edge index, exact transposes, `inDegrees`, raw buffers |
-| `CompressedSparseRowEdgeValueTests.swift` | Values carried through construction (scipy constructor4, petgraph's weights, every duplicate policy) and through the transpose (Boost's forward edge index) |
-| `CompressedSparseRowRealWorldTests.swift` | GAP `4.el`, Graph500 scale 8 and Ligra's rMat graph (vendored in `GrafluentTestSupport`), and a shuffled hub of out-degree 20,000 |
+| `CompressedSparseRowEdgeValueTests.swift` | Values carried through construction (every duplicate policy) and through the transpose (the forward edge index) |
+| `CompressedSparseRowRealWorldTests.swift` | The `4.el`, Graph500 scale-8 and rMat fixture graphs vendored in `GrafluentTestSupport`, and a shuffled hub of out-degree 20,000 |
 | `CompressedSparseRowConformanceTests.swift` | Equality and hashing laws, every 3-vertex graph, descriptions, exact and corrupt encodings with the coding path and `ValidationError` of each, exit tests for every precondition |
 | `CompressedSparseRowCheckedTests.swift` | The `checked:` spellings (CSR-P08, CSR-P09): equal to the trapping spellings in range, throwing `VertexNotFound` or `EdgeNotFound` outside it |
 | `CompressedSparseRowMapTests.swift` | Attached maps: defaults, writes by edge index and vertex, the `checked` subscripts, `values(of:)` snapshots, copy-on-write, removal, equality and coding ignoring maps, traps (exit tests) for out-of-range positions and foreign or removed handles, a model against dictionaries keyed by edge and vertex (swift-property-based); generations of every initializer, and `sourceGeneration`/`isCurrent(for:)` against a graph that stamps on each insertion |
 | `CompressedSparseRowModelTests.swift` | Random edge lists against a model at 0 to 200 vertices, Erdős–Rényi graphs, a complete digraph, a hub of out-degree 10,000, value semantics, `Sendable` |
 
-Case IDs (CSR-C06, CSR-E05, …) refer to the catalog of cases (`Tests/Catalogs/CompressedSparseRow/cases.md`) harvested from petgraph, Boost.Graph,
-scipy, neo4j's graph crate, GAP, NetworkX, JGraphT, GraphBLAS, Ligra and igraph (behavior reference
-only; GPL).
+Case IDs (CSR-C06, CSR-E05, …) refer to the case catalog in
+`Tests/Catalogs/CompressedSparseRow/cases.md`.

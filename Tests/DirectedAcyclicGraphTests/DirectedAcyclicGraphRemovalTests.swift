@@ -1,5 +1,5 @@
-// Removal (catalog DAG-049 – DAG-069): removals keep the order; `remove(_:)` closes the gap and follows the
-// base's swap-remove; the resets.
+// Removal (catalog DAG-049 – DAG-069): removals keep the order; places count past the hole `remove(_:)`
+// leaves, and a swap-removed base's moved vertex keeps its place; the resets.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule

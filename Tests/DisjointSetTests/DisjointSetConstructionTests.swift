@@ -1,6 +1,6 @@
 // Construction and growth: the empty value, singletons, self-unions, `reserveCapacity(_:)` and
-// `makeSet()`. Expected values come from the catalog's reference (`ref.py`, `cases.py`), which is
-// cross-checked against scipy's and NetworkX's own implementations.
+// `makeSet()`. Expected values come from the catalog's reference (`ref.py`, `cases.py`), which
+// `check.py` cross-checks against scipy's and NetworkX's union–find implementations.
 // Case IDs (DS-nn) refer to the catalog; see README.md.
 
 import DisjointSetModule

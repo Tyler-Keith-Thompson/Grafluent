@@ -1,10 +1,9 @@
 import GraphProtocols
 
-/// A proper colouring of a graph's vertices by the colours `0..<colorCount`, each of which is
-/// used (unless preset colours skip some): the result of `greedyColoring(strategy:)`,
+/// A proper colouring of a graph's vertices by the colours `0..<colorCount`, each of which is used
+/// (unless preset colours skip some): the result of `greedyColoring(strategy:)`,
 /// `greedyColoring(strategy:presetColor:)`, `greedyColoring(order:)`, `minimumColoring()` and
-/// `lexicographicallyFirstMinimumColoring()` (JGraphT `VertexColoringAlgorithm.Coloring`,
-/// Graphs.jl `Coloring`).
+/// `lexicographicallyFirstMinimumColoring()`.
 ///
 /// It keeps a copy of the graph to look vertices up (copy-on-write, so O(1) to make; while the
 /// result is alive, the next mutation of the original copies the whole graph), as `Bipartition`
@@ -41,8 +40,7 @@ public struct Coloring<G: Graph> {
     @inlinable
     public var colorCount: Int { _offsets.count - 1 }
 
-    /// The colour of every vertex, in `vertices` order (JGraphT `getColors`, Graphs.jl
-    /// `colors`).
+    /// The colour of every vertex, in `vertices` order.
     @inlinable
     public var colors: [Int] { _colors }
 
@@ -79,9 +77,8 @@ public struct Coloring<G: Graph> {
         return _colors[index]
     }
 
-    /// The vertices of each colour, by colour, each in `vertices` order (JGraphT
-    /// `getColorClasses`): slices of one flat array. Each is an independent set; it is empty only
-    /// for a colour that preset colours skip.
+    /// The vertices of each colour, by colour, each in `vertices` order: slices of one flat array.
+    /// Each is an independent set; it is empty only for a colour that preset colours skip.
     @inlinable
     public var colorClasses: [ArraySlice<G.Vertex>] {
         (0 ..< colorCount).map { _members[_offsets[$0] ..< _offsets[$0 + 1]] }
@@ -108,39 +105,33 @@ extension Coloring: CustomStringConvertible {
 /// How `greedyColoring(strategy:)` orders the vertices. Each vertex in turn takes the least colour
 /// none of its already coloured neighbours has (first fit). Degrees are simple degrees (distinct
 /// other neighbours, self-loops left out); ties go to the lesser vertex index, except for
-/// `.coloredNeighbors`. NetworkX `greedy_color(G, strategy)`, rustworkx `ColoringStrategy`,
-/// igraph `vertex_coloring_greedy`.
+/// `.coloredNeighbors`.
 public enum ColoringStrategy: Hashable, Sendable, CaseIterable {
     /// Degree descending, the lesser index first on ties: Welsh–Powell, which colours class by
-    /// class in this order and gives the same colouring as first fit. NetworkX `largest_first`
-    /// (the same colouring), JGraphT `LargestDegreeFirstColoring`. O(n + m).
+    /// class in this order and gives the same colouring as first fit. O(n + m).
     case largestFirst
-    /// Matula–Beck: repeatedly remove a vertex of least degree in what is left (the least index
-    /// on ties), then colour in the reverse of that removal order. At most degeneracy + 1 colours,
-    /// so at most 6 on a planar graph. NetworkX `smallest_last`, whose ties follow set order
-    /// instead. O((n + m) log n).
+    /// Matula–Beck: repeatedly remove a vertex of least degree in what is left (the least index on
+    /// ties), then colour in the reverse of that removal order. At most degeneracy + 1 colours, so
+    /// at most 6 on a planar graph. O((n + m) log n).
     case smallestLast
     /// DSatur (Brélaz 1979): first a vertex of greatest degree, then repeatedly the uncoloured
     /// vertex with the most distinct colours among its neighbours, ties to the greatest degree in
-    /// the whole graph, then to the lesser index. NetworkX `saturation_largest_first` (`DSATUR`),
-    /// the same colouring. Exact on bipartite graphs. O((n + m) log n).
+    /// the whole graph, then to the lesser index. Exact on bipartite graphs. O((n + m) log n).
     case saturationLargestFirst
     /// Colour classes one at a time: class k is a maximal independent set of the vertices not yet
     /// coloured, built by repeatedly taking the one with the fewest neighbours among those still
-    /// available (the least index on ties) and making it and its neighbours unavailable. NetworkX
-    /// `independent_set`, whose ties follow set order instead. O(χ (n + m) log n) for χ classes.
+    /// available (the least index on ties) and making it and its neighbours unavailable.
+    /// O(χ (n + m) log n) for χ classes.
     case independentSet
-    /// Components by least vertex, each in breadth-first order from its least vertex, neighbours
-    /// in `incidentEdges` order. NetworkX `connected_sequential_bfs`, which starts each component
-    /// at an arbitrary vertex instead. O(n + m).
+    /// Components by least vertex, each in breadth-first order from its least vertex, neighbours in
+    /// `incidentEdges` order. O(n + m).
     case connectedSequentialBreadthFirst
-    /// The same in depth-first preorder. NetworkX `connected_sequential_dfs`. O(n + m).
+    /// The same in depth-first preorder. O(n + m).
     case connectedSequentialDepthFirst
-    /// igraph's `IGRAPH_COLORING_GREEDY_COLORED_NEIGHBORS` (`vertex_coloring_greedy(method=
-    /// "colored_neighbors")`): first the vertex of greatest degree (the least index on ties), then
-    /// repeatedly the uncoloured vertex with the most coloured neighbours, ties as igraph's
-    /// indexed binary heap breaks them (so not by index), which this follows step for step: the
-    /// same colouring as igraph on simple graphs (igraph counts each parallel edge). O((n + m)
-    /// log n).
+    /// First the vertex of greatest degree (the least index on ties), then repeatedly the
+    /// uncoloured vertex with the most coloured neighbours. Ties among those fall as a two-way
+    /// indexed binary max-heap breaks them, not by index: vertices are pushed in index order and
+    /// raised neighbour by neighbour in ascending order; an entry moves above an equal parent and
+    /// sinks to the left child unless the right one is strictly greater. O((n + m) log n).
     case coloredNeighbors
 }

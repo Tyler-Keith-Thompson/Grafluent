@@ -1,55 +1,56 @@
-/// A bidirectional directed graph that generic code can mutate: Boost's `MutableGraph` concept
-/// (`add_vertex`, `add_edge`, `remove_edge`, `remove_vertex`), for a directed representation. It exists so that a wrapper which adds a rule, such as `DirectedAcyclicGraph`,
-/// can own any of the mutable representations as its base and still run at the base's speed.
+/// A bidirectional directed graph that generic code can mutate.
 ///
-/// **Keys.** Each vertex has a key: its index in `vertices` (`Vertices.Index == Int`). On a dense
+/// A wrapper that adds a rule, such as `DirectedAcyclicGraph`, can own any mutable directed
+/// representation as its base through this protocol and work on it without extra hashing.
+///
+/// Each vertex has a key: its index in `vertices` (`Vertices.Index == Int`). On a dense
 /// representation (`AdjacencyList`, `DirectedPseudograph`) the key is the vertex's slot, which is
-/// also its `vertexIndex(of:)`; on `StableDirectedGraph` it is the vertex's position, which never
+/// also its `vertexIndex(of:)`. On `StableDirectedGraph` it is the vertex's position, which never
 /// changes while the vertex exists and may leave holes. The underscored members read and write the
-/// graph by key, with no hashing, so a wrapper hashes a vertex once and then works on keys.
+/// graph by key, so a wrapper hashes a vertex once and then works on keys.
 ///
-/// **Laws.** In addition to `BidirectionalDirectedGraph`'s:
+/// In addition to `BidirectionalDirectedGraph`'s laws:
 /// - `_key(of: v)` is `vertices.firstIndex(of: v)`, and `_vertex(atKey:)` is its inverse.
-/// - For a vertex with key `k`: `_successors(ofKey: k)`, `_predecessors(ofKey: k)`,
+/// - For a vertex with key `k`, `_successors(ofKey: k)`, `_predecessors(ofKey: k)`,
 ///   `_outEdges(ofKey: k)`, `_inEdges(ofKey: k)`, `_outDegree(ofKey: k)` and `_inDegree(ofKey: k)`
-///   are the members of the same name without the label, for that vertex.
+///   equal the unprefixed members for that vertex.
 ///   `_successorKeys(ofKey: k)` and `_predecessorKeys(ofKey: k)` are the far ends' keys, in the
-///   same order; `_sourceKey(ofEdgeAt:)` and `_targetKey(ofEdgeAt:)` are the endpoints' keys.
-/// - `_insertVertex(_:)` appends a vertex, which must not already be one, and returns its key:
-///   `vertices.endIndex` before the call. Keys of other vertices do not change.
+///   same order. `_sourceKey(ofEdgeAt:)` and `_targetKey(ofEdgeAt:)` are the endpoints' keys.
+/// - `_insertVertex(_:)` appends a vertex, which must not already be one, and returns its key,
+///   which is `vertices.endIndex` before the call. Keys of other vertices do not change.
 /// - `_insertEdge(fromKey:toKey:)` inserts the edge and returns its position. On a simple graph
 ///   (`AdjacencyList`), an edge already present is not inserted again and its position is
 ///   returned. Inserting an edge changes no key.
 /// - `_removeVertex(atKey: k)` removes the vertex and every edge at it. If the representation fills
 ///   the hole by moving another vertex in (a swap-remove), it returns that vertex's old key, and
-///   the vertex's key is now `k`; otherwise it returns `nil` and no other key changes.
-/// - `_removeEdge(at:)` removes the edge at a live position and returns it, trapping on any other
+///   that vertex's key becomes `k`. Otherwise it returns `nil` and no other key changes.
+/// - `_removeEdge(at:)` removes the edge at a live position and returns it, and traps on any other
 ///   position. Removing an edge changes no key.
 /// - `remove(v)` is `_removeVertex(atKey: _key(of: v)!)`, returning the removed instance.
 /// - `_built(vertices:sourceKeys:targetKeys:reportingPositions:_:)` is `init()`, then
 ///   `_insertVertex(_:)` for each vertex in order, then `_insertEdge(fromKey:toKey:)` for each pair
-///   in order: the same graph, and the same position for each pair.
+///   in order. It gives the same graph and the same position for each pair.
 ///
-/// **Key density.** A wrapper may keep one table entry per 1024 keys, from the smallest live key
-/// to `vertices.endIndex`, plus O(1) per live vertex: the memory of the representation's own page
+/// A wrapper may keep one table entry per 1024 keys, from the smallest live key to
+/// `vertices.endIndex`, plus O(1) per live vertex. That matches the representation's own page
 /// table. On a dense representation the keys are `0..<vertexCount`. On `StableDirectedGraph` the
-/// span can exceed the vertex count: removals leave holes, and a decoded graph may start at any
-/// position (its decoder bounds the span at `16 × vertexCount + 64` pages). Keys before the
+/// span can exceed the vertex count, because removals leave holes and a decoded graph may start at
+/// any position. Its decoder bounds the span at `16 × vertexCount + 64` pages. Keys before the
 /// smallest live key cost nothing.
 ///
-/// **Key rows.** `_successorKeys(ofKey:)` and `_predecessorKeys(ofKey:)` return the stored rows
-/// typed as `SuccessorIndices` and `PredecessorIndices`, whose elements here are keys. On a dense
+/// `_successorKeys(ofKey:)` and `_predecessorKeys(ofKey:)` return the stored rows typed as
+/// `SuccessorIndices` and `PredecessorIndices`, whose elements here are keys. On a dense
 /// representation keys and indices coincide. On `StableDirectedGraph` the elements are positions,
-/// which are vertex indices only while the graph has no holes; `successorIndices(ofIndex:)` is
+/// which are vertex indices only while the graph has no holes. `successorIndices(ofIndex:)` is
 /// then unavailable, but the key rows are not.
 ///
-/// **Not requirements.** `insert(edge:)` differs in its return type: `AdjacencyList`, which is
-/// simple, returns `(inserted:memberAfterInsert:)`, the multigraphs return the new position, and
-/// a wrapper that rejects edges returns an optional. So generic code inserts an edge by key, with
-/// `_insertEdge(fromKey:toKey:)`.
+/// `insert(edge:)` is not a requirement because its return type varies by representation.
+/// `AdjacencyList` returns `(inserted:memberAfterInsert:)`, the multigraphs return the new
+/// position, and a wrapper that rejects edges returns an optional. Generic code inserts an edge by
+/// key with `_insertEdge(fromKey:toKey:)`.
 ///
-/// The hooks are underscored because they are for wrappers inside the library: callers use the
-/// representations' own `insert` and `remove` members, which take vertices.
+/// The underscored members are for wrappers inside the library. Callers use the representations'
+/// own `insert` and `remove` members, which take vertices.
 public protocol MutableDirectedGraph<Vertex>: BidirectionalDirectedGraph where Vertices.Index == Int {
     /// The empty graph.
     init()
@@ -67,8 +68,8 @@ public protocol MutableDirectedGraph<Vertex>: BidirectionalDirectedGraph where V
     @discardableResult
     mutating func remove(_ vertex: Vertex) -> Vertex?
 
-    /// Removes one copy of `edge` (the newest, on a representation with parallel edges). Never
-    /// inserts or removes a vertex.
+    /// Removes one copy of `edge`. On a representation with parallel edges it removes the newest
+    /// copy. Never inserts or removes a vertex.
     ///
     /// - Returns: The removed edge, or `nil` if no copy of `edge` was an edge.
     @discardableResult
@@ -97,12 +98,12 @@ public protocol MutableDirectedGraph<Vertex>: BidirectionalDirectedGraph where V
     /// `predecessors(of: _vertex(atKey: key))`, without the hash.
     func _predecessors(ofKey key: Int) -> Predecessors
 
-    /// The keys of `successors(of: _vertex(atKey: key))`, in the same order: the stored row, typed
-    /// as `SuccessorIndices` (see Key rows above).
+    /// The keys of `successors(of: _vertex(atKey: key))`, in the same order. The stored row, typed
+    /// as `SuccessorIndices`.
     func _successorKeys(ofKey key: Int) -> SuccessorIndices
 
-    /// The keys of `predecessors(of: _vertex(atKey: key))`, in the same order: the stored row, typed
-    /// as `PredecessorIndices`.
+    /// The keys of `predecessors(of: _vertex(atKey: key))`, in the same order. The stored row,
+    /// typed as `PredecessorIndices`.
     func _predecessorKeys(ofKey key: Int) -> PredecessorIndices
 
     /// `outEdges(of: _vertex(atKey: key))`, without the hash.
@@ -129,12 +130,15 @@ public protocol MutableDirectedGraph<Vertex>: BidirectionalDirectedGraph where V
     mutating func _insertVertex(_ vertex: Vertex) -> Int
 
     /// Inserts an edge from the vertex with key `source` to the one with key `target` and returns
-    /// its position; on a simple graph, an existing edge's position, with nothing inserted.
+    /// its position. On a simple graph an existing edge is not inserted again, and its position is
+    /// returned.
     mutating func _insertEdge(fromKey source: Int, toKey target: Int) -> Edges.Index
 
-    /// Removes the vertex with key `key` and every edge at it, hashing only to update the
-    /// representation's own vertex lookup (no lookup to find the key again); returns the old key
-    /// of the vertex moved into `key`, if the representation moved one.
+    /// Removes the vertex with key `key` and every edge at it. It hashes only to update the
+    /// representation's vertex lookup.
+    ///
+    /// - Returns: The old key of the vertex moved into `key`, or `nil` if the representation moved
+    ///   none.
     mutating func _removeVertex(atKey key: Int) -> Int?
 
     /// Removes the edge at `position` and returns it.
@@ -142,18 +146,21 @@ public protocol MutableDirectedGraph<Vertex>: BidirectionalDirectedGraph where V
     /// - Precondition: `position` is the position of an edge.
     mutating func _removeEdge(at position: Edges.Index) -> DirectedEdge<Vertex>
 
-    /// The graph with `vertices` (distinct; key `k` is `vertices[k]`) and an edge per pair
-    /// `(sourceKeys[i], targetKeys[i])`, in order, as one `_insertEdge(fromKey:toKey:)` per pair
-    /// would build it; with, when `reportingPositions`, the position each pair got (`[]`
-    /// otherwise). For the readers, which collect a whole file first. Default: exactly those
-    /// insertions.
+    /// The graph with `vertices` and an edge per pair `(sourceKeys[i], targetKeys[i])`, in order,
+    /// as one `_insertEdge(fromKey:toKey:)` per pair would build it. The format readers use it
+    /// after collecting a whole file. Default: exactly those insertions.
+    ///
+    /// `vertices` are distinct, and key `k` is `vertices[k]`.
+    ///
+    /// - Returns: The graph, and the position each pair got when `reportingPositions` is true
+    ///   (`[]` otherwise).
     static func _built(
         vertices: ContiguousArray<Vertex>, sourceKeys: [Int], targetKeys: [Int], reportingPositions: Bool, _: _ConstructionToken
     ) -> (graph: Self, positions: [Edges.Index])
 }
 
 extension MutableDirectedGraph {
-    /// See the requirement: `init()`, then one insertion per vertex and per pair.
+    /// `init()`, then one insertion per vertex and per pair.
     @inlinable
     public static func _built(
         vertices: ContiguousArray<Vertex>, sourceKeys: [Int], targetKeys: [Int], reportingPositions: Bool, _: _ConstructionToken

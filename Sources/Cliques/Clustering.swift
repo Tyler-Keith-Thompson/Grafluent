@@ -42,8 +42,7 @@ func _triangles(_ rows: _CompressedRows) -> [Int] {
 }
 
 /// Triangles and clustering for every vertex of an undirected graph's simple graph, from one
-/// pass (JGraphT's `ClusteringCoefficient`; NetworkX `triangles`, `clustering`, `transitivity`,
-/// `average_clustering`).
+/// pass.
 @frozen
 public struct ClusteringCoefficients<G: Graph> {
     @usableFromInline let _graph: G

@@ -3,7 +3,7 @@
 Every random choice comes from the catalogs' 64-bit LCG (Knuth's MMIX constants, output x >> 33;
 Tests/Catalogs/Isomorphism/ref.py `lcg_edges`, Tests/Catalogs/DirectedAcyclicGraph/timings.py),
 and the flow networks are FlowsBenchmarks' generators line for line (lcgnet, genrmf, vision, with
-the same seeds), so those rows line up with Benchmarks/README.md's Flows row.
+the same seeds).
 
 File format (text): a header line `n m s t nleft blocks`, then `blocks` blocks of m lines
 `u v w`. Unused header fields are 0. `s`/`t` are the flow terminals, `nleft` the size of the left

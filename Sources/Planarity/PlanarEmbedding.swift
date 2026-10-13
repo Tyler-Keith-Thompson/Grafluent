@@ -46,8 +46,7 @@ struct _NumberedVertices<G: Graph> {
 extension _NumberedVertices: @unchecked Sendable where G: Sendable, G.Vertex: Sendable {}
 
 /// A planar embedding of a graph: a rotation system, the clockwise order of the edges around each
-/// vertex, over every edge position (NetworkX's `PlanarEmbedding`, LEMON's `PlanarEmbedding`,
-/// OGDF's `CombinatorialEmbedding`). Its faces satisfy Euler's formula, n − m + f = 2, in every
+/// vertex, over every edge position. Its faces satisfy Euler's formula, n − m + f = 2, in every
 /// connected component with an edge.
 ///
 /// A self-loop appears twice in its vertex's order, its two ends adjacent, enclosing a face of
@@ -55,9 +54,9 @@ extension _NumberedVertices: @unchecked Sendable where G: Sendable, G.Vertex: Se
 /// Each clockwise order starts at the first edge of `incidentEdges(of:)`.
 ///
 /// **Faces.** The face after the half-edge from u along edge e to w continues with the half-edge
-/// before e in the clockwise order at w (NetworkX's `next_face_half_edge`), so a face lies to the
-/// right of each of its half-edges. Faces are counted per connected component, and an isolated
-/// vertex has none: two disjoint triangles have four faces.
+/// before e in the clockwise order at w, so a face lies to the right of each of its half-edges.
+/// Faces are counted per connected component, and an isolated vertex has none: two disjoint
+/// triangles have four faces.
 ///
 /// The embedding keeps the graph it was made from (copy-on-write, so O(1)); mutating the graph
 /// afterwards does not change it. When a graph has several embeddings, which one is returned is
@@ -92,8 +91,7 @@ public struct PlanarEmbedding<G: Graph> {
     func _row(_ v: Int) -> Range<Int> { Int(_layout.rowOffsets[v]) ..< Int(_layout.rowOffsets[v + 1]) }
 
     /// The edges at `vertex` in clockwise order, starting at the first edge of
-    /// `incidentEdges(of:)`; a self-loop's position twice (NetworkX's `neighbors_cw_order`, with
-    /// edge positions). O(1).
+    /// `incidentEdges(of:)`; a self-loop's position twice. O(1).
     ///
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
@@ -147,8 +145,8 @@ public struct PlanarEmbedding<G: Graph> {
 
     /// The faces, each a closed walk along the half-edges with the face on their right, in the
     /// order a walk of the vertices in order, and of each clockwise order in order, first reaches
-    /// them (NetworkX's `faces()`); each starts at the tail of that first half-edge. Every edge
-    /// position is on two sides of faces, once on each, or twice on one face (a bridge).
+    /// them; each starts at the tail of that first half-edge. Every edge position is on two sides
+    /// of faces, once on each, or twice on one face (a bridge).
     @inlinable
     public var faces: Faces { Faces(_embedding: self) }
 
@@ -190,9 +188,9 @@ public struct PlanarEmbedding<G: Graph> {
         return slot
     }
 
-    /// The face to the right of edge `position` crossed from `vertex` (NetworkX's
-    /// `traverse_face(v, w)`): a closed walk starting and ending at `vertex`. For a self-loop, the
-    /// end listed first in `clockwiseIncidentEdges(of: vertex)`. O(degree + face length).
+    /// The face to the right of edge `position` crossed from `vertex`: a closed walk starting and
+    /// ending at `vertex`. For a self-loop, the end listed first in
+    /// `clockwiseIncidentEdges(of: vertex)`. O(degree + face length).
     ///
     /// - Precondition: `vertex` is a vertex of the graph and an end of the edge at `position`.
     @inlinable
@@ -214,10 +212,10 @@ public struct PlanarEmbedding<G: Graph> {
         return _walk(found.vertices, found.edges)
     }
 
-    /// The position in `faces` of the face to the right of edge `position` crossed from `vertex`
-    /// (OGDF's `rightFace`): the face `face(from:alongEdgeAt:)` walks. Crossed from its other end,
-    /// an edge has the face on its other side, the same one for a bridge. For a self-loop, the end
-    /// listed first in `clockwiseIncidentEdges(of: vertex)`. O(degree).
+    /// The position in `faces` of the face to the right of edge `position` crossed from `vertex`:
+    /// the face `face(from:alongEdgeAt:)` walks. Crossed from its other end, an edge has the face
+    /// on its other side, the same one for a bridge. For a self-loop, the end listed first in
+    /// `clockwiseIncidentEdges(of: vertex)`. O(degree).
     ///
     /// - Precondition: `vertex` is a vertex of the graph and an end of the edge at `position`.
     @inlinable

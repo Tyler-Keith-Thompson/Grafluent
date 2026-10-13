@@ -1,7 +1,6 @@
 // The algorithms against each other and against oracles written in each test: the catalog's
 // Int-weighted cases under every algorithm, tie-heavy random multigraphs against a stable-sort
-// Kruskal and brute force, JGraphT's random G(200, 0.5) instances, igraph's multigraphs with
-// loops, Prim's root, and a path that makes Borůvka run many rounds. Case IDs (ST-nn) refer to the
+// Kruskal and brute force, random G(200, 0.5) instances, multigraphs with loops, Prim's root, and a path that makes Borůvka run many rounds. Case IDs (ST-nn) refer to the
 // catalog; see README.md.
 
 import GraphProtocols

@@ -115,12 +115,12 @@ struct _GainRow {
     }
 }
 
-/// Clauset–Newman–Moore with NetworkX's arithmetic and order: ΔQ_ij = w_ij/m − γ(a_i b_j + b_i a_j)
-/// for adjacent communities, the greatest taken first (ties to the least pair (i, j), i < j, i
-/// merged into j), neighbors updated by CNM's three rules, until the greatest ΔQ is negative.
-/// Rows are sorted arrays merged linearly; the heap holds one entry per pair (i < j) and is rebuilt
-/// from the rows when stale entries outnumber live ones, so memory stays O(m). Returns a label per
-/// vertex (the surviving community's number).
+/// Clauset–Newman–Moore: ΔQ_ij = w_ij/m − γ(a_i b_j + b_i a_j) for adjacent communities, the
+/// greatest taken first (ties to the least pair (i, j), i < j, i merged into j), neighbors updated
+/// by CNM's three rules, until the greatest ΔQ is negative. Rows are sorted arrays merged linearly;
+/// the heap holds one entry per pair (i < j) and is rebuilt from the rows when stale entries
+/// outnumber live ones, so memory stays O(m). Returns a label per vertex (the surviving community's
+/// number).
 @inlinable
 func _greedyModularity(_ graph: _CommunityGraph, _ weights: [Double]?, resolution gamma: Double) -> [Int] {
     let n = graph.count
@@ -138,7 +138,7 @@ func _greedyModularity(_ graph: _CommunityGraph, _ weights: [Double]?, resolutio
             into[graph.from[e]] += w
         }
     }
-    // Undirected, a and b are one array (NetworkX's `a = b = …`), so merging updates both.
+    // Undirected, a and b are one array, so merging updates both.
     var a = graph.directed ? out.map { $0 * q0 } : out.map { $0 * q0 * 0.5 }
     var b = graph.directed ? into.map { $0 * q0 } : a
     // Rows: the weight between each pair (loops left out), summed in edge order, sorted by
@@ -274,10 +274,10 @@ extension Graph {
         return Partition(directedView, numbers: numbers, listed: listed, labels: labels)
     }
 
-    /// Greedy modularity communities (Clauset, Newman and Moore; NetworkX
-    /// `greedy_modularity_communities`): from singletons, repeatedly merge the two adjacent
-    /// communities whose merge raises modularity most (ties to the least pair of vertex numbers),
-    /// while it does not lower it. Deterministic. O(m d log n), d the depth of the merge tree.
+    /// Greedy modularity communities (Clauset, Newman and Moore): from singletons, repeatedly merge
+    /// the two adjacent communities whose merge raises modularity most (ties to the least pair of
+    /// vertex numbers), while it does not lower it. Deterministic. O(m d log n), d the depth of the
+    /// merge tree.
     ///
     /// - Precondition: `resolution` is finite and at least zero.
     @inlinable
@@ -305,8 +305,7 @@ extension DirectedGraph {
         return Partition(self, numbers: numbers, listed: listed, labels: labels)
     }
 
-    /// Greedy modularity communities maximizing directed modularity (NetworkX
-    /// `greedy_modularity_communities`). Deterministic.
+    /// Greedy modularity communities maximizing directed modularity. Deterministic.
     ///
     /// - Precondition: `resolution` is finite and at least zero.
     @inlinable

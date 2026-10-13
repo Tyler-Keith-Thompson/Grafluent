@@ -1,5 +1,4 @@
-/// The primal network simplex in LEMON's layout (`NetworkSimplex`, after Király and Kovács
-/// 2012): an artificial root joined to every vertex by an arc of big-M cost, a strongly feasible
+/// The primal network simplex (after Király and Kovács 2012): an artificial root joined to every vertex by an arc of big-M cost, a strongly feasible
 /// spanning tree stored as parent, predecessor arc and direction, preorder thread and reverse
 /// thread, subtree size and last successor, the block search pivot rule (blocks of √m arcs,
 /// at least 10), and potentials updated on the moved subtree only. Integer data, computed in
@@ -45,7 +44,7 @@ final class _NetworkSimplex {
     @usableFromInline let lastSuccessor: UnsafeMutablePointer<Int>
     /// Scratch for `updateTreeStructure`: the thread entries whose reverse must be rewritten.
     @usableFromInline let dirtyReverses: UnsafeMutablePointer<Int>
-    /// Where each problem arc is stored (LEMON's arc mixing).
+    /// Where each problem arc is stored (arc mixing).
     @usableFromInline let slotOfArc: [Int]
 
     @usableFromInline let blockSize: Int
@@ -74,7 +73,7 @@ final class _NetworkSimplex {
         successorCount = .allocate(capacity: nodes)
         lastSuccessor = .allocate(capacity: nodes)
         dirtyReverses = .allocate(capacity: nodes + 1)
-        // LEMON's arc mixing: arc k goes to slot `slotOfArc[k]`, every `skip`-th slot first,
+        // Arc mixing: arc k goes to slot `slotOfArc[k]`, every `skip`-th slot first,
         // so the block search's blocks sample the whole graph rather than a few rows.
         var slotOfArc = [Int](repeating: 0, count: m)
         if n > 1 {
@@ -190,7 +189,7 @@ final class _NetworkSimplex {
         }
     }
 
-    /// LEMON's heuristic initial pivots: with one supply and one demand node, the arcs of a
+    /// Heuristic initial pivots: with one supply and one demand node, the arcs of a
     /// reverse depth-first search from the demand over arcs that can carry the whole supply;
     /// otherwise the cheapest arc into each demand node. Each is pivoted in when its reduced cost
     /// is negative.
@@ -266,7 +265,7 @@ final class _NetworkSimplex {
         let blockSize = blockSize
         var best = 0, bestArc = -1
         var count = blockSize
-        // From where the last search stopped to the end, then from the start: LEMON's two loops.
+        // From where the last search stopped to the end, then from the start.
         var e = nextArc
         var end = m
         var wrapped = false
@@ -332,8 +331,7 @@ final class _NetworkSimplex {
         var uOut = -1
         var result = 0
         // Only the artificial arcs are unbounded: an artificial arc whose flow would grow never
-        // blocks. Every problem arc's room is c − f exactly, Int.max capacities included (LEMON
-        // stores INF = MAX for both and checks UNBOUNDED; here capacities are always finite).
+        // blocks. Every problem arc's room is c − f exactly, Int.max capacities included.
         let arcCount = arcCount
         var u = first
         while u != join {
@@ -410,8 +408,7 @@ final class _NetworkSimplex {
     }
 
     /// Re-hangs the subtree cut off by the leaving arc from the entering arc, reversing the stem
-    /// from `uIn` up to `uOut`, and repairs the thread, sizes and last successors (LEMON's
-    /// `updateTreeStructure`).
+    /// from `uIn` up to `uOut`, and repairs the thread, sizes and last successors.
     @inlinable
     func updateTreeStructure(_ pivot: _Pivot) {
         let parent = parent, pred = pred, predDirection = predDirection, thread = thread

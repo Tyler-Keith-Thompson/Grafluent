@@ -10,15 +10,15 @@ whose out- and incident orders are position order). ✓ marks a case whose expec
 
 | Name | Graph | Positions |
 |---|---|---|
-| `D4` | `ReferenceDirectedMultigraph(edges: [0→1, 1→2, 2→3, 3→0])` (LEMON's n1…n4, a1…a4) | a1=0, a2=1, a3=2, a4=3 |
+| `D4` | `ReferenceDirectedMultigraph(edges: [0→1, 1→2, 2→3, 3→0])` (vertices n1…n4, arcs a1…a4) | a1=0, a2=1, a3=2, a4=3 |
 | `M` | `ReferenceDirectedMultigraph(edges: [0→1, 0→1, 1→0])` | 0, 1 parallel; 2 back |
 | `DL` | `ReferenceDirectedMultigraph(edges: [0→0, 0→0])` | two loops |
 | `U` | `ReferencePseudograph(edges: [0–1, 1–2, 2–0])` | triangle |
 | `UL` | `ReferencePseudograph(edges: [0–0, 0–0])` | two loops |
 | `UP` | `ReferencePseudograph(edges: [0–1, 0–1])` | parallel pair |
 | `K5` | `ReferencePseudograph(edges:)` of `{a,b}` for `a<b` in 0..<5, lexicographic | 0–1=0, 0–2=1, 0–3=2, 0–4=3, 1–2=4, 1–3=5, 1–4=6, 2–3=7, 2–4=8, 3–4=9 |
-| `C` | `ReferenceDirectedMultigraph(edges: [0→1, 1→2, 2→3, 3→1])` (JGraphT testConcatPath1) | 0..3 |
-| `U3` | `ReferencePseudograph(edges: [0–1, 1–2, 2–3])`, weights `[2, 3, 4]` (JGraphT testReversePathUndirected) | 0..2 |
+| `C` | `ReferenceDirectedMultigraph(edges: [0→1, 1→2, 2→3, 3→1])` | 0..3 |
+| `U3` | `ReferencePseudograph(edges: [0–1, 1–2, 2–3])`, weights `[2, 3, 4]` | 0..2 |
 | `D3` | `ReferenceDirectedMultigraph(edges: [0→1, 1→2, 2→3])` | 0..2 |
 
 ## 1. Construction and validation (WK-1xx)
@@ -174,9 +174,9 @@ whose out- and incident orders are position order). ✓ marks a case whose expec
 
 | ID | Input | Expected |
 |---|---|---|
-| WK-1001 ✓ | `Walk([0,1,2,3], in: U3)!.reversed()` | vertices `[3,2,1,0]`, edges `[2,1,0]`, valid in U3, weight 9 (JGraphT testReversePathUndirected) |
+| WK-1001 ✓ | `Walk([0,1,2,3], in: U3)!.reversed()` | vertices `[3,2,1,0]`, edges `[2,1,0]`, valid in U3, weight 9 |
 | WK-1002 ✓ | `Walk([0,1,2,3], in: D3)!.reversed()` | not a walk of D3 (`Walk(vertices:edges:in: D3)` nil), a walk of `D3.reversed` (JGraphT testReverseInvalidPathDirected throws instead) |
-| WK-1003 ✓ | `Walk([0,1,2], in: C)!.appending(Walk(vertices: [2,3,1], edges: [2,3], in: C)!)` | vertices `[0,1,2,3,1]`, edges `[0,1,2,3]` (JGraphT testConcatPath1) |
+| WK-1003 ✓ | `Walk([0,1,2], in: C)!.appending(Walk(vertices: [2,3,1], edges: [2,3], in: C)!)` | vertices `[0,1,2,3,1]`, edges `[0,1,2,3]` |
 | WK-1004 ✓ | `w.appending(Walk(vertex: w.target)) == w` and `Walk(vertex: w.source).appending(w) == w` | true (JGraphT testConcatPathWithSingleton) |
 | WK-1005 ✓ | `Walk(vertex: 7).reversed()` | `== Walk(vertex: 7)` |
 | WK-1006 ✓ | `Cycle(vertices: [0,1], edges: [0,1]).reversed()` | vertices `[0,1]`, edges `[1,0]`; `!=` the original |
@@ -200,9 +200,9 @@ whose out- and incident orders are position order). ✓ marks a case whose expec
 | WK-1109 | compile-time: `Walk<Int, Int>` passes into a `@Sendable` closure; `Walk<NonSendableVertex, Int>` does not (`VertexTypes.swift`) | builds / does not |
 | WK-1110 | `LifetimeTracked` vertices | no leaks after conversions, append, reversal |
 
-## 12. Migration of existing APIs (WK-12xx)
+## 12. Results of other modules (WK-12xx)
 
-Each of these replaces an existing assertion. The vertex sequences stay the same, and only the type changes.
+The walk types that `ShortestPaths` and `Traversal` return. Their own suites test these cases.
 
 | ID | Call | Expected |
 |---|---|---|
@@ -250,6 +250,6 @@ Swift Testing `#expect(processExitsWith: .failure)`, as in `AdjacencyMatrixPreco
 | 9 Weight | 7 |
 | 10 Reversal and concatenation | 10 |
 | 11 Codable, description, Sendable | 10 |
-| 12 Migration | 15 |
+| 12 Results of other modules | 15 |
 | 13 Preconditions | 6 |
 | **Total** | **149** (80 rows marked ✓; `ref.py` runs 113 checks, all passing) |

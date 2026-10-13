@@ -158,19 +158,18 @@ TITLES = {
 
 SECTIONS = [
     ("UndirectedComponentsTests.swift", "UndirectedComponentsTests", "Undirected connectivity basics", 200, 219,
-     "§A: the basic cases every entry point agrees on — the empty graph, K₁, K₂, a few vertices, and\n"
-     "// small graphs ported from NetworkX, petgraph, rustworkx, Boost and LEMON"),
+     "§A: the basic cases every entry point agrees on: the empty graph, K₁, K₂, a few vertices, and\n"
+     "// small graphs with pinned answers"),
     ("BridgeTests.swift", "BridgeTests", "Bridges and 2-edge-connected components", 220, 234,
-     "§B: bridges and 2-edge-connected components, ported from NetworkX, igraph, rustworkx and JGraphT"),
+     "§B: bridges and 2-edge-connected components"),
     ("BiconnectedComponentTests.swift", "BiconnectedComponentTests", "Articulation points and blocks", 235, 279,
-     "§C: articulation points, blocks and the block–cut tree, ported from NetworkX, JGraphT, petgraph,\n"
-     "// Boost, igraph, rustworkx and LEMON"),
+     "§C: articulation points, blocks and the block–cut tree"),
     ("UndirectedSelfLoopAndParallelEdgeTests.swift", "UndirectedSelfLoopAndParallelEdgeTests", "Undirected parallel edges and self-loops", 280, 299,
      "§D: parallel edges and self-loops. A parallel pair is never a bridge and both copies share a\n"
      "// block; a self-loop is never a bridge, never makes an articulation point and is in no block"),
     ("UndirectedFamilyTests.swift", "UndirectedFamilyTests", "Forests, paths, cycles and complete graphs", 300, 319,
-     "§E: graph families — paths, cycles, stars, complete and complete bipartite graphs, grids, wheels,\n"
-     "// chains of blocks — and the canonical block order"),
+     "§E: graph families (paths, cycles, stars, complete and complete bipartite graphs, grids, wheels,\n"
+     "// chains of blocks) and the canonical block order"),
     ("UndirectedFixtureTests.swift", "UndirectedFixtureTests", "Undirected connectivity on the named fixtures", 320, 329,
      "§F: the named UndirectedFixture graphs"),
     ("UndirectedDisconnectedTests.swift", "UndirectedDisconnectedTests", "Disconnected undirected graphs", 330, 339,

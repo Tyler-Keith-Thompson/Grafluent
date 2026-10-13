@@ -5,10 +5,8 @@ import Hypergraphs
 import IncidenceMatrixModule
 import Multigraphs
 
-// Tests/Catalogs/IncidenceMatrix/api.md's Performance table. NetworkX 3.7's `incidence_matrix`
-// (0.37 s unoriented, 0.38 s oriented at n = 10⁴, m = 10⁵) and XGI 0.10.2's (0.03 s at
-// n = 10⁴, m = 2·10⁴, sizes 2–8) are timed by `ref.py --baseline` and quoted in
-// Benchmarks/README.md.
+// `Tests/Catalogs/IncidenceMatrix/ref.py --baseline` times NetworkX's and XGI's incidence matrices
+// on the n = 10⁴ shapes below.
 
 let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
@@ -23,11 +21,11 @@ let benchmarks: @Sendable () -> Void = {
     let matrix = IncidenceMatrix(graph)
     precondition(matrix.vertexCount == n && matrix.hyperedgeCount == m)
 
-    // NetworkX's shape, n = 10⁴, m = 10⁵: 125 MB per orientation.
+    // n = 10⁴, m = 10⁵: 125 MB per orientation.
     let bigN = 10_000, bigM = 100_000
     let bigGraph = Pseudograph<Int>(vertices: 0 ..< bigN, edges: (0 ..< bigM).map { _ in UndirectedEdge(Int.random(in: 0 ..< bigN, using: &generator), Int.random(in: 0 ..< bigN, using: &generator)) })
 
-    // XGI's shape: n = 10⁴, m = 2·10⁴ hyperedges of sizes 2–8.
+    // n = 10⁴, m = 2·10⁴ hyperedges of sizes 2–8.
     let xgiColumns = (0 ..< 20_000).map { _ in (0 ..< Int.random(in: 2 ... 8, using: &generator)).map { _ in Int.random(in: 0 ..< 10_000, using: &generator) } }
 
     // Density 1/8 at 512 × 512, for the protocol algorithms against an incidence-list copy.
@@ -119,8 +117,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(orientedDense.weaklyConnectedComponents()) }
     }
 
-    // MARK: The incidence-graph views on the matrices (review fix: each read was O(m) and
-    // neighbors boxed an AnySequence; 1 245× the list view at 2 048²)
+    // MARK: The incidence-graph views on the matrices
 
     @inline(__always)
     func walk<G: Graph>(_ view: G) -> Int where G.Vertex == Int, G.Edges.Index == Int, G.Vertices == Range<Int> {
@@ -172,10 +169,10 @@ let benchmarks: @Sendable () -> Void = {
     // MARK: Attached maps
 
     // One value per column, appended with the column: 0, 1 and 2 attached hyperedge maps against as
-    // many `[Double]`s the caller's own matrix type appends to inside its insertion; then `values(of:)` against that array, read at every
-    // vertex's incident columns.
-    // The 0-map row attaches nothing: an attach call in the loop, even one run zero times, costs the
-    // optimizer facts a caller without maps keeps.
+    // many `[Double]`s the caller's own matrix type appends to inside its insertion, then
+    // `values(of:)` against that array, read at every vertex's incident columns.
+    // The 0-map row attaches nothing, because an attach call in the loop, even one run zero times,
+    // costs the optimizer facts a caller without maps keeps.
     Benchmark("IncidenceMatrix: insert(hyperedge:) × 2·10⁴, sizes 2–8, n = 10⁴, 0 hyperedge maps") { benchmark in
         for _ in benchmark.scaledIterations {
             var built = IncidenceMatrix(vertexCount: 10_000)

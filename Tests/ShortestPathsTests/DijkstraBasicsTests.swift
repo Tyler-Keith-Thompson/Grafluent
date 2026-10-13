@@ -1,8 +1,7 @@
-// Dijkstra on small graphs with known answers: the trivial cases, a path, NetworkX's XG from every
-// source, Boost's example, JGraphT's tree, scipy's directed and undirected graphs, NetworkX's XG2
-// and XG3. Distances are exact everywhere; parents are exact because every one in this file is
-// determined by the tie rule (README, "How tests pin values"). Case IDs (SP-nn) refer to the
-// catalog; see README.md.
+// Dijkstra on small graphs with known answers: the trivial cases, a path, the XG graph from every
+// source, small directed and undirected graphs, a tree, and the XG2 and XG3 graphs. Distances are
+// exact everywhere; parents are exact because every one in this file is determined by the tie rule
+// (README, "How tests pin values"). Case IDs (SP-nn) refer to the catalog; see README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -203,7 +202,7 @@ struct DijkstraBasicsTests {
             #expect((0 ..< 5).map { tree.parent(of: $0) } == parents[source], "from \(source)")
         }
         // From 1, vertex 0 is at 3 both directly and through 3; the parent with the smaller
-        // distance (1 itself) wins, as in scipy.
+        // distance (1 itself) wins.
         let tree = graph.directedView.dijkstraShortestPaths(from: 1) { weights[$0.position] }
         #expect(tree.parentEdge(of: 0) == .init(position: 0, reversed: true))
         #expect(tree.parentEdge(of: 2) == .init(position: 1, reversed: false))

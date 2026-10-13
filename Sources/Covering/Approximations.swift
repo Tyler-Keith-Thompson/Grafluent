@@ -2,11 +2,10 @@ import GraphProtocols
 import MatchingModule
 
 extension Graph {
-    /// A vertex cover of at most twice the least weight (Bar-Yehuda and Even's local ratio; NetworkX
-    /// `min_weighted_vertex_cover`, the same cover when positions are in its edge order): each edge
-    /// in position order with neither end in the cover puts in the end with the lesser remaining
-    /// weight (the end with the lesser vertex index on ties) and subtracts that weight from the
-    /// other end's. A self-loop puts its vertex in. `weight` is called once per vertex, in
+    /// A vertex cover of at most twice the least weight (Bar-Yehuda and Even's local ratio): each
+    /// edge in position order with neither end in the cover puts in the end with the lesser
+    /// remaining weight (the end with the lesser vertex index on ties) and subtracts that weight
+    /// from the other end's. A self-loop puts its vertex in. `weight` is called once per vertex, in
     /// `vertices` order. O(n + m).
     ///
     /// - Precondition: no weight is negative or NaN.
@@ -82,11 +81,10 @@ extension Graph {
         return _coveringVertices(flagged: chosen, _listedVertices())
     }
 
-    /// A dominating set of at most H(Δ + 1) times the least weight (Chvátal's greedy set cover;
-    /// NetworkX `min_weighted_dominating_set`, the same set): repeatedly the vertex with the least
-    /// weight per newly dominated vertex of its closed neighbourhood, the least vertex index on ties.
-    /// Ratios are compared exactly, by cross-multiplication. `weight` is called once per vertex.
-    /// O((n + m) log n).
+    /// A dominating set of at most H(Δ + 1) times the least weight (Chvátal's greedy set cover):
+    /// repeatedly the vertex with the least weight per newly dominated vertex of its closed
+    /// neighbourhood, the least vertex index on ties. Ratios are compared exactly, by
+    /// cross-multiplication. `weight` is called once per vertex. O((n + m) log n).
     ///
     /// - Precondition: no weight is negative; Δ + 1 and the products weight · (Δ + 1) fit in `W`.
     @inlinable
@@ -99,8 +97,8 @@ extension Graph {
         return _greedyDominatingSet(weights) { a, ka, b, kb in a * W(kb) < b * W(ka) }
     }
 
-    /// A dominating set of at most H(Δ + 1) times the least weight, ratios computed as weight / k in
-    /// floating point, as NetworkX does, so the same values give the same set.
+    /// A dominating set of at most H(Δ + 1) times the least weight, ratios computed as weight / k
+    /// in floating point.
     ///
     /// - Precondition: no weight is negative or NaN.
     @inlinable

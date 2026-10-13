@@ -6,7 +6,7 @@
 // implicit conformer that costs nothing to build; the others build through `Tree(vertices:edges:)`
 // or the parent-array initializer. Each test has a one-minute limit and is meant to stay within a
 // couple of seconds in a debug build; the benchmarks take timings. Expected values come from the
-// catalog's reference (`ref.py`, the proposed algorithm, checked against closed forms). Case IDs
+// catalog's reference (`ref.py`, checked against closed forms). Case IDs
 // (TS-nnn) refer to the catalog; see README.md.
 
 import GraphProtocols

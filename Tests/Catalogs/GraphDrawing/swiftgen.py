@@ -4,16 +4,15 @@
         --with scipy==1.18.1 python3 Tests/Catalogs/GraphDrawing/swiftgen.py [--phase2] [OUT_DIR]
     # default OUT_DIR: Tests/GraphDrawingTests
 
-First checks that ref.py's model reproduces cases.md byte for byte. Then re-runs every phase-1 row
-on the model, asserts that the value it computes formats to the catalog cell, and writes one @Test
+First checks that ref.py's model reproduces cases.md byte for byte. Then re-runs rows DR-001 –
+DR-206 on the model, asserts that the value it computes formats to the catalog cell, and writes one @Test
 per row. Exact rows compare whole point lists with ==; rows printed to 12 decimals (cos and sin)
 compare within 1e-9; quality rows take the median over seeds 1…20 and compare it with the bound,
 computing normalized stress and straight-line crossings inline from `positions`. A Sugiyama row
 whose optimal layering is unique checks the model's whole layered drawing (layers, layer count,
 crossing count, positions, the bends of every edge, reversed edges, and `feedbackArcSet()`), not
-only its own cell. `--phase2` also writes GraphDrawingPhase2Tests.swift (DR-207 – DR-214), which
-needs `spectralLayout()`, `bfsLayout(start:)`, `multipartiteLayout(layer:)`, `forceAtlas2Layout`
-and SpectralGraphTheory's `fiedlerVector()`. Hand-written exit tests spliced into the precondition
+only its own cell. `--phase2` also writes GraphDrawingPhase2Tests.swift for DR-207 – DR-214, whose
+entry points the module does not have. Hand-written exit tests spliced into the precondition
 file: extra_traps.swift. The 5 × 10⁴-vertex layering row relies on speed, so it goes to
 OUT_DIR/Performance/SugiyamaLayeringLinearProgramScaleTests.swift, the GraphDrawingPerformanceTests
 target (scripts/modules.py).
@@ -829,15 +828,14 @@ FILES = [
     ("DrawingTests.swift", "Drawing", ids("Drawing"),
      "Drawing (catalog DR-001 – DR-021): a position per vertex in the order given, lookup by vertex\n"
      "// (`position(of:)`, `position(checked:)`, `setPosition(_:of:)`), (vertex, position) elements, equality\n"
-     "// in order, the bounding box, and `rescaled(scale:center:)` (NetworkX's rescale_layout, then a\n"
-     "// translation). Exact."),
+     "// in order, the bounding box, and `rescaled(scale:center:)`. Exact."),
     ("CircularLayoutTests.swift", "circularLayout", ids("Circular"),
      "circularLayout (catalog DR-022 – DR-030): vertex i of n at center + radius (cos 2πi/n, sin 2πi/n),\n"
      "// one vertex at the centre, edges not read. Compared within 1e-9 (cos and sin)."),
     ("ReingoldTilfordLayoutTests.swift", "reingoldTilfordLayout", ids("Tree"),
      "reingoldTilfordLayout and its circular form (catalog DR-033 – DR-063): Walker's algorithm in\n"
      "// Buchheim, Jünger and Leipert's linear form, separation 1, y = depth, root at x = 0, exact; the\n"
-     "// circular form is igraph's polar map, compared within 1e-9."),
+     "// circular form is its polar map, compared within 1e-9."),
     ("SugiyamaLayoutTests.swift", "sugiyamaLayout", ids("Layered"),
      "sugiyamaLayout (catalog DR-064 – DR-163): Eades–Lin–Smyth (`Cycles.feedbackArcSet()`), minimum-span\n"
      "// layering, barycenter crossing reduction, Brandes–Köpf. Where the optimal layering is unique,\n"
@@ -859,8 +857,7 @@ FILES = [
 ]
 if PHASE2:
     FILES.append(("GraphDrawingPhase2Tests.swift", "GraphDrawing phase 2", list(range(207, 215)),
-                  "Phase 2 (catalog DR-207 – DR-214): spectral, BFS, multipartite and ForceAtlas2 layouts. Written\n"
-                  "// only with swiftgen.py --phase2, once those entry points exist."))
+                  "Phase 2 group (catalog DR-207 – DR-214). Written only with swiftgen.py --phase2."))
 
 IMPORTS = [("Cycles", "feedbackArcSet("), ("DirectedAcyclicGraphModule", "DirectedAcyclicGraph<"),
            ("GrafluentTestSupport", ".tags("), ("Multigraphs", "Pseudograph<"), ("RandomGraphs", "Xoshiro256StarStar"),
@@ -1055,8 +1052,7 @@ def write_lp_test():
         "",
         '@Suite("Sugiyama layering against a linear program at scale")',
         "struct SugiyamaLayeringLinearProgramScaleTests {",
-        "    // Release: 0.23 s; Gansner's pivots, searching a side of a cut each, took 1.5 s. The",
-        "    // bound is for a debug build. Crossing reduction is off: the layering is under test.",
+        "    // The bound is for a debug build. Crossing reduction is off: the layering is under test.",
         '    @Test("At 5 × 10⁴ vertices with short random arcs: the LP optimum (HiGHS: %d)", .timeLimit(.minutes(1)))' % large_span,
         "    func largeSpanMatchesTheLinearProgram() async {",
         "        await Task {",

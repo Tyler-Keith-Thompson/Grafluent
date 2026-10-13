@@ -313,7 +313,6 @@ struct EdgeListConversionTests {
 struct EdgeListEdgeValueTests {
     @Test("EL-K01 / EL-K02 a stable argsort of weights orders the positions, keeping each edge with its weight")
     func argsort() {
-        // Boost.Graph example/kruskal-example.cpp.
         let list: EdgeList<Int> = [
             DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 1, to: 4), DirectedEdge(from: 2, to: 1),
             DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 0), DirectedEdge(from: 4, to: 1),

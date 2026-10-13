@@ -9,7 +9,7 @@
 `SwapBase` ports the storage of AdjacencyList (simple) and DirectedPseudograph (copies): dense
 slots and edge positions with swap-remove, rows that swap-remove their entries. `StableBase` ports
 StableDirectedGraph: positions never reused, rows in position order. `DAG` is a port of the
-proposed wrapper: the order kept as a list of base keys (slot, or position on the stable base) and
+wrapper: the order kept as a list of base keys (slot, or position on the stable base) and
 each key's place in it, maintained by Pearce-Kelly (PK). `Spec` is written from the definitions
 with NetworkX: an edge is rejected exactly when it is a self-loop or its target reaches its
 source, and after an accepted backward edge the affected sets are NetworkX descendants and
@@ -179,7 +179,7 @@ def make_base(kind):
 
 
 # ---------------------------------------------------------------------------------------------
-# The proposed wrapper.
+# The wrapper.
 
 WORK = {"fwd": 0, "bwd": 0, "region": 0, "delta": 0.0, "reorders": 0}
 
@@ -860,11 +860,11 @@ def render():
     return "\n".join(lines) + "\n"
 
 
-HEAD = """# DirectedAcyclicGraphModule: case catalog (phase 1)
+HEAD = """# DirectedAcyclicGraphModule: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with rustworkx==0.18.1
 python3 Tests/Catalogs/DirectedAcyclicGraph/ref.py`; `--write` regenerates this file, `--stress` adds the random
-sequences). Every Expected is the output of a port of the proposed wrapper over ports of the three bases,
+sequences). Every Expected is the output of a port of the wrapper over ports of the three bases,
 checked at every state against the laws (the order is a permutation of the vertices, every edge goes forward)
 and every witness against the graph; `--stress` also checks a NetworkX specification and a rustworkx shadow.
 

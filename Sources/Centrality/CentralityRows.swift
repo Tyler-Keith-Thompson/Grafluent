@@ -51,8 +51,7 @@ extension DirectedGraph {
     }
 }
 
-/// A score per vertex (the README's "dense vector indexed by vertex"; JGraphT's
-/// `VertexScoringAlgorithm`, igraph's scores): every centrality measure returns one.
+/// A score per vertex, stored densely by vertex index. Every centrality measure returns one.
 @frozen
 public struct CentralityScores<G: DirectedGraph> {
     @usableFromInline let _graph: G
@@ -103,7 +102,7 @@ public struct CentralityScores<G: DirectedGraph> {
     public var scores: [Double] { _scores }
 }
 
-/// Kleinberg's hub and authority scores, each summing to 1 (igraph's `hub_and_authority_scores`).
+/// Kleinberg's hub and authority scores, each summing to 1.
 @frozen
 public struct HubAndAuthorityScores<G: DirectedGraph> {
     /// How well each vertex points to good authorities.

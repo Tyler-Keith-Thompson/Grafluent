@@ -4,14 +4,14 @@ import BenchmarkSupport
 import GraphProtocols
 import Planarity
 
-// Planarity on the inputs of api.md's Performance table: Delaunay triangulations of uniform random
-// points in the unit square (10⁴ and 10⁵ points), a 316 × 316 grid, a stacked triangulation of 10⁵
-// vertices (the catalog's tri(n, 11)), and each made non-planar by one edge joining vertex 0 to the
-// highest-numbered vertex not adjacent to it. The grid and the stacked triangulation are the
-// catalog's instances exactly. The Delaunay graphs are triangulated here (incremental insertion
-// with Lawson flips), from seeded points, so they are instances of the same kind as the catalog's
-// scipy ones rather than the same graphs; vertices are numbered in insertion order (random in the
-// plane) and edges listed in increasing (u, v), as in ref.py.
+// Planarity on Delaunay triangulations of uniform random points in the unit square (10⁴ and 10⁵
+// points), a 316 × 316 grid, a stacked triangulation of 10⁵ vertices (the catalog's tri(n, 11)),
+// and each made non-planar by one edge joining vertex 0 to the highest-numbered vertex not adjacent
+// to it. The grid and the stacked triangulation are the catalog's instances exactly. The Delaunay
+// graphs are triangulated here (incremental insertion with Lawson flips), from seeded points, so
+// they are instances of the same kind as the catalog's scipy ones rather than the same graphs;
+// vertices are numbered in insertion order (random in the plane) and edges listed in increasing
+// (u, v), as in ref.py.
 
 /// The Delaunay triangulation of `count` seeded uniform points in the unit square: its edges, each
 /// (u, v) with u < v, ascending.

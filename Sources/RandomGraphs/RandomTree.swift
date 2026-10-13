@@ -9,10 +9,10 @@ extension Tree where Vertex == Int {
     /// > Heinz Prüfer. Neuer Beweis eines Satzes über Permutationen. *Archiv der Mathematik und
     /// > Physik* (3) 27, 142–144 (1918).
     ///
-    /// The draws are NetworkX's `random_labeled_tree(n)` on the same stream. One vertex makes no
-    /// draws. O(n).
+    /// One vertex makes no draws.
     ///
-    /// - Precondition: `vertexCount ≥ 1`: a tree is never empty.
+    /// - Complexity: O(n).
+    /// - Precondition: `vertexCount ≥ 1`.
     @inlinable
     public static func random(vertexCount n: Int, using generator: inout some RandomNumberGenerator) -> Tree {
         precondition(n >= 1, "a Tree has at least one vertex")

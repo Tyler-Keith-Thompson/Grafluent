@@ -2,9 +2,8 @@ import GraphProtocols
 
 extension DirectedGraph {
     /// The edges that Eades, Lin and Smyth's greedy heuristic removes to make the graph acyclic,
-    /// by position in `edges`, ascending: a feedback arc set, small in practice but not minimum
-    /// (igraph's `feedback_arc_set` with `method="eades"`). Every self-loop is in it, as in igraph:
-    /// arcs 0 → 0, 0 → 1, 1 → 0 give positions [0, 2].
+    /// by position in `edges`, ascending: a feedback arc set, small in practice but not minimum.
+    /// Every self-loop is in it: arcs 0 → 0, 0 → 1, 1 → 0 give positions [0, 2].
     ///
     /// The heuristic orders the vertices in a sequence and takes every edge that points leftward
     /// in it, and every self-loop. It repeatedly removes a sink (placed at the right end of the
@@ -16,10 +15,10 @@ extension DirectedGraph {
     /// leaves no directed cycle.
     ///
     /// Eades, Lin and Smyth, "A fast and effective heuristic for the feedback arc set problem",
-    /// Information Processing Letters 47(6), 1993. Linear time with bucket queues; this
-    /// implementation keeps the largest-difference vertices in a binary heap so that ties go to
-    /// the least offset: O((n + m) log n) time, O(n + m) memory. igraph breaks ties in its own
-    /// bucket order, so on some graphs it returns another set of the same kind.
+    /// Information Processing Letters 47(6), 1993. The largest-difference vertices are kept in a
+    /// binary heap so that ties go to the least offset.
+    ///
+    /// - Complexity: O((n + m) log n) time, O(n + m) memory.
     @inlinable
     public func feedbackArcSet() -> [Edges.Index] {
         let arcs = _arcsInPositionOrder()
@@ -27,14 +26,13 @@ extension DirectedGraph {
         return _withSelfLoops(reversed, arcs.sources, arcs.targets).map { arcs.positions[$0] }
     }
 
-    /// `feedbackArcSet()` with edge weights (igraph's `weights`): the heuristic compares weighted
-    /// out-degree minus weighted in-degree (sums of `weight` over the remaining out- and
-    /// in-edges), so that it tends to leave out light edges. Sinks and sources are still the
+    /// `feedbackArcSet()` with edge weights: the heuristic compares weighted out-degree minus
+    /// weighted in-degree (sums of `weight` over the remaining out- and in-edges), so that it
+    /// tends to leave out light edges. Sinks and sources are still the
     /// vertices with no remaining out- or in-edges, whatever their weights; ties, order and
     /// self-loops are as unweighted. Constant weights give `feedbackArcSet()`.
     ///
-    /// O((n + m) log n) time plus one call of `weight` per edge, O(n + m) memory.
-    ///
+    /// - Complexity: O((n + m) log n) time plus one call of `weight` per edge, O(n + m) memory.
     /// - Precondition: every weight is finite, and so is the sum of their magnitudes.
     @inlinable
     public func feedbackArcSet(weight: (Edges.Index) -> Double) -> [Edges.Index] {

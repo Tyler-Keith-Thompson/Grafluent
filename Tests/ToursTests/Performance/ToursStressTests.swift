@@ -4,7 +4,8 @@
 // edge by edge; a long cycle's and path's walks are themselves, exactly (each vertex's first unused
 // edge leads on); a long cycle, path and complete graph are their own first Hamiltonian cycle and
 // path, two disjoint cliques and a transitive tournament have no cycle (the documented pruning makes
-// the search fail fast), nor two cliques at a cut vertex (the reachability test alone does); nearest neighbour on collinear points walks the line; on points of a circle
+// the search fail fast), nor two cliques at a cut vertex (the reachability test alone does); nearest
+// neighbour on collinear points walks the line; on points of a circle
 // (Euclidean) Christofides' tree is the hull less one edge, so its tour is the hull order, 2-opt
 // removes every crossing, which leaves the hull order, and Held–Karp's optimum is the hull order in
 // its lexicographically least direction; a cycle with weights has one tour. See README.md.

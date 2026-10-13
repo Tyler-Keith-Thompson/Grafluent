@@ -3,8 +3,7 @@ import GraphProtocols
 // MARK: - Equatable and Hashable
 
 extension DirectedAcyclicGraph: Equatable where Base: Equatable {
-    /// The bases' equality: the order is history and does not count, as a `LabeledGraph`'s index
-    /// assignment does not.
+    /// The bases' equality. The topological order does not count.
     @inlinable
     public static func == (lhs: Self, rhs: Self) -> Bool { lhs._base == rhs._base }
 }

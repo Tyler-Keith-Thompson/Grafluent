@@ -70,8 +70,7 @@ struct _HamiltonianRows: Sendable {
 
 /// A fixed-size buffer of trivial values (vertex numbers, counts, flags) with checked indexing and
 /// no copy-on-write: a write is a store through `nonmutating set`, with no uniqueness check and no
-/// retain or release of an array's storage, which the search's mutating methods paid on every
-/// access (as MatchingModule's `_BlossomBuffer`). Freed by `deallocate()`.
+/// retain or release of an array's storage on each access. Freed by `deallocate()`.
 @frozen
 @usableFromInline
 struct _SearchBuffer<Element> {
@@ -479,8 +478,7 @@ extension DirectedGraph {
 
     /// A Hamiltonian path, or nil when there is none (or no vertex): the first one a depth-first
     /// backtracking search finds, from each vertex in `vertices` order, extending through each
-    /// vertex's `outEdges` in order to an unvisited vertex (Mathematica `FindHamiltonianPath`).
-    /// Self-loops never help; one vertex is the trivial path. Pruning cuts only subtrees with no
+    /// vertex's `outEdges` in order to an unvisited vertex. Self-loops never help; one vertex is the trivial path. Pruning cuts only subtrees with no
     /// solution (an unvisited vertex unreachable, or left without a usable predecessor or
     /// successor), so it keeps the order. Without a start the search is run again from each
     /// vertex in turn until one succeeds, so a graph with no Hamiltonian path costs n searches.
@@ -498,16 +496,16 @@ extension DirectedGraph {
     @inlinable
     public func hamiltonianPath(from start: Vertex) -> Path<Vertex, Edges.Index>? { _hamiltonianPath(from: start, to: nil) }
 
-    /// The first Hamiltonian path from `start` that ends at `end` (Mathematica
-    /// `FindHamiltonianPath[g, s, t]`); nil when `start == end` and there is more than one vertex.
+    /// The first Hamiltonian path from `start` that ends at `end`; nil when `start == end` and
+    /// there is more than one vertex.
     ///
     /// - Precondition: `start` and `end` are vertices of the graph.
     /// - Complexity: exponential in the worst case.
     @inlinable
     public func hamiltonianPath(from start: Vertex, to end: Vertex) -> Path<Vertex, Edges.Index>? { _hamiltonianPath(from: start, to: end) }
 
-    /// A Hamiltonian cycle, or nil (Mathematica `FindHamiltonianCycle`): the search from the first
-    /// vertex, closed by the first edge of the last vertex's row back to it. A self-loop is the
+    /// A Hamiltonian cycle, or nil: the search from the first vertex, closed by the first edge of
+    /// the last vertex's row back to it. A self-loop is the
     /// cycle of a one-vertex graph and an antiparallel pair the cycle of a two-vertex one (the
     /// `Cycle` type's rules).
     ///
@@ -541,8 +539,7 @@ extension Graph {
 
     /// A Hamiltonian path, or nil when there is none (or no vertex): the first one a depth-first
     /// backtracking search finds, from each vertex in `vertices` order, extending through each
-    /// vertex's `incidentEdges` in order to an unvisited vertex (Mathematica
-    /// `FindHamiltonianPath`). Self-loops never help; one vertex is the trivial path. Pruning cuts
+    /// vertex's `incidentEdges` in order to an unvisited vertex. Self-loops never help; one vertex is the trivial path. Pruning cuts
     /// only subtrees with no solution (an unvisited vertex unreachable, or left with too few
     /// usable neighbours), so it keeps the order. Without a start the search is run again from
     /// each vertex in turn until one succeeds, so a graph with no Hamiltonian path costs n
@@ -561,16 +558,16 @@ extension Graph {
     @inlinable
     public func hamiltonianPath(from start: Vertex) -> Path<Vertex, Edges.Index>? { _hamiltonianPath(from: start, to: nil) }
 
-    /// The first Hamiltonian path from `start` that ends at `end` (Mathematica
-    /// `FindHamiltonianPath[g, s, t]`); nil when `start == end` and there is more than one vertex.
+    /// The first Hamiltonian path from `start` that ends at `end`; nil when `start == end` and
+    /// there is more than one vertex.
     ///
     /// - Precondition: `start` and `end` are vertices of the graph.
     /// - Complexity: exponential in the worst case.
     @inlinable
     public func hamiltonianPath(from start: Vertex, to end: Vertex) -> Path<Vertex, Edges.Index>? { _hamiltonianPath(from: start, to: end) }
 
-    /// A Hamiltonian cycle, or nil (Mathematica `FindHamiltonianCycle`): the search from the first
-    /// vertex, closed by the first unused edge of the last vertex's row back to it. It leaves the
+    /// A Hamiltonian cycle, or nil: the search from the first vertex, closed by the first unused
+    /// edge of the last vertex's row back to it. It leaves the
     /// first vertex through the lesser of its two edges in that vertex's row (the search meets
     /// that orientation first), as Cycles' canonical form does. A self-loop is the cycle of a
     /// one-vertex graph and two parallel edges the cycle of a two-vertex one (the `Cycle` type's

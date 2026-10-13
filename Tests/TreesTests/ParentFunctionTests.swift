@@ -1,10 +1,9 @@
 // §D: parent functions. `init?(parents: [Int?])` (vertex i has parent parents[i], exactly one nil)
 // and `init?(vertices:parent:)` (the closure gives each vertex's parent, nil for the root), on both
 // `Arborescence` and `RootedTree`. The listed vertices with duplicates dropped are the vertices; one
-// edge per non-root vertex, in vertex order, `(parent, child)` (igraph's
-// `tree_from_parent_vector`), so children come in vertex order. Nil for no root or several, a
-// parent outside the vertices, a self-parent, a negative entry, a cycle, or no vertices. A throwing
-// closure's error propagates. Expected values come from the catalog's reference (`ref.py`). Case
+// edge per non-root vertex, in vertex order, `(parent, child)`, so children come in vertex order.
+// Nil for no root or several, a parent outside the vertices, a self-parent, a negative entry, a
+// cycle, or no vertices. A throwing closure's error propagates. Expected values come from the catalog's reference (`ref.py`). Case
 // IDs (TS-nnn) refer to the catalog; see README.md.
 
 import GraphProtocols
@@ -60,7 +59,7 @@ struct ParentFunctionTests {
 
     @Test("TS-155 Arborescence(parents: [0]) is nil: a self-parent is not a root marker")
     func selfParent() {
-        // parents: [0]. Boost marks the root with p[r] == r; igraph rejects it, and so do we.
+        // parents: [0]
         #expect(Arborescence(parents: [0]) == nil)
         #expect(RootedTree(parents: [0]) == nil)
         #expect(Arborescence(parents: [nil, 1]) == nil)
@@ -83,7 +82,7 @@ struct ParentFunctionTests {
 
     @Test("TS-158 Arborescence(parents: [nil, -1]) is nil: a negative entry is out of range, not a root")
     func negativeIsNotARoot() {
-        // parents: [_,-1]. igraph uses negatives for roots; Swift has Optional.
+        // parents: [_,-1]. The root is marked by nil, not by a negative entry.
         #expect(Arborescence(parents: [nil, -1]) == nil)
         #expect(RootedTree(parents: [nil, -1]) == nil)
         #expect(Arborescence(parents: [-1]) == nil)

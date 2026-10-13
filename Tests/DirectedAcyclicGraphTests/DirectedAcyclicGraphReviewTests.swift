@@ -1,8 +1,7 @@
-// Findings of the critical review, each pinned through the public API: the attached maps of a
-// StableDirectedGraph base work through the wrapper (README Q9); `remove(_:)` is a
-// MutableDirectedGraph requirement, so generic code removes a vertex; removing a vertex through
-// the wrapper hashes it once to find it and then only as the base must; `insert(checked:)` throws
-// a distinct error for each of its causes. See README.md.
+// Wrapper behavior, through the public API. The attached maps of a StableDirectedGraph base work
+// through the wrapper. `remove(_:)` is a MutableDirectedGraph requirement, so generic code removes
+// a vertex. Removing a vertex through the wrapper hashes it once to find it and then only as the
+// base must. `insert(checked:)` throws a distinct error for each of its causes. See README.md.
 
 import AdjacencyListModule
 import DirectedAcyclicGraphModule

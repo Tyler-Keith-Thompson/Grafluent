@@ -21,8 +21,7 @@ edges and self-loops kept, an undirected self-loop listed twice in its row) and 
 counts a hash. Each product is checked against
   * the definitions, edge by edge (the multiset of endpoint pairs);
   * NetworkX 3.7's cartesian_product, tensor_product, strong_product and lexicographic_product, on
-    simple factors as Graph/DiGraph and on loopless factors as MultiGraph/MultiDiGraph (igraph 1.0's
-    Python API has no product; its C `igraph_product` is the benchmark baseline instead);
+    simple factors as Graph/DiGraph and on loopless factors as MultiGraph/MultiDiGraph;
   * NamedGraphs' grid numbering: P_r □ P_c is grid(r, c) with vertex (i, j) at i·c + j;
   * the DirectedGraph / BidirectionalDirectedGraph / Graph laws and the degree formulas;
   * the boundary law that index-space members hash nothing.
@@ -610,7 +609,7 @@ def define():
          extra=lambda p: "edgeIndex [" + ", ".join(f"{fmt_pos(q)}: {p.edge_index(q)}" for q in p.positions()) + "]")
     case(G, "undirected tensor has no edge indices", "tensor", UU("a b", "a-b"), UU("x y", "x-y"), rows=False, edges=False)
     for title, gf, hf in [
-        ("factor without vertex indices traps (phase 1)", (Factor(["a"], [], True, indexed=False), "Stable (with holes) V [a]; E []"), D("x", "")),
+        ("factor without vertex indices traps", (Factor(["a"], [], True, indexed=False), "Stable (with holes) V [a]; E []"), D("x", "")),
         ("vertex count overflow traps", (Factor(["a"], [], False, count=2**32), "a factor with 2^32 vertices"),
          (Factor(["x"], [], False, count=2**32), "a factor with 2^32 vertices")),
     ]:
@@ -666,7 +665,7 @@ def _grid_note(p, r, c):
 
 def render():
     out = [
-        "# GraphProducts: case catalog (phase 1)",
+        "# GraphProducts: case catalog",
         "",
         "Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0",
         "python3 Tests/Catalogs/GraphProducts/ref.py`; `--write` regenerates this file, `--stress` adds the random",

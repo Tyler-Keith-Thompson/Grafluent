@@ -1,5 +1,5 @@
 // `minimumVertexCover(bipartition: g.bipartition()!)` (catalog §KoenigVC, CV-072 – CV-086): König's
-// cover, NetworkX `to_vertex_cover`'s, exact, with the canonical sides asserted; a cover as large as
+// cover, exact, with the canonical sides asserted; a cover as large as
 // `maximumBipartiteMatching(bipartition:)`; by brute force no cover smaller and the unique minimum
 // cover with the most left vertices; and `minimumVertexCover()` where it differs. Graphs are
 // `UndirectedAdjacencyList` built by inserting the row's vertices, then its edges in order, so rows

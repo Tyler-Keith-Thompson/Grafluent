@@ -1,8 +1,8 @@
 extension Tree {
-    /// The tree's Prüfer sequence (NetworkX `to_prufer_sequence`, igraph `to_prufer`): remove the
-    /// leaf with the least vertex index and record its neighbor, until two vertices remain. Nil
-    /// for a single vertex. For `Int` vertices `0..<n` in order, this is NetworkX's and igraph's
-    /// code; otherwise it is the code of the tree relabeled by vertex index. O(n).
+    /// The tree's Prüfer sequence: remove the leaf with the least vertex index and record its
+    /// neighbor, until two vertices remain. Nil for a single vertex. For `Int` vertices `0..<n` in
+    /// order this is the standard Prüfer code; otherwise it is the code of the tree relabeled by
+    /// vertex index. O(n).
     @inlinable
     public var pruferSequence: [Vertex]? {
         let layout = _layout
@@ -40,10 +40,9 @@ extension Tree {
 }
 
 extension Tree where Vertex == Int {
-    /// The tree on `0..<code.count + 2` with this Prüfer sequence (NetworkX
-    /// `from_prufer_sequence`, igraph `from_prufer`): edge k joins the k-th leaf removed to the
-    /// k-th element, and the last joins the two vertices left. Nil when an element is outside
-    /// `0..<code.count + 2`. O(n).
+    /// The tree on `0..<code.count + 2` with this Prüfer sequence: edge k joins the k-th leaf
+    /// removed to the k-th element, and the last joins the two vertices left. Nil when an element
+    /// is outside `0..<code.count + 2`. O(n).
     @inlinable
     public init?(pruferSequence: some Sequence<Int>) {
         let code = Array(pruferSequence)

@@ -1,16 +1,17 @@
 import AdjacencyListModule
 import GraphProtocols
 
-/// A directed graph that allows parallel edges and self-loops (JGraphT's `DirectedPseudograph`;
-/// NetworkX's `MultiDiGraph`). Inserting an edge always adds a copy, and each copy has its own
-/// position in `edges`, which is its identity.
+/// A directed graph that allows parallel edges and self-loops.
 ///
-/// Storage is `AdjacencyList`'s: vertices in dense slots, edges at positions `0..<edgeCount`, an
-/// out-row and an in-row per slot with parallel rows of edge positions, and swap-remove (removing
-/// an edge moves the last edge into its position, and removing a vertex moves the last slot into
-/// its place). So vertex order, edge order and edge positions may change after a removal. The
-/// copies from one vertex to another form a parallel class, kept in insertion order:
-/// `edges(from:to:)` lists them oldest first, and `remove(edge:)` removes the newest.
+/// Inserting an edge always adds a copy, and each copy has its own position in `edges`, which is
+/// its identity.
+///
+/// Vertices live in dense slots and edges at positions `0..<edgeCount`. Each slot has an out-row
+/// and an in-row, each with a parallel row of edge positions. Removal is swap-remove: removing an
+/// edge moves the last edge into its position, and removing a vertex moves the last slot into its
+/// place, so vertex order, edge order and edge positions may change after a removal. The copies
+/// from one vertex to another form a parallel class in insertion order. `edges(from:to:)` lists
+/// them oldest first, and `remove(edge:)` removes the newest.
 @frozen
 public struct DirectedPseudograph<Vertex: Hashable> {
     /// The vertex in each slot.
@@ -165,8 +166,8 @@ extension DirectedPseudograph {
         return EdgesConnecting(links: _parallel.links, first: span.first, last: span.last, count: span.count)
     }
 
-    /// The number of copies from `source` to `target`: `edges(from: source, to: target).count`, in
-    /// O(1) (NetworkX's `number_of_edges(u, v)`). 0 when either is not a vertex.
+    /// The number of copies from `source` to `target`, which is
+    /// `edges(from: source, to: target).count`, in O(1). 0 when either is not a vertex.
     @inlinable
     public func edgeCount(from source: Vertex, to target: Vertex) -> Int {
         guard let key = _key(source, target) else { return 0 }
@@ -215,10 +216,6 @@ extension DirectedPseudograph {
         let slot = _slot(of: vertex)
         return _out.count(ofRow: slot) + _in.count(ofRow: slot)
     }
-
-    // The `checked:` lookups (README Principle 6): they throw `VertexNotFound` for a vertex that
-    // is not in the graph, where the trapping spellings are the fast path (Rust's `checked_*`).
-    // Each is one hash, the same as its trapping spelling; `try?` gives an Optional.
 
     /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
     /// to make.
@@ -359,13 +356,8 @@ extension DirectedPseudograph {
         return _insertEdge(slots: source, target)
     }
 
-    /// Adds a copy of `edge` only when both endpoints are already vertices; otherwise throws and
+    /// Adds a copy of `edge` only when both endpoints are already vertices. Otherwise throws and
     /// changes nothing. O(1) amortized.
-    ///
-    /// `insert(edge:)` inserts a missing endpoint (NetworkX's `add_edge`). Requiring the endpoints
-    /// is JGraphT's `addEdge` precondition (it throws `IllegalArgumentException`) and petgraph's
-    /// `try_add_edge` (`GraphError::NodeMissed`); this library spells it with the `checked:` label
-    /// of the lookups (README Principle 6), for callers whose vertices may come from another graph.
     ///
     /// - Returns: The new copy's position in `edges`, which is the old `edgeCount`.
     /// - Throws: `VertexNotFound` when either endpoint is not a vertex.
@@ -454,11 +446,11 @@ extension DirectedPseudograph {
         return removed
     }
 
-    /// Removes the newest copy of `edge` (NetworkX's `remove_edge(u, v)`). The last edge moves into
-    /// its position, unless it was the last. Never inserts or removes a vertex. O(1).
+    /// Removes the newest copy of `edge`. The last edge moves into its position, unless it was the
+    /// last. Never inserts or removes a vertex. O(1).
     ///
-    /// Attached maps (`addEdgeMap(default:)`) follow: the removed copy's values go, and the moved
-    /// edge's values move with it.
+    /// In attached edge maps, the removed copy's values go and the moved edge's values move with
+    /// it.
     ///
     /// - Returns: The removed edge, whose endpoints are the graph's own vertex instances, or `nil`
     ///   if no copy of `edge` was an edge.
@@ -702,8 +694,8 @@ extension DirectedPseudograph: Sendable where Vertex: Sendable {}
 // MARK: - Codable
 
 extension DirectedPseudograph: Encodable where Vertex: Encodable {
-    /// Encodes the vertices, and the edges, by position, as pairs of positions in that vertex list:
-    /// `AdjacencyList`'s format. The same graph built the same way encodes to the same bytes in
+    /// Encodes the vertices, then the edges by position as pairs of indices into that vertex list,
+    /// in `AdjacencyList`'s format. The same graph built the same way encodes to the same bytes in
     /// every process.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: _MultigraphCodingKeys.self)
@@ -715,19 +707,21 @@ extension DirectedPseudograph: Encodable where Vertex: Encodable {
             edges.append(record.target)
         }
         try container.encode(edges, forKey: .edges)
-        // Copies whose order is not their positions' (after a removal moved one): the order
-        // decides which copy `remove(edge:)` removes, so it is kept. Absent otherwise, so such a
-        // payload is the simple lists' format.
+        // A removal can leave a class's copies out of position order. That order decides which
+        // copy `remove(edge:)` removes, so it is encoded. When every class is in order the key is
+        // absent and the payload matches the simple lists' format.
         let order = _parallel.outOfOrderClasses()
         if !order.isEmpty { try container.encode(order, forKey: .copyOrder) }
     }
 }
 
 extension DirectedPseudograph: Decodable where Vertex: Decodable {
-    /// Decodes vertices in order, then edges at their encoded positions, then the order of any copies
-    /// encoded out of position order, so `remove(edge:)` removes the same copy after a round trip;
-    /// copies and self-loops are accepted. Throws `DecodingError.dataCorrupted` for an odd-length edge list, a repeated
-    /// vertex, or an endpoint out of range.
+    /// Decodes vertices in order, then edges at their encoded positions, then the order of any
+    /// classes encoded out of position order, so `remove(edge:)` removes the same copy after a
+    /// round trip. Copies and self-loops are accepted.
+    ///
+    /// - Throws: `DecodingError.dataCorrupted` for an odd-length edge list, a repeated vertex, an
+    ///   endpoint out of range, or a malformed copy order.
     public init(from decoder: any Decoder) throws {
         try self.init(_from: decoder, allowingSelfLoops: true)
     }

@@ -370,7 +370,7 @@ def tree_from_prufer(seq):
     deg = [1] * n
     for x in seq:
         deg[x] += 1
-    # linear decoding (Wang et al.; NetworkX, igraph): a pointer to the least leaf, and the
+    # linear decoding (Wang et al.): a pointer to the least leaf, and the
     # leaf just made when it is below the pointer
     edges = []
     ptr = 0

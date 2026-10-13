@@ -1,5 +1,5 @@
 /// An ordered pair: the vertex `(g, h)` of a graph product, with `g` a vertex of the first factor
-/// and `h` one of the second (JGraphT's `Pair`, C++'s `std::pair`).
+/// and `h` one of the second.
 ///
 /// Comparable lexicographically, as tuples compare, and printed as `(g, h)`. A nested product's
 /// vertices nest: `cartesianProductView(cartesianProductView(a, b), c)` has vertices

@@ -28,7 +28,7 @@ def dfs_events(S, roots, prune=frozenset(), depth_limit=None):
     return ev
 
 def bfs_events(S, sources):
-    """Boost BFS: discover sources; pop u; for v: tree+discover or nontree; finish u"""
+    """BFS: discover sources; pop u; for v: tree+discover or nontree; finish u"""
     seen = set(); ev = []; q = deque()
     for s in sources:
         if s in seen: continue

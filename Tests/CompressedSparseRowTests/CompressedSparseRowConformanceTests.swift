@@ -1,5 +1,5 @@
 // Equatable, Hashable, descriptions, Codable and preconditions. Case IDs (CSR-Qnn, CSR-Dnn,
-// CSR-Pnn) refer to the harvested test catalog.
+// CSR-Pnn) refer to the case catalog.
 //
 // The encoded form is the arrays themselves, `{"offsets": [...], "targets": [...]}`. The vertex
 // count is `offsets.count − 1`, so a small payload cannot name a huge graph, and decoding checks

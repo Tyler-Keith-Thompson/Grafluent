@@ -1,8 +1,8 @@
-# StableGraphs: case catalog (phase 1)
+# StableGraphs: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with rustworkx==0.18.1
 python3 Tests/Catalogs/StableGraphs/ref.py`; `--write` regenerates this file, `--stress` adds the random
-sequences). Every Expected is the output of a port of the proposed storage, checked at every state
+sequences). Every Expected is the output of a model of the storage, checked at every state
 against a plain specification model and the DirectedGraph / BidirectionalDirectedGraph laws.
 
 Conventions:

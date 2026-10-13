@@ -1,4 +1,4 @@
-# FunctionalGraphs: case catalog (phase 1)
+# FunctionalGraphs: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 python3
 Tests/Catalogs/FunctionalGraphs/ref.py`; `--write` regenerates this file, `--stress` adds the random
@@ -18,8 +18,8 @@ Conventions:
   formulation in api.md.
 * `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`).
 * `throws VertexNotFound` / `throws EdgeNotFound` is what a `checked:` spelling throws where its plain
-  spelling traps (README Principle 6).
-* Group `Generic` pins cross-module agreement (Connectivity) and lives in the integration suite.
+  spelling traps.
+* Group `Generic` pins agreement with Connectivity (`FunctionalGraphGenericTests.swift`).
 
 | ID | Group | Case | Input / call | Expected |
 |---|---|---|---|---|

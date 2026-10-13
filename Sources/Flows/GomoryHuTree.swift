@@ -1,11 +1,11 @@
 import GraphProtocols
 import Trees
 
-/// A Gomory–Hu cut tree (JGraphT `GusfieldGomoryHuCutTree`, LEMON `GomoryHu`): the result of
-/// `gomoryHuTree(capacity:)`. Every pair's minimum cut value is the least capacity on its tree
-/// path, and removing a tree edge splits the vertices into a minimum cut between its ends.
+/// A Gomory–Hu cut tree, returned by `gomoryHuTree(capacity:)`. Every pair's minimum cut value is
+/// the least capacity on its tree path, and removing a tree edge splits the vertices into a
+/// minimum cut between its ends.
 ///
-/// It keeps a copy of the graph (copy-on-write, O(1) to make) for the crossing edges of
+/// It holds a copy-on-write copy of the graph for the crossing edges of
 /// `minimumCut(between:and:)`.
 @frozen
 public struct GomoryHuTree<G: Graph, Capacity: Comparable & AdditiveArithmetic> {
@@ -120,9 +120,11 @@ public struct GomoryHuTree<G: Graph, Capacity: Comparable & AdditiveArithmetic> 
         return minimumCutValue(between: u, and: v)
     }
 
-    /// The split at the least edge on the tree path (the one nearest `u` among equals), `u` on
-    /// the source side, with the graph's crossing edges as arcs of `directedView`, in position order.
-    /// A minimum cut between `u` and `v`. O(n + m).
+    /// A minimum cut between `u` and `v`: the split at the least edge on the tree path, the one
+    /// nearest `u` among equals.
+    ///
+    /// `u` is on the source side. The graph's crossing edges are arcs of `directedView`, in
+    /// position order. O(n + m).
     ///
     /// - Precondition: `u` and `v` are distinct vertices of the graph.
     @inlinable
@@ -187,16 +189,16 @@ extension GomoryHuTree: CustomStringConvertible {
 }
 
 extension Graph {
-    /// A Gomory–Hu cut tree: every pair's minimum cut value is the least capacity on its tree
-    /// path, and every tree edge splits the vertices into a minimum cut between its ends.
-    /// Gusfield's algorithm with the canonical cut, vertices in order, rooted at the first: the
-    /// same tree as NetworkX's `gomory_hu_tree`. Disconnected graphs get zero-capacity tree
-    /// edges. nil for the empty graph. n − 1 maximum flows on one residual network, by
-    /// push–relabel's first phase. `capacity` is called once per non-loop edge, in position
-    /// order, before any work.
+    /// A Gomory–Hu cut tree, or nil for the empty graph.
+    ///
+    /// Every pair's minimum cut value is the least capacity on its tree path, and every tree edge
+    /// splits the vertices into a minimum cut between its ends. Computed by Gusfield's algorithm
+    /// with the canonical cut, vertices in order, rooted at the first: n − 1 maximum flows on one
+    /// residual network, by push–relabel's first phase. Disconnected graphs get zero-capacity tree
+    /// edges. `capacity` is called once per non-loop edge, in position order, before any work.
     ///
     /// The flows run in a wider type than `C` where needed (`Int` or `Int128` for fixed-width
-    /// integers, `Double` for `Float`), so a vertex's capacity sum may pass `C`'s range.
+    /// integers, `Double` for `Float`), so a vertex's capacity sum may exceed `C`'s range.
     ///
     /// - Precondition: every capacity is at least zero, not NaN and finite, and every tree
     ///   capacity (a minimum cut value) fits in `C`.

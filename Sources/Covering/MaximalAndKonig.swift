@@ -40,9 +40,9 @@ struct _MaximalIndependentSet: _UndirectedRowsAlgorithm {
 }
 
 extension Graph {
-    /// A maximal independent set (NetworkX `maximal_independent_set`, without the randomness): each
-    /// vertex in `vertices` order joins when it has no self-loop and no neighbour in the set yet.
-    /// On a graph without self-loops it is also a minimal dominating set. O(n + m).
+    /// A maximal independent set, built deterministically: each vertex in `vertices` order joins
+    /// when it has no self-loop and no neighbour in the set yet. On a graph without self-loops it
+    /// is also a minimal dominating set. O(n + m).
     @inlinable
     public func maximalIndependentSet() -> [Vertex] { maximalIndependentSet(containing: EmptyCollection())! }
 
@@ -59,12 +59,11 @@ extension Graph {
         return _coveringVertices(flagged: inSet, listed)
     }
 
-    /// König's minimum vertex cover of a bipartite graph (NetworkX `to_vertex_cover`, the same
-    /// cover): from a maximum matching (Hopcroft–Karp on the sides), Z is the set of vertices
-    /// reached from the free left vertices by alternating paths, an edge not in the matching from
-    /// left to right, then the matched edge back; the cover is (left ∖ Z) ∪ (right ∩ Z), in
-    /// `vertices` order. It is the one minimum cover with the most left vertices, so it does not
-    /// depend on the matching. O(m √n).
+    /// König's minimum vertex cover of a bipartite graph: from a maximum matching (Hopcroft–Karp on
+    /// the sides), Z is the set of vertices reached from the free left vertices by alternating
+    /// paths, an edge not in the matching from left to right, then the matched edge back; the cover
+    /// is (left ∖ Z) ∪ (right ∩ Z), in `vertices` order. It is the one minimum cover with the most
+    /// left vertices, so it does not depend on the matching. O(m √n).
     ///
     /// - Precondition: `bipartition` is this graph's (`bipartition()`).
     @inlinable
@@ -135,11 +134,10 @@ extension Graph {
     @inlinable
     public func minimumEdgeCover() -> [Edges.Index]? { minimumEdgeCover(matching: maximumMatching()) }
 
-    /// The same construction from `matching` (NetworkX's `matching_algorithm`): pass
-    /// `maximumBipartiteMatching()` on a bipartite graph for O(m √n) and NetworkX's
-    /// `bipartite.min_edge_cover`. Minimum when `matching` is maximum; from any other matching it is
-    /// still an edge cover (a vertex covered by an edge added earlier in the pass is skipped). nil
-    /// when some vertex has no edge. O(n + m).
+    /// The same construction from `matching`: pass `maximumBipartiteMatching()` on a bipartite
+    /// graph for O(m √n). Minimum when `matching` is maximum; from any other matching it is still
+    /// an edge cover (a vertex covered by an edge added earlier in the pass is skipped). nil when
+    /// some vertex has no edge. O(n + m).
     ///
     /// - Precondition: `matching` is a matching of this graph.
     @inlinable
@@ -165,8 +163,8 @@ extension Graph {
         return _positions(ofAscendingEdgeNumbers: numbers)
     }
 
-    /// Whether every edge, and every self-loop, has an end in `vertices` (NetworkX
-    /// `is_vertex_cover`). Repeats are ignored. O(n + m).
+    /// Whether every edge, and every self-loop, has an end in `vertices`. Repeats are ignored.
+    /// O(n + m).
     ///
     /// - Precondition: every element is a vertex of the graph.
     @inlinable
@@ -195,8 +193,8 @@ extension Graph {
         return true
     }
 
-    /// Whether every vertex is in `vertices` or adjacent to one in it (NetworkX
-    /// `is_dominating_set`). Repeats are ignored. O(n + m).
+    /// Whether every vertex is in `vertices` or adjacent to one in it. Repeats are ignored.
+    /// O(n + m).
     ///
     /// - Precondition: every element is a vertex of the graph.
     @inlinable
@@ -210,8 +208,8 @@ extension Graph {
         return !dominated.contains(false)
     }
 
-    /// Whether every vertex is an end of some edge in `edges` (positions; NetworkX `is_edge_cover`).
-    /// Repeats are ignored. O(n + m).
+    /// Whether every vertex is an end of some edge in `edges` (positions). Repeats are ignored.
+    /// O(n + m).
     ///
     /// - Precondition: every element is a position of the graph's `edges`.
     @inlinable

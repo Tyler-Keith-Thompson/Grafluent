@@ -1,10 +1,7 @@
-/// Why a `Multigraph` or `DirectedMultigraph` rejected an edge. Shaped after `AcyclicEdgeError`:
-/// `insert(edge:)` and `insert(checked:)` throw the one type, so a `catch` of either is exhaustive.
-/// JGraphT's loopless `addEdge` throws `IllegalArgumentException("loops not allowed")` for a
-/// self-loop. The graph is unchanged after either case.
+/// Why a `Multigraph` or `DirectedMultigraph` rejected an edge.
 ///
-/// No case carries an edge: an `Error` must be `Sendable` and a graph's vertex type needn't be,
-/// and the caller already holds the edge.
+/// `insert(edge:)` and `insert(checked:)` both throw this type. The graph is unchanged after
+/// either case. No case carries the edge, because a graph's vertex type need not be `Sendable`.
 public enum LooplessEdgeError: Error, Hashable, Sendable {
     /// The edge is a self-loop, which neither type allows.
     case selfLoop

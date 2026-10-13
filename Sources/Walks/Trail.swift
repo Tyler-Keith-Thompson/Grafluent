@@ -2,8 +2,8 @@ import GraphProtocols
 
 /// A trail: a walk that repeats no edge.
 ///
-/// It has one more vertex than edges, edge i joining vertex i to vertex i + 1, and no edge position
-/// twice. Whether it is a trail of a particular graph is checked by `init?(vertices:edges:in:)`.
+/// It has one more vertex than edges, edge i joins vertex i to vertex i + 1, and no edge position
+/// appears twice. `init?(vertices:edges:in:)` checks that a trail belongs to a particular graph.
 @frozen
 public struct Trail<Vertex: Hashable, Edge: Hashable> {
     @usableFromInline let _vertices: [Vertex]
@@ -11,8 +11,8 @@ public struct Trail<Vertex: Hashable, Edge: Hashable> {
 
     @usableFromInline static var _rules: _WalkRules { .trail }
 
-    /// For algorithms that build trails they know to be valid. The shape is checked; the rest is
-    /// the caller's promise.
+    /// For algorithms that build trails they know to be valid. The shape is checked, and the
+    /// caller guarantees the rest.
     @inlinable
     package init(_uncheckedVertices vertices: [Vertex], edges: [Edge]) {
         precondition(Self._rules.hasShape(vertexCount: vertices.count, edgeCount: edges.count), "A trail needs one more vertex than edges")
@@ -20,8 +20,8 @@ public struct Trail<Vertex: Hashable, Edge: Hashable> {
         _edges = edges
     }
 
-    /// The trail with these vertices and edges: `nil` when an edge position repeats. It is not checked against
-    /// a graph; see `init?(vertices:edges:in:)`.
+    /// The trail with these vertices and edges, or `nil` when an edge position repeats. It is not
+    /// checked against a graph; use `init?(vertices:edges:in:)` for that.
     ///
     /// - Precondition: one more vertex than edges (edge i joins vertex i to vertex i + 1).
     @inlinable
@@ -32,14 +32,15 @@ public struct Trail<Vertex: Hashable, Edge: Hashable> {
         _edges = edges
     }
 
-    /// The trail with these vertices and edges, if it is one of `graph` (JGraphT's `verify()`):
-    /// `nil` when a vertex is not the graph's, the counts have the wrong shape, an edge does not
-    /// go from its vertex to the next, an edge position is outside `graph.edges`, or the type's
-    /// rules do not hold.
+    /// The trail with these vertices and edges, if it is a trail of `graph`.
     ///
-    /// - Precondition: an edge position between `graph.edges.startIndex` and `endIndex` is a
-    ///   position of the graph (always true of `Int` positions; only a representation whose
-    ///   positions have gaps, such as a matrix's cells, can break it).
+    /// Returns `nil` when a vertex is not the graph's, the counts have the wrong shape, an edge
+    /// does not go from its vertex to the next, an edge position is outside `graph.edges`, or the
+    /// type's rules do not hold.
+    ///
+    /// - Precondition: every edge position between `graph.edges.startIndex` and `endIndex` is a
+    ///   position of the graph. This always holds for `Int` positions. Only a representation whose
+    ///   positions have gaps, such as a matrix's cells, can break it.
     @inlinable
     public init?<G: DirectedGraph>(vertices: [Vertex], edges: [Edge], in graph: G) where G.Vertex == Vertex, G.Edges.Index == Edge {
         guard Self._rules.hasShape(vertexCount: vertices.count, edgeCount: edges.count),
@@ -48,7 +49,8 @@ public struct Trail<Vertex: Hashable, Edge: Hashable> {
         _edges = edges
     }
 
-    /// As the `DirectedGraph` form: each edge joins its vertex and the next, in either orientation.
+    /// The trail with these vertices and edges, if it is a trail of `graph`. Each edge must join
+    /// its vertex and the next, in either orientation.
     ///
     /// - Precondition: as for the `DirectedGraph` form.
     @inlinable
@@ -59,7 +61,9 @@ public struct Trail<Vertex: Hashable, Edge: Hashable> {
         _edges = edges
     }
 
-    /// The trail through `vertices` in `graph`, its edges picked in `outEdges` order: for each consecutive pair the first edge not already taken (NetworkX's style of naming a trail by its vertices). `nil` when `vertices` is empty, a vertex is not the graph's, a pair has no unused edge, or the type's rules do not hold.
+    /// The trail through `vertices` in `graph`, taking for each consecutive pair the first edge not
+    /// already taken in `outEdges` order. Returns `nil` when `vertices` is empty, a vertex is not the
+    /// graph's, a pair has no unused edge, or the type's rules do not hold.
     @inlinable
     public init?<G: DirectedGraph>(_ vertices: some Sequence<Vertex>, in graph: G) where G.Vertex == Vertex, G.Edges.Index == Edge {
         let vertices = Array(vertices)
@@ -68,7 +72,9 @@ public struct Trail<Vertex: Hashable, Edge: Hashable> {
         _edges = edges
     }
 
-    /// As the `DirectedGraph` form, from `incidentEdges` order.
+    /// The trail through `vertices` in `graph`, taking for each consecutive pair the first edge not
+    /// already taken in `incidentEdges` order. Returns `nil` when `vertices` is empty, a vertex is not
+    /// the graph's, a pair has no unused edge, or the type's rules do not hold.
     @inlinable
     public init?<G: Graph>(_ vertices: some Sequence<Vertex>, in graph: G) where G.Vertex == Vertex, G.Edges.Index == Edge {
         let vertices = Array(vertices)
@@ -77,7 +83,7 @@ public struct Trail<Vertex: Hashable, Edge: Hashable> {
         _edges = edges
     }
 
-    /// The trivial trail at `vertex`: no edges (JGraphT's `singletonWalk`).
+    /// The trivial trail at `vertex`, with no edges.
     @inlinable
     public init(vertex: Vertex) {
         _vertices = [vertex]
@@ -90,7 +96,7 @@ public struct Trail<Vertex: Hashable, Edge: Hashable> {
     /// The edge positions in order: edge i joins vertex i and vertex i + 1. O(1).
     @inlinable public var edges: [Edge] { _edges }
 
-    /// The number of edges (JGraphT's `getLength`).
+    /// The number of edges.
     @inlinable public var length: Int { _edges.count }
 
     /// The first vertex.
@@ -105,16 +111,16 @@ public struct Trail<Vertex: Hashable, Edge: Hashable> {
     /// Whether it ends where it starts; true for a trivial trail.
     @inlinable public var isClosed: Bool { _vertices[0] == _vertices[_vertices.count - 1] }
 
-    /// The same trail traversed backward: vertices and edges in reverse. Over an undirected graph
-    /// it is a trail of the same graph; over a directed one, of the converse graph (every edge
-    /// turned around, each keeping its position), not of the graph itself.
+    /// The same trail traversed backward, with vertices and edges in reverse. Over an undirected
+    /// graph it is a trail of the same graph. Over a directed graph it is a trail of the converse
+    /// graph, with every edge turned around at its same position, not of the graph itself.
     @inlinable
     public func reversed() -> Self {
         Self(_uncheckedVertices: _vertices.reversed(), edges: _edges.reversed())
     }
 
-    /// The sum of the edges' weights, from `.zero` in edge order (NetworkX's `path_weight`), with the
-    /// edge actually taken, so parallel edges are never guessed between.
+    /// The sum of the weights of the edges taken, added to `.zero` in edge order. Each weight is
+    /// read for the recorded edge position, so parallel edges are never confused.
     @inlinable
     public func weight<W: AdditiveArithmetic, E: Error>(_ weight: (Edge) throws(E) -> W) throws(E) -> W {
         var total = W.zero
@@ -154,8 +160,9 @@ extension Trail: Hashable {
 extension Trail: Sendable where Vertex: Sendable, Edge: Sendable {}
 
 extension Trail: Codable where Vertex: Codable, Edge: Codable {
-    /// Decodes `{"vertices": [...], "edges": [...]}`, checking the shape and the type's rules:
-    /// a value that breaks them is `DecodingError.dataCorrupted`, never a trap.
+    /// Decodes `{"vertices": [...], "edges": [...]}`, checking the shape and the type's rules.
+    ///
+    /// - Throws: `DecodingError.dataCorrupted` when the value breaks them.
     @inlinable
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: _WalkCodingKeys.self)

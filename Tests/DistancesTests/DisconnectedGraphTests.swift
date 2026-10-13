@@ -1,8 +1,7 @@
 // §D: undirected graphs that are not connected. Every eccentricity is infinite (nil), so the radius
 // and the diameter are nil, every vertex is in the center and the periphery and the centroid
-// (nil == nil, as JGraphT and scipy's infinities give), the Wiener index and the average are nil,
-// and `diameterPath()` is nil; density still counts edges (DI-310). An isolated vertex is not a
-// center of eccentricity 0 (igraph's reading). Literals are catalog cells. Case IDs (DI-nnn) refer
+// (nil == nil), the Wiener index and the average are nil, and `diameterPath()` is nil; density
+// still counts edges (DI-310). An isolated vertex is not a center of eccentricity 0. Literals are catalog cells. Case IDs (DI-nnn) refer
 // to the catalog; see README.md.
 
 import Distances

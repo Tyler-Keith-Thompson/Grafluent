@@ -1598,8 +1598,8 @@ FILES = [
      "of an undirected cut; by brute force the least cut over every nonempty proper vertex set; the same cut on "
      "a second call."),
     ("GomoryHuTreeTests.swift", lambda k, g: g == "GomoryHu", "gomoryHuTree(capacity:)", "GomoryHuTreeTests",
-     "`gomoryHuTree(capacity:)` (catalog §GomoryHu): Gusfield's tree with the canonical cut, NetworkX's tree "
-     "edge for edge; the tree edge at position k joins the vertex at index k + 1 and its parent; for every "
+     "`gomoryHuTree(capacity:)` (catalog §GomoryHu): Gusfield's tree with the canonical cut; the tree edge "
+     "at position k joins the vertex at index k + 1 and its parent; for every "
      "ordered pair, `minimumCutValue(between:and:)` is the least capacity on the tree path and the least cut by "
      "brute force, and `minimumCut(between:and:)` is the split at the least tree edge nearest the first vertex, "
      "with the graph's crossing edges."),

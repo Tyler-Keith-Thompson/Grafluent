@@ -962,7 +962,7 @@ FILES = [
      "// position order), between the multigraphs and the pseudographs, and through `.undirectedView` /\n"
      "// `.directedView`."),
     ("MultigraphCheckedTests.swift", "Multigraphs checked spellings", range(193, 212),
-     "The `checked:` spellings (catalog MG-193 – MG-211, README Principle 6): `insert(checked:)` adds a\n"
+     "The `checked:` spellings (catalog MG-193 – MG-211): `insert(checked:)` adds a\n"
      "// copy only between existing vertices, else throws `VertexNotFound` (the multigraphs:\n"
      "// `LooplessEdgeError.missingEndpoint`, checked before `.selfLoop`) and changes nothing; the vertex\n"
      "// lookups throw `VertexNotFound` where the plain spellings trap, and `source(checkedEdgeAt:)` /\n"

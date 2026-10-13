@@ -42,7 +42,7 @@ struct TargetSourcesAndCutoffTests {
         #expect(same?.path.vertices == ["s"])
         #expect(same?.distance == 0)
 
-        // NetworkX's cycle_graph(7), from 0 to 0.
+        // A 7-cycle, from 0 to 0.
         let cycle = UndirectedAdjacencyList(edges: (0 ..< 7).map { UndirectedEdge($0, ($0 + 1) % 7) })
         let zero = cycle.dijkstraShortestPath(from: 0, to: 0) { _ in 1 }
         #expect(zero?.path.vertices == [0])

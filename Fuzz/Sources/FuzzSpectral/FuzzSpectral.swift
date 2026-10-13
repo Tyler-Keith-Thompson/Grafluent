@@ -60,7 +60,7 @@ enum FuzzSpectral {
         do {
             if input.byte() % 2 == 0 { try large(&input) } else { try small(&input) }
         } catch {
-            // No input has reached the default iteration limits in the measurements: a finding.
+            // The default iteration limits should never be reached, so a throw is a finding.
             check(false, "\(error)")
         }
     }

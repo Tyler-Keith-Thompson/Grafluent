@@ -4,14 +4,14 @@
 // shuffled by a seed (so vertex indices are not vertex values), on `Pseudograph` and
 // `DirectedPseudograph`, whose rows are in position order (a self-loop twice). The oracles: the
 // definitions (degrees and the components of the edges); api.md's procedures written out
-// (Hierholzer's walk with its start rules, nearest neighbour, JGraphT's 2-opt); brute force over
+// (Hierholzer's walk with its start rules, nearest neighbour, 2-opt); brute force over
 // every ordering of the vertices (the first Hamiltonian path or cycle in search order, as the least
 // key of start and row indices; the shortest tour and the lexicographically least among the
 // optimal ones). Every oracle is polynomial or bounded by 8! orderings. Then three larger ones:
-// 2-opt on complete graphs of 15 … 40 vertices against JGraphT's loop written out; Christofides
-// against its pinned composition written out (Prim, the odd vertices, every minimum perfect matching
+// 2-opt on complete graphs of 15 … 40 vertices against its loop written out; Christofides
+// against its composition written out (Prim, the odd vertices, every minimum perfect matching
 // by enumeration, Hierholzer, the first visits); Held–Karp on up to 10 vertices, directed too,
-// against JGraphT's memoized recursion written out. See README.md.
+// against a memoized recursion written out. See README.md.
 // Conditions with a closure are computed into a constant before `#expect`: inside these closures a
 // closure in an `#expect` expansion failed SIL verification with this toolchain (README.md).
 
@@ -363,7 +363,7 @@ struct ToursPropertyTests {
             }
             let first = indices(graph.nearestNeighborTour(weight: { weight[$0] }), "nearest")
             #expect(first == nearest(0), "nearest \(context)")
-            // JGraphT's 2-opt written out: the best move (i, j), the first on ties, until none improves.
+            // 2-opt written out: the best move (i, j), the first on ties, until none improves.
             func twoOpt(_ start: [Int]) -> [Int] {
                 var t = start + [start[0]]
                 while true {
@@ -523,7 +523,7 @@ struct ToursPropertyTests {
             var scrambled = Array(0 ..< n)
             scrambled.shuffle(using: &rng)
             let start = Cycle(vertices: scrambled, edges: (0 ..< n).map { position[scrambled[$0]][scrambled[($0 + 1) % n]] })!
-            // JGraphT's TwoOptHeuristicTSP.improve written out: t[0 … n] with t[n] = t[0]; each round the move
+            // Best-improvement 2-opt written out: t[0 … n] with t[n] = t[0]; each round the move
             // (i, j), 0 ≤ i < n − 2, i + 2 ≤ j < n, with the least change d(tᵢ, tⱼ) + d(tᵢ₊₁, tⱼ₊₁) − d(tᵢ, tᵢ₊₁) −
             // d(tⱼ, tⱼ₊₁) below zero, the first in row-major order on ties, reversing t[i + 1 … j]. The weights
             // are integers here (quarters scaled by 4), so the sums are exact either way.
@@ -662,7 +662,7 @@ struct ToursPropertyTests {
                     if !directed { lightest[b][a] = k }
                 }
             }
-            // JGraphT HeldKarpTSP: memo(prev, state) the least weight from prev through the vertices outside state
+            // Held–Karp by memoized recursion: memo(prev, state) the least weight from prev through the vertices outside state
             // back to 0, by recursion; then from 0 the lowest next vertex whose cost matches exactly.
             var memo = [Int??](repeating: nil, count: n << n)
             func cost(_ prev: Int, _ state: Int) -> Int? {

@@ -830,7 +830,7 @@ struct CycleRepresentationTests {
         #expect(plain119.girth() == 1 && indexed119.girth() == 1)
         #expect(!plain119.isAcyclic && !indexed119.isAcyclic)
 
-        // CY-327 (igraph "Mickey3"): [0..6] 0-1 1-2 2-0 0-3 3-4 4-5 5-0 1-1 5-6 6-5 5-5 5-5.
+        // CY-327: [0..6] 0-1 1-2 2-0 0-3 3-4 4-5 5-0 1-1 5-6 6-5 5-5 5-5.
         let pairs327: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (0, 3), (3, 4), (4, 5), (5, 0), (1, 1), (5, 6), (6, 5), (5, 5), (5, 5)]
         let edges327 = pairs327.map { UndirectedEdge($0.0, $0.1) }
         let cycles327Vertices: [[Int]] = [[0, 1, 2], [0, 3, 4, 5], [1], [5, 6], [5], [5]]
@@ -1011,7 +1011,7 @@ struct CycleRepresentationTests {
         #expect(rows.contains { $0 != $0.sorted() })
 
         // Brute force over the list's own rows: every closed path from each start s through
-        // vertices after s (in `vertices` order), in canonical orientation, sorted by api.md's key.
+        // vertices after s (in `vertices` order), in canonical orientation, sorted by the documented order key.
         let n = vertices.count
         var number: [Int: Int] = [:]
         for (i, v) in vertices.enumerated() { number[v] = i }

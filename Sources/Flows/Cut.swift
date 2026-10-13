@@ -1,12 +1,11 @@
 import GraphProtocols
 
-/// A cut: the vertices split into a source side and a sink side, and the edges from the first to
-/// the second (OR-Tools' source-side and sink-side cuts; JGraphT `getSourcePartition`,
-/// `getSinkPartition`, `getCutEdges`; igraph `Cut.partition`, `Cut.cut`). The result of
-/// `minimumCut(from:to:capacity:)`, `minimumCut(capacity:)` and `Flow.minimumCut`.
+/// The vertices split into a source side and a sink side, and the edges from the first to the
+/// second. Returned by `minimumCut(from:to:capacity:)`, `minimumCut(capacity:)` and
+/// `Flow.minimumCut`.
 ///
-/// On an undirected graph the cut is over `directedView`: each crossing edge is listed once, as the
-/// arc that leaves the source side.
+/// On an undirected graph the cut is over `directedView`. Each crossing edge is listed once, as
+/// the arc that leaves the source side.
 @frozen
 public struct Cut<G: DirectedGraph, Capacity: Comparable & AdditiveArithmetic> {
     /// The capacity of `edges`.

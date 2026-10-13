@@ -1,27 +1,31 @@
 import GraphProtocols
 
-/// A directed graph with no directed cycle, which keeps a topological order of its vertices
-/// current as it changes (JGraphT's `DirectedAcyclicGraph`, petgraph's `acyclic::Acyclic`).
+/// A directed graph with no directed cycle that keeps a topological order of its vertices as it
+/// changes.
 ///
-/// **A wrapper.** The graph is stored in `base`, any `MutableDirectedGraph`: `AdjacencyList`
-/// (simple), `DirectedPseudograph` (parallel edges kept) or `StableDirectedGraph` (positions survive
-/// removals). It is a `GraphDelegator`: every read member, index-space ones included, is the
-/// base's, with the base's own types, so Traversal, Connectivity, ShortestPaths and the rest run
-/// on a DAG at the base's speed, and vertex order, edge positions and parallel copies are the
-/// base's. So are `generation` and, over a `PropertyGraph` base, attached maps. The wrapper adds
-/// two things: the rule that an edge closing a cycle is rejected, and the order.
+/// The graph is stored in `base`, any `MutableDirectedGraph`: `AdjacencyList` (simple),
+/// `DirectedPseudograph` (parallel edges kept) or `StableDirectedGraph` (positions survive
+/// removals). `DirectedAcyclicGraph` is a `GraphDelegator`. Every read member, including the
+/// index-space ones, is the base's, with the base's own types, and so are vertex order, edge
+/// positions, parallel copies, `generation` and, over a `PropertyGraph` base, attached maps.
+/// Algorithms from Traversal, Connectivity, ShortestPaths and the other modules run on it as they
+/// run on the base. The wrapper adds two things: it rejects an edge that would close a cycle, and
+/// it maintains the order.
 ///
-/// **Rejection.** `insert(edge:)` throws `AcyclicEdgeError`, and changes nothing, when the edge
-/// would close a cycle (`.cycle`) or is a self-loop (`.selfLoop`). The path that the edge u→v would
-/// close is `bidirectionalShortestPath(from: v, to: u)` (Traversal), searched only when it is
-/// asked for.
+/// ## Rejection
 ///
-/// **The order.** `topologicalOrder` lists every vertex so that each edge goes from an earlier
-/// vertex to a later one, and `topologicalPosition(of:)` gives a vertex's place. Bulk construction
-/// orders by Kahn's algorithm. A vertex inserted alone is placed last; a new endpoint of an
-/// inserted edge is placed first when it is the source and the target is already a vertex, and
-/// last otherwise, so that the edge goes forward. Each later edge insertion maintains the order by
-/// the dynamic topological sort of Pearce and Kelly:
+/// `insert(edge:)` throws `AcyclicEdgeError` and changes nothing when the edge would close a cycle
+/// (`.cycle`) or is a self-loop (`.selfLoop`). The path that the edge u→v would close is
+/// `bidirectionalShortestPath(from: v, to: u)` (Traversal), searched only when asked for.
+///
+/// ## Topological order
+///
+/// `topologicalOrder` lists every vertex so that each edge goes from an earlier vertex to a later
+/// one, and `topologicalPosition(of:)` gives a vertex's place. Bulk construction orders by Kahn's
+/// algorithm. A vertex inserted alone is placed last. A new endpoint of an inserted edge is placed
+/// first when it is the source and the target is already a vertex, and last otherwise, so the
+/// edge goes forward. Each later edge insertion maintains the order with the dynamic topological
+/// sort of Pearce and Kelly:
 ///
 /// > David J. Pearce and Paul H. J. Kelly. A Dynamic Topological Sort Algorithm for Directed
 /// > Acyclic Graphs. *ACM Journal of Experimental Algorithmics* 11, article 1.7 (2006).
@@ -30,28 +34,25 @@ import GraphProtocols
 /// An edge u→v with u already placed before v costs two array reads plus the base's insertion.
 /// Otherwise a depth-first search forward from v visits only the vertices placed before u, and if
 /// it meets u the edge is rejected. If not, a search backward from u visits only the vertices
-/// placed after v, and the two visited sets, the backward one first, each in its old order, take
-/// the places they held, sorted. No other vertex moves. That costs O(‖δ‖ + δ log δ): δ is the
-/// number of vertices the two searches visit, ‖δ‖ the out-edges of the forward set plus the
-/// in-edges of the backward set, all of which the searches read, and δ log δ the sorts (an
-/// insertion sort up to 24). Both sets are defined by reachability and the old order, not by row
-/// order, so the order after a sequence of operations depends only on that sequence. The
-/// searches' scratch is kept in the value and reused, so an insertion allocates only while the
+/// placed after v. The two visited sets, the backward one first and each in its old order, take
+/// the places they held, sorted. No other vertex moves. The cost is O(‖δ‖ + δ log δ), where δ is
+/// the number of vertices the two searches visit and ‖δ‖ is the out-edges of the forward set plus
+/// the in-edges of the backward set. Both sets are defined by reachability and the old order, not
+/// by row order, so the order after a sequence of operations depends only on that sequence. The
+/// searches' scratch is kept in the value and reused, and an insertion allocates only while the
 /// scratch grows.
 ///
-/// **Slots.** The order is stored as an array of slots, and each vertex's label is its slot, so
-/// Pearce–Kelly writes a moved vertex straight to its slot. Free slots before the first vertex
-/// take the vertices placed first, and the array grows at the front by its own length when they
-/// run out (amortized O(1)). Removing a vertex leaves a hole in its slot, O(1); holes at either
-/// end are trimmed, and the slots are compacted once the holes outnumber the vertices (or the free
-/// front slots exceed twice their number, plus 16), O(n) once per as many removals, so removal is
-/// amortized O(1) for the order plus O(log n) for the count of holes below. While there is no
-/// hole, `topologicalPosition(of:)` and the order's subscript are O(1); with holes, a Fenwick tree
-/// over the slots counts the holes before a slot in O(log n), and finds the slot of a place in
-/// O(log n). Pearce–Kelly reads labels only, so holes do not slow insertion. On a base that fills
-/// a hole by moving its last vertex in, the moved vertex keeps its place.
+/// ## Removal
 ///
-/// **Equality** is the base's: the order is history and does not count.
+/// Removing a vertex is amortized O(1) for the order plus O(log n) to update the hole count.
+/// `topologicalPosition(of:)` and the order's subscript are O(1) until the first removal leaves a
+/// hole in the order, and O(log n) while holes remain. Holes are compacted away once they
+/// outnumber the vertices. On a base that fills a hole by moving its last vertex in, the moved
+/// vertex keeps its place.
+///
+/// ## Equality
+///
+/// Equality is the base's. The order depends on insertion history and does not count.
 @frozen
 public struct DirectedAcyclicGraph<Base: MutableDirectedGraph> {
     /// The graph, mutable: `GraphDelegator`'s defaults read it and write attached map values

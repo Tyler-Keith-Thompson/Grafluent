@@ -43,9 +43,9 @@ internal struct _RowEntry {
 }
 
 /// One page of rows, one direction: for each slot of the page, the far ends' slots (-1 at a dead
-/// entry) and the edge positions, side by side in two arrays that share one row table (an
-/// `AdjacencyListModule._RowPool` with the dead counts folded in, so a removal touches three
-/// buffers of the page, not five). A full row grows in place when its block is last and
+/// entry) and the edge positions, side by side in two arrays that share one row table with the
+/// dead counts folded in, so a removal touches three buffers of the page. A full row grows in
+/// place when its block is last and
 /// otherwise moves to the end with twice the capacity; the blocks are packed again once garbage
 /// outweighs both the live storage and the row table. A freed page has no rows.
 @frozen

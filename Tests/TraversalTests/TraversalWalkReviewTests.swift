@@ -1,7 +1,6 @@
-// Cases added after the critical review of Walks: findCycle and bidirectionalShortestPath on a
-// conformer without vertex indices (the lookup path), on a multigraph with parallel edges, and
-// through the directed view of an undirected graph with a self-loop; each result is checked as a
-// cycle or path of its graph. Case IDs (WK-nn) refer to the Walks catalog; see
+// findCycle and bidirectionalShortestPath on a conformer without vertex indices (the lookup path),
+// on a multigraph with parallel edges, and through the directed view of an undirected graph with a
+// self-loop; each result is checked as a cycle or path of its graph. Case IDs (WK-nn) refer to the Walks catalog; see
 // Tests/WalksTests/README.md.
 
 import AdjacencyListModule

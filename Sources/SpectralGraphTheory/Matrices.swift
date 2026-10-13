@@ -1,13 +1,13 @@
 import GraphProtocols
 
 extension Graph {
-    /// The adjacency matrix A: A[u][v] is the total weight of the edges between u and v, so parallel
-    /// edges add up, and an undirected self-loop adds twice its weight to A[v][v] (it has two ends,
-    /// so row sums are `degree(of:)`; igraph's default, `loops="twice"`). Rows and columns follow
-    /// vertex indices, or `vertices` order when the graph has none.
+    /// The adjacency matrix A: A[u][v] is the total weight of the edges between u and v, so
+    /// parallel edges add up, and an undirected self-loop adds twice its weight to A[v][v] (it has
+    /// two ends, so row sums are `degree(of:)`). Rows and columns follow vertex indices, or
+    /// `vertices` order when the graph has none.
     ///
     /// The numeric matrix of any graph, not the representation `AdjacencyMatrix` (a bit-matrix
-    /// graph type). NetworkX `adjacency_matrix`, Mathematica `AdjacencyMatrix`.
+    /// graph type).
     ///
     /// O(n + m), the result storing exactly the nonzero entries.
     @inlinable
@@ -15,13 +15,13 @@ extension Graph {
         _spectralAdjacency(nil, numbering: nil).merged().matrix(.adjacency)
     }
 
-    /// The adjacency matrix A: A[u][v] is the total weight of the edges between u and v, so parallel
-    /// edges add up, and an undirected self-loop adds twice its weight to A[v][v] (it has two ends,
-    /// so row sums are `degree(of:)`; igraph's default, `loops="twice"`). Rows and columns follow
-    /// vertex indices, or `vertices` order when the graph has none.
+    /// The adjacency matrix A: A[u][v] is the total weight of the edges between u and v, so
+    /// parallel edges add up, and an undirected self-loop adds twice its weight to A[v][v] (it has
+    /// two ends, so row sums are `degree(of:)`). Rows and columns follow vertex indices, or
+    /// `vertices` order when the graph has none.
     ///
     /// The numeric matrix of any graph, not the representation `AdjacencyMatrix` (a bit-matrix
-    /// graph type). NetworkX `adjacency_matrix`, Mathematica `AdjacencyMatrix`.
+    /// graph type).
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 stores nothing, and parallel edges add their weights.
@@ -32,13 +32,13 @@ extension Graph {
         _spectralAdjacency(_spectralWeights(weight, allowsNegative: true), numbering: nil).merged().matrix(.adjacency)
     }
 
-    /// The adjacency matrix A: A[u][v] is the total weight of the edges between u and v, so parallel
-    /// edges add up, and an undirected self-loop adds twice its weight to A[v][v] (it has two ends,
-    /// so row sums are `degree(of:)`; igraph's default, `loops="twice"`). Rows and columns follow
-    /// vertex indices, or `vertices` order when the graph has none.
+    /// The adjacency matrix A: A[u][v] is the total weight of the edges between u and v, so
+    /// parallel edges add up, and an undirected self-loop adds twice its weight to A[v][v] (it has
+    /// two ends, so row sums are `degree(of:)`). Rows and columns follow vertex indices, or
+    /// `vertices` order when the graph has none.
     ///
     /// The numeric matrix of any graph, not the representation `AdjacencyMatrix` (a bit-matrix
-    /// graph type). NetworkX `adjacency_matrix`, Mathematica `AdjacencyMatrix`.
+    /// graph type).
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 stores nothing, and parallel edges add their weights.
@@ -51,7 +51,7 @@ extension Graph {
 
     /// The Laplacian L = D − A, D the diagonal of weighted degrees: self-loops cancel (L is the
     /// same with or without them), and a vertex with only loops has a zero row. The Kirchhoff
-    /// matrix. NetworkX `laplacian_matrix`, SciPy `csgraph.laplacian`, igraph `laplacian`.
+    /// matrix.
     ///
     /// O(n + m), the result storing exactly the nonzero entries.
     @inlinable
@@ -61,7 +61,7 @@ extension Graph {
 
     /// The Laplacian L = D − A, D the diagonal of weighted degrees: self-loops cancel (L is the
     /// same with or without them), and a vertex with only loops has a zero row. The Kirchhoff
-    /// matrix. NetworkX `laplacian_matrix`, SciPy `csgraph.laplacian`, igraph `laplacian`.
+    /// matrix.
     ///
     /// `weight` gives the weight of the edge at each position (a conductance), read once per
     /// position; a weight of 0 stores nothing, and parallel edges add their weights.
@@ -74,7 +74,7 @@ extension Graph {
 
     /// The Laplacian L = D − A, D the diagonal of weighted degrees: self-loops cancel (L is the
     /// same with or without them), and a vertex with only loops has a zero row. The Kirchhoff
-    /// matrix. NetworkX `laplacian_matrix`, SciPy `csgraph.laplacian`, igraph `laplacian`.
+    /// matrix.
     ///
     /// `weight` gives the weight of the edge at each position (a conductance), read once per
     /// position; a weight of 0 stores nothing, and parallel edges add their weights.
@@ -86,8 +86,8 @@ extension Graph {
     }
 
     /// The normalized Laplacian N = D^-1/2 L D^-1/2, with D^-1/2 taken as 0 at a vertex of degree 0
-    /// (an isolated vertex has a zero row and column, as NetworkX and SciPy). Loops count in D,
-    /// twice, so N[v][v] = 1 − 2·(loop weight)/d(v). NetworkX `normalized_laplacian_matrix`.
+    /// (an isolated vertex has a zero row and column). Loops count in D, twice, so
+    /// N[v][v] = 1 − 2·(loop weight)/d(v).
     ///
     /// O(n + m), the result storing exactly the nonzero entries.
     @inlinable
@@ -96,8 +96,8 @@ extension Graph {
     }
 
     /// The normalized Laplacian N = D^-1/2 L D^-1/2, with D^-1/2 taken as 0 at a vertex of degree 0
-    /// (an isolated vertex has a zero row and column, as NetworkX and SciPy). Loops count in D,
-    /// twice, so N[v][v] = 1 − 2·(loop weight)/d(v). NetworkX `normalized_laplacian_matrix`.
+    /// (an isolated vertex has a zero row and column). Loops count in D, twice, so
+    /// N[v][v] = 1 − 2·(loop weight)/d(v).
     ///
     /// `weight` gives the weight of the edge at each position (a conductance), read once per
     /// position; a weight of 0 stores nothing, and parallel edges add their weights.
@@ -109,8 +109,8 @@ extension Graph {
     }
 
     /// The normalized Laplacian N = D^-1/2 L D^-1/2, with D^-1/2 taken as 0 at a vertex of degree 0
-    /// (an isolated vertex has a zero row and column, as NetworkX and SciPy). Loops count in D,
-    /// twice, so N[v][v] = 1 − 2·(loop weight)/d(v). NetworkX `normalized_laplacian_matrix`.
+    /// (an isolated vertex has a zero row and column). Loops count in D, twice, so
+    /// N[v][v] = 1 − 2·(loop weight)/d(v).
     ///
     /// `weight` gives the weight of the edge at each position (a conductance), read once per
     /// position; a weight of 0 stores nothing, and parallel edges add their weights.
@@ -122,7 +122,7 @@ extension Graph {
     }
 
     /// The random-walk Laplacian L_rw = D⁻¹ L = I − D⁻¹A on rows of positive degree, zero rows at
-    /// degree 0 (von Luxburg's L_rw; igraph `laplacian(normalized="left")`). Its spectrum is N's.
+    /// degree 0 (von Luxburg's L_rw). Its spectrum is N's.
     ///
     /// O(n + m), the result storing exactly the nonzero entries.
     @inlinable
@@ -131,7 +131,7 @@ extension Graph {
     }
 
     /// The random-walk Laplacian L_rw = D⁻¹ L = I − D⁻¹A on rows of positive degree, zero rows at
-    /// degree 0 (von Luxburg's L_rw; igraph `laplacian(normalized="left")`). Its spectrum is N's.
+    /// degree 0 (von Luxburg's L_rw). Its spectrum is N's.
     ///
     /// `weight` gives the weight of the edge at each position (a conductance), read once per
     /// position; a weight of 0 stores nothing, and parallel edges add their weights.
@@ -143,7 +143,7 @@ extension Graph {
     }
 
     /// The random-walk Laplacian L_rw = D⁻¹ L = I − D⁻¹A on rows of positive degree, zero rows at
-    /// degree 0 (von Luxburg's L_rw; igraph `laplacian(normalized="left")`). Its spectrum is N's.
+    /// degree 0 (von Luxburg's L_rw). Its spectrum is N's.
     ///
     /// `weight` gives the weight of the edge at each position (a conductance), read once per
     /// position; a weight of 0 stores nothing, and parallel edges add their weights.
@@ -191,7 +191,7 @@ extension Graph {
 extension DirectedGraph {
     /// The adjacency matrix A: A[u][v] is the total weight of the arcs u → v, so parallel arcs add
     /// up and a loop adds its weight once. Rows and columns follow vertex indices, or `vertices`
-    /// order. NetworkX `adjacency_matrix` on a `DiGraph`.
+    /// order.
     ///
     /// O(n + m), the result storing exactly the nonzero entries.
     @inlinable
@@ -201,7 +201,7 @@ extension DirectedGraph {
 
     /// The adjacency matrix A: A[u][v] is the total weight of the arcs u → v, so parallel arcs add
     /// up and a loop adds its weight once. Rows and columns follow vertex indices, or `vertices`
-    /// order. NetworkX `adjacency_matrix` on a `DiGraph`.
+    /// order.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 stores nothing, and parallel edges add their weights.
@@ -214,7 +214,7 @@ extension DirectedGraph {
 
     /// The adjacency matrix A: A[u][v] is the total weight of the arcs u → v, so parallel arcs add
     /// up and a loop adds its weight once. Rows and columns follow vertex indices, or `vertices`
-    /// order. NetworkX `adjacency_matrix` on a `DiGraph`.
+    /// order.
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 stores nothing, and parallel edges add their weights.
@@ -225,8 +225,7 @@ extension DirectedGraph {
         _spectralAdjacency(_spectralWeights(weight, allowsNegative: true)).matrix(.adjacency)
     }
 
-    /// The out-degree Laplacian L = D_out − A: loops cancel, and each row sums to 0. NetworkX's
-    /// and igraph's convention (`mode="out"`); SciPy's `csgraph.laplacian` defaults to in-degrees.
+    /// The out-degree Laplacian L = D_out − A: loops cancel, and each row sums to 0.
     ///
     /// O(n + m), the result storing exactly the nonzero entries.
     @inlinable
@@ -234,8 +233,7 @@ extension DirectedGraph {
         _spectralAdjacency(nil).matrix(.laplacian)
     }
 
-    /// The out-degree Laplacian L = D_out − A: loops cancel, and each row sums to 0. NetworkX's
-    /// and igraph's convention (`mode="out"`); SciPy's `csgraph.laplacian` defaults to in-degrees.
+    /// The out-degree Laplacian L = D_out − A: loops cancel, and each row sums to 0.
     ///
     /// `weight` gives the weight of the edge at each position (a conductance), read once per
     /// position; a weight of 0 stores nothing, and parallel edges add their weights.
@@ -246,8 +244,7 @@ extension DirectedGraph {
         _spectralAdjacency(_spectralWeights(weight)).matrix(.laplacian)
     }
 
-    /// The out-degree Laplacian L = D_out − A: loops cancel, and each row sums to 0. NetworkX's
-    /// and igraph's convention (`mode="out"`); SciPy's `csgraph.laplacian` defaults to in-degrees.
+    /// The out-degree Laplacian L = D_out − A: loops cancel, and each row sums to 0.
     ///
     /// `weight` gives the weight of the edge at each position (a conductance), read once per
     /// position; a weight of 0 stores nothing, and parallel edges add their weights.

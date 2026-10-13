@@ -2,17 +2,14 @@ import GraphProtocols
 import OrderedCollections
 
 /// A directed hypergraph stored as an incidence list: each hyperedge's sources and targets, and
-/// each vertex's out- and in-hyperedges (Gallo's forward and backward stars), as two planes of
-/// `UndirectedIncidenceList`'s storage. Unprefixed, as `AdjacencyList` is the directed one of its
-/// pair. (`OrientedIncidenceMatrix` is the matrix form; `IncidenceMatrix` is undirected, because
-/// "oriented incidence matrix" is the established name.)
+/// each vertex's out- and in-hyperedges (its forward and backward stars), as two planes of
+/// `UndirectedIncidenceList`'s storage.
 ///
 /// The vertices are any `Hashable` values, kept in an `OrderedSet` whose element `i` is vertex
 /// index `i`: the listed vertices first, then each new hyperedge's sources, then its targets, by
 /// first appearance. A hyperedge is an ordered pair of vertex sets. Either side may be empty, and
-/// a vertex may be on both (a self-loop's hypergraph form; Gallo et al. require disjoint sides,
-/// XGI's `DiHypergraph` does not). Repeated hyperedges are kept at their own positions. Each side
-/// is stored in vertex-index order.
+/// a vertex may be on both (a self-loop's hypergraph form). Repeated hyperedges are kept at their
+/// own positions. Each side is stored in vertex-index order.
 ///
 /// The source plane holds every hyperedge's sources and every vertex's out-hyperedges, the target
 /// plane the targets and the in-hyperedges, so both stars are stored rows and `reversed` swaps the
@@ -626,17 +623,17 @@ extension IncidenceList: PropertyGraph {
     @inlinable public static var _vertexMapLayout: _MapLayout { .dense }
     @inlinable public static var _edgeMapLayout: _MapLayout { .dense }
 
-    /// Attaches a map from the hyperedges to `Value`, every hyperedge's value `value` (LEMON's
-    /// `ArcMap`), and returns its handle. A new hyperedge's value is the default. Copies of the
-    /// hypergraph carry the map, copy-on-write. O(m).
+    /// Attaches a map from the hyperedges to `Value`, every hyperedge's value `value`, and
+    /// returns its handle. A new hyperedge's value is the default. Copies of the hypergraph carry
+    /// the map, copy-on-write. O(m).
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _sources.hyperedgeCount)
         return EdgeMap(_token: token, hint: hint)
     }
 
-    /// Attaches a map from the vertices to `Value`, every vertex's value `value` (LEMON's
-    /// `NodeMap`), and returns its handle. A new vertex's value is the default. O(n).
+    /// Attaches a map from the vertices to `Value`, every vertex's value `value`, and
+    /// returns its handle. A new vertex's value is the default. O(n).
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _vertices.count)

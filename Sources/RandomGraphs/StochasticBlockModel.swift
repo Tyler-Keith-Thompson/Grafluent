@@ -1,12 +1,11 @@
 import GraphProtocols
 import NamedGraphs
 
-/// The stochastic block model's pairs, sorted, and its vertex count: NetworkX's
-/// `stochastic_block_model` (its `sparse=True` procedure) with consecutive blocks iterated in
-/// ascending order. Block pairs go undirected in `combinations_with_replacement` order, directed
-/// row-major; within one, the vertex pairs are listed in ascending order (combinations within a
-/// block, or permutations when directed, the product between blocks) and the skips index into that
-/// list arithmetically, rather than stepping over each skipped pair as NetworkX's `islice` does.
+/// The stochastic block model's pairs, sorted, and its vertex count, with consecutive blocks
+/// iterated in ascending order. Undirected block pairs (i, j) come with i ≤ j in row-major order;
+/// directed ones come in row-major order. Within one block pair, the vertex pairs are listed in
+/// ascending order (combinations within a block, or permutations when directed, and the product
+/// between blocks), and the skips index into that list arithmetically.
 @inlinable
 func _blockModelPairs<G: RandomNumberGenerator>(
     _ sizes: [Int], _ probabilities: [[Double]], directed: Bool, _ g: inout G
@@ -61,15 +60,14 @@ func _blockModelPairs<G: RandomNumberGenerator>(
             }
             let lp = _log(1 - p)
             guard lp != 0 else { continue }
-            // Even an empty block pair makes its first draw, as NetworkX's loop does.
-            // `t` is the index of the next pair in the list; for combinations, (row, column) is
+            // Even an empty block pair makes its first draw. `t` is the index of the next pair in the list; for combinations, (row, column) is
             // that pair, walked forward row by row.
             var t = 0
             var row = 0
             var column = 1
             while true {
                 let u = _uniform01(&g)
-                // log(0): NetworkX raises; the block pair ends.
+                // log(0) is undefined; the block pair ends.
                 if u == 0 { break }
                 let skip = (_log(u) / lp).rounded(.down)
                 guard skip < Double(total - t) else { break }
@@ -118,13 +116,12 @@ extension _GraphConstruction {
     /// > Paul W. Holland, Kathryn Blackmond Laskey and Samuel Leinhardt. Stochastic blockmodels:
     /// > First steps. *Social Networks* 5(2), 109–137 (1983). doi:10.1016/0378-8733(83)90021-7
     ///
-    /// Each block pair is sampled by geometric skipping over its pairs, indexed arithmetically, so
-    /// the cost is O(n + m + B²) expected for B blocks; a probability of 0 or 1 makes no draws.
-    /// The draws are NetworkX's `stochastic_block_model(sizes, p)` on the same stream (NetworkX
-    /// steps over every skipped pair, O(n²)). Edges sorted.
+    /// Each block pair is sampled by geometric skipping over its pairs, indexed arithmetically. A
+    /// probability of 0 or 1 makes no draws.
     ///
-    /// - Precondition: no negative size; `edgeProbabilities` is square of side `blockSizes.count`,
-    ///   symmetric (exactly), with every entry in 0...1.
+    /// - Complexity: O(n + m + B²) expected for B blocks.
+    /// - Precondition: No size is negative, and `edgeProbabilities` is square of side
+    ///   `blockSizes.count`, exactly symmetric, with every entry in 0...1.
     @inlinable
     public static func stochasticBlockModel(
         blockSizes: [Int], edgeProbabilities: [[Double]], using generator: inout some RandomNumberGenerator
@@ -145,11 +142,11 @@ extension _GraphConstruction {
 extension _DirectedGraphConstruction {
     /// The directed stochastic block model: each ordered pair u ≠ v, u in block i and v in block j,
     /// is an arc independently with probability `edgeProbabilities[i][j]`, which need not be
-    /// symmetric (NetworkX `directed=True`, igraph `SBM(directed=True)`). O(n + m + B²) expected;
-    /// arcs in row-major order.
+    /// symmetric.
     ///
-    /// - Precondition: no negative size; `edgeProbabilities` is square of side `blockSizes.count`
-    ///   with every entry in 0...1.
+    /// - Complexity: O(n + m + B²) expected for B blocks.
+    /// - Precondition: No size is negative, and `edgeProbabilities` is square of side
+    ///   `blockSizes.count` with every entry in 0...1.
     @inlinable
     public static func stochasticBlockModel(
         blockSizes: [Int], edgeProbabilities: [[Double]], using generator: inout some RandomNumberGenerator

@@ -1,10 +1,9 @@
-/// The error a `checked:` call throws when a vertex it was given isn't in the graph. Named after
-/// NetworkX's `NodeNotFound`.
+/// The error a `checked:` call throws when a vertex it was given isn't in the graph.
 ///
-/// It carries no vertex: an `Error` must be `Sendable` and a graph's vertex type needn't be, and
-/// the caller already holds the vertex it passed. The unlabelled spelling of the same call traps
-/// instead, and is the fast path inside code that has already validated its vertices; `try?` turns
-/// the checked spelling into an Optional.
+/// It carries no vertex, because an `Error` must be `Sendable` and a graph's vertex type need not
+/// be. The caller already holds the vertex it passed. The unlabeled spelling of the same call
+/// traps instead, and is the fast path for code that has already validated its vertices. `try?`
+/// turns the checked spelling into an optional.
 ///
 /// ```swift
 /// guard let next = try? graph.successors(checked: id) else { return }
@@ -27,11 +26,10 @@ public struct EdgeNotFound: Error, Sendable, Hashable {
 }
 
 /// The error a `checked:` call throws when it can fail both ways: an edge position that doesn't
-/// name an edge, or a vertex that isn't in the graph. "Element" is the collective term for vertices
-/// and edges, as in GraphML's graph elements and the BGL's descriptors.
+/// name an edge, or a vertex that isn't in the graph.
 ///
-/// The cases carry no payload, as ``VertexNotFound`` and ``EdgeNotFound`` don't, so a `catch` can
-/// match a case directly and stays exhaustive:
+/// Like ``VertexNotFound`` and ``EdgeNotFound``, the cases carry no payload, so a `catch` can
+/// match a case directly and stay exhaustive:
 ///
 /// ```swift
 /// do throws(ElementNotFound) {
@@ -44,9 +42,9 @@ public struct EdgeNotFound: Error, Sendable, Hashable {
 /// ```
 @frozen
 public enum ElementNotFound: Error, Sendable, Hashable {
-    /// A vertex it was given isn't in the graph: what ``VertexNotFound`` reports alone.
+    /// A vertex it was given isn't in the graph, as ``VertexNotFound`` reports alone.
     case vertex
-    /// An edge position it was given is out of range or its edge was removed: what
+    /// An edge position it was given is out of range or its edge was removed, as
     /// ``EdgeNotFound`` reports alone.
     case edge
 }

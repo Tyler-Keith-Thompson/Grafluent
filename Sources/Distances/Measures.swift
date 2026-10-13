@@ -105,9 +105,10 @@ extension Graph {
     public func periphery<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> [Vertex] { eccentricities(weight: weight).periphery }
 
     /// The path, with its edges, between the lexicographically least pair of vertices (by vertex
-    /// index, or position in `vertices` without indices) at distance `diameter()`: from the first vertex of greatest eccentricity to the first
-    /// vertex farthest from it, as breadth-first search finds it (each vertex reached first through
-    /// its first edge in row order). Nil when the graph is not connected or empty.
+    /// index, or position in `vertices` without indices) at distance `diameter()`. It runs from the
+    /// first vertex of greatest eccentricity to the first vertex farthest from it, as breadth-first
+    /// search finds it (each vertex reached first through its first edge in row order). Nil when
+    /// the graph is not connected or empty.
     @inlinable
     public func diameterPath() -> Path<Vertex, Edges.Index>? {
         let rows = _distanceRows()
@@ -145,9 +146,8 @@ extension Graph {
         return Path(_uncheckedVertices: vertexNumbers.map { _vertex(number: $0, listed) }, edges: edgeNumbers.map { positions[$0] })
     }
 
-    /// The vertices of least total distance to all others (NetworkX 3.7 `centroid`, also called
-    /// the median or barycenter), in `vertices` order; every vertex when the graph is not
-    /// connected. On a tree it is Jordan's centroid. O(n(n + m)).
+    /// The vertices of least total distance to all others (the median, or barycenter), in
+    /// `vertices` order; every vertex when the graph is not connected. On a tree it is Jordan's centroid. O(n(n + m)).
     @inlinable
     public func centroid() -> [Vertex] {
         let listed = _listedVertices()
@@ -163,8 +163,7 @@ extension Graph {
         return _leastTotals(_totals(_distanceRows(), weights: _distanceWeights(weight), undirected: true)).map { _vertex(number: $0, listed) }
     }
 
-    /// The sum of the distances over all unordered pairs of vertices (NetworkX `wiener_index`);
-    /// nil when the graph is not connected, 0 when it has fewer than two vertices. O(n(n + m)).
+    /// The sum of the distances over all unordered pairs of vertices (the Wiener index); nil when the graph is not connected, 0 when it has fewer than two vertices. O(n(n + m)).
     @inlinable
     public func wienerIndex() -> Int? { _wienerIndex(_distanceRows(), undirected: true) }
 
@@ -177,8 +176,8 @@ extension Graph {
         _wienerIndex(_distanceRows(), weights: _distanceWeights(weight), undirected: true)
     }
 
-    /// The Wiener index over the number of pairs (NetworkX `average_shortest_path_length`); 0 for
-    /// one vertex; nil when the graph is empty or not connected.
+    /// The Wiener index over the number of pairs (the average shortest path length); 0 for one
+    /// vertex; nil when the graph is empty or not connected.
     @inlinable
     public func averageShortestPathLength() -> Double? {
         let n = vertexCount
@@ -197,7 +196,7 @@ extension Graph {
     }
 
     /// 2m / (n(n − 1)), every edge counted (self-loops and parallel copies included, so it can
-    /// exceed 1); 0 when there are fewer than two vertices (NetworkX `density`). O(1).
+    /// exceed 1); 0 when there are fewer than two vertices. O(1).
     @inlinable
     public var density: Double {
         let n = vertexCount

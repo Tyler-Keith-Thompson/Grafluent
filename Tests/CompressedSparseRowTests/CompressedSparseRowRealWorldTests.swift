@@ -1,4 +1,4 @@
-// Graphs read from other projects' data files: realistic duplicate density, self-loops and degree
+// Graphs read from published data files, with realistic duplicate density, self-loops and degree
 // skew, which the hand-written fixtures lack. Case IDs (CSR-Cnn, CSR-Gnn, CSR-Tnn) refer to the
 // catalog; see README.md. Expected values were computed from the files by a script.
 
@@ -38,7 +38,6 @@ struct CompressedSparseRowRealWorldTests {
     @Test("CSR-T08 Graph500 scale 8: in-edges repeated in the file appear once in the transpose")
     func graph500Transpose() {
         let graph = CompressedSparseRow(vertexCount: 256, edges: DirectedFixture<Int>.graph500Scale8.edges)
-        // neo4j's sorted layout keeps the repeats: [12, 26, 50, 50, 52, 82, 82, 82, 106, 109, 172, 186, 250, 250].
         #expect(Array(graph.transposed().successors(of: 0)) == [12, 26, 50, 52, 82, 106, 109, 172, 186, 250])
         #expect(graph.inDegrees[0] == 10)
     }

@@ -1,8 +1,8 @@
-// `gomoryHuTree(capacity:)` (catalog §GomoryHu): Gusfield's tree with the canonical cut, NetworkX's
-// tree edge for edge; the tree edge at position k joins the vertex at index k + 1 and its parent;
-// for every ordered pair, `minimumCutValue(between:and:)` is the least capacity on the tree path and
-// the least cut by brute force, and `minimumCut(between:and:)` is the split at the least tree edge
-// nearest the first vertex, with the graph's crossing edges. Directed rows are `AdjacencyList`, or
+// `gomoryHuTree(capacity:)` (catalog §GomoryHu): Gusfield's tree with the canonical cut; the tree
+// edge at position k joins the vertex at index k + 1 and its parent; for every ordered pair,
+// `minimumCutValue(between:and:)` is the least capacity on the tree path and the least cut by brute
+// force, and `minimumCut(between:and:)` is the split at the least tree edge nearest the first
+// vertex, with the graph's crossing edges. Directed rows are `AdjacencyList`, or
 // `DirectedPseudograph` when an edge repeats; undirected rows `UndirectedAdjacencyList`, or
 // `Pseudograph` with parallel edges; each built by inserting the row's vertices, then its edges in
 // order, so positions are the catalog's. In-test checks number vertices by their index in

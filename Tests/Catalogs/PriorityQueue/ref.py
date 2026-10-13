@@ -1,9 +1,9 @@
-"""Reference models for Grafluent's IndexedPriorityQueue research.
+"""Reference models for the IndexedPriorityQueue catalog.
 
-IPQ    -- the recommended design: a d-ary (default 4) min-heap of (priority, index) pairs plus a
-          position array (-1 = absent). Ties are NOT broken by index: sifts compare priorities
-          with strict `<` only, exactly as the Swift prototype's `IndexedHeap<_, _, 4, 0>`.
-          `bugs` switches on planted bugs (see plant.py).
+IPQ    -- the model of IndexedPriorityQueue: a d-ary (default 4) min-heap of (priority, index)
+          pairs plus a position array (-1 = absent). Ties are not broken by index: sifts compare
+          priorities with strict `<` only. `bugs` names deliberate faults to switch on, for
+          checking that the cases detect them.
 Naive  -- an independent oracle: a dict index -> priority; popMin scans for the minimum and
           reports the set of indices tied at it.
 
@@ -242,19 +242,19 @@ class Naive:
 
 
 # ---------------------------------------------------------------------------------------------
-# Shared data from the OSS tests
+# Fixed data for the translated cases (PQ-20 - PQ-23)
 # ---------------------------------------------------------------------------------------------
 
-LEMON_SEQ = [2, 28, 19, 27, 33, 25, 13, 41, 10, 26, 1, 9, 4, 34]   # lemon test/heap_test.cc:87
-LEMON_INC = [20, 28, 34, 16, 0, 46, 44, 0, 42, 32, 14, 8, 6, 37]   # lemon test/heap_test.cc:88
+LEMON_SEQ = [2, 28, 19, 27, 33, 25, 13, 41, 10, 26, 1, 9, 4, 34]   # PQ-20
+LEMON_INC = [20, 28, 34, 16, 0, 46, 44, 0, 42, 32, 14, 8, 6, 37]   # PQ-21
 
-# lemon test/heap_test.cc:49-84: arcs (source, target, length); source node 3
+# PQ-22: arcs (source, target, length); source node 3
 LEMON_ARCS = [(0, 5, 94), (3, 9, 11), (8, 7, 83), (1, 2, 94), (5, 7, 35), (7, 4, 84), (9, 5, 38),
               (0, 4, 96), (6, 7, 6), (3, 1, 27), (5, 2, 77), (5, 6, 69), (6, 5, 41), (4, 6, 70),
               (3, 2, 45), (7, 9, 93), (5, 9, 50), (9, 0, 94), (9, 6, 67), (0, 9, 86)]
 
-# igraph tests/unit/2wheap.c:105-151, the "hand-made example" (a Dijkstra trace on a max-heap of
-# negated distances). Translated to a min-queue: PUSH -> insert, MOD -> decrease, MAX -> popMin.
+# PQ-23: a Dijkstra trace recorded on a max-heap of negated distances, translated to a
+# min-queue: PUSH -> insert, MOD -> decrease, MAX -> popMin.
 IGRAPH_TRACE = [("push", 4, 0.0), ("pop",), ("push", 11, 0.63), ("push", 15, 0.05), ("pop",),
                 ("push", 12, 0.4), ("push", 13, 0.4), ("push", 16, 0.12), ("pop",),
                 ("push", 0, 1.1), ("push", 14, 1.1), ("pop",), ("mod", 11, 0.44), ("pop",),

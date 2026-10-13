@@ -1,6 +1,6 @@
 // The searches return walks: `Path` for a shortest path and `Cycle` for a negative-cycle witness,
 // each naming the edges taken, so parallel copies are told apart. Case IDs (WK-12nn) refer to the
-// Walks catalog's migration section; see README.md.
+// Walks catalog's section 12; see README.md.
 
 import AdjacencyListModule
 import GraphProtocols
@@ -13,7 +13,7 @@ import Walks
 struct ShortestPathWalkTests {
     @Test("WK-1201 an undirected negative edge is the 2-cycle over its two arcs", arguments: 0 ..< 5)
     func undirectedNegativeEdge(source: Int) {
-        // NetworkX's cycle_graph(5); edge {1, 2}, at position 1, is the negative one.
+        // A 5-cycle; edge {1, 2}, at position 1, is the negative one.
         let cycle = UndirectedAdjacencyList(edges: (0 ..< 5).map { UndirectedEdge($0, ($0 + 1) % 5) })
         let weights = [1, -3, 1, 1, 1]
         let witness = cycle.findNegativeCycle(from: source) { weights[$0] }
@@ -29,7 +29,6 @@ struct ShortestPathWalkTests {
 
     @Test("WK-1206 a negative 2-cycle does not repeat its start, as NetworkX's find_negative_cycle does")
     func witnessDoesNotRepeatStart() {
-        // NetworkX returns [0, 1, 0].
         let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])
         let witness = graph.findNegativeCycle(from: 0) { _ in -1 }
         #expect(witness?.vertices == [0, 1])

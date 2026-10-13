@@ -13,10 +13,6 @@
 #   firstappear             missing a new endpoint falls back to hashing: slower, the same answer.
 #   parentskip              skipping the parent vertex instead of its edge still finds a parallel
 #                           pair, from the parent's row.
-#
-# cycle, parentskip, orientation, reachall, endrange, sizes, component and rootfirst were re-aimed
-# at the rewritten rooting walk (records written whole, `reached` bytes), whose text they no longer
-# matched.
 
 TESTS = ["TreesTests"]
 

@@ -1,4 +1,4 @@
-# ImplicitGraphs: case catalog (phase 1)
+# ImplicitGraphs: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 python3
 Tests/Catalogs/ImplicitGraphs/ref.py`; `--write` regenerates this file, `--stress` adds random
@@ -18,10 +18,10 @@ Conventions:
   equal and ordered by `(s, r)`; the target rides along.
 * `calls()` is the number of closure calls since the previous `calls()` (the test counts in its
   own closure, so this is public behavior, not a benchmark counter).
-* Groups `Generic` and `Closures` are cross-module. `Generic` runs the existing Traversal,
+* Groups `Generic` and `Closures` are cross-module. `Generic` runs the Traversal,
   Connectivity, Cycles and ShortestPaths algorithms on the implicit graph and compares with
   NetworkX. Components are compared as sets, since their order is the owning module's rule.
-  `Closures` rows cover ShortestPaths D19 and one existing Traversal entry point. They pin
+  `Closures` rows cover ShortestPaths D19 and one Traversal entry point. They pin
   distances and path vertex counts, not tie-breaking. `P(x, y)` is a `Hashable` point, and
   `knight1` gives each knight move cost 1. In `costly` a step's cost depends only on the cell
   entered, so the goal's first push already has its distance; in `twoEnded` it depends on both

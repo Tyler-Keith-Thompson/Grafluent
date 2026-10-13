@@ -96,7 +96,7 @@ package struct _LazyIncidenceRows<G: Graph>: _IncidenceRowSource {
         let start = neighbors.count
         let indexedEdges = graph.edgeIndexBound != nil
         if graph.vertexIndexBound != nil {
-            // Plain loops: `append(contentsOf:)` on a lazy sequence was several times slower.
+            // Plain loops, because `append(contentsOf:)` on a lazy sequence is much slower.
             for w in graph.neighborIndices(ofIndex: v) { neighbors.append(w) }
             if readsEdges {
                 if indexedEdges {

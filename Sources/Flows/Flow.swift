@@ -1,12 +1,11 @@
 import GraphProtocols
 
-/// A maximum flow from `source` to `sink` (igraph `Flow`, JGraphT `MaximumFlow`): the result of
-/// `maximumFlow(from:to:capacity:)`, `edmondsKarpMaximumFlow(from:to:capacity:)` and
-/// `dinicMaximumFlow(from:to:capacity:)`.
+/// A maximum flow from `source` to `sink`, returned by `maximumFlow(from:to:capacity:)`,
+/// `edmondsKarpMaximumFlow(from:to:capacity:)` and `dinicMaximumFlow(from:to:capacity:)`.
 ///
-/// It keeps a copy of the graph to look positions up (copy-on-write, O(1) to make), as
-/// `Coloring` and `ShortestPathTree` do. On an undirected graph the flow is over `directedView`: an
-/// edge's flow is on the arc of its direction, the other arc carries zero.
+/// It holds a copy-on-write copy of the graph to look positions up. On an undirected graph the
+/// flow is over `directedView`. An edge's flow is on the arc of its direction, and the other arc
+/// carries zero.
 @frozen
 public struct Flow<G: DirectedGraph, Capacity: Comparable & AdditiveArithmetic> {
     @usableFromInline let _graph: G
@@ -33,9 +32,10 @@ public struct Flow<G: DirectedGraph, Capacity: Comparable & AdditiveArithmetic> 
         self.minimumCut = minimumCut
     }
 
-    /// The flow on the edge at `position`: zero on a self-loop. O(1) with edge indices, O(log m)
-    /// without (a binary search over the positions; the case for `directedView` views of undirected
-    /// graphs).
+    /// The flow on the edge at `position`, zero on a self-loop.
+    ///
+    /// O(1) with edge indices, O(log m) without, which includes `directedView` of an undirected
+    /// graph.
     ///
     /// - Precondition: `position` is a position in the graph's `edges`.
     @inlinable
@@ -53,18 +53,17 @@ public struct Flow<G: DirectedGraph, Capacity: Comparable & AdditiveArithmetic> 
         return _flows[e]
     }
 
-    /// Every edge's flow, by edge position in `edges` order (LEMON `flowMap`, JGraphT
-    /// `getFlowMap`): a collection over the flow's own storage, no copy made.
+    /// Every edge's flow, indexed by edge position in `edges` order. It shares the flow's storage.
     @inlinable
     public var flowMap: FlowMap<G, Capacity> { FlowMap(graph: _graph, positions: _positions, flows: _flows) }
 }
 
 extension Flow {
     /// The signed flow on the undirected edge at `position` of the graph `directedView` was made
-    /// from: positive along the edge's stored orientation (from its `u` to its `v`), negative
-    /// against it (igraph's `Flow.flow` on an undirected graph, which is signed the same way).
-    /// The flow on the arc `.init(position: position, reversed: false)` less the flow on the
-    /// reversed arc; at most one of them is nonzero. O(log m).
+    /// from. It is positive from the edge's `u` to its `v` and negative against it.
+    ///
+    /// The value is the flow on the arc `.init(position: position, reversed: false)` less the flow
+    /// on the reversed arc. At most one of them is nonzero. O(log m).
     ///
     /// - Precondition: `position` is a position in the undirected graph's `edges`.
     @inlinable
@@ -121,8 +120,7 @@ func _edgeNumberIfPresent<G: DirectedGraph>(_ graph: G, _ positions: [G.Edges.In
 }
 
 /// Every edge's flow in a `Flow` or `MinimumCostFlow`, as a collection indexed by the graph's
-/// edge positions, in `edges` order (LEMON `flowMap`, JGraphT `getFlowMap`). It shares the
-/// result's storage. Subscripting is O(1) with edge indices, O(log m) without.
+/// edge positions, in `edges` order. It shares the result's storage. Subscripting is O(1) with edge indices, O(log m) without.
 @frozen
 public struct FlowMap<G: DirectedGraph, Value>: Collection {
     @usableFromInline let _graph: G

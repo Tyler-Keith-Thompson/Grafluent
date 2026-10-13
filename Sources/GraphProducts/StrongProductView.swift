@@ -1,7 +1,7 @@
 import GraphProtocols
 
 /// The strong product G ⊠ H of two directed graphs, as a lazy view: the arcs of G □ H and of
-/// G × H together (NetworkX's `strong_product`). O(1).
+/// G × H together. O(1).
 ///
 /// A G-loop and an H-arc give two parallel arcs, (g, h) → (g, h′) from each part, so the product
 /// can have parallel arcs even when the factors have none. `CompressedSparseRow(product)` and

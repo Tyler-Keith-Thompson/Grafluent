@@ -37,8 +37,8 @@ extension _TreeLayout {
 
 extension RootedTree {
     /// The closed walk from the root that goes down each child edge, in `children(of:)` order,
-    /// and back up it after that subtree: 2n − 1 vertices, each edge position twice (NetworkX
-    /// `dfs_labeled_edges`, forward then reverse). The trivial walk for one vertex. O(n).
+    /// and back up it after that subtree. The walk has 2n − 1 vertices and lists each edge
+    /// position twice. The trivial walk for one vertex. O(n).
     @inlinable
     public var eulerTour: Walk<Vertex, Int> { _layout._eulerTour() }
 }

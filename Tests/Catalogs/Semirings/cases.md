@@ -4,14 +4,15 @@ Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx=
 scipy==1.18.1 --with numpy==2.3.4 python3 Tests/Catalogs/Semirings/ref.py`; `--write` regenerates
 this file, `--stress` adds random multigraphs). The model implements the definitions in api.md:
 the semiring operations with Swift's `Int` (trapping) and `Double` arithmetic, and Dijkstra,
-Bellman–Ford, DAG paths, Mohri's DAG shortest distances, Floyd–Warshall and (phase 2) Lehmann's
-closure over any semiring. Every algorithm row is recomputed another way: tropical rows against
+Bellman–Ford, DAG paths, Mohri's DAG shortest distances, Floyd–Warshall and Lehmann's closure
+over any semiring. Every algorithm row is recomputed another way: tropical rows against
 NetworkX 3.7 and scipy 1.18.1 (`shortest_path` 'D', 'BF', 'FW', `NegativeCycleError`;
 `floyd_warshall`, `negative_edge_cycle`), bottleneck and Boolean rows against brute force over
 simple paths (and NetworkX `descendants`, `transitive_closure(reflexive=True)`), counting rows
 against NetworkX `all_simple_edge_paths` (closed forms 2^k and C(r+c−2, r−1) for the big ones).
 Law rows evaluate both sides; the model asserts they are equal. Rows SR-430 – SR-458
-are phase 2.
+(the "Phase 2" groups) pin `star`, `kleeneClosure` and `LogSemiring`, which the library does not
+declare; `swiftgen.py` writes their tests only with `--phase2`.
 
 ## Notation
 

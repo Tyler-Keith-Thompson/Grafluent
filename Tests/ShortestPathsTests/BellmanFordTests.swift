@@ -1,6 +1,6 @@
-// Bellman–Ford trees: negative edges without negative cycles, graphs ported from Boost, NetworkX,
-// JGraphT and petgraph, undirected graphs through directed, unreachable negative cycles, zero-weight
-// cycles and several sources. Every parent here is the unique shortest-path predecessor, so it is
+// Bellman–Ford trees: negative edges without negative cycles, small graphs with negative weights,
+// undirected graphs through directed, unreachable negative cycles, zero-weight cycles and several
+// sources. Every parent here is the unique shortest-path predecessor, so it is
 // exact on every representation. Case IDs (SP-nn) refer to the catalog; see README.md.
 
 import AdjacencyListModule

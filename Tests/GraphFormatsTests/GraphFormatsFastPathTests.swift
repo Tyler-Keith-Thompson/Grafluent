@@ -108,8 +108,8 @@ struct GraphFormatsFastPathTests {
 
     @Test("Node-link: a keyless parallel edge takes NetworkX's new_edge_key, the number of keys between the pair")
     func nodeLinkNewEdgeKey() throws {
-        // NetworkX gives the keyless edge key 2 (two keys, "x" and "y", are taken), so key 1 is
-        // a fourth edge: [('a', 'b', 'x'), ('a', 'b', 'y'), ('a', 'b', 2, {'w': 3}), ('a', 'b', 1, {'w': 4})].
+        // The keyless edge gets key 2 (two keys, "x" and "y", are taken), so key 1 is a fourth
+        // edge: [('a', 'b', 'x'), ('a', 'b', 'y'), ('a', 'b', 2, {'w': 3}), ('a', 'b', 1, {'w': 4})].
         let input = "{\"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\", \"key\": \"x\"}, {\"source\": \"a\", \"target\": \"b\", \"key\": \"y\"}, {\"source\": \"a\", \"target\": \"b\", \"w\": 3}, {\"source\": \"a\", \"target\": \"b\", \"key\": 1, \"w\": 4}]}"
         var log: [String] = []
         let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8, edgeAttribute: { p, k, v in log.append("\(p) \(k) \(v)") })

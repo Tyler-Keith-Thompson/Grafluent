@@ -19,15 +19,15 @@ The model works in index space, from the definitions in api.md:
     replaces a colour by (colour, sorted multiset of (edge colour, neighbour colour) over the edge
     ends), and on a directed graph by (colour, out-multiset, in-multiset). Partitions after each
     round, and hash equality as equality of the colour histograms after every round.
-  * Automorphism groups (phase 2): the order and orbits from enumeration, or from python-igraph's
+  * Automorphism groups: the order and orbits from enumeration, or from python-igraph's
     bliss (`count_automorphisms`, `automorphism_group`) when the group is large; generators are
     checked to generate a group of that order.
 
 Every row is cross-checked against NetworkX 3.7 (GraphMatcher family and vf2pp), python-igraph
 1.0.0 (VF2, LAD, bliss) and rustworkx 0.18.1 (vf2_mapping), each where it supports the input; the
-known disagreements are listed in KNOWN and in api.md. --write regenerates cases.md; without it the
+known disagreements are listed in KNOWN. --write regenerates cases.md; without it the
 run fails if cases.md differs. --stress adds random graphs checked against brute force and the
-three libraries. --bench prints the baseline timings api.md quotes. --export DIR writes each bench
+three libraries. --bench prints baseline timings. --export DIR writes each bench
 pair's edge lists (DIR/<case>.g.deflate, DIR/<case>.h.deflate: raw deflate of the vertex count, then one edge per
 line), the
 inputs IsomorphismBenchmarks reads, so both sides time the same graphs.
@@ -1039,7 +1039,8 @@ definitions in api.md; rows with at most 7 target vertices are also checked agai
 over every injection, and every matching row with at most 6,000 mappings is compared, as a set of
 mappings, with NetworkX 3.7 (`GraphMatcher` and its directed and multigraph kinds, and the vf2pp
 functions), python-igraph 1.0.0 (VF2 and LAD) and rustworkx 0.18.1 (`vf2_mapping`), each where it
-supports the input. Disagreements are in api.md. Weisfeiler–Leman partitions are compared with
+supports the input; the known disagreements are listed in `ref.py`'s KNOWN. Weisfeiler–Leman
+partitions are compared with
 NetworkX's `weisfeiler_lehman_subgraph_hashes` and hash equality with its
 `weisfeiler_lehman_graph_hash` on simple undirected rows. Automorphism group orders and orbits
 come from enumeration and python-igraph's bliss, which must agree.

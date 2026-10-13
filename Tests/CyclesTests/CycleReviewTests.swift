@@ -1,10 +1,9 @@
-// Cases added after planting bugs and after the review: girth's early stop must not cut a search
-// short when a longer cycle was found from an earlier root (a 4-cycle on the first vertices, a
-// triangle later); shapes on which a round or girth used to cost the whole graph (a windmill whose
-// hub is the last vertex, a large grid with a bound, forests and DAGs for girth); conformers whose
-// rows break the laws in ways that used to pass silently; iterators copied mid-way; Traversal's
-// directed findCycle against simpleCycles. The shapes that used to cost the whole graph
-// (CY-1004 – CY-1006) rely on speed and are in Performance/CycleReviewScaleTests.swift. Case IDs
+// Girth's early stop must not cut a search short when a longer cycle was found from an earlier
+// root (a 4-cycle on the first vertices, a triangle later); shapes on which a round or girth must
+// not cost the whole graph (a windmill whose hub is the last vertex, a large grid with a bound,
+// forests and DAGs for girth); conformers whose rows break the laws; iterators copied mid-way;
+// Traversal's directed findCycle against simpleCycles. The shapes that rely on speed
+// (CY-1004 – CY-1006) are in Performance/CycleReviewScaleTests.swift. Case IDs
 // (CY-nnn) refer to the catalog; see README.md.
 
 import AdjacencyListModule

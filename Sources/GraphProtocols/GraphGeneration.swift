@@ -1,21 +1,20 @@
 import Synchronization
 
-// Generations: whether a structure derived from a graph (a condensation, a compressed copy, a
-// cached search) was derived from the graph as it is now. Generational indices (Rust's
-// `slotmap`) and LLVM's `DebugEpochBase` answer the same question.
+// Generations tell whether a structure derived from a graph (a condensation, a compressed copy, a
+// cached search) was derived from the graph as it is now.
 //
 // A generation is a lineage and a version. A mutable graph names one of its copy-on-write arrays
 // that every structural mutation writes (its identity array), and its stamp records the array's
 // base address. After each structural mutation it reads the address again: unchanged, the
 // version goes up by one; changed, the graph starts a new lineage, drawn from a process-wide
-// counter, at version 0. A mutation costs a load, a compare and an addition: no runtime call, no
-// allocation, no atomic, and the stamp holds no reference.
+// counter, at version 0. A mutation costs a load, a compare and an addition, with no runtime call,
+// no allocation and no atomic. The stamp holds no reference.
 //
-// Why no two states share a generation. Copies of a graph share its identity array. A write to a
+// No two states share a generation. Copies of a graph share its identity array. A write to a
 // shared array allocates a new buffer while the other copy still holds the old one, so the new
-// address is not the old: the copy that mutates first leaves the lineage, and only a graph that
-// holds its buffer alone can stay in it. So the graphs in a lineage at one version are copies of
-// one state, and one of them at most can go on to the next version. Lineages are 64-bit and never
+// address is not the old one. The copy that mutates first leaves the lineage, and only a graph that
+// holds its buffer alone can stay in it. The graphs in a lineage at one version are therefore
+// copies of one state, and at most one of them can go on to the next version. Lineages are 64-bit and never
 // reused. Three rules keep the argument sound:
 //
 // - Every structural mutation writes the identity array (or forces it unique, `advance(owning:)`),
@@ -25,7 +24,7 @@ import Synchronization
 //   buffer), so `advance(owning:)` on an empty identity array starts a new lineage.
 // - Whatever moves the identity array without a structural mutation (reserving capacity, packing)
 //   forgets the address (`storageMayHaveMoved(_:)`), so the graph's next mutation starts a new
-//   lineage: the freed buffer's address, reused later, can never match. A forgotten address is 0,
+//   lineage, and the freed buffer's address, if reused later, can never match. A forgotten address is 0,
 //   which no buffer has.
 //
 // An immutable graph's generation is a lineage drawn once at construction (`stamp()`).
@@ -33,15 +32,17 @@ import Synchronization
 /// The source of lineages: one per immutable graph built, and one per restart of a mutable one.
 private let _generationLineages = Atomic<UInt64>(0)
 
-/// A graph's generation: which state of which graph it is. Every structural mutation (an
-/// insertion, a removal, re-pointing an edge) starts a new generation; reserving capacity and
-/// writing attached map values do not. A structure derived from a graph stores the graph's
-/// `generation` and asks `isCurrent(for:)` before it relies on the graph again.
+/// A graph's generation: which state of which graph it is.
 ///
-/// A copy of a graph has the copy's generation until either is mutated. A generation without a
-/// graph (from a representation that does not track generations, or from a graph never mutated)
-/// is current for no graph, which is the safe answer. Equal generations are the same state of the
-/// same graph, except that every untracked generation equals every other.
+/// Every structural mutation (an insertion, a removal, re-pointing an edge) starts a new
+/// generation. Reserving capacity and writing attached map values do not. A structure derived from
+/// a graph stores the graph's `generation` and calls `isCurrent(for:)` before it relies on the
+/// graph again.
+///
+/// A copy of a graph has the same generation as the original until either is mutated. An
+/// untracked generation, from a representation that does not track generations or a mutable graph
+/// never mutated, is current for no graph. Equal generations are the same state of the same
+/// graph, except that every untracked generation equals every other.
 @frozen
 public struct GraphGeneration: Equatable, Sendable, BitwiseCopyable {
     /// The lineage; 0 when untracked.
@@ -55,11 +56,11 @@ public struct GraphGeneration: Equatable, Sendable, BitwiseCopyable {
         _version = version
     }
 
-    /// The generation of a graph that does not track generations: current for no graph.
+    /// The generation of a graph that does not track generations. It is current for no graph.
     @inlinable
     public static var untracked: GraphGeneration { GraphGeneration(_lineage: 0, version: 0) }
 
-    /// Whether this is `generation`: both are of the same graph (or of copies of it), with no
+    /// Whether this is `generation`, meaning both come from the same graph or its copies with no
     /// structural mutation between them. False when either is untracked. O(1).
     @inlinable
     public func isCurrent(for generation: GraphGeneration) -> Bool {
@@ -188,10 +189,11 @@ package struct _GenerationStamp: Sendable, BitwiseCopyable {
         _version &+= 1
     }
 
-    /// The slow path of `advance(writing:maps:_:)`, out of line, so the mutations that inline the
-    /// advance stay small: both tables made the graph's own, and a new lineage one version
-    /// before 0. A mutating method, unlike `_newLineage()`: its callers are the list
-    /// representations, whose stored properties are more than a loop keeps in registers anyway.
+    /// The slow path of `advance(writing:maps:_:)`, out of line so the mutations that inline the
+    /// advance stay small. Makes both tables the graph's own and starts a new lineage one version
+    /// before 0. It is a mutating method, where `_newLineage()` is static, because its callers are
+    /// the list representations, whose stored properties exceed what a loop keeps in registers
+    /// anyway.
     @usableFromInline
     @inline(never)
     package mutating func _restart(at address: UInt, maps vertexMaps: inout _AttachedMaps, _ edgeMaps: inout _AttachedMaps) {
@@ -228,10 +230,10 @@ package struct _GenerationStamp: Sendable, BitwiseCopyable {
         }
     }
 
-    /// A lineage no graph has had. A static function, not a mutating method: a call that takes
-    /// the stamp's address takes the graph's (the stamp is one of its stored properties), and a
-    /// graph whose address escapes into a call is kept in memory, which costs a caller's loop the
-    /// optimizations that remove the uniqueness checks of the graph's own arrays.
+    /// A lineage no graph has had. It is static, not a mutating method, because a call that takes
+    /// the stamp's address takes the graph's. A graph whose address escapes into a call is kept in
+    /// memory, which costs a caller's loop the optimizations that remove the uniqueness checks of
+    /// the graph's own arrays.
     @usableFromInline
     @inline(never)
     package static func _newLineage() -> UInt64 {

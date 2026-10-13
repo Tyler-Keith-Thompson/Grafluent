@@ -43,7 +43,7 @@ test --test_output=errors
 # outputs have to be off for the generation build only.
 common:rules_xcodeproj --define=apple.experimental.tree_artifact_outputs=0
 
-# Xcode drives Bazel with its own flags, so these builds *will* discard the analysis cache. The
+# Xcode drives Bazel with its own flags, so these builds do discard the analysis cache. The
 # guardrail above exists to stop that happening by accident; here it is expected, and refusing
 # the build would leave Xcode unable to build or index at all.
 common:rules_xcodeproj --allow_analysis_cache_discard

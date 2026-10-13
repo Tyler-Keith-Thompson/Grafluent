@@ -1,5 +1,4 @@
-// §C: articulation points, blocks and the block–cut tree, ported from NetworkX, JGraphT, petgraph,
-// Boost, igraph, rustworkx and LEMON.
+// §C: articulation points, blocks and the block–cut tree.
 // Each case runs on the ReferencePseudograph in written order, and on an UndirectedAdjacencyList
 // built in the same order when no edge repeats, so positions and vertices order are the written
 // ones and every value is exact. Expected values come from the catalog's reference (brute force

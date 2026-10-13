@@ -1,16 +1,16 @@
 import GraphProtocols
 
-/// A directed multigraph as an ordered list of edges: an `Array` of `DirectedEdge` with graph
+/// A directed multigraph as an ordered list of edges, an `Array` of `DirectedEdge` with graph
 /// queries.
 ///
-/// The list keeps every edge it is given, in order: parallel edges are distinct elements, and an
+/// The list keeps every edge it is given, in order. Parallel edges are distinct elements, and an
 /// edge's position is its identity, so values that belong to the edges (weights, capacities) can
-/// live in an array indexed the same way. Mutation follows `Array`: removing an edge shifts the
-/// later ones down, never moving an edge out of order.
+/// live in an array indexed the same way. Mutation follows `Array`. Removing an edge shifts the
+/// later ones down and never moves an edge out of order.
 ///
 /// The vertices are the endpoints of the edges. An edge list has no vertex set of its own, so it
-/// cannot hold an isolated vertex; conversions that need one take the vertices or a vertex count
-/// separately. Graph queries scan the list, O(m), since nothing is indexed.
+/// cannot hold an isolated vertex. Conversions that need one take the vertices or a vertex count
+/// separately. Graph queries scan the list in O(m), because nothing is indexed.
 @frozen
 public struct EdgeList<Vertex: Hashable> {
     @usableFromInline
@@ -35,7 +35,7 @@ public struct EdgeList<Vertex: Hashable> {
 
     /// A list of parallel arrays: edge `i` goes from `sources[i]` to `targets[i]`.
     ///
-    /// - Precondition: the arrays have the same length.
+    /// - Precondition: The arrays have the same length.
     @inlinable
     public init(sources: some Collection<Vertex>, targets: some Collection<Vertex>) {
         precondition(sources.count == targets.count, "\(sources.count) sources but \(targets.count) targets")
@@ -44,7 +44,8 @@ public struct EdgeList<Vertex: Hashable> {
 
     /// A list of the edges written in the builder, in order, repeats included.
     ///
-    /// - Precondition: the builder lists no vertex on its own; an edge list has nowhere to keep one.
+    /// - Precondition: The builder lists no vertex on its own, because an edge list has nowhere to
+    ///   keep one.
     @inlinable
     public init(@DirectedGraphBuilder<Vertex> _ content: () -> DirectedGraphBuilder<Vertex>.Content) {
         let content = content()
@@ -92,7 +93,7 @@ extension EdgeList: RandomAccessCollection, MutableCollection, RangeReplaceableC
         set {
             replaceSubrange(bounds, with: newValue)
         }
-        // Mutating a slice in place (`list[a..<b].sort()`) must not copy the whole list: the
+        // Mutating a slice in place (`list[a..<b].sort()`) must not copy the whole list. The
         // storage moves into the slice for the duration, so the slice's base is unique.
         _modify {
             _failEarlyRangeCheck(bounds, bounds: startIndex ..< endIndex)
@@ -105,7 +106,7 @@ extension EdgeList: RandomAccessCollection, MutableCollection, RangeReplaceableC
                 var edges = slice.base._edges
                 slice = Slice(base: EdgeList(), bounds: 0 ..< 0)
                 // A slice narrowed by removeFirst or removeLast leaves base elements outside its
-                // view; they are dropped, as assigning the slice back would drop them.
+                // view. They are dropped, as assigning the slice back would drop them.
                 edges.removeSubrange(upper ..< edges.count - (count - bounds.upperBound))
                 edges.removeSubrange(bounds.lowerBound ..< lower)
                 _edges = edges
@@ -181,7 +182,7 @@ extension EdgeList: RandomAccessCollection, MutableCollection, RangeReplaceableC
 // MARK: - Graph queries
 
 extension EdgeList {
-    /// The edges: the list itself.
+    /// The edges, which are the list itself.
     @inlinable
     public var edges: EdgeList { self }
 
@@ -233,7 +234,7 @@ extension EdgeList {
         return count
     }
 
-    /// The target of every edge leaving `vertex`, in edge order, once per edge; empty when `vertex`
+    /// The target of every edge leaving `vertex`, in edge order, once per edge. Empty when `vertex`
     /// is not an endpoint. O(m).
     @inlinable
     public func successors(of vertex: Vertex) -> [Vertex] {
@@ -242,7 +243,7 @@ extension EdgeList {
         return successors
     }
 
-    /// The source of every edge entering `vertex`, in edge order, once per edge; empty when
+    /// The source of every edge entering `vertex`, in edge order, once per edge. Empty when
     /// `vertex` is not an endpoint. O(m).
     @inlinable
     public func predecessors(of vertex: Vertex) -> [Vertex] {
@@ -251,7 +252,8 @@ extension EdgeList {
         return predecessors
     }
 
-    /// The number of edges leaving `vertex`, repeats included; 0 when it is not an endpoint. O(m).
+    /// The number of edges leaving `vertex`, repeats included, or 0 when it is not an endpoint.
+    /// O(m).
     @inlinable
     public func outDegree(of vertex: Vertex) -> Int {
         var count = 0
@@ -259,7 +261,8 @@ extension EdgeList {
         return count
     }
 
-    /// The number of edges entering `vertex`, repeats included; 0 when it is not an endpoint. O(m).
+    /// The number of edges entering `vertex`, repeats included, or 0 when it is not an endpoint.
+    /// O(m).
     @inlinable
     public func inDegree(of vertex: Vertex) -> Int {
         var count = 0
@@ -395,7 +398,7 @@ extension EdgeList: Hashable {
 extension EdgeList: Sendable where Vertex: Sendable {}
 
 extension EdgeList: Encodable where Vertex: Encodable {
-    /// Encodes the endpoints as one flat array: `[s₀, t₀, s₁, t₁, …]`.
+    /// Encodes the endpoints as one flat array, `[s₀, t₀, s₁, t₁, …]`.
     public func encode(to encoder: any Encoder) throws {
         var endpoints: [Vertex] = []
         endpoints.reserveCapacity(2 * _edges.count)
@@ -410,7 +413,9 @@ extension EdgeList: Encodable where Vertex: Encodable {
 }
 
 extension EdgeList: Decodable where Vertex: Decodable {
-    /// Decodes a flat array of endpoints; an odd count is corrupt data.
+    /// Decodes a flat array of endpoints.
+    ///
+    /// - Throws: `DecodingError.dataCorrupted` for an odd count.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         let endpoints = try container.decode([Vertex].self)
@@ -429,8 +434,8 @@ extension EdgeList: Decodable where Vertex: Decodable {
 }
 
 extension EdgeList: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
-    /// The vertices and the edges, at most 16 of each: `[0, 1, 2]; [0→1, 1→2]`. The same form as
-    /// every other representation.
+    /// The vertices and the edges, at most 16 of each, as in `[0, 1, 2]; [0→1, 1→2]`. Every
+    /// representation uses this form.
     public var description: String {
         // Only the first 16 vertices are printed, so the scan stops once a 17th is seen.
         var seen = Set<Vertex>()
@@ -461,9 +466,9 @@ extension EdgeList: CustomStringConvertible, CustomDebugStringConvertible, Custo
 
 // MARK: - DirectedGraph
 
-// An edge list is not itself a `DirectedGraph`: every adjacency query is an O(m) scan, so a generic
-// traversal over it would be O(n·m). Boost's `edge_list` models only `EdgeListGraph` for the same
-// reason. Convert first, to an `AdjacencyList` or a `CompressedSparseRow`.
+// An edge list is not itself a `DirectedGraph`. Every adjacency query is an O(m) scan, so a generic
+// traversal over it would be O(n·m). Convert it first to an `AdjacencyList` or a
+// `CompressedSparseRow`.
 
 extension EdgeList {
     /// The edges of any directed graph, in the order of its `edges`.

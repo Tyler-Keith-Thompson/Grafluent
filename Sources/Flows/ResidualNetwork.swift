@@ -64,7 +64,7 @@ struct _ArcResiduals<C> {
 /// A residual network in index space: compressed sparse rows by tail, each arc paired with its
 /// reverse (`mate`), the arcs as records of head, mate and residual. Built once per call by a
 /// counting sort over the edges in position order, so each row lists its arcs in edge-position
-/// order, the order Edmonds–Karp's pinned flow depends on. Self-loops get no arcs.
+/// order, which Edmonds–Karp's flow depends on. Self-loops get no arcs.
 ///
 /// A class so that the many flows of Gomory–Hu and connectivity share one network, reset between
 /// runs; the algorithms copy its pointers into locals, so nothing is retained in their loops.
@@ -210,8 +210,8 @@ final class _ResidualNetwork<C: Comparable & AdditiveArithmetic> {
         return high
     }
 
-    /// The flow on pair `p` along its stored direction: the reverse arc's gain. For an undirected
-    /// pair, the capacity minus the forward residual, which may be negative (`backwardFlow`).
+    /// The flow on pair `p` along its stored direction: the reverse arc's gain. Only for a
+    /// network whose reverse arcs start at zero; an undirected pair uses `undirectedFlow`.
     @inlinable
     func directedFlow(_ p: Int) -> C {
         let a = Int(forwardArc[p])

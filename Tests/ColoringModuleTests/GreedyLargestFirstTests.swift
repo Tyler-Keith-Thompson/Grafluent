@@ -1,14 +1,13 @@
 // `greedyColoring(strategy: .largestFirst)` (catalog §Greedy.largestFirst): Welsh–Powell, first fit
-// in simple degree descending, the lesser index on ties, NetworkX `largest_first`'s colours; exact;
-// proper, with every colour used and the classes in `vertices` order (checked here); at most Δ + 1
-// colours; a first-fit colouring (a vertex of colour c sees every colour below c); the strategy
-// written out; at least `chromaticNumber()` colours; the default strategy. Graphs are
-// `UndirectedAdjacencyList` built by inserting the row's vertices, then its edges in order, so rows
-// are in position order (a self-loop twice); `multigraph` rows are `ReferencePseudograph`, whose
-// rows are in position order too; `L …; R …` and the `Kb`, `crown` and `lcgb` rows are
-// `BipartiteGraph(left:right:edges:)`. In-test oracles number vertices by their index in `vertices`.
-// Generated from cases.md by swiftgen.py, which re-evaluates each row with ref.py's model; see
-// README.md.
+// in simple degree descending, the lesser index on ties; exact; proper, with every colour used and
+// the classes in `vertices` order (checked here); at most Δ + 1 colours; a first-fit colouring (a
+// vertex of colour c sees every colour below c); the strategy written out; at least
+// `chromaticNumber()` colours; the default strategy. Graphs are `UndirectedAdjacencyList` built by
+// inserting the row's vertices, then its edges in order, so rows are in position order (a self-loop
+// twice); `multigraph` rows are `ReferencePseudograph`, whose rows are in position order too; `L …;
+// R …` and the `Kb`, `crown` and `lcgb` rows are `BipartiteGraph(left:right:edges:)`. In-test
+// oracles number vertices by their index in `vertices`. Generated from cases.md by swiftgen.py,
+// which re-evaluates each row with ref.py's model; see README.md.
 
 import AdjacencyListModule
 import BipartiteGraphs

@@ -1,9 +1,9 @@
 // §C: `DirectedGraph.simpleCycles()`: every elementary circuit once, starting at its least vertex
-// (in `vertices` order), emitted by least vertex and then lexicographically by each arc's offset
-// in its vertex's `outEdges` row. Parallel arcs give one cycle per copy. Graphs from NetworkX,
-// rustworkx, JGraphT, igraph and Boost, written as the catalog writes them on the
-// `ReferenceDirectedMultigraph`, so positions are exact. Expected values come from the catalog's
-// reference (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see README.md.
+// (in `vertices` order), emitted by least vertex and then lexicographically by each arc's offset in
+// its vertex's `outEdges` row. Parallel arcs give one cycle per copy. Graphs are written as the
+// catalog writes them on the `ReferenceDirectedMultigraph`, so positions are exact. Expected values
+// come from the catalog's reference (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see
+// README.md.
 
 import Cycles
 import GraphProtocols

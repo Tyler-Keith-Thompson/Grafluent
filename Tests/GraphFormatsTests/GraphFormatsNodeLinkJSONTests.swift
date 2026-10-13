@@ -1,5 +1,6 @@
-// Node-link JSON (catalog GF-083 – GF-110, GF-228 and GF-229 read, GF-200 – GF-206 write): NetworkX's layout over
-// strict RFC 8259 JSON, scalar attributes only; the writer byte-equal to json.dumps(node_link_data).
+// Node-link JSON (catalog GF-083 – GF-110, GF-228 and GF-229 read, GF-200 – GF-206 write): the layout over
+// strict RFC 8259 JSON, scalar attributes only; ref.py checks the write rows byte for byte against
+// json.dumps(node_link_data).
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphFormats

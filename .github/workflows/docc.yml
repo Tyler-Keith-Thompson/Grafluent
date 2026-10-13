@@ -2,7 +2,7 @@ name: DocC
 
 # Builds one combined DocC site for every library module and publishes it to GitHub Pages
 # (the gh-pages branch) at https://tyler-keith-thompson.github.io/Grafluent/documentation/.
-# Linux, not macOS: the library imports no Foundation or Darwin, and Linux minutes cost a tenth.
+# Linux, not macOS: the library imports no Foundation or Darwin, and Linux runners cost less.
 #
 # The site is Bazel's //:docs (see tools/docc.bzl), built against the BuildBuddy remote cache, so
 # a push rebuilds only the modules it changed and the modules that depend on them.

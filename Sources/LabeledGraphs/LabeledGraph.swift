@@ -2,43 +2,50 @@ import GraphProtocols
 import OrderedCollections
 
 /// A directed graph whose vertices are `Hashable` labels, stored over an index-based
-/// representation whose vertices are `0..<n` (BGL's `labeled_graph` adaptor).
+/// representation whose vertices are `0..<n`.
 ///
-/// `CompressedSparseRow` and `AdjacencyMatrix` lay out their storage by vertex number, so they
-/// take only `Int` vertices. A `LabeledGraph` keeps an `OrderedSet<Label>` whose element `i` names
-/// base vertex `i`, and conforms to `DirectedGraph` (and, over a bidirectional base,
+/// `CompressedSparseRow` and `AdjacencyMatrix` lay out their storage by vertex number and take only
+/// `Int` vertices. A `LabeledGraph` keeps an `OrderedSet<Label>` whose element `i` names base
+/// vertex `i`. It conforms to `DirectedGraph` (and, over a bidirectional base,
 /// `BidirectionalDirectedGraph`) with `Vertex == Label`, so algorithms take and return labels.
 ///
-/// **Hashing at the boundary only.** A label-space member (`successors(of:)`, `outDegree(of:)`,
-/// `contains(_:)`, `vertexIndex(of:)`) looks its label up once and then reads the base by index.
-/// Every index-space member (`successorIndices(ofIndex:)`, `outEdges(ofIndex:)`, the edge indices
-/// and `_withSuccessorIndexRows`) is the base's own, with the base's own types, so an algorithm
-/// that runs in index space, as Traversal, Connectivity and ShortestPaths do, hashes each input
-/// label once and nothing per edge. Results map back through an array read.
+/// ## Hashing
 ///
-/// **Indices.** The labels are numbered in the order they were added. The initializers that take
-/// labeled vertices and edges list the given vertices first, then each new endpoint in order of
-/// first appearance, as NetworkX's `convert_node_labels_to_integers(G, ordering="default")`
-/// numbers `add_nodes_from` followed by `add_edges_from`. `vertexIndex(of:)` and
-/// `vertex(atIndex:)` convert in both directions, like LEMON's `RangeIdMap` with its `InverseMap`.
+/// A label-space member (`successors(of:)`, `outDegree(of:)`, `contains(_:)`,
+/// `vertexIndex(of:)`) looks its label up once and then reads the base by index. The index-space
+/// members (`successorIndices(ofIndex:)`, `outEdges(ofIndex:)`, the edge indices and
+/// `_withSuccessorIndexRows`) are the base's own, with the base's types. An algorithm that runs in
+/// index space, as Traversal, Connectivity and ShortestPaths do, hashes each input label once and
+/// nothing per edge. Results map back through an array read.
 ///
-/// **Positions are the base's.** `Edges.Index` is `Base.Edges.Index`: `Int` edge indices in
-/// row-major order of the vertex indices for `CompressedSparseRow`, `(source, target)` cells for
-/// `AdjacencyMatrix`. Data kept beside the base by position stays valid through the labels.
+/// ## Indices
 ///
-/// **Bases.** Any `DirectedGraph<Int>` whose vertices are `0..<vertexCount` in index order can be
-/// labeled through `init(_:labels:)`. Construction from labels and mutation are offered for
-/// `CompressedSparseRow` (immutable) and `AdjacencyMatrix` (vertices appended, edges inserted and
-/// removed). Representations that already take `Hashable` vertices (`AdjacencyList`,
-/// `DirectedPseudograph`, `StableDirectedGraph`) hash their `Int` vertices to slots, so labeling
-/// them would hash twice at every boundary call; use them with the labels directly.
+/// Labels are numbered in the order they were added. The initializers that take labeled vertices
+/// and edges number the given vertices first, then each new endpoint in order of first appearance.
+/// `vertexIndex(of:)` and `vertex(atIndex:)` convert in both directions.
 ///
-/// **Missing labels.** The label-space members trap on a label that is not a vertex, like an
-/// `Array` subscript. `vertexIndex(checked:)`, `successors(checked:)` and the other `checked:`
-/// spellings throw `VertexNotFound` instead, at the cost of the same single lookup.
+/// ## Edge positions
 ///
-/// Copy-on-write comes from the two stored values. `base` is read-only, so the labels and the base
-/// cannot fall out of step.
+/// `Edges.Index` is `Base.Edges.Index`. For `CompressedSparseRow` it is an `Int` edge index in
+/// row-major order of the vertex indices, and for `AdjacencyMatrix` a `(source, target)` cell.
+/// Data kept beside the base by position stays valid through the labels.
+///
+/// ## Bases
+///
+/// `init(_:labels:)` labels any `DirectedGraph<Int>` whose vertices are `0..<vertexCount` in index
+/// order. Construction from labels is available over `CompressedSparseRow` and `AdjacencyMatrix`,
+/// and mutation over `AdjacencyMatrix`. Representations that already take `Hashable` vertices
+/// (`AdjacencyList`, `DirectedPseudograph`, `StableDirectedGraph`) hash their vertices to slots, so
+/// use those with the labels directly rather than wrapping them.
+///
+/// ## Missing labels
+///
+/// The label-space members trap on a label that is not a vertex, like an `Array` subscript.
+/// `vertexIndex(checked:)`, `successors(checked:)` and the other `checked:` spellings throw
+/// `VertexNotFound` instead, with the same single lookup.
+///
+/// The labels and the base are stored values with copy-on-write. `base` is read-only, so the two
+/// stay in step.
 @frozen
 public struct LabeledGraph<Label: Hashable, Base> {
     /// Element `i` names base vertex `i`.
@@ -57,22 +64,23 @@ public struct LabeledGraph<Label: Hashable, Base> {
         self._base = _base
     }
 
-    /// The underlying index-based graph: base vertex `i` is `vertex(atIndex: i)`. O(1). Read-only,
-    /// as BGL's `labeled_graph::graph()` is in spirit: adding a base vertex here would leave it
-    /// without a label.
+    /// The underlying index-based graph, in which vertex `i` is `vertex(atIndex: i)`. O(1).
+    ///
+    /// Read-only, because a vertex added to the base directly would have no label.
     @inlinable
     public var base: Base { _base }
 }
 
 extension LabeledGraph where Base: DirectedGraph<Int> {
-    /// Labels `base`: `labels` lists the label of base vertex `0`, then `1`, and so on. O(n)
-    /// expected (each label hashed once, and the base's vertices read once). The base is stored,
-    /// not copied.
+    /// Labels `base`, giving base vertex `i` the label at offset `i` of `labels`.
     ///
-    /// - Throws: `LabelingError`, for the first requirement broken, in this order:
-    ///   `base.vertexIndexBound` is not `nil`; `base.vertices` is exactly `0..<base.vertexCount` in
-    ///   index order (so `base.vertexIndex(of: i) == i`); `labels` has `base.vertexCount` elements;
-    ///   and no label repeats.
+    /// The base is stored, not copied.
+    ///
+    /// - Throws: `LabelingError` for the first requirement broken, checked in this order.
+    ///   `base.vertexIndexBound` must not be `nil`. `base.vertices` must be exactly
+    ///   `0..<base.vertexCount` in index order, with `base.vertexIndex(of: i) == i`. `labels` must
+    ///   have `base.vertexCount` elements, and no label may repeat.
+    /// - Complexity: O(n) expected. Each label is hashed once.
     @inlinable
     public init(_ base: Base, labels: some Sequence<Label>) throws(LabelingError) {
         guard let n = base.vertexIndexBound else { throw .baseNotDenselyIndexed }
@@ -108,10 +116,9 @@ extension LabeledGraph {
 
     /// The index of `label`, trapping when it is not a vertex. One hash.
     ///
-    /// Never inlined: a hash costs far more than the call, and inlining it into generic
-    /// algorithms that have a label-space fallback branch (`_VertexIdentifiers.forEachSuccessor`)
-    /// made them too large to inline their per-edge closures, which cost 1.3× on CSR
-    /// breadth-first search.
+    /// Never inlined. A hash costs far more than the call, and inlining it into generic algorithms
+    /// with a label-space fallback branch (`_VertexIdentifiers.forEachSuccessor`) keeps their
+    /// per-edge closures from being inlined.
     @inlinable
     @inline(never)
     internal func _index(of label: Label) -> Int {
@@ -143,9 +150,9 @@ extension LabeledGraph {
         return (labels, numbered)
     }
 
-    /// The labels and the index-space edges of `graph`. With vertex indices, its vertices are in
-    /// index order, so the edges come from `successorIndices(ofIndex:)` and only the vertices are
-    /// hashed; otherwise two hashes per edge.
+    /// The labels and the index-space edges of `graph`. When `graph` has vertex indices, its
+    /// vertices are in index order, the edges come from `successorIndices(ofIndex:)`, and only the
+    /// vertices are hashed. Otherwise each edge costs two hashes.
     @inlinable
     internal static func _numbered(_ graph: some DirectedGraph<Label>) -> (labels: OrderedSet<Label>, edges: [DirectedEdge<Int>]) {
         guard let n = graph.vertexIndexBound else {

@@ -1,8 +1,9 @@
 // Numbers, against the standard library: a decimal reads as `Double(_:)` reads it (correctly
-// rounded, Eisel–Lemire with a fallback); a double writes the shortest digits that round-trip,
-// the same digits as `description` (Schubfach), on random bit patterns, both ends of every binade,
-// subnormals and the band 9·10¹⁵ – 2⁵⁴ where Swift's and Python's layouts part; and every double
-// written in every format that holds it reads back to the same bits. Seeded; see README.md.
+// rounded, Eisel–Lemire with a fallback); a double writes the shortest digits that round-trip, the
+// same digits as `description` (Schubfach), on random bit patterns, both ends of every binade,
+// subnormals and the band 9·10¹⁵ – 2⁵⁴ where `description` switches to an exponent and the writers
+// do not; and every double written in every format that holds it reads back to the same bits.
+// Seeded; see README.md.
 
 import GrafluentTestSupport
 import GraphFormats
@@ -124,8 +125,8 @@ struct GraphFormatsNumberTests {
         let m = values.count
         let graph = DirectedPseudograph<Int>(vertices: 0 ..< 2, edges: Array(repeating: DirectedEdge(from: 0, to: 1), count: m))
 
-        // The edge list writes Python's repr: its digits are description's, positional exactly for
-        // decimal exponents -4 ..< 16, and every value reads back.
+        // The edge list writes description's digits, positional exactly for decimal exponents
+        // -4 ..< 16, and every value reads back.
         var edgeList = ""
         graph.writeEdgeList(to: &edgeList, columns: ["x"], edgeAttributes: { [("x", .double(values[$0]))] })
         let written = edgeList.split(separator: "\n").map { String($0.split(separator: " ")[2]) }
@@ -139,7 +140,7 @@ struct GraphFormatsNumberTests {
         _ = try DirectedPseudograph<Int>(edgeList: edgeList.utf8, columns: ["x"], edgeAttribute: { p, _, value in
             if case .double(let d) = value { listed[p] = d }
         })
-        // Matrix Market writes SciPy's form; GraphML and node-link JSON Python's.
+        // Matrix Market writes its own form; GraphML and node-link JSON the edge list's.
         var matrixMarket = ""
         graph.writeMatrixMarket(to: &matrixMarket, weight: { values[$0] })
         var fromMatrix = [Double](repeating: 0, count: m)

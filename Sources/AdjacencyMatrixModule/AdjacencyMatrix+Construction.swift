@@ -2,8 +2,8 @@ import GraphProtocols
 
 extension AdjacencyMatrix {
     /// The matrix on `0..<vertexCount` with edges already in row-major order, without repeats, every
-    /// endpoint in range: unchecked, one bit and two degree counts per edge, with no membership test.
-    /// O(n²/64 + m) for the zeroed rows and the edges.
+    /// endpoint in range. Unchecked. It writes one bit and two degree counts per edge, with no
+    /// membership test. O(n²/64 + m) for the zeroed rows and the edges.
     @inlinable
     package init(_uncheckedVertexCount n: Int, sortedEdges edges: some Collection<DirectedEdge<Int>>) {
         self.init(vertexCount: n)

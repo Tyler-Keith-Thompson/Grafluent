@@ -1,18 +1,15 @@
 # LabeledGraphs test suite
 
-`LabeledGraphs` has one type, `LabeledGraph<Label, Base>`, after BGL's `labeled_graph`. It puts
-`Hashable` labels on a representation that takes only `Int` vertices `0..<n`
-(`CompressedSparseRow`, `AdjacencyMatrix`). Its `OrderedSet<Label>` names base vertex `i` by element
-`i`, and every index-space member forwards to the base, so algorithms hash labels only at their
-inputs. The tests come from the proposed API (`api.md` in
-[`Tests/Catalogs/LabeledGraphs/`](../Catalogs/LabeledGraphs/), phase 1), with its open questions
-decided as recommended:
+`LabeledGraphs` has one type, `LabeledGraph<Label, Base>`. It puts `Hashable` labels on a
+representation that takes only `Int` vertices `0..<n` (`CompressedSparseRow`, `AdjacencyMatrix`).
+Its `OrderedSet<Label>` names base vertex `i` by element `i`, and every index-space member forwards
+to the base, so algorithms hash labels only at their inputs. The API is described in `api.md` in
+[`Tests/Catalogs/LabeledGraphs/`](../Catalogs/LabeledGraphs/):
 
 - conformance for any dense `DirectedGraph<Int>` base whose vertices are `0..<n` in index order;
-- construction and mutation only over CSR and the matrix;
-- the matrix is append-only for vertices, with edge insertion and removal;
-- `base` is read-only, and there is no `labels` property;
-- relabeling is deferred.
+- construction over CSR and the matrix, and mutation over the matrix;
+- the matrix appends vertices and inserts and removes edges;
+- `base` is read-only, and there is no `labels` property.
 
 The suite uses only the public API, and each test is self-contained. The only shared material is
 the seeded generator and the tags in `GrafluentTestSupport`.
@@ -134,13 +131,12 @@ not from the setup.
   matrix grown to 2 048 labels, with 10⁵ edge changes checked against a set. 2 × 10⁴ counted labels
   whose whole-graph algorithms hash nothing.
 
-## Planted bugs
+## Mutations caught
 
-The suite was checked against 15 bugs planted in a scratch copy of the implementation, and it
-caught every one. One more planted bug, a looser range check in `vertex(atIndex:)`, was
-equivalent, because `OrderedSet`'s subscript traps anyway.
+Each of these changes to the implementation makes at least one test fail. A looser range check in
+`vertex(atIndex:)` is not detectable, because `OrderedSet`'s subscript traps anyway.
 
-| Planted bug | Caught by |
+| Mutation | Caught by |
 |---|---|
 | A double lookup in `successors(of:)` | hash law, LG-055, LG-066 |
 | `contains(_:)` or `vertexIndex(checked:)` scanning linearly | hash law, LG-056 |

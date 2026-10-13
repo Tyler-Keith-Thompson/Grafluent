@@ -1,4 +1,4 @@
-// §L: the `checked:` lookups (README Principle 6). Each throws `VertexNotFound` (`EdgeNotFound`
+// §L: the `checked:` lookups. Each throws `VertexNotFound` (`EdgeNotFound`
 // for an `Arborescence` edge position) where its plain spelling traps, and otherwise returns the
 // plain spelling's value, a nil included (the root's parent and parent edge, a `Forest` path
 // across trees, an `Arborescence` path that is not downward). The rows cover the three vertex

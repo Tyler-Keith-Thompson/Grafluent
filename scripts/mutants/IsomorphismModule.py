@@ -65,9 +65,6 @@
 #     chainkeep          redundant generators leave every basic orbit, and the order, as it is.
 #     grouporbitroot     orbits are numbered by their first vertex whatever the root.
 #     productsticky      the sticky bit only matters at an exact rounding tie.
-#
-# Removed as dead code: `_AutomorphismSearch.orbitRepresentatives()` (no caller; the group's orbits
-# come from the kept generators in `_automorphismGroup`).
 
 TESTS = ["IsomorphismTests"]
 

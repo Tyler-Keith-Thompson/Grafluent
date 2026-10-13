@@ -2,7 +2,7 @@ import GraphProtocols
 
 extension CompressedSparseRow {
     /// The graph on `0..<vertexCount` with edges already in row-major order, without repeats, every
-    /// endpoint in range: unchecked, so `_build`'s endpoint checks and counting sorts are skipped.
+    /// endpoint in range. Unchecked, so `_build`'s endpoint checks and counting sorts are skipped.
     /// One pass writes `targets` and, as each row ends, `offsets`. O(n + m), two exact-size
     /// allocations, no hashing.
     @inlinable

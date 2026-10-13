@@ -1,4 +1,4 @@
-# Hypergraphs: case catalog (phase 1)
+# Hypergraphs: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with xgi==0.10.2
 --with hypernetx==2.4.3 --with halp==1.0.0 python3 Tests/Catalogs/Hypergraphs/ref.py`; `--write`

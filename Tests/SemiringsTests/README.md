@@ -4,17 +4,16 @@
 `TropicalSemiring` (min, +), `BottleneckSemiring` (max, min), `BooleanSemiring` (∨, ∧) and
 `CountingSemiring` (+, ×). The algorithms that take them are ShortestPaths overloads: Dijkstra,
 Bellman–Ford, DAG paths and Floyd–Warshall over a selective semiring, and `dagShortestDistances`
-(Mohri's shortest distance) over any semiring. The tests come from the proposed API (`api.md` in
-[`Tests/Catalogs/Semirings/`](../Catalogs/Semirings/), phase 1), with its open questions decided as
-recommended:
+(Mohri's shortest distance) over any semiring. The API is described in `api.md` in
+[`Tests/Catalogs/Semirings/`](../Catalogs/Semirings/). The suite pins these rules:
 
-- overloads of the existing entry points, not new names; the `W` overloads stay as they are;
-- the protocol requires `zero`, `one`, `plus(_:)` and `times(_:)` (Haskell's `Data.Semiring`
-  names), and `⊕` and `⊗` are operators in an extension that call them;
+- the semiring entry points are overloads of the numeric (`W`) ones;
+- the protocol requires `zero`, `one`, `plus(_:)` and `times(_:)`, and `⊕` and `⊗` are operators
+  in an extension that call them;
 - the laws are documented, not checked by the types; `<` is the natural order ("better");
 - distances start at `.zero`, so an edge of weight zero carries no path;
-- `Int.max` is the tropical zero and absorbs (Boost's `closed_plus`); other sums trap on overflow,
-  and so does `CountingSemiring<Int>`;
+- `Int.max` is the tropical zero and absorbs; other sums trap on overflow, and so does
+  `CountingSemiring<Int>`;
 - Dijkstra requires that no examined weight is better than `.one`;
 - Floyd–Warshall returns `nil` when a diagonal entry ends better than `.one`.
 
@@ -40,9 +39,8 @@ DistanceMatrix: distance(from:to:), distance(fromIndex:toIndex:), path(from:to:)
 
 ## How values are pinned
 
-`swiftgen.py` writes one test per phase-1 catalog row (SR-001 – SR-429; SR-341 – SR-429 came from the review: −∞ in
-Bellman–Ford, the floating-point `W` Floyd–Warshall, and the other scalar widths). It sits next to `ref.py`
-and `cases.md` in [`Tests/Catalogs/Semirings/`](../Catalogs/Semirings/):
+`swiftgen.py` writes one test per catalog row from SR-001 to SR-429. It sits next to `ref.py` and
+`cases.md` in [`Tests/Catalogs/Semirings/`](../Catalogs/Semirings/):
 
 ```
 uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 --with numpy==2.3.4 \
@@ -50,9 +48,10 @@ uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 --with num
 ```
 
 It first checks that `ref.py` reproduces `cases.md` byte for byte. `ref.py` recomputes every row and
-checks every algorithm row against NetworkX, scipy or brute force. With `--phase2` it also writes
-`SemiringPhase2Tests.swift` (SR-430 – SR-458: `star`, `kleeneClosure`, `LogSemiring`), which phase
-1 does not declare. Without the flag it removes that file.
+checks every algorithm row against NetworkX, scipy or brute force. Rows SR-430 – SR-458 pin
+`star`, `kleeneClosure` and `LogSemiring`, which the library does not declare. Only with `--phase2`
+does `swiftgen.py` write them, to `SemiringPhase2Tests.swift`; without the flag it removes that
+file.
 
 - **Laws.** The catalog's operands, `S(value)`. The law is written with `plus(_:)` and `times(_:)`,
   both sides are compared, and their value is pinned. The same law in the operators must give the
@@ -125,8 +124,9 @@ Floyd–Warshall against the same call on `.directedView` and against the numeri
 exactly when an edge better than one is reachable (an edge at one is not); tree edges oriented the
 way they are taken, against the stored edge's order too; and the same traps as the directed calls.
 
-**Review additions** (`SemiringReviewTests.swift`, hand-written, 6 tests): Floyd–Warshall over
-`Double` and `Float` reads `.infinity` (or a path rounding to it) as no edge, as in scipy, while
+**Floating-point Floyd–Warshall and the order** (`SemiringReviewTests.swift`, hand-written, 7
+tests): Floyd–Warshall over `Double` and `Float` reads `.infinity` (or a path rounding to it) as no
+edge, while
 an integer or generic `W` keeps every weight as an edge, also on undirected graphs;
 `DistanceMatrix.hasPath(from:to:)`; `BottleneckSemiring`'s order reversed from the values'
 (`.max()` is the narrowest); and −∞ ⊗ +∞ over `Double` is NaN (the carrier is ℝ ∪ {+∞}). The
@@ -140,32 +140,7 @@ edge back is a tree; a cycle through a −∞ edge closed two edges later is `ni
 negative cycle whose vertices are already at −∞. DAG paths: an edge at the tropical zero reaches
 nothing.
 
-## Planted bugs
+**Position holes** (`SemiringHolesTests.swift`, hand-written, 2 tests): `dagShortestPaths` and
+`dagShortestDistances` on a `DirectedAcyclicGraph` over a `StableDirectedGraph` whose removed
+vertex leaves a hole at position 0.
 
-The suite was checked against a Swift model of the API outside the repository, built through Bazel
-in a scratch copy of the workspace. It passes on the model (352 tests, and 381 with `--phase2`), and
-it caught all 20 bugs planted in the model. A 21st mutant, setting each source to `.one` instead of
-adding it, was equivalent, because sources are listed once.
-
-| Planted bug | Caught by |
-|---|---|
-| Tropical `plus` is max | laws, SR-008 and 37 more |
-| Tropical `Int` product without the `Int.max` check | SR-018, SR-023, overflow traps |
-| Bottleneck product is max | SR-284, SR-301 – SR-303, widest-path property |
-| Boolean `<` reversed | SR-005, SR-155, SR-159, SR-160 |
-| Counting product adds | SR-170 and 33 more, counting property |
-| `⊕` calls `times` | 126 tests |
-| Tropical description not the value | SR-001, SR-002 |
-| Dijkstra relaxing on ties, so a zero edge reaches | SR-224, SR-247, SR-274, SR-305, Boolean property |
-| Dijkstra without the better-than-one check | SR-223, SR-246, extra traps |
-| Dijkstra's cutoff inverted | SR-222, SR-245, SR-279, SR-292 |
-| Bellman–Ford never `nil` | SR-228, SR-251, SR-265, agreement property |
-| DAG order ignoring a reachable cycle | SR-232, SR-255, SR-320, SR-329 |
-| A source reached from another not counting both | SR-322, SR-331, counting property |
-| DAG distances overwriting instead of adding | SR-313, SR-316 and 22 more |
-| Floyd–Warshall without the diagonal check | SR-238, SR-240, SR-261, SR-263 |
-| Floyd–Warshall storing the wrong last edge | path checks in 23 matrix rows |
-| Floyd–Warshall keeping the last parallel edge | SR-270, SR-302, SR-310, Boolean property |
-| Floyd–Warshall skipping rows on one, not zero | SR-270, SR-307, SR-310, SR-315 |
-| `ShortestDistances.distance(toIndex:)` unchecked | extra traps |
-| `W` Floyd–Warshall never `nil` | agreement property |

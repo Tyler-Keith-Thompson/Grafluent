@@ -132,9 +132,9 @@ struct _VertexColor: Hashable {
     }
 }
 
-/// igraph's two-way indexed max-heap (`igraph_2wheap_t`) of items `0..<count` with integer
-/// values, ported operation for operation so that ties fall where igraph's do: an entry moves up
-/// past a parent it equals, and sinks to the left child unless the right one is strictly greater.
+/// A two-way indexed max-heap of items `0..<count` with integer values. Its tie behaviour is part
+/// of `.coloredNeighbors`' documented order: an entry moves up past a parent it equals, and sinks
+/// to the left child unless the right one is strictly greater.
 @frozen
 @usableFromInline
 struct _TwoWayHeap {

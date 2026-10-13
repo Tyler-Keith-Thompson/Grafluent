@@ -15,7 +15,6 @@ import Trees
 struct ArborescenceRecognitionTests {
     @Test("TS-050 isArborescence is false on the null graph")
     func nullGraph() {
-        // NetworkX raises on the null graph.
         // D: []
         let graph = ReferenceDirectedMultigraph<Int>(edges: [])
         #expect(!graph.isArborescence)

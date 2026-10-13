@@ -36,9 +36,8 @@ func _sortedUnique(_ pairs: inout [(Int, Int)]) {
 extension _DirectedGraphConstruction {
     /// The quotient of `graph` by a partition of its vertices: a vertex for each block, and an
     /// arc from block a to block b ≠ a when some arc of the graph goes from a vertex of a to a
-    /// vertex of b (NetworkX's `quotient_graph`; igraph's `contract_vertices` then `simplify`).
-    /// Also called vertex contraction. Block `i` is vertex `i`; an empty block is an isolated
-    /// vertex; arcs inside a block vanish, and parallel crossings merge.
+    /// vertex of b. Also called vertex contraction. Block `i` is vertex `i`, and an empty block is
+    /// an isolated vertex. Arcs inside a block vanish, and parallel crossings merge.
     ///
     /// O(n + m + the sort), with one hash per listed vertex.
     ///
@@ -61,9 +60,8 @@ extension _DirectedGraphConstruction {
 
 extension _GraphConstruction {
     /// The quotient of `graph` by a partition of its vertices: a vertex for each block, and an
-    /// edge between two blocks when some edge of the graph joins them (NetworkX's
-    /// `quotient_graph`). Block `i` is vertex `i`; edges inside a block vanish, and parallel
-    /// crossings merge.
+    /// edge between two blocks when some edge of the graph joins them. Block `i` is vertex `i`.
+    /// Edges inside a block vanish, and parallel crossings merge.
     ///
     /// O(n + m + the sort), with one hash per listed vertex.
     ///

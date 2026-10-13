@@ -1,14 +1,14 @@
 import GraphProtocols
 
-// The incidence matrices' attached maps (`PropertyGraph`; the storage is GraphProtocols'
-// `_AttachedMaps`). Both kinds are dense: a vertex map holds one value per row and a hyperedge map
-// one per column, each appended with its row or column. Rows and columns are never removed, only
-// all at once by `removeAll`, so no value ever moves. An `OrientedIncidenceMatrix` keeps its maps
-// beside its two planes; the planes' own maps stay empty.
+// The incidence matrices' attached maps, stored in GraphProtocols' `_AttachedMaps`. Both kinds are
+// dense. A vertex map holds one value per row and a hyperedge map one per column, each appended
+// with its row or column. Rows and columns are removed only all at once by `removeAll`, so no
+// value ever moves. An `OrientedIncidenceMatrix` keeps its maps beside its two planes, and the
+// planes' own maps stay empty.
 
 extension IncidenceMatrix {
-    /// The current generation (see `GraphGeneration`): every row or column appended, every cell
-    /// that changes, and `removeAll`, start a new one. O(1).
+    /// The current generation (see `GraphGeneration`). Appending a row or column, changing a cell,
+    /// and `removeAll` each start a new one. O(1).
     @inlinable
     public var generation: GraphGeneration { _generation.generation }
 }
@@ -20,27 +20,27 @@ extension IncidenceMatrix: PropertyGraph {
     @inlinable public static var _vertexMapLayout: _MapLayout { .dense }
     @inlinable public static var _edgeMapLayout: _MapLayout { .dense }
 
-    /// Attaches a map from the columns (the hyperedges) to `Value`, every column's value `value`
-    /// (LEMON's `ArcMap`), and returns its handle; an appended column's value is `value`. Copies
-    /// of the matrix carry the map, copy-on-write. O(m).
+    /// Attaches a map from the columns (the hyperedges) to `Value`, with every column's value
+    /// `value`, and returns its handle. An appended column's value is `value`. Copies of the matrix
+    /// carry the map, copy-on-write. O(m).
     ///
-    /// Map contents take no part in equality, hashing or `Codable`: a decoded matrix has no maps.
+    /// Map contents take no part in equality, hashing or `Codable`. A decoded matrix has no maps.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: hyperedgeCount)
         return EdgeMap(_token: token, hint: hint)
     }
 
-    /// Attaches a map from the vertices (the rows) to `Value`, every vertex's value `value`
-    /// (LEMON's `NodeMap`), and returns its handle; an appended vertex's value is `value`. O(n).
+    /// Attaches a map from the vertices (the rows) to `Value`, with every vertex's value `value`,
+    /// and returns its handle. An appended vertex's value is `value`. O(n).
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: vertexCount)
         return VertexMap(_token: token, hint: hint)
     }
 
-    /// Detaches the hyperedge map and frees its storage; the handle traps from then on (on this
-    /// matrix).
+    /// Detaches the hyperedge map and frees its storage. Using the handle on this matrix traps
+    /// from then on.
     ///
     /// - Precondition: `map` is attached to this matrix.
     @inlinable
@@ -58,8 +58,8 @@ extension IncidenceMatrix: PropertyGraph {
 
     /// The value of the column at `position` in `map`. O(1).
     ///
-    /// - Precondition: `map` is attached to this matrix, and `position` is in `0..<hyperedgeCount`
-    ///   (the map's own bounds check traps otherwise).
+    /// - Precondition: `map` is attached to this matrix, and `position` is in
+    ///   `0..<hyperedgeCount`.
     @inlinable
     public subscript<Value>(_ map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value {
         get {
@@ -72,10 +72,9 @@ extension IncidenceMatrix: PropertyGraph {
         }
     }
 
-    /// The value of the vertex `position` in `map`: vertices are their own positions. O(1).
+    /// The value of the vertex `position` in `map`. Vertices are their own positions. O(1).
     ///
-    /// - Precondition: `map` is attached to this matrix, and `position` is in `0..<vertexCount`
-    ///   (the map's own bounds check traps otherwise).
+    /// - Precondition: `map` is attached to this matrix, and `position` is in `0..<vertexCount`.
     @inlinable
     public subscript<Value>(_ map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
         get {
@@ -88,7 +87,7 @@ extension IncidenceMatrix: PropertyGraph {
         }
     }
 
-    /// The value of `vertex` in `map`: `self[map, ofVertexAt: vertex]`. O(1).
+    /// The value of `vertex` in `map`, the same as `self[map, ofVertexAt: vertex]`. O(1).
     ///
     /// - Precondition: `map` is attached to this matrix, and `vertex` is in `0..<vertexCount`.
     @inlinable

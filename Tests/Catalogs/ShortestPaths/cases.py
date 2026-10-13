@@ -57,14 +57,14 @@ show_dij("MXG4 undirected + 0-1 w3", [], und(XG4 + [(0,1,3)]), [0])
 show_dij("MXG4 cutoff 2", [], und(XG4 + [(0,1,3)]), [0], cutoff=2)
 GG = [(u,v,w) for (u,v,w) in XG if (u,v) != ("x","u")]
 show_dij("XG undirected (u-x weight 2)", [], und(GG), ["s"])
-# Boost dijkstra example A..E = 0..4
+# Example graph, A..E = 0..4
 boost = [(0,2,1),(1,1,2),(1,3,1),(1,4,2),(2,1,7),(2,3,3),(3,4,1),(4,0,1),(4,1,1)]
 show_dij("Boost dijkstra-example", range(5), boost, [0], "written")
 show_dij("Boost dijkstra-example", range(5), boost, [0], "ascending")
-# JGraphT testShortestPathTree V1..V5 = 1..5
+# A tree, V1..V5 = 1..5
 jg = [(1,2,3.0),(2,4,1.0),(1,3,1.0),(3,2,1.0),(3,4,3.0)]
 show_dij("JGraphT shortest path tree", [1,2,3,4,5], jg, [1])
-# scipy directed_G
+# directed_G
 # numpy unused
 dG = [[0,3,3,0,0],[0,0,0,2,4],[0,0,0,0,0],[1,0,0,0,0],[2,0,0,2,0]]
 sc = [(i,j,dG[i][j]) for i in range(5) for j in range(5) if dG[i][j]]

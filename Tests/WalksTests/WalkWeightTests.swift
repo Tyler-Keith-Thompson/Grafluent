@@ -1,7 +1,6 @@
 // §9: weight(_:) adds the closure's value for each edge actually taken, from .zero, in stored
-// order. Unlike NetworkX's path_weight there is no guess between parallel edges. Expected values
-// come from the catalog's reference (ref.py, NetworkX 3.7 test_pathweight and JGraphT's
-// testReversePathDirected). Case IDs (WK-nnn) refer to the catalog; see README.md.
+// order, so parallel edges are never confused. Expected values come from the catalog's reference
+// (ref.py, NetworkX 3.7). Case IDs (WK-nnn) refer to the catalog; see README.md.
 
 import GraphProtocols
 import GrafluentTestSupport

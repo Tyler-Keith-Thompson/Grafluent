@@ -1,4 +1,4 @@
-// Cases added after the review: AdjacencyMatrix, the one representation with vertex indices but no
+// AdjacencyMatrix, the one representation with vertex indices but no
 // edge indices (its edge positions are not Ints), agrees with AdjacencyList on every measure, and
 // its diameter paths are paths of the matrix.
 

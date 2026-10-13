@@ -1,5 +1,5 @@
 // §A: the empty graph (both kinds), one vertex, four isolated vertices, lone self-loops, K₂ and one
-// arc: every entry point. m = 0 gives modularity 0 (NetworkX; igraph NaN); coverage and performance
+// arc: every entry point. m = 0 gives modularity 0; coverage and performance
 // are NaN where their ratio is 0/0; every algorithm returns singletons on an edgeless graph, and
 // self-loops never join two vertices (Louvain, greedy) and vote for nothing (label propagation).
 // Expected values are ref.py's model at full precision (the catalog cells are the same values

@@ -15,7 +15,7 @@ package func _maximalMatching(_ graph: _MatchingGraph) -> [Int] {
     return mateEdge
 }
 
-/// Hopcroft–Karp as NetworkX's `hopcroft_karp_matching` (the textbook procedure), iterative: each
+/// Hopcroft–Karp, iterative: each
 /// phase layers the left vertices by a breadth-first search from the free ones (in `left` order),
 /// then depth-first searches from each free left vertex, a row cursor per frame, descend into the
 /// mate one layer deeper; a vertex whose search fails leaves the phase. Phases run until none
@@ -33,8 +33,7 @@ package func _hopcroftKarpPhases(
     var queue = [Int](repeating: 0, count: left.count)
     var stack: [(vertex: Int, slot: Int)] = []
     while true {
-        // Breadth-first layering; `free` is the layer of the free right vertices (NetworkX's
-        // dist[None]).
+        // Breadth-first layering; `free` is the layer of the free right vertices.
         var head = 0, tail = 0
         for v in left {
             if mateSlot[v] < 0 {
@@ -252,30 +251,34 @@ extension Graph {
         Matching(self, listed: _listedVertices(), structure: structure, mateEdge: mateEdge, weights: nil, count: { $0 })
     }
 
-    /// A maximal matching (NetworkX `maximal_matching`): each edge in position order joins when
-    /// neither end is matched yet; self-loops are skipped. Maximal, not necessarily maximum.
-    /// O(n + m).
+    /// A maximal matching: each edge in position order joins when neither end is matched yet;
+    /// self-loops are skipped. Maximal, not necessarily maximum.
+    ///
+    /// - Complexity: O(n + m).
     @inlinable
     public func maximalMatching() -> Matching<Self, Int> {
         let structure = _matchingGraph()
         return _matching(structure, _maximalMatching(structure))
     }
 
-    /// A maximum-cardinality matching by Edmonds' blossom algorithm: for each still-free vertex in
-    /// vertex order, a breadth-first alternating search (rows in `incidentEdges` order) that
-    /// contracts blossoms and augments along the first free vertex found, skipping the vertices of
-    /// earlier failed searches. The matching returned is
-    /// this procedure's, a documented function of the vertex order and rows. Parallel edges: the
-    /// copy met first. Vertices of a search that fails are skipped by later searches. O(n · m · log n).
+    /// A maximum-cardinality matching by Edmonds' blossom algorithm.
+    ///
+    /// For each still-free vertex in vertex order, a breadth-first alternating search (rows in
+    /// `incidentEdges` order) contracts blossoms and augments along the first free vertex found.
+    /// Vertices of a search that fails are skipped by later searches. The result is determined by
+    /// the vertex order and the rows; among parallel edges, the copy met first is used.
+    ///
+    /// - Complexity: O(n · m · log n).
     @inlinable
     public func maximumMatching() -> Matching<Self, Int> {
         let structure = _matchingGraph()
         return _matching(structure, _edmonds(structure))
     }
 
-    /// A maximum-cardinality matching of a bipartite graph by Hopcroft–Karp (NetworkX
-    /// `hopcroft_karp_matching`, the same matching), left vertices in `bipartition.left` order.
-    /// O(m √n).
+    /// A maximum-cardinality matching of a bipartite graph by Hopcroft–Karp, left vertices in
+    /// `bipartition.left` order.
+    ///
+    /// - Complexity: O(m √n).
     ///
     /// - Precondition: `bipartition` is this graph's (`bipartition()`): the same vertices, every
     ///   edge across.
@@ -293,15 +296,19 @@ extension Graph {
         return _matching(structure, _hopcroftKarp(structure, left: left, isLeft: isLeft))
     }
 
-    /// Whether `edges` (positions) is a matching (NetworkX `is_matching`): no position twice, no
-    /// self-loop, no two edges sharing an end. O(n + |edges|) with edge indices, O(n + m) without.
+    /// Whether `edges` (positions) is a matching: no position twice, no self-loop, no two edges
+    /// sharing an end.
+    ///
+    /// - Complexity: O(n + |edges|) with edge indices, O(n + m) without.
     ///
     /// - Precondition: every element is a position of the graph's `edges`.
     @inlinable
     public func isMatching(_ edges: some Sequence<Edges.Index>) -> Bool { _matchedVertices(edges) != nil }
 
-    /// Whether `edges` is a matching with no edge (other than a self-loop) between two free vertices
-    /// (NetworkX `is_maximal_matching`). O(n + m).
+    /// Whether `edges` is a matching with no edge (other than a self-loop) between two free
+    /// vertices.
+    ///
+    /// - Complexity: O(n + m).
     ///
     /// - Precondition: every element is a position of the graph's `edges`.
     @inlinable
@@ -315,7 +322,7 @@ extension Graph {
         return true
     }
 
-    /// Whether `edges` is a matching that covers every vertex (NetworkX `is_perfect_matching`).
+    /// Whether `edges` is a matching that covers every vertex.
     ///
     /// - Precondition: every element is a position of the graph's `edges`.
     @inlinable
@@ -361,8 +368,9 @@ extension Graph {
 }
 
 extension BipartiteGraph {
-    /// A maximum-cardinality matching by Hopcroft–Karp, left vertices in `left` order (NetworkX
-    /// `hopcroft_karp_matching` on the same sides). O(m √n).
+    /// A maximum-cardinality matching by Hopcroft–Karp, left vertices in `left` order.
+    ///
+    /// - Complexity: O(m √n).
     @inlinable
     public func maximumBipartiteMatching() -> Matching<Self, Int> {
         let structure = _matchingGraph()

@@ -57,7 +57,7 @@ func _wheelPairs(_ n: Int, directed: Bool) -> [DirectedEdge<Int>] {
 }
 
 extension _GraphConstruction {
-    /// The path Pₙ on `0..<vertexCount`: edges i–(i + 1), in order (NetworkX `path_graph`).
+    /// The path Pₙ on `0..<vertexCount`: edges i–(i + 1), in order.
     /// max(n − 1, 0) edges. O(n). As a `Tree`, `Tree.path(vertexCount:)`.
     ///
     /// - Precondition: `vertexCount ≥ 0`.
@@ -67,18 +67,16 @@ extension _GraphConstruction {
     }
 
     /// The cycle Cₙ on `0..<vertexCount`: edges i–(i + 1 mod n), sorted, so the closing edge
-    /// `UndirectedEdge(0, n − 1)` is second (NetworkX `cycle_graph`). n edges. O(n).
+    /// `UndirectedEdge(0, n − 1)` is second. n edges. O(n).
     ///
-    /// - Precondition: `vertexCount ≥ 3`. C₁ and C₂ would need a self-loop or a parallel edge;
-    ///   NetworkX returns those, and we trap.
+    /// - Precondition: `vertexCount ≥ 3`. C₁ and C₂ would need a self-loop or a parallel edge.
     @inlinable
     public static func cycle(vertexCount n: Int) -> Self {
         Self(_vertexCount: n, sortedEdges: _cyclePairs(n, directed: false).lazy.map(_undirected), _ConstructionToken())
     }
 
-    /// The star on `vertexCount` vertices: hub 0 and leaves `1..<n`, edges 0–i. Counts every
-    /// vertex, as igraph's `Star` does (NetworkX's `star_graph(n)` has n + 1 vertices). n − 1 edges.
-    /// O(n). As a `Tree`, `Tree.star(vertexCount:)`.
+    /// The star on `vertexCount` vertices: hub 0 and leaves `1..<n`, edges 0–i. `vertexCount`
+    /// counts the hub. n − 1 edges. O(n). As a `Tree`, `Tree.star(vertexCount:)`.
     ///
     /// - Precondition: `vertexCount ≥ 1`, for the hub.
     @inlinable
@@ -87,7 +85,7 @@ extension _GraphConstruction {
     }
 
     /// The wheel on `vertexCount` vertices: hub 0, the spokes 0–i, and the rim cycle
-    /// 1–2–…–(n − 1)–1 (NetworkX `wheel_graph`). 2(n − 1) edges, sorted. O(n).
+    /// 1–2–…–(n − 1)–1. 2(n − 1) edges, sorted. O(n).
     ///
     /// - Precondition: `vertexCount ≥ 4`, so the rim is a cycle.
     @inlinable
@@ -97,8 +95,7 @@ extension _GraphConstruction {
 }
 
 extension _DirectedGraphConstruction {
-    /// The directed path on `0..<vertexCount`: arcs i → i + 1 (NetworkX `path_graph(n,
-    /// create_using=nx.DiGraph)`). O(n).
+    /// The directed path on `0..<vertexCount`: arcs i → i + 1. O(n).
     ///
     /// - Precondition: `vertexCount ≥ 0`.
     @inlinable
@@ -123,7 +120,7 @@ extension _DirectedGraphConstruction {
     }
 
     /// The directed wheel: the out-star from hub 0 and the rim cycle 1 → 2 → … → n − 1 → 1, in
-    /// row-major order (the star and the cycle composed; NetworkX has no directed wheel). O(n).
+    /// row-major order. O(n).
     ///
     /// - Precondition: `vertexCount ≥ 4`.
     @inlinable
@@ -133,8 +130,8 @@ extension _DirectedGraphConstruction {
 }
 
 extension Tree where Vertex == Int {
-    /// The path on `0..<vertexCount` as a tree: edge k is k–(k + 1). Built on the dense layout
-    /// with no vertex dictionary, as `Tree(pruferSequence:)` is. O(n).
+    /// The path on `0..<vertexCount` as a tree: edge k is k–(k + 1). Uses the dense layout with
+    /// no vertex dictionary. O(n).
     ///
     /// - Precondition: `vertexCount ≥ 1`: a tree is never empty.
     @inlinable

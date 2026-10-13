@@ -5,24 +5,25 @@ import GraphProtocols
 /// The vertex set is any set of `Hashable` values. The edge set is a set of ordered pairs of
 /// vertices: self-loops are allowed, parallel edges are not.
 ///
-/// Vertices are kept in dense slots, with a dictionary from vertex to slot (none while the vertices
-/// are the `Int`s `0..<n` in order, each its own slot). Edges are kept in an
-/// array, so an edge's position in `edges` is an `Int` in `0..<edgeCount`. A weight or other value
-/// per edge or vertex lives in a map attached to the graph (`addEdgeMap(default:)`,
-/// `PropertyGraph`), which every mutation keeps in step. Each slot has a row of the slots of its out-neighbors, a parallel
-/// row of those edges' positions, and a row of its in-neighbors; the rows of each kind share one
-/// array, so the graph makes a constant number of allocations however many vertices it has
-/// (amortized, like `Array`), and copying it copies a constant number of buffers. A hash table from
-/// slot pair to position (open addressing with a multiplicative hash, not `Dictionary`'s SipHash)
-/// answers `contains(edge:)` in O(1) expected. A graph built in bulk from sorted edges (a
-/// condensation, a line graph, a named graph) builds that table on its first lookup or mutation,
-/// in O(m), so a result that is only traversed never pays for it.
+/// Vertices are kept in dense slots, with a dictionary from vertex to slot. While the vertices are
+/// the `Int`s `0..<n` in order, each is its own slot and there is no dictionary. Edges are kept in
+/// an array, so an edge's position in `edges` is an `Int` in `0..<edgeCount`. A weight or other
+/// value per edge or vertex lives in a map attached to the graph (`addEdgeMap(default:)`,
+/// `PropertyGraph`), which every mutation keeps in step.
 ///
-/// Removing an edge is O(1): the last edge moves into its position, and the last entry of each row
-/// into the hole. Removing a vertex costs O(degree) and moves the last slot into its place. So
-/// vertex order, edge order and edge positions are unspecified and may change after a removal;
-/// attached maps move their values with them. With maps attached, each insertion or removal also
-/// appends or moves one value per map.
+/// Each slot has a row of the slots of its out-neighbors, a parallel row of those edges'
+/// positions, and a row of its in-neighbors. The rows of each kind share one array, so the graph
+/// makes an amortized constant number of allocations however many vertices it has, and copying it
+/// copies a constant number of buffers. A hash table from slot pair to position answers
+/// `contains(edge:)` in O(1) expected. A graph built in bulk from sorted edges (a condensation, a
+/// line graph, a named graph) builds that table in O(m) on its first lookup or mutation, so a
+/// result that is only traversed never pays for it.
+///
+/// Removing an edge is O(1). The last edge moves into its position, and the last entry of each row
+/// into the hole. Removing a vertex costs O(degree) and moves the last slot into its place. Vertex
+/// order, edge order and edge positions are therefore unspecified and may change after a removal.
+/// Attached maps move their values with them, and each insertion or removal appends or moves one
+/// value per map.
 @frozen
 public struct AdjacencyList<Vertex: Hashable> {
     /// The vertex in each slot.
@@ -262,9 +263,8 @@ extension AdjacencyList {
         return _out.count(ofRow: slot) + _in.count(ofRow: slot)
     }
 
-    // The `checked:` lookups (README Principle 6): they throw `VertexNotFound` for a vertex that
-    // is not in the graph, where the trapping spellings are the fast path (Rust's `checked_*`).
-    // Each is one hash, the same as its trapping spelling; `try?` gives an Optional.
+    // The `checked:` lookups throw `VertexNotFound` for a vertex that is not in the graph. Each is
+    // one hash, the same as its trapping spelling.
 
     /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1)
     /// to make.
@@ -399,13 +399,11 @@ extension AdjacencyList {
         return (_insertEdge(slots: source, target) == count, member)
     }
 
-    /// Inserts `edge` only when both endpoints are already vertices; otherwise throws and changes
-    /// nothing. O(1) expected.
+    /// Inserts `edge` only when both endpoints are already vertices, and otherwise throws and
+    /// changes nothing. O(1) expected.
     ///
-    /// `insert(edge:)` inserts a missing endpoint (NetworkX's `add_edge`). Requiring the endpoints
-    /// is JGraphT's `addEdge` precondition (it throws `IllegalArgumentException`) and petgraph's
-    /// `try_add_edge` (`GraphError::NodeMissed`); this library spells it with the `checked:` label
-    /// of the lookups (README Principle 6), for callers whose vertices may come from another graph.
+    /// Use it when the vertices may come from another graph. `insert(edge:)` inserts a missing
+    /// endpoint instead.
     ///
     /// - Returns: As `insert(edge:)`.
     /// - Throws: `VertexNotFound` when either endpoint is not a vertex.
@@ -419,7 +417,7 @@ extension AdjacencyList {
     }
 
     /// Inserts the edge from slot `source` to slot `target` unless it is already an edge, and
-    /// returns its position: the new one, `edgeCount` before the call, or the existing one.
+    /// returns its position. A new edge's position is `edgeCount` before the call.
     @inlinable
     @discardableResult
     internal mutating func _insertEdge(slots source: Int, _ target: Int) -> Int {
@@ -530,7 +528,7 @@ extension AdjacencyList {
 
     /// Removes the edge at `position` from the map, from both rows and from the edge array,
     /// moving each row's last entry and the last edge into the holes and recording where they went.
-    /// The edge maps are the caller's to update: after advancing the generation, owned.
+    /// The caller updates the edge maps after advancing the generation, which makes them unique.
     @inlinable
     internal mutating func _detachFromRows(_ position: Int) {
         _takeEdgeTable()
@@ -640,9 +638,9 @@ extension AdjacencyList {
     public var edges: Edges { Edges(vertices: _vertices, records: _records) }
 
     // A view holds the storage it reads, so mutating the graph while a view is alive copies that
-    // storage once; `Array(view)` first avoids it.
+    // storage once. Taking `Array(view)` first avoids the copy.
 
-    /// The vertices of a graph. A value: unaffected by later changes to the graph.
+    /// The vertices of a graph, as a value that later changes to the graph do not affect.
     @frozen
     public struct Vertices: RandomAccessCollection {
         @usableFromInline let base: ContiguousArray<Vertex>
@@ -655,8 +653,8 @@ extension AdjacencyList {
         @inlinable public subscript(position: Int) -> Vertex { base[position] }
     }
 
-    /// A neighborhood: out- or in-neighbors here, an undirected graph's neighbors in
-    /// `UndirectedAdjacencyList`. A value: unaffected by later changes to the graph.
+    /// A neighborhood, as a value that later changes to the graph do not affect. It holds out- or
+    /// in-neighbors here, and an undirected graph's neighbors in `UndirectedAdjacencyList`.
     @frozen
     public struct Neighbors: RandomAccessCollection {
         @usableFromInline let vertices: ContiguousArray<Vertex>
@@ -678,8 +676,8 @@ extension AdjacencyList {
         }
     }
 
-    /// The edges of a graph, at positions `0..<edgeCount`. A value: unaffected by later changes to
-    /// the graph.
+    /// The edges of a graph at positions `0..<edgeCount`, as a value that later changes to the
+    /// graph do not affect.
     @frozen
     public struct Edges: RandomAccessCollection {
         @usableFromInline let vertices: ContiguousArray<Vertex>
@@ -816,8 +814,8 @@ extension AdjacencyList {
 // MARK: - Descriptions
 
 extension AdjacencyList: CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable {
-    /// The vertices and the edges, at most 16 of each: `[0, 1, 2]; [0→1, 1→2]`. The same form as
-    /// every other representation, so equal graphs print alike.
+    /// The vertices and the edges, at most 16 of each, as in `[0, 1, 2]; [0→1, 1→2]`. Every
+    /// representation uses this form.
     public var description: String {
         GraphDescription.graph(vertices: _vertices, vertexCount: vertexCount, edges: edges, edgeCount: edgeCount)
     }
@@ -840,8 +838,8 @@ extension AdjacencyList: CustomStringConvertible, CustomDebugStringConvertible, 
 // MARK: - DirectedGraph
 
 extension AdjacencyList: BidirectionalDirectedGraph {
-    /// The current generation (see `GraphGeneration`): every insertion and removal starts a new
-    /// one; reserving capacity and attaching or writing maps do not.
+    /// The current generation (see `GraphGeneration`). Every insertion and removal starts a new
+    /// one. Reserving capacity and attaching or writing maps do not.
     @inlinable
     public var generation: GraphGeneration { _generation.generation }
 
@@ -871,7 +869,7 @@ extension AdjacencyList: BidirectionalDirectedGraph {
     @inlinable
     public func target(ofEdgeAt position: Int) -> Vertex { _vertices[_records[position].target] }
 
-    /// The vertices' slots: dense indices `0..<vertexCount`, valid until the next vertex removal.
+    /// The vertices' slots, dense indices `0..<vertexCount`, valid until the next vertex removal.
     @inlinable
     public var vertexIndexBound: Int? { _vertices.count }
 
@@ -917,7 +915,7 @@ extension AdjacencyList: BidirectionalDirectedGraph {
     @inlinable
     public func targetIndex(ofEdgeAt position: Int) -> Int { _records[position].target }
 
-    /// Edge positions are dense: `0..<edgeCount`, valid until the next removal.
+    /// Edge positions are dense, `0..<edgeCount`, and valid until the next removal.
     @inlinable
     public var edgeIndexBound: Int? { _records.count }
 
@@ -940,8 +938,8 @@ extension AdjacencyList: BidirectionalDirectedGraph {
 }
 
 extension AdjacencyList {
-    /// A copy of any directed graph: its vertices, including isolated ones, and its edges, with
-    /// parallel edges collapsed. Converting an `AdjacencyList` returns it unchanged.
+    /// A copy of any directed graph, with its vertices, including isolated ones, and its edges.
+    /// Parallel edges collapse. Converting an `AdjacencyList` returns it unchanged.
     @inlinable
     public init(_ graph: some DirectedGraph<Vertex>) {
         if let same = graph as? AdjacencyList {
@@ -973,7 +971,8 @@ extension AdjacencyList: MutableDirectedGraph {
     @inlinable public func _targetKey(ofEdgeAt position: Int) -> Int { _records[position].target }
     @inlinable public mutating func _insertVertex(_ vertex: Vertex) -> Int { _appendSlot(for: vertex) }
 
-    /// The existing edge's position when the edge is already present: the graph is simple.
+    /// The existing edge's position when the edge is already present, because the graph is
+    /// simple.
     @inlinable
     public mutating func _insertEdge(fromKey source: Int, toKey target: Int) -> Int {
         _insertEdge(slots: source, target)

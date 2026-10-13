@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman heuristics.
+# Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman tours (exact and heuristic).
 swift_library(
     name = "Tours",
     srcs = glob(["**/*.swift"]),

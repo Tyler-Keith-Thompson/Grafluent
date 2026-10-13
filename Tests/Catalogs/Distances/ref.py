@@ -6,7 +6,7 @@ Run:  uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 pyth
       ... python3 ref.py --emit DI-101  print the computed value of one case
 
 Every value is computed by the model of api.md written here in index space, the way the Swift
-implementation will run it (rows in `outEdges` / `incidentEdges` order, a self-loop twice in an
+implementation runs it (rows in `outEdges` / `incidentEdges` order, a self-loop twice in an
 undirected row; breadth-first search or Dijkstra from every vertex; Takes–Kosters bounding for
 the undirected unweighted extrema), and then checked independently:
 
@@ -17,12 +17,12 @@ the undirected unweighted extrema), and then checked independently:
   five modes (diameter, radius, center, periphery, eccentricities);
 * NetworkX 3.7 (MultiGraph / MultiDiGraph with nodes in `vertices` order and weight attribute
   "w"): eccentricity (all, and per vertex), radius, diameter, center, periphery, each with
-  usebounds=True as well on undirected graphs, centroid (3.7's name for barycenter),
+  usebounds=True as well on undirected graphs, centroid,
   wiener_index, average_shortest_path_length, density, shortest_path_length; and that NetworkX
   raises exactly where api.md answers nil (not connected) or where it raises on the null graph;
 * scipy 1.18.1 `scipy.sparse.csgraph.shortest_path` (parallel edges reduced to the lightest by
-  hand: a COO → CSR conversion would add them), whose infinite entries give the JGraphT / Boost
-  semantics api.md adopts for unreachable vertices (nil = infinity, center/periphery by equality);
+  hand: a COO → CSR conversion would add them), whose infinite entries give the
+  semantics api.md uses for unreachable vertices (nil = infinity, center/periphery by equality);
 * trees: a case whose Notes cite `= TA-nnn` must carry exactly the value of that row of
   ../TreeAlgorithms/cases.md (same source, same op after `Tree : `).
 

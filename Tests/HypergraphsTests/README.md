@@ -5,16 +5,8 @@
 set. The two protocols live in `GraphProtocols` and have no shared parent. It also holds the
 algorithms written once on each protocol, and the lazy views `IncidenceGraphView` (a `Graph`) and
 `DirectedIncidenceGraphView` (a `BidirectionalDirectedGraph`), through which the graph algorithms
-reach a hypergraph. The tests come from the proposed API in
-[`Tests/Catalogs/Hypergraphs/`](../Catalogs/Hypergraphs/) (`api.md`, phase 1), with every open
-question decided as recommended:
-
-- the representations are named after their storage;
-- `size(ofHyperedgeAt:)` is undirected only;
-- there is no `Hyperedge` value;
-- the checked insert is spelled `insert(checked:targets:)`;
-- s-components are over hyperedges;
-- BF-connection and removal are deferred.
+reach a hypergraph. The API is described in
+[`Tests/Catalogs/Hypergraphs/api.md`](../Catalogs/Hypergraphs/api.md).
 
 The suite uses only the public API, and each test is self-contained. The only shared material is
 the seeded generator and the tags in `GrafluentTestSupport`.
@@ -117,8 +109,8 @@ checked.
   - Also: `IncidenceList(_:)` from a directed graph (B- and F-connection there are reachability),
     Codable round trips, copy-on-write, the resets and capacity, `init(_:)` across conformers, and
     Sendable.
-- **Edge cases** (`HypergraphEdgeCaseTests.swift`), one behavior each, written for the planted
-  bugs the rest let through (`scripts/mutants/Hypergraphs.py`):
+- **Edge cases** (`HypergraphEdgeCaseTests.swift`), one behavior each, covering mutants of
+  `scripts/mutants/Hypergraphs.py` that the other tests do not kill:
   - a hyperedge of 40 members past the builder's insertion-sort limit, unsorted and repeated;
   - copies of conformers without vertex indices;
   - re-inserting a vertex adds no row; `hyperedgeIndex(of:)` traps out of range;
@@ -151,8 +143,7 @@ checked.
   elements, `removeAll` emptying the maps and keeping them attached, several maps and removed
   ones, copy-on-write (two copies keep their own values whichever mutates first: every mutation
   on one, then every mutation on the other), reference values, `reversed` carrying the maps, and
-  equality, hashing and
-  `Codable` ignoring them. The traps (out of range, a non-vertex, a handle of another hypergraph or
+  equality, hashing and `Codable` ignoring them. The traps (out of range, a non-vertex, a handle of another hypergraph or
   of a removed map) are in `extra_traps.swift`.
 - **Maps against a model** (`HypergraphMapPropertyTests.swift`, swift-property-based): random
   insertions, checked insertions, writes, reversals and resets against dictionaries keyed by vertex
@@ -169,36 +160,5 @@ checked.
   - 10⁴ counted vertices whose whole-hypergraph algorithms hash nothing.
 
 The suite does not count hashes in `cliqueExpansion()`. Building its `UndirectedAdjacencyList<Vertex>`
-hashes each vertex once (api.md), which the benchmark target checks at scale.
+hashes each vertex once, which the benchmark target checks at scale.
 
-## Planted bugs
-
-The suite was checked against a Swift model of the API in a scratch copy of the workspace, built
-through Bazel, with one bug planted at a time. It caught every one:
-
-| Planted bug | Caught by |
-|---|---|
-| Members kept in first-appearance order, not vertex-index order | HG-003 and 17 more rows, properties, Codable |
-| `insert(checked:)` dropping a missing member and inserting the rest | HG-040, properties |
-| `contains(hyperedge:)` of the empty set always false | HG-008, HG-019 and every state check |
-| `incidentHyperedges(of:)` looking the vertex up twice | hash law, HG-022 |
-| `incidentHyperedges(ofIndex:)` read through a vertex lookup | hash law, HG-022, stress |
-| A vertex listed as its own neighbor | HG-009, HG-024, properties |
-| `s` read as "more than s" in the line graph and s-components | HG-065 – HG-068, HG-074 – HG-077 |
-| `isConnected` true with no vertices | HG-071 |
-| `isUniform(size:)` ignoring singletons (XGI's rule) | HG-048, properties |
-| The dual listing its vertices in reverse | HG-055 – HG-058, properties |
-| The incidence view listing a hyperedge's incidences in reverse | HG-059 – HG-061, conformance |
-| Equality ignoring the member sets | HG-083 |
-| A hash that depends on hyperedge order | HG-079, HG-084, properties |
-| Decoding rows that are not strictly ascending | HG-093, HG-094, DH-055 |
-| The description eliding after 17 elements, not 16 | HG-088 |
-| `cliqueExpansion()` leaving out isolated vertices | HG-062, properties |
-| B-Visit firing a hyperedge once any source is reached | DH-031, DH-032, the fixpoint property, stress |
-| `fConnectedVertices(to:)` visiting forward | DH-035 – DH-037, the fixpoint property, stress |
-| The directed clique expansion keeping a vertex on both sides as a self-loop | DH-041, properties, conformance |
-| `reversed` swapping the rows but not the stars | DH-022, properties, stress |
-| Directed `degree(of:)` counting an overlap once | DH-005, DH-009 and every directed state check |
-| Strong components stepping from a hyperedge back to its sources | DH-028, stress |
-| `insert(sources:targets:)` numbering the targets first | DH-002 and 15 more rows |
-| The directed dual swapping sources and targets | DH-023, properties |

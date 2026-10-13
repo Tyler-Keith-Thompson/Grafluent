@@ -1,12 +1,12 @@
 // Named directed graphs with independently known properties.
 //
 // Graph definitions and expected values are mathematical facts, restated here from the test
-// suites where they were found. Each fixture cites its origin. Expected values were re-derived
-// for simple directed graphs (no parallel edges) wherever the original graph had parallel edges.
+// suites where they were found. Each fixture cites its origin in `source`. Expected values are
+// for simple directed graphs, with parallel edges collapsed.
 //
 // The graph itself is written with `DirectedGraphBuilder`. The builder only collects the edges and
-// vertices as written; the expected values beside it were computed by hand or taken from another
-// library, never from code under test. GrafluentTestSupportTests checks that the two agree.
+// vertices as written; the expected values beside it were computed by hand or taken from the
+// cited source, never from code under test. GrafluentTestSupportTests checks that the two agree.
 
 import GraphProtocols
 import Testing
@@ -194,8 +194,7 @@ extension DirectedFixture where Vertex == Int {
         DirectedEdge(from: 4, to: 1)
     }
 
-    /// 2→3 and 5→5 are written twice and collapse, so the degrees differ from JGraphT's
-    /// multigraph expectations; these were re-derived.
+    /// 2→3 and 5→5 are written twice and collapse.
     public static let selfLoopsAndDuplicates = DirectedFixture<Int>(
         "self-loops and duplicate edges", source: "JGraphT IncomingOutgoingEdgesTest graph, re-derived without parallel edges",
         vertexCount: 5, edgeCount: 6,
@@ -310,8 +309,7 @@ extension DirectedFixture where Vertex == Int {
         DirectedEdge(from: 5, to: 0)
     }
 
-    /// The 24-vertex, 43-edge digraph Boost.Graph uses to check adjacency_matrix against
-    /// adjacency_list. Vertex 7 has no predecessors and vertex 0 no successors.
+    /// A 24-vertex, 43-edge digraph. Vertex 7 has no predecessors and vertex 0 no successors.
     public static let boost24 = DirectedFixture<Int>(
         "Boost.Graph 24-vertex test digraph", source: "Boost.Graph test/adjacency_matrix_test.cpp",
         vertexCount: 24, edgeCount: 43,
@@ -394,8 +392,7 @@ extension DirectedFixture where Vertex == Int {
         DirectedEdge(from: 1, to: 4)
     }
 
-    /// JGraphT's CSV matrix fixture, renumbered from 1…5 to 0…4. Vertex 4 points at every vertex,
-    /// itself included.
+    /// Five vertices numbered 0…4. Vertex 4 points at every vertex, itself included.
     public static let jgraphtMatrixCSV = DirectedFixture<Int>(
         "JGraphT CSV matrix graph", source: "JGraphT CSVExporterTest / CSVImporterTest, re-derived and renumbered from 0",
         vertexCount: 5, edgeCount: 10,
@@ -586,7 +583,7 @@ extension DirectedFixture where Vertex == String {
         "K"
     }
 
-    /// Acyclic; the original's edge weights are omitted.
+    /// Acyclic, without edge weights.
     public static let petgraphDAG = DirectedFixture<String>(
         "petgraph 7-vertex DAG", source: "petgraph tests/graph.rs",
         vertexCount: 7, edgeCount: 11,

@@ -64,12 +64,10 @@ extension DirectedGraph {
     /// The nontrivial strongly connected components: the ones that contain a cycle, which are the
     /// components of two or more vertices and the single vertices with a self-loop. A vertex is in
     /// one exactly when it lies on a cycle, and two vertices share one exactly when a cycle passes
-    /// through both. "Nontrivial" is the model-checking term (a strongly connected component with
-    /// at least one edge, as in Büchi-automaton emptiness checks); this is NetworkX's
-    /// `strongly_connected_components` filtered to `len(c) > 1 or G.has_edge(v, v)`.
+    /// through both.
     ///
-    /// Tarjan's algorithm, one pass, O(V + E): a self-loop is noticed while the search reads the
-    /// vertex's successors, so a single-vertex component costs nothing more.
+    /// Tarjan's algorithm, one pass: a self-loop is noticed while the search reads the vertex's
+    /// successors.
     ///
     /// The components are those of `stronglyConnectedComponents()` without the trivial ones, in the
     /// same order, a reverse topological order: every path between two of them goes from a later
@@ -85,6 +83,8 @@ extension DirectedGraph {
     /// let inInsertionOrder = graph.nontrivialStronglyConnectedComponents()
     ///     .sorted { graph.vertexPosition(of: $0.first!) < graph.vertexPosition(of: $1.first!) }
     /// ```
+    ///
+    /// - Complexity: O(V + E).
     @inlinable
     public func nontrivialStronglyConnectedComponents() -> [ArraySlice<Vertex>] {
         let vertices = _DenseVertices(self)

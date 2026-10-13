@@ -1,5 +1,5 @@
 /// Counting sort of the indices `0..<labels.count` by label (CLRS 8.2), stable: group `g` is
-/// `order[offsets[g] ..< offsets[g + 1]]`, its indices increasing. The partitions, colourings
+/// `order[offsets[g] ..< offsets[g + 1]]`, its indices increasing. The partitions, colorings
 /// and frontiers that store their members flat, group by group, are built from it. O(n + count).
 ///
 /// - Precondition: every label is in `0..<count`.

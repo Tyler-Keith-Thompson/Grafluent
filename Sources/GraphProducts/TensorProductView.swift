@@ -1,9 +1,8 @@
 import GraphProtocols
 
 /// The tensor product G × H of two directed graphs, as a lazy view: an arc (g, h) → (g′, h′) for
-/// every arc g → g′ of G and every arc h → h′ of H (NetworkX's `tensor_product`). Also called the
-/// direct, categorical or Kronecker product: its adjacency matrix is the Kronecker product of the
-/// factors'. O(1).
+/// every arc g → g′ of G and every arc h → h′ of H. Also called the direct, categorical or
+/// Kronecker product: its adjacency matrix is the Kronecker product of the factors'. O(1).
 ///
 /// - Precondition: both factors have vertex indices, and |V(G)|·|V(H)| fits in an `Int`.
 @inlinable

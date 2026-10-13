@@ -1,10 +1,10 @@
 import GraphProtocols
 
-// `AdjacencyList`'s attached maps (`PropertyGraph`; the storage is GraphProtocols'
-// `_AttachedMaps`). Both kinds are dense, one value per slot and one per edge position, and move
-// as the graph's own arrays do: an insertion appends the default, and a removal moves the last
-// value into the hole (`swapRemove`), as the last slot or edge moves. So `values(of:)` is a
-// plain array read by vertex index or edge position.
+// `AdjacencyList`'s attached maps, stored in GraphProtocols' `_AttachedMaps`. Both kinds are dense,
+// one value per slot and one per edge position, and move as the graph's own arrays do. An insertion
+// appends the default, and a removal moves the last value into the hole (`swapRemove`), as the last
+// slot or edge moves. `values(of:)` is therefore a plain array read by vertex index or edge
+// position.
 
 extension AdjacencyList: PropertyGraph {
     public typealias EdgePosition = Int
@@ -12,27 +12,28 @@ extension AdjacencyList: PropertyGraph {
     @inlinable public static var _vertexMapLayout: _MapLayout { .dense }
     @inlinable public static var _edgeMapLayout: _MapLayout { .dense }
 
-    /// Attaches a map from edge positions to `Value`, every edge's value `value` (LEMON's
-    /// `ArcMap`), and returns its handle. Every mutation keeps it in step: a new edge has
-    /// `value`, and when a removal moves the last edge into the removed one's position, its value
-    /// moves too. Copies of the graph carry the map, copy-on-write. O(`edgeCount`).
+    /// Attaches a map from edge positions to `Value`, with every edge's value `value`, and returns
+    /// its handle. Every mutation keeps it in step. A new edge has `value`, and when a removal
+    /// moves the last edge into the removed one's position, its value moves too. Copies of the
+    /// graph carry the map, copy-on-write. O(`edgeCount`).
     ///
-    /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps.
+    /// Map contents take no part in equality, hashing or `Codable`. A decoded graph has no maps.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _records.count, capacity: _records.capacity)
         return EdgeMap(_token: token, hint: hint)
     }
 
-    /// Attaches a map from vertices to `Value`, every vertex's value `value` (LEMON's
-    /// `NodeMap`), and returns its handle; it moves with the vertices' slots. O(`vertexCount`).
+    /// Attaches a map from vertices to `Value`, with every vertex's value `value`, and returns its
+    /// handle. The map moves with the vertices' slots. O(`vertexCount`).
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _vertices.count, capacity: _vertices.capacity)
         return VertexMap(_token: token, hint: hint)
     }
 
-    /// Detaches the edge map and frees its storage; the handle traps from then on (on this graph).
+    /// Detaches the edge map and frees its storage. Using the handle on this graph traps from then
+    /// on.
     ///
     /// - Precondition: `map` is attached to this graph.
     @inlinable
@@ -139,8 +140,7 @@ extension AdjacencyList: PropertyGraph {
         }
     }
 
-    /// A snapshot of `map`'s values by edge position: one array load a read, the same as an array
-    /// of `edgeCount` values beside the graph. O(1).
+    /// A snapshot of `map`'s values by edge position. Each read is one array load. O(1).
     ///
     /// - Precondition: `map` is attached to this graph.
     @inlinable

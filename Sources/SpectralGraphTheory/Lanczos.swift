@@ -1,10 +1,10 @@
 // The largest eigenpair of a symmetric operator by thick-restart Lanczos (Wu and Simon,
 // "Thick-restart Lanczos method for large symmetric eigenvalue problems", SIAM J. Matrix Anal.
-// Appl. 22(2), 2000), mathematically ARPACK's implicitly restarted Lanczos (Lehoucq, Sorensen and
-// Yang, 1998) that SciPy's `eigsh` and igraph wrap. Each new vector is orthogonalized against the
-// whole basis by classical Gram–Schmidt, with a second pass only when the first removed most of
-// it (the DGKS criterion: Daniel, Gragg, Kaufman and Stewart, "Reorthogonalization and stable
-// algorithms for updating the Gram–Schmidt QR factorization", Math. Comp. 30(136), 1976).
+// Appl. 22(2), 2000), mathematically equivalent to implicitly restarted Lanczos (Lehoucq, Sorensen
+// and Yang, 1998). Each new vector is orthogonalized against the whole basis by classical
+// Gram–Schmidt, with a second pass only when the first removed most of it (the DGKS criterion:
+// Daniel, Gragg, Kaufman and Stewart, "Reorthogonalization and stable algorithms for updating the
+// Gram–Schmidt QR factorization", Math. Comp. 30(136), 1976).
 
 import GraphProtocols
 
@@ -309,8 +309,7 @@ func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filter
     }
 }
 
-/// The basis size and the number of Ritz vectors kept at each restart, set by measurement (the
-/// benchmark target): 30 and 12.
+/// The basis size and the number of Ritz vectors kept at each restart: 30 and 12.
 @usableFromInline let _lanczosBasisSize = 30
 @usableFromInline let _lanczosKept = 12
 /// The top Ritz pair is tested every this many Lanczos steps.

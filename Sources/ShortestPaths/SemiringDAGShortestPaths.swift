@@ -3,7 +3,7 @@ import GraphProtocols
 import Semirings
 
 /// How `_SemiringDAGPaths` combines a candidate into a distance: a static policy, so the
-/// combination specializes into the loop (a stored closure measured 1.17–1.69× the `W` engine).
+/// combination specializes into the loop instead of calling a stored closure.
 @usableFromInline
 protocol _SemiringDAGCombine {
     associatedtype W: Semiring
@@ -186,7 +186,7 @@ public struct ShortestDistances<G: DirectedGraph, Distance> {
     }
 
     /// `distance(to: vertex)`, throwing instead of trapping when `vertex` is not a vertex of the
-    /// graph (README Principle 6): `.zero` still means no path reaches it.
+    /// graph: `.zero` still means no path reaches it.
     ///
     /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
     @inlinable
@@ -199,8 +199,7 @@ extension ShortestDistances: Sendable where G: Sendable, G.Vertex: Sendable, Dis
 
 extension DirectedGraph {
     /// Best paths from `source` over a selective semiring in a graph with no cycle reachable from
-    /// it (Boost's `dag_shortest_paths` over any selective semiring: widest paths in a DAG,
-    /// reachability), or `nil` when a cycle is reachable from `source`, whatever its weights. A
+    /// it (widest paths in a DAG, reachability), or `nil` when a cycle is reachable from `source`, whatever its weights. A
     /// vertex is reached exactly when its distance is not `.zero`. O(n + m) over the reachable
     /// part.
     ///

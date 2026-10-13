@@ -12,10 +12,7 @@
 #
 # p4countreset (a depth count not reset before counting) reads memory the build never wrote, so
 # it is caught only when the allocator hands back dirty memory; FunctionalGraphRebuildTests
-# dirties it on purpose, and it was caught in every run since.
-#
-# Removed after planting: returning the hare rather than the tortoise from Floyd's third lap (the
-# lap ends when they are equal).
+# dirties it on purpose.
 
 TESTS = ["FunctionalGraphsTests"]
 
@@ -123,7 +120,7 @@ MUTANTS = [
     Mutant("brentextra", C, "        hare = f(hare)\n        cycleLength += 1", "        _ = f(hare)\n        hare = f(hare)\n        cycleLength += 1", mode="stmt", nth=1),
 
 
-    # The checked: spellings (README Principle 6): each guard removed lets the plain spelling trap.
+    # The checked: spellings: each guard removed lets the plain spelling trap.
     Mutant("cksuccessor", F, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
     Mutant("cksteps", F, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
     Mutant("cksuccessors", G, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),

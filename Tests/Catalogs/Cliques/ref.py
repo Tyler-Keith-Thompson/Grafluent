@@ -5,7 +5,7 @@ Run:  uv run --quiet --no-project --with networkx==3.7 python3 ref.py
       ... python3 ref.py --emit CQ-101  print the computed value of one case
 
 Every value is computed by the model of api.md, written here in index space the way the Swift
-implementation will run it, and then checked independently:
+implementation runs it, and then checked independently:
 
 * the simple graph: each row deduplicated in first-appearance order, self-loops dropped
   (api.md "Simple-graph semantics"); every op reads only this;
@@ -597,7 +597,7 @@ def random_checks():
 
 
 def library_quirks():
-    """Disagreements quoted in api.md, asserted so they stay true for NetworkX 3.7."""
+    """NetworkX 3.7 behaviours the comparisons above work around, asserted so they stay true."""
     # core_number raises on a self-loop; ours ignores the loop.
     h = nx.Graph([(0, 1), (0, 0)])
     try:

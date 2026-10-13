@@ -131,7 +131,6 @@ struct GraphDrawingStressTests {
                 let start = clock.now
                 let layered = graph.sugiyamaLayout()
                 let elapsed = clock.now - start
-                // An insertion sort per hub took 1.08 s in a release build here.
                 #expect(elapsed < .seconds(20), "inward \(inward): \(elapsed)")
                 #expect(layered.reversedEdges.isEmpty && layered.crossingCount == 0 && layered.layerCount == 2)
                 let p = layered.drawing.positions

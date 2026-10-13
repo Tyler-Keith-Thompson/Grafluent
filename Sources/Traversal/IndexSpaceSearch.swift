@@ -23,7 +23,7 @@ package struct IndexSpaceSearch<G: DirectedGraph> {
         case stop
     }
 
-    /// A step of a breadth-first search, in Boost's event order.
+    /// A step of a breadth-first search.
     @frozen
     @usableFromInline
     package enum BreadthFirstStep {

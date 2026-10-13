@@ -166,7 +166,7 @@ func _betweenness<W: Comparable & AdditiveArithmetic>(_ rows: _CompressedRows, s
     return result
 }
 
-/// NetworkX's rescaling of the ordered-pair sums.
+/// The rescaling of the ordered-pair sums for `normalized` and `endpoints`.
 @inlinable
 func _rescaleBetweenness(_ scores: inout [Double], normalized: Bool, endpoints: Bool, directed: Bool) {
     let n = Double(scores.count)
@@ -190,8 +190,7 @@ extension Graph {
     /// Betweenness centrality (Freeman; Brandes' algorithm): Σ σ_st(v)/σ_st over pairs s ≠ v ≠ t,
     /// with σ_st the number of shortest s–t paths. Paths are edge sequences, so each parallel copy
     /// is a distinct path. `normalized` divides by (n − 1)(n − 2)/2 pairs (n(n − 1)/2 with
-    /// `endpoints`, which also credits each path's ends), as NetworkX does; no scaling when n ≤ 2.
-    /// O(nm).
+    /// `endpoints`, which also credits each path's ends); no scaling when n ≤ 2. O(nm).
     @inlinable
     public func betweennessCentrality(normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<DirectedView<Self>> {
         var scores = _betweenness(_centralityRows(readsEdges: false), endpoints: endpoints)
@@ -217,8 +216,8 @@ extension Graph {
 
 extension DirectedGraph {
     /// Betweenness centrality over ordered pairs (Brandes' algorithm): Σ σ_st(v)/σ_st over s ≠ v ≠ t.
-    /// `normalized` divides by (n − 1)(n − 2) (n(n − 1) with `endpoints`), as NetworkX does; no
-    /// scaling when n ≤ 2. O(nm).
+    /// `normalized` divides by (n − 1)(n − 2) (n(n − 1) with `endpoints`); no scaling when n ≤ 2.
+    /// O(nm).
     @inlinable
     public func betweennessCentrality(normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<Self> {
         let (rows, numbers) = _centralityRows(readsEdges: false)

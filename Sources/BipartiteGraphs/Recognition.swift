@@ -210,27 +210,36 @@ extension Bipartition: CustomStringConvertible {
 }
 
 extension Graph {
-    /// Whether the vertices split into two sides with every edge across: no odd cycle, so no
-    /// self-loop. Parallel edges do not matter. One breadth-first search, O(n + m).
+    /// Whether the vertices split into two sides with every edge across.
+    ///
+    /// A bipartite graph has no odd cycle and so no self-loop. Parallel edges do not matter.
+    ///
+    /// - Complexity: One breadth-first search, O(n + m).
     @inlinable
     public var isBipartite: Bool { _runOnUndirectedRows(_TwoColoring(witness: false)).sides != nil }
 
-    /// The two sides, or nil when the graph is not bipartite (`findOddCycle()` is then the witness).
+    /// The two sides, or `nil` when the graph is not bipartite.
+    ///
     /// In each connected component the least vertex (in `vertices` order) is left and the rest
-    /// alternate, so isolated vertices are left; each side lists its vertices in `vertices` order
-    /// (igraph's assignment). O(n + m).
+    /// alternate, so isolated vertices are left. Each side lists its vertices in `vertices` order.
+    /// When the graph is not bipartite, `findOddCycle()` gives a witness.
+    ///
+    /// - Complexity: O(n + m).
     @inlinable
     public func bipartition() -> Bipartition<Self>? {
         guard let sides = _runOnUndirectedRows(_TwoColoring(witness: false)).sides else { return nil }
         return Bipartition(self, listed: _listedVertices(), sides: sides)
     }
 
-    /// An odd cycle, or nil when the graph is bipartite (Boost `find_odd_cycle`): the first one a
-    /// breadth-first two-colouring meets (roots in `vertices` order, rows in `incidentEdges`
-    /// order), closed through the conflicting edge's ends' lowest common ancestor in the search
-    /// tree. A self-loop is an odd cycle of length 1. In Cycles' canonical form: it starts at its
-    /// least vertex and leaves through the lesser of its two edges. Not necessarily a shortest odd
-    /// cycle. O(n + m).
+    /// An odd cycle, or `nil` when the graph is bipartite.
+    ///
+    /// The cycle is the first one a breadth-first two-colouring meets (roots in `vertices` order,
+    /// rows in `incidentEdges` order), closed through the lowest common ancestor of the
+    /// conflicting edge's ends in the search tree. It is not necessarily a shortest odd cycle. A
+    /// self-loop is an odd cycle of length 1. The cycle is in Cycles' canonical form: it starts at
+    /// its least vertex and leaves through the lesser of its two edges.
+    ///
+    /// - Complexity: O(n + m).
     @inlinable
     public func findOddCycle() -> Cycle<Vertex, Edges.Index>? {
         guard let (vs, es) = _runOnUndirectedRows(_TwoColoring(witness: true)).cycle else { return nil }

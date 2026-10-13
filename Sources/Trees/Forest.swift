@@ -247,10 +247,10 @@ extension Forest: Graph {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex that is not in the forest, where the trapping
-// spellings are the fast path. Each makes the one lookup per vertex its trapping spelling makes;
-// `try?` gives an Optional. `path(checkedFrom:to:)` still returns nil across trees; `try?` flattens
-// that nil with a missing vertex's, so a caller that must tell them apart catches.
+// The `checked:` spellings throw `VertexNotFound` for a vertex that is not in the forest, where
+// the plain spellings trap. Each makes the same lookups as its plain spelling.
+// `path(checkedFrom:to:)` returns nil across trees, and `try?` merges that nil with a missing
+// vertex's, so a caller that must tell them apart catches.
 
 extension Forest {
     /// `component(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).

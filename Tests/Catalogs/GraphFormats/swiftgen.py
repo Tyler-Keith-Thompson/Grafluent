@@ -342,29 +342,32 @@ def write_test(c):
 
 FILES = [
     ("GraphFormatsDOTTests.swift", "GraphFormats DOT", "dot",
-     "DOT (catalog GF-001 – GF-042 and GF-226 read, GF-186 – GF-192 write): Graphviz's grammar without subgraphs\n"
+     "DOT (catalog GF-001 – GF-042 and GF-226 read, GF-186 – GF-192 write): the grammar without subgraphs\n"
      "// and ports, values read as strings, node and edge defaults applied to later statements, strict\n"
-     "// merging, scan.l's quoting; the writer's canonical form, quoting only where an ID needs it."),
+     "// merging, DOT's quoting; the writer's canonical form, quoting only where an ID needs it."),
     ("GraphFormatsGraphMLTests.swift", "GraphFormats GraphML", "graphML",
      "GraphML (catalog GF-043 – GF-082 and GF-227 read, GF-193 – GF-199 write): the XML subset (no DTD, no\n"
-     "// entities but the five), typed keys with defaults, edges resolved after the nodes, the phase 2\n"
+     "// entities but the five), typed keys with defaults, edges resolved after the nodes, unsupported\n"
      "// features rejected precisely; the writer's keys by first appearance, graph keys first."),
     ("GraphFormatsNodeLinkJSONTests.swift", "GraphFormats node-link JSON", "nodeLinkJSON",
-     "Node-link JSON (catalog GF-083 – GF-110, GF-228 and GF-229 read, GF-200 – GF-206 write): NetworkX's layout over\n"
-     "// strict RFC 8259 JSON, scalar attributes only; the writer byte-equal to json.dumps(node_link_data)."),
+     "Node-link JSON (catalog GF-083 – GF-110, GF-228 and GF-229 read, GF-200 – GF-206 write): the layout over\n"
+     "// strict RFC 8259 JSON, scalar attributes only; ref.py checks the write rows byte for byte against\n"
+     "// json.dumps(node_link_data)."),
     ("GraphFormatsMatrixMarketTests.swift", "GraphFormats Matrix Market", "matrixMarket",
      "Matrix Market (catalog GF-111 – GF-146 and GF-230 read, GF-207 – GF-214 write): coordinate matrices into\n"
-     "// vertices 0..<n, symmetric files into either kind, weights under \"weight\"; the writer byte-equal\n"
-     "// to SciPy's mmwrite."),
+     "// vertices 0..<n, symmetric files into either kind, weights under \"weight\"; ref.py checks the\n"
+     "// write rows byte for byte against SciPy's mmwrite."),
     ("GraphFormatsEdgeListTests.swift", "GraphFormats edge list", "edgeList",
      "Edge list (catalog GF-147 – GF-155 read, GF-215 – GF-218 write): two fields and the declared\n"
-     "// columns per line, typed by their text; the writer byte-equal to NetworkX's write_edgelist."),
+     "// columns per line, typed by their text; ref.py checks the write rows byte for byte against\n"
+     "// NetworkX's write_edgelist."),
     ("GraphFormatsAdjacencyListTests.swift", "GraphFormats adjacency list", "adjacencyList",
      "Adjacency list (catalog GF-156 – GF-160 read, GF-219 – GF-221 write): a head and its neighbours\n"
-     "// per line; the writer byte-equal to NetworkX's write_adjlist without its header."),
+     "// per line; ref.py checks the write rows byte for byte against NetworkX's write_adjlist without\n"
+     "// its header."),
     ("GraphFormatsMermaidTests.swift", "GraphFormats Mermaid", "mermaid",
-     "Mermaid (catalog GF-161 – GF-185 and GF-231 read, GF-222 – GF-225 write): flowcharts with every shape and\n"
-     "// link of phase 1, labels kept and styling skipped; the writer quotes every label."),
+     "Mermaid (catalog GF-161 – GF-185 and GF-231 read, GF-222 – GF-225 write): flowcharts with every\n"
+     "// supported shape and link, labels kept and styling skipped; the writer quotes every label."),
 ]
 IMPORTS = {"AdjacencyListModule": ("AdjacencyList<", "UndirectedAdjacencyList<"),
            "Multigraphs": ("DirectedPseudograph<", "Pseudograph<")}

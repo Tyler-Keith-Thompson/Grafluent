@@ -5,7 +5,7 @@
 // wide star catch per-round work proportional to the whole graph. Each test has a one-minute limit
 // and is meant to stay well under two seconds in a debug build; the benchmarks take the big sizes.
 // girth() is O(n·m), so it is checked on a 2 000-vertex cycle (CY-813), not a 100 000-vertex one.
-// Expected values come from the catalog's reference (`ref.py stress()`: the proposed algorithm and
+// Expected values come from the catalog's reference (`ref.py stress()`: the module's algorithm and
 // closed forms). Case IDs (CY-nnn) refer to the catalog; see README.md.
 
 import AdjacencyListModule
@@ -20,8 +20,8 @@ struct CycleStressTests {
     func johnsonFigureOne() async {
         await Task {
             for k in 3 ... 9 {
-                // NetworkX's worst_case_graph(k) in its edge order, the arc (2k+1)>(2k+2), which the
-                // construction adds twice, kept once as nx.DiGraph keeps it.
+                // Johnson's figure 1 in a fixed edge order, with the arc (2k+1)>(2k+2), which the
+                // construction adds twice, kept once.
                 var pairs: [(Int, Int)] = []
                 for n in 2 ..< k + 2 {
                     pairs.append((1, n))

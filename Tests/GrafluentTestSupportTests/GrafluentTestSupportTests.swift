@@ -124,7 +124,7 @@ struct InstrumentationTests {
     }
 
     @Test func nearbySeedsGiveUnrelatedSequences() {
-        // The original seeding gave the same first draw for all of seeds 0..<100.
+        // Seeds 0..<100 must reach every first draw in 0..<12 and give 100 distinct five-draw prefixes.
         var firstDraws = Set<Int>()
         var firstFive = Set<[Int]>()
         for seed in 0 ..< 100 as Range<UInt> {

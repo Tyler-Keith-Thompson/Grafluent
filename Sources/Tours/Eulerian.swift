@@ -5,7 +5,7 @@ import Walks
 
 /// Hierholzer's walk in its stack form (Hierholzer and Wiener, "Ueber die Möglichkeit, einen
 /// Linienzug ohne Wiederholung und ohne Unterbrechung zu umfahren", Mathematische Annalen 6,
-/// 1873), pinned: from the top vertex take the first unused edge in its row and push its far end,
+/// 1873): from the top vertex take the first unused edge in its row and push its far end,
 /// or, with none left, pop the vertex onto the output. One buffer holds both the stack (from the
 /// front) and the output (filled from the back, so the trail comes out forward with no reversal):
 /// the stack never reaches past the output, since it holds at most the edges taken minus the
@@ -380,16 +380,14 @@ extension DirectedGraph {
 
     /// Whether some closed trail uses every edge exactly once: every vertex has as many edges in
     /// as out (a self-loop is one of each), and the vertices with edges are weakly connected
-    /// (which, balanced, makes them strongly connected). Isolated vertices are ignored (igraph's
-    /// and JGraphT's rule; NetworkX counts them), and an edgeless graph, the empty graph
-    /// included, is Eulerian (igraph `igraph_is_eulerian`'s `has_cycle`).
+    /// (which, balanced, makes them strongly connected). Isolated vertices are ignored, and an
+    /// edgeless graph, the empty graph included, is Eulerian.
     ///
     /// - Complexity: O(n + m): the in-degrees, then one search from the first vertex with an edge.
     @inlinable
     public var isEulerian: Bool { _eulerian(.status, from: nil).answer.isEulerian }
 
-    /// Whether some trail uses every edge exactly once (NetworkX `has_eulerian_path`, igraph's
-    /// `has_path`): the graph is Eulerian, or exactly one vertex has out − in = 1, one has
+    /// Whether some trail uses every edge exactly once: the graph is Eulerian, or exactly one vertex has out − in = 1, one has
     /// in − out = 1, the rest are balanced, and the vertices with edges are weakly connected.
     /// True for every edgeless graph.
     ///
@@ -399,35 +397,33 @@ extension DirectedGraph {
 
     /// An Eulerian circuit by Hierholzer's algorithm (Hierholzer and Wiener 1873), from the first
     /// vertex in `vertices` order with an edge; nil when the graph is not Eulerian or has no edges
-    /// (a `Circuit` has at least one). Pinned: from the current vertex the first unused edge in
-    /// `outEdges` order, in the stack form igraph's `igraph_eulerian_cycle` runs; the circuit is
-    /// listed forward from that vertex. On a compressed sparse row the graph's own rows are read.
+    /// (a `Circuit` has at least one). From the current vertex the walk takes the first unused
+    /// edge in `outEdges` order, in the stack form of the algorithm; the circuit is listed forward
+    /// from the first vertex. On a compressed sparse row the graph's own rows are read.
     ///
     /// - Complexity: O(n + m).
     @inlinable
     public func eulerianCircuit() -> Circuit<Vertex, Edges.Index>? { _circuit(.circuit, from: nil) }
 
-    /// The Eulerian circuit from `start` (NetworkX `eulerian_circuit(G, source=)`): the same
-    /// walk; nil also when `start` has no edges.
+    /// The Eulerian circuit from `start`: the same walk; nil also when `start` has no edges.
     ///
     /// - Precondition: `start` is a vertex of the graph.
     /// - Complexity: O(n + m).
     @inlinable
     public func eulerianCircuit(from start: Vertex) -> Circuit<Vertex, Edges.Index>? { _circuit(.circuit, from: start) }
 
-    /// An Eulerian trail (NetworkX `eulerian_path`, igraph `igraph_eulerian_path`), or nil when
-    /// there is none or the graph has no vertex. It starts at the vertex with out − in = 1, or,
-    /// when the graph is Eulerian, at the first vertex with an edge (the circuit as a closed
-    /// trail); it is the trivial trail at the first vertex when there are no edges. Hierholzer's
-    /// walk, as `eulerianCircuit()`.
+    /// An Eulerian trail, or nil when there is none or the graph has no vertex. It starts at the
+    /// vertex with out − in = 1, or, when the graph is Eulerian, at the first vertex with an edge
+    /// (the circuit as a closed trail); it is the trivial trail at the first vertex when there are
+    /// no edges. Hierholzer's walk, as `eulerianCircuit()`.
     ///
     /// - Complexity: O(n + m).
     @inlinable
     public func eulerianTrail() -> Trail<Vertex, Edges.Index>? { _trail(from: nil) }
 
-    /// An Eulerian trail from `start`, or nil when none starts there (NetworkX
-    /// `has_eulerian_path(G, source)`): `start` must be the vertex with out − in = 1, or, in an
-    /// Eulerian graph, any vertex with an edge, or any vertex at all when there are no edges.
+    /// An Eulerian trail from `start`, or nil when none starts there. `start` must be the vertex
+    /// with out − in = 1, or, in an Eulerian graph, any vertex with an edge, or any vertex at all
+    /// when there are no edges.
     ///
     /// - Precondition: `start` is a vertex of the graph.
     /// - Complexity: O(n + m).
@@ -461,16 +457,14 @@ extension Graph {
     }
 
     /// Whether some closed trail uses every edge exactly once: every degree is even (a self-loop
-    /// counts 2) and the vertices with edges are connected. Isolated vertices are ignored
-    /// (igraph's and JGraphT's rule; NetworkX counts them), and an edgeless graph, the empty
-    /// graph included, is Eulerian (igraph `igraph_is_eulerian`'s `has_cycle`).
+    /// counts 2) and the vertices with edges are connected. Isolated vertices are ignored, and an
+    /// edgeless graph, the empty graph included, is Eulerian.
     ///
     /// - Complexity: O(n + m): the degrees from the rows, then one search when they are even.
     @inlinable
     public var isEulerian: Bool { _eulerian(.status, from: nil).answer.isEulerian }
 
-    /// Whether some trail uses every edge exactly once (NetworkX `has_eulerian_path`, igraph's
-    /// `has_path`): no or exactly two odd vertices, and the vertices with edges connected. True
+    /// Whether some trail uses every edge exactly once: no or exactly two odd vertices, and the vertices with edges connected. True
     /// for every edgeless graph.
     ///
     /// - Complexity: O(n + m).
@@ -479,35 +473,33 @@ extension Graph {
 
     /// An Eulerian circuit by Hierholzer's algorithm (Hierholzer and Wiener 1873), from the first
     /// vertex in `vertices` order with an edge; nil when the graph is not Eulerian or has no edges
-    /// (a `Circuit` has at least one). Pinned: from the current vertex the first unused edge in
-    /// `incidentEdges` order (a self-loop, twice in its row, is taken once), in the stack form
-    /// igraph's `igraph_eulerian_cycle` runs; the circuit is listed forward from that vertex.
+    /// (a `Circuit` has at least one). From the current vertex the walk takes the first unused
+    /// edge in `incidentEdges` order (a self-loop, twice in its row, is taken once), in the stack
+    /// form of the algorithm; the circuit is listed forward from the first vertex.
     ///
     /// - Complexity: O(n + m), with a cursor per vertex and a used bit per edge.
     @inlinable
     public func eulerianCircuit() -> Circuit<Vertex, Edges.Index>? { _circuit(from: nil) }
 
-    /// The Eulerian circuit from `start` (NetworkX `eulerian_circuit(G, source=)`): the same
-    /// walk; nil also when `start` has no edges.
+    /// The Eulerian circuit from `start`: the same walk; nil also when `start` has no edges.
     ///
     /// - Precondition: `start` is a vertex of the graph.
     /// - Complexity: O(n + m).
     @inlinable
     public func eulerianCircuit(from start: Vertex) -> Circuit<Vertex, Edges.Index>? { _circuit(from: start) }
 
-    /// An Eulerian trail (NetworkX `eulerian_path`, igraph `igraph_eulerian_path`), or nil when
-    /// there is none or the graph has no vertex. It starts at the first odd vertex in `vertices`
-    /// order, or, when the graph is Eulerian, at the first vertex with an edge (the circuit as a
-    /// closed trail); it is the trivial trail at the first vertex when there are no edges.
-    /// Hierholzer's walk, as `eulerianCircuit()`.
+    /// An Eulerian trail, or nil when there is none or the graph has no vertex. It starts at the
+    /// first odd vertex in `vertices` order, or, when the graph is Eulerian, at the first vertex
+    /// with an edge (the circuit as a closed trail); it is the trivial trail at the first vertex
+    /// when there are no edges. Hierholzer's walk, as `eulerianCircuit()`.
     ///
     /// - Complexity: O(n + m).
     @inlinable
     public func eulerianTrail() -> Trail<Vertex, Edges.Index>? { _trail(from: nil) }
 
-    /// An Eulerian trail from `start`, or nil when none starts there (NetworkX
-    /// `has_eulerian_path(G, source)`): `start` must be one of the two odd vertices, or, in an
-    /// Eulerian graph, any vertex with an edge, or any vertex at all when there are no edges.
+    /// An Eulerian trail from `start`, or nil when none starts there. `start` must be one of the
+    /// two odd vertices, or, in an Eulerian graph, any vertex with an edge, or any vertex at all
+    /// when there are no edges.
     ///
     /// - Precondition: `start` is a vertex of the graph.
     /// - Complexity: O(n + m).

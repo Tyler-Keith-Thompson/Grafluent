@@ -1,5 +1,6 @@
 // Edge list (catalog GF-147 – GF-155 read, GF-215 – GF-218 write): two fields and the declared
-// columns per line, typed by their text; the writer byte-equal to NetworkX's write_edgelist.
+// columns per line, typed by their text; ref.py checks the write rows byte for byte against
+// NetworkX's write_edgelist.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule

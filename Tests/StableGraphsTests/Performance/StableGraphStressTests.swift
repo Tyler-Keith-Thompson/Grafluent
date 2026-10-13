@@ -105,7 +105,6 @@ struct StableGraphStressTests {
     @Test("10⁵ steps of vertex churn finish in linear time: each step a new vertex with an edge, the previous vertex removed", .timeLimit(.minutes(1)))
     func vertexChurn() async {
         await Task {
-            // Quadratic before the row pools bounded packing by the row table: 10⁴ steps took 33.6 s.
             let n = 100_000
             var graph = StableDirectedGraph<Int>()
             for i in 0 ..< n {

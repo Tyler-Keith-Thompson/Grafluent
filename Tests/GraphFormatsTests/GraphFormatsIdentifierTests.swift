@@ -1,5 +1,5 @@
-// How IDs and attribute names compare: by Unicode scalars, as NetworkX compares Python strings and
-// Graphviz and XML compare names, not by canonical equivalence as `String`'s `==` does. A reader
+// How IDs and attribute names compare: by Unicode scalars, not by canonical equivalence as
+// `String`'s `==` does. A reader
 // keeps "é" (U+00E9) and "e" + U+0301 apart, and maps each through the `vertex` closure; a
 // `String` vertex then merges them, since the two are one `String`, while a type that compares
 // scalars keeps them apart. Attribute names and the writers' IDs and keys compare by scalars

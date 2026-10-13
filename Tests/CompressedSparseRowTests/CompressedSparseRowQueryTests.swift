@@ -1,5 +1,5 @@
 // Successors, degrees, binary-search lookup, edge indices and the transpose. Case IDs (CSR-Snn,
-// CSR-Lnn, CSR-Enn, CSR-Tnn) refer to the harvested test catalog.
+// CSR-Lnn, CSR-Enn, CSR-Tnn) refer to the case catalog.
 
 import CompressedSparseRowModule
 import GraphProtocols
@@ -10,7 +10,6 @@ import Testing
 struct CompressedSparseRowQueryTests {
     @Test("CSR-S01 / CSR-S02 successors are the row's slice of targets, ascending")
     func successors() {
-        // neo4j tests/builder.rs.
         let graph = CompressedSparseRow(vertexCount: 5, edges: DirectedFixture<Int>.neo4jDirected.edges)
         #expect(Array(graph.successors(of: 0)) == [1, 2])
         #expect(Array(graph.successors(of: 1)) == [2, 3])
@@ -182,7 +181,7 @@ struct CompressedSparseRowEdgeIndexTests {
 
     @Test("CSR-E07 / CSR-E08 an array indexed by edge index lines up with `edges`")
     func edgePropertyArray() {
-        // Boost.Graph csr_usage: distances in km, given here in reverse order.
+        // Distances in km, given in reverse order.
         let input: [(DirectedEdge<Int>, Int)] = [
             (DirectedEdge(from: 2, to: 3), 200), (DirectedEdge(from: 1, to: 2), 310),
             (DirectedEdge(from: 0, to: 2), 775), (DirectedEdge(from: 0, to: 1), 460),

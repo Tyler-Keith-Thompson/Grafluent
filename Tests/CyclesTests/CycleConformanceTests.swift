@@ -2,8 +2,8 @@
 // (CY-852); they hold a copy of the graph, so mutating the original afterwards changes nothing
 // (CY-853); they are lazy, not Collections, with underestimatedCount 0 (CY-854, CY-855); generic
 // code gets the same answers (CY-856); on indexed adjacency lists the entry points never hash a
-// vertex (CY-857); Graph.isAcyclic and Traversal's DirectedGraph.isAcyclic differ on the views as
-// api.md says (CY-858); every returned Cycle survives a Codable round trip and is equal and hashes
+// vertex (CY-857); Graph.isAcyclic and Traversal's DirectedGraph.isAcyclic differ on the views
+// (CY-858); every returned Cycle survives a Codable round trip and is equal and hashes
 // equal under rotation (CY-859). Preconditions are in CyclePreconditionTests.swift. Case IDs
 // (CY-nnn) refer to the catalog; see README.md.
 
@@ -161,7 +161,7 @@ struct CycleConformanceTests {
         let first = iterator.next()
         #expect(first?.vertices == [0, 1, 2])
         #expect(first?.edges == [0, 1, 2])
-        // api.md: the first next() copies the rows once, O(n + m), and searches the copy.
+        // The first next() copies the rows once, O(n + m), and searches the copy.
         #expect(counter.rows <= 4 * (n + 3), "\(counter.rows) rows read")
         let afterFirst = counter.rows
         #expect(iterator.next()?.length == n)

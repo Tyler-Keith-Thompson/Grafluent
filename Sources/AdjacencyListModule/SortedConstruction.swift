@@ -1,10 +1,10 @@
 import GraphProtocols
 
 // Bulk construction from sorted, simple `Int` edges (`_DirectedGraphConstruction`,
-// `_GraphConstruction`): the rows are laid out at their exact sizes in slot order, as inserting the
+// `_GraphConstruction`). The rows are laid out at their exact sizes in slot order, as inserting the
 // edges one at a time in the same order would leave them, without growing a row or testing
-// membership. What is left is the representation's own hashing: one vertex-to-slot entry per vertex
-// and one pair-to-position entry per edge.
+// membership. The remaining cost is the representation's own hashing, one vertex-to-slot entry per
+// vertex and one pair-to-position entry per edge.
 
 extension _RowPool {
     /// Rows packed in order: row `v` is `storage[offsets[v] ..< offsets[v + 1]]`, at its exact
@@ -67,8 +67,8 @@ package struct _SortedArcRows {
             outOffsets[v &+ 1] &+= outOffsets[v]
             inOffsets[v &+ 1] &+= inOffsets[v]
         }
-        // Every entry is written exactly once, so the storage starts uninitialized: zeroing the
-        // three rows first wrote 12 MB more for 5·10⁵ edges.
+        // Every entry is written exactly once, so the storage starts uninitialized rather than
+        // zeroed.
         var inStorage = ContiguousArray<Int>(), inEdgeStorage = ContiguousArray<Int>()
         var records = ContiguousArray<_ArcRecord>()
         var fill = inOffsets

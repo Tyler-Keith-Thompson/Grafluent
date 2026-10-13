@@ -1,6 +1,6 @@
 import GraphProtocols
 
-/// One frame of the explicit stack that replaces NetworkX's recursive `augmentBlossom`: the
+/// One frame of the explicit stack that replaces the recursive `augmentBlossom`: the
 /// blossom, the vertex that becomes its base, the step reached, the start index and cursor around
 /// the children, the direction, and the arc being matched.
 @frozen
@@ -61,13 +61,13 @@ struct _BlossomBuffer<Element> {
     }
 }
 
-/// Galil's O(n³) maximum-weight matching as NetworkX 3.7's `max_weight_matching` (Van Rantwijk's
-/// implementation) in index space, operation for operation: vertices 0..<n, blossoms n..<2n from a
-/// free list but iterated in creation order (NetworkX's dict order) through an intrusive list,
+/// Galil's O(n³) maximum-weight matching in Van Rantwijk's formulation, in index space, operation
+/// for operation: vertices 0..<n, blossoms n..<2n from a free list but iterated in creation order
+/// through an intrusive list,
 /// rows with parallel copies collapsed to their first appearance (the heaviest copy's edge, the
 /// earliest on ties), the S-queue last-in first-out, strict `<` in every δ selection. An arc is
 /// `2 · edge + side`: from `from[edge]` to `to[edge]` when `side` is 0, reversed when 1. Duals are
-/// doubled, as in NetworkX.
+/// doubled.
 @frozen
 @usableFromInline
 struct _WeightedBlossom<W: SignedNumeric & Comparable> {
@@ -107,8 +107,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
     @usableFromInline var stage = 0
     @usableFromInline var queue: [Int] = []
 
-    /// By blossom slot (id − n): children and the arcs joining them (NetworkX's `childs`,
-    /// `edges`), the least-slack arcs to other S-blossoms (`mybestedges`, valid when `hasMyBest`),
+    /// By blossom slot (id − n): children and the arcs joining them, the least-slack arcs to other S-blossoms (`mybestedges`, valid when `hasMyBest`),
     /// and the creation-order list.
     @usableFromInline var children: [[Int]]
     @usableFromInline var childArcs: [[Int]]
@@ -227,8 +226,8 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
     func head(_ a: Int) -> Int { a & 1 == 0 ? to[a >> 1] : from[a >> 1] }
 
     /// Twice the slack of arc `a` (not valid inside blossoms). Always inlined, as are `tail`,
-    /// `head` and `mateArc`: called out of line from a mutating method, each call copied the
-    /// whole struct (37 words) to pass `self`, which was a quarter of Christofides' time.
+    /// `head` and `mateArc`: called out of line from a mutating method, each call would copy the
+    /// whole struct to pass `self`.
     @inlinable @inline(__always)
     func slack(_ a: Int) -> W {
         let w = weight[a >> 1]
@@ -242,8 +241,8 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
         return 2 * e + (from[e] == v ? 0 : 1)
     }
 
-    /// The leaf vertices of blossom `b` into `leaves`, in NetworkX's `leaves()` order (a stack of
-    /// children, the last popped first).
+    /// The leaf vertices of blossom `b` into `leaves`, in `leaves()` order (a stack of children,
+    /// the last popped first).
     @inlinable
     mutating func collectLeaves(_ b: Int) {
         leaves.removeAll(keepingCapacity: true)
@@ -258,7 +257,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
         }
     }
 
-    /// NetworkX's `assignLabel(w, t, v)`, with the arc (v, w) or −1; the T case's recursive call
+    /// `assignLabel(w, t, v)`, with the arc (v, w) or −1; the T case's recursive call
     /// on the base's mate is the loop's second turn.
     @inlinable
     mutating func assignLabel(_ w: Int, _ t: Int8, _ arc: Int) {
@@ -287,7 +286,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
         }
     }
 
-    /// NetworkX's `scanBlossom`: the base of the new blossom, or −1 for an augmenting path.
+    /// `scanBlossom`: the base of the new blossom, or −1 for an augmenting path.
     @inlinable
     mutating func scanBlossom(_ v: Int, _ w: Int) -> Int {
         path.removeAll(keepingCapacity: true)
@@ -312,10 +311,10 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
         return found
     }
 
-    /// One candidate of NetworkX's `bestedgeto` scan in `addBlossom`.
+    /// One candidate of the `bestedgeto` scan in `addBlossom`.
     @inlinable
     mutating func considerBest(_ k: Int, _ b: Int) {
-        // NetworkX swaps the ends when the far one is inside b.
+        // The ends are swapped when the far one is inside b.
         let bj = inBlossom[head(k)] == b ? inBlossom[tail(k)] : inBlossom[head(k)]
         if bj != b, label[bj] == 1, bestTo[bj] < 0 || slack(k) < slack(bestTo[bj]) {
             if bestTo[bj] < 0 { bestToKeys.append(bj) }
@@ -323,7 +322,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
         }
     }
 
-    /// NetworkX's `addBlossom(base, v, w)` for the arc (v, w).
+    /// `addBlossom(base, v, w)` for the arc (v, w).
     @inlinable
     mutating func addBlossom(_ baseVertex: Int, _ arc: Int) {
         let bb = inBlossom[baseVertex]
@@ -424,7 +423,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
         freeSlots.append(slot)
     }
 
-    /// NetworkX's relabelling of an expanding T-blossom's children during a stage.
+    /// The relabelling of an expanding T-blossom's children during a stage.
     @inlinable
     mutating func relabelExpanded(_ b: Int) {
         let slot = b - n
@@ -477,7 +476,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
         }
     }
 
-    /// NetworkX's `expandBlossom(b, endstage)`; only an end-of-stage expansion recurses (into
+    /// `expandBlossom(b, endstage)`; only an end-of-stage expansion recurses (into
     /// children with zero dual), here through an explicit stack of child cursors.
     @inlinable
     mutating func expandBlossom(_ b: Int, endStage: Bool) {
@@ -521,7 +520,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
         for k in 0 ..< rotation.count { childArcs[slot][k] = rotation[k] }
     }
 
-    /// NetworkX's `augmentBlossom(b, v)`: each frame's steps between its recursive calls are
+    /// `augmentBlossom(b, v)`: each frame's steps between its recursive calls are
     /// phases 0 – 4.
     @inlinable
     mutating func augmentBlossom(_ b: Int, _ v: Int) {
@@ -585,7 +584,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
         }
     }
 
-    /// NetworkX's `augmentMatching(v, w)` for the arc (v, w).
+    /// `augmentMatching(v, w)` for the arc (v, w).
     @inlinable
     mutating func augmentMatching(_ arc: Int) {
         for side in 0 ..< 2 {
@@ -674,7 +673,7 @@ struct _WeightedBlossom<W: SignedNumeric & Comparable> {
                 }
                 if augmented { break }
 
-                // δ, doubled like the duals; −1 is NetworkX's "no δ yet".
+                // δ, doubled like the duals; −1 means no δ yet.
                 var deltaType = -1, delta = W.zero, deltaEdge = -1, deltaBlossom = -1
                 if !maximumCardinality {
                     deltaType = 1
@@ -788,7 +787,7 @@ package func _maximumWeightMatchingEdges<W: SignedNumeric & Comparable>(_ struct
     return mateEdge
 }
 
-/// NetworkX's `min_weight_matching` in index space: `_maximumWeightMatchingEdges` with
+/// Minimum-weight maximum-cardinality matching in index space: `_maximumWeightMatchingEdges` with
 /// `maximumCardinality` on (1 + the greatest non-loop weight) − w, loops left at zero (never
 /// weighed). Each vertex's matched edge number, −1 when single.
 @inlinable
@@ -812,21 +811,22 @@ extension Graph {
         return Matching(self, listed: _listedVertices(), structure: structure, mateEdge: mateEdge, weights: reported)
     }
 
-    /// NetworkX's `min_weight_matching` (`_minimumWeightMatchingEdges`), as a `Matching` reporting
-    /// the original weights.
+    /// `_minimumWeightMatchingEdges` as a `Matching` reporting the original weights.
     @inlinable
     func _minimumWeightMatching<W: SignedNumeric & Comparable>(_ structure: _MatchingGraph, _ weights: [W], half: (W) -> W) -> Matching<Self, W> {
         let mateEdge = _minimumWeightMatchingEdges(structure, weights, half: half)
         return Matching(self, listed: _listedVertices(), structure: structure, mateEdge: mateEdge, weights: weights)
     }
 
-    /// A maximum-weight matching (NetworkX `max_weight_matching`, the same matching): Galil's
-    /// primal–dual blossom algorithm in Van Rantwijk's formulation, with NetworkX's iteration
-    /// orders. With `maximumCardinality`, the heaviest among the maximum-cardinality matchings;
-    /// without it, a negative edge is never taken and a zero-weight one may be. Parallel edges: the
-    /// heaviest copy (the earliest on ties). Self-loops are never weighed; `weight` is called once
-    /// per other edge, in position order. Exact. O(n³).
+    /// A maximum-weight matching by Galil's primal–dual blossom algorithm in Van Rantwijk's
+    /// formulation.
     ///
+    /// With `maximumCardinality`, the heaviest among the maximum-cardinality matchings; without
+    /// it, a negative edge is never taken and a zero-weight one may be. Among parallel edges, the
+    /// heaviest copy is used (the earliest on ties). Self-loops are never weighed; `weight` is
+    /// called once per other edge, in position order. Integer arithmetic is exact.
+    ///
+    /// - Complexity: O(n³).
     /// - Precondition: every |weight| ≤ `W.max / 8`, and n · |weight| ≤ `W.max / 8` with
     ///   `maximumCardinality` (its duals go negative, by up to about n times the greatest weight);
     ///   the total weight fits in `W`. Beyond that, arithmetic may overflow, which traps.
@@ -837,10 +837,9 @@ extension Graph {
         return _maximumWeightMatching(structure, searched: weights, reported: weights, maximumCardinality: maximumCardinality) { $0 / 2 }
     }
 
-    /// A maximum-weight matching (NetworkX `max_weight_matching`, the same matching): as the
-    /// integer overload, following NetworkX's floating-point path (`/ 2.0`) operation for
-    /// operation, so the same doubles give the same matching. O(n³).
+    /// A maximum-weight matching over floating-point weights, as the integer overload.
     ///
+    /// - Complexity: O(n³).
     /// - Precondition: no weight is NaN or infinite; every |weight| ≤ `greatestFiniteMagnitude / 8`,
     ///   and n · |weight| ≤ `greatestFiniteMagnitude / 8` with `maximumCardinality`.
     @inlinable
@@ -850,12 +849,13 @@ extension Graph {
         return _maximumWeightMatching(structure, searched: weights, reported: weights, maximumCardinality: maximumCardinality) { $0 / 2 }
     }
 
-    /// The least weight among the maximum-cardinality matchings (NetworkX `min_weight_matching`):
-    /// `maximumWeightMatching` with `maximumCardinality` on (1 + the greatest weight) − w, reporting
-    /// the original weights' sum. Parallel edges: the lightest copy (the earliest on ties).
-    /// Self-loops are never weighed and the vertex order is kept (NetworkX weighs loops for the
-    /// greatest weight and rebuilds the graph from its edges). O(n³).
+    /// The least-weight matching among the maximum-cardinality matchings.
     ///
+    /// Runs `maximumWeightMatching` with `maximumCardinality` on (1 + the greatest weight) − w and
+    /// reports the original weights' sum. Among parallel edges, the lightest copy is used (the
+    /// earliest on ties). Self-loops are never weighed and the vertex order is kept.
+    ///
+    /// - Complexity: O(n³).
     /// - Precondition: n · (2 · |weight| + 1) ≤ `W.max / 8` (`maximumWeightMatching`'s bound on the
     ///   transformed weights); the total weight fits in `W`. Beyond that, arithmetic may overflow,
     ///   which traps.
@@ -866,9 +866,10 @@ extension Graph {
         return _minimumWeightMatching(structure, weights) { $0 / 2 }
     }
 
-    /// The least weight among the maximum-cardinality matchings (NetworkX `min_weight_matching`):
-    /// as the integer overload, on NetworkX's floating-point path. O(n³).
+    /// The least-weight matching among the maximum-cardinality matchings, over floating-point
+    /// weights, as the integer overload.
     ///
+    /// - Complexity: O(n³).
     /// - Precondition: no weight is NaN or infinite; n · (2 · |weight| + 1) ≤
     ///   `greatestFiniteMagnitude / 8`.
     @inlinable

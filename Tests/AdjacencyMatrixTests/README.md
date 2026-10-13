@@ -2,9 +2,8 @@
 
 `AdjacencyMatrix` is a directed graph on the vertices `0..<vertexCount`, stored as a square
 matrix of bits: row `source`, column `target` is set when there is an edge from `source` to
-`target`. Self-loops are the diagonal; parallel edges cannot be represented. The suite was written
-before the implementation, checked against a throwaway naive implementation, and uses only the
-public API. Every test is self-contained; shared material is limited to the fixtures and test
+`target`. Self-loops are the diagonal; parallel edges cannot be represented. The suite uses only
+the public API. Every test is self-contained; shared material is limited to the fixtures and test
 types in `GrafluentTestSupport`.
 
 ## API under test
@@ -33,7 +32,7 @@ struct AdjacencyMatrix: Hashable, Sendable, Codable, ExpressibleByArrayLiteral,
     func outDegree(of: Int) -> Int                    // O(1)
     func inDegree(of: Int) -> Int                     // O(1)
     func degree(of: Int) -> Int
-    // checked: spellings throw VertexNotFound / EdgeNotFound instead of trapping (Principle 6)
+    // checked: spellings throw VertexNotFound / EdgeNotFound instead of trapping
     func successors(checked:) / predecessors(checked:) / outEdges(checked:) / inEdges(checked:)
     func outDegree(checked:) / inDegree(checked:) / degree(checked:) / vertexIndex(checked:)
     func source(checkedEdgeAt: Edges.Index) / target(checkedEdgeAt: Edges.Index)  // EdgeNotFound
@@ -44,7 +43,7 @@ struct AdjacencyMatrix: Hashable, Sendable, Codable, ExpressibleByArrayLiteral,
     mutating func insertEdges(from: Int, to: BitSet) -> Int   // row ∪= targets
     mutating func removeEdges(from: Int) -> Int               // clear a row
     mutating func removeEdges(to: Int) -> Int                 // clear a column
-    mutating func removeEdges(incidentTo: Int) -> Int         // Boost's clear_vertex
+    mutating func removeEdges(incidentTo: Int) -> Int         // clear a row and a column
     mutating func appendVertex() -> Int
     mutating func removeAllEdges(keepingCapacity: Bool = false)
     mutating func removeAll(keepingCapacity: Bool = false)
@@ -73,29 +72,27 @@ struct AdjacencyMatrix: Hashable, Sendable, Codable, ExpressibleByArrayLiteral,
 
 ## Conventions
 
-Where the reference libraries disagree, these are the choices and the reasons.
-
-| Question | Choice | Why | Disagreement |
-|---|---|---|---|
-| Vertex identity | Positions `0..<vertexCount` | A matrix is indexed by position | — |
-| Adding vertices | `appendVertex()`, amortized by doubling | Growth without renumbering | Boost and gonum fix the size; LEMON's `resize` discards edges |
-| Removing vertices | Not offered | Removal either renumbers later vertices or leaves holes; petgraph's holes cause a stale `edge_count` and a wrong `is_adjacent` (both confirmed by running petgraph) | petgraph offers it |
-| Edge to an out-of-range vertex | `insert(edge:)` and the subscript trap; the matrix never grows to fit; `insert(checked:)` throws `VertexNotFound` and changes nothing | petgraph silently grows despite documenting a panic; Boost has undefined behavior | — |
-| `contains` / `remove` out of range | `false` / `nil`, never a trap | Asking about something absent is not an error (same as `AdjacencyList`) | gonum is inconsistent between its own methods |
-| Duplicate edges in the input | Collapse | A cell is a bit | petgraph panics |
-| Self-loop | One edge; 1 to out-degree, 1 to in-degree, 2 to degree; diagonal cell is 1 | Same as `AdjacencyList` | gonum forbids self-loops; JGraphT exports a 2 on the diagonal |
-| Order of successors, predecessors, edges | Ascending; edges row-major | Free with a matrix, and makes output deterministic | — |
-| Literal entries | Square, each 0 or 1, else trap | Anything else is ambiguous | NetworkX reads entries as weights |
-| `==` | Equal vertex count and equal cells; capacity ignored | swift-algorithm-club's `BitSet` compares words only, so differently sized empty sets compare equal | — |
-| `description` | `[0, 1, 2]; [0→1, 1→2]`, at most 16 vertices and 16 edges, then `…`; the grid is `rowsDescription` | One textual form for every representation, so equal graphs print alike and large graphs print small | Bitset libraries disagree on bit order |
-| Encoded form | `{"vertexCount": n, "edges": [s₀, t₀, s₁, t₁, …]}`, row-major; malformed input throws | Specified, so corrupt payloads can be tested | — |
-| Decoding limit | At most 16,384 vertices (32 MiB of cells) unless the decoder's `userInfo[maximumDecodedVertexCountKey]` says otherwise | A 36-byte payload can name a matrix of gigabytes | — |
-| Rows and columns | `BitSet` values, not views into the matrix | O(1) membership, word-at-a-time iteration and set algebra, and mutating the matrix while holding one costs nothing | — |
-| Edge positions | A cell (`source`, `target`); still names the same cell after `appendVertex()` | Stable; weights for a matrix are keyed by cell, not by a dense edge index | LEMON's id is `n × source + target`, which shifts when n changes |
-| Complement | Excludes self-loops unless `includingSelfLoops: true` | Matches NetworkX | — |
-| Edge map layout | One value per cell at Szudzik's pairing, `s < t ? t·t + s : s·s + s + t` | The cells of `0..<n` are exactly `0..<n²`, so `appendVertex()` appends 2n + 1 values and moves none | LEMON's `n × source + target` shifts when n changes |
-| Removed edge's value | Every removal (one edge, a row, a column, a whole-matrix operation, `removeAllEdges`) sets the cell back to the default; reading or writing it traps, the checked read throws `EdgeNotFound` | A cell with no edge always holds the default, so an insertion writes nothing | — |
-| Derived matrices | `union` and the other set operations carry this matrix's maps; `complement()`, `transposed()` and decoding carry none | The set operations are mutations of a copy; the others are new graphs | — |
+| Question | Choice | Why |
+|---|---|---|
+| Vertex identity | Positions `0..<vertexCount` | A matrix is indexed by position |
+| Adding vertices | `appendVertex()`, amortized by doubling | Growth without renumbering |
+| Removing vertices | Not offered | Removal would either renumber later vertices or leave holes |
+| Edge to an out-of-range vertex | `insert(edge:)` and the subscript trap; the matrix never grows to fit; `insert(checked:)` throws `VertexNotFound` and changes nothing | Growing silently would hide the error |
+| `contains` / `remove` out of range | `false` / `nil`, never a trap | Asking about something absent is not an error (same as `AdjacencyList`) |
+| Duplicate edges in the input | Collapse | A cell is a bit |
+| Self-loop | One edge; 1 to out-degree, 1 to in-degree, 2 to degree; diagonal cell is 1 | Same as `AdjacencyList` |
+| Order of successors, predecessors, edges | Ascending; edges row-major | Free with a matrix, and makes output deterministic |
+| Literal entries | Square, each 0 or 1, else trap | Anything else is ambiguous |
+| `==` | Equal vertex count and equal cells; capacity ignored | Differently sized empty matrices are different graphs |
+| `description` | `[0, 1, 2]; [0→1, 1→2]`, at most 16 vertices and 16 edges, then `…`; the grid is `rowsDescription` | One textual form for every representation, so equal graphs print alike and large graphs print small |
+| Encoded form | `{"vertexCount": n, "edges": [s₀, t₀, s₁, t₁, …]}`, row-major; malformed input throws | Specified, so corrupt payloads can be tested |
+| Decoding limit | At most 16,384 vertices (32 MiB of cells) unless the decoder's `userInfo[maximumDecodedVertexCountKey]` says otherwise | A 36-byte payload can name a matrix of gigabytes |
+| Rows and columns | `BitSet` values, not views into the matrix | O(1) membership, word-at-a-time iteration and set algebra, and mutating the matrix while holding one costs nothing |
+| Edge positions | A cell (`source`, `target`); still names the same cell after `appendVertex()` | Stable; weights for a matrix are keyed by cell, not by a dense edge index |
+| Complement | Excludes self-loops unless `includingSelfLoops: true` | The usual definition of a complement graph |
+| Edge map layout | One value per cell at Szudzik's pairing, `s < t ? t·t + s : s·s + s + t` | The cells of `0..<n` are exactly `0..<n²`, so `appendVertex()` appends 2n + 1 values and moves none |
+| Removed edge's value | Every removal (one edge, a row, a column, a whole-matrix operation, `removeAllEdges`) sets the cell back to the default; reading or writing it traps, the checked read throws `EdgeNotFound` | A cell with no edge always holds the default, so an insertion writes nothing |
+| Derived matrices | `union` and the other set operations carry this matrix's maps; `complement()`, `transposed()` and decoding carry none | The set operations are mutations of a copy; the others are new graphs |
 
 ## Files
 
@@ -115,12 +112,8 @@ Where the reference libraries disagree, these are the choices and the reasons.
 | `AdjacencyMatrixGenerationTests.swift` | Every structural mutation starts a generation, a call that changes nothing and map writes do not; copies and derived matrices; two copies under every interleaving of three steps never share a generation in different states; `removeAll` of an empty matrix starts one in each copy |
 | `AdjacencyMatrixOperationTests.swift` | Transpose, set algebra, complement, row and column clearing, `insertEdges(from:to:)`, a transitive closure written with row unions, stable edge positions, slices, Collection laws on wide matrices, the decoding limit, large descriptions |
 
-Case IDs (AM-C04, AM-W02, …) refer to the catalog of cases (`Tests/Catalogs/AdjacencyMatrix/cases.md`) harvested from petgraph, Boost.Graph,
-gonum, NetworkX, LEMON, JGraphT, igraph (behavior reference only; GPL) and swift-algorithm-club.
+Case IDs (AM-C04, AM-W02, …) refer to the case catalog in
+`Tests/Catalogs/AdjacencyMatrix/cases.md`.
 
 Amortized growth, iteration speed and allocation behavior are performance properties: a slower
 implementation passes every test. They belong in the benchmarks.
-
-Boolean matrix products, powers and transitive closure (catalog AM-P01–P06) are algorithms and
-will be tested with the algorithm modules; the closure test here only shows that row unions make
-one easy to write.

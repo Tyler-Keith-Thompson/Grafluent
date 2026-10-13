@@ -1,8 +1,7 @@
-// `greedyColoring(order:)` (catalog §Greedy.order): first fit in the given order (Boost
-// `sequential_vertex_coloring`, NetworkX with a callable strategy); exact; proper (checked here); at
-// most Δ + 1 colours; a first-fit colouring; first fit written out; the order as a lazy sequence.
-// Graphs are `UndirectedAdjacencyList` built by inserting the row's vertices, then its edges in
-// order, so rows are in position order (a self-loop twice); `multigraph` rows are
+// `greedyColoring(order:)` (catalog §Greedy.order): first fit in the given order; exact; proper
+// (checked here); at most Δ + 1 colours; a first-fit colouring; first fit written out; the order as
+// a lazy sequence. Graphs are `UndirectedAdjacencyList` built by inserting the row's vertices, then
+// its edges in order, so rows are in position order (a self-loop twice); `multigraph` rows are
 // `ReferencePseudograph`, whose rows are in position order too; `L …; R …` and the `Kb`, `crown` and
 // `lcgb` rows are `BipartiteGraph(left:right:edges:)`. In-test oracles number vertices by their
 // index in `vertices`. Generated from cases.md by swiftgen.py, which re-evaluates each row with

@@ -5,9 +5,9 @@ import GraphProtocols
 import Semirings
 import ShortestPaths
 
-/// scipy's Floyd–Warshall loop (`_floyd_warshall`, distances only): row-major, rows skipped where
-/// `d[i][k]` is infinite, and a branch-free `min` store. The floor for the library's loop, which
-/// also keeps the last edge of each path.
+/// A Floyd–Warshall loop that computes distances only: row-major, rows skipped where `d[i][k]` is
+/// infinite, and a branch-free `min` store. The floor for the library's loop, which also keeps the
+/// last edge of each path.
 func handWrittenFloydWarshall(_ n: Int, _ edges: [DirectedEdge<Int>], _ weights: [Double]) -> [Double] {
     var d = [Double](repeating: .infinity, count: n * n)
     for i in 0 ..< n { d[i * n + i] = 0 }
@@ -124,7 +124,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(3)
 
-    // api.md's workload: a random digraph with n = 200,000 and m = 2,000,000, from vertex 0.
+    // A random digraph with n = 200,000 and m = 2,000,000, searched from vertex 0.
     let n = 200_000
     let edges = Inputs.sortedUnique(Inputs.randomEdges(vertexCount: n, edgeCount: 2_000_000))
     let csr = CompressedSparseRow(vertexCount: n, edges: edges)
@@ -136,7 +136,7 @@ let benchmarks: @Sendable () -> Void = {
     let tropical = csr.dijkstraShortestPaths(from: 0) { TropicalSemiring(real[$0]) }
     precondition((0 ..< n).allSatisfy { reference.distance(toIndex: $0) == tropical.distance(toIndex: $0)?.value })
 
-    // SR-B01 – B04: Dijkstra and Bellman–Ford, W against TropicalSemiring<Double> (gate: 1.05×).
+    // SR-B01 – B04: Dijkstra and Bellman–Ford, W against TropicalSemiring<Double>.
     Benchmark("Semirings: dijkstraShortestPaths, W = Double") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(csr.dijkstraShortestPaths(from: 0) { real[$0] }) }
     }
@@ -149,7 +149,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Semirings: bellmanFordShortestPaths, S = TropicalSemiring<Double>") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(csr.bellmanFordShortestPaths(from: 0) { TropicalSemiring(real[$0]) }) }
     }
-    // SR-B05 – B08: the same over Int, where the tropical product checks its sentinels (not gated).
+    // SR-B05 – B08: the same over Int, where the tropical product checks its sentinels.
     Benchmark("Semirings: dijkstraShortestPaths, W = Int") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(csr.dijkstraShortestPaths(from: 0) { integer[$0] }) }
     }
@@ -161,8 +161,8 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     // SR-B14 – B16: DAG paths on the same shape with each arc written low > high (acyclic), W
-    // against TropicalSemiring<Double> (gate: 1.05×), and Mohri's shortest distances over the same
-    // semiring (accumulate, no parents; gate: 1.05× of the W paths).
+    // against TropicalSemiring<Double>, and Mohri's shortest distances over the same semiring
+    // (accumulate, no parents).
     let dagEdges = Inputs.sortedUnique(edges.compactMap { $0.source == $0.target ? nil : DirectedEdge(from: min($0.source, $0.target), to: max($0.source, $0.target)) })
     let dag = CompressedSparseRow(vertexCount: n, edges: dagEdges)
     let dagWeights = dagEdges.indices.map { real[$0 % real.count] }
@@ -179,7 +179,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(dag.dagShortestDistances(from: 0) { TropicalSemiring(dagWeights[$0]) }) }
     }
 
-    // SR-B09 – B13: Floyd–Warshall on G(1000, p = 0.01), weights 0.1 – 100, against scipy's loop.
+    // SR-B09 – B13: Floyd–Warshall on G(1000, p = 0.01), weights 0.1 – 100, against hand-written loops.
     let m = 1000
     let small = Inputs.randomEdges(vertexCount: m, edgeCount: 10_000, seed: 5)
     let smallGraph = CompressedSparseRow(vertexCount: m, edges: small)
@@ -201,8 +201,8 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Semirings: BASELINE hand-written Floyd–Warshall with predecessors, row pointers, n = 1000") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(handWrittenFloydWarshallRows(m, Array(smallGraph.edges), slotWeights)) }
     }
-    // The binary floating-point overload runs the tropical loop (gate: 1.05× of S); a generic W
-    // keeps the reached-flag loop, which the Int row times.
+    // The binary floating-point overload runs the tropical loop; a generic W keeps the reached-flag
+    // loop, which the Int row times.
     Benchmark("Semirings: floydWarshallShortestPaths, W = Double, n = 1000") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(smallGraph.floydWarshallShortestPaths { slotWeights[$0] }) }
     }

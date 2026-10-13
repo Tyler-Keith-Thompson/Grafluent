@@ -471,8 +471,8 @@ def hostile_test(n, text, exp, T):
     assert ref.show_state(g) == exp
     lines = ["    func dag%03d() throws {" % n,
              "        // %s → %s" % (text, exp),
-             "        // Before the key table started at the first live page, this allocated a table entry for",
-             "        // every page below the position: 2⁴⁰ words.",
+             "        // The key table starts at the vertex's page, so this allocates one page, not an entry",
+             "        // for every page below the position.",
              '        let payload = Data(#"%s"#.utf8)' % payload,
              "        var graph = try JSONDecoder().decode(%s.self, from: payload)" % T]
     lines += state(g, "Int")
@@ -528,8 +528,8 @@ FILES = [
      "// nothing; the witness is Traversal's `bidirectionalShortestPath(from: target, to: source)`, checked as a\n"
      "// genuine shortest path; `insert(checked:)` throws `.missingEndpoint` for a missing endpoint." % (span("Cycle witness"), span("insert(checked:)"))),
     ("DirectedAcyclicGraphRemovalTests.swift", "DirectedAcyclicGraph removal", G["Removal"],
-     "Removal (catalog %s): removals keep the order; `remove(_:)` closes the gap and follows the\n"
-     "// base's swap-remove; the resets." % span("Removal")),
+     "Removal (catalog %s): removals keep the order; places count past the hole `remove(_:)`\n"
+     "// leaves, and a swap-removed base's moved vertex keeps its place; the resets." % span("Removal")),
     ("DirectedAcyclicGraphQueryTests.swift", "DirectedAcyclicGraph order queries and algorithms", G["Order queries"] + G["Algorithms"],
      "Order queries and algorithms (catalog %s, %s): `topologicalPosition`, the order's\n"
      "// subscript, the order-pruned `hasPath`, equality that ignores the order, `transitiveClosure()`,\n"

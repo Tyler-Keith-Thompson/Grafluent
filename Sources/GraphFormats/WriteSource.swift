@@ -173,8 +173,8 @@ import GraphProtocols
 
 /// Each vertex's ID as the writer prints it, made once (on first use) and kept as bytes. Two
 /// vertices may not have the same ID (a precondition): the file would name one vertex where the
-/// graph has two. IDs are compared by their Unicode scalars, as NetworkX compares Python strings,
-/// so canonically equivalent but different IDs (`"é"` precomposed and decomposed) are distinct.
+/// graph has two. IDs are compared by their Unicode scalars, so canonically equivalent but
+/// different IDs (`"é"` precomposed and decomposed) are distinct.
 @usableFromInline internal struct _IDCache: ~Copyable {
     @usableFromInline var arena: [UInt8] = []
     /// Per vertex number: the start of its bytes in the arena and their count (-1 until made), and

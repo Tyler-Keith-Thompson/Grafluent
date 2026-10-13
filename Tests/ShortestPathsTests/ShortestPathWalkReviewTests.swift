@@ -1,6 +1,6 @@
-// Cases added after the critical review of Walks: a path to a source that another source improved
-// (multi-source Bellman–Ford), undirected Dijkstra and A* results checked as paths of the directed
-// view (the orientation of each arc), and an undirected negative self-loop's witness. Case IDs
+// A path to a source that another source improved (multi-source Bellman–Ford), undirected Dijkstra
+// and A* results checked as paths of the directed view (the orientation of each arc), and an
+// undirected negative self-loop's witness. Case IDs
 // (WK-nn) refer to the Walks catalog; see Tests/WalksTests/README.md.
 
 import AdjacencyListModule

@@ -18,9 +18,9 @@ func _climbingLowestCommonAncestor<Vertex>(_ layout: _TreeLayout<Vertex>, _ a: I
 
 extension RootedTree {
     /// The deepest vertex that is an ancestor of both `a` and `b`, a vertex counting as its own
-    /// ancestor here (NetworkX `lowest_common_ancestor`): `a` when `a` is above `b`, and `v` for
-    /// `(v, v)`. It depends on the root. O(depth(a) + depth(b)), allocating nothing; for many
-    /// queries, `LowestCommonAncestors` answers each in O(1).
+    /// ancestor. This is `a` when `a` is above `b`, and `v` for `(v, v)`. It depends on the root.
+    /// O(depth(a) + depth(b)) with no allocation. For many queries, `LowestCommonAncestors`
+    /// answers each in O(1).
     ///
     /// - Precondition: Both are vertices of the tree.
     @inlinable
@@ -28,8 +28,8 @@ extension RootedTree {
         _layout.vertices[_climbingLowestCommonAncestor(_layout, _layout.number(of: a), _layout.number(of: b))]
     }
 
-    /// `lowestCommonAncestor(of: a, b)`, throwing instead of trapping when either is not a vertex
-    /// (README Principle 6). O(depth(a) + depth(b)).
+    /// `lowestCommonAncestor(of: a, b)`, throwing instead of trapping when either is not a vertex.
+    /// O(depth(a) + depth(b)).
     ///
     /// - Throws: `VertexNotFound` when `a` or `b` is not a vertex of the tree.
     @inlinable
@@ -73,8 +73,8 @@ extension Arborescence {
         _layout.vertices[_climbingLowestCommonAncestor(_layout, _layout.number(of: a), _layout.number(of: b))]
     }
 
-    /// `lowestCommonAncestor(of: a, b)`, throwing instead of trapping when either is not a vertex
-    /// (README Principle 6). O(depth(a) + depth(b)).
+    /// `lowestCommonAncestor(of: a, b)`, throwing instead of trapping when either is not a vertex.
+    /// O(depth(a) + depth(b)).
     ///
     /// - Throws: `VertexNotFound` when `a` or `b` is not a vertex of the arborescence.
     @inlinable
@@ -84,20 +84,19 @@ extension Arborescence {
     }
 }
 
-/// Lowest common ancestors of a rooted tree or arborescence, each in O(1) after O(n) work
-/// (NetworkX `lowest_common_ancestor`, JGraphT's `LowestCommonAncestorAlgorithm`).
+/// Lowest common ancestors of a rooted tree or arborescence, each in O(1) after O(n) work.
 ///
 /// For vertices at preorder positions p < q, the answer is the vertex at the least position among
-/// the parents of the vertices at positions p + 1 … q: those parents lie in the answer's subtree
-/// and include it, and it has the least position there. So a query is one range minimum over
-/// n − 1 parent positions (the Euler tour reduction on half the entries), answered by 64-entry
-/// blocks with a bitmask of each prefix's minimum stack and a sparse table over the blocks' minima.
-/// About two words per vertex, plus (n/64)·log₂(n/64) for the table.
+/// the parents of the vertices at positions p + 1 … q. Those parents lie in the answer's subtree
+/// and include it, and it has the least position there. A query is therefore one range minimum
+/// over n − 1 parent positions, answered by 64-entry blocks with a bitmask of each prefix's
+/// minimum stack and a sparse table over the blocks' minima. Memory is about 20 bytes per vertex,
+/// plus (n/64)·log₂(n/64) entries for the table.
 @frozen
 public struct LowestCommonAncestors<Vertex: Hashable> {
     @usableFromInline let _layout: _TreeLayout<Vertex>
-    /// Each vertex's preorder position and depth, dense, so a query reads 4-byte entries rather
-    /// than two 28-byte node records.
+    /// Each vertex's preorder position and depth, stored densely so a query reads small entries
+    /// rather than node records.
     @usableFromInline let _position: [Int32]
     @usableFromInline let _depth: [Int32]
     /// `_minima[i]`: the preorder position of the parent of the vertex at position i (i ≥ 1).
@@ -233,8 +232,8 @@ public struct LowestCommonAncestors<Vertex: Hashable> {
         distance(fromIndex: _layout.number(of: a), toIndex: _layout.number(of: b))
     }
 
-    /// `lowestCommonAncestor(of: a, b)`, throwing instead of trapping when either is not a vertex
-    /// (README Principle 6). O(1).
+    /// `lowestCommonAncestor(of: a, b)`, throwing instead of trapping when either is not a vertex.
+    /// O(1).
     ///
     /// - Throws: `VertexNotFound` when `a` or `b` is not a vertex of the tree.
     @inlinable

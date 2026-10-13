@@ -2,7 +2,7 @@
 
 Run: cd <this dir> && uv run --quiet --no-project --with networkx==3.7 python3 ref.py
 
-A Python model of the proposed Swift types (vertices + edge positions), checked against
+A Python model of the Swift types (vertices + edge positions), checked against
 NetworkX 3.7 where NetworkX has an answer, and against brute force where it does not.
 Every check prints its case ID; any failure raises.
 """
@@ -169,12 +169,12 @@ def all_edge_choices(edges, vs, directed):
 
 # ---------------------------------------------------------------- WK-1xx construction / validation
 
-# Directed fixture D4: JGraphT GraphWalkTest / LEMON path_test: 0→1, 1→2, 2→3, 3→0 at positions 0..3.
+# Directed fixture D4: 0→1, 1→2, 2→3, 3→0 at positions 0..3.
 D4 = [(0, 1), (1, 2), (2, 3), (3, 0)]
 check("WK-101", is_walk(D4, [0, 1, 2, 3], [0, 1, 2], True))
 check("WK-102", not is_walk(D4, [0, 1, 3, 2], [0, 1, 2], True), "JGraphT testInvalidPath4 shape")
 check("WK-103", not is_walk(D4, [0, 1, 2], [0, 2], True), "JGraphT testInvalidPath5: skips 1→2")
-# LEMON's inconsistent path a4, a2, a1 = positions 3, 1, 0 (source n4 = 3, target n2 = 1)
+# Inconsistent arcs a4, a2, a1 = positions 3, 1, 0 (source n4 = 3, target n2 = 1)
 check("WK-104", all(not is_walk(D4, vs, [3, 1, 0], True) for vs in itertools.product(range(4), repeat=4)),
       "no vertex list makes LEMON's [a4, a2, a1] a walk")
 check("WK-105", is_walk(D4, [3, 0, 1, 2], [3, 0, 1], True), "LEMON addFront a3? no: a4,a1,a2 = [3,0,1]")
@@ -184,7 +184,7 @@ check("WK-107", not is_walk(D4, [], [], True), "no empty walk")
 check("WK-108", not is_walk(D4, [0, 1], [0, 1], True), "count mismatch is not a walk of g")
 check("WK-109", pick_edges(D4, [0, 1, 2, 3, 0, 1], True, False) == [0, 1, 2, 3, 0])
 check("WK-110", pick_edges(D4, [0, 2], True, False) is None)
-# JGraphT testInvalidPath3: [0, 0] in a simple graph without a loop
+# [0, 0] in a simple graph without a loop
 check("WK-111", pick_edges([(0, 1)], [0, 0], False, False) is None)
 
 # ---------------------------------------------------------------- NetworkX is_path agreement (walks)
@@ -211,7 +211,7 @@ check("WK-129", pick_edges([(0, 0)], [0, 0, 0], True, True) is None, "but not a 
 check("WK-201", is_trail([0, 1, 2, 3, 2, 3, 4], [0, 1, 2, 3, 4, 5]) is True, "distinct positions")
 K5 = [(a, b) for a, b in itertools.combinations(range(5), 2)]
 pos = {frozenset(e): p for p, e in enumerate(K5)}
-jg = [0, 1, 2, 3, 2, 3, 4]  # JGraphT testNonSimplePath on K5
+jg = [0, 1, 2, 3, 2, 3, 4]  # a non-simple walk on K5
 jg_es = [pos[frozenset((a, b))] for a, b in zip(jg, jg[1:])]
 check("WK-202", is_walk(K5, jg, jg_es, False) and not is_trail(jg, jg_es) and not is_path(jg, jg_es),
       f"JGraphT non-simple path on K5: edges {jg_es}, edge {2,3} used three times")
@@ -400,14 +400,14 @@ check("WK-904", c0 != c1 and c0 == 0.6000000000000001 and c1 == 0.6,
 check("WK-905", weight([0, 1, 2], [0.5, 0.25, 0.125]) == weight([1, 2, 0], [0.5, 0.25, 0.125]) == 0.875)
 
 # ---------------------------------------------------------------- WK-10xx reversal / concatenation
-# JGraphT testReversePathUndirected: 0-1 (w2), 1-2 (w3), 2-3 (w4)
+# U3: 0-1 (w2), 1-2 (w3), 2-3 (w4)
 U3 = [(0, 1), (1, 2), (2, 3)]
 rv = reverse_walk([0, 1, 2, 3], [0, 1, 2])
 check("WK-1001", rv == ([3, 2, 1, 0], [2, 1, 0]) and is_walk(U3, *rv, False) and weight(rv[1], [2, 3, 4]) == 9)
-# Directed: the reverse is a walk of the reversed graph, not of g (JGraphT testReverseInvalidPathDirected).
+# Directed: the reverse is a walk of the reversed graph, not of g.
 D3 = [(0, 1), (1, 2), (2, 3)]
 check("WK-1002", not is_walk(D3, *rv, True) and is_walk([(b, a) for a, b in D3], *rv, True))
-# JGraphT testConcatPath1: 0→1, 1→2, 2→3, 3→1
+# C: 0→1, 1→2, 2→3, 3→1
 C = [(0, 1), (1, 2), (2, 3), (3, 1)]
 cat = ([0, 1, 2] + [2, 3, 1][1:], [0, 1] + [2, 3])
 check("WK-1003", cat == ([0, 1, 2, 3, 1], [0, 1, 2, 3]) and is_walk(C, *cat, True))
@@ -419,10 +419,10 @@ check("WK-1006", reverse_cycle([0, 1], [0, 1]) == ([0, 1], [1, 0]) and not rot_e
 check("WK-1007", is_walk(DV, [0, 1, 2], [0, 2], True) and not is_walk(DV, [2, 1, 0], [2, 0], True)
       and is_walk(DV, [2, 1, 0], [3, 1], True), "flip each arc's reversed flag to stay in g.directedView")
 
-# ---------------------------------------------------------------- migration fixtures (existing tests)
+# ---------------------------------------------------------------- WK-12xx results of other modules
 # SP-63: undirected negative edge 1-2 from cycle_graph(5): [1, 2] and arcs of edge {1,2}
 check("WK-1201", is_cycle_storage([1, 2], [(1, False), (1, True)]))
-# TR-105-ish: findCycle on 0→3→5→0 style; rotation equality makes the start irrelevant for ==
+# TR-105: findCycle on a cycle like 0→3→5→0; rotation equality makes the start irrelevant for ==
 check("WK-1202", rot_equal(([0, 3, 5], ["a", "b", "c"]), ([3, 5, 0], ["b", "c", "a"])))
 # NetworkX find_cycle returns edges, with orientation; its node sequence is the sources.
 Gf = nx.DiGraph([(-1, 0), (0, 1), (1, 0), (1, 0), (2, 1), (3, 1)])

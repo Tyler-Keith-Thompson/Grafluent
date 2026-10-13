@@ -4,8 +4,8 @@
 // ParseError whose line and column agree with its byte offset, never trap; memory stays bounded
 // (run with -rss_limit_mb; the Matrix Market vertex count is capped at 4096 here, as a caller
 // reading untrusted files would cap it). A graph that was read is written in the same format and
-// read back into the same type, and must come back as api.md's round-trip table says: the same
-// vertices and edges with the same attributes (DOT values as strings; the edge list loses
+// read back into the same type, and must come back as each format's round trip is documented:
+// the same vertices and edges with the same attributes (DOT values as strings; the edge list loses
 // isolated vertices and orders vertices by first appearance; the adjacency list groups edges by
 // line; Matrix Market orients undirected entries lower-triangular; Mermaid keeps labels only).
 
@@ -368,8 +368,8 @@ func fuzzUndirected<G: MutableGraph>(_ type: G.Type, _ format: Format, _ bytes: 
     roundTrip(format, reading, back, directed: false, text: text)
 }
 
-/// Node-link JSON and GraphML read one way or two: NetworkX's JSON layout in one pass, GraphML's
-/// nodes and edges ahead in the first walk. A variant of the document that only forces the general
+/// Node-link JSON and GraphML read one way or two: node-link JSON with its members in the
+/// conventional order in one pass, GraphML's nodes and edges ahead in the first walk. A variant of the document that only forces the general
 /// reader (an ignored member before the closing brace, a key nothing uses before `</graphml>`)
 /// must read the same: the same graph and the same calls in the same order, or the same error when
 /// it is one of meaning. (A grammar error may come from where the insertion lands, inside an

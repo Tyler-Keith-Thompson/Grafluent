@@ -1,35 +1,32 @@
 import Synchronization
 
-// The storage of maps attached to a graph: LEMON's `NodeMap` and `ArcMap`, which register with
-// their graph's `AlterationNotifier` and are told of every insertion and erasure. A Swift value
-// cannot notify another value, so here the graph owns its maps: each map's values live inside the
-// graph (type-erased in a class), every mutation that adds, moves or removes an element updates
-// every attached map in the same call, and the caller holds a small handle (`EdgeMap<Value>`,
+// The storage of maps attached to a graph. The graph owns its maps. Each map's values live inside
+// the graph, type-erased in a class. Every mutation that adds, moves or removes an element updates
+// every attached map in the same call. The caller holds a small handle (`EdgeMap<Value>`,
 // `VertexMap<Value>`) that names a map. Copies of the graph share every map, copy-on-write.
 //
 // A representation keeps one `_AttachedMaps` per kind (vertices, edges) and picks one layout for
 // both, by its `PropertyGraph._vertexMapLayout` and `_edgeMapLayout`:
 //
-// - dense: one buffer with an entry per position, `0 ..< bound`; a swap-remove representation
+// - dense: one buffer with an entry per position, `0 ..< bound`. A swap-remove representation
 //   moves the last entry into the hole (`swapRemove(at:)`), and an append appends the default.
 // - paged: pages of `_PositionPage.size` entries, allocated on the first write to a page and
-//   freed when the graph frees the matching page of its own (`freePage(_:)`); an unallocated
+//   freed when the graph frees the matching page of its own (`freePage(_:)`). An unallocated
 //   page reads as the default.
 //
-// Every map has a default value (LEMON's `NodeMap(g, value)`, BGL property maps, petgraph's
-// weights), the value of every element it was not given another for. So a read is one load, with
-// no `Optional` to unwrap and no doubled stride for `Double` or `Int`.
+// Every map has a default value, the value of every element it was not given another for. A read
+// is therefore one load, with no `Optional` to unwrap and no doubled stride for `Double` or `Int`.
 //
-// The upkeep a mutation does: one uniqueness check for all the maps of a kind (on the table that
-// lists them), then, per map, the move itself. When every map is dense with a trivial value type
-// (`Double`, `Int`, `Int?`: the common case), the move is a load and a store of raw bytes in
-// non-generic code, with no call and no retain; other values go through closures specialized where
-// the map was attached. A map's buffer is copied on the first write after it may have become
-// shared (by a copy of the graph, or a `values(of:)` snapshot), which a flag on the buffer, and
-// one on the table, record, so an unshared buffer needs no uniqueness check of its own. A list
-// representation skips even the table's check: its upkeep runs right after its generation stamp's
-// advance with `maps:`, which leaves both tables its own (see GraphGeneration.swift), and one map
-// of `Double` or `Int` then costs one call, a load and a store (`_MapTable._fastBuffer`).
+// A mutation's upkeep is one uniqueness check for all the maps of a kind, on the table that lists
+// them, then the move itself for each map. When every map is dense with a trivial value type
+// (`Double`, `Int`, `Int?`), the move is a load and a store of raw bytes in non-generic code, with
+// no call and no retain. Other values go through closures specialized where the map was attached.
+// A map's buffer is copied on the first write after it may have become shared by a copy of the
+// graph or a `values(of:)` snapshot. A flag on the buffer and one on the table record that, so an
+// unshared buffer needs no uniqueness check of its own. A list representation skips the table's
+// check too. Its upkeep runs right after its generation stamp's advance with `maps:`, which
+// leaves both tables its own (see GraphGeneration.swift). One map of `Double` or `Int` then costs
+// one call, a load and a store (`_MapTable._fastBuffer`).
 
 /// How a representation lays out its attached maps: one buffer by offset (`dense`), or pages of
 /// 1024 offsets (`paged`). A static property of the representation, so a specialized read folds
@@ -149,9 +146,8 @@ extension _MapStorage: @unchecked Sendable where Value: Sendable {}
 
 /// What the graph does to an attached map that needs its value type: closures made where the map
 /// was attached (`_AttachedMaps.add(default:layout:count:)`, specialized for `Value` there). Each
-/// takes a buffer no one else references. Calling a method of a generic class through its vtable
-/// runs the unspecialized body, whose metadata lookups made a removal with two maps attached 6×
-/// slower than these.
+/// takes a buffer no one else references. These closures replace methods on the generic buffer
+/// class, because a call through the vtable runs the unspecialized body and its metadata lookups.
 @frozen
 @usableFromInline
 package struct _MapWitnesses {
@@ -846,10 +842,10 @@ package struct _AttachedMaps: Sendable {
         }
     }
 
-    /// The values of the map with `token`, as a snapshot (`storage(_:in:)`): what every
-    /// `values(of:)` returns. Specialized but never inlined: inlined into a caller, the lookup
-    /// and the snapshot's atomic stores kept the caller's sort from inlining its comparison
-    /// closure (Kruskal ran 1.37× the array version).
+    /// The values of the map with `token`, as a snapshot (`storage(_:in:)`), which every
+    /// `values(of:)` returns. Specialized but never inlined, because inlining the lookup and the
+    /// snapshot's atomic stores into a caller can keep the caller's sort from inlining its
+    /// comparison closure.
     ///
     /// - Precondition: The map is attached.
     @inlinable
@@ -1009,10 +1005,12 @@ package struct _AttachedMaps: Sendable {
     }
 }
 
-/// A handle to a map from edge positions to `Value` attached to a graph (LEMON's `ArcMap`),
-/// returned by `PropertyGraph.addEdgeMap(default:)`. It holds no values: read and write them
-/// through the graph, `graph[handle, ofEdgeAt: position]`. It is valid on the graph that added it
-/// and on every copy of that graph, until `removeEdgeMap(_:)`; on another graph it traps.
+/// A handle to a map from edge positions to `Value` attached to a graph, returned by
+/// `PropertyGraph.addEdgeMap(default:)`.
+///
+/// The handle holds no values. Read and write them through the graph with
+/// `graph[handle, ofEdgeAt: position]`. The handle is valid on the graph that added it and on
+/// every copy of that graph until `removeEdgeMap(_:)`. Using it on another graph traps.
 @frozen
 public struct EdgeMap<Value>: Hashable, Sendable {
     @usableFromInline package let _token: _MapToken
@@ -1032,9 +1030,12 @@ public struct EdgeMap<Value>: Hashable, Sendable {
     public func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(_token)) }
 }
 
-/// A handle to a map from vertex positions to `Value` attached to a graph (LEMON's `NodeMap`),
-/// returned by `PropertyGraph.addVertexMap(default:)`; read and write values through
-/// `graph[handle, ofVertexAt: position]` or `graph[handle, of: vertex]`.
+/// A handle to a map from vertex positions to `Value` attached to a graph, returned by
+/// `PropertyGraph.addVertexMap(default:)`.
+///
+/// Read and write values through `graph[handle, ofVertexAt: position]` or
+/// `graph[handle, of: vertex]`. The handle is valid on the graph that added it and on every copy
+/// of that graph until `removeVertexMap(_:)`. Using it on another graph traps.
 @frozen
 public struct VertexMap<Value>: Hashable, Sendable {
     @usableFromInline package let _token: _MapToken

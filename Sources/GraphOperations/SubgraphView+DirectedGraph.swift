@@ -2,9 +2,8 @@ import GraphProtocols
 
 extension DirectedGraph {
     /// The subgraph induced by `vertices`: those vertices and every edge between them, as a lazy
-    /// view (igraph's `induced_subgraph`, NetworkX's `G.subgraph(nodes)`). The kept vertices are
-    /// numbered in the graph's order, whatever the listed order; a vertex listed twice is kept
-    /// once. The view keeps the graph's edge positions and has no edge indices.
+    /// view. The kept vertices are numbered in the graph's order, whatever the listed order. A
+    /// vertex listed twice is kept once. The view keeps the graph's edge positions and has no edge indices.
     ///
     /// O(n + listed), with one hash per listed vertex.
     ///
@@ -19,9 +18,8 @@ extension DirectedGraph {
     }
 
     /// The spanning subgraph with the edges at `edges`: every vertex, at its own index, and only
-    /// those edges, as a lazy view (igraph's `subgraph_edges(delete_vertices=False)`, LEMON's
-    /// `FilterArcs`). A position listed twice is kept once. The view has dense edge indices, each
-    /// edge's rank among the kept edges in the graph's order.
+    /// those edges, as a lazy view. A position listed twice is kept once. The view has dense edge
+    /// indices, each edge's rank among the kept edges in the graph's order.
     ///
     /// O(m/64 + listed) over a graph with edge indices; O(listed log listed) without them.
     ///
@@ -32,9 +30,8 @@ extension DirectedGraph {
         subgraph(keeping: nil as [Vertex]?, edges: edges)
     }
 
-    /// The subgraph with the given vertices and edges, as a lazy view (JGraphT's `AsSubgraph`,
-    /// Mathematica's `Subgraph`): an edge is kept when it is listed and both its ends are kept, so
-    /// a listed edge with an end outside `vertices` is dropped. Vertices are numbered as for
+    /// The subgraph with the given vertices and edges, as a lazy view. An edge is kept when it is
+    /// listed and both its ends are kept. A listed edge with an end outside `vertices` is dropped. Vertices are numbered as for
     /// `inducedSubgraphView(on:)`, and edge indices as for `spanningSubgraphView(edges:)`.
     ///
     /// O(n + listed vertices + m/64 + listed edges), with one hash per listed vertex.
@@ -142,9 +139,9 @@ extension SubgraphView: DirectedGraph where Base: DirectedGraph {
             positions: state?.test == nil ? nil : base.outEdges(ofIndex: b), state: state)
     }
 
-    /// `successorIndices(ofIndex:)` without a row value: with an edge set over a base with edge
-    /// indices, the mask's words are read at the base's own `edgeIndex(of:)`, not through the edge
-    /// set's class, and without retaining the mask.
+    /// `successorIndices(ofIndex:)` without a row value. With an edge set over a base with edge
+    /// indices, it tests the mask's words at the base's own `edgeIndex(of:)` without going through
+    /// the edge set's class or retaining the mask.
     @inlinable
     @inline(__always)
     public func _forEachSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
@@ -153,10 +150,9 @@ extension SubgraphView: DirectedGraph where Base: DirectedGraph {
         _forEachKeptSuccessorIndex(ofIndex: index, body)
     }
 
-    /// The filtered successor row: with an edge set, the view's kept rows (`_KeptRows`),
-    /// built on the first call; otherwise the base's row filtered. Out of line: inlined beside the
-    /// keep-everything branch, it made breadth-first layers on a view of every vertex 1.2× the base
-    /// (the per-edge closure was no longer inlined); out of line, 1.0–1.06×.
+    /// The filtered successor row: with an edge set, the view's kept rows (`_KeptRows`) once
+    /// built, otherwise the base's row filtered. Kept out of line so the keep-everything branch in
+    /// `_forEachSuccessorIndex` still inlines the caller's per-edge closure.
     @inlinable
     @inline(never)
     func _forEachKeptSuccessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {
@@ -327,10 +323,9 @@ extension SubgraphView: BidirectionalDirectedGraph where Base: BidirectionalDire
         _forEachKeptPredecessorIndex(ofIndex: index, body)
     }
 
-    /// The filtered predecessor row: with an edge set, the view's kept rows (`_KeptRows`),
-    /// built on the first call; otherwise the base's row filtered. Out of line: inlined beside the
-    /// keep-everything branch, it made breadth-first layers on a view of every vertex 1.2× the base
-    /// (the per-edge closure was no longer inlined); out of line, 1.0–1.06×.
+    /// The filtered predecessor row: with an edge set, the view's kept rows (`_KeptRows`) once
+    /// built, otherwise the base's row filtered. Kept out of line so the keep-everything branch in
+    /// `_forEachPredecessorIndex` still inlines the caller's per-edge closure.
     @inlinable
     @inline(never)
     func _forEachKeptPredecessorIndex(ofIndex index: Int, _ body: (Int) -> Void) {

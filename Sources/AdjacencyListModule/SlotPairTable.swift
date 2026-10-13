@@ -17,13 +17,14 @@ package struct _SlotPair: Hashable {
 @usableFromInline
 package let _slotPairSeed: UInt64 = .random(in: .min ... .max)
 
-/// A map from slot pairs to values: open addressing with linear probing over a power-of-two table
-/// at most three-quarters full, as `Dictionary` keeps it, but with a multiplicative (Fibonacci)
-/// hash of the packed pair, salted with a per-process seed, in place of SipHash, and backward-shift
-/// deletion, so removals leave no tombstones. One bucket is the pair packed into a `UInt64` and the
-/// value, 16 bytes for an `Int` and 8 for `Void` (a set).
+/// A map from slot pairs to values, with open addressing and linear probing over a power-of-two
+/// table at most three-quarters full.
 ///
-/// Both slots must be below 2³² − 1: a graph with that many vertices would not fit in memory.
+/// The hash is a multiplicative (Fibonacci) hash of the packed pair, salted with a per-process
+/// seed. Deletion shifts entries back, so removals leave no tombstones. One bucket is the pair
+/// packed into a `UInt64` and the value, 16 bytes for an `Int` and 8 for `Void` (a set).
+///
+/// Both slots must be below 2³² − 1, more vertices than fit in memory.
 /// A bucket index (from `index(forKey:)` or `insert`) stays valid until the next insertion or
 /// removal.
 @frozen
@@ -46,7 +47,7 @@ package struct _SlotPairTable<Value: BitwiseCopyable> {
     /// The buckets: none, or a power of two of them.
     @usableFromInline package var _buckets: ContiguousArray<_Bucket>
     @usableFromInline package var _count: Int
-    /// `64 − log₂(bucket count)`: the hash's top bits are the home bucket.
+    /// `64 − log₂(bucket count)`. The hash's top bits are the home bucket.
     @usableFromInline package var _shift: UInt64
     @usableFromInline package var _seed: UInt64
 
@@ -130,8 +131,8 @@ package struct _SlotPairTable<Value: BitwiseCopyable> {
     @inlinable
     package mutating func setValue(_ value: Value, at i: Int) { _buckets[i].value = value }
 
-    /// Inserts `pair` with `value` unless it is already a key; returns its bucket either way, with
-    /// the existing value left in place.
+    /// Inserts `pair` with `value` unless it is already a key, and returns its bucket either way. An
+    /// existing value is left in place.
     @inlinable
     @discardableResult
     package mutating func insert(_ pair: _SlotPair, _ value: Value) -> (inserted: Bool, index: Int) {
@@ -161,9 +162,9 @@ package struct _SlotPairTable<Value: BitwiseCopyable> {
     /// Inserts `count` entries, `entry(k)` for `k` in `0..<count`, whose pairs are distinct from
     /// each other and from every key: unchecked. Into an empty table the entries go in in the
     /// order of their home buckets, by a counting sort on the home's top bits, so the probes walk
-    /// the table front to back instead of missing the cache once per entry (a bulk build of
-    /// 5·10⁵ pairs: 3.7 against 6.7 ms for one `insert` each). Any order gives the same set of keys
-    /// reachable from their homes, so lookups do not depend on it. O(count) expected.
+    /// the table front to back instead of missing the cache once per entry. Any order gives the
+    /// same set of keys reachable from their homes, so lookups do not depend on it. O(count)
+    /// expected.
     @inlinable
     package mutating func _insertDistinct(count: Int, _ entry: (Int) -> (pair: _SlotPair, value: Value)) {
         guard count > 0 else { return }

@@ -1,9 +1,10 @@
 import BitCollections
 
-/// Rows of bits over a common number of columns: `AdjacencyMatrix`'s layout, factored out. Each
-/// row is `wordsPerRow` words; bits at columns `columnCount` and past are zero, so whole words can
-/// be compared, hashed and counted. Rows are appended in O(wordsPerRow); columns are appended in
-/// O(1) until they outgrow the words per row, which then doubles (every row moves once).
+/// Rows of bits over a common number of columns, in the same layout as `AdjacencyMatrix`.
+///
+/// Each row is `wordsPerRow` words. Bits at columns `columnCount` and past are zero, so whole words
+/// can be compared, hashed and counted. Rows are appended in O(wordsPerRow). Columns are appended
+/// in O(1) until they outgrow the words per row, which then doubles and moves every row once.
 @frozen
 @usableFromInline
 package struct _BitRows {
@@ -69,7 +70,7 @@ package struct _BitRows {
         return true
     }
 
-    /// Row `row` as a `BitSet` of its columns: a copy of its used words. O(columnCount / 64).
+    /// Row `row` as a `BitSet` of its columns, a copy of its used words. O(columnCount / 64).
     @inlinable
     package func row(_ row: Int) -> BitSet {
         let start = row &* wordsPerRow
@@ -98,7 +99,7 @@ package struct _BitRows {
             Self.checkStorage(rows: rowCount, columns: Swift.max(1, wordsPerRow &* 2) &* UInt.bitWidth)
             restride(Swift.max(1, wordsPerRow &* 2))
         }
-        // The new column is already zero: every bit past the last column is.
+        // The new column is already zero, as every bit past the last column is.
         columnCount &+= 1
     }
 
@@ -196,7 +197,7 @@ package struct _BitRows {
         return count
     }
 
-    /// Whether the used words of every row are equal; capacity is not compared.
+    /// Whether the used words of every row are equal. Capacity is not compared.
     @inlinable
     package func sameBits(as other: _BitRows) -> Bool {
         guard rowCount == other.rowCount, columnCount == other.columnCount else { return false }

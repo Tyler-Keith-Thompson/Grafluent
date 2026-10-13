@@ -1,10 +1,8 @@
-/// Why a base and its labels cannot form a `LabeledGraph`: the requirements of
-/// `LabeledGraph.init(_:labels:)`, checked in the order of the cases. Decoding reports the same
-/// failures as `DecodingError.dataCorrupted`.
+/// The requirement of `LabeledGraph.init(_:labels:)` that a base and its labels break.
 ///
-/// No case carries a label: an `Error` must be `Sendable` and a label type needn't be, and the
-/// caller already holds the labels. `CompressedSparseRow.ValidationError` reports its arrays the
-/// same way, by position.
+/// The requirements are checked in the order of the cases. Decoding reports the same failures as
+/// `DecodingError.dataCorrupted`. Cases report positions rather than labels, because a label type
+/// need not be `Sendable`.
 public enum LabelingError: Error, Hashable, Sendable {
     /// The base's `vertexIndexBound` is `nil`: its vertex indices have holes.
     case baseNotDenselyIndexed

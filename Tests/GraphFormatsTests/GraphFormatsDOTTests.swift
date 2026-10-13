@@ -1,6 +1,6 @@
-// DOT (catalog GF-001 – GF-042 and GF-226 read, GF-186 – GF-192 write): Graphviz's grammar without subgraphs
+// DOT (catalog GF-001 – GF-042 and GF-226 read, GF-186 – GF-192 write): the grammar without subgraphs
 // and ports, values read as strings, node and edge defaults applied to later statements, strict
-// merging, scan.l's quoting; the writer's canonical form, quoting only where an ID needs it.
+// merging, DOT's quoting; the writer's canonical form, quoting only where an ID needs it.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
@@ -804,7 +804,7 @@ struct GraphFormatsDOTTests {
         }
     }
 
-    @Test("GF-030 subgraph (phase 2)")
+    @Test("GF-030 subgraph (unsupported)")
     func gf030() {
         // DirectedPseudograph<String>(dot:) → **unsupported** at 1:11
         let input = "digraph { subgraph s { a } }"
@@ -817,7 +817,7 @@ struct GraphFormatsDOTTests {
         }
     }
 
-    @Test("GF-031 anonymous subgraph as an endpoint (phase 2)")
+    @Test("GF-031 anonymous subgraph as an endpoint (unsupported)")
     func gf031() {
         // DirectedPseudograph<String>(dot:) → **unsupported** at 1:16
         let input = "digraph { a -> { b c } }"
@@ -830,7 +830,7 @@ struct GraphFormatsDOTTests {
         }
     }
 
-    @Test("GF-032 port (phase 2)")
+    @Test("GF-032 port (unsupported)")
     func gf032() {
         // DirectedPseudograph<String>(dot:) → **unsupported** at 1:12
         let input = "digraph { a:p -> b }"
@@ -843,7 +843,7 @@ struct GraphFormatsDOTTests {
         }
     }
 
-    @Test("GF-033 a second graph (phase 2)")
+    @Test("GF-033 a second graph (unsupported)")
     func gf033() {
         // DirectedPseudograph<String>(dot:) → **unsupported** at 2:1
         let input = "digraph { a }\ndigraph { b }"

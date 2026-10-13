@@ -1,4 +1,4 @@
-# GraphProducts: case catalog (phase 1)
+# GraphProducts: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0
 python3 Tests/Catalogs/GraphProducts/ref.py`; `--write` regenerates this file, `--stress` adds the random
@@ -91,6 +91,6 @@ Conventions:
 | GP-066 | Indices | edgeIndex: Cartesian G-part then H-part | G = AL V [a, b]; E [a→b]; H = AL V [x, y, z]; E [x→y, y→z] / cartesianProductView(G, H) | V [(a,x)#0, (a,y)#1, (a,z)#2, (b,x)#3, (b,y)#4, (b,z)#5]; E [G0·0:(a,x)→(b,x), G0·1:(a,y)→(b,y), G0·2:(a,z)→(b,z), 0·H0:(a,x)→(a,y), 0·H1:(a,y)→(a,z), 1·H0:(b,x)→(b,y), 1·H1:(b,y)→(b,z)]; edgeCount 7; bounds 6/7; edgeIndex [G0·0: 0, G0·1: 1, G0·2: 2, 0·H0: 3, 0·H1: 4, 1·H0: 5, 1·H1: 6] |
 | GP-067 | Indices | edgeIndex: directed strong is Cartesian then tensor | G = AL V [a, b]; E [a→b]; H = AL V [x, y]; E [x→y] / strongProductView(G, H) | V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; E [G0·0:(a,x)→(b,x), G0·1:(a,y)→(b,y), 0·H0:(a,x)→(a,y), 1·H0:(b,x)→(b,y), G0×H0:(a,x)→(b,y)]; edgeCount 5; bounds 4/5; edgeIndex [G0·0: 0, G0·1: 1, 0·H0: 2, 1·H0: 3, G0×H0: 4] |
 | GP-068 | Indices | undirected tensor has no edge indices | G = UL V [a, b]; E [a–b]; H = UL V [x, y]; E [x–y] / tensorProductView(G, H) | V [(a,x)#0, (a,y)#1, (b,x)#2, (b,y)#3]; edgeCount 2; bounds 4/nil |
-| GP-069 | Indices | factor without vertex indices traps (phase 1) | G = Stable (with holes) V [a]; E []; H = AL V [x]; E [] / cartesianProductView(G, H) | **trap** (a factor has no vertex indices (vertexIndexBound is nil)) |
+| GP-069 | Indices | factor without vertex indices traps | G = Stable (with holes) V [a]; E []; H = AL V [x]; E [] / cartesianProductView(G, H) | **trap** (a factor has no vertex indices (vertexIndexBound is nil)) |
 | GP-070 | Indices | vertex count overflow traps | G = a factor with 2^32 vertices; H = a factor with 2^32 vertices / cartesianProductView(G, H) | **trap** (the vertex count \|V(G)\|·\|V(H)\| overflows Int) |
 | GP-071 | Indices | a pair with a vertex not in its factor traps | G = UL V [a, b]; E [a–b]; H = UL V [x]; E [] / cartesianProductView(G, H).vertexIndex(of: Pair(a, q)) | **trap** (q is not a vertex of the factor) |

@@ -136,10 +136,12 @@ extension DirectedGraph {
     // work; self-loops carry no flow and are never asked. Capacities are at least zero, not NaN,
     // finite, and the capacities of the edges out of `source` sum to a value that fits in `C`.
 
-    /// A maximum flow from `source` to `sink`: highest-label push–relabel with the gap and global
-    /// relabelling heuristics (Goldberg–Tarjan; Cherkassky–Goldberg), in two phases as LEMON's
-    /// `Preflow` (NetworkX's default `preflow_push`, Boost `push_relabel_max_flow`). O(n² √m).
-    /// Which maximum flow is returned is unspecified; `value` and `minimumCut` are not.
+    /// A maximum flow from `source` to `sink`, by two-phase highest-label push–relabel with the
+    /// gap and global relabelling heuristics (Goldberg–Tarjan; Cherkassky–Goldberg).
+    ///
+    /// Which maximum flow is returned is unspecified. `value` and `minimumCut` are determined.
+    ///
+    /// - Complexity: O(n² √m).
     ///
     /// - Precondition: `source` and `sink` are distinct vertices; every capacity is at least
     ///   zero, not NaN and finite; the capacities out of `source` sum without overflow.
@@ -150,10 +152,12 @@ extension DirectedGraph {
         _maximumFlow(from: source, to: sink, capacity: capacity, .pushRelabel)
     }
 
-    /// A maximum flow by Edmonds–Karp: shortest augmenting paths by breadth-first search,
-    /// residual arcs in edge-position order, stopping when the sink is discovered (the algorithm
-    /// of Boost `edmonds_karp_max_flow` and NetworkX `edmonds_karp`). The flow is pinned by that
-    /// procedure. O(n m²).
+    /// A maximum flow by Edmonds–Karp: shortest augmenting paths by breadth-first search over
+    /// residual arcs in edge-position order, stopping when the sink is discovered.
+    ///
+    /// The procedure determines the flow exactly.
+    ///
+    /// - Complexity: O(n m²).
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
     @inlinable
@@ -163,12 +167,13 @@ extension DirectedGraph {
         _maximumFlow(from: source, to: sink, capacity: capacity, .edmondsKarp)
     }
 
-    /// A maximum flow by Dinic's (Dinitz's) blocking flows with current-arc pointers (JGraphT
-    /// `DinicMFImpl`, petgraph `dinics`, NetworkX `dinitz`). O(n² m); O(m √n) on unit networks
-    /// (one in- or out-arc of capacity 1 per inner vertex), O(m min(√m, n^(2/3))) with unit
-    /// capacities. `maximumFlow(from:to:capacity:)` (push–relabel) is the default because
-    /// Dinic's phases can be many on long networks: on the DIMACS genrmf-long family (8 × 8 × 256)
-    /// it took 223 ms here against push–relabel's 5 ms.
+    /// A maximum flow by Dinic's blocking flows with current-arc pointers.
+    ///
+    /// Dinic needs many phases on long, thin networks. Prefer `maximumFlow(from:to:capacity:)`
+    /// unless the network has unit capacities.
+    ///
+    /// - Complexity: O(n² m); O(m √n) on unit networks (one in- or out-arc of capacity 1 per inner
+    ///   vertex); O(m min(√m, n^(2/3))) with unit capacities.
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
     @inlinable
@@ -178,8 +183,10 @@ extension DirectedGraph {
         _maximumFlow(from: source, to: sink, capacity: capacity, .dinic)
     }
 
-    /// The maximum flow value from `source` to `sink`: push–relabel's first phase only (a
-    /// maximum preflow; NetworkX `maximum_flow_value`, LEMON `Preflow::runMinCut`). O(n² √m).
+    /// The maximum flow value from `source` to `sink`, from push–relabel's first phase (a maximum
+    /// preflow) alone.
+    ///
+    /// - Complexity: O(n² √m).
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
     @inlinable
@@ -193,10 +200,10 @@ extension DirectedGraph {
         return _runMaximumFlow(edges, capacities, from: s, to: t, .preflow, wantsCut: false).value
     }
 
-    /// The canonical minimum s–t cut: its sink side is every vertex that can still reach `sink`
-    /// in the residual network of a maximum flow, the least sink side of any minimum cut
-    /// (NetworkX `minimum_cut`, igraph `mincut`, OR-Tools `GetSinkSideMinCut`). Push–relabel's
-    /// first phase suffices. O(n² √m).
+    /// The canonical minimum s–t cut. Its sink side is every vertex that can still reach `sink`
+    /// in the residual network of a maximum flow, the least sink side of any minimum cut.
+    ///
+    /// - Complexity: O(n² √m), from push–relabel's first phase.
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
     @inlinable
@@ -228,19 +235,18 @@ extension DirectedGraph {
 
 extension Graph {
     // The same maximum-flow and s–t cut entry points. Each edge carries up to its capacity in
-    // either direction (one capacity shared by both: |f| ≤ c). Results are over `directedView`, as
-    // ShortestPaths' are: an edge's flow is on the arc of its direction, and a cut edge is the
-    // arc from the source side to the sink side. `capacity` is called once per non-loop edge.
+    // either direction, one capacity shared by both (|f| ≤ c). Results are over `directedView`. An
+    // edge's flow is on the arc of its direction, and a cut edge is the arc from the source side
+    // to the sink side. `capacity` is called once per non-loop edge.
 
     /// A maximum flow from `source` to `sink` over `directedView`, by push–relabel (see
-    /// `DirectedGraph.maximumFlow(from:to:capacity:)`). Each edge is one residual pair with its
-    /// capacity both ways.
+    /// `DirectedGraph.maximumFlow(from:to:capacity:)`).
+    ///
+    /// Capacities may go up to the type's maximum. When twice the greatest one would overflow,
+    /// each edge is carried as two arcs, and no residual exceeds a capacity.
     ///
     /// - Precondition: `source` and `sink` are distinct vertices; every capacity is at least
-    ///   zero, not NaN and finite; the capacities at `source` sum without overflow. Capacities up
-    ///   to the type's maximum are fine: when twice the greatest one would overflow, each edge is
-    ///   carried as two arcs (Edmonds–Karp: as its flow both ways), so no residual passes a
-    ///   capacity.
+    ///   zero, not NaN and finite; the capacities at `source` sum without overflow.
     @inlinable
     public func maximumFlow<C: Comparable & AdditiveArithmetic>(
         from source: Vertex, to sink: Vertex, capacity: (Edges.Index) -> C
@@ -248,8 +254,8 @@ extension Graph {
         _maximumFlow(from: source, to: sink, capacity: capacity, .pushRelabel)
     }
 
-    /// A maximum flow over `directedView` by Edmonds–Karp, with the rows in edge-position order: the
-    /// flow is pinned by the procedure.
+    /// A maximum flow over `directedView` by Edmonds–Karp, with the rows in edge-position order.
+    /// The procedure determines the flow exactly.
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
     @inlinable
@@ -269,7 +275,7 @@ extension Graph {
         _maximumFlow(from: source, to: sink, capacity: capacity, .dinic)
     }
 
-    /// The maximum flow value: push–relabel's first phase only.
+    /// The maximum flow value, from push–relabel's first phase alone.
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
     @inlinable
@@ -283,8 +289,8 @@ extension Graph {
         return _runMaximumFlow(edges, capacities, from: s, to: t, .preflow, wantsCut: false).value
     }
 
-    /// The canonical minimum s–t cut over `directedView`: the least sink side, each crossing edge
-    /// once as the arc leaving the source side.
+    /// The canonical minimum s–t cut over `directedView`. Its sink side is the least of any minimum
+    /// cut, and each crossing edge appears once, as the arc leaving the source side.
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
     @inlinable

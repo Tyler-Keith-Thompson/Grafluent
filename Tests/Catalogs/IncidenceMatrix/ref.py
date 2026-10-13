@@ -5,7 +5,7 @@
 Run: uv run --quiet --no-project --with networkx==3.7 --with xgi==0.10.2 \
          python3 Tests/Catalogs/IncidenceMatrix/ref.py [--write] [--stress] [--baseline]
 
-The model ports the proposed storage: a |V|×|E| bit matrix kept in both orientations (row words
+The model ports the storage: a |V|×|E| bit matrix kept in both orientations (row words
 per vertex, column words per hyperedge), with the row and column popcounts cached. The oriented
 matrix is two such planes, one for sources and one for targets; its entry is target − source
 (−1 for a source, +1 for a target, 0 for neither and for both). Every state a case reaches is
@@ -18,8 +18,8 @@ checked against
   * XGI 0.10.2 `incidence_matrix` for undirected hypergraph inputs, and `xgi.DiHypergraph`
     (`edges.tail` / `edges.head`, `nodes.out_degree` / `nodes.in_degree`) for oriented ones. XGI
     0.10.2 has no oriented incidence matrix (`incidence_matrix` fails on a DiHypergraph), so the
-    entries follow Gallo et al. (1993) and HyperGraphs.jl (`I[v, e] -= 1` per source,
-    `+= 1` per target, so a vertex on both sides sums to 0);
+    entries follow Gallo et al. (1993): −1 per source and +1 per target, so a vertex on both sides
+    sums to 0;
   * the algebra: B·Bᵀ = D + A for a loopless graph (A counting parallel edges), Bᵀ·B = 2I + A(L(G))
     for a loopless simple graph, and, oriented, B·Bᵀ = L = D − A (NetworkX `laplacian_matrix` of the
     loopless underlying multigraph) whenever every column has one source and one target;
@@ -327,7 +327,7 @@ def check_oim(M, graph=None):
     B = M.dense()
     S = np.array([[1 if v in s else 0 for (s, _) in M.cols] for v in range(n)], dtype=int).reshape(n, m)
     T = np.array([[1 if v in t else 0 for (_, t) in M.cols] for v in range(n)], dtype=int).reshape(n, m)
-    assert (B == T - S).all()                               # Gallo et al.; HyperGraphs.jl's −src + tgt
+    assert (B == T - S).all()                               # Gallo et al.: −src + tgt
     for v in range(n):
         for p in range(m):
             assert M.entry(v, p) == B[v, p]
@@ -688,7 +688,7 @@ def define():
 
 def render():
     out = [
-        "# IncidenceMatrix: case catalog (phase 1)",
+        "# IncidenceMatrix: case catalog",
         "",
         "Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with xgi==0.10.2",
         "python3 Tests/Catalogs/IncidenceMatrix/ref.py`; `--write` regenerates this file, `--stress` adds the random",

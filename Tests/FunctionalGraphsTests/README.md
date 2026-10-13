@@ -8,14 +8,9 @@ two parts:
   `successor(of:steps:)` and its O(n) cycle decomposition;
 - `floydCycleDetection` and `brentCycleDetection`, which take f as a closure and use O(1) memory.
 
-The tests come from the proposed API (`api.md` in
-[`Tests/Catalogs/FunctionalGraphs/`](../Catalogs/FunctionalGraphs/), phase 1), with its open
-questions decided as recommended:
-
-- `Int` storage, with labels through `LabeledGraph<Label, FunctionalGraph>`;
-- no binary lifting;
-- immutable;
-- no `BidirectionalDirectedGraph` conformance.
+The API is listed in `api.md` in [`Tests/Catalogs/FunctionalGraphs/`](../Catalogs/FunctionalGraphs/).
+`FunctionalGraph` stores `Int` vertices (labels go through `LabeledGraph<Label, FunctionalGraph>`),
+is immutable, and conforms to `DirectedGraph` but not `BidirectionalDirectedGraph`.
 
 The suite uses only the public API, and each test is self-contained. The only shared material is
 the seeded generator and the tags in `GrafluentTestSupport`.
@@ -54,7 +49,7 @@ func brentCycleDetection(from:successor:) -> (tailLength: Int, cycleLength: Int,
 | `root(of:)` | The first cyclic vertex on v's walk, not the cycle's least vertex | FG-028 |
 | Preimages | Ascending | FG-031 |
 | `successor(of:steps:)` | Any k from 0 to `Int.max`, on the graph and on the decomposition | FG-021 – FG-024, FG-032 – FG-034 |
-| Floyd and Brent | The formulations api.md pins, so call counts are exact: Floyd 3ν + 2μ + λ | FG-047 – FG-059 |
+| Floyd and Brent | The formulations api.md documents, so call counts are exact: Floyd 3ν + 2μ + λ | FG-047 – FG-059 |
 | Codable | The bare successor array; decoding re-checks the range and throws `dataCorrupted` | FG-062 |
 | `checked:` spellings | The plain spelling's answer for a vertex; `VertexNotFound` off `0..<n`, `EdgeNotFound` for a position off `0..<n`; negative steps still trap; the same on the cycle decomposition | FG-063 – FG-066 |
 | Traps | A successor off `0..<n`, a negative count, a non-vertex, negative steps | FG-007 – FG-010, FG-019, FG-020, FG-025, FG-043, FG-044, FG-064, FG-066 |
@@ -116,7 +111,7 @@ checks the whole state. The precondition file also takes the hand-written exit t
   - f^k on the graph and the decomposition against iterating f, for small k and for huge k
     reduced by the orbit;
   - Floyd and Brent against the orbit model. Floyd's call count is checked against its closed form,
-    and Brent's against the pinned formulation run on the array;
+    and Brent's against the same formulation run on the array;
   - Pollard-rho closures;
   - `init?(_ graph:)` round trips with rotated vertex orders, and is nil with one edge more or one
     fewer;
@@ -130,8 +125,7 @@ checks the whole state. The precondition file also takes the hand-written exit t
     from the detected cycle.
 - **Without vertex indices** (`FunctionalGraphUnindexedTests.swift`): `init?(_ graph:)` on a
   minimal conformer whose `vertexIndexBound` is nil, the hashed path no library conformer takes:
-  vertex i is the i-th listed vertex, and the result is nil on out-degree 0 or 2. Added for planted
-  bugs in `just mutate FunctionalGraphs` that every other test let through.
+  vertex i is the i-th listed vertex, and the result is nil on out-degree 0 or 2.
 - **Attached maps** (`FunctionalGraphMapTests.swift`): defaults, writes by position and vertex,
   the `checked` subscripts, `values(of:)` snapshots, copy-on-write, removal, equality and coding
   ignoring maps, the generation of every initializer, traps (exit tests) off `0..<n` and for
@@ -140,26 +134,3 @@ checks the whole state. The precondition file also takes the hand-written exit t
 - **Rebuilds** (`FunctionalGraphRebuildTests.swift`): 40 decompositions of a broom built in a row,
   with freed buffers full of large values in between, so a build step that reads memory it never
   wrote (a depth count not reset) shows as a wrong tail or step.
-
-## Planted bugs
-
-The suite was checked against 15 bugs planted in a Swift model of the API, outside the repository,
-and it caught every one:
-
-| Planted bug | Caught by |
-|---|---|
-| `init(vertexCount:successor:)` calling in descending order | FG-005, properties |
-| `init?(_ graph:)` accepting two parallel edges as one successor | FG-015, properties |
-| `successor(of:steps:)` past n reducing k by the cycle length alone, ignoring the tail | FG-023, every graph row's state, properties |
-| The edge collection swapping its ends | FG-002 – FG-004, every graph row's state |
-| `contains` true for negative vertices | FG-017, every graph row's state |
-| Cycles not rotated to their least vertex | FG-040, properties, stress |
-| Cycles in discovery order | FG-041, properties |
-| `root(of:)` giving the cycle's least vertex | FG-028, properties, conformance |
-| Tail lengths of 2 or more one too long | FG-029, FG-034, FG-039, properties |
-| Preimages descending | FG-031, every graph row's state, stress |
-| `inDegree(of:)` one too high for vertex 0 | FG-031, FG-036, properties |
-| The level-ancestor walk one step short | FG-032, FG-034, every graph row's state, properties, stress |
-| Floyd's hare starting one step behind | FG-047, FG-050, FG-056; it then never returns, so the suite times out |
-| Brent's power tripling instead of doubling | Brent call counts in 11 of FG-047 – FG-059 |
-| Decoding without the range check | FG-062, conformance |

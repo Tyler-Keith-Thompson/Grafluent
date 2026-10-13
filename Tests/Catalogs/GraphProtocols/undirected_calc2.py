@@ -37,9 +37,9 @@ print("CLRS on K4.to_directed()", clrs(K4.to_directed(), 0))
 print("karate edges m", nx.karate_club_graph().number_of_edges())
 # Sum of degrees, loops
 L = nx.Graph([(0,0)]); print("single loop degree", dict(L.degree()), "m", L.number_of_edges(), "nbrs", list(L.neighbors(0)))
-# K3 + loop (nx test_selfloops)
+# K3 plus a loop
 K3 = nx.complete_graph(3); K3.add_edge(0,0); print("K3+loop degree", dict(K3.degree()), "m", K3.number_of_edges(), "selfloops", nx.number_of_selfloops(K3))
-# AsUndirected of directed reciprocal arcs: nx collapses
+# Reciprocal arcs made undirected: to_undirected collapses them
 D = nx.DiGraph([(1,2),(2,1),(2,3),(3,1)]); U = D.to_undirected(); print("triangleWithReciprocal to_undirected m", U.number_of_edges(), dict(U.degree()))
 print("MultiGraph(D) keeps both?", nx.MultiGraph(nx.MultiDiGraph(D)).number_of_edges())
 D2 = nx.DiGraph([(5,3),(3,4),(3,2),(4,0),(4,1),(2,1),(1,0)]); U2 = D2.to_undirected()

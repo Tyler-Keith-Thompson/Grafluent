@@ -6,9 +6,9 @@
 
 First checks that ref.py's model reproduces cases.md byte for byte (every row recomputed, and
 every algorithm row checked against NetworkX, scipy or brute force by ref.py), then writes one
-@Test per phase-1 row. Phase-2 rows (the last ones: `star`, `kleeneClosure`, `LogSemiring`) are
-written to SemiringPhase2Tests.swift only with --phase2,
-since phase 1 does not declare them; without the flag that file is removed.
+@Test per row. The "Phase 2" rows (the last ones: `star`, `kleeneClosure`, `LogSemiring`, which the
+library does not declare) are written to SemiringPhase2Tests.swift only with --phase2; without the
+flag that file is removed.
 
 Each row is written the way the catalog writes it: `S(value)` operands for the law and
 arithmetic rows; for the algorithm rows a `DirectedPseudograph` (or a `Pseudograph` read through
@@ -603,7 +603,7 @@ def trap_test(n):
 
 
 # ---------------------------------------------------------------------------------------------
-# Phase 2 (--phase2)
+# "Phase 2" rows (--phase2)
 # ---------------------------------------------------------------------------------------------
 
 def phase2_test(n):
@@ -712,7 +712,7 @@ FILES = [
      "Arithmetic at the edges of the scalars (SR-208 – SR-217, and the other widths from "
      f"SR-{min(n for n in ids('Arithmetic') if n > 217):03d};\n"
      "// the trap rows are in SemiringPreconditionTests.swift): Int.max is the tropical zero and\n"
-     "// absorbs (Boost's closed_plus), infinity absorbs, min of extremes never overflows, Double counts\n"
+     "// absorbs, infinity absorbs, min of extremes never overflows, Double counts\n"
      "// round, and unsigned 0 is the bottleneck zero."),
     ("SemiringDijkstraTests.swift", "Semirings: Dijkstra over a selective semiring", ids("Dijkstra"),
      "Dijkstra over a selective semiring (catalog Dijkstra rows): shortest paths (tropical), widest\n"

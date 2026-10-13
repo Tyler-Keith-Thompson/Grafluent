@@ -1,6 +1,6 @@
 // Results on an adjacency list whose slots have moved, post-dominators on random graphs against a
-// brute-force reference, and dominance queries that must be false on deep graphs. Added after the
-// critical review; case IDs (CN-nn) continue the catalog, see README.md.
+// brute-force reference, and dominance queries that must be false on deep graphs. Case IDs (CN-nn)
+// continue the catalog; see README.md.
 
 import AdjacencyListModule
 import CompressedSparseRowModule

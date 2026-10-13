@@ -28,12 +28,11 @@ struct _FlatIncidenceRows: _IncidenceRowSource {
     mutating func edge(_ v: Int, _ k: Int) -> Int { edges[offsets[v] + k] }
 }
 
-/// Christofides' order, each piece pinned: the canonical minimum spanning tree of the simple
+/// Christofides' order, each piece fixed: the canonical minimum spanning tree of the simple
 /// graph (SpanningTrees' dense Prim on the matrix under the strict order (weight, edge number),
 /// whose tree is the unique one Kruskal gives under it, `minimumSpanningTree(weight:)`); its
 /// odd-degree vertices in vertex order; the minimum-weight perfect matching on their complete
-/// graph (pairs i < j lexicographic) by MatchingModule's Galil blossom, NetworkX's
-/// `min_weight_matching`; the multigraph of the tree edges in edge order, then the matched pairs
+/// graph (pairs i < j lexicographic) by MatchingModule's blossom algorithm; the multigraph of the tree edges in edge order, then the matched pairs
 /// in pair order; Hierholzer from vertex 0; the first visit of each vertex kept.
 @inlinable
 func _christofidesOrder<W: SignedNumeric & Comparable>(_ matrix: _TourMatrix<W>, half: (W) -> W) -> [Int] {
@@ -117,18 +116,16 @@ extension Graph {
         return _tourCycle(_christofidesOrder(matrix, half: half), matrix, numbering)
     }
 
-    /// Christofides' tour (Christofides, "Worst-case analysis of a new heuristic for the
-    /// travelling salesman problem", Report 388, Carnegie Mellon University, 1976; found
-    /// independently by Serdyukov, 1978): the canonical minimum spanning tree (weight, then
-    /// position: SpanningTrees' `minimumSpanningTree(weight:)`, by Prim on the dense matrix), a
-    /// minimum-weight perfect matching on its odd-degree vertices (MatchingModule's
-    /// `minimumWeightMatching`, Galil's blossom), an Eulerian circuit of their union by Hierholzer
-    /// from the first vertex, shortcut to the first visit of each vertex (NetworkX
-    /// `christofides`, JGraphT `ChristofidesThreeHalvesApproxMetricTSP`, LEMON `ChristofidesTsp`).
-    /// Each piece is pinned, so the tour is: the matching is on the complete graph of the odd
-    /// vertices in `vertices` order (pairs i < j lexicographic), and the circuit's multigraph
-    /// lists the tree edges by position, then the matched pairs in that order. At most 3/2 × the
-    /// shortest tour when the weights satisfy the triangle inequality (not checked).
+    /// Christofides' tour (Christofides 1976; Serdyukov 1978).
+    ///
+    /// Takes the canonical minimum spanning tree (weight, then position, as
+    /// `minimumSpanningTree(weight:)`), a minimum-weight perfect matching on its odd-degree
+    /// vertices (`minimumWeightMatching`), and an Eulerian circuit of their union by Hierholzer
+    /// from the first vertex, shortcut to the first visit of each vertex. The matching is on the
+    /// complete graph of the odd vertices in `vertices` order (pairs i < j lexicographic), and the
+    /// circuit's multigraph lists the tree edges by position, then the matched pairs in that order,
+    /// so the tour is determined. At most 3/2 × the shortest tour when the weights satisfy the
+    /// triangle inequality (not checked).
     ///
     /// Tours read the simple graph, as `nearestNeighborTour(weight:)` documents; nil below three
     /// vertices.

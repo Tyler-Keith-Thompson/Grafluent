@@ -1,12 +1,10 @@
 import GraphProtocols
 
 /// A matching in an undirected graph: edges no two of which share an endpoint, as positions in the
-/// graph's `edges`, with the sum of their weights (JGraphT's `Matching`). Never contains a
-/// self-loop.
+/// graph's `edges`, with the sum of their weights. Never contains a self-loop.
 ///
-/// It keeps a copy of the graph to look vertices up (copy-on-write: O(1) to make; while the result
-/// is alive, the next mutation of the original copies the graph). The positions are the graph's,
-/// valid until it is mutated.
+/// It keeps a copy of the graph to look vertices up. While the result is alive, the next mutation
+/// of the original copies the graph. The positions are the graph's, valid until it is mutated.
 @frozen
 public struct Matching<G: Graph, Weight: Comparable & AdditiveArithmetic> {
     @usableFromInline let _graph: G

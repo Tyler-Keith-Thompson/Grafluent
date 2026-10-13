@@ -533,7 +533,7 @@ struct StrongProductTests {
         let h = Pseudograph<String>(vertices: ["x"], edges: [UndirectedEdge("x", "x")])
         let product = strongProductView(g, h)
         #expect(Array(product.first.vertices) == Array(g.vertices) && Array(product.second.vertices) == Array(h.vertices))
-        // NetworkX's MultiGraph merges coincident loop products; here each generating tuple is its own edge.
+        // Each generating tuple is its own edge, coincident loop products included.
         let positions = Array(product.edges.indices)
         #expect(Array(product.vertices) == [Pair("a", "x")])
         #expect(product.vertices.map { product.vertexIndex(of: $0) } == [0])

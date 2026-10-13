@@ -3,7 +3,7 @@
 
 Run: uv run --quiet --no-project --with networkx==3.7 python3 Tests/Catalogs/LabeledGraphs/ref.py [--write] [--stress]
 
-The model ports the proposed storage: an ordered set of labels (labels[i] names base vertex i, the
+The model ports the storage: an ordered set of labels (labels[i] names base vertex i, the
 array of an OrderedSet plus a dict standing in for its hash table) over a port of the base
 (CompressedSparseRow, AdjacencyMatrix, AdjacencyMatrix(...).undirectedView, or a generic base given by
 its vertices in index order). Every label lookup goes through `_find`, which counts hashes, so the
@@ -922,7 +922,7 @@ def define():
 
 def render():
     out = [
-        "# LabeledGraphs: case catalog (phase 1)",
+        "# LabeledGraphs: case catalog",
         "",
         "Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 python3",
         "Tests/Catalogs/LabeledGraphs/ref.py`; `--write` regenerates this file, `--stress` adds the random",
@@ -933,7 +933,7 @@ def render():
         "",
         "* `CSR V [...]; E [...]` is `LabeledGraph<String, CompressedSparseRow>(vertices: V, edges: E)`; `M` is",
         "  the same with `Base == AdjacencyMatrix`; `U` is `LabeledGraph<String, AdjacencyMatrix>(vertices: V, edges: E)",
-        "  .undirectedView`, an `UndirectedView` over the labeled graph (no `Graph` conformance of its own in phase 1).",
+        "  .undirectedView`, an `UndirectedView` over the labeled graph.",
         "  Calls follow, separated by `/`.",
         "* Expected lists each call's result, then `⇒` and the final state. State: `V [l#i, …]` is `vertices` with",
         "  each label's index (`vertexIndex(of:)`, the base vertex it names); `E [p:s→t, …]` is `edges` with the",

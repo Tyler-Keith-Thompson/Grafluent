@@ -1,29 +1,30 @@
 import BitCollections
 import GraphProtocols
 
-/// The unoriented incidence matrix of a hypergraph: an n × m matrix of bits with cell (v, p) set
-/// when vertex `v` is a member of column `p`. The vertices are `0..<vertexCount` and the columns,
-/// the hyperedges, are at positions `0..<hyperedgeCount`. It conforms to `Hypergraph`, so the
-/// `Hypergraphs` algorithms run on it unchanged; it is not a `Graph` even when built from one,
-/// because a cell edit can give a column any number of bits.
+/// The unoriented incidence matrix of a hypergraph, an n × m matrix of bits with cell (v, p) set
+/// when vertex `v` is a member of column `p`.
 ///
-/// A column is any set of vertices: empty columns and repeated columns are kept, and a graph's
-/// self-loop is the one bit at its vertex, the hyperedge {v}. (NetworkX's `incidence_matrix` gives a
-/// loop a zero column; Godsil–Royle's entry 2 is not a bit. A zero column would forget the loop.)
-/// `OrientedIncidenceMatrix` is the directed form; `UndirectedIncidenceList` is the sparse
-/// representation of the same hypergraphs.
+/// The vertices are `0..<vertexCount`, and the columns, the hyperedges, are at positions
+/// `0..<hyperedgeCount`. The matrix conforms to `Hypergraph`, so the `Hypergraphs` algorithms run
+/// on it unchanged. It is not a `Graph`, even when built from one, because a cell edit can give a
+/// column any number of bits.
 ///
-/// **Storage.** Both orientations are stored, as `AdjacencyMatrix` stores its rows: n rows of
-/// ⌈m/64⌉ words and m columns of ⌈n/64⌉ words, with the row and column popcounts cached. So
-/// `members(ofHyperedgeAt:)` and `incidentHyperedges(of:)` are each one `BitSet` copy of
-/// ⌈n/64⌉ or ⌈m/64⌉ words, a cell edit writes two bits in O(1), and `transposed()`, the dual,
-/// swaps the two in O(1). The cost is 2·n·m/8 bytes: **the matrix is for dense or small
-/// incidence** (spectral work at n·m up to about 10⁹, hypergraphs with large hyperedges). Sparse
-/// incidence belongs in `UndirectedIncidenceList`.
+/// A column is any set of vertices. Empty columns and repeated columns are kept. A graph's
+/// self-loop becomes the one bit at its vertex, the hyperedge {v}. `OrientedIncidenceMatrix` is
+/// the directed form, and `UndirectedIncidenceList` is the sparse representation of the same
+/// hypergraphs.
 ///
-/// Equality compares cell for cell, with equal shape: column order is observable, because a
-/// column's position is what a spectral caller indexes by. (`UndirectedIncidenceList`'s equality
-/// ignores positions; convert to compare that way.)
+/// ## Storage
+///
+/// Both orientations are stored: n rows of ⌈m/64⌉ words and m columns of ⌈n/64⌉ words, with the
+/// row and column popcounts cached. `members(ofHyperedgeAt:)` and `incidentHyperedges(of:)` are
+/// each one `BitSet` copy of ⌈n/64⌉ or ⌈m/64⌉ words, a cell edit writes two bits in O(1), and
+/// `transposed()`, the dual, swaps the two orientations in O(1). The storage is 2·n·m/8 bytes, so
+/// the matrix suits dense or small incidence, such as spectral work or hypergraphs with large
+/// hyperedges. Use `UndirectedIncidenceList` for sparse incidence.
+///
+/// Equality compares cell for cell, with equal shape, so column order counts.
+/// `UndirectedIncidenceList`'s equality ignores positions.
 @frozen
 public struct IncidenceMatrix {
     /// n rows over the m columns: row `v` is `incidentHyperedges(of: v)`.
@@ -110,9 +111,9 @@ extension IncidenceMatrix {
         }
     }
 
-    /// The incidence matrix of an undirected graph: a row per vertex, by `vertexIndex(of:)`, and a
-    /// column per edge, in `edges` order (NetworkX's `nodelist` and `edgelist` defaults). Parallel
-    /// edges keep a column each; a self-loop's column is the one bit at its vertex.
+    /// The incidence matrix of an undirected graph, with a row per vertex by `vertexIndex(of:)` and
+    /// a column per edge in `edges` order. Parallel edges keep a column each. A self-loop's column
+    /// is the one bit at its vertex.
     ///
     /// - Precondition: `graph.vertexIndexBound` is not `nil`.
     /// - Complexity: O(n·⌈m/64⌉ + m·⌈n/64⌉): the zeroed storage, then two bits per edge.
@@ -131,9 +132,8 @@ extension IncidenceMatrix {
         }
     }
 
-    /// The unoriented incidence matrix of a directed graph: each edge's column has both ends
-    /// (NetworkX's `oriented=False`), a self-loop's one bit. Rows by vertex index, columns in
-    /// `edges` order.
+    /// The unoriented incidence matrix of a directed graph. Each edge's column has both ends, and a
+    /// self-loop's column has one bit. Rows are by vertex index and columns in `edges` order.
     ///
     /// - Precondition: `graph.vertexIndexBound` is not `nil`.
     @inlinable
@@ -199,8 +199,8 @@ extension IncidenceMatrix {
         }
     }
 
-    /// The union of the oriented matrix's planes: each column its sources and targets together.
-    /// A new hypergraph: it carries none of `oriented`'s attached maps.
+    /// The union of the oriented matrix's planes, each column its sources and targets together.
+    /// The result carries none of `oriented`'s attached maps.
     ///
     /// - Complexity: O(n·⌈m/64⌉ + m·⌈n/64⌉): the planes' words ORed, then the counts recounted.
     @inlinable
@@ -219,15 +219,15 @@ extension IncidenceMatrix {
         _cellCount = total
     }
 
-    /// The one hypergraph conversion for a type that is both a graph and a hypergraph: read as a
-    /// hypergraph.
+    /// The hypergraph conversion for a type that is both a graph and a hypergraph. It reads
+    /// `hypergraph` as a hypergraph.
     @inlinable
     public init<H: Graph & Hypergraph>(_ hypergraph: H) {
         self.init(_copying: hypergraph)
     }
 
-    /// The one hypergraph conversion for a type that is both a directed graph and a directed
-    /// hypergraph: read as a hypergraph.
+    /// The hypergraph conversion for a type that is both a directed graph and a directed
+    /// hypergraph. It reads `hypergraph` as a hypergraph.
     @inlinable
     public init<H: DirectedGraph & DirectedHypergraph>(_ hypergraph: H) {
         self.init(_copying: hypergraph)
@@ -298,7 +298,7 @@ extension IncidenceMatrix {
     }
 
     /// The members of the column at `position`, ascending, read from the stored words without a
-    /// copy: what the `Hypergraphs` algorithms iterate. O(1) to make, O(⌈n/64⌉ + k) to iterate.
+    /// copy. The `Hypergraphs` algorithms iterate this. O(1) to make, O(⌈n/64⌉ + k) to iterate.
     ///
     /// - Precondition: `position` is in `0..<hyperedgeCount`.
     @inlinable
@@ -307,8 +307,8 @@ extension IncidenceMatrix {
         return MemberIndices(_words: _columns.words(ofRow: position))
     }
 
-    /// The columns `vertex` is a member of, ascending, read from the stored row without a copy.
-    /// O(1) to make, O(⌈m/64⌉ + d) to iterate.
+    /// The columns that vertex `index` is a member of, ascending, read from the stored row without a
+    /// copy. O(1) to make, O(⌈m/64⌉ + d) to iterate.
     ///
     /// - Precondition: `index` is in `0..<vertexCount`.
     @inlinable
@@ -410,8 +410,8 @@ extension IncidenceMatrix {
     /// Whether some column has exactly the members of `members`, ignoring order and repeats.
     /// False, without trapping, when a member is out of range.
     ///
-    /// - Complexity: O(k + d·⌈n/64⌉): the columns at the first member are compared word by word;
-    ///   the empty set scans the m cached sizes.
+    /// - Complexity: O(k + d·⌈n/64⌉). The columns at the first member are compared word by word.
+    ///   The empty set scans the m cached sizes.
     @inlinable
     public func contains(hyperedge members: some Sequence<Int>) -> Bool {
         var wanted = BitSet()
@@ -486,10 +486,11 @@ extension IncidenceMatrix {
 }
 
 extension IncidenceMatrix {
-    /// The indices of the set bits of one stored row, ascending, read in place: a column's member
-    /// indices, or a vertex's column indices (`IncidentHyperedgeIndices`). No copy and no
-    /// allocation, unlike a `BitSet`. It shares the matrix's words copy-on-write, so a later
-    /// mutation of the matrix leaves it unchanged.
+    /// The indices of the set bits of one stored row, ascending, read in place. These are a
+    /// column's member indices, or a vertex's column indices (`IncidentHyperedgeIndices`).
+    ///
+    /// Reading allocates nothing. It shares the matrix's words copy-on-write, so a later mutation
+    /// of the matrix leaves it unchanged.
     @frozen
     public struct MemberIndices: Sequence, Sendable {
         @usableFromInline internal let _words: ArraySlice<UInt>
@@ -539,8 +540,8 @@ extension IncidenceMatrix {
     /// Appends a vertex with no memberships, a zero row.
     ///
     /// - Returns: The new vertex, the old `vertexCount`.
-    /// - Complexity: Amortized O(⌈m/64⌉): a row is appended, and the columns move only when the
-    ///   vertex count outgrows their words, which then double.
+    /// - Complexity: Amortized O(⌈m/64⌉). The columns move only when the vertex count outgrows
+    ///   their words, which then double.
     @inlinable
     @discardableResult
     public mutating func appendVertex() -> Int {
@@ -560,11 +561,11 @@ extension IncidenceMatrix {
         return vertex
     }
 
-    /// Appends a column with `members`. A member listed twice is one bit; an empty sequence
+    /// Appends a column with `members`. A member listed twice is one bit. An empty sequence
     /// appends an empty column.
     ///
     /// - Returns: The new column's position, the old `hyperedgeCount`.
-    /// - Precondition: every member is in `0..<vertexCount`.
+    /// - Precondition: Every member is in `0..<vertexCount`.
     /// - Complexity: Amortized O(n·⌈m/64⌉/m + ⌈n/64⌉ + k).
     @inlinable
     @discardableResult
@@ -603,7 +604,7 @@ extension IncidenceMatrix {
 
     /// Sets cell (`vertex`, `position`). O(1).
     ///
-    /// - Returns: Whether it changed: false when it was already set.
+    /// - Returns: Whether it changed, which is false when it was already set.
     /// - Precondition: `vertex` is in `0..<vertexCount` and `position` in `0..<hyperedgeCount`.
     @inlinable
     @discardableResult
@@ -617,7 +618,7 @@ extension IncidenceMatrix {
 
     /// Clears cell (`vertex`, `position`). O(1).
     ///
-    /// - Returns: Whether it changed: false when it was already clear.
+    /// - Returns: Whether it changed, which is false when it was already clear.
     /// - Precondition: `vertex` is in `0..<vertexCount` and `position` in `0..<hyperedgeCount`.
     @inlinable
     @discardableResult
@@ -661,9 +662,10 @@ extension IncidenceMatrix {
         if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(hyperedgeCount) }
     }
 
-    /// The transpose, which is the dual: row `p` of the result is column `p` of this matrix, so
-    /// its vertices are this matrix's columns. O(1): the two stored orientations swap. A new
-    /// hypergraph: it carries none of this matrix's attached maps.
+    /// The transpose, which is the dual. Row `p` of the result is column `p` of this matrix, so its
+    /// vertices are this matrix's columns. The result carries none of this matrix's attached maps.
+    ///
+    /// - Complexity: O(1). The two stored orientations swap.
     @inlinable
     public func transposed() -> IncidenceMatrix {
         IncidenceMatrix(_rows: _columns, _columns: _rows, _degrees: _sizes, _sizes: _degrees, _cellCount: _cellCount)
@@ -673,8 +675,8 @@ extension IncidenceMatrix {
 // MARK: - Equatable, Hashable, Sendable
 
 extension IncidenceMatrix: Equatable {
-    /// Equal when the shapes and every cell are equal; column order counts. Capacity is not
-    /// compared. O(n·⌈m/64⌉).
+    /// Equal when the shapes and every cell are equal. Column order counts, and capacity does not.
+    /// O(n·⌈m/64⌉).
     @inlinable
     public static func == (lhs: IncidenceMatrix, rhs: IncidenceMatrix) -> Bool {
         lhs._cellCount == rhs._cellCount && lhs._rows.sameBits(as: rhs._rows)
@@ -708,15 +710,16 @@ extension IncidenceMatrix: Codable {
     /// an `Int`.
     public static let maximumDecodedWordCountKey = CodingUserInfoKey(rawValue: "IncidenceMatrix.maximumDecodedWordCount")!
 
-    /// The most words (8 bytes each) a decoded matrix may take by default: 2²⁴, 128 MiB. An
-    /// n × m matrix stores n·⌈m/64⌉ + m·⌈n/64⌉ words of bits and n + m counts, and an
-    /// `OrientedIncidenceMatrix` twice that. A short payload can name a large shape (43 bytes
-    /// name 2²⁸ vertices), so decoding refuses one whose storage would pass the limit unless the
-    /// decoder's `userInfo[maximumDecodedWordCountKey]` allows it.
+    /// The most words (8 bytes each) a decoded matrix may take by default, 2²⁴ words or 128 MiB.
+    ///
+    /// An n × m matrix stores n·⌈m/64⌉ + m·⌈n/64⌉ words of bits and n + m counts, and an
+    /// `OrientedIncidenceMatrix` twice that. A short payload can name a large shape, so decoding
+    /// refuses a matrix whose storage would pass the limit unless the decoder's
+    /// `userInfo[maximumDecodedWordCountKey]` allows it.
     public static let defaultMaximumDecodedWordCount = _defaultMaximumDecodedWordCount
 
-    /// Encodes `{"vertexCount": n, "hyperedges": [[v, …], …]}`: the shape, and each column, by
-    /// position, as its members in ascending order. The encoding of a matrix is always the same.
+    /// Encodes `{"vertexCount": n, "hyperedges": [[v, …], …]}`, with each column in position order
+    /// as its members in ascending order. Equal matrices encode identically.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: _CodingKeys.self)
         try container.encode(vertexCount, forKey: .vertexCount)
@@ -750,7 +753,7 @@ extension IncidenceMatrix: Codable {
     }
 
     /// `planes · (n·⌈m/64⌉ + m·⌈n/64⌉ + n + m)`, the words the planes store, or `nil` when it
-    /// overflows. Guards are comparisons, not discarded overflow flags.
+    /// overflows.
     internal static func _storedWordCount(_ n: Int, _ m: Int, planes: Int) -> Int? {
         let width = UInt.bitWidth
         let wordsPerRow = m / width + (m % width == 0 ? 0 : 1)
@@ -799,8 +802,8 @@ internal func _matrixDescription(vertexCount n: Int, hyperedgeCount m: Int, _ ce
 }
 
 extension IncidenceMatrix: CustomStringConvertible {
-    /// The shape, then the rows as strings of `1` and `0`, column 0 leftmost, at most 16 rows of
-    /// 64 columns: `3×2 [10, 01, 11]`. The empty matrix is `0×0 []`.
+    /// The shape, then the rows as strings of `1` and `0` with column 0 leftmost, at most 16 rows
+    /// of 64 columns, as in `3×2 [10, 01, 11]`. The empty matrix is `0×0 []`.
     public var description: String {
         _matrixDescription(vertexCount: vertexCount, hyperedgeCount: hyperedgeCount) { _rows.bit($0, $1) ? "1" : "0" }
     }

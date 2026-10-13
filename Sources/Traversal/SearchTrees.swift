@@ -3,9 +3,8 @@ import Trees
 
 extension DirectedGraph {
     /// The breadth-first search tree from `source`, as an arborescence rooted there: every vertex
-    /// the search reaches, each with the vertex it was discovered from as parent (NetworkX's
-    /// `bfs_tree`). Each parent is a vertex one edge closer to `source`, so a tree path is a
-    /// shortest path by edge count.
+    /// the search reaches, each with the vertex it was discovered from as parent. Each parent is a
+    /// vertex one edge closer to `source`, so a tree path is a shortest path by edge count.
     ///
     /// Vertices are listed in discovery order, `source` first, and edge positions follow them:
     /// edge k leads to the vertex at offset k + 1, so `edges` lists the tree edges in the
@@ -14,7 +13,7 @@ extension DirectedGraph {
     /// the `Int`s `0..<k` in order.
     ///
     /// - Parameter depthLimit: When given, only vertices at most this many edges from `source`
-    ///   are in the tree (NetworkX's `depth_limit`).
+    ///   are in the tree.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
     public func breadthFirstTree(from source: Vertex, depthLimit: Int? = nil) -> Arborescence<Vertex> {
@@ -30,8 +29,8 @@ extension DirectedGraph {
     }
 
     /// The depth-first search tree from `source`, as an arborescence rooted there: every vertex
-    /// the search reaches, each with the vertex it was discovered from as parent (NetworkX's
-    /// `dfs_tree` with a source). Successors are explored in `successors(of:)` order.
+    /// the search reaches, each with the vertex it was discovered from as parent. Successors are
+    /// explored in `successors(of:)` order.
     ///
     /// Vertices are listed in discovery order (preorder), `source` first, and edge positions
     /// follow them: edge k leads to the vertex at offset k + 1, so `edges` lists the tree
@@ -40,7 +39,7 @@ extension DirectedGraph {
     /// as the `Int`s `0..<k` in order.
     ///
     /// - Parameter depthLimit: When given, only vertices at most this many tree edges from
-    ///   `source` are in the tree (NetworkX's `depth_limit`).
+    ///   `source` are in the tree.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
     public func depthFirstTree(from source: Vertex, depthLimit: Int? = nil) -> Arborescence<Vertex> {

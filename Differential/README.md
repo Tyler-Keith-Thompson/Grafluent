@@ -1,7 +1,8 @@
 # Differential testing
 
-The library against independent implementations on the same random graphs: NetworkX 3.7 and
-scipy 1.18.1, pinned, run through `uv` so nothing is installed globally.
+Runs the library and independent implementations on the same random graphs and compares the
+answers. The references are NetworkX 3.7, scipy 1.18.1, rustworkx 0.18.1 and python-igraph 1.0.0,
+pinned and run through `uv`, so nothing is installed globally.
 
 | Command | Does |
 |---|---|
@@ -17,7 +18,7 @@ rustworkx and python-igraph where they apply) the same questions, and compares.
 The executable is built through Bazel, `//Differential:GrafluentDifferential` (a `manual`
 `swift_binary`), with `--config=release` in the output base `just test-release` uses, so the
 remote cache serves the library and a run only compiles what changed. `scripts/modules.py`
-writes its BUILD.bazel and Package.swift from one dependency list; this package remains for
+writes its BUILD.bazel and Package.swift from one dependency list. The SwiftPM package serves
 `--swiftpm`.
 
 `--module` takes a library module's name, with or without its `Module` suffix and ignoring case

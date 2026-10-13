@@ -1,6 +1,6 @@
 // The Graph default implementations, through minimal conformers that supply only the required
 // members, and dispatch: a conformer's own version of a requirement with a default is the one
-// generic code calls. Case IDs (UG-Tnn) refer to the catalog in README.md.
+// generic code calls. Case IDs (UG-Tnn) refer to Tests/Catalogs/GraphProtocols/graph.md.
 
 import GraphProtocols
 import GrafluentTestSupport

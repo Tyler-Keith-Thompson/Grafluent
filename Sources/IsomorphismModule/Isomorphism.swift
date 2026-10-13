@@ -5,9 +5,7 @@ import GraphProtocols
 /// subgraph) or a monomorphism (onto a subgraph), as returned by `isomorphism(to:)`,
 /// `subgraphIsomorphism(to:)` and `monomorphism(to:)` and their sequences.
 ///
-/// Boost, LEMON and NetworkX call the result of a subgraph search a "mapping" (Boost's
-/// `vf2_subgraph_mono` callback receives a correspondence map, LEMON's `Vf2` fills a `mapping`,
-/// NetworkX's matchers return `mapping` dictionaries); this one type serves all three problems.
+/// One type serves all three problems.
 ///
 /// It holds both graphs and the image of each pattern vertex. Two mappings are equal when their
 /// images are; the graphs are not compared. Members exist when both graphs are `Graph`s or both

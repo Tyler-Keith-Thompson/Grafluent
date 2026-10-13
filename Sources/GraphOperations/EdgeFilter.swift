@@ -60,8 +60,9 @@ struct _EdgeMask: Sendable {
     }
 }
 
-/// The type-erased home of a subgraph view's edge set, so `SubgraphView` can store it before its
-/// base is known to be a graph. Immutable once made, so sharing it across threads is safe.
+/// The type-erased base class of a subgraph view's edge set, which lets `SubgraphView` store it
+/// without knowing that its base is a graph. Immutable once made, and safe to share across
+/// threads.
 @usableFromInline
 class _EdgeTestBox: @unchecked Sendable {
     @inlinable init() {}

@@ -170,7 +170,7 @@ struct RootedQueryTests {
 
     @Test("TS-215 RootedTree(E1, root: 0).isAncestor(6, of: 6) is false: strict")
     func isAncestorStrict() throws {
-        // As ancestors(of:) and NetworkX ancestors; Swing's isNodeAncestor and DominatorTree.dominates are reflexive.
+        // Strict, as ancestors(of:) is: a vertex is not its own ancestor.
         // U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 3), (1, 4), (2, 5), (4, 6)]
         let graph = ReferencePseudograph(edges: pairs.map { UndirectedEdge($0.0, $0.1) })

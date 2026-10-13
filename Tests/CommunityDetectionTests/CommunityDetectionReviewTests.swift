@@ -1,10 +1,10 @@
-// Cases added after the tests were written: zero-weight edges in label propagation. A zero-weight
-// edge casts no vote, so a vertex whose only edges weigh 0 keeps its label (counting such votes,
-// as NetworkX does, lets labels of equal, zero support replace each other without end).
+// Zero-weight edges in label propagation. A zero-weight edge casts no vote, so a vertex whose only
+// edges weigh 0 keeps its label (counting such votes would let labels of equal, zero support
+// replace each other without end).
 // Also Louvain's stop rule at thresholds just above and just below the true modularity gain of
 // the first level, so that the modularity Louvain computes internally must be the exact one.
-// And weighted Louvain where sums equal in exact arithmetic round apart (weights 1/3): before gains
-// within rounding were ties, a vertex moved back and forth forever (NetworkX 3.7 hangs too).
+// And weighted Louvain where sums equal in exact arithmetic round apart (weights 1/3): unless gains
+// within rounding are ties, a vertex moves back and forth forever.
 // And Louvain against a plain full-sweep implementation of the documented rule (every vertex
 // evaluated every sweep) on seeded random graphs, since the library evaluates only vertices whose
 // inputs changed.
@@ -80,7 +80,8 @@ struct CommunityDetectionReviewTests {
             }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)
             // Reference: level graphs as pair weights, sweeps over every vertex in index order,
-            // stay on a tie, otherwise the greatest community label; NetworkX's stop rule.
+            // stay on a tie, otherwise the greatest community label; stop when modularity
+            // rises by no more than the threshold.
             let m = Double(edges.count)
             func modularity(_ labels: [Int]) -> Double {
                 let k = (labels.max() ?? -1) + 1

@@ -67,7 +67,7 @@ MUTANTS = [
     Mutant("coloring", "LabelPropagation.swift", "return a != b ? a > b : $0 < $1", "return $0 < $1", mode="stmt"),
     Mutant("greatest", "LabelPropagation.swift", "$0.max()!", "$0.min()!", nth=0),
 
-    # community(checked:) (README Principle 6).
+    # community(checked:).
     Mutant("ckcommunitylookup", "Partition.swift", "_numbers[vertex]", "Optional(_numbers[vertex] ?? 0)", nth=1),
     Mutant("ckcommunityvalue", "Partition.swift", "return _labels[v]", "return 0", mode="stmt", nth=1),
     Mutant("ckcommunityguard", "Partition.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),

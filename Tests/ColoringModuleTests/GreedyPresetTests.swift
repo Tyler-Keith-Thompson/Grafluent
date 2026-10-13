@@ -1,13 +1,12 @@
-// `greedyColoring(strategy:presetColor:)`: rustworkx `graph_greedy_color(preset_color_fn=)`. Rows
-// with `.largestFirst` have rustworkx 0.18.1's colours (`ColoringStrategy.Degree`, which orders by
-// whole-graph degree, leaves the preset vertices out and colours them first). The properties check,
-// for every strategy on random multigraphs with random proper presets, that preset vertices keep
-// their colours, the result is proper, every other vertex sees every colour below its own, and the
-// strategy's rule with presets written out: the static orders of the whole graph with preset
-// vertices skipped; DSatur with preset colours counted in saturation; the independent set's class k
-// without the neighbours of the vertices preset to k; colored neighbours with preset neighbours
-// counted and the first vertex from igraph's heap. Without presets the result is
-// `greedyColoring(strategy:)`'s. See README.md.
+// `greedyColoring(strategy:presetColor:)`. Rows with `.largestFirst` have rustworkx 0.18.1's
+// colours for the same presets (whole-graph degree order, preset vertices left out and coloured
+// first). The properties check, for every strategy on random multigraphs with random proper
+// presets, that preset vertices keep their colours, the result is proper, every other vertex sees
+// every colour below its own, and the strategy's rule with presets written out: the static orders
+// of the whole graph with preset vertices skipped; DSatur with preset colours counted in
+// saturation; the independent set's class k without the neighbours of the vertices preset to k;
+// colored neighbours with preset neighbours counted and the first vertex from the heap. Without
+// presets the result is `greedyColoring(strategy:)`'s. See README.md.
 
 import AdjacencyListModule
 import ColoringModule
@@ -233,7 +232,7 @@ struct GreedyPresetTests {
                 k += 1
             }
             #expect(results[.independentSet] == independent, "\(context)")
-            // Colored neighbours: igraph's heap (written out in GreedyColoredNeighborsTests), the
+            // Colored neighbours: the two-way heap (written out in GreedyColoredNeighborsTests), the
             // uncoloured vertices pushed in index order with their preset neighbours counted; with
             // no preset the first vertex is the one of greatest degree, otherwise the heap's top.
             var expected = preset

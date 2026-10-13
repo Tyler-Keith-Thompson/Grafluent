@@ -1,13 +1,15 @@
 import GraphProtocols
 
 extension Graph {
-    /// The connected components (NetworkX's, Boost's and igraph's `connected_components`): in
-    /// the order of their first vertex in `vertices`, each listing its vertices in `vertices`
-    /// order. The same value as `directedView.weaklyConnectedComponents()`, computed over each edge
-    /// once from flat rows (`_withIncidentIndexRows`). Over a graph with vertex indices but without
-    /// them it is `directedView.weaklyConnectedComponents()`: union–find over each row walked in place
-    /// (`_forEachNeighborIndex`), which a computed row (a product, a subgraph view) runs faster
-    /// than copying the rows first. O(n + m α(n)).
+    /// The connected components, in the order of their first vertex in `vertices`, each listing
+    /// its vertices in `vertices` order.
+    ///
+    /// The same value as `directedView.weaklyConnectedComponents()`, computed over each edge once
+    /// from flat rows (`_withIncidentIndexRows`). A graph with vertex indices but no flat rows (a
+    /// product, a subgraph view) runs `directedView.weaklyConnectedComponents()`, which walks each
+    /// row in place.
+    ///
+    /// - Complexity: O(n + m α(n)).
     @inlinable
     public func connectedComponents() -> Components<DirectedView<Self>> {
         if vertexIndexBound != nil, _withIncidentIndexRows({ _, _, _, _ in () }) == nil {
@@ -17,9 +19,8 @@ extension Graph {
         return Components(vertices: _DenseVertices(directedView), labels: labels, count: count)
     }
 
-    /// Whether the graph has exactly one connected component; false for the empty graph, as
-    /// `isWeaklyConnected` (igraph, JGraphT; NetworkX raises). Stops as soon as n − 1 joins have
-    /// succeeded. Without flat rows, as `connectedComponents()`: `directedView.isWeaklyConnected`.
+    /// Whether the graph has exactly one connected component; false for the empty graph, as for
+    /// `isWeaklyConnected`. Stops as soon as n − 1 joins have succeeded.
     @inlinable
     public var isConnected: Bool {
         if vertexIndexBound != nil, _withIncidentIndexRows({ _, _, _, _ in () }) == nil {
@@ -30,9 +31,10 @@ extension Graph {
         return _runOnUndirectedRows(_UndirectedComponents(limit: n - 1, labelled: false)).joins == n - 1
     }
 
-    /// The bridges: the edges whose removal adds a connected component (NetworkX's, JGraphT's,
-    /// igraph's and petgraph's `bridges`), as positions in ascending order. A self-loop is never a
-    /// bridge, and neither is any of two or more parallel edges. O(n + m).
+    /// The bridges: the edges whose removal adds a connected component, as positions in ascending
+    /// order. A self-loop is never a bridge, and neither is any of two or more parallel edges.
+    ///
+    /// - Complexity: O(n + m).
     @inlinable
     public func bridges() -> [Edges.Index] {
         let search = _runOnUndirectedRows(_BiconnectivitySearch([]))
@@ -48,15 +50,16 @@ extension Graph {
         return bridges
     }
 
-    /// Whether the graph has a bridge (NetworkX's `has_bridges`). Stops at the first one found.
+    /// Whether the graph has a bridge. Stops at the first one found.
     @inlinable
     public var hasBridges: Bool {
         _runOnUndirectedRows(_BiconnectivitySearch(.stopAtBridge)).stoppedEarly
     }
 
-    /// The articulation points: the vertices whose removal adds a connected component
-    /// (NetworkX's, Boost's, igraph's and petgraph's `articulation_points`; cut vertices), in
-    /// `vertices` order. Self-loops and parallel edges never make one. O(n + m).
+    /// The articulation points (cut vertices): the vertices whose removal adds a connected
+    /// component, in `vertices` order. Self-loops and parallel edges never make one.
+    ///
+    /// - Complexity: O(n + m).
     @inlinable
     public func articulationPoints() -> [Vertex] {
         let search = _runOnUndirectedRows(_BiconnectivitySearch([]))
@@ -64,9 +67,9 @@ extension Graph {
         return search.isArticulationPoint.indices.filter { search.isArticulationPoint[$0] }.map { numbering.vertex($0) }
     }
 
-    /// Whether the graph is biconnected (NetworkX's, JGraphT's and igraph's `is_biconnected`): at
-    /// least two vertices, connected, and no articulation point. So K₂ is, and a graph with an
-    /// isolated vertex is not. Stops at the first articulation point.
+    /// Whether the graph is biconnected: at least two vertices, connected, and no articulation
+    /// point. So K₂ is, and a graph with an isolated vertex is not. Stops at the first articulation
+    /// point.
     @inlinable
     public var isBiconnected: Bool {
         let n = vertexCount
@@ -75,9 +78,10 @@ extension Graph {
         return !search.stoppedEarly && search.firstTreeSize == n
     }
 
-    /// The bi-edge-connected (2-edge-connected) components (LEMON's `biEdgeConnectedComponents`,
-    /// NetworkX's bridge components): the components left when every bridge is removed, ordered
-    /// as `connectedComponents()`. An isolated vertex is one on its own. O(n + m).
+    /// The bi-edge-connected (2-edge-connected) components: the components left when every bridge
+    /// is removed, ordered as `connectedComponents()`. An isolated vertex is one on its own.
+    ///
+    /// - Complexity: O(n + m).
     @inlinable
     public func biEdgeConnectedComponents() -> Components<DirectedView<Self>> {
         var search = _runOnUndirectedRows(_BiconnectivitySearch(.biEdgeComponents))
@@ -85,9 +89,9 @@ extension Graph {
         return Components(vertices: _DenseVertices(directedView), labels: search.biEdgeLabel, count: search.biEdgeCount)
     }
 
-    /// Whether the graph is bi-edge-connected (2-edge-connected; NetworkX's
-    /// `is_k_edge_connected(G, 2)`): at least two vertices, connected, and no bridge. So a doubled
-    /// edge is, and K₁ and K₂ are not. Stops at the first bridge.
+    /// Whether the graph is bi-edge-connected (2-edge-connected): at least two vertices,
+    /// connected, and no bridge. So a doubled edge is, and K₁ and K₂ are not. Stops at the first
+    /// bridge.
     @inlinable
     public var isBiEdgeConnected: Bool {
         let n = vertexCount
@@ -96,19 +100,22 @@ extension Graph {
         return !search.stoppedEarly && search.firstTreeSize == n
     }
 
-    /// The biconnected components, or blocks (Boost's, NetworkX's and igraph's
-    /// `biconnected_components`): the maximal biconnected subgraphs, as sets of edges, which they
-    /// partition (self-loops apart: a self-loop is in no block). Blocks are ordered by their
-    /// smallest edge position, each listing its edges in ascending position. An isolated vertex,
-    /// or one with only self-loops, is in no block. O(n + m).
+    /// The biconnected components, or blocks: the maximal biconnected subgraphs, as sets of edges,
+    /// which they partition (a self-loop is in no block). Blocks are ordered by their smallest edge
+    /// position, each listing its edges in ascending position. An isolated vertex, or one with only
+    /// self-loops, is in no block.
+    ///
+    /// - Complexity: O(n + m).
     @inlinable
     public func biconnectedComponents() -> BiconnectedComponents<Self> {
         BiconnectedComponents(self)
     }
 
-    /// The block–cut tree (JGraphT's `BlockCutpointGraph`): a node per block and per articulation
-    /// point, and an edge between each block and each articulation point in it. A forest, one tree
-    /// per connected component with an edge that is not a self-loop. O(n + m).
+    /// The block–cut tree: a node per block and per articulation point, and an edge between each
+    /// block and each articulation point in it. A forest, one tree per connected component with an
+    /// edge that is not a self-loop.
+    ///
+    /// - Complexity: O(n + m).
     @inlinable
     public func blockCutTree() -> BlockCutTree<Self> {
         BlockCutTree(biconnectedComponents())
@@ -215,8 +222,7 @@ public struct BiconnectedComponents<G: Graph>: RandomAccessCollection {
         return _edges[_edgeOffsets[position] ..< _edgeOffsets[position + 1]]
     }
 
-    /// The vertices of the block at `position`, in `vertices` order (NetworkX's
-    /// `biconnected_components`).
+    /// The vertices of the block at `position`, in `vertices` order.
     @inlinable
     public func vertices(ofComponentAt position: Int) -> ArraySlice<G.Vertex> {
         precondition(position >= 0 && position < endIndex, "Block position out of range")
@@ -240,7 +246,7 @@ public struct BiconnectedComponents<G: Graph>: RandomAccessCollection {
         return label >= 0 ? label : nil
     }
 
-    /// The blocks containing `vertex`, ascending (JGraphT's `getBlocks(vertex)`): two or more for
+    /// The blocks containing `vertex`, ascending: two or more for
     /// an articulation point, one for any other vertex with an edge that is not a self-loop, none
     /// for the rest.
     ///
@@ -307,11 +313,11 @@ extension BiconnectedComponents: CustomStringConvertible {
     }
 }
 
-/// The block–cut tree of an undirected graph (Harary's block-cutpoint tree, JGraphT's
-/// `BlockCutpointGraph`): a node per block and per articulation point, and an edge joining each
-/// block to each articulation point it contains. Blocks are numbered as in `blocks`, articulation
-/// points by their place in `articulationPoints` (`vertices` order). It is a forest: one tree per
-/// connected component with an edge that is not a self-loop; isolated vertices are no node.
+/// The block–cut tree of an undirected graph (Harary's block-cutpoint tree): a node per block and
+/// per articulation point, and an edge joining each block to each articulation point it contains.
+/// Blocks are numbered as in `blocks`, articulation points by their place in `articulationPoints`
+/// (`vertices` order). It is a forest: one tree per connected component with an edge that is not a
+/// self-loop; isolated vertices are no node.
 @frozen
 public struct BlockCutTree<G: Graph> {
     /// A node of the tree.
@@ -377,10 +383,9 @@ public struct BlockCutTree<G: Graph> {
         return blocks._vertexBlocks[blocks._vertexBlockOffsets[v] ..< blocks._vertexBlockOffsets[v + 1]]
     }
 
-    /// The node standing for `vertex` (JGraphT's `getBlock`): its own node for an articulation
-    /// point, its block for a vertex in exactly one, `nil` for a vertex in none (an isolated
-    /// vertex, or one with only self-loops; JGraphT instead gives such a vertex a block of its
-    /// own).
+    /// The node standing for `vertex`: its own node for an articulation point, its block for a
+    /// vertex in exactly one, `nil` for a vertex in none (an isolated vertex, or one with only
+    /// self-loops).
     ///
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable

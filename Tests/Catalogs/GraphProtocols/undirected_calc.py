@@ -14,7 +14,7 @@ H = G.copy(); H.remove_node(0); show("remove 0 -> edges", list(H.edges())); show
 M = nx.MultiGraph([(0,1),(0,1),(0,0)])
 show("MultiGraph neighbors(0)", list(M.neighbors(0))); show("MultiGraph degree", dict(M.degree())); show("MultiGraph m", M.number_of_edges())
 show("MultiGraph edges(0)", list(M.edges(0)))
-# petgraph undirected fixture: a b c d = 0 1 2 3
+# The petgraphUndirected fixture, with a b c d as 0 1 2 3
 P = nx.MultiGraph([(0,1),(0,2),(2,0),(0,0),(1,2),(1,0),(0,3)])
 show("petgraph multigraph degree", dict(P.degree())); show("m", P.number_of_edges())
 show("petgraph nx neighbors(1)", list(P.neighbors(1)))

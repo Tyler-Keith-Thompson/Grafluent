@@ -1,15 +1,16 @@
 /// Highest-label push–relabel (Goldberg–Tarjan) with the gap and global-relabelling heuristics
-/// (Cherkassky–Goldberg 1997, HIPR's layout), in two phases as LEMON's `Preflow`: the first finds
-/// a maximum preflow, whose value is the maximum flow value and whose residual network already
-/// gives the canonical cut (every vertex with excess left is cut off from the sink, and the
-/// second phase moves flow only among such vertices); the second returns the excess to the
-/// source, LEMON's way: push–relabel toward the source on the vertices that cannot reach the
-/// sink, labelled by their distance to the source.
+/// (Cherkassky–Goldberg 1997), in two phases.
 ///
-/// Per label, a stack of active vertices and a doubly linked list of inactive ones (for the
-/// gap), sharing `next` and `previous`. Labels are exact distances to the sink after each global
-/// relabelling (a reverse breadth-first search), run first and again after relabelling work of
-/// `12n + 2m`, HIPR's frequency.
+/// The first phase finds a maximum preflow. Its value is the maximum flow value, and its residual
+/// network already gives the canonical cut, because every vertex with excess left is cut off from
+/// the sink and the second phase moves flow only among such vertices. The second phase returns
+/// the excess to the source by push–relabel toward the source on the vertices that cannot reach
+/// the sink, labelled by their distance to the source.
+///
+/// Per label there is a stack of active vertices and a doubly linked list of inactive ones (for
+/// the gap), sharing `next` and `previous`. Labels are exact distances to the sink after each
+/// global relabelling (a reverse breadth-first search), which runs first and again after
+/// relabelling work of `12n + 2m`.
 @usableFromInline
 final class _Preflow<C: Comparable & AdditiveArithmetic> {
     @usableFromInline let network: _ResidualNetwork<C>

@@ -38,7 +38,7 @@
 #                       `<=` keeps the last least cut instead of the first: either way a minimum cut,
 #                       and which one is documented as unspecified (only that equal inputs agree).
 #   ns_mixing_off, ns_initial, ns_initial_capacity
-#                       pivot heuristics (arc mixing, LEMON's initial pivots): another pivot order
+#                       pivot heuristics (arc mixing, the initial pivots): another pivot order
 #                       reaches an optimum too, and which optimum is documented as unspecified.
 #   ns_artificial_up    a supply node's artificial arc at cost M rather than 0: tree arcs' costs are
 #                       never read (only the entering arc's, in updatePotential), so the run is the
@@ -49,9 +49,9 @@
 #                       an artificial arc on the second side only blocks when the two artificial arcs
 #                       on the cycle carry Int.max between them (the total supply exactly Int.max,
 #                       split over two supply subtrees) and a pivot joins those subtrees before any
-#                       flow reaches a demand; LEMON's initial pivots enter an arc into each demand
-#                       first. Not reached by the suite's Int.max networks (FlowsStressTests) nor by
-#                       the fix's 12,000 random problems; not proven unreachable.
+#                       flow reaches a demand; the initial pivots enter an arc into each demand
+#                       first. Not reached by the suite's Int.max networks (FlowsStressTests); not
+#                       proven unreachable.
 #   ut_thread_simple    when thread[vIn] is already uOut the rethreading writes back the same links.
 #   mcf_balance         unbalanced supplies leave the root unbalanced, so some artificial arc keeps
 #                       flow and the solver returns nil anyway.
@@ -62,11 +62,6 @@
 #                       flow reaches the cutoff and never beats the best; without the cutoff a pair's
 #                       value is its true flow, compared the same way.
 #   fe_nan              a NaN capacity fails `c >= 0` next, the same trap with another message.
-#
-# Dead code the survivors showed, removed: the undirected Edmonds–Karp's `|| against > 0` (at most one
-# of the two flows is nonzero), checkRowSums' every-row form and `extra` (no caller), Hao–Orlin's
-# reverse arcs into the source set (dormant, never read), and the self-loop zeroing before the
-# maximum flows of minimumCostMaximumFlow and directed λ (loops get no residual arcs).
 
 TESTS = ["FlowsTests"]
 

@@ -1,10 +1,10 @@
 import GraphProtocols
 
 extension Graph {
-    /// Closeness centrality (Bavelas; NetworkX `closeness_centrality`): with r the number of vertices
-    /// that reach u (u included) and S the sum of their distances, (r − 1)/S · (r − 1)/(n − 1), the
-    /// second factor (Wasserman and Faust's) only when `wfImproved`. 0 when nothing else reaches u.
-    /// Distances count edges. One breadth-first search per vertex: O(n(n + m)).
+    /// Closeness centrality (Bavelas): with r the number of vertices that reach u (u included) and
+    /// S the sum of their distances, (r − 1)/S · (r − 1)/(n − 1), the second factor (Wasserman and
+    /// Faust's) only when `wfImproved`. 0 when nothing else reaches u. Distances count edges. One
+    /// breadth-first search per vertex: O(n(n + m)).
     @inlinable
     public func closenessCentrality(wfImproved: Bool = true) -> CentralityScores<DirectedView<Self>> {
         let rows = _centralityRows(readsEdges: false)
@@ -72,8 +72,8 @@ extension Graph {
         return Centrality._closeness(&search, at: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph"), wfImproved: wfImproved)
     }
 
-    /// Harmonic centrality (Marchiori and Latora; NetworkX `harmonic_centrality`): Σ 1/d(v, u) over
-    /// the vertices v at a positive finite distance, not normalized. O(n(n + m)).
+    /// Harmonic centrality (Marchiori and Latora): Σ 1/d(v, u) over the vertices v at a positive
+    /// finite distance, not normalized. O(n(n + m)).
     @inlinable
     public func harmonicCentrality() -> CentralityScores<DirectedView<Self>> {
         let rows = _centralityRows(readsEdges: false)
@@ -139,10 +139,10 @@ extension Graph {
 }
 
 extension DirectedGraph {
-    /// Closeness centrality over incoming distances d(v, u) (NetworkX `closeness_centrality`): with
-    /// r the number of vertices that reach u (u included) and S the sum of their distances,
-    /// (r − 1)/S · (r − 1)/(n − 1), the second factor only when `wfImproved`. 0 when nothing else
-    /// reaches u. For outgoing distances, use the reversed graph. O(n(n + m)).
+    /// Closeness centrality over incoming distances d(v, u): with r the number of vertices that
+    /// reach u (u included) and S the sum of their distances, (r − 1)/S · (r − 1)/(n − 1), the
+    /// second factor only when `wfImproved`. 0 when nothing else reaches u. For outgoing distances,
+    /// use the reversed graph. O(n(n + m)).
     @inlinable
     public func closenessCentrality(wfImproved: Bool = true) -> CentralityScores<Self> {
         let (copied, numbers) = _centralityRows(readsEdges: false)
@@ -210,8 +210,8 @@ extension DirectedGraph {
         return Centrality._closeness(&search, at: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph"), wfImproved: wfImproved)
     }
 
-    /// Harmonic centrality (Marchiori and Latora; NetworkX `harmonic_centrality`): Σ 1/d(v, u) over
-    /// the vertices v at a positive finite incoming distance, not normalized. O(n(n + m)).
+    /// Harmonic centrality (Marchiori and Latora): Σ 1/d(v, u) over the vertices v at a positive
+    /// finite incoming distance, not normalized. O(n(n + m)).
     @inlinable
     public func harmonicCentrality() -> CentralityScores<Self> {
         let (copied, numbers) = _centralityRows(readsEdges: false)

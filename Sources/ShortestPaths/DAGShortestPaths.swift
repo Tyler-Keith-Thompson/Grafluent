@@ -2,7 +2,7 @@ import DirectedAcyclicGraphModule
 import GraphProtocols
 import Walks
 
-/// Shortest paths in an acyclic graph (Boost's `dag_shortest_paths`): relax each vertex's
+/// Shortest paths in an acyclic graph: relax each vertex's
 /// out-edges once, in a topological order, so negative weights are allowed and no queue is kept.
 /// Either the order is given (a `DirectedAcyclicGraph`'s), or Kahn's algorithm runs over the
 /// vertices the sources reach, relaxing as it pops, and finding a cycle when it stops short.
@@ -96,12 +96,14 @@ struct _DAGShortestPaths<G: DirectedGraph, W: Comparable & AdditiveArithmetic>: 
 }
 
 extension DirectedGraph {
-    /// Shortest paths from `source` in a graph with no cycle reachable from it (Boost's
-    /// `dag_shortest_paths`): the reachable vertices are ordered topologically by Kahn's algorithm
-    /// and each one's out-edges relaxed once, in that order, so weights may be negative. `nil` when
-    /// a cycle is reachable from `source`; a cycle elsewhere does not matter. O(n + m) over the
-    /// reachable part, against Dijkstra's O(m log n), and no negative-cycle check is needed.
-    /// Ties go to the first relaxation in that order.
+    /// Shortest paths from `source` in a graph with no cycle reachable from it, or `nil` when a
+    /// cycle is reachable from `source`.
+    ///
+    /// The reachable vertices are ordered topologically by Kahn's algorithm and each one's
+    /// out-edges relaxed once, in that order, so weights may be negative. A cycle the source does
+    /// not reach does not matter. Ties go to the first relaxation in that order.
+    ///
+    /// - Complexity: O(n + m) over the reachable part.
     ///
     /// On a `DirectedAcyclicGraph` the overload of the same name relaxes in its maintained order
     /// instead, and is not optional.
@@ -132,9 +134,10 @@ extension DirectedGraph {
 }
 
 extension DirectedAcyclicGraph {
-    /// Shortest paths from `source` (Boost's `dag_shortest_paths`), relaxing the out-edges of each
-    /// vertex `source` reaches once, in the maintained topological order: no sort and no cycle
-    /// check, so never `nil`. Weights may be negative. O(n + m).
+    /// Shortest paths from `source`, relaxing the out-edges of each vertex `source` reaches once,
+    /// in the maintained topological order. Weights may be negative.
+    ///
+    /// - Complexity: O(n + m).
     ///
     /// - Precondition: `source` is a vertex; no examined path length is NaN; every sum fits in `W`.
     @inlinable

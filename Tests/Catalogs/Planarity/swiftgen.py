@@ -7,8 +7,8 @@
 First checks that ref.py's model reproduces cases.md byte for byte. Then re-evaluates every row with
 ref.py's functions (the enumeration oracle, the NetworkX-certified embedding, Whitney's theorem, the
 Kuratowski enumeration), asserts that each value it writes matches the catalog cell, and writes one
-@Test per phase-1 row. `--phase2` also writes the dual-graph rows (PL-178 – PL-188) to
-DualGraphTests.swift; without it that file is not written, because `dualGraph()` is phase 2.
+@Test per row except the dual-graph rows (PL-178 – PL-188), which `--phase2` writes to
+DualGraphTests.swift.
 
 Every planar row checks the embedding against the definitions in api.md, written out in the test:
 each clockwise order is a permutation of the vertex's incident edges that starts at the first one,

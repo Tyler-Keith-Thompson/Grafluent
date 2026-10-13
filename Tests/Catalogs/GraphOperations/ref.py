@@ -145,7 +145,7 @@ class UBase:
 
 
 def no_indices(base):
-    """A base with vertexIndexBound == nil (StableDirectedGraph with holes, in phase 1)."""
+    """A base with vertexIndexBound == nil (StableDirectedGraph with holes)."""
     base.has_vertex_indices = False
     return base
 
@@ -570,7 +570,7 @@ def condensation_dag(g):
 
 def quotient(g, blocks):
     """`Target.quotient(of: g, by: partition)`: block i is vertex i; an edge between two different
-    blocks wherever g has one (NetworkX's quotient_graph without data; no self-loops)."""
+    blocks wherever g has one; no self-loops."""
     owner = {}
     for b, block in enumerate(blocks):
         for l in block:
@@ -1195,7 +1195,7 @@ def define():
 
 def render():
     out = [
-        "# GraphOperations: case catalog (phase 1)",
+        "# GraphOperations: case catalog",
         "",
         "Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0",
         "python3 Tests/Catalogs/GraphOperations/ref.py`; `--write` regenerates this file, `--stress` adds the random",

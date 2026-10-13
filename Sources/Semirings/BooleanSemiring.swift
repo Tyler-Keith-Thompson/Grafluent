@@ -1,9 +1,9 @@
-/// The Boolean semiring (∨, ∧): reachability, and over Floyd–Warshall Warshall's reflexive
-/// transitive closure (Mohri; GraphBLAS's `GrB_LOR_LAND_SEMIRING_BOOL`).
+/// The Boolean semiring (∨, ∧), for reachability. With Floyd–Warshall it computes the reflexive
+/// transitive closure (Warshall's algorithm).
 ///
-/// `zero` is `false`, `one` is `true`, ⊕ is `||` and ⊗ is `&&`. `<` is the natural order, "true
-/// before false": `BooleanSemiring(true) < BooleanSemiring(false)`. An edge weighing `false`
-/// carries no path.
+/// `zero` is `false`, `one` is `true`, ⊕ is `||` and ⊗ is `&&`. `<` is the natural order, with
+/// `true` before `false`: `BooleanSemiring(true) < BooleanSemiring(false)`. An edge weighing
+/// `false` carries no path.
 ///
 ///     graph.floydWarshallShortestPaths { _ in BooleanSemiring(true) }
 @frozen

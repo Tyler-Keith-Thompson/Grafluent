@@ -1,6 +1,6 @@
 # Test catalog: `AdjacencyMatrix` (dense directed bit-matrix graph)
 
-This catalog collects test cases for Grafluent's planned `AdjacencyMatrix`, harvested from mature graph and bitset libraries. Cases are grouped by behavior and deduplicated across libraries. The type under test is a directed graph on vertices `0..<vertexCount`, stored as an n×n bit matrix. It allows self-loops, cannot hold parallel edges, grows through `appendVertex()`, and has no arbitrary vertex removal.
+This catalog collects test cases for Grafluent's `AdjacencyMatrix`, harvested from mature graph and bitset libraries. Cases are grouped by behavior and deduplicated across libraries. The type under test is a directed graph on vertices `0..<vertexCount`, stored as an n×n bit matrix. It allows self-loops, cannot hold parallel edges, grows through `appendVertex()`, and has no arbitrary vertex removal.
 
 It is a companion to `test-catalog-adjacency-list.md` in this folder. Section 0 of that file covers list-graph conventions. This file covers what is specific to the matrix representation.
 

@@ -1,8 +1,6 @@
 // Construction, vertices implied by endpoints, parallel edges and order. Case IDs (EL-Cnn, EL-Vnn,
-// EL-Mnn, EL-Onn) refer to the catalog of cases harvested from Boost.Graph, petgraph, NetworkX,
-// igraph, JGraphT, rustworkx, scipy, GAP, neo4j's graph crate, LEMON, gonum and the Swift Algorithm
-// Club; see README.md. Expected values come from those suites or were computed independently of
-// the code under test.
+// EL-Mnn, EL-Onn) refer to the case catalog; see README.md. Expected values were computed
+// independently of the code under test.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -80,7 +78,7 @@ struct EdgeListConstructionTests {
 
     @Test("EL-C08 construction does not reorder")
     func noReordering() {
-        // Boost.Graph csr_graph_test.cpp unsorted input; CSR would sort it.
+        // Unsorted input, which CSR would sort.
         let list = EdgeList(DirectedFixture<Int>.boostCsrUnsorted.edges)
         #expect(Array(list) == [
             DirectedEdge(from: 5, to: 0), DirectedEdge(from: 3, to: 2), DirectedEdge(from: 4, to: 1),
@@ -90,7 +88,7 @@ struct EdgeListConstructionTests {
 
     @Test("EL-C09 / EL-M01 construction does not collapse: parallel edges are at distinct positions")
     func noCollapsing() {
-        // JGraphT SimpleIdentityDirectedGraphTest gives the three 2→4 edges ids 5, 6 and 7.
+        // The three 2→4 edges are at positions 5, 6 and 7.
         let list = EdgeList(DirectedFixture<Int>.jgraphtSparseDirected.edges)
         let twoFour = DirectedEdge(from: 2, to: 4)
         #expect(list[5] == twoFour)
@@ -354,7 +352,6 @@ struct EdgeListParallelEdgeTests {
 
     @Test("EL-M04 degrees count every parallel edge")
     func multigraphDegrees() {
-        // JGraphT SimpleIdentityDirectedGraphTest's multigraph assertions.
         let list = EdgeList(DirectedFixture<Int>.jgraphtSparseDirected.edges)
         let out = [0: 1, 1: 4, 2: 3, 3: 1, 4: 1, 5: 1, 6: 0, 7: 2]
         let into = [0: 1, 1: 1, 2: 0, 3: 0, 4: 5, 5: 2, 6: 3, 7: 1]
@@ -366,7 +363,6 @@ struct EdgeListParallelEdgeTests {
 
     @Test("EL-M05 / EL-M07 degrees with repeated self-loops", .tags(.selfLoops))
     func selfLoopDegrees() {
-        // JGraphT IncomingOutgoingEdgesTest, DirectedPseudograph.
         let list = EdgeList(DirectedFixture<Int>.selfLoopsAndDuplicates.edges)
         let out = [1: 1, 2: 3, 3: 0, 4: 1, 5: 3]
         let into = [1: 0, 2: 2, 3: 2, 4: 2, 5: 2]
@@ -380,7 +376,6 @@ struct EdgeListParallelEdgeTests {
 
     @Test("EL-M06 degrees with a repeated chord")
     func chordDegrees() {
-        // NetworkX TestOutMultiDegreeView / TestInMultiDegreeView.
         let list = EdgeList(DirectedFixture<Int>.pathWithChord.edges)
         #expect(list.outDegree(of: 1) == 3)
         #expect(list.inDegree(of: 3) == 3)
@@ -416,7 +411,6 @@ struct EdgeListOrderTests {
 
     @Test("EL-O03 remove(at:) shifts later edges down, keeping their order")
     func removeShifts() {
-        // petgraph's remove_edge swaps the last edge into the hole instead.
         var list: EdgeList<Int> = [
             DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 1), DirectedEdge(from: 4, to: 0),
         ]
@@ -426,7 +420,6 @@ struct EdgeListOrderTests {
 
     @Test("EL-O04 removeAll(where:) keeps the survivors in order")
     func removeAllKeepsOrder() {
-        // petgraph's retain_edges returns the survivors reversed.
         var list: EdgeList<Int> = [
             DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3),
             DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 5),
@@ -437,7 +430,6 @@ struct EdgeListOrderTests {
 
     @Test("EL-O05 an append after a removal goes to the end, never into the freed position")
     func noSlotReuse() {
-        // rustworkx reuses the freed slot: [(3, 0), (1, 2), (2, 3)].
         var list: EdgeList<Int> = [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3)]
         list.remove(at: 0)
         list.append(DirectedEdge(from: 3, to: 0))

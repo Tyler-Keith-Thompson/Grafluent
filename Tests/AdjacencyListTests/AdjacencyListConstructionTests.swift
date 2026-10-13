@@ -1,5 +1,4 @@
-// Construction. Case IDs (C-nn, E-nn, S-nn) refer to the catalog of cases harvested from NetworkX,
-// petgraph, Boost.Graph and JGraphT; see README.md.
+// Construction. Case IDs (C-nn, E-nn, S-nn) refer to the case catalog; see README.md.
 
 import AdjacencyListModule
 import GraphProtocols
@@ -121,7 +120,7 @@ struct AdjacencyListConstructionTests {
 
     @Test("C-11 mapping with a self-loop, a reciprocal edge, and an isolated vertex")
     func networkXFunctionGraphFromMapping() {
-        // NetworkX test_function.py: {0: [1, 2, 3], 1: [1, 2, 0], 4: []} as a DiGraph.
+        // {0: [1, 2, 3], 1: [1, 2, 0], 4: []} as a directed graph.
         let graph = AdjacencyList(adjacency: [0: [1, 2, 3], 1: [1, 2, 0], 4: []])
         #expect(graph.vertexCount == 5)
         #expect(graph.edgeCount == 6)

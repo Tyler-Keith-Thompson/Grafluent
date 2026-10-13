@@ -1,6 +1,6 @@
 // The size checks every family makes before it allocates. Products are guarded by division, not
-// `multipliedReportingOverflow` with the product discarded, which Swift 6.4 folded to "no
-// overflow" under -O in one module (Flows).
+// `multipliedReportingOverflow` with the product discarded, which the Swift 6.4 optimizer can fold
+// to "no overflow".
 
 /// Traps unless `count` is not negative.
 @inlinable

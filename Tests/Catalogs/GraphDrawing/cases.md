@@ -3,12 +3,12 @@
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 igraph==1.0.0 --with numpy==2.3.4 --with scipy==1.18.1 python3 Tests/Catalogs/GraphDrawing/ref.py`;
 `--write` regenerates this file, `--stress` adds random trees, digraphs and graphs, `--bench` prints
-the baselines in api.md). Coordinates only: every expected value is a list of points, a layer, a
+baseline timings). Coordinates only: every expected value is a list of points, a layer, a
 count or a bound. The model implements every layout from the definitions in api.md. Circular
 positions and `rescaled` are compared with NetworkX 3.7; tree layouts with python-igraph 1.0.0's
 `layout_reingold_tilford` and `layout_reingold_tilford_circular`; Sugiyama layers with igraph's
-`layout_sugiyama`; stress majorization with NetworkX's `kamada_kawai_layout`; spectral (phase 2)
-with NetworkX's `spectral_layout` up to the sign of each axis. Disagreements are in api.md.
+`layout_sugiyama`; stress majorization with NetworkX's `kamada_kawai_layout`; the spectral rows
+with NetworkX's `spectral_layout` up to the sign of each axis. api.md lists where the tools differ.
 
 ## Notation
 
@@ -39,8 +39,8 @@ is x >> 33 after the step.
 list is exact (multiples of 1/2ⁿ from separation-1 arithmetic). `≤ v` rows are quality bounds on a
 median over seeds 1…20 of `Xoshiro256StarStar(seed:)` (normalized stress or crossing count, as
 defined in api.md, computed in the test from `positions`); `≈ v (±1%)` rows are a converged value.
-`#N` is a count. `**trap**` rows are preconditions. Phase 2 rows are pinned now and not run until
-the phase 2 entry points exist.
+`#N` is a count. `**trap**` rows are preconditions. Rows in the Phase 2 group have no tests;
+`swiftgen.py` writes them only with `--phase2`.
 
 | ID | Group | Case | Input | Op | Expected |
 |---|---|---|---|---|---|

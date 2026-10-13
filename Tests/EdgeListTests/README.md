@@ -47,40 +47,36 @@ struct EdgeList<Vertex: Hashable>: RandomAccessCollection, MutableCollection, Ra
 
 ## Conventions
 
-| Question | Choice | Why | Disagreement |
-|---|---|---|---|
-| Parallel edges | Kept, at distinct positions | Every flat edge list studied keeps them; collapsing is a conversion to `AdjacencyList`, CSR or the matrix | NetworkX `DiGraph`, petgraph `GraphMap`, rustworkx `multigraph=False` collapse |
-| Order | Preserved under every operation, with `Array` semantics; part of the value | Positions are edge identities, so a weight array indexed by position stays aligned | petgraph swap-removes and its `retain_edges` reverses; rustworkx reuses freed slots |
-| Equality and hashing | Element by element, in order | Equal values must be interchangeable, and positions are observable; order-free comparisons go through `Set`, sorting or `AdjacencyList` | igraph and NetworkX's `edges_equal` compare multisets |
-| Isolated vertices | Not representable; `vertices` are the endpoints | No flat edge list studied stores them; storing them would make an emptied list unequal to `EdgeList()` | JGraphT's CSV dialect can declare one |
-| `remove(edge:)` | The first copy, matching `firstIndex(of:)` | Predictable and the same as the stdlib's search | NetworkX removes the last-added, rustworkx the newest, Boost every copy |
-| Absent vertex in a query | No trap: degree 0, no neighbors | There is no vertex set to be absent from, and checking would cost the same O(m) scan | `AdjacencyList` traps |
-| Bare vertex in the builder | Trap | Ignoring it silently would drop data | NetworkX skips one-token lines; rustworkx panics; igraph errors |
-| Complexity | Graph queries are O(m) scans; nothing is indexed | An edge list is an input format and a value, not an index | — |
-| Transpose | `transposed()`; `reversed()` is the stdlib's order reversal | The two must not share a name | — |
-| Encoded form | Flat `[s₀, t₀, s₁, t₁, …]`; an odd count is corrupt | Compact, as large as the list, so nothing to limit | igraph's `edges` vector is the same shape |
-| Mirror | A collection of the edges | It is a collection | The siblings show `vertices` and `edges` children |
-| Initializer label | `init(_:)` | `RangeReplaceableCollection` requires it; a second spelling would duplicate it | The siblings use `init(edges:)` |
-| Slices | `Slice<EdgeList>`: collection operations only | Graph queries on a slice are one `EdgeList(slice)` away; a custom slice type would duplicate the API | — |
-| Neighbors | `successors(of:)` returns a new `[Vertex]` | The query is an O(m) scan either way, and an array has O(1) `count` | A lazy filter view would have O(m) `count` |
-| Encoded form compatibility | Not interchangeable with `[DirectedEdge]`'s keyed form | Decoding one format, falling back to another, would hide which one was corrupt | — |
+| Question | Choice | Why |
+|---|---|---|
+| Parallel edges | Kept, at distinct positions | Collapsing is a conversion to `AdjacencyList`, CSR or the matrix |
+| Order | Preserved under every operation, with `Array` semantics; part of the value | Positions are edge identities, so a weight array indexed by position stays aligned |
+| Equality and hashing | Element by element, in order | Equal values must be interchangeable, and positions are observable; order-free comparisons go through `Set`, sorting or `AdjacencyList` |
+| Isolated vertices | Not representable; `vertices` are the endpoints | Storing them would make an emptied list unequal to `EdgeList()` |
+| `remove(edge:)` | The first copy, matching `firstIndex(of:)` | Predictable and the same as the standard library's search |
+| Absent vertex in a query | No trap: degree 0, no neighbors | There is no vertex set to be absent from, and checking would cost the same O(m) scan |
+| Bare vertex in the builder | Trap | Ignoring it silently would drop data |
+| Complexity | Graph queries are O(m) scans; nothing is indexed | An edge list is an input format and a value, not an index |
+| Transpose | `transposed()`; `reversed()` is the standard library's order reversal | The two must not share a name |
+| Encoded form | Flat `[s₀, t₀, s₁, t₁, …]`; an odd count is corrupt | Compact, as large as the list, so nothing to limit |
+| Mirror | A collection of the edges | It is a collection |
+| Initializer label | `init(_:)` | `RangeReplaceableCollection` requires it; a second spelling would duplicate it |
+| Slices | `Slice<EdgeList>`: collection operations only | Graph queries on a slice are one `EdgeList(slice)` away; a custom slice type would duplicate the API |
+| Neighbors | `successors(of:)` returns a new `[Vertex]` | The query is an O(m) scan either way, and an array has O(1) `count` |
+| Encoded form compatibility | Not interchangeable with `[DirectedEdge]`'s keyed form | Decoding one format, falling back to another, would hide which one was corrupt |
 
 ## Files
 
 | File | Covers |
 |---|---|
-| `EdgeListConstructionTests.swift` | Empty and literal forms, sequences (single-pass and lazy), the builder, vertex types; vertices as endpoints; parallel edges and multigraph degrees from JGraphT and NetworkX; order under mutation |
+| `EdgeListConstructionTests.swift` | Empty and literal forms, sequences (single-pass and lazy), the builder, vertex types; vertices as endpoints; parallel edges and multigraph degrees; order under mutation |
 | `EdgeListCollectionTests.swift` | Collection laws, every slice, `MutableCollection` (sorting and its stability, partition, shuffle, slice write-back), `RangeReplaceableCollection` (insert, remove, replace, `remove(edge:)`, `removeEdges(incidentTo:)`) |
-| `EdgeListQueryTests.swift` | `contains(edge:)` over every pair, neighbors and degrees with multiplicity, real-data degrees, the transpose, conversions to `AdjacencyList`, `CompressedSparseRow` and `AdjacencyMatrix`, weights by position, GAP / Graph500 / Ligra data |
+| `EdgeListQueryTests.swift` | `contains(edge:)` over every pair, neighbors and degrees with multiplicity, real-data degrees, the transpose, conversions to `AdjacencyList`, `CompressedSparseRow` and `AdjacencyMatrix`, weights by position, the vendored real-world graphs |
 | `EdgeListConformanceTests.swift` | Equality and hashing (every short list on 2 and 3 vertices), Codable, descriptions, value semantics, a model test against `Array`, object lifetimes, exit tests |
 
-Not ported from the catalog: the text-format cases (EL-T01–T17) belong to the future
-`GraphFormats` reader and writer, and the API-shape cases that assert something does not exist
-(EL-V09, EL-R19, EL-E10) and the protocol cases (EL-X12, EL-X13) wait for the `DirectedGraph`
-protocol. EL-X11 is `CompressedSparseRow`'s own precondition, tested there. EL-O07 (positions are
-identities) is what EL-K01–K04 exercise.
+EL-X11 is `CompressedSparseRow`'s own precondition and is tested there. EL-O07 (positions are
+identities) is what EL-K01–K04 exercise. The catalog's text-format cases (EL-T01–T17), API-shape
+cases (EL-V09, EL-R19, EL-E10), protocol cases (EL-X12, EL-X13) and spanning-tree cases are not
+tested in this suite.
 
-Case IDs (EL-C05, EL-R10, …) refer to the catalog of cases (`Tests/Catalogs/EdgeList/cases.md`) harvested from Boost.Graph, petgraph,
-NetworkX, igraph, JGraphT, rustworkx, scipy, GAP, neo4j's graph crate, LEMON, gonum and the Swift
-Algorithm Club. Spanning-tree cases from that catalog (Kruskal totals from LEMON, petgraph, gonum,
-JGraphT and GAP's `4.wel`) belong to the future `SpanningTrees` module.
+Case IDs (EL-C05, EL-R10, …) refer to the case catalog in `Tests/Catalogs/EdgeList/cases.md`.

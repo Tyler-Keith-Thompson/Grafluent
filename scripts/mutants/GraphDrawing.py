@@ -3,10 +3,9 @@
 # Sugiyama pipeline (network simplex layering, barycenter crossing reduction, Brandes–Köpf); run
 # with `just mutate GraphDrawing`. See scripts/mutate.py.
 #
-# The survivors of the first run were closed by GraphDrawingPlantedBugTests. The Sugiyama ones were
-# found by a scratch harness that builds against the mutation workspace and compares, for each
-# mutant (GRAFLUENT_MUTANT), the layered drawings of 20 000 – 30 000 random digraphs with the
-# unmutated ones; a graph that tells several apart is pinned there.
+# GraphDrawingPlantedBugTests pins inputs that catch the Sugiyama mutants: graphs found by comparing,
+# for each mutant (GRAFLUENT_MUTANT), the layered drawings of 20 000 – 30 000 random digraphs with
+# the unmutated ones.
 #
 # Known equivalent mutants (they survive by design):
 #   fetreeorder     Barnes–Hut repulsion computed for vertex i instead of the tree's i-th vertex:
@@ -29,7 +28,7 @@
 #   nsleavefirst    the warm start and the leaving-arc ties choose the tree and the pivots, not
 #   nsleavesecond   the optimum: the total span equalled the unmutated one on all 50 000 random
 #   nsstronglyroot  digraphs. The three tie mutants pick another optimal layering in 20 – 186 of
-#                   them, and which optimal layering is chosen is not specified (README.md). They
+#                   them, and which optimal layering is chosen is not specified. They
 #                   give up Cunningham's strongly feasible tree, which is what rules out cycling;
 #                   no input that cycles was found.
 #   Under load (other runs at once) these can show as caught by the stress suite's wall-clock

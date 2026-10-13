@@ -1,8 +1,8 @@
-// `setCount`, `setSize(of:)`, `sets()` and `labels()`: the count and size laws on seeded runs,
-// scipy's test_subsets traced exactly, and the canonical order (sets by smallest element, each
-// ascending; labels number sets in that order, not by representative). Expected values come from
-// the catalog's reference (`ref.py`, `cases.py`), which is cross-checked against scipy's and
-// NetworkX's own implementations.
+// `setCount`, `setSize(of:)`, `sets()` and `labels()`: the count and size laws on seeded runs, a
+// ten-union trace checked after every step (DS-28), and the canonical order. Sets are ordered by
+// smallest element, each ascending, and labels number sets in that order, not by representative.
+// Expected values come from the catalog's reference (`ref.py`, `cases.py`), which `check.py`
+// cross-checks against scipy's and NetworkX's union–find implementations.
 // Case IDs (DS-nn) refer to the catalog; see README.md.
 
 import DisjointSetModule
@@ -66,7 +66,7 @@ struct CountAndSizeLawTests {
 struct SetsAndLabelsTests {
     @Test("DS-28 scipy test_subsets, n = 10, traced exactly")
     func scipySubsets() {
-        // The pairs scipy draws with RandomState(0).randint(0, 10, (10, 2)).
+        // The pairs NumPy's RandomState(0).randint(0, 10, (10, 2)) draws.
         var d = DisjointSet(count: 10)
         #expect(d.union(5, 0) == true)
         #expect(d.sets() == [[0, 5], [1], [2], [3], [4], [6], [7], [8], [9]])
@@ -92,7 +92,7 @@ struct SetsAndLabelsTests {
         #expect((0 ..< 10).map { d.find($0) } == [0, 7, 2, 0, 2, 0, 7, 7, 7, 7])
         #expect(d.labels() == [0, 1, 2, 0, 2, 0, 1, 1, 1, 1])
         #expect((0 ..< 10).map { d.setSize(of: $0) } == [3, 5, 2, 3, 2, 3, 5, 5, 5, 5])
-        // scipy's own assertion: subset_size == len(subset).
+        // Each element's set size is the length of its set.
         let sets = d.sets()
         #expect((0 ..< 10).allSatisfy { d.setSize(of: $0) == sets[d.labels()[$0]].count })
         #expect(d.setCount == 3)

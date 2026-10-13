@@ -56,8 +56,8 @@ func _scatter<S: _SlotWeights>(_ offsets: UnsafeBufferPointer<Int>, _ targets: U
     }
 }
 
-/// The principal eigenvector of Aᵀ by NetworkX's iteration: x ← (Aᵀ + I)x / ‖(Aᵀ + I)x‖₂ from
-/// the uniform vector (the shift makes bipartite graphs converge).
+/// The principal eigenvector of Aᵀ: x ← (Aᵀ + I)x / ‖(Aᵀ + I)x‖₂ from the uniform vector (the shift
+/// makes bipartite graphs converge).
 @inlinable
 func _eigenvector<S: _SlotWeights>(_ offsets: UnsafeBufferPointer<Int>, _ targets: UnsafeBufferPointer<Int>, _ weights: S, tolerance: Double, maxIterations: Int) throws(NoConvergence) -> [Double] {
     let n = offsets.count - 1
@@ -89,8 +89,7 @@ func _eigenvector<S: _SlotWeights>(_ offsets: UnsafeBufferPointer<Int>, _ target
     throw NoConvergence(iterations: maxIterations, residual: change / Double(n))
 }
 
-/// Katz centrality by NetworkX's iteration: x ← αAᵀx + β from 0, then divided by ‖x‖₂ when
-/// `normalized` (and nonzero).
+/// Katz centrality: x ← αAᵀx + β from 0, then divided by ‖x‖₂ when `normalized` (and nonzero).
 @inlinable
 func _katz<S: _SlotWeights>(_ offsets: UnsafeBufferPointer<Int>, _ targets: UnsafeBufferPointer<Int>, _ weights: S, alpha: Double, beta: Double, normalized: Bool, tolerance: Double, maxIterations: Int) throws(NoConvergence) -> [Double] {
     let n = offsets.count - 1
@@ -126,9 +125,8 @@ func _katz<S: _SlotWeights>(_ offsets: UnsafeBufferPointer<Int>, _ targets: Unsa
     throw NoConvergence(iterations: maxIterations, residual: change / Double(n))
 }
 
-/// PageRank by NetworkX's iteration: x ← d(Pᵀx + (dangling mass)·p) + (1 − d)p from the uniform
-/// vector, P the rows' weights over each source's out-weight; a source with out-weight 0 is
-/// dangling.
+/// PageRank: x ← d(Pᵀx + (dangling mass)·p) + (1 − d)p from the uniform vector, P the rows' weights
+/// over each source's out-weight; a source with out-weight 0 is dangling.
 @inlinable
 func _pageRank<S: _SlotWeights>(_ offsets: UnsafeBufferPointer<Int>, _ targets: UnsafeBufferPointer<Int>, _ weights: S, dampingFactor d: Double, personalization p: [Double], tolerance: Double, maxIterations: Int) throws(NoConvergence) -> [Double] {
     let n = offsets.count - 1
@@ -175,9 +173,9 @@ func _pageRank<S: _SlotWeights>(_ offsets: UnsafeBufferPointer<Int>, _ targets: 
     throw NoConvergence(iterations: maxIterations, residual: change / Double(n))
 }
 
-/// Kleinberg's HITS by NetworkX's iteration: a ← Aᵀh, h ← Aa, each scaled to greatest 1, from the
-/// uniform h; the stop rule is on h, and both are divided by their sums at the end. Without an arc
-/// of positive weight every vector is a singular vector, and the scores are uniform.
+/// Kleinberg's HITS: a ← Aᵀh, h ← Aa, each scaled to greatest 1, from the uniform h; the stop rule
+/// is on h, and both are divided by their sums at the end. Without an arc of positive weight every
+/// vector is a singular vector, and the scores are uniform.
 @inlinable
 func _hits<S: _SlotWeights>(_ offsets: UnsafeBufferPointer<Int>, _ targets: UnsafeBufferPointer<Int>, _ weights: S, tolerance: Double, maxIterations: Int) throws(NoConvergence) -> (hubs: [Double], authorities: [Double]) {
     let n = offsets.count - 1
@@ -301,9 +299,9 @@ extension Graph {
         _normalizedPersonalization(vertices.map(personalization))
     }
 
-    /// Eigenvector centrality (Bonacich; NetworkX `eigenvector_centrality`): the principal
-    /// eigenvector of the adjacency matrix, with Euclidean norm 1. A self-loop counts 2 and parallel
-    /// copies add, as in `degree(of:)`. O(n + m) per step.
+    /// Eigenvector centrality (Bonacich): the principal eigenvector of the adjacency matrix, with
+    /// Euclidean norm 1. A self-loop counts 2 and parallel copies add, as in `degree(of:)`. O(n +
+    /// m) per step.
     ///
     /// - Precondition: `tolerance` is positive and finite, and `maxIterations` is at least 1.
     /// - Throws: `NoConvergence` when no step of the first `maxIterations` changes the scores by
@@ -334,8 +332,8 @@ extension Graph {
         return CentralityScores(directedView, numbers: numbers, scores: scores)
     }
 
-    /// Katz centrality (NetworkX `katz_centrality`): the solution of x = αAx + β, with Euclidean
-    /// norm 1 when `normalized`. It converges when α is below 1/ρ(A). O(n + m) per step.
+    /// Katz centrality: the solution of x = αAx + β, with Euclidean norm 1 when `normalized`. It
+    /// converges when α is below 1/ρ(A). O(n + m) per step.
     ///
     /// - Precondition: `alpha` and `beta` are finite; `tolerance` is positive and finite, and
     ///   `maxIterations` is at least 1.
@@ -367,9 +365,9 @@ extension Graph {
         return CentralityScores(directedView, numbers: numbers, scores: scores)
     }
 
-    /// PageRank (Brin and Page; NetworkX `pagerank`), each edge two arcs and a self-loop two loop
-    /// arcs: the stationary distribution of a walk that follows a random arc with probability
-    /// `dampingFactor` and otherwise jumps to a uniform vertex. Scores sum to 1. O(n + m) per step.
+    /// PageRank (Brin and Page), each edge two arcs and a self-loop two loop arcs: the stationary
+    /// distribution of a walk that follows a random arc with probability `dampingFactor` and
+    /// otherwise jumps to a uniform vertex. Scores sum to 1. O(n + m) per step.
     ///
     /// - Precondition: `dampingFactor` is in 0...1; `tolerance` is positive and finite, and
     ///   `maxIterations` is at least 1.
@@ -473,10 +471,9 @@ extension DirectedGraph {
         _normalizedPersonalization(vertices.map(personalization))
     }
 
-    /// Eigenvector centrality over in-arcs (NetworkX `eigenvector_centrality`, the left
-    /// eigenvector): a vertex is central when central vertices point to it. Euclidean norm 1;
-    /// parallel arcs add; on a graph without cycles the iteration never converges. O(n + m) per
-    /// step.
+    /// Eigenvector centrality over in-arcs (the left eigenvector): a vertex is central when central
+    /// vertices point to it. Euclidean norm 1; parallel arcs add; on a graph without cycles the
+    /// iteration never converges. O(n + m) per step.
     ///
     /// - Precondition: `tolerance` is positive and finite, and `maxIterations` is at least 1.
     /// - Throws: `NoConvergence` when no step of the first `maxIterations` changes the scores by
@@ -505,8 +502,8 @@ extension DirectedGraph {
         return CentralityScores(self, numbers: numbers, scores: scores)
     }
 
-    /// Katz centrality over in-arcs (NetworkX `katz_centrality`): x = αAᵀx + β, with Euclidean norm
-    /// 1 when `normalized`. It converges when α is below 1/ρ(A). O(n + m) per step.
+    /// Katz centrality over in-arcs: x = αAᵀx + β, with Euclidean norm 1 when `normalized`. It
+    /// converges when α is below 1/ρ(A). O(n + m) per step.
     ///
     /// - Precondition: `alpha` and `beta` are finite; `tolerance` is positive and finite, and
     ///   `maxIterations` is at least 1.
@@ -536,9 +533,9 @@ extension DirectedGraph {
         return CentralityScores(self, numbers: numbers, scores: scores)
     }
 
-    /// PageRank (NetworkX `pagerank`): the stationary distribution of a walk that follows a random
-    /// out-arc with probability `dampingFactor` and otherwise jumps to a uniform vertex; a vertex
-    /// without out-arcs jumps. Scores sum to 1. O(n + m) per step.
+    /// PageRank: the stationary distribution of a walk that follows a random out-arc with
+    /// probability `dampingFactor` and otherwise jumps to a uniform vertex; a vertex without
+    /// out-arcs jumps. Scores sum to 1. O(n + m) per step.
     ///
     /// - Precondition: `dampingFactor` is in 0...1; `tolerance` is positive and finite, and
     ///   `maxIterations` is at least 1.
@@ -606,9 +603,9 @@ extension DirectedGraph {
     }
 
 
-    /// Kleinberg's hubs and authorities (HITS; NetworkX `hits`): authorities a = Aᵀh and hubs h = Aa,
-    /// the principal singular vectors of A, each summing to 1. Without an arc both are uniform.
-    /// O(n + m) per step.
+    /// Kleinberg's hubs and authorities (HITS): authorities a = Aᵀh and hubs h = Aa, the principal
+    /// singular vectors of A, each summing to 1. Without an arc both are uniform. O(n + m) per
+    /// step.
     ///
     /// - Precondition: `tolerance` is positive and finite, and `maxIterations` is at least 1.
     /// - Throws: `NoConvergence` when no step of the first `maxIterations` changes the hub scores

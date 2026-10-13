@@ -2,9 +2,9 @@ import GraphProtocols
 import Walks
 
 /// An arborescence: a directed tree whose edges all point away from its root, so every vertex
-/// but the root has exactly one incoming edge, from its parent (NetworkX `is_arborescence`,
-/// Edmonds). A `BidirectionalDirectedGraph`: `successors(of:)` are the children, `predecessors(of:)`
-/// the parent (zero or one), and each edge is `DirectedEdge(from: parent, to: child)`.
+/// but the root has exactly one incoming edge, from its parent. As a `BidirectionalDirectedGraph`,
+/// `successors(of:)` are the children, `predecessors(of:)` is the parent (zero or one), and each
+/// edge is `DirectedEdge(from: parent, to: child)`.
 ///
 /// It has the queries of `RootedTree`, and converts to and from one in O(1), keeping vertices,
 /// edge positions and the root.
@@ -351,12 +351,11 @@ extension Arborescence: BidirectionalDirectedGraph {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex that is not in the arborescence and
-// `EdgeNotFound` for an edge position out of range, where the trapping spellings are the fast
-// path. Each makes the one lookup per vertex its trapping spelling makes; `try?` gives an
-// Optional. `parent(checked:)`, `parentEdge(checked:)` and `path(checkedFrom:to:)` keep their
-// plain spellings' nil (at the root; not downward); `try?` flattens that nil with a missing
-// vertex's, so a caller that must tell them apart catches.
+// The `checked:` spellings throw `VertexNotFound` for a vertex that is not in the arborescence
+// and `EdgeNotFound` for an edge position out of range, where the plain spellings trap. Each makes
+// the same lookups as its plain spelling. `parent(checked:)`, `parentEdge(checked:)` and
+// `path(checkedFrom:to:)` keep their plain spellings' nil (at the root; not downward), and `try?`
+// merges that nil with a missing vertex's, so a caller that must tell them apart catches.
 
 extension Arborescence {
     /// `parent(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex: nil still
@@ -396,8 +395,8 @@ extension Arborescence {
     }
 
     /// `descendants(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
-    /// O(1). Traversal's `descendants(checked:)` on any `DirectedGraph` returns a `Set`; this one
-    /// is the slice of `preorder`, and the more specific member wins.
+    /// O(1). Returns the slice of `preorder`, where Traversal's `descendants(checked:)` on any
+    /// `DirectedGraph` returns a `Set`.
     ///
     /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable

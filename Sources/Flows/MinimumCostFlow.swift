@@ -1,9 +1,9 @@
 import GraphProtocols
 
-/// A minimum-cost flow (LEMON `NetworkSimplex`: `flow`, `totalCost`, `potential`): the result of
-/// `minimumCostFlow(supply:capacity:cost:)` and `minimumCostMaximumFlow(from:to:capacity:cost:)`.
+/// A minimum-cost flow, returned by `minimumCostFlow(supply:capacity:cost:)` and
+/// `minimumCostMaximumFlow(from:to:capacity:cost:)`.
 ///
-/// It keeps a copy of the graph to look positions up (copy-on-write, O(1) to make).
+/// It holds a copy-on-write copy of the graph to look positions up.
 @frozen
 public struct MinimumCostFlow<G: DirectedGraph, Capacity: BinaryInteger, Cost: SignedInteger> {
     @usableFromInline let _graph: G
@@ -13,7 +13,7 @@ public struct MinimumCostFlow<G: DirectedGraph, Capacity: BinaryInteger, Cost: S
     @usableFromInline let _potentials: [Int]
     /// The total cost, Σ flow × cost.
     public let cost: Cost
-    /// The amount shipped: the sum of the positive supplies; for `minimumCostMaximumFlow`, the
+    /// The amount shipped: the sum of the positive supplies, or for `minimumCostMaximumFlow` the
     /// maximum flow value.
     public let value: Capacity
 
@@ -46,19 +46,19 @@ public struct MinimumCostFlow<G: DirectedGraph, Capacity: BinaryInteger, Cost: S
         return _flows[e]
     }
 
-    /// Every edge's flow, by edge position in `edges` order (LEMON `NetworkSimplex::flowMap`): a
-    /// collection over the result's own storage, no copy made.
+    /// Every edge's flow, indexed by edge position in `edges` order. It shares the result's
+    /// storage.
     @inlinable
     public var flowMap: FlowMap<G, Capacity> { FlowMap(graph: _graph, positions: _positions, flows: _flows) }
 
-    /// The optimal dual: every edge with room left has reduced cost
-    /// cost + potential(source) − potential(target) ≥ 0, and every edge carrying flow ≤ 0, the
-    /// optimality certificate. Not unique.
+    /// The vertex's potential in an optimal dual, which certifies optimality.
+    ///
+    /// Every edge with room left has reduced cost cost + potential(source) − potential(target)
+    /// ≥ 0, and every edge carrying flow has reduced cost ≤ 0. The potentials are not unique.
     ///
     /// - Precondition: `vertex` is a vertex of the graph, and its potential fits in `Cost`. A
-    ///   potential is at most big M + n × the greatest |cost| in magnitude, where big M, the
-    ///   network simplex's artificial cost, is (n + 1)(the greatest |cost| + 1): about
-    ///   2(n + 1) times the greatest |cost|, so O(n × the greatest |cost|).
+    ///   potential's magnitude is at most big M + n × the greatest |cost|, where big M, the
+    ///   network simplex's artificial cost, is (n + 1)(the greatest |cost| + 1).
     @inlinable
     public func potential(of vertex: G.Vertex) -> Cost {
         let v = _graph._flowNumber(of: vertex, _vertices)
@@ -78,8 +78,8 @@ public struct MinimumCostFlow<G: DirectedGraph, Capacity: BinaryInteger, Cost: S
 }
 
 extension MinimumCostFlow: Equatable {
-    /// Whether both have the same cost, value, flow on every edge and potentials (the solver is
-    /// deterministic, so equal inputs give equal results). The graphs are not compared.
+    /// Whether both have the same cost, value, flow on every edge and potentials. The solver is
+    /// deterministic, so equal inputs give equal results. The graphs are not compared.
     @inlinable
     public static func == (lhs: MinimumCostFlow, rhs: MinimumCostFlow) -> Bool {
         lhs.cost == rhs.cost && lhs.value == rhs.value && lhs._flows == rhs._flows && lhs._potentials == rhs._potentials
@@ -130,8 +130,8 @@ func _minimumCostFlow(_ edges: _FlowEdges, capacity: [Int], cost: [Int], supply:
     }
     // Big M, with room for the potentials and reduced costs built from it.
     let (bigM, overflowM) = (greatest &+ 1).multipliedReportingOverflow(by: n &+ 1)
-    // A comparison, not `bigM.multipliedReportingOverflow(by: 4)` with its product discarded:
-    // Swift 6.4's optimizer drops that overflow flag here under -O.
+    // A comparison rather than `bigM.multipliedReportingOverflow(by: 4)` with its product
+    // discarded, because the Swift 6.4 optimizer drops that overflow flag here under -O.
     precondition(!overflowM && bigM <= Int.max / 4, "The costs are too large for the network simplex's artificial arcs")
     var potentials = [Int](repeating: 0, count: n)
     if n > 0 {
@@ -150,26 +150,24 @@ func _minimumCostFlow(_ edges: _FlowEdges, capacity: [Int], cost: [Int], supply:
 extension DirectedGraph {
     // Minimum-cost flow. Integer capacities, supplies and costs, computed exactly in `Int`.
 
-    /// A least-cost flow meeting every supply (positive: the vertex sends that much more than it
-    /// receives; negative: a demand), within capacities (LEMON `NetworkSimplex`, OR-Tools
-    /// `SimpleMinCostFlow`, NetworkX `min_cost_flow` with the opposite sign), or nil when there is
-    /// none: the supplies do not sum to zero, or some set of vertices supplies more than its
-    /// out-edges carry. Costs may be negative; negative cycles are saturated (capacities are
-    /// finite). A self-loop carries its capacity when its cost is negative and nothing otherwise.
-    /// Network simplex with block-search pivots and strongly feasible trees, LEMON's layout.
-    /// `supply` is called once per vertex in `vertices` order, then, for each edge in position
-    /// order, `capacity` and then `cost`, before any work. Which optimum is returned when several
-    /// exist is unspecified, but the same input always gives the same result.
+    /// A least-cost flow within capacities that meets every supply, or nil when there is none.
     ///
-    /// Capacities may be of an unsigned type; supplies and costs are signed. Any capacity up to
-    /// `Int.max` is fine (it is finite: only the solver's own artificial arcs are unbounded).
+    /// A positive supply is how much more the vertex sends than it receives; a negative one is a
+    /// demand. There is no flow when the supplies do not sum to zero or some set of vertices
+    /// supplies more than its out-edges carry. Costs may be negative, and negative cycles are
+    /// saturated. A self-loop carries its capacity when its cost is negative and nothing
+    /// otherwise. Capacities may be of an unsigned type, up to `Int.max`.
+    ///
+    /// Computed by the network simplex with block-search pivots and strongly feasible trees.
+    /// Which optimum is returned when several exist is unspecified, but the same input always
+    /// gives the same result. `supply` is called once per vertex in `vertices` order, then, for
+    /// each edge in position order, `capacity` and then `cost`, before any work.
     ///
     /// - Precondition: every capacity is at least zero; capacities, supplies and costs fit in
-    ///   `Int`; Σ capacity × |cost| fits in `Cost` (checked before solving; it bounds the total
-    ///   cost, so a cost that could not be represented traps here rather than wrapping);
-    ///   4(n + 1)(the greatest |cost| of a non-loop edge + 1) fits in `Int` (the solver's
-    ///   artificial cost, with room for its potentials and reduced costs; computed in `Int` and
-    ///   never reported); the positive supplies sum within `Int` and `Capacity`.
+    ///   `Int`; Σ capacity × |cost| fits in `Cost` (checked before solving, since it bounds the
+    ///   total cost); 4(n + 1)(the greatest |cost| of a non-loop edge + 1) fits in `Int` (the
+    ///   solver's artificial cost, with room for its potentials and reduced costs); the positive
+    ///   supplies sum within `Int` and `Capacity`.
     @inlinable
     public func minimumCostFlow<S: SignedInteger, C: BinaryInteger, W: SignedInteger>(
         supply: (Vertex) -> S, capacity: (Edges.Index) -> C, cost: (Edges.Index) -> W
@@ -195,11 +193,12 @@ extension DirectedGraph {
     }
 
     /// The least-cost flow among the maximum flows from `source` to `sink`, circulations
-    /// included (NetworkX `max_flow_min_cost`, OR-Tools `SolveMaxFlowWithMinCost`): the maximum
-    /// flow value by push–relabel's first phase, then `minimumCostFlow` with that supply at
-    /// `source` and demand at `sink`. So a negative cycle away from every source–sink path is
-    /// still saturated. For each edge in position order, `capacity` is called and then `cost`,
-    /// once each, before any work.
+    /// included.
+    ///
+    /// The maximum flow value comes from push–relabel's first phase, then `minimumCostFlow` runs
+    /// with that supply at `source` and demand at `sink`. A negative cycle away from every
+    /// source–sink path is still saturated. For each edge in position order, `capacity` is called
+    /// and then `cost`, once each, before any work.
     ///
     /// - Precondition: `source` and `sink` are distinct vertices, and the preconditions of
     ///   `minimumCostFlow(supply:capacity:cost:)` and `maximumFlow(from:to:capacity:)` hold.

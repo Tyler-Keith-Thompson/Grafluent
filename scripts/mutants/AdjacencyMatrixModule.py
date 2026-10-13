@@ -1,4 +1,4 @@
-# Planted bugs for AdjacencyMatrixModule's `checked:` spellings (README Principle 6): the range
+# Planted bugs for AdjacencyMatrixModule's `checked:` spellings: the range
 # guard of each row lookup, the cell guard of the checked edge endpoints, the endpoints checked by
 # `insert(checked:)`, and each twin calling its own trapping spelling. Run with
 # `just mutate AdjacencyMatrixModule`. See scripts/mutate.py.
@@ -7,7 +7,7 @@
 # defaults appended with a vertex, the maps kept through `removeAll` and `removeAllEdges`, the
 # complement's fresh maps, the subscripts' liveness checks, and every generation advance.
 #
-# The rest of the matrix predates the mutation suite and has no mutants here yet.
+# The rest of the matrix has no mutants.
 #
 # Known equivalent mutants (they survive by design): none.
 #
@@ -15,9 +15,6 @@
 # same answers), a new lineage starting at another version, the stamp forgetting no address on a
 # move it already mismatches, and the cleared matrices keeping the old stamp's slots (the new
 # buffer's address never matches them).
-#
-# Removed as dead code after planting: the vertex maps' range checks in the subscripts (each map
-# holds exactly one value per vertex, so its own bounds check traps on the same positions).
 
 TESTS = ["AdjacencyMatrixTests"]
 

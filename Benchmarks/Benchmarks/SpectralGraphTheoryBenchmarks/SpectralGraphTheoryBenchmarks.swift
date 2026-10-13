@@ -4,9 +4,9 @@ import BenchmarkSupport
 import GraphProtocols
 import SpectralGraphTheory
 
-// The inputs of api.md's Performance table (ref.py --bench): square grids, random 3-regular graphs
-// (three random perfect matchings, redrawn until simple), and the giant component of G(n, p) with
-// mean degree 10. The SciPy and NumPy baselines are quoted in each benchmark's name.
+// The inputs `ref.py --bench` times: square grids, random 3-regular graphs (three random perfect
+// matchings, redrawn until simple), and the giant component of G(n, p) with mean degree 10. The
+// SciPy and NumPy timings `ref.py --bench` measured are quoted in each benchmark's name.
 
 /// The r × c grid, vertex i·c + j, each vertex's right then down edge.
 func grid(_ side: Int) -> UndirectedAdjacencyList<Int> {
@@ -82,7 +82,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(3)
 
-    // (name, graph, csgraph.laplacian, shifted eigsh λ₂, eigsh ρ) from api.md's table.
+    // (name, graph, csgraph.laplacian, shifted eigsh λ₂, eigsh ρ) as `ref.py --bench` timed them.
     let inputs: [(String, UndirectedAdjacencyList<Int>, String, String, String)] = [
         ("grid 100×100", grid(100), "0.5 ms", "62.4 ms", "51.3 ms"),
         ("grid 300×300", grid(300), "3.3 ms", "2879.5 ms", "1729.1 ms"),
@@ -110,15 +110,15 @@ let benchmarks: @Sendable () -> Void = {
         let graph = inputs[5].1
         for _ in benchmark.scaledIterations { blackHole(graph.normalizedLaplacianMatrix(weight: { $0 % 7 + 1 })) }
     }
-    // numpy.linalg.eigvalsh, one thread (OPENBLAS_NUM_THREADS=1), measured interleaved on random
-    // symmetric matrices of the same sizes: 77 ms (n = 1000), 610–730 ms (n = 2000).
+    // numpy.linalg.eigvalsh, one thread (OPENBLAS_NUM_THREADS=1), on random symmetric matrices of
+    // the same sizes.
     for (n, numpy) in [(1_000, "77 ms"), (2_000, "610–730 ms")] {
         let graph = giantComponent(n, seed: 5)
         Benchmark("SpectralGraphTheory: laplacianSpectrum(), G(n, p) \(n) (numpy eigvalsh \(numpy))") { benchmark in
             for _ in benchmark.scaledIterations { blackHole(try graph.laplacianSpectrum()) }
         }
     }
-    // scipy.sparse.linalg.cg, Jacobi preconditioned, on the grounded Laplacian: 51 ms.
+    // The name quotes scipy.sparse.linalg.cg, Jacobi preconditioned, on the grounded Laplacian.
     let giant = inputs[5].1
     Benchmark("SpectralGraphTheory: resistanceDistance(from:to:), G(n, p) 10⁵ giant component (scipy cg 51 ms)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(try giant.resistanceDistance(from: 0, to: giant.vertexCount - 1)) }
@@ -127,20 +127,20 @@ let benchmarks: @Sendable () -> Void = {
         let graph = giantComponent(1_000, seed: 5)
         for _ in benchmark.scaledIterations { blackHole(graph.numberOfSpanningTrees()) }
     }
-    // The shift-invert path: σ/λ₂ ≈ 0.4 n² on a path (phase 1 ran past 500 s here).
+    // The shift-invert path: σ/λ₂ ≈ 0.4 n² on a path.
     let path = UndirectedAdjacencyList(vertices: 0 ..< 100_000, edges: (0 ..< 99_999).map { UndirectedEdge($0, $0 + 1) })
     Benchmark("SpectralGraphTheory: algebraicConnectivity(), path 10⁵ (shift-invert)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(try path.algebraicConnectivity()) }
     }
     // Conductances log-uniform over 2⁻²⁰ … 2²¹ on the 100 × 100 grid: Jacobi, then the incomplete
-    // factor (phase 1's Jacobi stopped at its cap with an error of 8.6 · 10⁻⁴).
+    // factor.
     let spreadGrid = inputs[0].1
     var spreadRandom = SeededRandomNumberGenerator(seed: 6)
     let spread = (0 ..< spreadGrid.edgeCount).map { _ in Double(sign: .plus, exponent: Int.random(in: -20 ... 20, using: &spreadRandom), significand: Double.random(in: 1 ..< 2, using: &spreadRandom)) }
     Benchmark("SpectralGraphTheory: resistanceDistance(from:to:weight:), grid 100×100, conductances over twelve decades") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(try spreadGrid.resistanceDistance(from: 0, to: spreadGrid.vertexCount - 1, weight: { spread[$0] })) }
     }
-    // api.md: finishes with the correct λ₂ = 2 − 2cos(π/1000) ≈ 9.8696e-6 in under 120 s.
+    // The correct λ₂ is 2 − 2cos(π/1000) ≈ 9.8696e-6.
     Benchmark("SpectralGraphTheory: algebraicConnectivity(), grid 1000×1000 (target < 120 s; no SciPy method finished)", configuration: .init(maxDuration: .seconds(1), maxIterations: 1)) { benchmark in
         let graph = grid(1_000)
         benchmark.startMeasurement()

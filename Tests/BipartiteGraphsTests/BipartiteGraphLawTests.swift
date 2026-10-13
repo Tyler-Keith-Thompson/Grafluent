@@ -1,7 +1,7 @@
 // `BipartiteGraph` as a `Graph`: the protocol laws (Sources/GraphProtocols/Graph.swift) and the
 // side invariant, checked on every vertex and edge of several graphs, fresh and after removals
 // that move slots, side entries and edge positions. Every requirement forwards to the
-// `UndirectedAdjacencyList` inside, `_withIncidentIndexRows` included (api.md, Summary), so the
+// `UndirectedAdjacencyList` inside, `_withIncidentIndexRows` included, so the
 // stored rows are read back and compared with `neighborIndices(ofIndex:)` and
 // `incidentEdgeIndices(ofIndex:)`. The expected rows are computed in each test from the graph's
 // own `edges`; rows are compared as multisets after removals, which reorder them. See README.md.

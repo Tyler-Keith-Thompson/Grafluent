@@ -4,18 +4,18 @@ extension ImplicitDirectedGraph {
     /// Every edge, row by row from vertex 0, each row in the closure's order.
     ///
     /// Iterating, `count` and `Array(edges)` call the closure once per vertex. `startIndex` calls
-    /// it for each row up to the first non-empty one, so `isEmpty` and `first` call it up to n
-    /// times (O(n) on a graph with no edges, not O(1)), and `index(after:)` re-reads the row of its
-    /// position (and each later row up to a non-empty one), so stepping through the edges by index
-    /// costs O(d) per step: iterate instead. `underestimatedCount` is 0, so copying the edges never
-    /// counts them first.
+    /// it for each row up to the first non-empty one, so `isEmpty` and `first` are O(n) on a graph
+    /// with no edges. `index(after:)` re-reads the row of its position and each later row up to a
+    /// non-empty one, so stepping through the edges by index costs O(d) per step. Iterate instead.
+    /// `underestimatedCount` is 0, so copying the edges never counts them first.
     @frozen
     public struct Edges: Collection {
         public typealias Element = DirectedEdge<Int>
 
-        /// An edge's position: its source, its rank in the source's row, and its target. Equality,
-        /// order and hashing use `(source, rank)`; the target is a function of them under the
-        /// closure's determinism law, and is carried so that reading it calls nothing.
+        /// An edge's position: its source, its rank in the source's row, and its target.
+        ///
+        /// Equality, order and hashing use `(source, rank)`, which determine the target. The
+        /// target is carried so that reading it calls nothing.
         @frozen
         public struct Index: Comparable, Hashable, Sendable, CustomStringConvertible {
             /// The vertex the edge leaves.
@@ -82,8 +82,8 @@ extension ImplicitDirectedGraph {
             return endIndex
         }
 
-        /// The first edge. Calls the closure once per row up to the first non-empty one: up to n
-        /// times, and so do `isEmpty` and `first`, which read it.
+        /// The first edge. Calls the closure once per row up to the first non-empty one, up to n
+        /// times. `isEmpty` and `first` read it.
         @inlinable
         public var startIndex: Index { _firstEdge(from: 0) }
 
@@ -91,7 +91,7 @@ extension ImplicitDirectedGraph {
         @inlinable
         public var endIndex: Index { Index(source: _vertexCount, rank: 0, target: 0) }
 
-        /// The next edge: re-reads the row of `i` (one call, O(d)), and each later row up to a
+        /// The next edge. Re-reads the row of `i` with one call, O(d), and each later row up to a
         /// non-empty one.
         ///
         /// - Precondition: `i` is a position of an edge, not `endIndex`.
@@ -107,7 +107,7 @@ extension ImplicitDirectedGraph {
             return _firstEdge(from: i.source &+ 1)
         }
 
-        /// The edge at `position`, read from the position. O(1); calls nothing.
+        /// The edge at `position`, read from the position. O(1). Calls nothing.
         ///
         /// - Precondition: `position` is a position of an edge, not `endIndex`.
         @inlinable
@@ -116,7 +116,7 @@ extension ImplicitDirectedGraph {
             return DirectedEdge(from: position.source, to: position.target)
         }
 
-        /// The number of edges. O(n + m): one call per vertex.
+        /// The number of edges. O(n + m), one call per vertex.
         @inlinable
         public var count: Int {
             var total = 0
@@ -126,11 +126,11 @@ extension ImplicitDirectedGraph {
             return total
         }
 
-        /// 0: counting the edges calls the closure for every vertex.
+        /// 0, because counting the edges calls the closure for every vertex.
         @inlinable
         public var underestimatedCount: Int { 0 }
 
-        /// Iterates the rows in order: one call per vertex.
+        /// Iterates the rows in order, one call per vertex.
         @frozen
         public struct Iterator: IteratorProtocol {
             @usableFromInline
@@ -174,8 +174,8 @@ extension ImplicitDirectedGraph {
             return result
         }
 
-        /// The edges transformed, in one pass: one call per vertex, where the `Collection` default
-        /// would count them and then step by index.
+        /// The edges transformed in one pass, one call per vertex. The `Collection` default would
+        /// count them and then step by index.
         @inlinable
         public func map<T, E: Error>(_ transform: (DirectedEdge<Int>) throws(E) -> T) throws(E) -> [T] {
             var result: [T] = []

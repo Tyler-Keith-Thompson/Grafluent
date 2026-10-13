@@ -1,13 +1,11 @@
-/// The xoshiro256** 1.0 pseudorandom number generator: 256 bits of state, period 2^256 − 1, a few
-/// cycles a draw. It is the general-purpose generator its authors recommend, and the one Rust's
-/// `rand_xoshiro` and .NET's `System.Random` use.
+/// The xoshiro256** 1.0 pseudorandom number generator, with 256 bits of state and period
+/// 2^256 − 1.
 ///
 /// > David Blackman and Sebastiano Vigna. Scrambled Linear Pseudorandom Number Generators.
 /// > *ACM Transactions on Mathematical Software* 47(4), article 36 (2021). doi:10.1145/3460772
 ///
-/// A value type: a copy replays the same stream, and two generators are equal when their states
-/// are, so a test can check how many draws a call made by comparing against a fresh generator
-/// advanced that many times. Not for cryptography.
+/// A copy replays the same stream, and two generators are equal when their states are equal. Not
+/// for cryptography.
 @frozen
 public struct Xoshiro256StarStar: RandomNumberGenerator, Equatable, Hashable, Sendable {
     @usableFromInline var s0: UInt64
@@ -15,10 +13,9 @@ public struct Xoshiro256StarStar: RandomNumberGenerator, Equatable, Hashable, Se
     @usableFromInline var s2: UInt64
     @usableFromInline var s3: UInt64
 
-    /// The generator whose state is the next four outputs of SplitMix64 started at `seed`, as
-    /// Vigna recommends for seeding and as `rand_xoshiro`'s `seed_from_u64` does. SplitMix64 is
-    /// Steele, Lea and Flood's generator ("Fast Splittable Pseudorandom Number Generators",
-    /// OOPSLA 2014), whose outputs are never four zeros in a row. Every seed is valid.
+    /// The generator whose state is the next four outputs of SplitMix64 started at `seed`. SplitMix64
+    /// is Steele, Lea and Flood's generator ("Fast Splittable Pseudorandom Number Generators",
+    /// OOPSLA 2014), whose outputs are never four zeros in a row, so every seed is valid.
     @inlinable
     public init(seed: UInt64) {
         var x = seed
@@ -30,7 +27,7 @@ public struct Xoshiro256StarStar: RandomNumberGenerator, Equatable, Hashable, Se
 
     /// The generator with exactly these four state words.
     ///
-    /// - Precondition: not all four are zero: the all-zero state never leaves zero.
+    /// - Precondition: The four words are not all zero.
     @inlinable
     public init(state: (UInt64, UInt64, UInt64, UInt64)) {
         precondition(state.0 | state.1 | state.2 | state.3 != 0, "the state must not be all zero")

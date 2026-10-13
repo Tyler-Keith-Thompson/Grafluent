@@ -1,9 +1,9 @@
 import GraphProtocols
 import OrderedCollections
 
-// Every index-space requirement is the base's, with the base's types: in particular
-// `SuccessorIndices` and `PredecessorIndices`, whose protocol defaults would map each neighbor
-// label back through `vertexIndex(of:)`, one hash per edge.
+// Every index-space requirement forwards to the base with the base's types. The protocol defaults
+// for `SuccessorIndices` and `PredecessorIndices` would map each neighbor label back through
+// `vertexIndex(of:)`, one hash per edge.
 
 extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
     public typealias Vertex = Label
@@ -16,7 +16,7 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
     public var vertices: OrderedSet<Label> { _labels }
 
     /// The base's edges with their endpoints labeled, in the base's order and at its positions.
-    /// O(1); reading an edge is the base's read plus two array reads, with no hashing.
+    /// O(1). Reading an edge costs the base's read plus two array reads, with no hashing.
     @inlinable
     public var edges: Edges { Edges(base: _base.edges, labels: _labels) }
 
@@ -90,9 +90,9 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
         }
     }
 
-    /// The labels of `label`'s successors, in the base's row order (ascending index for both
-    /// `CompressedSparseRow` and `AdjacencyMatrix`). One hash, then the base's row read through
-    /// an array read per successor. Nothing is allocated: the result holds the row and the labels.
+    /// The labels of `label`'s successors, in the base's row order. That is ascending index for
+    /// both `CompressedSparseRow` and `AdjacencyMatrix`. One hash, then an array read per
+    /// successor. Nothing is allocated.
     ///
     /// - Precondition: `label` is a vertex.
     @inlinable
@@ -184,7 +184,7 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
         _labels[_base.target(ofEdgeAt: position)]
     }
 
-    /// The base's source of the edge, which is its index: no hashing.
+    /// The index of the edge's source, read from the base with no hashing.
     ///
     /// - Precondition: `position` is the position of an edge (the base checks).
     @inlinable
@@ -193,7 +193,7 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
         _base.source(ofEdgeAt: position)
     }
 
-    /// The base's target of the edge, which is its index: no hashing.
+    /// The index of the edge's target, read from the base with no hashing.
     ///
     /// - Precondition: `position` is the position of an edge (the base checks).
     @inlinable
@@ -229,8 +229,7 @@ extension LabeledGraph: DirectedGraph where Base: DirectedGraph<Int> {
         return _base.contains(edge: DirectedEdge(from: source, to: target))
     }
 
-    /// The base's bound, which is `vertexCount`: never `nil`, so index-space algorithms keep their
-    /// state in arrays.
+    /// The base's bound, which is `vertexCount` and never `nil`.
     @inlinable
     @inline(__always)
     public var vertexIndexBound: Int? { _base.vertexIndexBound }
@@ -392,9 +391,8 @@ extension LabeledGraph: BidirectionalDirectedGraph where Base: BidirectionalDire
     public typealias InEdges = Base.InEdges
     public typealias PredecessorIndices = Base.PredecessorIndices
 
-    /// The labels of `label`'s predecessors, in the base's column order (ascending index for
-    /// `AdjacencyMatrix`). One hash, then the base's row read through an array read per
-    /// predecessor, with nothing allocated.
+    /// The labels of `label`'s predecessors, in the base's column order. That is ascending index
+    /// for `AdjacencyMatrix`. One hash, then an array read per predecessor. Nothing is allocated.
     ///
     /// - Precondition: `label` is a vertex.
     @inlinable

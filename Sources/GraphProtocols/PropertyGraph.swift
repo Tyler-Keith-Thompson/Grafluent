@@ -1,34 +1,34 @@
-/// A graph that keeps maps from its vertices and edges to values: the BGL *PropertyGraph*
-/// concept ("a graph that has some property associated with each vertex or edge"), with LEMON's
-/// `NodeMap` and `ArcMap` attached to the graph and kept in step by it. The graph owns the values
-/// and the caller holds a small handle, `VertexMap<Value>` or `EdgeMap<Value>`.
+/// A graph that keeps maps from its vertices and edges to values.
 ///
-/// **Values are total.** Each map has a default value, which every element has until it is given
-/// another, so a new element needs no write: `addEdgeMap(default: 1.0)` is a map of weights that
-/// are all 1. `addEdgeMap(of: T.self)` is the map of `T?` whose default is `nil`.
+/// The graph owns the values and keeps every attached map in step with its mutations. The caller
+/// holds a small handle, `VertexMap<Value>` or `EdgeMap<Value>`.
 ///
-/// **Removal.** Every mutation keeps every attached map in step, in the same call: a removed
-/// element's value goes with it, and a representation that moves another element into the hole
-/// (a swap-remove) moves its values too. Removing a vertex removes its edges' values. A removed
-/// element has no value: reading or writing it traps, and the `checked` subscripts throw
-/// `VertexNotFound` or `EdgeNotFound` instead. `removeAll` empties every map and keeps it
-/// attached; `removeAllEdges` empties the edge maps.
+/// Each map has a default value, which every element has until it is given another, so a new
+/// element needs no write. `addEdgeMap(default: 1.0)` is a map of weights that are all 1.
+/// `addEdgeMap(of: T.self)` is a map of `T?` whose default is `nil`.
 ///
-/// **Handles.** A handle is valid on the graph that attached it and on every copy, until
-/// `removeVertexMap(_:)` or `removeEdgeMap(_:)`; on any other graph it traps. It also works
-/// through a `GraphAdaptor` of that graph (a view reads the base's values) and through a
-/// `GraphDelegator` (which reads and writes them). Map writes are not structural mutations: they
-/// do not advance `generation`.
+/// Every mutation updates every attached map in the same call. A removed element's value goes with
+/// it, and a representation that moves another element into the hole (a swap-remove) moves that
+/// element's values too. Removing a vertex removes its edges' values. Reading or writing the value
+/// of a removed element traps. The `checked` subscripts throw `VertexNotFound` or `EdgeNotFound`
+/// instead. `removeAll` empties every map and keeps it attached, and `removeAllEdges` empties the
+/// edge maps.
 ///
-/// **Copies.** A copy shares every map, and the first write to a map or structural mutation of a
-/// copy copies the map's storage lazily: a dense map on its first write, like an `Array`, a paged
-/// map a page at a time.
+/// A handle is valid on the graph that attached it and on every copy, until `removeVertexMap(_:)`
+/// or `removeEdgeMap(_:)`. Using it on any other graph traps. It also works through a
+/// `GraphAdaptor` of that graph, which reads the base's values, and through a `GraphDelegator`,
+/// which reads and writes them. Writing a map value is not a structural mutation and does not
+/// advance `generation`.
 ///
-/// **Equality, hashing, `Codable` and descriptions ignore maps**: equal graphs may carry different
+/// A copy of the graph shares every map. The first write to a map, or structural mutation, of a
+/// copy copies the map's storage: a dense map all at once, like an `Array`, and a paged map a page
+/// at a time.
+///
+/// Equality, hashing, `Codable` and descriptions ignore maps. Equal graphs may carry different
 /// maps, a decoded graph has none, and a conversion to another representation carries none.
 ///
-/// **Reading many values.** `values(of:)` is a snapshot of a map, as fast to read as an array:
-/// pass `{ w[$0] }` where an algorithm asks for a weight closure,
+/// `values(of:)` returns a snapshot of a map that reads as fast as an array. Pass `{ w[$0] }` where
+/// an algorithm asks for a weight closure:
 ///
 /// ```swift
 /// let weights = graph.addEdgeMap(default: 1.0)
@@ -37,9 +37,9 @@
 /// let distances = graph.dijkstraShortestPaths(from: start, weight: { w[$0] })
 /// ```
 ///
-/// The snapshot does not check liveness: at a removed position it reads an unspecified value
-/// (the default, or the value the element had). Algorithms only ask for the values of the live
-/// elements they walk, so the read stays one load.
+/// The snapshot does not check liveness. At a removed position it reads an unspecified value,
+/// either the default or the value the element had. Algorithms read only the values of live
+/// elements, so each read stays one load.
 public protocol PropertyGraph<Vertex> {
     associatedtype Vertex: Hashable
     /// The position that names an edge: `Edges.Index` of a graph, a hyperedge's position of a
@@ -126,7 +126,7 @@ extension PropertyGraph where EdgePosition == Int {
 }
 
 extension PropertyGraph {
-    /// Attaches a map from the edges to `T?`, every edge's value `nil` until it is set: a map for
+    /// Attaches a map from the edges to `T?`, every edge's value `nil` until it is set. Use it for
     /// a value that only some edges have. `graph[map, ofEdgeAt: p] = nil` clears a value.
     @inlinable
     public mutating func addEdgeMap<T: Sendable>(of type: T.Type) -> EdgeMap<T?> {
@@ -140,13 +140,13 @@ extension PropertyGraph {
     }
 }
 
-/// A snapshot of an edge map's values, read by edge position like an array: what
-/// `PropertyGraph.values(of:)` returns, after `Dictionary.Values`. It holds the map's storage, not
-/// the graph, so later mutations of the graph or the map do not show through.
+/// A snapshot of an edge map's values, read by edge position like an array. Returned by
+/// `PropertyGraph.values(of:)`.
 ///
-/// A read does not check that an edge is at the position: at a removed position it reads an
-/// unspecified value (the default, or the value the edge had), and it never traps there. Pass it
-/// to algorithms that read the values of the live edges they walk.
+/// The snapshot holds the map's storage, not the graph, so later mutations of the graph or the map
+/// do not show through. A read does not check that an edge is at the position. At a removed
+/// position it reads an unspecified value, either the default or the value the edge had, and does
+/// not trap. Pass it to algorithms that read the values of the live edges they walk.
 @frozen
 public struct EdgeValues<Base: PropertyGraph, Value> {
     @usableFromInline package let _storage: _MapStorage<Value>
@@ -156,7 +156,7 @@ public struct EdgeValues<Base: PropertyGraph, Value> {
         self._storage = _storage
     }
 
-    /// The same values, read through `Other`'s positions: for a wrapper whose positions and layout
+    /// The same values, read through `Other`'s positions. For a wrapper whose positions and layout
     /// are its base's.
     @inlinable
     package init<Other>(_ other: EdgeValues<Other, Value>) {
@@ -168,7 +168,7 @@ public struct EdgeValues<Base: PropertyGraph, Value> {
     public var defaultValue: Value { _storage.defaultValue }
 
     /// The value of the edge at `position`. O(1): one array load in the dense layout, two in the
-    /// paged one.
+    /// paged layout.
     ///
     /// - Precondition: `position` is in the graph's position range when the map is dense.
     @inlinable
@@ -181,9 +181,11 @@ public struct EdgeValues<Base: PropertyGraph, Value> {
 
 extension EdgeValues: Sendable where Value: Sendable {}
 
-/// A snapshot of a vertex map's values, read by vertex position like an array: what
-/// `PropertyGraph.values(of:)` returns. As `EdgeValues`, a read at a removed position reads an
-/// unspecified value and never traps there.
+/// A snapshot of a vertex map's values, read by vertex position like an array. Returned by
+/// `PropertyGraph.values(of:)`.
+///
+/// As with `EdgeValues`, a read at a removed position returns an unspecified value and does not
+/// trap.
 @frozen
 public struct VertexValues<Base: PropertyGraph, Value> {
     @usableFromInline package let _storage: _MapStorage<Value>

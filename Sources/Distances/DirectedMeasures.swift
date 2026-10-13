@@ -148,10 +148,9 @@ extension DirectedGraph {
         return (_path(_pathNumbers(u, v, searches.parentSlot, rows), listed), searches.distance[v])
     }
 
-    /// The vertices of least total out-distance to all others (NetworkX 3.7 `centroid`), in
-    /// `vertices` order. A vertex that does not reach every vertex has an infinite total, so when
-    /// some do, the least among those that reach all is returned (where NetworkX raises), and when
-    /// none does, every vertex.
+    /// The vertices of least total out-distance to all others, in `vertices` order. A vertex that
+    /// does not reach every vertex has an infinite total. When some vertices reach every vertex,
+    /// the least among those is returned; when none does, every vertex.
     @inlinable
     public func centroid() -> [Vertex] {
         let (rows, listed) = _distanceRows()

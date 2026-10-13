@@ -1,9 +1,8 @@
-// Cases added after the review: `edges(between:and:)` is bidirectional, so the newest copy is
-// `.last` (O(1)) and the copies iterate newest first with `reversed()`; and a Codable round trip
-// keeps the order of copies that a removal put out of position order, so `remove(edge:)` removes
-// the same copy before and after (NetworkX's node_link round trip keeps it too). A payload whose
-// copies are in position order is unchanged, the simple lists' format.
-// Case IDs (MG-nnn) refer to the catalog; see README.md.
+// Copy order: `edges(between:and:)` is bidirectional, so the newest copy is `.last` (O(1)) and
+// `reversed()` lists the copies newest first. A Codable round trip keeps the order of copies that
+// a removal put out of position order, so `remove(edge:)` removes the same copy before and after.
+// A payload whose copies are in position order has the simple lists' format.
+// MG-1001 – MG-1003 are not catalog rows; see README.md.
 
 import Foundation
 import GraphProtocols

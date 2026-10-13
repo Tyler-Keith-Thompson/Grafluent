@@ -1,22 +1,21 @@
 /// A directed representation on the vertices `0..<vertexCount` that can be built in one bulk step
 /// from a sorted edge list. The generators (`NamedGraphs`, `RandomGraphs`) are written once as
-/// extensions of this protocol and reach every conformer through it, as Boost's generators reach
-/// every graph type through its edge-iterator constructor `Graph(first, last, n)`.
+/// extensions of this protocol and reach every conformer through it.
 ///
 /// The requirement checks nothing. The caller guarantees that the edges are in row-major order
 /// (by source, then by target), with no repeats and no self-loops, and that every endpoint is in
 /// `0..<vertexCount`. A conformer may then skip its own sorting, deduplication and membership
-/// checks: `CompressedSparseRow` writes its rows in a single pass. The result has the vertices
+/// checks. `CompressedSparseRow`, for example, writes its rows in a single pass. The result has the vertices
 /// `0..<vertexCount` in order, at vertex index `v` for vertex `v`, and the edges at positions
 /// `0..<edgeCount` in the given order.
 ///
-/// Underscored because it is a hook for the library's generators, not a name for callers: they call
-/// the generators on the concrete types (`CompressedSparseRow.complete(vertexCount: 5)`). The
-/// requirement also takes a `_ConstructionToken`, which only this package can create, so code
-/// outside it cannot call the unchecked initializer at all. Debug builds still check the input
-/// (`_isSortedSimple`), in O(m).
+/// The protocol is a hook for the library's generators. Callers call the generators on the
+/// concrete types, as in `CompressedSparseRow.complete(vertexCount: 5)`. The requirement takes a
+/// `_ConstructionToken`, which only this package can create, so code outside it cannot call the
+/// unchecked initializer. Debug builds check the input with `_isSortedSimple`, in O(m).
 public protocol _DirectedGraphConstruction: DirectedGraph where Vertex == Int {
-    /// The graph on `0..<vertexCount` with `sortedEdges`, unchecked: see the protocol.
+    /// The graph on `0..<vertexCount` with `sortedEdges`, unchecked. See the protocol for the
+    /// caller's guarantees.
     init(_vertexCount: Int, sortedEdges: some Collection<DirectedEdge<Int>>, _: _ConstructionToken)
 }
 
@@ -29,14 +28,15 @@ public protocol _DirectedGraphConstruction: DirectedGraph where Vertex == Int {
 /// positions `0..<edgeCount` in the given order and orientation, so each vertex's incident edges
 /// come in edge order: its smaller neighbors first, then its larger ones, each ascending.
 public protocol _GraphConstruction: Graph where Vertex == Int {
-    /// The graph on `0..<vertexCount` with `sortedEdges`, unchecked: see the protocol.
+    /// The graph on `0..<vertexCount` with `sortedEdges`, unchecked. See the protocol for the
+    /// caller's guarantees.
     init(_vertexCount: Int, sortedEdges: some Collection<UndirectedEdge<Int>>, _: _ConstructionToken)
 }
 
-/// The proof that a call to an unchecked bulk initializer (`_DirectedGraphConstruction`,
-/// `_GraphConstruction`) comes from inside the package. The type is public so that the protocols
-/// can name it, but its only initializer is `package`: a caller outside the package cannot make
-/// one, and so cannot hand a conformer edges it would write out of bounds.
+/// Proof that a call to an unchecked bulk initializer (`_DirectedGraphConstruction`,
+/// `_GraphConstruction`) comes from inside the package. The type is public so the protocols can
+/// name it, but its only initializer is `package`. A caller outside the package cannot make one,
+/// so it cannot hand a conformer edges that would be written out of bounds.
 @frozen
 public struct _ConstructionToken {
     @inlinable
@@ -45,9 +45,9 @@ public struct _ConstructionToken {
 
 /// Whether `edges` are what `_DirectedGraphConstruction` requires: endpoints in `0..<vertexCount`,
 /// no self-loop, and strictly increasing in row-major order (so no repeats). O(m). The conformers
-/// `assert` it, so the check runs in debug builds only. It also checks that the collection is
-/// consistent: iteration, the indices with their subscript, and `count` give the same edges, since a
-/// conformer sizes its storage by `count` and the generators' lazy collections compute all three.
+/// `assert` it, so the check runs in debug builds only. It also checks that iteration, the indices
+/// with their subscript, and `count` give the same edges. A conformer sizes its storage by `count`,
+/// and the generators' lazy collections compute all three separately.
 @inlinable
 package func _isSortedSimple(vertexCount n: Int, _ edges: some Collection<DirectedEdge<Int>>) -> Bool {
     var previous: (source: Int, target: Int) = (-1, -1)

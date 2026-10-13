@@ -299,8 +299,7 @@ struct GraphDrawingPlantedBugTests {
 
     @Test("A whole layered drawing with long edges: crossing reduction and Brandes–Köpf, pinned")
     func pinnedLayeredDrawing() {
-        // Found by comparing the planted bugs' drawings with the unmutated one on random digraphs;
-        // this one tells apart a change to the crossing reduction's stopping and best-order rules,
+        // This drawing tells apart a change to the crossing reduction's stopping and best-order rules,
         // to the type-1 conflict marking, and to the alignment, the shifts and the averaging of
         // Brandes and Köpf's four drawings. The layering is passed in, since ties in the optimal
         // one are not specified (it is the optimal one network simplex finds).

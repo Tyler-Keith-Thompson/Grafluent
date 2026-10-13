@@ -62,10 +62,9 @@ struct _ProperEdgeColoringCheck: _UndirectedRowsAlgorithm {
 }
 
 extension Graph {
-    /// Whether `color` gives the two ends of every edge different colours (igraph
-    /// `is_vertex_coloring`, NetworkX `is_coloring`). Self-loops are ignored, as the colourings
-    /// ignore them (NetworkX's `is_coloring` is false on any loop). Any Ints count as colours, not
-    /// only `0..<k`. `color` is called once per vertex, in `vertices` order. O(n + m).
+    /// Whether `color` gives the two ends of every edge different colours. Self-loops are ignored,
+    /// as the colourings ignore them. Any Ints count as colours, not only `0..<k`. `color` is
+    /// called once per vertex, in `vertices` order. O(n + m).
     @inlinable
     public func isVertexColoring(_ color: (Vertex) -> Int) -> Bool {
         var colors: [Int] = []
@@ -75,10 +74,9 @@ extension Graph {
     }
 
     /// Whether every two edges with a common end have different colours: parallel edges, which
-    /// share both ends, and a self-loop and any other edge at its vertex (igraph
-    /// `is_edge_coloring`). Any Ints count as colours. `color` is called once per edge, in
-    /// `edges` order. O(n + m), plus one hash per edge when the colours are not small
-    /// non-negative numbers.
+    /// share both ends, and a self-loop and any other edge at its vertex. Any Ints count as
+    /// colours. `color` is called once per edge, in `edges` order. O(n + m), plus one hash per edge
+    /// when the colours are not small non-negative numbers.
     @inlinable
     public func isEdgeColoring(_ color: (Edges.Index) -> Int) -> Bool {
         let m = edgeCount

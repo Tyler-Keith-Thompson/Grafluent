@@ -1,5 +1,5 @@
-// Cases added after the critical review: the edge-index laws, and view and builder behavior that
-// survived the first suite. Case IDs continue the catalog; see README.md.
+// The edge-index laws, the directed view's predecessor indices and emptiness, and the result
+// builder's `if` without `else`. Case IDs refer to Tests/Catalogs/GraphProtocols/graph.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule

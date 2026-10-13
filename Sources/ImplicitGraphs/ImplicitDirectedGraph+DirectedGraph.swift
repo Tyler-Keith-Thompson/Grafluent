@@ -72,13 +72,13 @@ extension ImplicitDirectedGraph: DirectedGraph {
         return outDegree(of: vertex)
     }
 
-    /// `position.source`. O(1); calls nothing.
+    /// `position.source`. O(1). Calls nothing.
     @inlinable
     public func source(ofEdgeAt position: Edges.Index) -> Int {
         position.source
     }
 
-    /// `position.target`. O(1); calls nothing.
+    /// `position.target`. O(1). Calls nothing.
     @inlinable
     public func target(ofEdgeAt position: Edges.Index) -> Int {
         position.target
@@ -88,18 +88,18 @@ extension ImplicitDirectedGraph: DirectedGraph {
     @inlinable
     public var vertexCount: Int { _vertexCount }
 
-    /// The total length of the rows. O(n + m): one call per vertex.
+    /// The total length of the rows. O(n + m), one call per vertex.
     @inlinable
     public var edgeCount: Int { edges.count }
 
-    /// Whether `vertex` is in `0..<vertexCount`. O(1); calls nothing.
+    /// Whether `vertex` is in `0..<vertexCount`. O(1). Calls nothing.
     @inlinable
     public func contains(_ vertex: Int) -> Bool {
         UInt(bitPattern: vertex) < UInt(bitPattern: _vertexCount)
     }
 
-    /// Whether `edge.target` is in the row of `edge.source`. One call, O(d); none when either end
-    /// is not a vertex.
+    /// Whether `edge.target` is in the row of `edge.source`. One call, O(d). No call when either
+    /// end is not a vertex.
     @inlinable
     public func contains(edge: DirectedEdge<Int>) -> Bool {
         guard contains(edge.source), contains(edge.target) else { return false }
@@ -120,7 +120,7 @@ extension ImplicitDirectedGraph: DirectedGraph {
     }
 
     /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not in
-    /// `0..<vertexCount`. O(1); calls nothing.
+    /// `0..<vertexCount`. O(1). Calls nothing.
     ///
     /// - Throws: `VertexNotFound` when `vertex` is not in `0..<vertexCount`.
     @inlinable
@@ -156,13 +156,13 @@ extension ImplicitDirectedGraph: DirectedGraph {
         outDegree(of: index)
     }
 
-    /// `position.source`. O(1); calls nothing.
+    /// `position.source`. O(1). Calls nothing.
     @inlinable
     public func sourceIndex(ofEdgeAt position: Edges.Index) -> Int {
         position.source
     }
 
-    /// `position.target`. O(1); calls nothing.
+    /// `position.target`. O(1). Calls nothing.
     @inlinable
     public func targetIndex(ofEdgeAt position: Edges.Index) -> Int {
         position.target

@@ -1,8 +1,8 @@
 import GraphProtocols
 
-/// The Petersen graph's 15 edges in NetworkX's numbering, sorted: the outer pentagon 0–1–2–3–4,
-/// the spokes i–(i + 5), and the inner pentagram 5–7–9–6–8. This is the generalized Petersen
-/// graph GP(5, 2) in its standard numbering.
+/// The Petersen graph's 15 edges, sorted: the outer pentagon 0–1–2–3–4, the spokes i–(i + 5), and
+/// the inner pentagram 5–7–9–6–8. This is the generalized Petersen graph GP(5, 2) in its standard
+/// numbering.
 @usableFromInline
 let _petersenPairs: [DirectedEdge<Int>] = [
     (0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9),
@@ -14,9 +14,8 @@ let _petersenPairs: [DirectedEdge<Int>] = [
 let _petersenArcs: [DirectedEdge<Int>] = (_petersenPairs + _petersenPairs.map { DirectedEdge(from: $0.target, to: $0.source) }).sorted()
 
 extension _GraphConstruction {
-    /// The Petersen graph: 10 vertices, 15 edges, 3-regular, in NetworkX's numbering (outer
-    /// pentagon 0–1–2–3–4, spokes i–(i + 5), inner pentagram 5–7–9–6–8; NetworkX
-    /// `petersen_graph`, igraph `Famous("Petersen")` up to numbering). O(1).
+    /// The Petersen graph: 10 vertices, 15 edges, 3-regular. The outer pentagon is 0–1–2–3–4, the
+    /// spokes are i–(i + 5), and the inner pentagram is 5–7–9–6–8. O(1).
     @inlinable
     public static func petersen() -> Self {
         Self(_vertexCount: 10, sortedEdges: _petersenPairs.lazy.map(_undirected), _ConstructionToken())

@@ -1,11 +1,10 @@
 import GraphProtocols
 
-// Every read requirement is `GraphDelegator`'s default, the base's member, `@inlinable`, with the
-// base's own types (`SuccessorIndices`, `OutEdges`, `Edges`, …): a protocol default would map each
-// neighbor through `vertexIndex(of:)`, a hash per edge, or ignore the base's faster member. So are
-// `generation` and, over a `PropertyGraph` base, the attached maps. Positions and indices are the
-// base's, so data kept by position, and the base's maps, stay valid through the wrapper; removing
-// a vertex or an edge through the wrapper removes its values, as removing it from the base does.
+// Every read requirement, `generation`, and over a `PropertyGraph` base the attached maps, are
+// `GraphDelegator`'s defaults: the base's members, with the base's own types. Positions and
+// indices are the base's, so data kept by position and the base's maps stay valid through the
+// wrapper. Removing a vertex or an edge through the wrapper removes its values, as removing it
+// from the base does.
 
 extension DirectedAcyclicGraph: GraphDelegator, DirectedGraph, BidirectionalDirectedGraph {
     public typealias Vertex = Base.Vertex
@@ -27,8 +26,8 @@ extension DirectedAcyclicGraph: PropertyGraph where Base: PropertyGraph {
 
 // MARK: - checked: lookups
 
-// README Principle 6: `VertexNotFound` for a vertex that is not in the graph. Each is one hash and
-// then the base's row, for every base, including one without `checked:` members of its own.
+// Each throws `VertexNotFound` for a vertex that is not in the graph. Each is one hash and then
+// the base's row, for every base, including one without `checked:` members of its own.
 
 extension DirectedAcyclicGraph {
     /// `successors(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. One
@@ -105,10 +104,10 @@ extension DirectedAcyclicGraph {
         TopologicalOrder(base: _base, order: _order, table: _table)
     }
 
-    /// The place of `vertex` in `topologicalOrder`, in `0..<vertexCount`. One hash, then O(1)
-    /// while no vertex has been removed since the slots were last compacted, and O(log n), a
-    /// Fenwick tree count of the holes before its slot, otherwise (see the type's documentation).
-    /// petgraph's `get_position` returns its label instead, which is not a place.
+    /// The place of `vertex` in `topologicalOrder`, in `0..<vertexCount`.
+    ///
+    /// - Complexity: One hash, then O(1) while the order has no holes and O(log n) otherwise (see
+    ///   the type's documentation).
     ///
     /// - Precondition: `vertex` is a vertex.
     @inlinable
@@ -127,10 +126,10 @@ extension DirectedAcyclicGraph {
         return _position(ofKey: key)
     }
 
-    /// The vertices in topological order: `topologicalOrder[i]` is the vertex at place `i`
-    /// (petgraph's `at_position`). A value: unaffected by later changes to the graph. The
-    /// subscript is O(1) without holes and O(log n) with them; iteration is O(1) per vertex
-    /// either way.
+    /// The vertices in topological order. `topologicalOrder[i]` is the vertex at place `i`.
+    ///
+    /// A value, unaffected by later changes to the graph. The subscript is O(1) without holes and
+    /// O(log n) with them. Iteration is O(1) per vertex either way.
     @frozen
     public struct TopologicalOrder: RandomAccessCollection {
         @usableFromInline let base: Base

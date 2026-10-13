@@ -1,8 +1,8 @@
-# Multigraphs: case catalog (phase 1)
+# Multigraphs: case catalog
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 python3 ref.py`;
-`--write` regenerates this file). Every Expected is the model's output (an exact port of the
-proposed storage), and every state a row reaches is checked against the Graph laws, the class
+`--write` regenerates this file). Every Expected is the output of the model of the storage, and
+every state a row reaches is checked against the Graph laws, the class
 lists, the reference conformers' rows (for freshly built graphs), and a NetworkX 3.7
 MultiGraph / MultiDiGraph driven by the same calls (degrees, number_of_edges(u, v) for every pair,
 self-loop count, the copy remove_edge(u, v) removes, the key order of G[u][v]).
@@ -18,7 +18,7 @@ Conventions:
   `incidentEdges(of: v)` (a self-loop twice); directed `out` / `in` are `successors` /
   `predecessors` zipped with `outEdges` / `inEdges` (empty rows omitted).
 * `edges(between:and:)` / `edges(from:to:)` list positions oldest copy first; `remove(edge:)`
-  removes the newest copy (NetworkX's `remove_edge(u, v)`); a removal moves the last edge into
+  removes the newest copy; a removal moves the last edge into
   the hole and each row's last entry into its hole; removing a vertex moves the last slot into
   its place (UndirectedAdjacencyList's and AdjacencyList's rules).
 * `degrees(v)` (directed) is `outDegree`, `inDegree`, `degree`.

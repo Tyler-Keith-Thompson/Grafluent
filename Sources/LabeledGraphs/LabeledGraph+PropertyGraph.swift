@@ -1,16 +1,14 @@
 import GraphProtocols
 import OrderedCollections
 
-// A `LabeledGraph` is a `GraphAdaptor` of its base: it owns the base, but its vertices are labels,
-// not the base's `Int` vertices, so it is not a `GraphDelegator`. `generation` is the adaptor's
-// default, the base's: the labels change only with an insertion into the base, which starts a new
-// generation of the base.
+// A `LabeledGraph` is a `GraphAdaptor` of its base. It owns the base, but its vertices are labels
+// rather than the base's `Int` vertices, so it is not a `GraphDelegator`. `generation` is the
+// base's. The labels change only with an insertion into the base, which starts a new generation.
 //
-// Attached maps are the base's (`AdjacencyMatrix`'s, `CompressedSparseRow`'s), attached and
-// written through the labeled graph. Positions are the base's, so the edge-map members and
-// `values(of:)` forward. A label's value is the value of the base vertex it names: one label
-// lookup, then the base's read by that vertex, which is the base's index and, on a matrix or a
-// CSR, its vertex position, so `values(of: vertexMap)[vertexIndex(of: label)]` reads it too.
+// Attached maps belong to the base and are attached and written through the labeled graph.
+// Positions are the base's, so the edge-map members and `values(of:)` forward. A label's value is
+// the value of the base vertex it names. On a matrix or a CSR the vertex position is the vertex
+// index, so `values(of: vertexMap)[vertexIndex(of: label)]` also reads it.
 
 extension LabeledGraph: GraphAdaptor {}
 
@@ -21,15 +19,15 @@ extension LabeledGraph: PropertyGraph where Base: DirectedGraph<Int> & PropertyG
     @inlinable public static var _edgeMapLayout: _MapLayout { Base._edgeMapLayout }
     @inlinable public static func _edgeMapOffset(of position: Base.EdgePosition) -> Int { Base._edgeMapOffset(of: position) }
 
-    /// Attaches a map from the edges to `Value` to the base, every edge's value `value` (LEMON's
-    /// `ArcMap`), and returns its handle, as the base's `addEdgeMap(default:)` does.
+    /// Attaches a map from the edges to `Value` to the base, with every edge's value `value`, and
+    /// returns its handle. Forwards to the base's `addEdgeMap(default:)`.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         _base.addEdgeMap(default: value)
     }
 
-    /// Attaches a map from the vertices to `Value` to the base, every vertex's value `value`
-    /// (LEMON's `NodeMap`), and returns its handle, as the base's `addVertexMap(default:)` does.
+    /// Attaches a map from the vertices to `Value` to the base, with every vertex's value `value`,
+    /// and returns its handle. Forwards to the base's `addVertexMap(default:)`.
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         _base.addVertexMap(default: value)

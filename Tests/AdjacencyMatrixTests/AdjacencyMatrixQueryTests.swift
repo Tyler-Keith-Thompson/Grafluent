@@ -1,6 +1,6 @@
 // Successors, predecessors and degrees. A matrix gives them a defined order: successors are a row
 // scan and predecessors a column scan, both ascending. Case IDs (AM-Nnn, AM-Dnn, AM-Lnn, AM-Rnn)
-// refer to the harvested test catalog.
+// refer to the case catalog.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -12,7 +12,7 @@ import Testing
 struct AdjacencyMatrixQueryTests {
     @Test("AM-N01 / AM-N02 successors and predecessors are in ascending order, whatever the insertion order")
     func ascendingOrder() {
-        // petgraph src/matrix_graph.rs test_edges_directed: 0's successors were inserted as 5, 2, 3, 1.
+        // 0's successors were inserted as 5, 2, 3, 1.
         let matrix = AdjacencyMatrix(vertexCount: 7, edges: DirectedFixture<Int>.petgraphEdgesDirected.edges)
         #expect(Array(matrix.successors(of: 0)) == [1, 2, 3, 5])
         #expect(Array(matrix.successors(of: 2)) == [3, 4])
@@ -63,7 +63,7 @@ struct AdjacencyMatrixQueryTests {
 
     @Test("AM-N05 dense upper-triangular DAG on 100 vertices")
     func denseDAG() {
-        // swift-algorithm-club Graph/GraphTests: i → j for every i < j.
+        // i → j for every i < j.
         var matrix = AdjacencyMatrix(vertexCount: 100)
         for i in 0 ..< 100 {
             for j in (i + 1) ..< 100 { matrix[i, j] = true }
@@ -118,7 +118,7 @@ struct AdjacencyMatrixQueryTests {
 
     @Test("AM-L01 / AM-L02 / AM-L03 a self-loop is one successor, one predecessor, degree 2, one edge", .tags(.selfLoops))
     func selfLoop() {
-        // Boost.Graph example/adjacency_matrix.cpp: vertex C (2) has C→A, C→C, and B→C.
+        // The six-vertex example graph: vertex C (2) has C→A, C→C, and B→C.
         let matrix = AdjacencyMatrix(vertexCount: 6, edges: DirectedFixture<Int>.boostExample.edges)
         #expect(Array(matrix.successors(of: 2)) == [0, 2])
         #expect(Array(matrix.predecessors(of: 2)) == [1, 2])
@@ -127,7 +127,7 @@ struct AdjacencyMatrixQueryTests {
         #expect(matrix.degree(of: 2) == 4)
         #expect(matrix.edgeCount == 7)
 
-        // petgraph: vertex 6 has only a self-loop.
+        // Vertex 6 has only a self-loop.
         let petgraph = AdjacencyMatrix(vertexCount: 7, edges: DirectedFixture<Int>.petgraphEdgesDirected.edges)
         #expect(Array(petgraph.successors(of: 6)) == [6])
         #expect(Array(petgraph.predecessors(of: 6)) == [6])

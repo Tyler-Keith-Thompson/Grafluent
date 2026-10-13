@@ -2,9 +2,8 @@
 // type. Over a Graph the result is a walk of the same graph; over a DirectedGraph it is a walk of
 // the converse (written here by hand, with each arc flipped at its own position), and over
 // `g.directedView` it names the original arcs, which point backward. Concatenation is on Walk only.
-// Fixtures: U3 = 0–1, 1–2, 2–3 weights 2, 3, 4 (JGraphT testReversePathUndirected); D3 = 0→1,
-// 1→2, 2→3; C = 0→1, 1→2, 2→3, 3→1 (JGraphT testConcatPath1). Case IDs (WK-nnn) refer to the
-// catalog; see README.md.
+// Fixtures: U3 = 0–1, 1–2, 2–3 weights 2, 3, 4; D3 = 0→1, 1→2, 2→3; C = 0→1, 1→2, 2→3, 3→1.
+// Case IDs (WK-nnn) refer to the catalog; see README.md.
 
 import GraphProtocols
 import GrafluentTestSupport

@@ -1,6 +1,6 @@
 // §A: the empty graph (both kinds), K₁, three isolated vertices and K₂: every measure. The empty graph
 // gives an empty result for every measure, iterative ones included (no throw: there is nothing to
-// iterate); one vertex scores 1 for degree (NetworkX's rule) and 0 for closeness, harmonic and
+// iterate); one vertex scores 1 for degree and 0 for closeness, harmonic and
 // betweenness; edgeless graphs are uniform for eigenvector, Katz, PageRank and HITS (api.md).
 // Expected values are ref.py's model at full precision (the catalog cells are the same values
 // rounded to 12 digits); non-iterative rows compare within 1e-12 relative to max(1, |value|), the

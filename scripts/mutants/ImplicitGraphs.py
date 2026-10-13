@@ -1,13 +1,13 @@
 # Planted bugs for ImplicitGraphs (the range checks, edge positions and stepping, the one-pass
-# copies) and for the closure Dijkstra and A* of decision D19 in ShortestPaths
+# copies) and for the closure Dijkstra and A* in ShortestPaths
 # (SuccessorFunctionSearch.swift: the lazy-deletion heap, the goal tested when settled, A*
 # reopening, the weight and heuristic traps), which ImplicitGraphsTests covers. Run with
 # `just mutate ImplicitGraphs`. See scripts/mutate.py.
 #
 # Known equivalent mutants (they survive by design): none.
 #
-# The tie-break mutants (heaptie, heaptiereverse, heapprecedes) change no distance; the review
-# tests catch them by the expansions A* makes when equal priorities meet.
+# The tie-break mutants (heaptie, heaptiereverse, heapprecedes) change no distance;
+# ImplicitGraphReviewTests catches them by the expansions A* makes when equal priorities meet.
 
 TESTS = ["ImplicitGraphsTests", "ShortestPathsTests"]
 
@@ -56,7 +56,7 @@ MUTANTS = [
     Mutant("copybyindex", E, "for edge in self { result.append(edge) }", "for i in indices { result.append(self[i]) }", mode="stmt"),
     Mutant("mapbyindex", E, "for edge in self { result.append(try transform(edge)) }", "for i in indices { result.append(try transform(self[i])) }", mode="stmt"),
 
-    # D19: the heap.
+    # Closure search: the heap.
     Mutant("heapsift", S, "guard entry.precedes(entries[up]) else { break }", "", mode="stmt", module=SP),
     Mutant("heapparent", S, "(child - 1) / 2", "child / 2", module=SP),
     Mutant("heapchild", S, "if child + 1 < count, entries[child + 1].precedes(entries[child]) { child += 1 }", "", mode="stmt", module=SP),
@@ -65,7 +65,7 @@ MUTANTS = [
     Mutant("heaptie", S, "(priority == other.priority && other.distance < distance)", "false", module=SP),
     Mutant("heaptiereverse", S, "other.distance < distance", "distance < other.distance", module=SP),
 
-    # D19: lazy deletion, goal on settle, relaxation.
+    # Closure search: lazy deletion, goal on settle, relaxation.
     Mutant("stale", S, "guard entry.distance == distance[u] else { continue }", "", mode="stmt", module=SP),
     Mutant("goalqueued", S, "heap.push(_SearchEntry(state: v, priority: priority, distance: candidate))",
            "if success(next) {\n                var path: [V] = [next]\n                var i = u\n                while i >= 0 { path.append(states[i]); i = parent[i] }\n                return (Array(path.reversed()), candidate)\n            }\n            heap.push(_SearchEntry(state: v, priority: priority, distance: candidate))",
@@ -78,20 +78,20 @@ MUTANTS = [
            module=SP),
     Mutant("noheuristic", S, "candidate + heuristic(next)", "candidate", module=SP),
 
-    # D19: the traps.
+    # Closure search: the traps.
     Mutant("weightnegative", S, "weight >= .zero", "true", module=SP),
     Mutant("weightnan", S, "weight >= .zero", "!(weight < .zero)", module=SP),
     Mutant("heuristicnanstart", S, "first == first", "true", module=SP),
     Mutant("heuristicnan", S, "priority == priority", "true", module=SP),
     Mutant("cutoffnan", S, "cutoff.map { $0 == $0 } ?? true", "true", module=SP),
 
-    # D19: the cutoff (inclusive, on the distance alone, before the state is numbered).
+    # Closure search: the cutoff (inclusive, on the distance alone, before the state is numbered).
     Mutant("cutoffskip", S, "if let cutoff, cutoff < candidate { continue }", "", mode="stmt", module=SP),
     Mutant("cutoffexclusive", S, "cutoff < candidate", "cutoff <= candidate", module=SP),
     Mutant("cutoffsum", S, "cutoff < candidate", "cutoff < candidate + (heuristic?(next) ?? .zero)", module=SP),
 
 
-    # The checked: spellings (README Principle 6): each guard removed lets the plain spelling trap.
+    # The checked: spellings: each guard removed lets the plain spelling trap.
     Mutant("cksuccessors", D, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
     Mutant("ckoutedges", D, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
     Mutant("ckoutdegree", D, "guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=2),

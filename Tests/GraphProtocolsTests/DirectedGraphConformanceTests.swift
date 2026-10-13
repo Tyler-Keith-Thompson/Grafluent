@@ -1,6 +1,7 @@
 // Which types conform, what their associated types are, generic and existential use, edge identity
 // and vertex indices through generic code, and conversions between representations through the
-// protocol. Case IDs (DG-Tnn, DG-Cnn, DG-Enn, DG-Inn) refer to the catalog in README.md.
+// protocol. Case IDs (DG-Tnn, DG-Cnn, DG-Enn, DG-Inn) refer to
+// Tests/Catalogs/GraphProtocols/directed-graph.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -94,7 +95,7 @@ struct DirectedGraphConformanceTests {
 struct DirectedGraphIdentityTests {
     @Test("DG-E01 parallel edges are told apart by position, so the cheaper copy wins")
     func parallelEdgesByPosition() {
-        // The review's probe: 0→1 weighs 5, a parallel 0→1 weighs 1, 0→2 weighs 2.
+        // 0→1 weighs 5, a parallel 0→1 weighs 1, 0→2 weighs 2.
         func cheapest<G: DirectedGraph>(_ g: G, from source: G.Vertex, weight: (G.Edges.Index) -> Double) -> [G.Vertex: Double] {
             var best: [G.Vertex: Double] = [:]
             for e in g.outEdges(of: source) {
@@ -125,7 +126,7 @@ struct DirectedGraphIdentityTests {
             }
             return distance
         }
-        // petgraph's Bellman–Ford fixture, with integer weights 1…11 by input position.
+        // The petgraphBellmanFord fixture, with integer weights 1…11 by input position.
         let fixture = DirectedFixture<Int>.petgraphBellmanFord
         let weightOf = Dictionary(uniqueKeysWithValues: fixture.edges.enumerated().map { ($0.element, $0.offset + 1) })
         let list = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)

@@ -1,7 +1,7 @@
 import GraphProtocols
 
-// Barbells and lollipops: complete graphs joined by a path, numbered as NetworkX numbers them. The
-// clique's pairs, then the path's, then (for the barbell) the second clique's come out in order.
+// Barbells and lollipops: complete graphs joined by a path. The clique's pairs, then the path's,
+// then (for the barbell) the second clique's come out in order.
 
 /// The edges of a clique on `0..<k`, a path of `pathVertexCount` vertices hung from vertex k − 1,
 /// and, with `twoCliques`, a second clique on the `k` vertices after the path, joined to its last
@@ -32,14 +32,13 @@ func _cliquePathPairs(_ k: Int, _ p: Int, twoCliques: Bool) -> (vertexCount: Int
 }
 
 extension _GraphConstruction {
-    /// The barbell graph: two complete graphs K_k joined by a path of `pathVertexCount` vertices
-    /// (NetworkX `barbell_graph(k, p)`, numbered the same way). The first clique is `0..<k`, the
-    /// path `k..<k + p`, the second clique `k + p..<2k + p`; the path runs from k − 1 to k + p, so
-    /// with p = 0 the cliques are joined by the edge (k − 1)–k. 2k + p vertices,
-    /// k(k − 1) + p + 1 edges, sorted. O(n + m).
+    /// The barbell graph: two complete graphs K_k joined by a path of `pathVertexCount` vertices.
+    /// The first clique is `0..<k`, the path `k..<k + p`, and the second clique `k + p..<2k + p`.
+    /// The path runs from k − 1 to k + p, and with p = 0 the cliques are joined by the edge
+    /// (k − 1)–k. 2k + p vertices, k(k − 1) + p + 1 edges, sorted. O(n + m).
     ///
-    /// - Precondition: `cliqueVertexCount ≥ 2` and `pathVertexCount ≥ 0` (NetworkX raises
-    ///   for both), and the counts fit in `Int`.
+    /// - Precondition: `cliqueVertexCount ≥ 2` and `pathVertexCount ≥ 0`, and the counts fit in
+    ///   `Int`.
     @inlinable
     public static func barbell(cliqueVertexCount k: Int, pathVertexCount p: Int) -> Self {
         let (n, pairs) = _cliquePathPairs(k, p, twoCliques: true)
@@ -47,11 +46,11 @@ extension _GraphConstruction {
     }
 
     /// The lollipop graph: a complete graph K_k on `0..<k` and a path of `pathVertexCount`
-    /// vertices `k..<k + p` hung from vertex k − 1 (NetworkX `lollipop_graph(k, p)`, numbered the
-    /// same way). k + p vertices, k(k − 1)/2 + p edges, sorted. O(n + m).
+    /// vertices `k..<k + p` hung from vertex k − 1. k + p vertices, k(k − 1)/2 + p edges, sorted.
+    /// O(n + m).
     ///
-    /// - Precondition: `cliqueVertexCount ≥ 2` and `pathVertexCount ≥ 0` (NetworkX raises
-    ///   for both), and the counts fit in `Int`.
+    /// - Precondition: `cliqueVertexCount ≥ 2` and `pathVertexCount ≥ 0`, and the counts fit in
+    ///   `Int`.
     @inlinable
     public static func lollipop(cliqueVertexCount k: Int, pathVertexCount p: Int) -> Self {
         let (n, pairs) = _cliquePathPairs(k, p, twoCliques: false)

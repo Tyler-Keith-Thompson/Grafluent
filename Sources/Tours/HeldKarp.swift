@@ -4,14 +4,14 @@ import Walks
 /// Held–Karp's dynamic program, iterative: c(v, S), for S a set of vertices other than vertex 0
 /// with v in S, is the least weight of a path from v through every vertex outside S back to
 /// vertex 0; c(v, all) = d(v, 0) and c(v, S) = min over u outside S of d(v, u) + c(u, S ∪ {u}),
-/// each candidate formed as weight + rest, as JGraphT `HeldKarpTSP` forms it. The table is
+/// each candidate formed as weight + rest. The table is
 /// indexed S · (n − 1) + (v − 1) and filled by decreasing S (no recursion). For each S the loop
 /// reads each c(u, S ∪ {u}) once and offers it to every v in S, reading d(v, u) from row u of
 /// the transposed matrix (the matrix itself when it is symmetric), keeping each v's least so
 /// far; the least of the same candidates does not depend on the order they are offered in. On a
 /// complete graph every path exists; on another, a validity flag beside the table marks the
 /// paths that do. The tour is rebuilt from vertex 0, each step the lowest-numbered next vertex
-/// whose cost matches exactly (JGraphT's `reconstructTour`), so it is the lexicographically least
+/// whose cost matches exactly, so it is the lexicographically least
 /// among the optimal ones. nil when there is no Hamiltonian cycle.
 ///
 /// The weights must be finite (the matrix traps otherwise): with both +∞ and −∞, a sum is NaN,
@@ -84,7 +84,7 @@ func _heldKarpOrder<W>(_ matrix: _TourMatrix<W>, directed: Bool) -> [Int]? {
                                         row = (c + 1) * n + 1
                                         for j in 0 ..< count {
                                             // A select, not a branch: which candidate wins is data,
-                                            // and the mispredicted branch here was two thirds of the time.
+                                            // so a branch here mispredicts.
                                             let candidate = dt[row &+ members[j]] + tail, least = best[j]
                                             best[j] = candidate < least ? candidate : least
                                         }
@@ -163,25 +163,22 @@ func _checkHeldKarpSize<W>(_ n: Int, _: W.Type) {
 }
 
 extension Graph {
-    /// The shortest tour, by Held–Karp dynamic programming (Bellman, "Dynamic programming
-    /// treatment of the travelling salesman problem", Journal of the ACM 9, 1962; Held and Karp,
-    /// "A dynamic programming approach to sequencing problems", Journal of SIAM 10, 1962): the
-    /// least-weight Hamiltonian cycle of the simple graph, or nil when there is none; among the
-    /// optimal ones, the lexicographically least by vertex number listed from the first vertex
-    /// (JGraphT `HeldKarpTSP`'s tour). The graph need not be complete: a missing pair is an absent
-    /// edge. Tours read the simple graph, as `nearestNeighborTour(weight:)` documents; nil below
-    /// three vertices.
+    /// The shortest tour, by Held–Karp dynamic programming (Bellman 1962; Held and Karp 1962).
     ///
-    /// The tour is pinned for integer weights. With floating-point weights it is optimal for the
+    /// Returns the least-weight Hamiltonian cycle of the simple graph, or nil when there is none;
+    /// among the optimal ones, the lexicographically least by vertex number listed from the first
+    /// vertex. The graph need not be complete: a missing pair is an absent edge. Tours read the
+    /// simple graph, as `nearestNeighborTour(weight:)` documents; nil below three vertices.
+    ///
+    /// The tour is determined for integer weights. With floating-point weights it is optimal for the
     /// sums as computed, and chosen by the same rule on them, so which of several equal tours
     /// comes out, and its orientation, can depend on rounding.
     ///
     /// - Precondition: the table, 2ⁿ⁻¹ · (n − 1) weights and as many validity bytes, fits in
-    ///   4 GiB: at most 25 vertices with 8-byte weights, 26 with 4-byte ones (JGraphT allows 31,
-    ///   the width of its `int` bitmask, not a memory bound); no weight is NaN or infinite; the
-    ///   sum along any path fits in `W`.
-    /// - Complexity: Θ(2ⁿ n²) time and Θ(2ⁿ n) memory: n = 20 is practical, with 80 MB of table
-    ///   for 8-byte weights on a complete graph and 90 MB on another (the validity flags).
+    ///   4 GiB: at most 25 vertices with 8-byte weights, 26 with 4-byte ones; no weight is NaN or
+    ///   infinite; the sum along any path fits in `W`.
+    /// - Complexity: Θ(2ⁿ n²) time and Θ(2ⁿ n) memory: n = 20 takes 80 MB of table for 8-byte
+    ///   weights on a complete graph, and 90 MB on another (the validity flags).
     @inlinable
     public func shortestTour<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>? {
         let numbering = _tourNumbering()
@@ -196,8 +193,7 @@ extension Graph {
 
 extension DirectedGraph {
     /// The shortest directed tour (the asymmetric travelling salesman problem), by the same
-    /// Held–Karp program as `Graph.shortestTour(weight:)` (JGraphT `HeldKarpTSP` on a directed
-    /// graph): the least-weight Hamiltonian cycle of the simple digraph, each step along an arc
+    /// Held–Karp program as `Graph.shortestTour(weight:)`: the least-weight Hamiltonian cycle of the simple digraph, each step along an arc
     /// from one vertex to the next, or nil when there is none; among the optimal ones, the
     /// lexicographically least by vertex number listed from the first vertex. Self-loops are
     /// ignored and each ordered pair is joined by its lightest arc (the earliest position on

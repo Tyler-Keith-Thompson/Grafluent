@@ -1,8 +1,8 @@
-/// Hao and Orlin's minimum cut of a directed network (1994), in LEMON's layout (`HaoOrlin`): the
-/// sink side of a cut of least value over every nonempty proper vertex set, and its value.
+/// Hao and Orlin's minimum cut of a directed network (1994): the sink side of a cut of least value
+/// over every nonempty proper vertex set, and its value.
 ///
-/// Two passes, as LEMON's `run()`: one on the network for the cuts whose source side holds the
-/// first vertex, one on the reversed network for the cuts whose sink side does. Each pass is a
+/// Two passes run: one on the network for the cuts whose source side holds the first vertex, one
+/// on the reversed network for the cuts whose sink side does. Each pass is a
 /// single push–relabel run that moves the sink: the first vertex starts the source set, the sink
 /// is a vertex of least label, and once no active vertex is left the sink's excess is the value of
 /// the cut between the source set's side and the awake vertices; then the sink joins the source
@@ -369,7 +369,7 @@ struct _HaoOrlinLists {
     }
 
     /// Marks `i` active and moves it to the front of its bucket, unless the vertex before it is
-    /// active already (LEMON's `activate`).
+    /// active already.
     @inlinable
     @inline(__always)
     func activate(_ i: Int) {

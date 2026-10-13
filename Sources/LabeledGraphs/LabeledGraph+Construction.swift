@@ -3,10 +3,9 @@ import CompressedSparseRowModule
 import GraphProtocols
 import OrderedCollections
 
-// Index assignment, for every initializer that takes labels: the listed vertices first, then each
-// new endpoint in order of first appearance, a repeated label inserted once. This is NetworkX's
-// `convert_node_labels_to_integers(G, ordering="default")` applied to `add_nodes_from` followed
-// by `add_edges_from`. Both bases store a set of edges, so repeated edges collapse.
+// Every initializer that takes labels numbers the listed vertices first, then each new endpoint in
+// order of first appearance. A repeated label is inserted once. Both bases store a set of edges,
+// so repeated edges collapse.
 
 extension LabeledGraph where Base == CompressedSparseRow {
     /// The graph with no vertices.
@@ -15,7 +14,7 @@ extension LabeledGraph where Base == CompressedSparseRow {
         self.init(_labels: [], _base: CompressedSparseRow())
     }
 
-    /// A graph of the given vertices and no edges, indexed in the order given; a repeated label is
+    /// A graph of the given vertices and no edges, indexed in the order given. A repeated label is
     /// inserted once. O(n) expected.
     @inlinable
     public init(vertices: some Sequence<Label>) {
@@ -30,37 +29,46 @@ extension LabeledGraph where Base == CompressedSparseRow {
         self.init(vertices: EmptyCollection(), edges: edges)
     }
 
-    /// A graph of the given vertices and edges. The vertices are indexed in the order given, then
-    /// each new endpoint by first appearance; repeated edges are stored once. Positions are
-    /// `CompressedSparseRow`'s: edge indices in row-major order of the vertex indices, whatever the
-    /// order of `edges`. O(n + m) expected: one hash per vertex and two per edge, then the base's
-    /// counting-sort build.
+    /// A graph of the given vertices and edges.
+    ///
+    /// The vertices are indexed in the order given, then each new endpoint by first appearance.
+    /// Repeated edges are stored once. Edge positions are `CompressedSparseRow` edge indices in
+    /// row-major order of the vertex indices, whatever the order of `edges`.
+    ///
+    /// - Complexity: O(n + m) expected. One hash per vertex and two per edge, then the base's
+    ///   counting-sort build.
     @inlinable
     public init(vertices: some Sequence<Label>, edges: some Sequence<DirectedEdge<Label>>) {
         let (labels, numbered) = Self._numbered(vertices: vertices, edges: edges)
         self.init(_labels: labels, _base: CompressedSparseRow(vertexCount: labels.count, edges: numbered))
     }
 
-    /// A graph of the vertices and edges `content` lists, as `init(vertices:edges:)` takes them: a
-    /// bare label is a vertex, a `DirectedEdge` an edge.
+    /// A graph of the vertices and edges `content` lists, as `init(vertices:edges:)` takes them. A
+    /// bare label is a vertex and a `DirectedEdge` is an edge.
     @inlinable
     public init(@DirectedGraphBuilder<Label> _ content: () -> DirectedGraphBuilder<Label>.Content) {
         let content = content()
         self.init(vertices: content.vertices, edges: content.edges)
     }
 
-    /// The graph with every edge reversed, with the same labels at the same indices: the base's
-    /// `transposed()`, O(n + m), with no hashing (the labels are shared, not copied). Positions are
-    /// the transpose's own, row-major in its rows.
+    /// The graph with every edge reversed and the same labels at the same indices.
+    ///
+    /// The labels are shared, not copied or rehashed. Edge positions are those of the base's
+    /// `transposed()`, row-major in its rows.
+    ///
+    /// - Complexity: O(n + m).
     @inlinable
     public func transposed() -> LabeledGraph {
         LabeledGraph(_labels: _labels, _base: _base.transposed())
     }
 
-    /// The compressed sparse row form of `graph`, with its vertices indexed in `graph.vertices`
-    /// order and parallel edges collapsed: `init(vertices: graph.vertices, edges: graph.edges)`.
-    /// When `graph` has vertex indices, its edges are read in index space, so only the vertices are
-    /// hashed. O(n + m) expected.
+    /// The compressed sparse row form of `graph`, equal to
+    /// `init(vertices: graph.vertices, edges: graph.edges)`.
+    ///
+    /// Parallel edges collapse. When `graph` has vertex indices, its edges are read in index space
+    /// and only the vertices are hashed.
+    ///
+    /// - Complexity: O(n + m) expected.
     @inlinable
     public init(_ graph: some DirectedGraph<Label>) {
         let (labels, numbered) = Self._numbered(graph)
@@ -75,10 +83,10 @@ extension LabeledGraph where Base == AdjacencyMatrix {
         self.init(_labels: [], _base: AdjacencyMatrix())
     }
 
-    /// A graph of the given vertices and no edges, indexed in the order given; a repeated label is
+    /// A graph of the given vertices and no edges, indexed in the order given. A repeated label is
     /// inserted once. O(n²/64) for the matrix plus O(n) expected.
     ///
-    /// - Precondition: the matrix's storage fits (see `AdjacencyMatrix.init(vertexCount:)`).
+    /// - Precondition: The matrix's storage fits (see `AdjacencyMatrix.init(vertexCount:)`).
     @inlinable
     public init(vertices: some Sequence<Label>) {
         let labels = OrderedSet(vertices)
@@ -92,26 +100,31 @@ extension LabeledGraph where Base == AdjacencyMatrix {
         self.init(vertices: EmptyCollection(), edges: edges)
     }
 
-    /// A graph of the given vertices and edges. The vertices are indexed in the order given, then
-    /// each new endpoint by first appearance; repeated edges are stored once. Positions are
-    /// `(source, target)` index cells. O(n²/64 + m) expected.
+    /// A graph of the given vertices and edges.
+    ///
+    /// The vertices are indexed in the order given, then each new endpoint by first appearance.
+    /// Repeated edges are stored once. Edge positions are `(source, target)` index cells.
+    ///
+    /// - Complexity: O(n²/64 + m) expected.
     @inlinable
     public init(vertices: some Sequence<Label>, edges: some Sequence<DirectedEdge<Label>>) {
         let (labels, numbered) = Self._numbered(vertices: vertices, edges: edges)
         self.init(_labels: labels, _base: AdjacencyMatrix(vertexCount: labels.count, edges: numbered))
     }
 
-    /// A graph of the vertices and edges `content` lists, as `init(vertices:edges:)` takes them: a
-    /// bare label is a vertex, a `DirectedEdge` an edge.
+    /// A graph of the vertices and edges `content` lists, as `init(vertices:edges:)` takes them. A
+    /// bare label is a vertex and a `DirectedEdge` is an edge.
     @inlinable
     public init(@DirectedGraphBuilder<Label> _ content: () -> DirectedGraphBuilder<Label>.Content) {
         let content = content()
         self.init(vertices: content.vertices, edges: content.edges)
     }
 
-    /// The matrix form of `graph`, with its vertices indexed in `graph.vertices` order and
-    /// parallel edges collapsed: `init(vertices: graph.vertices, edges: graph.edges)`. When `graph`
-    /// has vertex indices, only the vertices are hashed. O(n²/64 + m) expected.
+    /// The matrix form of `graph`, equal to `init(vertices: graph.vertices, edges: graph.edges)`.
+    ///
+    /// Parallel edges collapse. When `graph` has vertex indices, only the vertices are hashed.
+    ///
+    /// - Complexity: O(n²/64 + m) expected.
     @inlinable
     public init(_ graph: some DirectedGraph<Label>) {
         let (labels, numbered) = Self._numbered(graph)

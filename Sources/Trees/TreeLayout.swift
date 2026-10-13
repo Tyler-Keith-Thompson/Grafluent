@@ -5,9 +5,8 @@ import GraphProtocols
 /// parent edge, depth, and the preorder with each subtree's size, so a subtree is an interval of
 /// it). About fourteen `Int`s per vertex (plus the vertex table when the vertices are not the
 /// `Int`s `0..<n`), in a constant number of arrays. A vertex's rooting is one 28-byte record of
-/// `Int32`s, read and written as `Int`s, so building or reading it touches one cache line rather
-/// than seven arrays, and a tree of 10⁵ vertices writes 2.8 MB of records rather than 5.6 (fresh
-/// pages are most of a build's cost). A tree therefore has fewer than 2³¹ vertices.
+/// `Int32`s, read and written as `Int`s, so building or reading it touches one cache line. A tree
+/// therefore has fewer than 2³¹ vertices.
 @frozen
 @usableFromInline
 package struct _TreeNode: Sendable {

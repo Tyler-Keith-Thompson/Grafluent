@@ -5,9 +5,9 @@ import GraphProtocols
 import Multigraphs
 
 // Instances from the catalog's 64-bit LCG (Tests/Catalogs/Flows/cases.md, Notation), so the same
-// networks can be rebuilt outside Swift to time NetworkX, igraph, OR-Tools, LEMON and Boost on
-// them: random digraphs (lcgnet), the DIMACS families genrmf (Goldfarb–Grigoriadis) and Washington
-// random level graphs, and a 4-connected vision grid with terminal arcs.
+// networks can be rebuilt outside Swift: random digraphs (lcgnet), the DIMACS families genrmf
+// (Goldfarb–Grigoriadis) and Washington random level graphs, and a 4-connected vision grid with
+// terminal arcs.
 
 struct LCG {
     var x: UInt64

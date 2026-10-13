@@ -1,7 +1,7 @@
 import GraphProtocols
 import Walks
 
-/// Bellman–Ford in LEMON's weak rounds: the first round scans the sources' out-edges, each later
+/// Bellman–Ford in weak rounds: the first round scans the sources' out-edges, each later
 /// round the out-edges of the vertices improved in the round before (in the order they were first
 /// improved), reading current distances. It stops at the first round that improves nothing, so a
 /// graph without negative edges costs about one pass. Work left after `count` rounds means a
@@ -63,7 +63,7 @@ struct _BellmanFord<G: DirectedGraph, W: Comparable & AdditiveArithmetic>: _Inde
     }
 }
 
-/// A cycle of parent pointers through one of `active` (LEMON's `negativeCycle()`): walk parents
+/// A cycle of parent pointers through one of `active`: walk parents
 /// from each, marking the walk, until a vertex repeats in the same walk. After `count` rounds
 /// with work left, such a walk always closes, and every cycle of parent pointers is negative.
 /// The cycle is listed along its edges, from the vertex with the smallest index.
@@ -93,11 +93,14 @@ func _negativeCycle(parent: [Int], active: [Int]) -> [Int]? {
 }
 
 extension DirectedGraph {
-    /// Shortest paths from `source` by Bellman–Ford, which allows negative weights (Boost's
-    /// `bellman_ford_shortest_paths`), or `nil` when a negative cycle is reachable from `source`;
+    /// Shortest paths from `source` by Bellman–Ford, which allows negative weights, or `nil` when a
+    /// negative cycle is reachable from `source`.
+    ///
     /// `findNegativeCycle(from:weight:)` then gives one, at the cost of a second run. A zero-weight
-    /// cycle is not negative. O(VE) in the worst case; about one pass over the reachable edges when
-    /// no edge is negative.
+    /// cycle is not negative.
+    ///
+    /// - Complexity: O(VE) in the worst case; about one pass over the reachable edges when no edge
+    ///   is negative.
     ///
     /// - Precondition: `source` is a vertex; no examined path length is NaN; every sum fits in `W`.
     ///   Weights are finite: with floating point, a cycle through `-.infinity` does not shorten
@@ -111,8 +114,8 @@ extension DirectedGraph {
     }
 
     /// Shortest paths from the nearest of `sources` by Bellman–Ford, or `nil` when a negative
-    /// cycle is reachable from one of them. The sources act as one super-source (NetworkX): a
-    /// source that another reaches by a negative path gets that distance and a parent.
+    /// cycle is reachable from one of them. The sources act as one super-source: a source that
+    /// another reaches by a negative path gets that distance and a parent.
     ///
     /// - Precondition: `sources` is not empty and holds only vertices; as for one source.
     @inlinable
@@ -126,11 +129,11 @@ extension DirectedGraph {
         return ShortestPathTree(ids: ids, distance: result.distance, parent: result.parent, parentEdge: result.parentEdge, sources: listed)
     }
 
-    /// A negative cycle reachable from `source` (NetworkX's and petgraph's `find_negative_cycle`),
-    /// or `nil` when there is none. The cycle is listed along its edges, starting at its first
-    /// vertex in `vertices` order (petgraph's convention; NetworkX repeats the start); which one is found, when several
-    /// are reachable, is unspecified. Its edges are the ones Bellman–Ford relaxed through, so
-    /// between parallel edges it names the one that makes the cycle negative.
+    /// A negative cycle reachable from `source`, or `nil` when there is none.
+    ///
+    /// The cycle is listed along its edges, starting at its first vertex in `vertices` order. When
+    /// several are reachable, which one is found is unspecified. Its edges are the ones Bellman–Ford
+    /// relaxed through, so between parallel edges it names the one that makes the cycle negative.
     ///
     /// - Precondition: as for `bellmanFordShortestPaths(from:weight:)`.
     @inlinable

@@ -1,9 +1,9 @@
-// §F: `simpleCycles(maxLength:)`, directed and undirected. The bound counts edges: 0 gives
-// nothing, 1 the loops, 2 adds 2-cycles; the result is the unbounded sequence filtered to
-// `length <= maxLength`, in the same order. Cases from NetworkX, igraph, Boost (`max_length`) and
-// JGraphT (`setPathLimit`), plus the planted bounded-search mistake CY-491. Graphs written as the
-// catalog writes them, so positions are exact. Expected values come from the catalog's reference
-// (`ref.py`). Case IDs (CY-nnn) refer to the catalog; see README.md.
+// §F: `simpleCycles(maxLength:)`, directed and undirected. The bound counts edges: 0 gives nothing,
+// 1 the loops, 2 adds 2-cycles; the result is the unbounded sequence filtered to
+// `length <= maxLength`, in the same order. CY-491 catches a bounded search that does not count
+// a closure in the other orientation as found. Graphs are written as the catalog writes them, so
+// positions are exact. Expected values come from the catalog's reference (`ref.py`). Case IDs
+// (CY-nnn) refer to the catalog; see README.md.
 
 import Cycles
 import GraphProtocols

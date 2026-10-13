@@ -1,8 +1,8 @@
-// Cases added after the review: the minimum-weight full matching on a multigraph keeps each pair's
-// lightest copy; and two inputs found by running NetworkX 3.7's own max_weight_matching with one
-// step changed, where the step decides the result: the final δ₁ clamped at zero under maximum
-// cardinality (without the clamp the search fails), and the expansion of S-blossoms whose dual
-// reached zero at the end of a stage (without it the result has the same weight but other edges).
+// The minimum-weight full matching on a multigraph keeps each pair's lightest copy; and two inputs
+// where one step of the weighted blossom algorithm decides the result: the final δ₁ clamped at
+// zero under maximum cardinality (without the clamp the search fails), and the expansion of
+// S-blossoms whose dual reached zero at the end of a stage (without it the result has the same
+// weight but other edges).
 // Case IDs (MA-nnn) refer to the catalog; see README.md.
 
 import BipartiteGraphs

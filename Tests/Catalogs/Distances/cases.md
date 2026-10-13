@@ -3,13 +3,10 @@
 Cases for the Distances module (api.md): `eccentricities()` and the `Eccentricities` value,
 `eccentricity(of:)`, `radius()`, `diameter()`, `center()`, `periphery()`, `diameterPath()`,
 `centroid()`, `wienerIndex()`, `averageShortestPathLength()` and `density`, on `Graph` and
-`DirectedGraph`, unweighted and weighted. Harvested from NetworkX 3.7
-(`algorithms/tests/test_distance_measures.py`, the `center` / `centroid` / `density` /
-`wiener_index` docstrings), igraph 1.0 (`igraph_probe.py` here, run against python-igraph 1.0.0),
-JGraphT `GraphMeasurer` (source read for its conventions), the TreeAlgorithms catalog (every tree
-case whose Notes say `= TA-nnn` must give that row's value, which `ref.py` checks), and the edge
-cases api.md calls out. Every Expected cell is recomputed by `ref.py` and cross-checked against
-brute-force Floyd–Warshall, NetworkX 3.7 and scipy 1.18.1 (see its docstring).
+`DirectedGraph`, unweighted and weighted. Every tree case whose Notes say `= TA-nnn` must give that
+row's value in the TreeAlgorithms catalog, which `ref.py` checks. Every Expected cell is recomputed
+by `ref.py` and cross-checked against brute-force Floyd–Warshall, NetworkX 3.7 and scipy 1.18.1 (see
+its docstring).
 
 ## Notation
 
@@ -27,7 +24,7 @@ the listed vertices, then vertices from generators, then endpoints by first appe
 | `K(n)`, `K(a..b)` | every pair i < j, lexicographic (in a `D:` graph: arcs i>j, the acyclic tournament) |
 | `KB(a..b;c..d)` | each of the first list to each of the second, row-major |
 | `grid(r,c)` | vertices `i*c + j` listed row-major; for each vertex in that order the edge right, then down |
-| `kary(n,k)` | vertex i to k·i+1 … k·i+k below n (igraph `kary_tree`) |
+| `kary(n,k)` | vertex i to k·i+1 … k·i+k below n |
 | `lcg(n,m,s)` | m pairs over 0..<n from the 64-bit LCG x ← x·6364136223846793005 + 1442695040888963407 (wrapping), seeded x = s: u = (x' >> 33) mod n, then v the same from the next step; a pair with u = v is drawn again |
 | `nx(name)` | `networkx.<name>_graph()`: its `nodes` listed, then `edges()` in NetworkX's order |
 | `a..b` | every integer from a to b inclusive |
@@ -39,7 +36,7 @@ weighs k; `weight: e%k+c`: edge e weighs e mod k + c); a list with a `.` is `Dou
 `digraph.undirectedView` (each arc an edge). `eccentricities` is the `Eccentricities` value read in
 `vertices` order (`eccentricity(ofIndex: i)` for each i); the one-shot calls (`radius`, `diameter`,
 `center`, `periphery`) must equal the same members of `eccentricities()`, which the Swift tests
-should assert for every case.
+assert for every case.
 
 **Expected**: `#k` a number (`#1.5`, `#inf` for `Double`); `nil`; `[a, b, …]` vertices in order;
 for `eccentricities`, numbers or `nil` per vertex in `vertices` order; `[vertices]/[edge positions]`

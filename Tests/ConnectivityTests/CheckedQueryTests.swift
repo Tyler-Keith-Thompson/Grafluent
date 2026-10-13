@@ -1,4 +1,4 @@
-// The `checked:` spellings of the result queries (README Principle 6): each answers a vertex or an
+// The `checked:` spellings of the result queries: each answers a vertex or an
 // edge position of the graph as its trapping spelling does, nil keeping its meaning (the root, an
 // unreachable vertex, a self-loop, a vertex in no block), and throws `VertexNotFound` or
 // `EdgeNotFound` where the trapping spelling would trap. Every result is read on an indexed graph

@@ -18,7 +18,7 @@ struct MaximumSpanningTreeTests {
         let tree = graph.maximumSpanningTree { edges[$0].2 }
         #expect(tree.edges == [6, 10, 3, 9, 2, 0])
         #expect(tree.weight == 59)
-        // NetworkX's expected set.
+        // The expected set.
         let expected: Set = [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(1, 3), UndirectedEdge(3, 4), UndirectedEdge(4, 6), UndirectedEdge(5, 6)]
         #expect(Set(tree.edges.map { graph.edges[$0] }) == expected)
         // Nonincreasing weight.

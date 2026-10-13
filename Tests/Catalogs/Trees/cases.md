@@ -1,15 +1,10 @@
 # Trees: case catalog (TS-001 – TS-995)
 
-Cases for the Trees module's phase 1 (api.md): `Graph.isTree`, `DirectedGraph.isArborescence`,
-the four types' failable initializers, the parent-function initializers, the rooted queries,
+Cases for the Trees module (api.md): `Graph.isTree`, `DirectedGraph.isArborescence`, the four
+types' failable initializers, the parent-function initializers, the rooted queries,
 `path(from:to:)`, `Forest.trees` / `component(of:)`, Prüfer codes, the `Graph` /
-`BidirectionalDirectedGraph` rows, and equality. Harvested from NetworkX
-(`tree/tests/test_recognition.py`, `test_coding.py`, `traversal/tests/test_dfs.py`), igraph
-(`igraph_is_tree.c`, `igraph_is_forest.c`, `igraph_to_prufer.c`, `igraph_from_prufer.c`,
-`igraph_tree_from_parent_vector.c`), JGraphT (`GraphTestsTest`), LEMON (`connectivity_test.cc`)
-and the edge cases the design calls out. Every value is recomputed by `ref.py` and checked
-against a naive implementation and NetworkX 3.7 (see its docstring). IDs are `TS-` because
-Traversal already owns `TR-`.
+`BidirectionalDirectedGraph` rows, equality, and the `checked:` lookups. Every value is recomputed
+by `ref.py` and checked against a naive implementation and NetworkX 3.7 (see its docstring).
 
 ## Notation
 
@@ -23,7 +18,7 @@ Traversal already owns `TR-`.
 | `P(a,b,c,…)` | the path a–b, b–c, … (arcs in a `D:` graph) |
 | `C(a,b,…,z)` | the cycle a–b, …, z–a |
 | `S(c;a..b)` | the star c–a, …, c–b |
-| `kary(n,k)` | igraph `kary_tree`: vertex i to k·i+1 … k·i+k below n, in that order |
+| `kary(n,k)` | the complete k-ary tree: vertex i to k·i+1 … k·i+k below n, in that order |
 | `a..b` | every integer from a to b inclusive |
 | `parents: [p0, p1, …]` | `Arborescence<Int>(parents:)` / `RootedTree<Int>(parents:)`: vertex i has parent pᵢ; `_` is `nil` (the root) |
 | `closure: [vertices] {child:parent, …}` | `init?(vertices:parent:)` with `parent` the dictionary lookup (absent = `nil`) |

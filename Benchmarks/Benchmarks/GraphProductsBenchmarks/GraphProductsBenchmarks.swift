@@ -8,8 +8,7 @@ import GraphProtocols
 import NamedGraphs
 import Traversal
 
-// The targets are api.md's (Tests/Catalogs/GraphProducts/api.md, "Performance targets"): each
-// product against the same algorithm on a materialized copy.
+// Each product against the same algorithm on a materialized copy.
 
 /// A sparse undirected graph on `n` vertices: a random spanning tree plus `extra` random edges, no
 /// self-loops or repeats.
@@ -92,8 +91,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(gridProduct.directedView.breadthFirstLayers(from: origin)) }
     }
 
-    // MARK: Materializing into CompressedSparseRow (directed factors), target ≥ 30× faster than NetworkX
-    // `cartesian_product` (5.8 s for these factors, measured with networkx 3.7)
+    // MARK: Materializing into CompressedSparseRow (directed factors)
 
     let gArcs = CompressedSparseRow(vertexCount: 1000, edges: g.edges.flatMap { [DirectedEdge(from: $0.u, to: $0.v), DirectedEdge(from: $0.v, to: $0.u)] })
     let hArcs = CompressedSparseRow(vertexCount: 1000, edges: h.edges.flatMap { [DirectedEdge(from: $0.u, to: $0.v), DirectedEdge(from: $0.v, to: $0.u)] })

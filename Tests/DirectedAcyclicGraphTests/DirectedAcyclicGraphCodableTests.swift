@@ -327,8 +327,8 @@ struct DirectedAcyclicGraphCodableTests {
     @Test("DAG-120 StableDirectedGraph: a vertex at position 2⁵⁰ costs one page, not a table to it", .tags(.conformance))
     func dag120() throws {
         // StableDirectedGraph; decode {"base": {"vertices": [7], "vertexPositions": [1125899906842624], "vertexEnd": 1125899906842625, "edges": [], "edgePositions": [], "edgeEnd": 0}, "order": [0]} → order [7]; V [7]; E []
-        // Before the key table started at the first live page, this allocated a table entry for
-        // every page below the position: 2⁴⁰ words.
+        // The key table starts at the vertex's page, so this allocates one page, not an entry
+        // for every page below the position.
         let payload = Data(#"{"base": {"vertices": [7], "vertexPositions": [1125899906842624], "vertexEnd": 1125899906842625, "edges": [], "edgePositions": [], "edgeEnd": 0}, "order": [0]}"#.utf8)
         var graph = try JSONDecoder().decode(DirectedAcyclicGraph<StableDirectedGraph<Int>>.self, from: payload)
         #expect(Array(graph.topologicalOrder) == [7])

@@ -133,7 +133,7 @@ struct UndirectedConnectivityConformanceTests {
     @Test("CN-395 an indexed UndirectedAdjacencyList is processed in index space: no entry point hashes a vertex")
     func indexSpace() {
         let counter = HashCounter()
-        // CN-243: JGraphT's testWikiGraph.
+        // CN-243: 14 vertices, five articulation points, seven blocks.
         let wiki = [(1, 3), (1, 2), (2, 4), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (7, 9), (9, 10), (9, 11), (11, 12), (12, 13), (13, 14), (12, 14), (7, 14)]
         let graph = UndirectedAdjacencyList(edges: wiki.map { UndirectedEdge(HashCountingVertex(value: $0.0, counter: counter), HashCountingVertex(value: $0.1, counter: counter)) })
         counter.hashes = 0

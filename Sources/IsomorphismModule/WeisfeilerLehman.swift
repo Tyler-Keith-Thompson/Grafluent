@@ -1,9 +1,8 @@
 import GraphProtocols
 
-/// Per-vertex Weisfeiler–Leman hashes: each vertex's colour after rounds 1 … `iterations` of
-/// colour refinement, as `weisfeilerLehmanSubgraphHashes(iterations:)` returns them (NetworkX's
-/// `weisfeiler_lehman_subgraph_hashes`; Shervashidze et al. 2011). Equal hashes after a round mean
-/// equal colours, within one process.
+/// Per-vertex Weisfeiler–Leman hashes: each vertex's colour after rounds 1 … `iterations` of colour
+/// refinement, as `weisfeilerLehmanSubgraphHashes(iterations:)` returns them (Shervashidze et al.
+/// 2011). Equal hashes after a round mean equal colours, within one process.
 public struct WeisfeilerLehmanSubgraphHashes<G> {
     @usableFromInline let graph: G
     @usableFromInline let numbers: AnyObject?
@@ -186,9 +185,9 @@ extension Graph {
         return (_indexGraph(numbers, vertexColors: vertexColors, edgeColors: edgeColors), numbers)
     }
 
-    /// A hash of the graph by Weisfeiler–Leman colour refinement (NetworkX's
-    /// `weisfeiler_lehman_graph_hash`): isomorphic graphs hash equal; graphs that `iterations`
-    /// rounds of refinement do not tell apart hash equal too (C6 and two triangles).
+    /// A hash of the graph by Weisfeiler–Leman colour refinement: isomorphic graphs hash equal;
+    /// graphs that `iterations` rounds of refinement do not tell apart hash equal too (C6 and two
+    /// triangles).
     ///
     /// Round 0 gives every vertex one colour; round r gives a vertex the pair of its colour and the
     /// multiset of its neighbours' colours (a self-loop counts its vertex twice, each parallel edge
@@ -222,9 +221,8 @@ extension Graph {
         return _weisfeilerLehman(_weisfeilerLehmanGraph(vertexColors: colors, edgeColors: edgeColors).0, iterations: iterations, keepRounds: false).hash
     }
 
-    /// Each vertex's Weisfeiler–Leman colours after rounds 1 … `iterations` (NetworkX's
-    /// `weisfeiler_lehman_subgraph_hashes`), with the rounds of `weisfeilerLehmanGraphHash`.
-    /// An isomorphism maps every vertex to one with the same hashes.
+    /// Each vertex's Weisfeiler–Leman colours after rounds 1 … `iterations`, with the rounds of
+    /// `weisfeilerLehmanGraphHash`. An isomorphism maps every vertex to one with the same hashes.
     ///
     /// - Precondition: `iterations >= 0`.
     @inlinable

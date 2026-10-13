@@ -6,16 +6,10 @@ subgraph isomorphism). Each is available as a yes/no answer, a first mapping, or
 every mapping, and each takes optional vertex and edge colours. The module also has
 Weisfeiler–Leman hashes, one for a whole graph and one per vertex.
 
-The tests were written before the implementation, from the proposed API (`api.md` in
-[`Tests/Catalogs/Isomorphism/`](../Catalogs/Isomorphism/), phase 1). Its open questions are decided
-as recommended:
-
-- all 54 overloads are accepted, and edge colours on their own are passed with a constant vertex
-  colour;
-- hashes are per process (`Hasher`), so tests compare them within one run and never pin a value;
-- the first mapping is not pinned;
-- phase 2 (`automorphismGroup()`, `canonicalLabeling()`) is tested: the catalog rows in
-  `AutomorphismGroupTests.swift`, canonical labelings in `IsomorphismHardFamiliesTests.swift`.
+The module also computes automorphism groups and canonical labelings. The API description
+(`api.md`) is in [`Tests/Catalogs/Isomorphism/`](../Catalogs/Isomorphism/). Hashes are per process
+(`Hasher`), so tests compare them within one run and never pin a value. The first mapping is not
+pinned.
 
 The suite uses only the public API, and each test is self-contained. Definitions, brute-force
 models and counting formulas are written out inside the test that uses them. The only shared
@@ -61,7 +55,7 @@ The test first checks the catalog's value. Each matching row then checks the res
 the same arguments:
 
 - the whole lazy sequence: its length is the reference model's count, no mapping appears twice
-  (as `[Vertex]` and as `Isomorphism`), and every mapping meets api.md's definition, which is
+  (as `[Vertex]` and as `Isomorphism`), and every mapping meets the definition, which is
   written out in the test;
 - the yes/no answer;
 - the first mapping: it is valid, and a second call returns the same one.
@@ -72,7 +66,7 @@ test), then runs the same setup in this process without the call.
 
 The catalog-row files are every file except `IsomorphismConformanceTests.swift`,
 `IsomorphismPropertyTests.swift`, `Performance/IsomorphismStressTests.swift` and
-`IsomorphismHardFamiliesTests.swift`. `swiftgen.py` generated them
+`IsomorphismHardFamiliesTests.swift`. `swiftgen.py` generates them
 from `cases.md`. It sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/Isomorphism/`](../Catalogs/Isomorphism/):
 
@@ -84,29 +78,29 @@ The generator first checks that `ref.py` reproduces `cases.md` byte for byte. Th
 every row against brute force and against NetworkX, igraph and rustworkx. The generator then
 re-derives each value it writes from `ref.py`'s model and asserts that it matches the catalog cell.
 The precondition file also takes the hand-written exit tests in `extra_traps.swift`. `--phase2`
-writes the phase-2 rows (IS-182 – IS-233) as `AutomorphismGroupTests.swift`; without it that file
-is left alone. Those tests pin `order` and `orbits`, check that the
+writes the automorphism-group rows (IS-182 – IS-233) as `AutomorphismGroupTests.swift`; without
+it that file is left alone. Those tests pin `order` and `orbits`, check that the
 product of `basicOrbitLengths` is the order, and check that every generator is an automorphism
 whose orbits are `orbits`.
 
 ## Hand-written files
 
 - **Conformance.** Seeded random graphs go through every representation that can hold them:
-  - undirected: `Pseudograph`, `UndirectedAdjacencyList`, `Multigraph`, and the `undirectedView` views
-    of `AdjacencyMatrix`, `AdjacencyList` and `LabeledGraph<String, AdjacencyMatrix>`;
+  - undirected: `Pseudograph`, `UndirectedAdjacencyList`, `Multigraph`, and the `undirectedView`
+    views of `AdjacencyMatrix`, `AdjacencyList` and `LabeledGraph<String, AdjacencyMatrix>`;
   - directed: `DirectedPseudograph`, `AdjacencyList`, `CompressedSparseRow`, `AdjacencyMatrix`,
     `DirectedMultigraph`, and `LabeledGraph<String, _>` over both bases.
 
   Each representation is tried alone and mixed with others (pattern in one, target in another).
-  Every problem's set of mappings, read back as indices, must equal the reference's, and the
-  yes/no answers and first mappings must agree. Multigraphs with edge colours go through
-  `DirectedPseudograph.undirectedView` as well. An undirected graph's `directedView` view must have the
-  same mappings. Relabelled copies (permuted vertices, shuffled edge positions, `String` names, a
-  shuffled vertex order) move every mapping by the relabelling, and colours move with them.
+  Every problem's set of mappings, read back as indices, must equal the reference's, and the yes/no
+  answers and first mappings must agree. Multigraphs with edge colours go through
+  `DirectedPseudograph.undirectedView` as well. An undirected graph's `directedView` view must have
+  the same mappings. Relabelled copies (permuted vertices, shuffled edge positions, `String` names,
+  a shuffled vertex order) move every mapping by the relabelling, and colours move with them.
   Weisfeiler–Leman hashes, whole and per vertex, must be equal across representations and copies.
   The file also covers `Isomorphism`'s equality and hashing by images, a sequence that repeats on
-  every pass with independent iterators, laziness (the first mappings of `E(40)` onto itself and
-  of `K₁₂`), and colour closures read at most once per vertex and edge, at the call.
+  every pass with independent iterators, laziness (the first mappings of `E(40)` onto itself and of
+  `K₁₂`), and colour closures read at most once per vertex and edge, at the call.
 - **Properties** (swift-property-based, with shrinking). Random pseudographs and directed
   pseudographs on up to 6 vertices, with parallel edges, self-loops and optional colours, are
   checked against a brute-force model that tries every injection. Each problem's sequence must be
@@ -136,31 +130,3 @@ whose orbits are `orbits`.
   canonical forms of relabelled copies, loops, parallel edges and digraphs. The edge-colour check
   at a joint-search leaf is not pinned by a test: it fails only when two different colour
   multisets have equal 64-bit weight sums, and the code documents it as defensive.
-
-## Planted bugs
-
-The suite was checked against 19 bugs planted in a scratch model of the API (a backtracking and
-colour-refinement implementation built through Bazel outside the repository). It caught 18. The
-19th, hashing the sorted images while `==` still compares them in order, is equivalent: it still
-obeys the Hashable law and only adds collisions.
-
-| Planted bug | Caught by |
-|---|---|
-| Induced subgraph isomorphism compared as containment | IS-087 – IS-116 (13 rows) |
-| Monomorphism compared as equality | IS-123 – IS-146, properties |
-| Directed: the reverse pair of an arc unchecked | IS-139, IS-140, directed properties |
-| Weisfeiler–Leman: a self-loop counted as one edge end | IS-161, IS-174, properties |
-| Weisfeiler–Leman: in-neighbours ignored | IS-163, IS-173, properties |
-| Graph hash without the vertex count and round 0 | IS-153 |
-| Subgraph hashes one round late | IS-166 – IS-172, properties |
-| `preimage(of:)` reading the target index as a pattern index | IS-032, IS-040, IS-049, IS-050 and other unique-mapping rows |
-| Equality ignoring the order of the images | IS-053, IS-054 |
-| The sequence enumerated eagerly | laziness, grid stress (time limits) |
-| Backtracking dropping the siblings of each leaf | 18 count rows |
-| Backtracking not injective | 21 tests |
-| Subgraph problems ignoring vertex colours | IS-112, IS-143, IS-145, properties |
-| Edge colours ignored | IS-079 – IS-086, IS-113 |
-| A colour closure read twice per vertex | colour-closure conformance |
-| Refinement search skipping a cell's last candidate | 44 tests |
-| An empty pattern without its empty mapping | IS-101, IS-102, IS-129, properties |
-| `imageIndex(ofIndex:)` clamping instead of trapping | `extra_traps.swift` |

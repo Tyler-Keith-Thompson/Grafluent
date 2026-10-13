@@ -92,13 +92,12 @@ def path_to(par, v):
     while par[out[-1]] is not None: out.append(par[out[-1]])
     return out[::-1]
 
-# ---------------------------------------------------------------- Bellman-Ford (LEMON weak rounds)
+# ---------------------------------------------------------------- Bellman-Ford (weak rounds)
 def bellman_ford(g, sources, max_extra_rounds=10_000):
-    """Rounds over an active list (LEMON's processNextWeakRound): each round scans the out-edges of
-    the vertices improved in the previous round, in the order they were first improved, reading
-    current distances. Stops when a round improves nothing. After n rounds with work left, a
-    negative cycle is reachable; the witness is LEMON's negativeCycle() walk from the active
-    vertices, and if that walk finds no cycle yet, more rounds are run (counted in `extra`).
+    """Rounds over an active list: each round scans the out-edges of the vertices improved in the
+    previous round, in the order they were first improved, reading current distances. Stops when a
+    round improves nothing. After n rounds with work left, a negative cycle is reachable; the
+    witness is a parent-pointer walk from the active vertices, and if that walk finds no cycle yet, more rounds are run (counted in `extra`).
     Returns ('tree', dist, par, pe, rounds) or ('cycle', [vertex indices], extra)."""
     n = g.n
     dist = [None] * n; par = [None] * n; pe = [None] * n
