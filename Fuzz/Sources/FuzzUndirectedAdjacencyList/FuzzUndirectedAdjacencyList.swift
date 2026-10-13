@@ -65,6 +65,7 @@ enum FuzzUndirectedAdjacencyList {
             check(graph.contains(x) == vertices.contains(x), "contains(\(x))")
             for y in 0 ..< 10 {
                 check(graph.contains(edge: UndirectedEdge(x, y)) == edges.contains(UndirectedEdge(x, y)), "contains(edge: \(x)–\(y))")
+                check(Array(graph.edges(between: x, and: y)) == graph.edges.indices.filter { graph.edges[$0] == UndirectedEdge(x, y) }, "edges(between: \(x), and: \(y))")
             }
             guard vertices.contains(x) else {
                 check((try? graph.neighbors(checked: x)) == nil && (try? graph.incidentEdges(checked: x)) == nil

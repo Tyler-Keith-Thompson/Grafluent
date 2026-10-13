@@ -31,6 +31,7 @@ struct AdjacencyList<Vertex: Hashable>
     var edges: some Collection<DirectedEdge<Vertex>>
     func contains(_: Vertex) -> Bool
     func contains(edge: DirectedEdge<Vertex>) -> Bool
+    func edges(from: Vertex, to: Vertex) -> EdgesConnecting  // the edge's position, if any; O(1) expected
     func successors(of: Vertex) -> some Collection<Vertex>     // vertices one edge out
     func predecessors(of: Vertex) -> some Collection<Vertex>   // vertices one edge in
     func outDegree(of: Vertex) -> Int
@@ -103,6 +104,7 @@ named fixtures and the vertex types used to stress `Hashable` (`Collider`, `Hash
 | `AdjacencyListVertexMutationTests.swift` | Inserting and removing vertices, clearing, mutating while iterating |
 | `AdjacencyListEdgeMutationTests.swift` | Inserting and removing edges, self-loops, a disconnect sequence |
 | `AdjacencyListQueryTests.swift` | Membership, successors and predecessors, degrees, the degree-sum identities, self-loops |
+| `AdjacencyListEdgesConnectingTests.swift` | `edges(from:to:)` and `UndirectedAdjacencyList.edges(between:and:)`: direction and orientation, self-loops, absent endpoints, positions moved by removals, bulk-built graphs, every fixture and random mutations against a scan of `edges` (Q-25) |
 | `AdjacencyListEqualityTests.swift` | `Equatable`/`Hashable` laws over equivalence classes; all 512 directed graphs on 3 vertices |
 | `AdjacencyListValueSemanticsTests.swift` | Every kind of mutation leaves an existing copy unchanged |
 | `AdjacencyListLifetimeTests.swift` | No leaks; removed vertices are released immediately |

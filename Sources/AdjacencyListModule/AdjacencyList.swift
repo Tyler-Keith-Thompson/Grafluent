@@ -220,6 +220,16 @@ extension AdjacencyList {
         return _position(ofPair: _SlotPair(source, target)) != nil
     }
 
+    /// The position of the edge from `source` to `target`, as a collection of at most one
+    /// position. Empty when there is no such edge, or when either is not a vertex. O(1) expected.
+    @inlinable
+    public func edges(from source: Vertex, to target: Vertex) -> EdgesConnecting {
+        guard let s = _slots[source], let t = _slots[target],
+              let position = _position(ofPair: _SlotPair(s, t))
+        else { return EdgesConnecting(position: -1) }
+        return EdgesConnecting(position: position)
+    }
+
     /// The vertices that `vertex` has an edge to. A self-loop puts `vertex` in its own
     /// out-neighborhood once.
     ///
@@ -698,6 +708,29 @@ extension AdjacencyList {
             return DirectedEdge(from: vertices[record.source], to: vertices[record.target])
         }
     }
+
+    /// The positions of the edges joining two vertices: at most one, since parallel edges are not
+    /// allowed. A value, unaffected by later changes to the graph.
+    @frozen
+    public struct EdgesConnecting: RandomAccessCollection {
+        /// The edge's position, or -1 when there is none.
+        @usableFromInline let position: Int
+
+        @inlinable
+        package init(position: Int) { self.position = position }
+
+        @inlinable public var startIndex: Int { 0 }
+        @inlinable public var endIndex: Int { position >= 0 ? 1 : 0 }
+
+        /// The position in `edges` of the edge.
+        ///
+        /// - Precondition: `index` is 0 and the collection is not empty.
+        @inlinable
+        public subscript(index: Int) -> Int {
+            precondition(index == 0 && position >= 0, "Index out of range")
+            return position
+        }
+    }
 }
 
 // MARK: - Equatable and Hashable
@@ -757,6 +790,7 @@ extension AdjacencyList: Sendable where Vertex: Sendable {}
 extension AdjacencyList.Vertices: Sendable where Vertex: Sendable {}
 extension AdjacencyList.Neighbors: Sendable where Vertex: Sendable {}
 extension AdjacencyList.Edges: Sendable where Vertex: Sendable {}
+extension AdjacencyList.EdgesConnecting: Sendable {}
 extension _ArcRecord: Sendable {}
 
 // MARK: - Codable

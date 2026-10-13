@@ -199,6 +199,17 @@ extension UndirectedAdjacencyList {
         return _positions.contains(u <= v ? _SlotPair(u, v) : _SlotPair(v, u))
     }
 
+    /// The position of the edge joining `u` and `v`, in either orientation, as a collection of at
+    /// most one position; for `u == v`, the self-loop. Empty when there is no such edge, or when
+    /// either is not a vertex. O(1) expected.
+    @inlinable
+    public func edges(between u: Vertex, and v: Vertex) -> EdgesConnecting {
+        guard let a = _slots[u], let b = _slots[v],
+              let position = _positions[a <= b ? _SlotPair(a, b) : _SlotPair(b, a)]
+        else { return EdgesConnecting(position: -1) }
+        return EdgesConnecting(position: position)
+    }
+
     /// The far end of every edge end at `vertex`, in the order of `incidentEdges(of:)`. A
     /// self-loop puts `vertex` in its own neighborhood twice.
     ///
@@ -526,6 +537,10 @@ extension UndirectedAdjacencyList {
 
     /// A neighborhood, as a value that later changes to the graph do not affect.
     public typealias Neighbors = AdjacencyList<Vertex>.Neighbors
+
+    /// The positions of the edges joining two vertices: at most one, since parallel edges are not
+    /// allowed. A value, unaffected by later changes to the graph.
+    public typealias EdgesConnecting = AdjacencyList<Vertex>.EdgesConnecting
 
     /// The edges of a graph at positions `0..<edgeCount`, as a value that later changes to the
     /// graph do not affect.

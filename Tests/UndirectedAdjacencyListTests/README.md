@@ -34,6 +34,7 @@ struct UndirectedAdjacencyList<Vertex: Hashable>
     var edges: Edges                              // Collection, Index == Int, 0..<edgeCount
     func contains(_: Vertex) -> Bool
     func contains(edge: UndirectedEdge<Vertex>) -> Bool  // either orientation
+    func edges(between: Vertex, and: Vertex) -> EdgesConnecting  // the edge's position, if any; O(1) expected
     func neighbors(of: Vertex) -> Neighbors       // a self-loop's vertex twice
     func incidentEdges(of: Vertex) -> ArraySlice<Int>    // a self-loop's position twice
     func oppositeVertex(to: Vertex, acrossEdgeAt: Int) -> Vertex
@@ -89,6 +90,10 @@ fixtures (`UndirectedFixtures.swift`), the pseudograph test conformer and `Minim
 | `UndirectedAdjacencyListCheckedTests.swift` | The `checked:` lookups against their trapping spellings, throwing for a non-vertex and after a removal moved a slot; `insert(checked:)` between existing vertices, in either orientation, a loop, and throwing with nothing changed for a missing endpoint |
 | `UndirectedAdjacencyListConstructionTests.swift` | Dictionary literals, adjacency mappings, initializers, order independence, conversion from any `Graph` |
 | `UndirectedAdjacencyListReviewTests.swift` | Cases the other files miss: `removeAllEdges` forgets edges (UG-R21); edgeless graphs compare vertices and hashes see both sets (UG-R16); `memberAfterInsert` returns stored instances and orientation (UG-R10); decoding keeps orientation and rejects repeated edges (UG-R19); edge indices (UG-R22); seeded random mutations against a set model, every law after every step (UG-P02) |
+
+`edges(between:and:)` is tested beside `AdjacencyList.edges(from:to:)`, in
+`Tests/AdjacencyListTests/AdjacencyListEdgesConnectingTests.swift` (catalog Q-25 of
+`Tests/Catalogs/AdjacencyList/cases.md`).
 
 The `Graph` laws on this type (with Int and String vertices), its associated types, the builder,
 the `directedView` view and conversions are tested in `Tests/GraphProtocolsTests`, beside the other

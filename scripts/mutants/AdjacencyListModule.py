@@ -151,6 +151,18 @@ MUTANTS = [
     Mutant("ugenslotted", SC, "        _generation.stamp()", "", mode="stmt", nth=3),
     Mutant("genbuilt", FO, "        graph._generation.stamp()", "", mode="stmt", nth=0),
     Mutant("ugenbuilt", FO, "        graph._generation.stamp()", "", mode="stmt", nth=1),
+    # Endpoint lookup: `edges(from:to:)`, `edges(between:and:)` and their result.
+    Mutant("edgesfromdirection", AL, "_SlotPair(s, t)", "_SlotPair(t, s)"),
+    Mutant("edgesfromsource", AL, "_slots[source]", "Optional(_slots[source] ?? 0)"),
+    Mutant("edgesfromtarget", AL, "_slots[target]", "Optional(_slots[target] ?? 0)"),
+    Mutant("edgesfromposition", AL, "EdgesConnecting(position: position)", "EdgesConnecting(position: 0)"),
+    Mutant("edgesconnectingend", AL, "position >= 0 ? 1 : 0", "position > 0 ? 1 : 0"),
+    Mutant("edgesconnectingindex", AL, "index == 0 && position >= 0", "position >= 0"),
+    Mutant("edgesconnectingempty", AL, "index == 0 && position >= 0", "index == 0"),
+    Mutant("edgesbetweenorder", UAL, "a <= b ? _SlotPair(a, b) : _SlotPair(b, a)", "_SlotPair(a, b)"),
+    Mutant("edgesbetweenu", UAL, "_slots[u]", "Optional(_slots[u] ?? 0)"),
+    Mutant("edgesbetweenv", UAL, "_slots[v]", "Optional(_slots[v] ?? 0)", nth=0),
+    Mutant("edgesbetweenposition", UAL, "EdgesConnecting(position: position)", "EdgesConnecting(position: 0)"),
 ] + [
     m
     for tag, path in (("", "AdjacencyList+PropertyGraph.swift"), ("u", "UndirectedAdjacencyList+PropertyGraph.swift"))

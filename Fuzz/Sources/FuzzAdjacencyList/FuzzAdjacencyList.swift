@@ -63,6 +63,7 @@ enum FuzzAdjacencyList {
             check(graph.contains(x) == vertices.contains(x), "contains(\(x))")
             for y in 0 ..< 10 {
                 check(graph.contains(edge: DirectedEdge(from: x, to: y)) == edges.contains(DirectedEdge(from: x, to: y)), "contains(edge: \(x)→\(y))")
+                check(Array(graph.edges(from: x, to: y)) == graph.edges.indices.filter { graph.edges[$0] == DirectedEdge(from: x, to: y) }, "edges(from: \(x), to: \(y))")
             }
             guard vertices.contains(x) else {
                 check((try? graph.successors(checked: x)) == nil && (try? graph.predecessors(checked: x)) == nil

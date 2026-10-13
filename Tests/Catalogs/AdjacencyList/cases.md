@@ -149,6 +149,7 @@ All four libraries count a loop **once** in edge count and **twice** in undirect
 | Q-22 | Sources and sinks | petgraph `externals`: 4 nodes, edges a-b, a-c. Undirected: Outgoing externals = `[d]`. Directed: Incoming (sources) = `[a,d]`, Outgoing (sinks) = `[b,c,d]`. FX-06: v5 is the only source, v0 the only sink | pg:tests/graph.rs:711-733 |
 | Q-23 | Density with loops can exceed 1 (a derived-metric trap) | Single node + loop → density 0.0; add (1,2) → **2.0**. FX-05 density 0.5 (undirected) and 0.3 (directed) | nx:TF:247-258 |
 | Q-24 | Non-neighbors and common neighbors (derived queries) | K100 non-neighbors of v: 0; P100 interior 97, endpoint 98; 10 isolated → 9. `common_neighbors(K5,0,1) == [2,3,4]`, `(P3,0,2) == [1]` | nx:TF:313-363, 437-481 |
+| Q-25 | Position of the edge between two endpoints | **Grafluent decision**: spelled as the multigraphs spell it, `edges(from:to:)` (directed) and `edges(between:and:)` (undirected), returning a collection of at most one position. Path 1→2→3 plus loop 3→3: `edges(from: 1, to: 2)` is the position of 1→2, `edges(from: 2, to: 1)` empty, the loop once. Undirected: either orientation gives the same position. An absent endpoint gives empty, as `contains(edge:)` gives false (Q-03). After `remove(edge:)` swap-removes, the moved edge answers its new position. Agrees with a scan of `edges` on every fixture and through random mutations | Q-19 (`find_edge`), Q-20 |
 
 ---
 
