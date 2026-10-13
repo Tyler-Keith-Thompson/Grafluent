@@ -23,10 +23,11 @@ struct GraphFormatsReviewTests {
             precondition(file.utf8.count == 79)
             let graph = try? DirectedPseudograph<Int>(matrixMarket: file.utf8)
             var usage = rusage()
-            getrusage(RUSAGE_SELF, &usage)
             #if canImport(Darwin)
+            getrusage(RUSAGE_SELF, &usage)
             let peak = Int(usage.ru_maxrss)
             #else
+            getrusage(__rusage_who_t(RUSAGE_SELF.rawValue), &usage)
             let peak = Int(usage.ru_maxrss) * 1024
             #endif
             exit(graph == nil && peak < 256 << 20 ? 0 : 1)
@@ -69,10 +70,11 @@ struct GraphFormatsReviewTests {
             let targets = (0 ..< 3_000).map { "b\($0)" }.joined(separator: " & ")
             let graph = try? DirectedPseudograph<String>(mermaid: ("flowchart LR\n" + sources + " --> " + targets + "\n").utf8)
             var usage = rusage()
-            getrusage(RUSAGE_SELF, &usage)
             #if canImport(Darwin)
+            getrusage(RUSAGE_SELF, &usage)
             let peak = Int(usage.ru_maxrss)
             #else
+            getrusage(__rusage_who_t(RUSAGE_SELF.rawValue), &usage)
             let peak = Int(usage.ru_maxrss) * 1024
             #endif
             exit(graph == nil && peak < 256 << 20 ? 0 : 1)
