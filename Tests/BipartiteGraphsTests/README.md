@@ -40,6 +40,7 @@ struct BipartiteGraph<Vertex: Hashable>: Graph, GraphDelegator, PropertyGraph, H
 extension Graph {
     var isBipartite: Bool
     func bipartition() -> Bipartition<Self>?                       // each component's least vertex left
+    func bipartition(left: some Sequence<Vertex>) -> Bipartition<Self>?  // the caller's left; nil unless every edge crosses, or for a non-vertex
     func findOddCycle() -> Cycle<Vertex, Edges.Index>?             // first BFS conflict, Cycles' canonical form
 }
 struct Bipartition<G: Graph>: Equatable, CustomStringConvertible  // left, right (ArraySlice), side(of:), side(ofIndex:), side(checked:) (throws VertexNotFound); Sendable when G and G.Vertex are

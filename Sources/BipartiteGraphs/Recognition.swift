@@ -14,6 +14,36 @@ public enum BipartiteSide: Hashable, Sendable, CaseIterable, Codable, CustomStri
     public var description: String { self == .left ? "left" : "right" }
 }
 
+/// Whether every row entry's far end is on the other side from its near end, given a side per
+/// vertex number (0 left, 1 right). A self-loop's far end is its near end, so it fails.
+@frozen
+@usableFromInline
+package struct _SidesCheck: _UndirectedRowsAlgorithm {
+    @usableFromInline let sides: [Int8]
+
+    @inlinable
+    package init(sides: [Int8]) { self.sides = sides }
+
+    @inlinable
+    package var readsEdges: Bool { false }
+
+    @inlinable
+    package func run<Rows: _IncidenceRowSource>(count n: Int, edgeCount: Int, _ rows: inout Rows) -> Bool {
+        precondition(sides.count == n, "The sides do not number the graph's vertices")
+        return sides.withUnsafeBufferPointer { side in
+            for v in 0 ..< n {
+                let near = side[v]
+                for k in 0 ..< rows.count(v) {
+                    let w = rows.neighbor(v, k)
+                    precondition(UInt(bitPattern: w) < UInt(bitPattern: n), "A neighbor index is out of range")
+                    if side[w] == near { return false }
+                }
+            }
+            return true
+        }
+    }
+}
+
 /// A breadth-first two-colouring in index space: components rooted at their least vertex number,
 /// rows in `incidentEdges` order, each new vertex on the side opposite the one it was reached
 /// from. Stops at the first row entry whose far end is on the near end's side; with `witness`,
@@ -104,9 +134,10 @@ func _closeCycle(_ v: Int, _ w: Int, _ e: Int, _ parent: [Int], _ parentEdge: [I
     return (vertices, edges)
 }
 
-/// A bipartition of a graph's vertices: the result of `bipartition()`. In each connected component
-/// the least vertex (in `vertices` order) is left, so isolated vertices are left; each side lists
-/// its vertices in `vertices` order.
+/// A bipartition of a graph's vertices: the result of `bipartition()`, where in each connected
+/// component the least vertex (in `vertices` order) is left, so isolated vertices are left, or of
+/// `bipartition(left:)`, where the caller picks the left side. Each side lists its vertices in
+/// `vertices` order.
 ///
 /// It keeps a copy of the graph to look vertices up (copy-on-write, so O(1) to make; while the
 /// result is alive, the next mutation of the original copies the whole graph). A side's slice
@@ -229,6 +260,35 @@ extension Graph {
     public func bipartition() -> Bipartition<Self>? {
         guard let sides = _runOnUndirectedRows(_TwoColoring(witness: false)).sides else { return nil }
         return Bipartition(self, listed: _listedVertices(), sides: sides)
+    }
+
+    /// The bipartition with `left` as the left side and every other vertex on the right, or `nil`
+    /// when an edge has both ends on one side (a self-loop always does) or `left` names a
+    /// non-vertex.
+    ///
+    /// Repeats in `left` are one vertex. Each side lists its vertices in `vertices` order.
+    ///
+    /// - Parameter left: The vertices to put on the left.
+    /// - Returns: The bipartition, or `nil`.
+    /// - Complexity: O(n + m + k) for k elements of `left`, plus one hash per vertex for a graph
+    ///   without vertex indices.
+    @inlinable
+    public func bipartition(left: some Sequence<Vertex>) -> Bipartition<Self>? {
+        let numbering = _vertexNumbering()
+        var sides = [Int8](repeating: 1, count: vertexIndexBound ?? vertexCount)
+        if let numbers = numbering?.numbers {
+            for vertex in left {
+                guard let v = numbers[vertex] else { return nil }
+                sides[v] = 0
+            }
+        } else {
+            for vertex in left {
+                guard contains(vertex) else { return nil }
+                sides[vertexIndex(of: vertex)] = 0
+            }
+        }
+        guard _runOnUndirectedRows(_SidesCheck(sides: sides), vertexNumbering: numbering) else { return nil }
+        return Bipartition(self, listed: numbering?.listed, sides: sides)
     }
 
     /// An odd cycle, or `nil` when the graph is bipartite.
