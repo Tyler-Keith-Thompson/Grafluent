@@ -126,7 +126,8 @@ struct CentralityNoConvergenceTests {
         #expect(try empty.pageRank(maxIterations: 1).scores == [])
         let isolated = ReferenceDirectedMultigraph<Int>(vertices: 0 ..< 3, edges: [])
         let hits = try isolated.hits(maxIterations: 1)
-        #expect(hits.hubs.scores == [1.0 / 3, 1.0 / 3, 1.0 / 3])
-        #expect(hits.authorities.scores == [1.0 / 3, 1.0 / 3, 1.0 / 3])
+        let third: [Double] = [1.0 / 3, 1.0 / 3, 1.0 / 3]
+        #expect(hits.hubs.scores == third)
+        #expect(hits.authorities.scores == third)
     }
 }

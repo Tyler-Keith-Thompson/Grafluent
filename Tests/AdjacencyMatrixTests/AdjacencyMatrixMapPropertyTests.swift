@@ -70,7 +70,13 @@ struct AdjacencyMatrixMapPropertyTests {
                     }
                 case 8:
                     // A whole-matrix operation with a pseudo-random mask of the same size.
-                    let mask = AdjacencyMatrix(vertexCount: n, edges: (0 ..< n).flatMap { s in (0 ..< n).compactMap { t in (s * 7 + t * 3 + x + y) % 4 == 0 ? DirectedEdge(from: s, to: t) : nil } })
+                    var maskEdges: [DirectedEdge<Int>] = []
+                    for s in 0 ..< n {
+                        for t in 0 ..< n where (s * 7 + t * 3 + x + y) % 4 == 0 {
+                            maskEdges.append(DirectedEdge(from: s, to: t))
+                        }
+                    }
+                    let mask = AdjacencyMatrix(vertexCount: n, edges: maskEdges)
                     switch x % 4 {
                     case 0:
                         matrix.formIntersection(mask)

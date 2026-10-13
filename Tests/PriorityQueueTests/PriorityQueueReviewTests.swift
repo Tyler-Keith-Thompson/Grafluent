@@ -3,7 +3,11 @@
 // insert-or-decrease, and a composite tie-breaking priority.
 // Case IDs (PQ-nn) refer to the catalog; see README.md.
 
+#if canImport(Darwin)
 import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 import GrafluentTestSupport
 import PriorityQueueModule
 import Testing
