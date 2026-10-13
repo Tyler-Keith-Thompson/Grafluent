@@ -40,7 +40,11 @@ extension AdjacencyMatrix: PropertyGraph {
     /// Attaches a map from the edges to `Value`, with every edge's value `value`, and returns its
     /// handle. Removing an edge, one at a time, a row or column at a time or by a whole-matrix
     /// operation, sets its value back to `value`, so an edge inserted later starts at `value`.
-    /// Copies of the matrix carry the map, copy-on-write. O(n²), one value per cell.
+    /// Copies of the matrix carry the map, copy-on-write.
+    ///
+    /// The map is dense: it stores a value for every one of the n² cells, holding an edge or not,
+    /// so it takes n² · `MemoryLayout<Value>.stride` bytes whatever the edge count. O(n²) time and
+    /// space.
     ///
     /// Map contents take no part in equality, hashing or `Codable`. A decoded matrix has no maps.
     @inlinable

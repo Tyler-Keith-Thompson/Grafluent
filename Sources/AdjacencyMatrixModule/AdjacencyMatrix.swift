@@ -10,6 +10,10 @@ import GraphProtocols
 /// Vertices can be appended but not removed, because removing one would renumber every vertex
 /// after it.
 ///
+/// Attached edge maps (`addEdgeMap(default:)`) are dense: each stores one value for every cell,
+/// n² values whatever the edge count, so a map of `Value` takes n² · `MemoryLayout<Value>.stride`
+/// bytes.
+///
 /// Successors, predecessors and edges are always in ascending order (edges row by row).
 @frozen
 public struct AdjacencyMatrix {
@@ -626,8 +630,9 @@ extension AdjacencyMatrix {
     /// Adds a vertex with no edges.
     ///
     /// - Returns: The new vertex, which is the old `vertexCount`.
-    /// - Complexity: Amortized O(n / 64). Rows are appended; the rows are moved only when the
-    ///   number of columns outgrows the words per row, which then doubles.
+    /// - Complexity: Amortized O(n / 64), plus O(n) for each attached edge map, which gains the
+    ///   2n + 1 cells of the new row and column. Rows are appended; the rows are moved only when
+    ///   the number of columns outgrows the words per row, which then doubles.
     @inlinable
     @discardableResult
     public mutating func appendVertex() -> Int {
