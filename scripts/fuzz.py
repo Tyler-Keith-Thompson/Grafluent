@@ -136,8 +136,13 @@ def main():
             if not files:
                 print(f"{target:<30} no corpus")
                 continue
-            # Given files rather than a directory, libFuzzer runs each one once and stops.
-            result = subprocess.run([os.path.join(BIN, target), *COMMON, *files], capture_output=True, text=True)
+            # Given files rather than a directory, libFuzzer runs each one once and stops. In
+            # batches, so that a large corpus stays under the system's argument-list limit.
+            result = None
+            for start in range(0, len(files), 500):
+                result = subprocess.run([os.path.join(BIN, target), *COMMON, *files[start:start + 500]], capture_output=True, text=True)
+                if result.returncode != 0:
+                    break
             failed |= result.returncode != 0
             print(f"{target:<30} {len(files):>4} inputs  " + ("ok" if result.returncode == 0 else "FAILED\n" + result.stderr[-2000:]))
         sys.exit(1 if failed else 0)
