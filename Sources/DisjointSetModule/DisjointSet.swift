@@ -72,12 +72,6 @@ public struct DisjointSet {
         precondition(UInt(bitPattern: element) < UInt(bitPattern: _storage.count), "Element \(element) is out of range 0..<\(_storage.count)")
     }
 
-    @usableFromInline
-    @inline(never)
-    func _outOfRange(_ element: Int) -> Never {
-        preconditionFailure("Element \(element) is out of range 0..<\(_storage.count)")
-    }
-
     /// The representative of `element`'s set, without shortening the path. Takes at most
     /// ⌊log₂ count⌋ steps.
     @inlinable
