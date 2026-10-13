@@ -1,7 +1,7 @@
 // An edge list and the DirectedGraph protocol: the list is not a DirectedGraph itself (its
 // adjacency queries scan every edge, so a generic traversal over it would be O(n·m)), but it can be
 // made from any graph's edges, and graphs can be made from it. Case IDs (DG-Tnn, DG-Cnn) refer to
-// the protocol catalog; see Tests/GraphProtocolsTests/README.md.
+// the protocol catalog; see Tests/Catalogs/GraphProtocols/directed-graph.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule

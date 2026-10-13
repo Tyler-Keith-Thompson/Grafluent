@@ -46,7 +46,7 @@ extension Graph {
             (old, new, count) = _renumbering(bound: vertexIndexBound, vertices) { vertexIndex(of: $0) }
         } else {
             guard let n = vertexIndexBound else {
-                preconditionFailure("The base has no vertex indices (vertexIndexBound is nil); a subgraph view needs them in phase 1")
+                preconditionFailure("The base has no vertex indices (vertexIndexBound is nil); a subgraph view needs them")
             }
             (old, new, count) = ([], [], n)
         }

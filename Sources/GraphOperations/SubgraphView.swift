@@ -137,7 +137,7 @@ extension SubgraphView: Sendable where Base: Sendable {}
 @inlinable
 func _renumbering<S: Sequence>(bound: Int?, _ vertices: S, index: (S.Element) -> Int) -> (old: [Int], new: [Int], count: Int) {
     guard let n = bound else {
-        preconditionFailure("The base has no vertex indices (vertexIndexBound is nil); a subgraph view needs them in phase 1")
+        preconditionFailure("The base has no vertex indices (vertexIndexBound is nil); a subgraph view needs them")
     }
     var new = [Int](repeating: -1, count: n)
     var kept = 0

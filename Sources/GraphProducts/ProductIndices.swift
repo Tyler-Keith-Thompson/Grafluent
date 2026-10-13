@@ -5,7 +5,7 @@
 @inlinable
 func _factorCounts(_ first: Int?, _ second: Int?) -> (first: Int, second: Int) {
     guard let nG = first, let nH = second else {
-        preconditionFailure("A factor has no vertex indices (vertexIndexBound is nil); a product needs them in phase 1")
+        preconditionFailure("A factor has no vertex indices (vertexIndexBound is nil); a product needs them")
     }
     precondition(nH == 0 || nG <= Int.max / nH, "The vertex count |V(G)|·|V(H)| = \(nG)·\(nH) overflows Int")
     return (nG, nH)

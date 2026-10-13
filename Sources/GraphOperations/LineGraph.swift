@@ -5,7 +5,7 @@ import GraphProtocols
 @inlinable
 func _requireIndices(_ bound: Int?, _ what: StaticString) -> Int {
     guard let n = bound else {
-        preconditionFailure("The graph has no vertex indices (vertexIndexBound is nil); \(what) needs them in phase 1")
+        preconditionFailure("The graph has no vertex indices (vertexIndexBound is nil); \(what) needs them")
     }
     return n
 }

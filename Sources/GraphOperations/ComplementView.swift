@@ -9,7 +9,7 @@ extension DirectedGraph {
     /// - Precondition: the graph has vertex indices.
     @inlinable
     public var complementView: ComplementView<Self> {
-        precondition(vertexIndexBound != nil, "The base has no vertex indices (vertexIndexBound is nil); a complement view needs them in phase 1")
+        precondition(vertexIndexBound != nil, "The base has no vertex indices (vertexIndexBound is nil); a complement view needs them")
         return ComplementView(base: self)
     }
 }
@@ -21,7 +21,7 @@ extension Graph {
     /// - Precondition: the graph has vertex indices.
     @inlinable
     public var complementView: ComplementView<Self> {
-        precondition(vertexIndexBound != nil, "The base has no vertex indices (vertexIndexBound is nil); a complement view needs them in phase 1")
+        precondition(vertexIndexBound != nil, "The base has no vertex indices (vertexIndexBound is nil); a complement view needs them")
         return ComplementView(base: self)
     }
 }
