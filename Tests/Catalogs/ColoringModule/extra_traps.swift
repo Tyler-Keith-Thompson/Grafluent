@@ -126,10 +126,18 @@
         }
     }
 
+    @Test("greedyColoring(strategy:presetColor:) with a preset colour equal to the vertex count traps")
+    func presetAtVertexCount() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1], edges: [])
+            _ = graph.greedyColoring { $0 == 0 ? 2 : nil }
+        }
+    }
+
     @Test("greedyColoring(strategy:presetColor:) with two adjacent vertices preset alike traps")
     func adjacentPresets() async {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            _ = graph.greedyColoring(strategy: .saturationLargestFirst) { $0 == 0 || $0 == 1 ? 3 : nil }
+            _ = graph.greedyColoring(strategy: .saturationLargestFirst) { $0 == 0 || $0 == 1 ? 2 : nil }
         }
     }

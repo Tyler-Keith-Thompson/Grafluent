@@ -161,8 +161,8 @@ nil otherwise (`findOddCycle()` gives the witness).
 * **`presetColor:`**: preset vertices keep their colours and count as coloured from the start.
   Static orders are the whole graph's with them skipped; DSatur counts them in saturation; the
   independent set's class k starts without the neighbours of vertices preset to k;
-  `.coloredNeighbors` counts preset neighbours as coloured. Traps on a negative preset or two
-  adjacent presets alike.
+  `.coloredNeighbors` counts preset neighbours as coloured. Traps on a preset outside
+  `0..<vertexCount` or two adjacent presets alike.
 * **`greedyColoring(order:)`**: first fit in the caller's order. The crown graph in interleaved
   order needs n/2 colours (CO-122: crown(4), 4 colours; CO-038 is the same trap reached through
   largest first on `crownx`). Order preconditions: CO-248 – CO-250.

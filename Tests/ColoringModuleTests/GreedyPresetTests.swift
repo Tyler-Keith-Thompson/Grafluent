@@ -52,14 +52,23 @@ struct GreedyPresetTests {
         #expect(coloring.colors == expected)
     }
 
-    @Test("A preset colour above the others leaves the colours between unused: a triangle with a pendant preset to 5 is rustworkx's [1, 2, 0, 5], six colours, three classes empty")
+    @Test("A preset colour above the others leaves the colours between unused: a triangle with a pendant preset to 5 and two isolated vertices is rustworkx's [1, 2, 0, 5, 0, 0], six colours, two classes empty")
     func skippedColours() {
-        let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(0, 2), UndirectedEdge(2, 3)])
+        let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 6, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(0, 2), UndirectedEdge(2, 3)])
         let coloring = graph.greedyColoring(strategy: .largestFirst) { $0 == 3 ? 5 : nil }
-        #expect(coloring.colors == [1, 2, 0, 5])
+        #expect(coloring.colors == [1, 2, 0, 5, 0, 0])
         #expect(coloring.colorCount == 6)
-        #expect(coloring.colorClasses.map { Array($0) } == [[2], [0], [1], [], [], [3]])
-        #expect((0 ..< 4).map { coloring.color(ofIndex: $0) } == [1, 2, 0, 5])
+        #expect(coloring.colorClasses.map { Array($0) } == [[2, 4, 5], [0], [1], [], [], [3]])
+        #expect((0 ..< 6).map { coloring.color(ofIndex: $0) } == [1, 2, 0, 5, 0, 0])
+    }
+
+    @Test("The greatest allowed preset colour, one less than the vertex count: two isolated vertices with 0 preset to 1 are rustworkx's [1, 0]")
+    func presetBelowVertexCount() {
+        let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1], edges: [])
+        let coloring = graph.greedyColoring { $0 == 0 ? 1 : nil }
+        #expect(coloring.colors == [1, 0])
+        #expect(coloring.colorCount == 2)
+        #expect(coloring.colorClasses[1].map { $0 } == [0])
     }
 
     @Test("Every vertex preset: the presets themselves, for every strategy (K4 preset to [3, 2, 1, 0], rustworkx's)")
@@ -86,14 +95,14 @@ struct GreedyPresetTests {
         var asked: [String] = []
         let coloring = graph.greedyColoring(strategy: .saturationLargestFirst) { vertex in
             asked.append(vertex)
-            return vertex == "b" ? 4 : nil
+            return vertex == "b" ? 3 : nil
         }
         #expect(asked == ["c", "a", "b", "d"])
-        #expect(coloring.color(of: "b") == 4)
+        #expect(coloring.color(of: "b") == 3)
         #expect(graph.isVertexColoring { coloring.color(of: $0) })
-        // DSatur: c and a see colour 4 (saturation 1), c has the greater degree and takes 0; then a
+        // DSatur: c and a see colour 3 (saturation 1), c has the greater degree and takes 0; then a
         // (saturation 1) takes 0, d takes 1.
-        #expect(coloring.colors == [0, 0, 4, 1])
+        #expect(coloring.colors == [0, 0, 3, 1])
     }
 
     @Test("No presets: the same colouring as greedyColoring(strategy:), for every strategy", .tags(.randomized))
@@ -124,10 +133,10 @@ struct GreedyPresetTests {
                 if !adjacent[a].contains(b) { adjacent[a].append(b) }
                 if !adjacent[b].contains(a) { adjacent[b].append(a) }
             }
-            // A random proper preset on about a third of the vertices, colours 0 … 5.
+            // A random proper preset on about a third of the vertices, colours 0 … min(5, n − 1).
             var preset = [Int](repeating: -1, count: n)
             for v in 0 ..< n where Int.random(in: 0 ..< 3, using: &rng) == 0 {
-                let c = Int.random(in: 0 ... 5, using: &rng)
+                let c = Int.random(in: 0 ... min(5, n - 1), using: &rng)
                 if !adjacent[v].contains(where: { preset[$0] == c }) { preset[v] = c }
             }
             let context = "\(pairs) on \(listed), preset \(preset)"

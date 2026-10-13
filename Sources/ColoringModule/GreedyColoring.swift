@@ -387,8 +387,8 @@ extension Graph {
     /// colours may leave some colours unused. `presetColor` is called once per vertex, in
     /// `vertices` order. The strategy's time, plus O(n + m) to check the presets.
     ///
-    /// - Precondition: every preset colour is non-negative, and no two adjacent vertices have the
-    ///   same preset colour.
+    /// - Precondition: every preset colour is in `0..<vertexCount`, and no two adjacent vertices
+    ///   have the same preset colour.
     @inlinable
     public func greedyColoring(strategy: ColoringStrategy = .largestFirst, presetColor: (Vertex) -> Int?) -> Coloring<Self> {
         let numbering = _vertexNumbering()
@@ -398,6 +398,7 @@ extension Graph {
         for vertex in vertices {
             if let c = presetColor(vertex) {
                 precondition(c >= 0, "The preset colour of \(vertex) is negative")
+                precondition(c < rows.count, "The preset colour of \(vertex) is not below the vertex count")
                 preset.append(c)
             } else {
                 preset.append(-1)

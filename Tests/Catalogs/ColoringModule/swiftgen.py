@@ -1058,8 +1058,8 @@ intro = ("Preconditions, as exit tests (catalog CO-215, CO-216, CO-248 – CO-25
          "negative index; a non-vertex on a graph without vertex indices, to `color(of:)` and in an order; "
          "`minimumColoring().color(of:)`; `edgeColoring()` on parallel arcs through `AdjacencyList.undirectedView`, "
          "on `graph.directedView.undirectedView`, and on a self-loop away from the first vertex; `color(ofEdgeAt:)` with a "
-         "position the graph does not have, with and without edge indices; a negative preset colour and two "
-         "adjacent vertices preset alike. The `checked:` spellings of those lookups throw instead, checked in process "
+         "position the graph does not have, with and without edge indices; a negative preset colour, one equal to "
+         "the vertex count, and two adjacent vertices preset alike. The `checked:` spellings of those lookups throw instead, checked in process "
          "after the exit tests. Each exit test builds "
          "its inputs inside the closure. Generated from cases.md by swiftgen.py, the tests after CO-252 written "
          "by hand (extra_traps.swift); see README.md.")

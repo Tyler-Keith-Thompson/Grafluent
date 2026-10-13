@@ -103,6 +103,7 @@ MUTANTS = [
 
     # greedyColoring(strategy:presetColor:) and greedyColoring(order:)
     Mutant("preset_negative", "GreedyColoring.swift", r'                precondition(c >= 0, "The preset colour of \(vertex) is negative")', "", mode="stmt"),
+    Mutant("preset_bound", "GreedyColoring.swift", r'                precondition(c < rows.count, "The preset colour of \(vertex) is not below the vertex count")', "", mode="stmt"),
     Mutant("preset_adjacent", "GreedyColoring.swift", '                precondition(preset[rows.targets[k]] != preset[v], "Two adjacent vertices have the same preset colour")', "", mode="stmt"),
     Mutant("order_twice", "GreedyColoring.swift", r'            precondition(!seen[v], "\(vertex) appears twice in the order")', "", mode="stmt"),
     Mutant("order_seen", "GreedyColoring.swift", "            seen[v] = true", "", mode="stmt"),
