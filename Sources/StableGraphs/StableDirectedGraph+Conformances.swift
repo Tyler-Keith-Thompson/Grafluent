@@ -6,7 +6,7 @@ extension StableDirectedGraph: BidirectionalDirectedGraph {
     /// The current generation (see `GraphGeneration`): every insertion, removal and re-pointed
     /// edge, and both resets, start a new one. O(1).
     @inlinable
-    public var generation: GraphGeneration { _generation.generation(storage: _GenerationStamp.storage(of: _edgePages)) }
+    public var generation: GraphGeneration { _generation.generation }
 
     /// While no vertex has been removed since the last reset: `vertexCount`, and each vertex's
     /// position is its index. While vertex holes exist: `nil`, because indices must be dense; the
@@ -455,6 +455,8 @@ extension StableDirectedGraph: Decodable where Vertex: Decodable {
         _skipEdgePositions(to: edgeEnd)
         _packRows()
         _firstEdge = edgePositions.first ?? edgeEnd
+        // The skips wrote the tables without a structural mutation's advance.
+        _generation.stamp()
     }
 
     /// Whether the pages from the first listed position (or the end, with none listed) to the end

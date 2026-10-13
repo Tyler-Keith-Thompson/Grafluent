@@ -201,8 +201,8 @@ let benchmarks: @Sendable () -> Void = {
     // MARK: Insertion, and attached maps against side arrays the caller keeps
 
     // The n vertices, then the m hyperedges one at a time, with 0, 1 (an edge map) or 2 (an edge
-    // map and a vertex map) attached maps; the BASELINE appends to two arrays beside the
-    // hypergraph instead.
+    // map and a vertex map) attached maps; the BASELINE rows append to as many arrays instead, kept
+    // by the caller's own hypergraph type inside its mutating methods (`SideArrayHypergraph`).
     // The 0-map row attaches nothing: an attach call in the loop, even one run zero times, costs the
     // optimizer facts a caller without maps keeps.
     Benchmark("Hypergraphs: insert(_:) then insert(hyperedge:), 0 attached maps") { benchmark in
@@ -225,18 +225,14 @@ let benchmarks: @Sendable () -> Void = {
             }
         }
     }
-    Benchmark("Hypergraphs: BASELINE insert(_:) then insert(hyperedge:), with hand-maintained side arrays") { benchmark in
-        for _ in benchmark.scaledIterations {
-            var built = UndirectedIncidenceList<Int>()
-            var weights: [Double] = [], colors: [Int] = []
-            for v in 0 ..< n where built.insert(v).inserted { colors.append(0) }
-            for row in rows {
-                let vertexCount = built.vertexCount
-                built.insert(hyperedge: row)
-                weights.append(1.0)
-                for _ in vertexCount ..< built.vertexCount { colors.append(0) }
+    for arrays in 1 ... 2 {
+        Benchmark("Hypergraphs: BASELINE insert(_:) then insert(hyperedge:), \(arrays) side array\(arrays == 1 ? "" : "s") in the caller's hypergraph type") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var built = SideArrayHypergraph(vertexArray: arrays >= 2)
+                for v in 0 ..< n { built.insert(v) }
+                for row in rows { built.insert(hyperedge: row) }
+                blackHole(built)
             }
-            blackHole((built, weights, colors))
         }
     }
     Benchmark("Hypergraphs: insert(sources:targets:), 0 attached maps") { benchmark in
@@ -278,5 +274,28 @@ let benchmarks: @Sendable () -> Void = {
             for p in 0 ..< weighted.hyperedgeCount { sum += w[p] }
             blackHole(sum)
         }
+    }
+}
+
+/// The fair baseline of the attached-map rows: a caller's own hypergraph type that holds the
+/// hypergraph, an edge side array and (with `vertexArray`) a vertex side array, appending to each
+/// inside its own insertions.
+struct SideArrayHypergraph {
+    var hypergraph = UndirectedIncidenceList<Int>()
+    var weights: [Double] = []
+    var colors: [Int] = []
+    let vertexArray: Bool
+
+    init(vertexArray: Bool) { self.vertexArray = vertexArray }
+
+    mutating func insert(_ vertex: Int) {
+        if hypergraph.insert(vertex).inserted, vertexArray { colors.append(0) }
+    }
+
+    mutating func insert(hyperedge row: [Int]) {
+        let vertexCount = hypergraph.vertexCount
+        hypergraph.insert(hyperedge: row)
+        weights.append(1.0)
+        if vertexArray { for _ in vertexCount ..< hypergraph.vertexCount { colors.append(0) } }
     }
 }

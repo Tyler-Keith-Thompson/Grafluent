@@ -38,6 +38,7 @@ against `projected_graph`. Run `uv run --quiet --no-project --with networkx==3.7
 | `bipartition() -> Bipartition<Self>?` | `Graph` | NetworkX `sets` and `color`, Boost `is_bipartite(g, index_map, partition_map)`, igraph `is_bipartite(return_types=True)`, JGraphT `BipartitePartitioning.getPartitioning()`, LEMON `bipartitePartitions`. Costs O(n) memory instead of the copy `BipartiteGraph(graph)` makes, for algorithms that need only the sides (ColoringModule's two-coloring) |
 | `findOddCycle() -> Cycle<Vertex, Edges.Index>?` | `Graph` | Boost `find_odd_cycle`. The README's cycle-handling rule: a failed recognition returns the witness. `BipartiteGraph(graph) == nil` exactly when it is non-nil |
 | `projectedGraph(onto:) -> UndirectedAdjacencyList<Vertex>` | `BipartiteGraph` | NetworkX `bipartite.projected_graph`, igraph `bipartite_projection`. It is the most used function in NetworkX's bipartite package (affiliation networks, collaboration graphs), and it needs a side, which only this module has |
+| `GraphDelegator` (`base`), `PropertyGraph` (attached `EdgeMap` / `VertexMap`), `generation` | `BipartiteGraph` | Every mutable representation keeps its maps and stamps its generations (the attached-maps plan). `BipartiteGraph` wraps `UndirectedAdjacencyList`, so all three are the base's; its members are concrete forwarders, since a protocol default would need the base's conformance in inlinable code of modules that do not import AdjacencyListModule (MatchingModule, ColoringModule, Covering) |
 
 **NetworkX `bipartite` functions, and where each goes**
 

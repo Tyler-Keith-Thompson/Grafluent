@@ -44,7 +44,8 @@ public struct UndirectedIncidenceList<Vertex: Hashable> {
     @usableFromInline
     internal var _edgeMaps: _AttachedMaps
 
-    /// The generation, advanced by every structural mutation.
+    /// The generation, advanced by every structural mutation, which first makes the hyperedge
+    /// offsets (`_plane.memberOffsets`, the identity array of `_GenerationStamp`) unique.
     @usableFromInline
     internal var _generation: _GenerationStamp
 
@@ -157,7 +158,7 @@ extension UndirectedIncidenceList {
         if inserted {
             _plane.appendVertex()
             if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
-            _generation.advance()
+            _generation.advance(owning: &_plane.memberOffsets)
         }
         return (inserted, _vertices[index])
     }
@@ -184,7 +185,7 @@ extension UndirectedIncidenceList {
         let position = _plane.hyperedgeCount
         _plane.appendHyperedge(row)
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
-        _generation.advance()
+        _generation.advance(owning: &_plane.memberOffsets)
         return position
     }
 
@@ -206,7 +207,7 @@ extension UndirectedIncidenceList {
         let position = _plane.hyperedgeCount
         _plane.appendHyperedge(row)
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
-        _generation.advance()
+        _generation.advance(owning: &_plane.memberOffsets)
         return position
     }
 
@@ -217,7 +218,7 @@ extension UndirectedIncidenceList {
         _plane.removeAll(keepingCapacity: keepingCapacity)
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advance()
+        _generation.advance(owning: &_plane.memberOffsets)
     }
 
     /// Reserves storage for `vertexCount` vertices, `hyperedgeCount` hyperedges and
@@ -227,6 +228,7 @@ extension UndirectedIncidenceList {
     public mutating func reserveCapacity(vertexCount: Int, hyperedgeCount: Int, incidenceCount: Int) {
         _vertices.reserveCapacity(vertexCount)
         _plane.reserveCapacity(vertexCount: vertexCount, hyperedgeCount: hyperedgeCount, incidenceCount: incidenceCount)
+        _generation.storageMayHaveMoved(_plane.memberOffsets)
         if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
         if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(hyperedgeCount) }
     }
@@ -631,7 +633,7 @@ extension UndirectedIncidenceList: PropertyGraph {
     /// - Precondition: `map` is attached to this hypergraph.
     @inlinable
     public func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Self, Value> {
-        EdgeValues(_storage: _edgeMaps.storage(Value.self, in: _edgeMaps.index(of: map._token, hint: map._hint)))
+        EdgeValues(_storage: _edgeMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// A snapshot of `map`'s values by vertex index: one array load a read. O(1).
@@ -639,7 +641,7 @@ extension UndirectedIncidenceList: PropertyGraph {
     /// - Precondition: `map` is attached to this hypergraph.
     @inlinable
     public func values<Value>(of map: VertexMap<Value>) -> VertexValues<Self, Value> {
-        VertexValues(_storage: _vertexMaps.storage(Value.self, in: _vertexMaps.index(of: map._token, hint: map._hint)))
+        VertexValues(_storage: _vertexMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 }
 

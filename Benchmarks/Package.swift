@@ -98,6 +98,7 @@ let package = Package(
                 .product(name: "ShortestPaths", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "StableGraphs", package: "Grafluent"),
             ],
             path: "Benchmarks/ShortestPathsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -450,6 +451,7 @@ let package = Package(
                 .product(name: "SpanningTrees", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
                 .product(name: "AdjacencyMatrixModule", package: "Grafluent"),
+                .product(name: "StableGraphs", package: "Grafluent"),
             ],
             path: "Benchmarks/SpanningTreesBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]

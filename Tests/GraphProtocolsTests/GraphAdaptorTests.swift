@@ -24,7 +24,7 @@ private struct DenseDigraph: BidirectionalDirectedGraph, PropertyGraph {
     typealias EdgePosition = Int
 
     var vertexTotal: Int
-    var arcs: [DirectedEdge<Int>] = []
+    var arcs: ContiguousArray<DirectedEdge<Int>> = []
     var vertexMaps = _AttachedMaps()
     var edgeMaps = _AttachedMaps()
     var stamp = _GenerationStamp()
@@ -36,7 +36,7 @@ private struct DenseDigraph: BidirectionalDirectedGraph, PropertyGraph {
     }
 
     var vertices: Range<Int> { 0 ..< vertexTotal }
-    var edges: [DirectedEdge<Int>] { arcs }
+    var edges: [DirectedEdge<Int>] { Array(arcs) }
     var vertexIndexBound: Int? { vertexTotal }
     func vertexIndex(of vertex: Int) -> Int { vertex }
     func vertex(atIndex index: Int) -> Int { index }
@@ -77,7 +77,8 @@ private struct DenseDigraph: BidirectionalDirectedGraph, PropertyGraph {
     mutating func insertVertex() -> Int {
         vertexTotal += 1
         if !vertexMaps.isEmpty { vertexMaps.appendDefaults(count: 1) }
-        stamp.advance()
+        // The arcs are unchanged, so they are made unique to tell a copy apart.
+        stamp.advance(owning: &arcs)
         return vertexTotal - 1
     }
 
@@ -85,7 +86,7 @@ private struct DenseDigraph: BidirectionalDirectedGraph, PropertyGraph {
         precondition(contains(edge.source) && contains(edge.target))
         arcs.append(edge)
         if !edgeMaps.isEmpty { edgeMaps.appendDefaults(count: 1) }
-        stamp.advance()
+        stamp.advance(writing: arcs)
         return arcs.count - 1
     }
 
@@ -93,18 +94,19 @@ private struct DenseDigraph: BidirectionalDirectedGraph, PropertyGraph {
         let last = arcs.removeLast()
         if position < arcs.count { arcs[position] = last }
         if !edgeMaps.isEmpty { edgeMaps.swapRemove(at: position) }
-        stamp.advance()
+        stamp.advance(writing: arcs)
     }
 
     mutating func reserveCapacity(edgeCount: Int) {
         arcs.reserveCapacity(edgeCount)
+        stamp.storageMayHaveMoved(arcs)
         if !edgeMaps.isEmpty { edgeMaps.reserveCapacity(edgeCount) }
     }
 
     mutating func removeAllEdges() {
         arcs.removeAll()
         if !edgeMaps.isEmpty { edgeMaps.removeAll(keepingCapacity: false) }
-        stamp.advance()
+        stamp.advance(writing: arcs)
     }
 
     static var _vertexMapLayout: _MapLayout { .dense }
@@ -228,7 +230,7 @@ private struct DenseGraph: Graph, PropertyGraph {
     typealias EdgePosition = Int
 
     var vertexTotal: Int
-    var links: [UndirectedEdge<Int>] = []
+    var links: ContiguousArray<UndirectedEdge<Int>> = []
     var vertexMaps = _AttachedMaps()
     var edgeMaps = _AttachedMaps()
     var stamp = _GenerationStamp()
@@ -240,7 +242,7 @@ private struct DenseGraph: Graph, PropertyGraph {
     }
 
     var vertices: Range<Int> { 0 ..< vertexTotal }
-    var edges: [UndirectedEdge<Int>] { links }
+    var edges: [UndirectedEdge<Int>] { Array(links) }
     var edgeIndexBound: Int? { links.count }
     func edgeIndex(of position: Int) -> Int { position }
     var vertexIndexBound: Int? { vertexTotal }
@@ -268,7 +270,7 @@ private struct DenseGraph: Graph, PropertyGraph {
     mutating func insert(edge: UndirectedEdge<Int>) -> Int {
         links.append(edge)
         if !edgeMaps.isEmpty { edgeMaps.appendDefaults(count: 1) }
-        stamp.advance()
+        stamp.advance(writing: links)
         return links.count - 1
     }
 

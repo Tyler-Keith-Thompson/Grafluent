@@ -10,7 +10,7 @@ extension BipartiteGraph where Vertex == Int {
     package init(_leftCount a: Int, graph: UndirectedAdjacencyList<Int>) {
         let n = graph.vertexCount
         self.init()
-        _graph = graph
+        _base = graph
         _side = [BipartiteSide](repeating: .left, count: a) + [BipartiteSide](repeating: .right, count: n - a)
         _left = Array(0 ..< a)
         _right = Array(a ..< n)

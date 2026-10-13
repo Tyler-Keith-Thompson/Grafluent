@@ -29,6 +29,7 @@ C = "LabeledGraph+Conformances.swift"
 B = "LabeledGraph+Construction.swift"
 D = "LabeledGraph+DirectedGraph.swift"
 U = "LabeledGraph+Mutation.swift"
+P = "LabeledGraph+PropertyGraph.swift"
 
 SAFE = "Optional(_labels.firstIndex(of: label) ?? 0)"  # a lookup that never misses
 
@@ -166,6 +167,15 @@ MUTANTS = [
     Mutant("decodekeyrepeat", C, '(.labels, "duplicate label \\(labels[position])")', '(.base, "duplicate label \\(labels[position])")'),
     Mutant("decodenocheck", C, "            self = try Self(base, labels: labels)", "            self = Self(_labels: OrderedSet(labels), _base: base)", mode="stmt"),
 
+    # Attached maps, through the base.
+    Mutant("maplayout", P, "Base._edgeMapLayout", "_MapLayout.paged"),
+    Mutant("mapoffset", P, "Base._edgeMapOffset(of: position)", "0"),
+    Mutant("mapbylabel", P, "_base[map, of: _index(of: label)]", "_base[map, of: 0]", nth=0),
+    Mutant("mapsetbylabel", P, "_base[map, of: _index(of: label)] = newValue", "_base[map, of: 0] = newValue", mode="stmt"),
+    Mutant("mapcheckedlabel", P, "_base[map, of: index]", "_base[map, of: 0]"),
+    Mutant("mapcheckededge", P, "try _base[map, checkedEdgeAt: position]", "_base[map, ofEdgeAt: position]"),
+    Mutant("mapcheckedposition", P, "try _base[map, checkedVertexAt: position]", "_base[map, ofVertexAt: position]"),
+
     # GraphProtocols: requiredIdentifier on an indexed graph.
     Mutant("requiredlow", "VertexIdentifiers.swift", "index >= 0 && index < count && graph.vertex(atIndex: index) == vertex", "index < count && graph.vertex(atIndex: index) == vertex", module="GraphProtocols"),
     Mutant("requiredhigh", "VertexIdentifiers.swift", "index >= 0 && index < count && graph.vertex(atIndex: index) == vertex", "index >= 0 && graph.vertex(atIndex: index) == vertex", module="GraphProtocols"),
@@ -182,5 +192,5 @@ MUTANTS = [
     # AdjacencyMatrixModule: source/target(ofEdgeAt:) trap on an empty cell.
     Mutant("celltarget", "AdjacencyMatrix.swift", "        _checkEdge(at: position)", "", mode="stmt", nth=1, module="AdjacencyMatrixModule"),
     Mutant("cellsource", "AdjacencyMatrix.swift", "        _checkEdge(at: position)", "", mode="stmt", nth=0, module="AdjacencyMatrixModule"),
-    Mutant("cellcheck", "AdjacencyMatrix.swift", "contains(edge: DirectedEdge(from: position.source, to: position.target))", "true", module="AdjacencyMatrixModule"),
+    Mutant("cellcheck", "AdjacencyMatrix.swift", "contains(edge: DirectedEdge(from: position.source, to: position.target))", "true", nth=0, module="AdjacencyMatrixModule"),
 ]

@@ -2,8 +2,8 @@
 
 `DirectedAcyclicGraphModule` has one type, `DirectedAcyclicGraph<Base>`. It wraps a mutable directed
 representation, rejects any edge that would close a cycle, and keeps a topological order of its
-vertices current under insertions and removals, using Pearce–Kelly as JGraphT and petgraph do. Every
-read member forwards to the base. The tests come from the proposed API (`api.md` in
+vertices current under insertions and removals, using Pearce–Kelly as JGraphT and petgraph do. It is
+a `GraphDelegator`: every read member, `generation` and the attached maps are the base's. The tests come from the proposed API (`api.md` in
 [`Tests/Catalogs/DirectedAcyclicGraph/`](../Catalogs/DirectedAcyclicGraph/), phase 1). Its open
 questions are decided as recommended, with these exceptions:
 
@@ -38,8 +38,9 @@ struct DirectedAcyclicGraph<Base: MutableDirectedGraph>: BidirectionalDirectedGr
     remove(_:), remove(edge:), remove(edgeAt:) (DirectedPseudograph, StableDirectedGraph),
         removeAll(keepingCapacity:), removeAllEdges(keepingCapacity:), reserveCapacity(vertexCount:edgeCount:)
     hasPath(from:to:), transitiveClosure(), transitiveReduction(), longestPath() -> Path?, longestPath(weight:) -> Path?
+    GraphDelegator: base, generation                                 // the base's
     PropertyGraph where Base: PropertyGraph: addEdgeMap(default:), addEdgeMap(of:), addVertexMap(…), removeEdgeMap(_:),
-        removeVertexMap(_:), self[map, …], self[map, checked…], values(of:)   // the base's (StableDirectedGraph)
+        removeVertexMap(_:), self[map, …], self[map, checked…], values(of:)   // the base's, on every base
 // ShortestPaths: dagShortestPaths(from:weight:) on any DirectedGraph (nil when a cycle is reachable),
 // and on DirectedAcyclicGraph in its order (not optional).
 ```
@@ -145,6 +146,14 @@ not from the setup.
   base, whose removal finds and drops the vertex in one dictionary operation), compared between
   two copies of one base since a dictionary removal rehashes the entries it shifts; the three
   errors of `insert(checked:)`, each with nothing changed.
+- **Attached maps and generations** (swift-property-based, with shrinking). On each base, random
+  insertions (some rejected), removals by vertex, pair and position, resets, value writes and copies
+  run with three maps attached through the wrapper, against a model that keys each edge by an
+  insertion stamp stored in one of the maps and each rank by vertex. After every step every value
+  must be the model's through the subscripts, `values(of:)` and the base, the vacated stable
+  positions must throw, the order must be topological, and the generation must change exactly
+  with the vertices and edges (the stable base also starts one on every `removeAll`) and be the
+  base's.
 - **ShortestPaths** (`Tests/ShortestPathsTests/DAGShortestPathTests.swift`): `dagShortestPaths`
   on every representation, `nil` exactly when a cycle is reachable, several sources, ties, and
   random DAGs with holes against Bellman–Ford.

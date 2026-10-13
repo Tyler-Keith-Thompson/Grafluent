@@ -4,6 +4,7 @@ import Benchmark
 import BenchmarkSupport
 import GraphProtocols
 import SpanningTrees
+import StableGraphs
 
 /// Kruskal by hand on flat arrays already gathered: sort (weight, offset) pairs, then a
 /// union–find by size with path halving in raw buffers, stopping at n − 1. The floor for ST-B01.
@@ -125,6 +126,44 @@ let benchmarks: @Sendable () -> Void = {
     let matrixRank = Dictionary(uniqueKeysWithValues: matrix.edges.indices.enumerated().map { ($1, $0) })
     let matrixWeights = matrix.edges.indices.map { _ in Int.random(in: 1 ... 1_000_000, using: &generator) }
 
+    // The same weights attached as edge maps (§6.3 of the attached-maps plan), each algorithm fed
+    // by `values(of:)` against the same algorithm fed by an array, in one run: on the undirected
+    // list (dense), on K₁₀₀₀ as `AdjacencyMatrix.undirectedView` (dense, Szudzik-indexed, against
+    // a flat array at `s · n + t`), and on `StableDirectedGraph.undirectedView` (paged, against a
+    // side array of `edgePositionBound` weights).
+    var attaching = graph
+    let graphWeights = attaching.addEdgeMap(default: 0)
+    for p in attaching.edges.indices { attaching[graphWeights, ofEdgeAt: p] = weights[p] }
+    // Captured as `let`s: a `var` captured by the benchmark closure is boxed, and every read of it
+    // pays an access check.
+    let weightedGraph = attaching
+    var weightedMatrix = AdjacencyMatrix(vertexCount: k, edges: (0 ..< k).flatMap { u in (u + 1 ..< k).map { DirectedEdge(from: u, to: $0) } })
+    let matrixMap = weightedMatrix.addEdgeMap(default: 0)
+    var flat = [Int](repeating: 0, count: k * k)
+    for (rank, p) in weightedMatrix.edges.indices.enumerated() {
+        weightedMatrix[matrixMap, ofEdgeAt: p] = matrixWeights[rank]
+        flat[p.source * k + p.target] = matrixWeights[rank]
+    }
+    let matrixFlat = flat
+    let weightedMatrixView = weightedMatrix.undirectedView
+    var stable = StableDirectedGraph(vertices: 0 ..< n, edges: pairs.map { DirectedEdge(from: $0.u, to: $0.v) })
+    precondition(stable.edgePositionBound == graph.edgeCount)
+    let stableSide = (0 ..< stable.edgePositionBound).map { weights[$0] }
+    let stableWeights = stable.addEdgeMap(default: 0)
+    for p in stable.edges.indices { stable[stableWeights, ofEdgeAt: p] = weights[p] }
+    let stableView = stable.undirectedView
+    do {
+        let w = weightedGraph.values(of: graphWeights), mw = weightedMatrixView.values(of: matrixMap), sw = stableView.values(of: stableWeights)
+        precondition(weightedGraph.kruskalMinimumSpanningTree { w[$0] } == forest)
+        precondition(weightedGraph.primMinimumSpanningTree { w[$0] }.weight == expected.weight)
+        let matrixPrim = matrix.primMinimumSpanningTree { matrixWeights[matrixRank[$0]!] }.weight
+        precondition(weightedMatrixView.primMinimumSpanningTree { matrixFlat[$0.source &* k &+ $0.target] }.weight == matrixPrim)
+        precondition(weightedMatrixView.primMinimumSpanningTree { mw[$0] }.weight == matrixPrim)
+        precondition(stableView.kruskalMinimumSpanningTree { stableSide[$0] }.weight == expected.weight)
+        precondition(stableView.kruskalMinimumSpanningTree { sw[$0] }.weight == expected.weight)
+        precondition(stableView.primMinimumSpanningTree { sw[$0] }.weight == expected.weight)
+    }
+
     // ST-B01: the three algorithms against the hand-written floor.
     Benchmark("SpanningTrees: BASELINE hand-written Kruskal on flat arrays, G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(handWrittenKruskal(n, us, vs, weights)) }
@@ -181,5 +220,46 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("SpanningTrees: primMinimumSpanningTree, K₁₀₀₀") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(complete.primMinimumSpanningTree { completeWeights[$0] }) }
+    }
+    // ST-B03: weights from an attached edge map through `values(of:)`, against the array rows
+    // above or beside them. Gate: ≤ 2 % dense, ≤ 5 % Szudzik, ≤ 10 % paged.
+    Benchmark("SpanningTrees: kruskalMinimumSpanningTree, G(10⁵, 10⁶), weights from values(of:)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = weightedGraph.values(of: graphWeights)
+            blackHole(weightedGraph.kruskalMinimumSpanningTree { w[$0] })
+        }
+    }
+    Benchmark("SpanningTrees: primMinimumSpanningTree, G(10⁵, 10⁶), weights from values(of:)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = weightedGraph.values(of: graphWeights)
+            blackHole(weightedGraph.primMinimumSpanningTree { w[$0] })
+        }
+    }
+    Benchmark("SpanningTrees: primMinimumSpanningTree, K₁₀₀₀ as AdjacencyMatrix.undirectedView, weights from a flat s · n + t array") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(weightedMatrixView.primMinimumSpanningTree { matrixFlat[$0.source &* k &+ $0.target] }) }
+    }
+    Benchmark("SpanningTrees: primMinimumSpanningTree, K₁₀₀₀ as AdjacencyMatrix.undirectedView, weights from values(of:)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = weightedMatrixView.values(of: matrixMap)
+            blackHole(weightedMatrixView.primMinimumSpanningTree { w[$0] })
+        }
+    }
+    Benchmark("SpanningTrees: kruskalMinimumSpanningTree on StableDirectedGraph.undirectedView, G(10⁵, 10⁶), weights from a side array") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(stableView.kruskalMinimumSpanningTree { stableSide[$0] }) }
+    }
+    Benchmark("SpanningTrees: kruskalMinimumSpanningTree on StableDirectedGraph.undirectedView, G(10⁵, 10⁶), weights from values(of:) (paged)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = stableView.values(of: stableWeights)
+            blackHole(stableView.kruskalMinimumSpanningTree { w[$0] })
+        }
+    }
+    Benchmark("SpanningTrees: primMinimumSpanningTree on StableDirectedGraph.undirectedView, G(10⁵, 10⁶), weights from a side array") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(stableView.primMinimumSpanningTree { stableSide[$0] }) }
+    }
+    Benchmark("SpanningTrees: primMinimumSpanningTree on StableDirectedGraph.undirectedView, G(10⁵, 10⁶), weights from values(of:) (paged)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = stableView.values(of: stableWeights)
+            blackHole(stableView.primMinimumSpanningTree { w[$0] })
+        }
     }
 }

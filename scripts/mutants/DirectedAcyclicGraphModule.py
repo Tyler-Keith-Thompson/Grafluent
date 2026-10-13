@@ -70,7 +70,7 @@ A = "DirectedAcyclicGraph+Algorithms.swift"
 B = "DirectedAcyclicGraph+Construction.swift"
 C = "DirectedAcyclicGraph+Conformances.swift"
 D = "DirectedAcyclicGraph+DirectedGraph.swift"
-PM = "DirectedAcyclicGraph+PositionMaps.swift"
+PM = "GraphAdaptor.swift"
 
 SP = "DAGShortestPaths.swift"
 AL = "AdjacencyList.swift"
@@ -321,10 +321,10 @@ MUTANTS = [
     Mutant("sttargetkey", ST, "_liveRecord(position).target", "_liveRecord(position).source", nth=2, module="StableGraphs"),
     Mutant("stinsertedge", ST, "_insertEdge(slots: source, target)", "_insertEdge(slots: target, source)", module="StableGraphs"),
     Mutant("stmoved", ST, "        _ = _removeSlot(key)\n        return nil", "        _ = _removeSlot(key)\n        return 0", mode="stmt", module="StableGraphs"),
-    # Attached maps through the wrapper (the base's PropertyGraph members).
-    Mutant("pmlayout", PM, "Base._edgeMapLayout", "_MapLayout.dense"),
-    Mutant("pmcheckededge", PM, "try _base[map, checkedEdgeAt: position]", "_base[map, ofEdgeAt: position]"),
-    Mutant("pmcheckedvertex", PM, "try _base[map, checked: vertex]", "_base[map, of: vertex]"),
-    Mutant("pmcheckedposition", PM, "try _base[map, checkedVertexAt: position]", "_base[map, ofVertexAt: position]"),
+    # Attached maps through the wrapper: GraphDelegator's PropertyGraph defaults, the base's members.
+    Mutant("pmlayout", PM, "Base._edgeMapLayout", "_MapLayout.dense", module="GraphProtocols"),
+    Mutant("pmcheckededge", PM, "try _base[map, checkedEdgeAt: position]", "_base[map, ofEdgeAt: position]", nth=1, module="GraphProtocols"),
+    Mutant("pmcheckedvertex", PM, "try _base[map, checked: vertex]", "_base[map, of: vertex]", module="GraphProtocols"),
+    Mutant("pmcheckedposition", PM, "try _base[map, checkedVertexAt: position]", "_base[map, ofVertexAt: position]", module="GraphProtocols"),
     Mutant("stremovelookup", ST, "        _slots.removeValue(forKey: _vertex(atSlot: key))", "", mode="stmt", module="StableGraphs"),
 ]

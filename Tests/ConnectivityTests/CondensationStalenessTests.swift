@@ -12,7 +12,7 @@ private struct TrackedDigraph: DirectedGraph {
     typealias Vertex = Int
 
     var vertexTotal: Int
-    var arcs: [DirectedEdge<Int>] = []
+    var arcs: ContiguousArray<DirectedEdge<Int>> = []
     var stamp = _GenerationStamp()
 
     init(vertexCount: Int, edges: [(Int, Int)]) {
@@ -21,7 +21,7 @@ private struct TrackedDigraph: DirectedGraph {
     }
 
     var vertices: Range<Int> { 0 ..< vertexTotal }
-    var edges: [DirectedEdge<Int>] { arcs }
+    var edges: [DirectedEdge<Int>] { Array(arcs) }
     var vertexIndexBound: Int? { vertexTotal }
     func vertexIndex(of vertex: Int) -> Int { vertex }
     func vertex(atIndex index: Int) -> Int { index }
@@ -33,12 +33,12 @@ private struct TrackedDigraph: DirectedGraph {
 
     mutating func insert(edge: DirectedEdge<Int>) {
         arcs.append(edge)
-        stamp.advance()
+        stamp.advance(writing: arcs)
     }
 
     mutating func removeLastEdge() {
         arcs.removeLast()
-        stamp.advance()
+        stamp.advance(writing: arcs)
     }
 }
 

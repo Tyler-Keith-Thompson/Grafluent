@@ -158,7 +158,8 @@ checked.
   not change.
 - **Generations** (`HypergraphGenerationTests.swift`): every structural mutation starts one, a
   call that changes nothing does not, copies share one until either is mutated, and built and
-  decoded hypergraphs have one.
+  decoded hypergraphs have one; on both representations, two copies under every interleaving of
+  three steps never share a generation in different states.
 - **Stress.**
   - 2 × 10⁴ vertices and 4 × 10⁴ hyperedges, whose components equal the view's.
   - A directed chain of 10⁴ Horn clauses for B- and F-Visit.

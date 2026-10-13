@@ -3,6 +3,8 @@
 // existing vertex or edge, an absent one, clearing an empty graph) does not; nor do attaching and
 // writing maps or reserving capacity. A copy is in the same generation until either is mutated,
 // and a built or decoded graph has one. Each test is self-contained.
+// Two copies, under every interleaving of three steps, never share a generation in different
+// states.
 
 import AdjacencyListModule
 import Foundation
@@ -164,5 +166,117 @@ struct AdjacencyListGenerationTests {
         #expect(seen.isCurrent(for: undirectedCopy) && !seen.isCurrent(for: undirected))
         // Views report the graph's.
         #expect(undirected.generation.isCurrent(for: undirected.directedView))
+    }
+
+    @Test("AdjacencyList: two copies never share a generation in different states, under every interleaving of three steps")
+    func directedDivergence() {
+        // Two copies of one graph, each step applied to either: whenever two generations seen along
+        // the way are current for each other, the states they were read from are the same. The
+        // states are read into plain values, which hold none of the graph's storage, so the copies'
+        // arrays are shared exactly as the steps leave them.
+        func state(of graph: AdjacencyList<Int>) -> String {
+            return "\(Array(graph.vertices)) \(Array(graph.edges))"
+        }
+        func make() -> AdjacencyList<Int> {
+            var graph = AdjacencyList<Int>()
+            for (s, t) in [(0, 1), (1, 2), (2, 3), (3, 0), (0, 2)] { graph.insert(edge: DirectedEdge(from: s, to: t)) }
+            return graph
+        }
+        let steps: [(String, (inout AdjacencyList<Int>) -> Void)] = [
+            ("insert(_:)", { _ = $0.insert(9) }),
+            ("insert(edge:)", { _ = $0.insert(edge: DirectedEdge(from: 4, to: 0)) }),
+            ("insert(edge:) of 0→1", { _ = $0.insert(edge: DirectedEdge(from: 0, to: 1)) }),
+            ("remove(edge:)", { _ = $0.remove(edge: DirectedEdge(from: 1, to: 2)) }),
+            ("remove(edge:) of 2→0", { _ = $0.remove(edge: DirectedEdge(from: 2, to: 0)) }),
+            ("_removeEdge(at:)", { if $0.edgeCount > 0 { _ = $0._removeEdge(at: 0) } }),
+            ("remove(_:)", { _ = $0.remove(3) }),
+            ("remove(_:) of a non-vertex", { _ = $0.remove(7) }),
+            ("removeAllEdges(keepingCapacity: true)", { $0.removeAllEdges(keepingCapacity: true) }),
+            ("removeAll(keepingCapacity: true)", { $0.removeAll(keepingCapacity: true) }),
+            ("removeAll()", { $0.removeAll() }),
+            ("reserveCapacity", { $0.reserveCapacity(vertexCount: 64, edgeCount: 64) }),
+            ("a map attached and written", { let w = $0.addEdgeMap(default: 0); if $0.edgeCount > 0 { $0[w, ofEdgeAt: 0] = 1 } })
+        ]
+        var violations: [String] = []
+        let choices = 2 * steps.count
+        for first in 0 ..< choices {
+            for second in 0 ..< choices {
+                for third in 0 ..< choices {
+                    var a = make()
+                    var b = a
+                    var seen = [(a.generation, state(of: a), "start")]
+                    var history = ""
+                    for choice in [first, second, third] {
+                        let (name, step) = steps[choice % steps.count]
+                        if choice < steps.count { step(&a) } else { step(&b) }
+                        history += (choice < steps.count ? " a." : " b.") + name
+                        seen.append((a.generation, state(of: a), "a after" + history))
+                        seen.append((b.generation, state(of: b), "b after" + history))
+                    }
+                    for i in seen.indices {
+                        for j in seen.indices where j > i && seen[i].0.isCurrent(for: seen[j].0) && seen[i].1 != seen[j].1 {
+                            violations.append("\(seen[i].2) and \(seen[j].2)")
+                        }
+                    }
+                }
+            }
+        }
+        #expect(violations.isEmpty, "\(violations.count) violations, among them \(violations.prefix(3))")
+    }
+
+    @Test("UndirectedAdjacencyList: two copies never share a generation in different states, under every interleaving of three steps")
+    func undirectedDivergence() {
+        // Two copies of one graph, each step applied to either: whenever two generations seen along
+        // the way are current for each other, the states they were read from are the same. The
+        // states are read into plain values, which hold none of the graph's storage, so the copies'
+        // arrays are shared exactly as the steps leave them.
+        func state(of graph: UndirectedAdjacencyList<Int>) -> String {
+            return "\(Array(graph.vertices)) \(graph.edges.map { [$0.u, $0.v] })"
+        }
+        func make() -> UndirectedAdjacencyList<Int> {
+            var graph = UndirectedAdjacencyList<Int>()
+            for (u, v) in [(0, 1), (1, 2), (2, 3), (3, 0), (0, 2)] { graph.insert(edge: UndirectedEdge(u, v)) }
+            return graph
+        }
+        let steps: [(String, (inout UndirectedAdjacencyList<Int>) -> Void)] = [
+            ("insert(_:)", { _ = $0.insert(9) }),
+            ("insert(edge:)", { _ = $0.insert(edge: UndirectedEdge(4, 0)) }),
+            ("insert(edge:) of 1–0", { _ = $0.insert(edge: UndirectedEdge(1, 0)) }),
+            ("remove(edge:)", { _ = $0.remove(edge: UndirectedEdge(2, 1)) }),
+            ("remove(edge:) of 1–3", { _ = $0.remove(edge: UndirectedEdge(1, 3)) }),
+            ("_reverseEdge(at:)", { if $0.edgeCount > 0 { $0._reverseEdge(at: 0) } }),
+            ("remove(_:)", { _ = $0.remove(3) }),
+            ("remove(_:) of a non-vertex", { _ = $0.remove(7) }),
+            ("removeAllEdges(keepingCapacity: true)", { $0.removeAllEdges(keepingCapacity: true) }),
+            ("removeAll(keepingCapacity: true)", { $0.removeAll(keepingCapacity: true) }),
+            ("removeAll()", { $0.removeAll() }),
+            ("reserveCapacity", { $0.reserveCapacity(vertexCount: 64, edgeCount: 64) }),
+            ("a map attached and written", { let w = $0.addEdgeMap(default: 0); if $0.edgeCount > 0 { $0[w, ofEdgeAt: 0] = 1 } })
+        ]
+        var violations: [String] = []
+        let choices = 2 * steps.count
+        for first in 0 ..< choices {
+            for second in 0 ..< choices {
+                for third in 0 ..< choices {
+                    var a = make()
+                    var b = a
+                    var seen = [(a.generation, state(of: a), "start")]
+                    var history = ""
+                    for choice in [first, second, third] {
+                        let (name, step) = steps[choice % steps.count]
+                        if choice < steps.count { step(&a) } else { step(&b) }
+                        history += (choice < steps.count ? " a." : " b.") + name
+                        seen.append((a.generation, state(of: a), "a after" + history))
+                        seen.append((b.generation, state(of: b), "b after" + history))
+                    }
+                    for i in seen.indices {
+                        for j in seen.indices where j > i && seen[i].0.isCurrent(for: seen[j].0) && seen[i].1 != seen[j].1 {
+                            violations.append("\(seen[i].2) and \(seen[j].2)")
+                        }
+                    }
+                }
+            }
+        }
+        #expect(violations.isEmpty, "\(violations.count) violations, among them \(violations.prefix(3))")
     }
 }

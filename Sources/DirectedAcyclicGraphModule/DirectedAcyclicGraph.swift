@@ -5,10 +5,11 @@ import GraphProtocols
 ///
 /// **A wrapper.** The graph is stored in `base`, any `MutableDirectedGraph`: `AdjacencyList`
 /// (simple), `DirectedPseudograph` (parallel edges kept) or `StableDirectedGraph` (positions survive
-/// removals). Every read member, index-space ones included, is the base's, with the base's own
-/// types, so Traversal, Connectivity, ShortestPaths and the rest run on a DAG at the base's speed,
-/// and vertex order, edge positions and parallel copies are the base's. The wrapper adds two
-/// things: the rule that an edge closing a cycle is rejected, and the order.
+/// removals). It is a `GraphDelegator`: every read member, index-space ones included, is the
+/// base's, with the base's own types, so Traversal, Connectivity, ShortestPaths and the rest run
+/// on a DAG at the base's speed, and vertex order, edge positions and parallel copies are the
+/// base's. So are `generation` and, over a `PropertyGraph` base, attached maps. The wrapper adds
+/// two things: the rule that an edge closing a cycle is rejected, and the order.
 ///
 /// **Rejection.** `insert(edge:)` throws `AcyclicEdgeError`, and changes nothing, when the edge
 /// would close a cycle (`.cycle`) or is a self-loop (`.selfLoop`). The path that the edge u→v would
@@ -53,9 +54,9 @@ import GraphProtocols
 /// **Equality** is the base's: the order is history and does not count.
 @frozen
 public struct DirectedAcyclicGraph<Base: MutableDirectedGraph> {
-    /// The graph.
-    @usableFromInline
-    internal var _base: Base
+    /// The graph, mutable: `GraphDelegator`'s defaults read it and write attached map values
+    /// through it. Not for use outside the library; `base` reads it.
+    public var _base: Base
 
     /// The keys (`Base`'s vertex keys) in topological order, by slot.
     @usableFromInline
@@ -103,12 +104,6 @@ public struct DirectedAcyclicGraph<Base: MutableDirectedGraph> {
     public init() {
         self.init(_base: Base(), order: [], table: _KeyTable())
     }
-}
-
-extension DirectedAcyclicGraph {
-    /// The graph without the order: read-only, so the invariant holds. O(1).
-    @inlinable
-    public var base: Base { _base }
 }
 
 extension DirectedAcyclicGraph {

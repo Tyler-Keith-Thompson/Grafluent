@@ -186,6 +186,51 @@ struct AdjacencyListMapTests {
         #expect(undirected == undirectedCopy)
     }
 
+    @Test("AM-06 a copy that attaches or removes a map, or writes one, leaves the original's later mutations to the original")
+    func copyReplacesTable() {
+        let triggers: [(String, (inout AdjacencyList<Int>, EdgeMap<Double>) -> Void)] = [
+            ("addEdgeMap", { graph, _ in _ = graph.addEdgeMap(default: 0) }),
+            ("addVertexMap", { graph, _ in _ = graph.addVertexMap(default: 0) }),
+            ("removeEdgeMap", { graph, weights in graph.removeEdgeMap(weights) }),
+            ("a map write", { graph, weights in graph[weights, ofEdgeAt: 2] = 9 }),
+        ]
+        let mutations: [(String, (inout AdjacencyList<Int>) -> Void)] = [
+            ("remove(edge:)", { _ = $0.remove(edge: DirectedEdge(from: 0, to: 1)) }),
+            ("_removeEdge(at:)", { _ = $0._removeEdge(at: 1) }),
+            ("insert(edge:)", { _ = $0.insert(edge: DirectedEdge(from: 3, to: 0)) }),
+            ("remove(_:)", { _ = $0.remove(1) }),
+            ("removeAllEdges", { $0.removeAllEdges(keepingCapacity: true) }),
+        ]
+        for (trigger, replace) in triggers {
+            for (name, mutate) in mutations {
+                var graph = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 3)])
+                graph.reserveCapacity(vertexCount: 8, edgeCount: 8)
+                let weights = graph.addEdgeMap(default: 0.0)
+                for p in 0 ..< 3 { graph[weights, ofEdgeAt: p] = Double(p) + 1.5 }
+                var copy = graph
+                replace(&copy, weights)
+                let expected: [Double] = trigger == "removeEdgeMap" ? [] : [1.5, 2.5, trigger == "a map write" ? 9 : 3.5]
+                let snapshot = expected.isEmpty ? nil : copy.values(of: weights)
+                mutate(&graph)
+                if !expected.isEmpty {
+                    #expect((0 ..< 3).map { copy[weights, ofEdgeAt: $0] } == expected, "\(trigger) on the copy, then \(name)")
+                    #expect(snapshot.map { s in (0 ..< 3).map { s[$0] } } == expected, "\(trigger) on the copy, then \(name)")
+                }
+                #expect(copy.edgeCount == 3, "\(trigger) on the copy, then \(name)")
+            }
+        }
+
+        var undirected = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3)])
+        let w = undirected.addEdgeMap(default: 0.0)
+        for p in 0 ..< 3 { undirected[w, ofEdgeAt: p] = Double(p) + 1.5 }
+        var copy = undirected
+        _ = copy.addEdgeMap(default: 0)
+        _ = undirected.remove(edge: UndirectedEdge(0, 1))
+        _ = undirected.remove(2)
+        #expect((0 ..< 3).map { copy[w, ofEdgeAt: $0] } == [1.5, 2.5, 3.5])
+        #expect(undirected.edgeCount == 0 && copy.edgeCount == 3)
+    }
+
     @Test("AM-07 Codable and conversions carry no maps; the identity conversion keeps them")
     func codingAndConversion() throws {
         var graph = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)])

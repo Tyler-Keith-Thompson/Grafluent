@@ -148,7 +148,7 @@ extension DirectedPseudograph: PropertyGraph {
     /// - Precondition: `map` is attached to this graph.
     @inlinable
     public func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Self, Value> {
-        EdgeValues(_storage: _edgeMaps.storage(Value.self, in: _edgeMaps.index(of: map._token, hint: map._hint)))
+        EdgeValues(_storage: _edgeMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// A snapshot of `map`'s values by slot, read like an array of `vertexCount` values. O(1).
@@ -156,6 +156,6 @@ extension DirectedPseudograph: PropertyGraph {
     /// - Precondition: `map` is attached to this graph.
     @inlinable
     public func values<Value>(of map: VertexMap<Value>) -> VertexValues<Self, Value> {
-        VertexValues(_storage: _vertexMaps.storage(Value.self, in: _vertexMaps.index(of: map._token, hint: map._hint)))
+        VertexValues(_storage: _vertexMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 }

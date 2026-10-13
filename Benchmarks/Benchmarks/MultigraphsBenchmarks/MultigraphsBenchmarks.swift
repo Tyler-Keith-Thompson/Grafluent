@@ -78,8 +78,10 @@ let benchmarks: @Sendable () -> Void = {
     let looplessUndirectedBase = Pseudograph(looplessUndirected)
     // The attached-map rows: 10⁶ insertions into 10⁵ vertices, 10⁵ removals by position from the
     // 5·10⁵-edge graphs, and the 10% vertex removals above (whose rows are the 0-map ones).
-    // BASELINE rows keep caller-side `[Double]`s in step by hand, mirroring every swap-remove; a
-    // map row's overhead over its 0-map row is gated at 1.5× the side array's.
+    // BASELINE rows keep as many `[Double]`s as the map rows have maps, in the caller's own graph
+    // type (`SideArrayDirectedPseudograph`, `SideArrayPseudograph`) inside its mutating methods,
+    // mirroring every swap-remove; a map row's overhead over its 0-map row is gated at 1.5× the
+    // side arrays'.
     let million = Inputs.randomEdges(vertexCount: 100_000, edgeCount: 1_000_000, seed: 62)
     let millionUndirected = million.map { UndirectedEdge($0.source, $0.target) }
 
@@ -195,18 +197,15 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(g)
         }
     }
-    Benchmark("Multigraphs: BASELINE DirectedPseudograph insert 10⁶ edges, hand-maintained side array") { benchmark in
-        for _ in benchmark.scaledIterations {
-            var g = DirectedPseudograph(vertices: 0 ..< 100_000)
-            var side: [Double] = []
-            benchmark.startMeasurement()
-            for e in million {
-                g.insert(edge: e)
-                side.append(1)
+    for arrays in 1 ... 2 {
+        Benchmark("Multigraphs: BASELINE DirectedPseudograph insert 10⁶ edges, \(arrays) side array\(arrays == 1 ? "" : "s") in the caller's graph type") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var g = SideArrayDirectedPseudograph(DirectedPseudograph(vertices: 0 ..< 100_000), arrays: arrays)
+                benchmark.startMeasurement()
+                for e in million { g.insert(edge: e) }
+                benchmark.stopMeasurement()
+                blackHole(g)
             }
-            benchmark.stopMeasurement()
-            blackHole(g)
-            blackHole(side)
         }
     }
     Benchmark("Multigraphs: Pseudograph insert 10⁶ edges, 0 maps") { benchmark in
@@ -218,18 +217,15 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(g)
         }
     }
-    Benchmark("Multigraphs: BASELINE Pseudograph insert 10⁶ edges, hand-maintained side array") { benchmark in
-        for _ in benchmark.scaledIterations {
-            var g = Pseudograph(vertices: 0 ..< 100_000)
-            var side: [Double] = []
-            benchmark.startMeasurement()
-            for e in millionUndirected {
-                g.insert(edge: e)
-                side.append(1)
+    for arrays in 1 ... 2 {
+        Benchmark("Multigraphs: BASELINE Pseudograph insert 10⁶ edges, \(arrays) side array\(arrays == 1 ? "" : "s") in the caller's graph type") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var g = SideArrayPseudograph(Pseudograph(vertices: 0 ..< 100_000), arrays: arrays)
+                benchmark.startMeasurement()
+                for e in millionUndirected { g.insert(edge: e) }
+                benchmark.stopMeasurement()
+                blackHole(g)
             }
-            benchmark.stopMeasurement()
-            blackHole(g)
-            blackHole(side)
         }
     }
 
@@ -245,21 +241,16 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(g)
         }
     }
-    Benchmark("Multigraphs: BASELINE DirectedPseudograph remove 10⁵ edges by position, hand-maintained side array") { benchmark in
-        for _ in benchmark.scaledIterations {
-            var g = directed
-            var side = [Double](repeating: 1, count: g.edgeCount)
-            var state: UInt64 = 5
-            benchmark.startMeasurement()
-            for _ in 0 ..< 100_000 {
-                let p = lcg(&state) % g.edgeCount
-                g.remove(edgeAt: p)
-                side[p] = side[side.count - 1]
-                side.removeLast()
+    for arrays in 1 ... 2 {
+        Benchmark("Multigraphs: BASELINE DirectedPseudograph remove 10⁵ edges by position, \(arrays) side array\(arrays == 1 ? "" : "s") in the caller's graph type") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var g = SideArrayDirectedPseudograph(directed, arrays: arrays)
+                var state: UInt64 = 5
+                benchmark.startMeasurement()
+                for _ in 0 ..< 100_000 { g.remove(edgeAt: lcg(&state) % g.graph.edgeCount) }
+                benchmark.stopMeasurement()
+                blackHole(g)
             }
-            benchmark.stopMeasurement()
-            blackHole(g)
-            blackHole(side)
         }
     }
     Benchmark("Multigraphs: Pseudograph remove 10⁵ edges by position, 0 maps") { benchmark in
@@ -272,71 +263,37 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(g)
         }
     }
-    Benchmark("Multigraphs: BASELINE Pseudograph remove 10⁵ edges by position, hand-maintained side array") { benchmark in
-        for _ in benchmark.scaledIterations {
-            var g = pseudograph
-            var side = [Double](repeating: 1, count: g.edgeCount)
-            var state: UInt64 = 5
-            benchmark.startMeasurement()
-            for _ in 0 ..< 100_000 {
-                let p = lcg(&state) % g.edgeCount
-                g.remove(edgeAt: p)
-                side[p] = side[side.count - 1]
-                side.removeLast()
+    for arrays in 1 ... 2 {
+        Benchmark("Multigraphs: BASELINE Pseudograph remove 10⁵ edges by position, \(arrays) side array\(arrays == 1 ? "" : "s") in the caller's graph type") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var g = SideArrayPseudograph(pseudograph, arrays: arrays)
+                var state: UInt64 = 5
+                benchmark.startMeasurement()
+                for _ in 0 ..< 100_000 { g.remove(edgeAt: lcg(&state) % g.graph.edgeCount) }
+                benchmark.stopMeasurement()
+                blackHole(g)
             }
-            benchmark.stopMeasurement()
-            blackHole(g)
-            blackHole(side)
         }
     }
 
     // MARK: Attached maps: vertex removal
 
-    Benchmark("Multigraphs: BASELINE DirectedPseudograph remove 10% of vertices, hand-maintained vertex and edge side arrays") { benchmark in
+    Benchmark("Multigraphs: BASELINE DirectedPseudograph remove 10% of vertices, 1 vertex and 1 edge side array in the caller's graph type") { benchmark in
         for _ in benchmark.scaledIterations {
-            var g = directed
-            var vertexSide = [Double](repeating: 1, count: g.vertexCount)
-            var edgeSide = [Double](repeating: 1, count: g.edgeCount)
+            var g = SideArrayDirectedPseudograph(directed, arrays: 1, vertexArray: true)
             benchmark.startMeasurement()
-            for v in victims {
-                // The caller removes the edges one by one to mirror each move, then the vertex.
-                while let p = g.outEdges(of: v).last ?? g.inEdges(of: v).last {
-                    g.remove(edgeAt: p)
-                    edgeSide[p] = edgeSide[edgeSide.count - 1]
-                    edgeSide.removeLast()
-                }
-                let slot = g.vertexIndex(of: v)
-                g.remove(v)
-                vertexSide[slot] = vertexSide[vertexSide.count - 1]
-                vertexSide.removeLast()
-            }
+            for v in victims { g.remove(v) }
             benchmark.stopMeasurement()
             blackHole(g)
-            blackHole(vertexSide)
-            blackHole(edgeSide)
         }
     }
-    Benchmark("Multigraphs: BASELINE Pseudograph remove 10% of vertices, hand-maintained vertex and edge side arrays") { benchmark in
+    Benchmark("Multigraphs: BASELINE Pseudograph remove 10% of vertices, 1 vertex and 1 edge side array in the caller's graph type") { benchmark in
         for _ in benchmark.scaledIterations {
-            var g = pseudograph
-            var vertexSide = [Double](repeating: 1, count: g.vertexCount)
-            var edgeSide = [Double](repeating: 1, count: g.edgeCount)
+            var g = SideArrayPseudograph(pseudograph, arrays: 1, vertexArray: true)
             benchmark.startMeasurement()
-            for v in victims {
-                while let p = g.incidentEdges(of: v).last {
-                    g.remove(edgeAt: p)
-                    edgeSide[p] = edgeSide[edgeSide.count - 1]
-                    edgeSide.removeLast()
-                }
-                let slot = g.vertexIndex(of: v)
-                g.remove(v)
-                vertexSide[slot] = vertexSide[vertexSide.count - 1]
-                vertexSide.removeLast()
-            }
+            for v in victims { g.remove(v) }
             benchmark.stopMeasurement()
             blackHole(g)
-            blackHole(vertexSide)
-            blackHole(edgeSide)
         }
     }
 
@@ -471,5 +428,93 @@ let benchmarks: @Sendable () -> Void = {
             benchmark.stopMeasurement()
             blackHole(g)
         }
+    }
+}
+
+/// The fair baseline of the attached-map rows: a caller's own graph type that holds the graph and
+/// `arrays` edge side arrays (and a vertex side array), keeping each in step inside its own
+/// mutating methods, as the graph keeps its maps.
+struct SideArrayDirectedPseudograph {
+    var graph: DirectedPseudograph<Int>
+    var first: [Double]
+    var second: [Double]
+    var vertexValues: [Double]
+    let arrays: Int
+
+    init(_ graph: DirectedPseudograph<Int>, arrays: Int, vertexArray: Bool = false) {
+        self.graph = graph
+        first = [Double](repeating: 1, count: graph.edgeCount)
+        second = arrays > 1 ? first : []
+        vertexValues = vertexArray ? [Double](repeating: 1, count: graph.vertexCount) : []
+        self.arrays = arrays
+    }
+
+    mutating func insert(edge: DirectedEdge<Int>) {
+        graph.insert(edge: edge)
+        first.append(1)
+        if arrays > 1 { second.append(1) }
+    }
+
+    mutating func remove(edgeAt p: Int) {
+        graph.remove(edgeAt: p)
+        first[p] = first[first.count - 1]
+        first.removeLast()
+        if arrays > 1 {
+            second[p] = second[second.count - 1]
+            second.removeLast()
+        }
+    }
+
+    /// Removes the edges one by one to mirror each move, then the vertex.
+    mutating func remove(_ vertex: Int) {
+        while let p = graph.outEdges(of: vertex).last ?? graph.inEdges(of: vertex).last { remove(edgeAt: p) }
+        let slot = graph.vertexIndex(of: vertex)
+        graph.remove(vertex)
+        vertexValues[slot] = vertexValues[vertexValues.count - 1]
+        vertexValues.removeLast()
+    }
+}
+
+/// The fair baseline of the attached-map rows: a caller's own graph type that holds the graph and
+/// `arrays` edge side arrays (and a vertex side array), keeping each in step inside its own
+/// mutating methods, as the graph keeps its maps.
+struct SideArrayPseudograph {
+    var graph: Pseudograph<Int>
+    var first: [Double]
+    var second: [Double]
+    var vertexValues: [Double]
+    let arrays: Int
+
+    init(_ graph: Pseudograph<Int>, arrays: Int, vertexArray: Bool = false) {
+        self.graph = graph
+        first = [Double](repeating: 1, count: graph.edgeCount)
+        second = arrays > 1 ? first : []
+        vertexValues = vertexArray ? [Double](repeating: 1, count: graph.vertexCount) : []
+        self.arrays = arrays
+    }
+
+    mutating func insert(edge: UndirectedEdge<Int>) {
+        graph.insert(edge: edge)
+        first.append(1)
+        if arrays > 1 { second.append(1) }
+    }
+
+    mutating func remove(edgeAt p: Int) {
+        graph.remove(edgeAt: p)
+        first[p] = first[first.count - 1]
+        first.removeLast()
+        if arrays > 1 {
+            second[p] = second[second.count - 1]
+            second.removeLast()
+        }
+    }
+
+    /// Removes the edges one by one to mirror each move, then the vertex.
+    mutating func remove(_ vertex: Int) {
+        while let p = graph.incidentEdges(of: vertex).last { remove(edgeAt: p) }
+        let slot = graph.vertexIndex(of: vertex)
+        graph.remove(vertex)
+        vertexValues[slot] = vertexValues[vertexValues.count - 1]
+        vertexValues.removeLast()
     }
 }

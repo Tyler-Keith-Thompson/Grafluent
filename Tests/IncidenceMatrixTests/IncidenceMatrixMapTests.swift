@@ -4,6 +4,8 @@
 // `values(of:)` is a snapshot; copies carry the maps copy-on-write; transposed(), reversed and the
 // conversions carry none; equality and coding ignore them. Every structural mutation starts a new
 // generation, and map writes and reserving capacity do not. See README.md.
+// Two copies, under every interleaving of three steps, never share a generation in different
+// states.
 
 import Foundation
 import GraphProtocols
@@ -238,5 +240,112 @@ struct IncidenceMatrixMapTests {
         #expect(!orientedSeen.isCurrent(for: oriented.reversed))
         #expect(!orientedSeen.isCurrent(for: oriented.transposed()))
         #expect(!orientedSeen.isCurrent(for: IncidenceMatrix(oriented)))
+    }
+
+    @Test("IncidenceMatrix: two copies never share a generation in different states, under every interleaving of three steps")
+    func divergence() {
+        // Two copies of one graph, each step applied to either: whenever two generations seen along
+        // the way are current for each other, the states they were read from are the same. The
+        // states are read into plain values, which hold none of the graph's storage, so the copies'
+        // arrays are shared exactly as the steps leave them.
+        func state(of graph: IncidenceMatrix) -> String {
+            return "\(graph.vertexCount) \((0 ..< graph.hyperedgeCount).map { Array(graph.members(ofHyperedgeAt: $0)) })"
+        }
+        func make() -> IncidenceMatrix {
+            var graph = IncidenceMatrix(vertexCount: 4)
+            _ = graph.insert(hyperedge: [0, 1, 2])
+            _ = graph.insert(hyperedge: [2, 3])
+            return graph
+        }
+        let steps: [(String, (inout IncidenceMatrix) -> Void)] = [
+            ("appendVertex()", { _ = $0.appendVertex() }),
+            ("insert(checked:)", { _ = try? $0.insert(checked: [1, 3]) }),
+            ("insert(hyperedge:) empty", { _ = $0.insert(hyperedge: [] as [Int]) }),
+            ("insert(_:intoHyperedgeAt:)", { if $0.vertexCount > 3, $0.hyperedgeCount > 0 { _ = $0.insert(3, intoHyperedgeAt: 0) } }),
+            ("remove(_:fromHyperedgeAt:)", { if $0.vertexCount > 0, $0.hyperedgeCount > 0 { _ = $0.remove(0, fromHyperedgeAt: 0) } }),
+            ("removeAll(keepingCapacity: true)", { $0.removeAll(keepingCapacity: true) }),
+            ("removeAll()", { $0.removeAll() }),
+            ("reserveCapacity", { $0.reserveCapacity(vertexCount: 64, hyperedgeCount: 64) }),
+            ("a map attached and written", { let w = $0.addEdgeMap(default: 0); if $0.hyperedgeCount > 0 { $0[w, ofEdgeAt: 0] = 1 } })
+        ]
+        var violations: [String] = []
+        let choices = 2 * steps.count
+        for first in 0 ..< choices {
+            for second in 0 ..< choices {
+                for third in 0 ..< choices {
+                    var a = make()
+                    var b = a
+                    var seen = [(a.generation, state(of: a), "start")]
+                    var history = ""
+                    for choice in [first, second, third] {
+                        let (name, step) = steps[choice % steps.count]
+                        if choice < steps.count { step(&a) } else { step(&b) }
+                        history += (choice < steps.count ? " a." : " b.") + name
+                        seen.append((a.generation, state(of: a), "a after" + history))
+                        seen.append((b.generation, state(of: b), "b after" + history))
+                    }
+                    for i in seen.indices {
+                        for j in seen.indices where j > i && seen[i].0.isCurrent(for: seen[j].0) && seen[i].1 != seen[j].1 {
+                            violations.append("\(seen[i].2) and \(seen[j].2)")
+                        }
+                    }
+                }
+            }
+        }
+        #expect(violations.isEmpty, "\(violations.count) violations, among them \(violations.prefix(3))")
+    }
+
+    @Test("OrientedIncidenceMatrix: two copies never share a generation in different states, under every interleaving of three steps")
+    func orientedDivergence() {
+        // Two copies of one graph, each step applied to either: whenever two generations seen along
+        // the way are current for each other, the states they were read from are the same. The
+        // states are read into plain values, which hold none of the graph's storage, so the copies'
+        // arrays are shared exactly as the steps leave them.
+        func state(of graph: OrientedIncidenceMatrix) -> String {
+            return "\(graph.vertexCount) \((0 ..< graph.hyperedgeCount).map { [Array(graph.sourceIndices(ofHyperedgeAt: $0)), Array(graph.targetIndices(ofHyperedgeAt: $0))] })"
+        }
+        func make() -> OrientedIncidenceMatrix {
+            var graph = OrientedIncidenceMatrix(vertexCount: 4)
+            _ = graph.insert(sources: [0, 1], targets: [2])
+            _ = graph.insert(edge: DirectedEdge(from: 2, to: 3))
+            return graph
+        }
+        let steps: [(String, (inout OrientedIncidenceMatrix) -> Void)] = [
+            ("appendVertex()", { _ = $0.appendVertex() }),
+            ("insert(checked:targets:)", { _ = try? $0.insert(checked: [1], targets: [3]) }),
+            ("insert(sources:targets:) empty", { _ = $0.insert(sources: [] as [Int], targets: [] as [Int]) }),
+            ("insert(_:intoTargetsOfHyperedgeAt:)", { if $0.vertexCount > 3, $0.hyperedgeCount > 0 { _ = $0.insert(3, intoTargetsOfHyperedgeAt: 0) } }),
+            ("remove(_:fromSourcesOfHyperedgeAt:)", { if $0.vertexCount > 0, $0.hyperedgeCount > 0 { _ = $0.remove(0, fromSourcesOfHyperedgeAt: 0) } }),
+            ("remove(_:fromTargetsOfHyperedgeAt:)", { if $0.vertexCount > 3, $0.hyperedgeCount > 1 { _ = $0.remove(3, fromTargetsOfHyperedgeAt: 1) } }),
+            ("removeAll(keepingCapacity: true)", { $0.removeAll(keepingCapacity: true) }),
+            ("removeAll()", { $0.removeAll() }),
+            ("reserveCapacity", { $0.reserveCapacity(vertexCount: 64, hyperedgeCount: 64) }),
+            ("a map attached and written", { let w = $0.addEdgeMap(default: 0); if $0.hyperedgeCount > 0 { $0[w, ofEdgeAt: 0] = 1 } })
+        ]
+        var violations: [String] = []
+        let choices = 2 * steps.count
+        for first in 0 ..< choices {
+            for second in 0 ..< choices {
+                for third in 0 ..< choices {
+                    var a = make()
+                    var b = a
+                    var seen = [(a.generation, state(of: a), "start")]
+                    var history = ""
+                    for choice in [first, second, third] {
+                        let (name, step) = steps[choice % steps.count]
+                        if choice < steps.count { step(&a) } else { step(&b) }
+                        history += (choice < steps.count ? " a." : " b.") + name
+                        seen.append((a.generation, state(of: a), "a after" + history))
+                        seen.append((b.generation, state(of: b), "b after" + history))
+                    }
+                    for i in seen.indices {
+                        for j in seen.indices where j > i && seen[i].0.isCurrent(for: seen[j].0) && seen[i].1 != seen[j].1 {
+                            violations.append("\(seen[i].2) and \(seen[j].2)")
+                        }
+                    }
+                }
+            }
+        }
+        #expect(violations.isEmpty, "\(violations.count) violations, among them \(violations.prefix(3))")
     }
 }

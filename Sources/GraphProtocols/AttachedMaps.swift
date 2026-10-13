@@ -466,6 +466,8 @@ package final class _MapTable: @unchecked Sendable {
     @usableFromInline package let entries: UnsafeMutableBufferPointer<_AttachedMap>
     /// Whether every map is dense with trivial values: the upkeep's fast paths, with no closure.
     @usableFromInline package let _allTrivialDense: Bool
+    /// Whether some map's values hold references (see `_AttachedMap.releases`).
+    @usableFromInline package let _releases: Bool
     /// Whether some buffer may be shared (`_AnyMapBuffer._mayBeShared`): while false, the upkeep
     /// skips the buffers' own flags.
     @usableFromInline package let _someMayBeShared: Atomic<Bool>
@@ -476,8 +478,9 @@ package final class _MapTable: @unchecked Sendable {
     package init(_ source: UnsafeBufferPointer<_AttachedMap>, removing: Int?, appending: _AttachedMap?, markingShared: Bool) {
         let count = source.count &- (removing == nil ? 0 : 1) &+ (appending == nil ? 0 : 1)
         let entries = UnsafeMutableBufferPointer<_AttachedMap>.allocate(capacity: count)
-        var k = 0, someMayBeShared = false, allTrivialDense = true
+        var k = 0, someMayBeShared = false, allTrivialDense = true, releases = false
         for j in source.indices where j != removing {
+            releases = releases || source[j].releases
             if markingShared { source[j].buffer._markShared() }
             someMayBeShared = someMayBeShared || source[j].buffer._mayBeShared.load(ordering: .relaxed)
             allTrivialDense = allTrivialDense && source[j].buffer._isTrivialDense
@@ -485,11 +488,13 @@ package final class _MapTable: @unchecked Sendable {
             k &+= 1
         }
         if let appending {
+            releases = releases || appending.releases
             allTrivialDense = allTrivialDense && appending.buffer._isTrivialDense
             (entries.baseAddress.unsafelyUnwrapped + k).initialize(to: appending)
         }
         self.entries = entries
         _allTrivialDense = allTrivialDense
+        _releases = releases
         _someMayBeShared = Atomic(someMayBeShared)
     }
 
@@ -499,25 +504,26 @@ package final class _MapTable: @unchecked Sendable {
     }
 
     /// `table`'s entries, without the one at `removing` and with `appending`, in a new table; nil
-    /// when none is left.
+    /// when none is left. When `markingShared` (a copy of the graph keeps `table`), `table` is
+    /// marked too: its buffers are now listed twice, and the copy that keeps it must not write them
+    /// on its fast paths.
     @usableFromInline
     package static func _replacing(_ table: _MapTable?, removing: Int?, appending: _AttachedMap?, markingShared: Bool) -> _MapTable? {
+        if markingShared { table?._someMayBeShared.store(true, ordering: .relaxed) }
         let source = table.map { UnsafeBufferPointer($0.entries) } ?? UnsafeBufferPointer(start: nil, count: 0)
         if source.count &- (removing == nil ? 0 : 1) &+ (appending == nil ? 0 : 1) == 0 { return nil }
         return _MapTable(source, removing: removing, appending: appending, markingShared: markingShared)
     }
 
     /// A table of a graph's own with these entries, for a graph whose table a copy shares: the
-    /// buffers are now listed twice, so each is marked shared.
+    /// buffers are now listed twice, so each is marked shared, and so is this table, which the
+    /// copy keeps.
     @usableFromInline
     @inline(never)
     package func _copy() -> _MapTable {
-        _MapTable(UnsafeBufferPointer(entries), removing: nil, appending: nil, markingShared: true)
+        _someMayBeShared.store(true, ordering: .relaxed)
+        return _MapTable(UnsafeBufferPointer(entries), removing: nil, appending: nil, markingShared: true)
     }
-
-    /// Whether some map's values hold references (see `_AttachedMap.releases`).
-    @usableFromInline
-    package var _releases: Bool { entries.contains { $0.releases } }
 
     /// Makes the buffer of entry `k` this table's own, when its flag says it may be shared.
     @inline(__always)
@@ -760,6 +766,18 @@ package struct _AttachedMaps: Sendable {
         } else {
             unsafeDowncast(buffer, to: _PagedMapBuffer<Value>.self).storage.setPagedValue(value, at: offset)
         }
+    }
+
+    /// The values of the map with `token`, as a snapshot (`storage(_:in:)`): what every
+    /// `values(of:)` returns. Specialized but never inlined: inlined into a caller, the lookup
+    /// and the snapshot's atomic stores kept the caller's sort from inlining its comparison
+    /// closure (Kruskal ran 1.37× the array version).
+    ///
+    /// - Precondition: The map is attached.
+    @inlinable
+    @inline(never)
+    package func storage<Value>(_ type: Value.Type, of token: _MapToken, hint: Int) -> _MapStorage<Value> {
+        storage(type, in: index(of: token, hint: hint))
     }
 
     /// The values of the map at table index `k`, as a snapshot: the dense buffer itself (marked

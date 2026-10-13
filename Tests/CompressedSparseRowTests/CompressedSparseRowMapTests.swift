@@ -323,7 +323,7 @@ struct CompressedSparseRowMapTests {
 /// mutable representations do.
 private struct GenerationCountingGraph: DirectedGraph {
     let vertexCount: Int
-    var edgeList: [DirectedEdge<Int>] = []
+    var edgeList: ContiguousArray<DirectedEdge<Int>> = []
     var stamp = _GenerationStamp()
 
     init(vertexCount: Int) {
@@ -332,12 +332,12 @@ private struct GenerationCountingGraph: DirectedGraph {
 
     mutating func insert(_ edge: DirectedEdge<Int>) {
         edgeList.append(edge)
-        stamp.advance()
+        stamp.advance(writing: edgeList)
     }
 
     var generation: GraphGeneration { stamp.generation }
     var vertices: Range<Int> { 0 ..< vertexCount }
-    var edges: [DirectedEdge<Int>] { edgeList }
+    var edges: [DirectedEdge<Int>] { Array(edgeList) }
     var edgeCount: Int { edgeList.count }
     func contains(_ vertex: Int) -> Bool { vertices.contains(vertex) }
     func successors(of vertex: Int) -> [Int] { edgeList.filter { $0.source == vertex }.map(\.target) }

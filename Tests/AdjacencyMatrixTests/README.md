@@ -109,10 +109,10 @@ Where the reference libraries disagree, these are the choices and the reasons.
 | `AdjacencyMatrixPreconditionTests.swift` | Exit tests for every trapping precondition |
 | `AdjacencyMatrixCheckedTests.swift` | The `checked:` spellings (AM-R08): each equals its trapping spelling in range and throws `VertexNotFound` or `EdgeNotFound` outside it; `insert(checked:)` changes nothing when it throws |
 | `AdjacencyMatrixValueTests.swift` | Value semantics, views as values, Collection laws, `Sendable`, a model-based randomized test starting at 0 to 120 vertices |
-| `AdjacencyMatrixMapTests.swift` | Attached maps: defaults, values kept across `appendVertex()` past 64 vertices, every removal path resetting its cells (rows past one word too), vertex maps, `removeAll`, copies, derived matrices, equality and coding |
+| `AdjacencyMatrixMapTests.swift` | Attached maps: defaults, values kept across `appendVertex()` past 64 vertices, every removal path resetting its cells (rows past one word too), vertex maps, `removeAll`, copies (one that attaches, removes or writes a map leaves the original's later removals to the original), derived matrices, equality and coding |
 | `AdjacencyMatrixMapPreconditionTests.swift` | Exit tests: a removed edge's value, a vertex out of range, a handle on another or a derived matrix or after removal |
 | `AdjacencyMatrixMapPropertyTests.swift` | Random mutations with two edge maps and a vertex map against dictionaries (swift-property-based); a cell with no edge must read the default |
-| `AdjacencyMatrixGenerationTests.swift` | Every structural mutation starts a generation, a call that changes nothing and map writes do not; copies and derived matrices |
+| `AdjacencyMatrixGenerationTests.swift` | Every structural mutation starts a generation, a call that changes nothing and map writes do not; copies and derived matrices; two copies under every interleaving of three steps never share a generation in different states; `removeAll` of an empty matrix starts one in each copy |
 | `AdjacencyMatrixOperationTests.swift` | Transpose, set algebra, complement, row and column clearing, `insertEdges(from:to:)`, a transitive closure written with row unions, stable edge positions, slices, Collection laws on wide matrices, the decoding limit, large descriptions |
 
 Case IDs (AM-C04, AM-W02, …) refer to the catalog of cases (`Tests/Catalogs/AdjacencyMatrix/cases.md`) harvested from petgraph, Boost.Graph,

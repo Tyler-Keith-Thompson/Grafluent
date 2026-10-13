@@ -171,8 +171,8 @@ let benchmarks: @Sendable () -> Void = {
 
     // MARK: Attached maps
 
-    // One value per column, appended with the column: 0, 1 and 2 attached hyperedge maps against a
-    // caller's `[Double]` appended by hand; then `values(of:)` against that array, read at every
+    // One value per column, appended with the column: 0, 1 and 2 attached hyperedge maps against as
+    // many `[Double]`s the caller's own matrix type appends to inside its insertion; then `values(of:)` against that array, read at every
     // vertex's incident columns.
     // The 0-map row attaches nothing: an attach call in the loop, even one run zero times, costs the
     // optimizer facts a caller without maps keeps.
@@ -193,15 +193,13 @@ let benchmarks: @Sendable () -> Void = {
             }
         }
     }
-    Benchmark("IncidenceMatrix: BASELINE insert(hyperedge:) × 2·10⁴, sizes 2–8, n = 10⁴, hand-maintained side array") { benchmark in
-        for _ in benchmark.scaledIterations {
-            var built = IncidenceMatrix(vertexCount: 10_000)
-            var weights: [Double] = []
-            for column in xgiColumns {
-                built.insert(hyperedge: column)
-                weights.append(1.0)
+    for arrays in 1 ... 2 {
+        Benchmark("IncidenceMatrix: BASELINE insert(hyperedge:) × 2·10⁴, sizes 2–8, n = 10⁴, \(arrays) side array\(arrays == 1 ? "" : "s") in the caller's matrix type") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var built = SideArrayMatrix(matrix: IncidenceMatrix(vertexCount: 10_000), arrays: arrays)
+                for column in xgiColumns { built.insert(hyperedge: column) }
+                blackHole(built)
             }
-            blackHole((built, weights))
         }
     }
     var weighted = matrix
@@ -227,5 +225,25 @@ let benchmarks: @Sendable () -> Void = {
             for v in 0 ..< n { for p in weightedMatrix.incidentHyperedgeIndices(ofIndex: v) { sum += weightedArray[p] } }
             blackHole(sum)
         }
+    }
+}
+
+/// The fair baseline of the attached-map rows: a caller's own matrix type that holds the matrix and
+/// `arrays` side arrays, appending to each inside its own insertion.
+struct SideArrayMatrix {
+    var matrix: IncidenceMatrix
+    var first: [Double] = []
+    var second: [Double] = []
+    let arrays: Int
+
+    init(matrix: IncidenceMatrix, arrays: Int) {
+        self.matrix = matrix
+        self.arrays = arrays
+    }
+
+    mutating func insert(hyperedge column: [Int]) {
+        matrix.insert(hyperedge: column)
+        first.append(1.0)
+        if arrays > 1 { second.append(1.0) }
     }
 }

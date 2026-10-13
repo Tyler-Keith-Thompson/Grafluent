@@ -2,6 +2,8 @@
 // starts a new one, and a call that changes nothing (an existing edge, an absent edge, a clear row)
 // does not; attaching and writing maps and reserving capacity do not either. A copy is in the same
 // generation until either is mutated; derived matrices are new graphs. See README.md.
+// Two copies, under every interleaving of three steps, never share a generation in different
+// states.
 
 import AdjacencyMatrixModule
 import BitCollections
@@ -105,4 +107,76 @@ struct AdjacencyMatrixGenerationTests {
         // A decoded or rebuilt equal matrix is another graph.
         #expect(!current.isCurrent(for: AdjacencyMatrix(vertexCount: 3, edges: matrix.edges)))
     }
+
+    @Test("AdjacencyMatrix: two copies never share a generation in different states, under every interleaving of three steps")
+    func divergence() {
+        // Two copies of one graph, each step applied to either: whenever two generations seen along
+        // the way are current for each other, the states they were read from are the same. The
+        // states are read into plain values, which hold none of the graph's storage, so the copies'
+        // arrays are shared exactly as the steps leave them.
+        func state(of graph: AdjacencyMatrix) -> String {
+            return "\(graph.vertexCount) \(Array(graph.edges))"
+        }
+        func make() -> AdjacencyMatrix {
+            var graph = AdjacencyMatrix(vertexCount: 4)
+            for (s, t) in [(0, 1), (1, 2), (2, 3), (3, 0), (0, 2)] { graph.insert(edge: DirectedEdge(from: s, to: t)) }
+            return graph
+        }
+        let steps: [(String, (inout AdjacencyMatrix) -> Void)] = [
+            ("appendVertex()", { _ = $0.appendVertex() }),
+            ("insert(checked:)", { _ = try? $0.insert(checked: DirectedEdge(from: 3, to: 1)) }),
+            ("insert(checked:) of 0→1", { _ = try? $0.insert(checked: DirectedEdge(from: 0, to: 1)) }),
+            ("remove(edge:)", { _ = $0.remove(edge: DirectedEdge(from: 1, to: 2)) }),
+            ("subscript toggle", { if $0.vertexCount > 2 { $0[2, 2].toggle() } }),
+            ("removeEdges(from:)", { if $0.vertexCount > 0 { _ = $0.removeEdges(from: 0) } }),
+            ("removeEdges(to:)", { if $0.vertexCount > 2 { _ = $0.removeEdges(to: 2) } }),
+            ("insertEdges(from:to:)", { if $0.vertexCount > 3 { _ = $0.insertEdges(from: 3, to: BitSet([0, 3])) } }),
+            ("formSymmetricDifference", { var other = AdjacencyMatrix(vertexCount: $0.vertexCount); if $0.vertexCount > 1 { other.insert(edge: DirectedEdge(from: 1, to: 0)) }; $0.formSymmetricDifference(other) }),
+            ("removeAllEdges(keepingCapacity: true)", { $0.removeAllEdges(keepingCapacity: true) }),
+            ("removeAllEdges()", { $0.removeAllEdges() }),
+            ("removeAll(keepingCapacity: true)", { $0.removeAll(keepingCapacity: true) }),
+            ("reserveCapacity", { $0.reserveCapacity(vertexCount: 200) }),
+            ("a map attached and written", { let w = $0.addEdgeMap(default: 0); if let p = $0.edges.indices.first { $0[w, ofEdgeAt: p] = 1 } })
+        ]
+        var violations: [String] = []
+        let choices = 2 * steps.count
+        for first in 0 ..< choices {
+            for second in 0 ..< choices {
+                for third in 0 ..< choices {
+                    var a = make()
+                    var b = a
+                    var seen = [(a.generation, state(of: a), "start")]
+                    var history = ""
+                    for choice in [first, second, third] {
+                        let (name, step) = steps[choice % steps.count]
+                        if choice < steps.count { step(&a) } else { step(&b) }
+                        history += (choice < steps.count ? " a." : " b.") + name
+                        seen.append((a.generation, state(of: a), "a after" + history))
+                        seen.append((b.generation, state(of: b), "b after" + history))
+                    }
+                    for i in seen.indices {
+                        for j in seen.indices where j > i && seen[i].0.isCurrent(for: seen[j].0) && seen[i].1 != seen[j].1 {
+                            violations.append("\(seen[i].2) and \(seen[j].2)")
+                        }
+                    }
+                }
+            }
+        }
+        #expect(violations.isEmpty, "\(violations.count) violations, among them \(violations.prefix(3))")
+    }
+
+    @Test("removeAll on an empty matrix still starts a generation of its own in each copy")
+    func emptyRemoveAll() {
+        var matrix = AdjacencyMatrix(vertexCount: 2)
+        _ = matrix.insert(edge: DirectedEdge(from: 0, to: 1))
+        matrix.removeAll()
+        var first = matrix
+        var second = first
+        first.removeAll()
+        second.removeAll(keepingCapacity: true)
+        _ = first.appendVertex()
+        #expect(!first.generation.isCurrent(for: second.generation) && !matrix.generation.isCurrent(for: first.generation))
+        #expect(!matrix.generation.isCurrent(for: second.generation))
+    }
+
 }

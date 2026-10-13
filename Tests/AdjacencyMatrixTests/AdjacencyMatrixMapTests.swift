@@ -271,6 +271,40 @@ struct AdjacencyMatrixMapTests {
         #expect(snapshot[p01] == 1 && original.values(of: weights)[p01] == 50)
     }
 
+    @Test("A copy that attaches or removes a map, or writes one, leaves the original's later removals and insertions to the original")
+    func copyReplacesTable() {
+        let triggers: [(String, (inout AdjacencyMatrix, EdgeMap<Int>) -> Void)] = [
+            ("addEdgeMap", { matrix, _ in _ = matrix.addEdgeMap(default: "x") }),
+            ("addVertexMap", { matrix, _ in _ = matrix.addVertexMap(default: 0) }),
+            ("removeEdgeMap", { matrix, cost in matrix.removeEdgeMap(cost) }),
+            ("a map write", { matrix, cost in matrix[cost, ofEdgeAt: matrix.edges.startIndex] = 7 }),
+        ]
+        let mutations: [(String, (inout AdjacencyMatrix) -> Void)] = [
+            ("remove(edge:)", { _ = $0.remove(edge: DirectedEdge(from: 0, to: 1)) }),
+            ("removeEdges(from:)", { _ = $0.removeEdges(from: 0) }),
+            ("removeEdges(to:)", { _ = $0.removeEdges(to: 1) }),
+            ("removeEdges(incidentTo:)", { _ = $0.removeEdges(incidentTo: 0) }),
+            ("appendVertex", { _ = $0.appendVertex() }),
+            ("removeAllEdges", { $0.removeAllEdges() }),
+        ]
+        for (trigger, replace) in triggers {
+            for (name, mutate) in mutations {
+                var matrix = AdjacencyMatrix(vertexCount: 3)
+                _ = matrix.insert(edge: DirectedEdge(from: 0, to: 1))
+                let cost = matrix.addEdgeMap(default: 0)
+                let p = matrix.edges.startIndex
+                matrix[cost, ofEdgeAt: p] = 99
+                var copy = matrix
+                replace(&copy, cost)
+                mutate(&matrix)
+                #expect(copy.contains(edge: DirectedEdge(from: 0, to: 1)), "\(trigger) on the copy, then \(name)")
+                if trigger != "removeEdgeMap" {
+                    #expect(copy[cost, ofEdgeAt: p] == (trigger == "a map write" ? 7 : 99), "\(trigger) on the copy, then \(name)")
+                }
+            }
+        }
+    }
+
     @Test("Whole-matrix results: union and friends carry this matrix's maps; complement and transposed carry none")
     func derivedMatrices() {
         var matrix = AdjacencyMatrix(vertexCount: 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])

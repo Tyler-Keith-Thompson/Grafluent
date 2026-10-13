@@ -148,7 +148,7 @@ extension Tree: PropertyGraph {
     /// - Precondition: `map` is attached to this tree.
     @inlinable
     public func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Self, Value> {
-        EdgeValues(_storage: _edgeMaps.storage(Value.self, in: _edgeMaps.index(of: map._token, hint: map._hint)))
+        EdgeValues(_storage: _edgeMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// A snapshot of `map`'s values by vertex index. O(1).
@@ -156,7 +156,7 @@ extension Tree: PropertyGraph {
     /// - Precondition: `map` is attached to this tree.
     @inlinable
     public func values<Value>(of map: VertexMap<Value>) -> VertexValues<Self, Value> {
-        VertexValues(_storage: _vertexMaps.storage(Value.self, in: _vertexMaps.index(of: map._token, hint: map._hint)))
+        VertexValues(_storage: _vertexMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// The generation of this tree, which never changes: it is immutable. A structure derived
@@ -304,7 +304,7 @@ extension RootedTree: PropertyGraph {
     /// - Precondition: `map` is attached to this tree.
     @inlinable
     public func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Self, Value> {
-        EdgeValues(_storage: _edgeMaps.storage(Value.self, in: _edgeMaps.index(of: map._token, hint: map._hint)))
+        EdgeValues(_storage: _edgeMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// A snapshot of `map`'s values by vertex index. O(1).
@@ -312,7 +312,7 @@ extension RootedTree: PropertyGraph {
     /// - Precondition: `map` is attached to this tree.
     @inlinable
     public func values<Value>(of map: VertexMap<Value>) -> VertexValues<Self, Value> {
-        VertexValues(_storage: _vertexMaps.storage(Value.self, in: _vertexMaps.index(of: map._token, hint: map._hint)))
+        VertexValues(_storage: _vertexMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// The generation of this tree, which never changes: it is immutable. A structure derived
@@ -460,7 +460,7 @@ extension Arborescence: PropertyGraph {
     /// - Precondition: `map` is attached to this arborescence.
     @inlinable
     public func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Self, Value> {
-        EdgeValues(_storage: _edgeMaps.storage(Value.self, in: _edgeMaps.index(of: map._token, hint: map._hint)))
+        EdgeValues(_storage: _edgeMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// A snapshot of `map`'s values by vertex index. O(1).
@@ -468,7 +468,7 @@ extension Arborescence: PropertyGraph {
     /// - Precondition: `map` is attached to this arborescence.
     @inlinable
     public func values<Value>(of map: VertexMap<Value>) -> VertexValues<Self, Value> {
-        VertexValues(_storage: _vertexMaps.storage(Value.self, in: _vertexMaps.index(of: map._token, hint: map._hint)))
+        VertexValues(_storage: _vertexMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// The generation of this arborescence, which never changes: it is immutable. A structure derived
@@ -616,7 +616,7 @@ extension Forest: PropertyGraph {
     /// - Precondition: `map` is attached to this forest.
     @inlinable
     public func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Self, Value> {
-        EdgeValues(_storage: _edgeMaps.storage(Value.self, in: _edgeMaps.index(of: map._token, hint: map._hint)))
+        EdgeValues(_storage: _edgeMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// A snapshot of `map`'s values by vertex index. O(1).
@@ -624,7 +624,7 @@ extension Forest: PropertyGraph {
     /// - Precondition: `map` is attached to this forest.
     @inlinable
     public func values<Value>(of map: VertexMap<Value>) -> VertexValues<Self, Value> {
-        VertexValues(_storage: _vertexMaps.storage(Value.self, in: _vertexMaps.index(of: map._token, hint: map._hint)))
+        VertexValues(_storage: _vertexMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// The generation of this forest, which never changes: it is immutable. A structure derived

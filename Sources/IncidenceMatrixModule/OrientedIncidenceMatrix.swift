@@ -32,7 +32,9 @@ public struct OrientedIncidenceMatrix {
     @usableFromInline internal var _vertexMaps: _AttachedMaps
     /// The attached hyperedge maps (`addEdgeMap(default:)`): dense, one value per column.
     @usableFromInline internal var _edgeMaps: _AttachedMaps
-    /// The generation, advanced by every structural mutation. The planes' stay unadvanced.
+    /// The generation, advanced by every structural mutation, which first makes the source
+    /// plane's degrees (`_sources._degrees`, the identity array of `_GenerationStamp`) unique.
+    /// The planes' own stay unadvanced.
     @usableFromInline internal var _generation: _GenerationStamp
 
     /// The matrix with no vertices and no columns.
@@ -444,7 +446,7 @@ extension OrientedIncidenceMatrix {
         _ = _sources._appendRow()
         let vertex = _targets._appendRow()
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
-        _generation.advance()
+        _generation.advance(writing: _sources._degrees)
         return vertex
     }
 
@@ -460,7 +462,8 @@ extension OrientedIncidenceMatrix {
         _ = _sources._appendColumn(sources)
         let position = _targets._appendColumn(targets)
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
-        _generation.advance()
+        // A source's cell writes `_sources._degrees`; no source writes nothing there.
+        if _sources._sizes[position] == 0 { _generation.advance(owning: &_sources._degrees) } else { _generation.advance(writing: _sources._degrees) }
         return position
     }
 
@@ -511,7 +514,7 @@ extension OrientedIncidenceMatrix {
         _sources._checkVertex(vertex)
         _sources._checkHyperedge(position)
         guard _sources._setCell(vertex, position, to: true) else { return false }
-        _generation.advance()
+        _generation.advance(writing: _sources._degrees)
         return true
     }
 
@@ -524,7 +527,7 @@ extension OrientedIncidenceMatrix {
         _targets._checkVertex(vertex)
         _targets._checkHyperedge(position)
         guard _targets._setCell(vertex, position, to: true) else { return false }
-        _generation.advance()
+        _generation.advance(owning: &_sources._degrees)
         return true
     }
 
@@ -537,7 +540,7 @@ extension OrientedIncidenceMatrix {
         _sources._checkVertex(vertex)
         _sources._checkHyperedge(position)
         guard _sources._setCell(vertex, position, to: false) else { return false }
-        _generation.advance()
+        _generation.advance(writing: _sources._degrees)
         return true
     }
 
@@ -550,7 +553,7 @@ extension OrientedIncidenceMatrix {
         _targets._checkVertex(vertex)
         _targets._checkHyperedge(position)
         guard _targets._setCell(vertex, position, to: false) else { return false }
-        _generation.advance()
+        _generation.advance(owning: &_sources._degrees)
         return true
     }
 
@@ -561,7 +564,7 @@ extension OrientedIncidenceMatrix {
         _targets._removeAllCells(keepingCapacity: keepingCapacity)
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advance()
+        _generation.advance(owning: &_sources._degrees)
     }
 
     /// Reserves storage for `vertexCount` vertices and `hyperedgeCount` columns, and room for
@@ -570,6 +573,7 @@ extension OrientedIncidenceMatrix {
     public mutating func reserveCapacity(vertexCount: Int, hyperedgeCount: Int) {
         _sources.reserveCapacity(vertexCount: vertexCount, hyperedgeCount: hyperedgeCount)
         _targets.reserveCapacity(vertexCount: vertexCount, hyperedgeCount: hyperedgeCount)
+        _generation.storageMayHaveMoved(_sources._degrees)
         if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
         if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(hyperedgeCount) }
     }

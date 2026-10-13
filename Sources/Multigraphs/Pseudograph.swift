@@ -46,7 +46,8 @@ public struct Pseudograph<Vertex: Hashable> {
     @usableFromInline
     internal var _edgeMaps: _AttachedMaps
 
-    /// The generation, advanced by every structural mutation.
+    /// The generation, advanced by every structural mutation, each of which writes the row table
+    /// (`_neighbors.rows`, the identity array of `_GenerationStamp`).
     @usableFromInline
     internal var _generation: _GenerationStamp
 
@@ -317,7 +318,7 @@ extension Pseudograph {
         _records.append(_EdgeRecord(u: u, v: v, uOffset: uOffset, vOffset: vOffset))
         _parallel.append(position, key: u <= v ? _SlotPair(u, v) : _SlotPair(v, u))
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
-        _generation.advanceVersion()
+        _generation.advance(writing: _neighbors.rows)
         return position
     }
 
@@ -366,7 +367,7 @@ extension Pseudograph {
         _incident.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
         if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }
-        _generation.advanceVersion(storageIsEmpty: _neighbors.rows.isEmpty)
+        _generation.advance(writing: _neighbors.rows)
         return removed
     }
 
@@ -448,7 +449,7 @@ extension Pseudograph {
         _records.removeLast()
         _parallel.removeLast()
         if !_edgeMaps.isEmpty { _edgeMaps.swapRemove(at: position) }
-        _generation.advanceVersion()
+        _generation.advance(writing: _neighbors.rows)
     }
 
     /// Removes the edge end at `offset` in `row` from both rows, moving the row's last end into
@@ -470,8 +471,7 @@ extension Pseudograph {
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
         // Clearing an empty graph changes nothing: it keeps its generation.
-        // Empties the storage the generation is told apart by: the lineage tells copies apart.
-        if !_vertices.isEmpty { _generation.advance() }
+        let changes = !_vertices.isEmpty
         _vertices.removeAll(keepingCapacity: keepingCapacity)
         _slots.removeAll(keepingCapacity: keepingCapacity)
         _neighbors.removeAll(keepingCapacity: keepingCapacity)
@@ -480,6 +480,7 @@ extension Pseudograph {
         _parallel.removeAll(keepingCapacity: keepingCapacity)
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
+        if changes { _generation.advance(writing: _neighbors.rows) } else { _generation.storageMayHaveMoved(_neighbors.rows) }
     }
 
     /// Removes every edge, keeping every vertex.
@@ -491,7 +492,7 @@ extension Pseudograph {
         _records.removeAll(keepingCapacity: keepingCapacity)
         _parallel.removeAll(keepingCapacity: keepingCapacity)
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advanceVersion()
+        _generation.advance(writing: _neighbors.rows)
     }
 
     /// Reserves space for at least `vertexCount` vertices and `edgeCount` edges.
@@ -501,9 +502,8 @@ extension Pseudograph {
         precondition(edgeCount >= 0, "Negative edge count")
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
-        // Not the row table: the generation is told apart by it, and moving it would start a
-        // generation (see `generation`).
-        _neighbors.reserveEntryCapacity(2 * edgeCount)
+        _neighbors.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
+        _generation.storageMayHaveMoved(_neighbors.rows)
         _incident.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
         _records.reserveCapacity(edgeCount)
         _parallel.reserveCapacity(edgeCount)
@@ -520,7 +520,7 @@ extension Pseudograph {
         _neighbors.appendRow()
         _incident.appendRow()
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
-        _generation.advanceVersion()
+        _generation.advance(writing: _neighbors.rows)
         return slot
     }
 
@@ -810,7 +810,7 @@ extension Pseudograph: Graph {
     /// The current generation (see `GraphGeneration`): every insertion and removal, and both
     /// resets, start a new one. O(1).
     @inlinable
-    public var generation: GraphGeneration { _generation.generation(storage: _GenerationStamp.storage(of: _neighbors.rows)) }
+    public var generation: GraphGeneration { _generation.generation }
 
     /// The vertices' slots: dense indices `0..<vertexCount`, valid until the next vertex removal.
     @inlinable

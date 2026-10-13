@@ -1,26 +1,35 @@
 import GraphProtocols
+import OrderedCollections
 
-// README Q9: positions pass through the wrapper, so the base's maps work through it. `base` is
-// read-only (it carries the invariant), so attaching and writing a map goes through these
-// forwards, each the base's member with the base's cost. Removing a vertex or an edge through the
-// wrapper removes its values, as removing it from the base does.
+// A `LabeledGraph` is a `GraphAdaptor` of its base: it owns the base, but its vertices are labels,
+// not the base's `Int` vertices, so it is not a `GraphDelegator`. `generation` is the adaptor's
+// default, the base's: the labels change only with an insertion into the base, which starts a new
+// generation of the base.
+//
+// Attached maps are the base's (`AdjacencyMatrix`'s, `CompressedSparseRow`'s), attached and
+// written through the labeled graph. Positions are the base's, so the edge-map members and
+// `values(of:)` forward. A label's value is the value of the base vertex it names: one label
+// lookup, then the base's read by that vertex, which is the base's index and, on a matrix or a
+// CSR, its vertex position, so `values(of: vertexMap)[vertexIndex(of: label)]` reads it too.
 
-extension DirectedAcyclicGraph: PropertyGraph where Base: PropertyGraph {
+extension LabeledGraph: GraphAdaptor {}
+
+extension LabeledGraph: PropertyGraph where Base: DirectedGraph<Int> & PropertyGraph {
     public typealias EdgePosition = Base.EdgePosition
 
     @inlinable public static var _vertexMapLayout: _MapLayout { Base._vertexMapLayout }
     @inlinable public static var _edgeMapLayout: _MapLayout { Base._edgeMapLayout }
     @inlinable public static func _edgeMapOffset(of position: Base.EdgePosition) -> Int { Base._edgeMapOffset(of: position) }
 
-    /// The base's `addEdgeMap(default:)`: a map from edge positions to `Value`, every edge's
-    /// value `value` (LEMON's `ArcMap`).
+    /// Attaches a map from the edges to `Value` to the base, every edge's value `value` (LEMON's
+    /// `ArcMap`), and returns its handle, as the base's `addEdgeMap(default:)` does.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         _base.addEdgeMap(default: value)
     }
 
-    /// The base's `addVertexMap(default:)`: a map from vertex positions to `Value`, every
-    /// vertex's value `value` (LEMON's `NodeMap`).
+    /// Attaches a map from the vertices to `Value` to the base, every vertex's value `value`
+    /// (LEMON's `NodeMap`), and returns its handle, as the base's `addVertexMap(default:)` does.
     @inlinable
     public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> {
         _base.addVertexMap(default: value)
@@ -44,7 +53,7 @@ extension DirectedAcyclicGraph: PropertyGraph where Base: PropertyGraph {
 
     /// The value of the edge at `position` in `map`, as the base's subscript.
     ///
-    /// - Precondition: `map` is attached to this graph, and `position` is a live edge position.
+    /// - Precondition: `map` is attached to this graph, and an edge is at `position`.
     @inlinable
     public subscript<Value>(_ map: EdgeMap<Value>, ofEdgeAt position: Base.EdgePosition) -> Value {
         get { _base[map, ofEdgeAt: position] }
@@ -53,20 +62,20 @@ extension DirectedAcyclicGraph: PropertyGraph where Base: PropertyGraph {
 
     /// The value of the vertex at `position` in `map`, as the base's subscript.
     ///
-    /// - Precondition: `map` is attached to this graph, and `position` is a live vertex position.
+    /// - Precondition: `map` is attached to this graph, and a vertex is at `position`.
     @inlinable
     public subscript<Value>(_ map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
         get { _base[map, ofVertexAt: position] }
         set { _base[map, ofVertexAt: position] = newValue }
     }
 
-    /// The value of `vertex` in `map`, as the base's subscript. One hash.
+    /// The value of `label` in `map`: one hash, then the base's read.
     ///
-    /// - Precondition: `map` is attached to this graph, and `vertex` is a vertex.
+    /// - Precondition: `map` is attached to this graph, and `label` is a vertex.
     @inlinable
-    public subscript<Value>(_ map: VertexMap<Value>, of vertex: Vertex) -> Value {
-        get { _base[map, of: vertex] }
-        set { _base[map, of: vertex] = newValue }
+    public subscript<Value>(_ map: VertexMap<Value>, of label: Label) -> Value {
+        get { _base[map, of: _index(of: label)] }
+        set { _base[map, of: _index(of: label)] = newValue }
     }
 
     /// The value of the edge at `position` in `map`, as the base's subscript.
@@ -87,13 +96,17 @@ extension DirectedAcyclicGraph: PropertyGraph where Base: PropertyGraph {
         get throws(VertexNotFound) { try _base[map, checkedVertexAt: position] }
     }
 
-    /// The value of `vertex` in `map`, as the base's subscript.
+    /// The value of `label` in `map`, throwing instead of trapping when `label` is not a vertex.
+    /// One hash.
     ///
     /// - Precondition: `map` is attached to this graph.
-    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    /// - Throws: `VertexNotFound` when `label` is not a vertex.
     @inlinable
-    public subscript<Value>(_ map: VertexMap<Value>, checked vertex: Vertex) -> Value {
-        get throws(VertexNotFound) { try _base[map, checked: vertex] }
+    public subscript<Value>(_ map: VertexMap<Value>, checked label: Label) -> Value {
+        get throws(VertexNotFound) {
+            guard let index = _labels.firstIndex(of: label) else { throw VertexNotFound() }
+            return _base[map, of: index]
+        }
     }
 
     /// The base's snapshot of `map`'s values, by edge position. O(1).

@@ -19,8 +19,13 @@ graph with no vertex or edge indices.
 ```swift
 enum BipartiteSide: Hashable, Sendable, CaseIterable, Codable, CustomStringConvertible { case left, right }
 
-struct BipartiteGraph<Vertex: Hashable>: Graph, Hashable, Codable (Vertex: Codable), Sendable (Vertex: Sendable),
-                                         CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable
+struct BipartiteGraph<Vertex: Hashable>: Graph, GraphDelegator, PropertyGraph, Hashable, Codable (Vertex: Codable),
+                                         Sendable (Vertex: Sendable), CustomStringConvertible, CustomDebugStringConvertible, CustomReflectable
+    var base: UndirectedAdjacencyList<Vertex>                      // the wrapped graph; every read, the maps and `generation` are its
+    addEdgeMap(default:), addVertexMap(default:), addEdgeMap(of:), addVertexMap(of:), removeEdgeMap(_:), removeVertexMap(_:)
+    [map, ofEdgeAt:], [map, ofVertexAt:], [map, of:]                // get/set; trap outside the graph
+    [map, checkedEdgeAt:], [map, checkedVertexAt:], [map, checked:] // throw EdgeNotFound / VertexNotFound
+    values(of:) -> EdgeValues<Self, Value> / VertexValues<Self, Value>
     init(), init?(left:right:), init?(left:right:edges:)          // nil: overlapping sides, an edge inside a side or off both
     init?(_ graph: some Graph<Vertex>)                             // canonical sides; nil exactly when graph.findOddCycle() != nil
     init?(_ graph: some Graph<Vertex>, left: some Sequence<Vertex>)// nil: an edge not across, or a non-vertex in left
@@ -54,6 +59,8 @@ struct Bipartition<G: Graph>: Equatable, CustomStringConvertible  // left, right
 | `BipartiteGraph(left:right:edges:)` | `left` then `right` in `vertices` order, repeats within a side dropped; endpoints are never inserted implicitly | BP-105 – BP-118 |
 | Removal | The last slot moves into the hole (as in `UndirectedAdjacencyList`), and the side's last vertex into its place in `left` or `right`; the last edge into a removed edge's position | BP-124 – BP-139 |
 | Equality | Vertex sets, edge sets and each vertex's side; not orders or orientations | BP-162 – BP-166 |
+| Attached maps | The base's (dense, one value per slot and per edge position): every removal swap-moves the values with the storage, so a value stays with its edge or vertex on either side; a new element reads the default; a mutation that throws `BipartitionError` changes no map; `removeAllEdges()` / `removeAll()` empty the maps and keep them attached; plain reads trap outside the graph and `checked` reads throw; `BipartiteGraph(list)` keeps the list's maps; equality, hashing and coding ignore them | `BipartiteGraphDelegatorTests.swift`, `BipartiteGraphMapPropertyTests.swift`, `BipartiteGraphMapPreconditionTests.swift` |
+| Generations | The base's: every insertion and removal starts one; a call that changes nothing, a throw, reserving capacity and map writes do not; built, converted and decoded graphs have one | `BipartiteGraphGenerationTests.swift` |
 | Projection | The side's vertices in side order; {u, x} once when they share a neighbour, inserted in discovery order (u in side order, w in u's row, x ≠ u in w's row), oriented (u, x) | BP-150 – BP-161 |
 
 ## How values are pinned
@@ -126,11 +133,15 @@ edge as given instead of as stored (5), and the moved slot not renamed after a v
 | `BipartitionCheckedTests.swift` | 1 | `Bipartition.side(checked:)` on an indexed and an unindexed graph: agrees with `side(of:)`, throws `VertexNotFound` for a non-vertex |
 | `RecognitionPropertyTests.swift` | 2 | PropertyBased, shrinking, multigraphs with loops in shuffled vertex orders on both kinds of rows: the four equivalences and the canonical sides against brute force over every two-colouring, `BipartiteGraph(g)`'s edges and orientation, `left:` with random subsets and a non-vertex, the swapped sides, odd-cycle validity and canonical form; the exact cycle against api.md's search written out |
 | `BipartiteGraphPropertyTests.swift` | 2 | PropertyBased, shrinking: random operation sequences against a model of sides and edges (results, sets, sides, orientation, index rows, the `checked:` lookups over every candidate vertex, equality and hash with a rebuilt graph after every step; Codable and the initializers from a graph at the end); projections after random removals against the definition and the documented order |
+| `BipartiteGraphDelegatorTests.swift` | 7 | Every `Graph` requirement answers as `base` through a generic context; maps attached through the wrapper are the base's, through every subscript, the `checked` reads and `values(of:)`; a mutation that throws changes no map; vertex removal on either side moves the last slot's values; edge removal and the clears; `BipartiteGraph(list)` keeps the list's maps with edges turned; equality, hashing, coding and descriptions ignore maps |
+| `BipartiteGraphGenerationTests.swift` | 4 | Every structural mutation starts a generation, which is the base's; a call that changes nothing (an existing vertex or edge, each `BipartitionError`, an absent edge or vertex, capacity, maps, reads) keeps it; copies; built, converted and decoded graphs |
+| `BipartiteGraphMapPreconditionTests.swift` | 7 | Exit tests: a removed edge's position, a position past the edges, a removed vertex, a non-vertex write, a slot past the vertices, a foreign handle, a removed map |
+| `BipartiteGraphMapPropertyTests.swift` | 1 | PropertyBased, shrinking: random insertions on either side, edges plain and `checked:` (across, inside a side, with a missing endpoint), removals, clears, copies and value writes against a model keyed by edge and vertex; after every step every value through the subscripts and `values(of:)`, the sides, left-first storage and the `checked` throws |
 | `Performance/BipartiteStressTests.swift` | 5 | Inside a `Task` with a one-minute limit: the 10⁵-vertex path on both kinds of rows, C₁₀₀₀₀₁ and C₁₀₀₀₀₂, the 300 × 300 grid with and without a diagonal, a 10⁵-vertex `BipartiteGraph` built by insertion and half removed, the projections of K₁,₄₀₀ and of the 10⁵-vertex path |
 
-172 catalog rows (168 value rows, 4 trap rows), their 84 representation tests, and 29 more tests
-(2 precondition, 3 laws, 9 conformance, 6 bipartition and view, 4 property, 5 stress): 285 tests in
-all.
+172 catalog rows (168 value rows, 4 trap rows), their 84 representation tests, and more tests
+(precondition, laws, conformance, bipartition and view, property, stress, and 19 for attached maps
+and generations): 307 tests in all.
 
 ## Case IDs
 

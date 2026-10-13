@@ -117,6 +117,23 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(g)
         }
     }
+    // The fair baseline of the row above: the caller's own graph type holds two side arrays by
+    // position, which a removal leaves alone (positions are never reused, and a trivial value needs
+    // no release).
+    Benchmark("StableGraphs: StableDirectedGraph remove every other edge by position, BASELINE 2 side arrays in the caller's graph type") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var g = SideArrayStableGraph(StableDirectedGraph(vertices: 0 ..< 100_000, edges: raw))
+            for p in stride(from: 0, to: 500_000, by: 3) {
+                g.weights[p] = Double(p)
+                g.labels[p] = p
+            }
+            g.remove(edgeAt: 1)
+            benchmark.startMeasurement()
+            for p in stride(from: 2, to: 500_000, by: 2) { g.remove(edgeAt: p) }
+            benchmark.stopMeasurement()
+            blackHole(g)
+        }
+    }
     // Reading attached values the way an algorithm does, by the position of each live edge: the
     // paged `values(of:)` snapshot against a side array of `edgePositionBound` values, on the
     // churned graph (holes and freed pages) and on the dense instance.
@@ -470,5 +487,24 @@ let benchmarks: @Sendable () -> Void = {
             g.insert(edge: DirectedEdge(from: 5, to: 99_999))
             blackHole(g)
         }
+    }
+}
+
+/// The fair baseline of the attached-map rows: a caller's own graph type that holds the graph and
+/// two side arrays by edge position, kept inside its own mutating methods; positions are never
+/// reused, so a removal leaves them alone.
+struct SideArrayStableGraph {
+    var graph: StableDirectedGraph<Int>
+    var weights: [Double?]
+    var labels: [Int?]
+
+    init(_ graph: StableDirectedGraph<Int>) {
+        self.graph = graph
+        weights = Array(repeating: nil, count: graph.edges.endIndex)
+        labels = Array(repeating: nil, count: graph.edges.endIndex)
+    }
+
+    mutating func remove(edgeAt position: Int) {
+        graph.remove(edgeAt: position)
     }
 }

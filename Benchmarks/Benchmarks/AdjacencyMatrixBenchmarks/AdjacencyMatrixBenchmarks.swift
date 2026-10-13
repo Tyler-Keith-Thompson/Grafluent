@@ -115,7 +115,8 @@ let benchmarks: @Sendable () -> Void = {
 
     // Edge maps hold a value per cell (at the cell's Szudzik offset), so a removal sets the cell
     // back to the default and an insertion writes nothing. The rows compare 0, 1 and 2 attached
-    // edge maps with a caller's flat `[Double]` of n² weights kept in step by hand.
+    // edge maps with as many flat `[Double]`s of n² weights, kept in step by the caller's own matrix
+    // type inside its removal (`SideArrayMatrix`).
     let mapN = 1024
     let mapEdges = Inputs.randomEdges(vertexCount: mapN, edgeCount: 1_000_000)
     let mapBase = AdjacencyMatrix(vertexCount: mapN, edges: mapEdges)
@@ -161,15 +162,24 @@ let benchmarks: @Sendable () -> Void = {
             }
         }
     }
-    Benchmark("AdjacencyMatrix: BASELINE remove 10⁵ edges of 1024², hand-maintained side array") { benchmark in
+    for arrays in 1 ... 2 {
+        Benchmark("AdjacencyMatrix: BASELINE remove 10⁵ edges of 1024², \(arrays) side array\(arrays == 1 ? "" : "s") in the caller's matrix type") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var copy = SideArrayMatrix(mapBase, arrays: arrays)
+                benchmark.startMeasurement()
+                for edge in removals { copy.remove(edge: edge) }
+                benchmark.stopMeasurement()
+                blackHole(copy)
+            }
+        }
+    }
+    // The insertion through an `inout` parameter, as a function that fills a caller's matrix runs
+    // it: the arrays' uniqueness is checked each time, where a fresh local's is proved once.
+    Benchmark("AdjacencyMatrix: insert 10⁶ random cells of 1024² through inout, 0 edge maps") { benchmark in
         for _ in benchmark.scaledIterations {
-            var copy = mapBase
-            var weights = [Double](repeating: 1.0, count: mapN * mapN)
-            weights[0] = 2
-            benchmark.startMeasurement()
-            for edge in removals where copy.remove(edge: edge) != nil { weights[edge.source * mapN + edge.target] = 1.0 }
-            benchmark.stopMeasurement()
-            blackHole((copy, weights))
+            var matrix = AdjacencyMatrix(vertexCount: mapN)
+            insertAll(mapEdges, into: &matrix)
+            blackHole(matrix)
         }
     }
 
@@ -199,5 +209,36 @@ let benchmarks: @Sendable () -> Void = {
             for source in 0 ..< 1000 { for position in complete.outEdges(of: source) { sum += completeFlat[position.source &* 1000 &+ position.target] } }
             blackHole(sum)
         }
+    }
+}
+
+/// Inserts every edge, out of line: the matrix is an `inout` parameter, as in a function that
+/// fills a caller's matrix.
+@inline(never)
+func insertAll(_ edges: [DirectedEdge<Int>], into matrix: inout AdjacencyMatrix) {
+    for edge in edges { matrix.insert(edge: edge) }
+}
+
+/// The fair baseline of the attached-map rows: a caller's own matrix type that holds the matrix and
+/// `arrays` flat side arrays of n² weights, setting a removed cell's weight back inside its own
+/// removal, as the matrix resets its maps.
+struct SideArrayMatrix {
+    var matrix: AdjacencyMatrix
+    var first: [Double]
+    var second: [Double]
+    let arrays: Int
+
+    init(_ matrix: AdjacencyMatrix, arrays: Int) {
+        self.matrix = matrix
+        first = [Double](repeating: 1.0, count: matrix.vertexCount * matrix.vertexCount)
+        second = arrays > 1 ? first : []
+        self.arrays = arrays
+    }
+
+    mutating func remove(edge: DirectedEdge<Int>) {
+        guard matrix.remove(edge: edge) != nil else { return }
+        let offset = edge.source * matrix.vertexCount + edge.target
+        first[offset] = 1.0
+        if arrays > 1 { second[offset] = 1.0 }
     }
 }

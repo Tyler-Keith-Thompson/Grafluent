@@ -178,12 +178,6 @@ package struct _RowPool {
         garbage = 0
     }
 
-    /// Reserves room for `entries` entries, leaving the row table where it is.
-    @inlinable
-    package mutating func reserveEntryCapacity(_ entries: Int) {
-        storage.reserveCapacity(entries)
-    }
-
     @inlinable
     package mutating func reserveCapacity(rows rowCount: Int, entries: Int) {
         rows.reserveCapacity(rowCount)

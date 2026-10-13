@@ -20,7 +20,7 @@ private struct DenseGraph: Graph, PropertyGraph {
     typealias EdgePosition = Int
 
     var vertexTotal: Int
-    var links: [UndirectedEdge<Int>] = []
+    var links: ContiguousArray<UndirectedEdge<Int>> = []
     var vertexMaps = _AttachedMaps()
     var edgeMaps = _AttachedMaps()
     var stamp = _GenerationStamp()
@@ -28,7 +28,7 @@ private struct DenseGraph: Graph, PropertyGraph {
     init(vertexCount: Int) { vertexTotal = vertexCount }
 
     var vertices: Range<Int> { 0 ..< vertexTotal }
-    var edges: [UndirectedEdge<Int>] { links }
+    var edges: [UndirectedEdge<Int>] { Array(links) }
     var edgeIndexBound: Int? { links.count }
     func edgeIndex(of position: Int) -> Int { position }
     var vertexIndexBound: Int? { vertexTotal }
@@ -54,7 +54,7 @@ private struct DenseGraph: Graph, PropertyGraph {
     mutating func insert(edge: UndirectedEdge<Int>) -> Int {
         links.append(edge)
         if !edgeMaps.isEmpty { edgeMaps.appendDefaults(count: 1) }
-        stamp.advance()
+        stamp.advance(writing: links)
         return links.count - 1
     }
 

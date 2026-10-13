@@ -36,6 +36,10 @@ struct LabeledGraph<Label: Hashable, Base>: DirectedGraph (Base: DirectedGraph<I
         removeEdges(incidentTo:), removeEdges(checkedFrom:), removeEdges(checkedTo:),
         removeEdges(checkedIncidentTo:), removeAllEdges(keepingCapacity:), removeAll(keepingCapacity:),
         reserveCapacity(vertexCount:)                               // Base == AdjacencyMatrix
+    GraphAdaptor: base, generation                                  // the base's
+    PropertyGraph where Base: PropertyGraph: addEdgeMap(default:), addEdgeMap(of:), addVertexMap(…),
+        removeEdgeMap(_:), removeVertexMap(_:), self[map, ofEdgeAt:], self[map, ofVertexAt:],
+        self[map, of: label], the checked subscripts, values(of:)   // the base's maps; a label reads its index
 ```
 
 ## Conventions
@@ -119,6 +123,13 @@ not from the setup.
   against a written-out model (labels in insertion order, a set of labeled arcs), and the whole
   state is compared after every step. Random builds of both bases are checked against the
   first-appearance rule, equality against the model's rule, and Codable by round trip.
+- **Attached maps.** Maps attached through the labels over CSR and the matrix are the base's, read
+  by label, by index, by position and through `values(of:)`; map-fed Dijkstra equals array-fed;
+  `Int` labels that are not the indices read through the label. The generation is the base's: built
+  graphs have one, every label or edge change starts a new one, and value writes, copies and
+  reserving do not. A property test runs random mutation sequences on the matrix base with three maps
+  against a model keyed by labeled edge and by label, and checks every value, the vacated cells and
+  the generation after every step.
 - **Stress.** A CSR with 10⁵ String labels and about 4 × 10⁵ edges, checked against its base. A
   matrix grown to 2 048 labels, with 10⁵ edge changes checked against a set. 2 × 10⁴ counted labels
   whose whole-graph algorithms hash nothing.

@@ -12,7 +12,7 @@ extension AdjacencyMatrix {
     /// The current generation (see `GraphGeneration`): every edge inserted or removed, every vertex
     /// appended, the whole-matrix operations and both resets start a new one. O(1).
     @inlinable
-    public var generation: GraphGeneration { _generation.generation(storage: _GenerationStamp.storage(of: _inDegrees)) }
+    public var generation: GraphGeneration { _generation.generation }
 
     /// Szudzik's pairing of the cell (`source`, `target`): its offset in an edge map.
     @inlinable
@@ -157,7 +157,7 @@ extension AdjacencyMatrix: PropertyGraph {
     /// - Precondition: `map` is attached to this matrix.
     @inlinable
     public func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Self, Value> {
-        EdgeValues(_storage: _edgeMaps.storage(Value.self, in: _edgeMaps.index(of: map._token, hint: map._hint)))
+        EdgeValues(_storage: _edgeMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// A snapshot of `map`'s values by vertex. O(1).
@@ -165,6 +165,6 @@ extension AdjacencyMatrix: PropertyGraph {
     /// - Precondition: `map` is attached to this matrix.
     @inlinable
     public func values<Value>(of map: VertexMap<Value>) -> VertexValues<Self, Value> {
-        VertexValues(_storage: _vertexMaps.storage(Value.self, in: _vertexMaps.index(of: map._token, hint: map._hint)))
+        VertexValues(_storage: _vertexMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 }

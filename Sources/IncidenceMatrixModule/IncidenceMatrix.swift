@@ -40,8 +40,9 @@ public struct IncidenceMatrix {
     @usableFromInline internal var _vertexMaps: _AttachedMaps
     /// The attached hyperedge maps (`addEdgeMap(default:)`): dense, one value per column.
     @usableFromInline internal var _edgeMaps: _AttachedMaps
-    /// The generation, advanced by every structural mutation. An `OrientedIncidenceMatrix` keeps
-    /// its own maps and generation; its planes' stay empty and unadvanced.
+    /// The generation, advanced by every structural mutation, which first makes `_degrees` (the
+    /// identity array of `_GenerationStamp`) unique. An `OrientedIncidenceMatrix` keeps its own
+    /// maps and generation; its planes' stay empty and unadvanced.
     @usableFromInline internal var _generation: _GenerationStamp
 
     /// The matrix with no vertices and no columns.
@@ -545,7 +546,7 @@ extension IncidenceMatrix {
     public mutating func appendVertex() -> Int {
         let vertex = _appendRow()
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
-        _generation.advance()
+        _generation.advance(writing: _degrees)
         return vertex
     }
 
@@ -570,7 +571,8 @@ extension IncidenceMatrix {
     public mutating func insert(hyperedge members: some Sequence<Int>) -> Int {
         let position = _appendColumn(members)
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
-        _generation.advance()
+        // A member's cell writes `_degrees`; an empty column writes nothing there.
+        if _sizes[position] == 0 { _generation.advance(owning: &_degrees) } else { _generation.advance(writing: _degrees) }
         return position
     }
 
@@ -609,7 +611,7 @@ extension IncidenceMatrix {
         _checkVertex(vertex)
         _checkHyperedge(position)
         guard _setCell(vertex, position, to: true) else { return false }
-        _generation.advance()
+        _generation.advance(writing: _degrees)
         return true
     }
 
@@ -623,7 +625,7 @@ extension IncidenceMatrix {
         _checkVertex(vertex)
         _checkHyperedge(position)
         guard _setCell(vertex, position, to: false) else { return false }
-        _generation.advance()
+        _generation.advance(writing: _degrees)
         return true
     }
 
@@ -633,7 +635,7 @@ extension IncidenceMatrix {
         _removeAllCells(keepingCapacity: keepingCapacity)
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advance()
+        _generation.advance(owning: &_degrees)
     }
 
     /// Removes every vertex and column, leaving the maps and the generation alone (a plane's step).
@@ -653,6 +655,7 @@ extension IncidenceMatrix {
         _rows.reserveCapacity(rows: vertexCount, columns: hyperedgeCount)
         _columns.reserveCapacity(rows: hyperedgeCount, columns: vertexCount)
         _degrees.reserveCapacity(vertexCount)
+        _generation.storageMayHaveMoved(_degrees)
         _sizes.reserveCapacity(hyperedgeCount)
         if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
         if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(hyperedgeCount) }

@@ -8,13 +8,17 @@ import GraphProtocols
 /// The invariant is the type: every initializer from unchecked input is failable, and a mutation
 /// that would break it throws `BipartitionError` and changes nothing (whether an edge may be
 /// inserted is an O(1) test with `side(of:)`).
-/// Storage and mutation costs are `UndirectedAdjacencyList`'s: vertex indices are slots
-/// (`vertices` order), edge indices are positions, and a removal moves the last slot or edge into
-/// the hole, so orders and positions change after a removal. Equality compares vertex sets, edge
-/// sets and each vertex's side, not orders.
+/// Storage and mutation costs are `UndirectedAdjacencyList`'s, which it wraps as a
+/// `GraphDelegator` (`base` reads it): vertex indices are slots (`vertices` order), edge indices
+/// are positions, and a removal moves the last slot or edge into the hole, so orders and positions
+/// change after a removal. Every read is the base's, at the base's speed, and so are attached maps
+/// (`PropertyGraph`, which follow those moves) and `generation`. Equality compares vertex sets,
+/// edge sets and each vertex's side, not orders, and ignores maps.
 @frozen
 public struct BipartiteGraph<Vertex: Hashable> {
-    @usableFromInline var _graph: UndirectedAdjacencyList<Vertex>
+    /// The wrapped graph. Not for use outside the library: writing it directly can break the
+    /// invariant. `base` reads it.
+    public var _base: UndirectedAdjacencyList<Vertex>
     /// The side of each slot.
     @usableFromInline var _side: [BipartiteSide]
     /// The slots on each side, in side order.
@@ -26,7 +30,7 @@ public struct BipartiteGraph<Vertex: Hashable> {
     /// The empty graph.
     @inlinable
     public init() {
-        _graph = UndirectedAdjacencyList()
+        _base = UndirectedAdjacencyList()
         _side = []
         _left = []
         _right = []
@@ -38,9 +42,9 @@ public struct BipartiteGraph<Vertex: Hashable> {
     @inlinable
     public init?(left: some Sequence<Vertex>, right: some Sequence<Vertex>) {
         self.init()
-        for v in left where _graph._slotIfPresent(of: v) == nil { _appendVertex(v, on: .left) }
+        for v in left where _base._slotIfPresent(of: v) == nil { _appendVertex(v, on: .left) }
         for v in right {
-            if let slot = _graph._slotIfPresent(of: v) {
+            if let slot = _base._slotIfPresent(of: v) {
                 if _side[slot] == .left { return nil }
             } else {
                 _appendVertex(v, on: .right)
@@ -56,14 +60,16 @@ public struct BipartiteGraph<Vertex: Hashable> {
     public init?(left: some Sequence<Vertex>, right: some Sequence<Vertex>, edges: some Sequence<UndirectedEdge<Vertex>>) {
         self.init(left: left, right: right)
         for edge in edges {
-            guard let u = _graph._slotIfPresent(of: edge.u), let v = _graph._slotIfPresent(of: edge.v), _side[u] != _side[v] else { return nil }
-            if _side[u] == .left { _graph._insertEdge(slots: u, v) } else { _graph._insertEdge(slots: v, u) }
+            guard let u = _base._slotIfPresent(of: edge.u), let v = _base._slotIfPresent(of: edge.v), _side[u] != _side[v] else { return nil }
+            if _side[u] == .left { _base._insertEdge(slots: u, v) } else { _base._insertEdge(slots: v, u) }
         }
     }
 
     /// The graph's vertices (in order), edges (in position order, so at their positions when the
     /// graph has no parallel edges; repeats dropped), and the canonical sides of `bipartition()`.
     /// nil when the graph is not bipartite: `graph.findOddCycle()` is then the witness. O(n + m).
+    /// An `UndirectedAdjacencyList` keeps its storage, attached maps included, with each edge
+    /// turned to put its left end first; `base` reads it back.
     @inlinable
     public init?(_ graph: some Graph<Vertex>) {
         guard let sides = graph._runOnUndirectedRows(_TwoColoring(witness: false)).sides else { return nil }
@@ -73,7 +79,7 @@ public struct BipartiteGraph<Vertex: Hashable> {
                 list._reverseEdge(at: position)
             }
             self.init()
-            _graph = list
+            _base = list
             _side = sides.map { $0 == 0 ? .left : .right }
             _sideOffset.reserveCapacity(sides.count)
             for (slot, s) in sides.enumerated() {
@@ -99,9 +105,9 @@ public struct BipartiteGraph<Vertex: Hashable> {
                 (u, v) = graph.endpointIndices(ofEdgeAt: position)
             } else {
                 let edge = graph.edges[position]
-                (u, v) = (_graph.vertexIndex(of: edge.u), _graph.vertexIndex(of: edge.v))
+                (u, v) = (_base.vertexIndex(of: edge.u), _base.vertexIndex(of: edge.v))
             }
-            if _side[u] == .left { _graph._insertEdge(slots: u, v) } else { _graph._insertEdge(slots: v, u) }
+            if _side[u] == .left { _base._insertEdge(slots: u, v) } else { _base._insertEdge(slots: v, u) }
         }
     }
 
@@ -120,24 +126,24 @@ public struct BipartiteGraph<Vertex: Hashable> {
         for v in graph.vertices { _appendVertex(v, on: leftSet.contains(v) ? .left : .right) }
         for edge in graph.edges {
             guard leftSet.contains(edge.u) != leftSet.contains(edge.v) else { return nil }
-            _insertCrossEdge(_graph.vertexIndex(of: edge.u), _graph.vertexIndex(of: edge.v))
+            _insertCrossEdge(_base.vertexIndex(of: edge.u), _base.vertexIndex(of: edge.v))
         }
     }
 
     /// The left vertices, in insertion order (a removal moves the side's last vertex into the hole).
     @inlinable
-    public var left: SideVertices { SideVertices(graph: _graph, slots: _left) }
+    public var left: SideVertices { SideVertices(graph: _base, slots: _left) }
 
     /// The right vertices, in insertion order (a removal moves the side's last vertex into the hole).
     @inlinable
-    public var right: SideVertices { SideVertices(graph: _graph, slots: _right) }
+    public var right: SideVertices { SideVertices(graph: _base, slots: _right) }
 
     /// The side of `vertex`. O(1).
     ///
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func side(of vertex: Vertex) -> BipartiteSide {
-        guard let slot = _graph._slotIfPresent(of: vertex) else { preconditionFailure("\(vertex) is not a vertex of the graph") }
+        guard let slot = _base._slotIfPresent(of: vertex) else { preconditionFailure("\(vertex) is not a vertex of the graph") }
         return _side[slot]
     }
 
@@ -150,9 +156,9 @@ public struct BipartiteGraph<Vertex: Hashable> {
     @inlinable
     @discardableResult
     public mutating func insert(_ vertex: Vertex, on side: BipartiteSide) throws(BipartitionError) -> (inserted: Bool, memberAfterInsert: Vertex) {
-        if let slot = _graph._slotIfPresent(of: vertex) {
+        if let slot = _base._slotIfPresent(of: vertex) {
             guard _side[slot] == side else { throw .onOtherSide(_side[slot]) }
-            return (false, _graph.vertex(atIndex: slot))
+            return (false, _base.vertex(atIndex: slot))
         }
         _appendVertex(vertex, on: side)
         return (true, vertex)
@@ -161,7 +167,7 @@ public struct BipartiteGraph<Vertex: Hashable> {
     /// Appends `vertex`, which is not a vertex, on `side`.
     @inlinable
     internal mutating func _appendVertex(_ vertex: Vertex, on side: BipartiteSide) {
-        _graph.insert(vertex)
+        _base.insert(vertex)
         let slot = _side.count
         _side.append(side)
         if side == .left {
@@ -183,7 +189,7 @@ public struct BipartiteGraph<Vertex: Hashable> {
     @inlinable
     @discardableResult
     public mutating func insert(edge: UndirectedEdge<Vertex>) throws(BipartitionError) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>) {
-        guard let u = _graph._slotIfPresent(of: edge.u), let v = _graph._slotIfPresent(of: edge.v) else {
+        guard let u = _base._slotIfPresent(of: edge.u), let v = _base._slotIfPresent(of: edge.v) else {
             preconditionFailure("An endpoint of \(edge) is not a vertex")
         }
         guard _side[u] != _side[v] else { throw .sameSide(_side[u]) }
@@ -200,7 +206,7 @@ public struct BipartiteGraph<Vertex: Hashable> {
     @inlinable
     @discardableResult
     public mutating func insert(checked edge: UndirectedEdge<Vertex>) throws(BipartitionError) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>) {
-        guard let u = _graph._slotIfPresent(of: edge.u), let v = _graph._slotIfPresent(of: edge.v) else {
+        guard let u = _base._slotIfPresent(of: edge.u), let v = _base._slotIfPresent(of: edge.v) else {
             throw .missingEndpoint
         }
         guard _side[u] != _side[v] else { throw .sameSide(_side[u]) }
@@ -211,7 +217,7 @@ public struct BipartiteGraph<Vertex: Hashable> {
     @inlinable
     @discardableResult
     internal mutating func _insertCrossEdge(_ u: Int, _ v: Int) -> (inserted: Bool, memberAfterInsert: UndirectedEdge<Vertex>) {
-        _side[u] == .left ? _graph._insertEdge(slots: u, v) : _graph._insertEdge(slots: v, u)
+        _side[u] == .left ? _base._insertEdge(slots: u, v) : _base._insertEdge(slots: v, u)
     }
 
     /// Removes `vertex` and its edges. O(degree), plus the degree of the vertex that moves into its
@@ -221,7 +227,7 @@ public struct BipartiteGraph<Vertex: Hashable> {
     @inlinable
     @discardableResult
     public mutating func remove(_ vertex: Vertex) -> Vertex? {
-        guard let slot = _graph._slotIfPresent(of: vertex) else { return nil }
+        guard let slot = _base._slotIfPresent(of: vertex) else { return nil }
         // Out of its side list: the side's last vertex moves into its place.
         let offset = _sideOffset[slot]
         if _side[slot] == .left {
@@ -237,7 +243,7 @@ public struct BipartiteGraph<Vertex: Hashable> {
                 _sideOffset[moved] = offset
             }
         }
-        let removed = _graph.remove(vertex)
+        let removed = _base.remove(vertex)
         // The graph moved its last slot into `slot`: rename it here too.
         let last = _side.count - 1
         if slot != last {
@@ -256,13 +262,13 @@ public struct BipartiteGraph<Vertex: Hashable> {
     @inlinable
     @discardableResult
     public mutating func remove(edge: UndirectedEdge<Vertex>) -> UndirectedEdge<Vertex>? {
-        _graph.remove(edge: edge)
+        _base.remove(edge: edge)
     }
 
     /// Removes every vertex and edge.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
-        _graph.removeAll(keepingCapacity: keepingCapacity)
+        _base.removeAll(keepingCapacity: keepingCapacity)
         _side.removeAll(keepingCapacity: keepingCapacity)
         _left.removeAll(keepingCapacity: keepingCapacity)
         _right.removeAll(keepingCapacity: keepingCapacity)
@@ -272,13 +278,13 @@ public struct BipartiteGraph<Vertex: Hashable> {
     /// Removes every edge; the vertices keep their sides.
     @inlinable
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
-        _graph.removeAllEdges(keepingCapacity: keepingCapacity)
+        _base.removeAllEdges(keepingCapacity: keepingCapacity)
     }
 
     /// Reserves room for this many vertices and edges.
     @inlinable
     public mutating func reserveCapacity(vertexCount: Int, edgeCount: Int) {
-        _graph.reserveCapacity(vertexCount: vertexCount, edgeCount: edgeCount)
+        _base.reserveCapacity(vertexCount: vertexCount, edgeCount: edgeCount)
         _side.reserveCapacity(vertexCount)
         _sideOffset.reserveCapacity(vertexCount)
         _left.reserveCapacity(vertexCount)
@@ -296,14 +302,14 @@ public struct BipartiteGraph<Vertex: Hashable> {
         // after u, so `insert(edge:)` runs once per projected edge.
         var lastSeen = [Int](repeating: -1, count: _side.count)
         var bound = 0
-        for u in slots { for w in _graph.neighborIndices(ofIndex: u) { bound += _graph.neighborIndices(ofIndex: w).count - 1 } }
+        for u in slots { for w in _base.neighborIndices(ofIndex: u) { bound += _base.neighborIndices(ofIndex: w).count - 1 } }
         var result = UndirectedAdjacencyList<Vertex>()
         result.reserveCapacity(vertexCount: slots.count, edgeCount: min(bound / 2, slots.count * max(slots.count - 1, 0) / 2))
-        for u in slots { result.insert(_graph.vertex(atIndex: u)) }
+        for u in slots { result.insert(_base.vertex(atIndex: u)) }
         // In `result`, side position k is slot k.
         for (k, u) in slots.enumerated() {
-            for w in _graph.neighborIndices(ofIndex: u) {
-                for x in _graph.neighborIndices(ofIndex: w) {
+            for w in _base.neighborIndices(ofIndex: u) {
+                for x in _base.neighborIndices(ofIndex: w) {
                     if x == u || lastSeen[x] == u { continue }
                     lastSeen[x] = u
                     let other = _sideOffset[x]
@@ -341,31 +347,43 @@ public struct BipartiteGraph<Vertex: Hashable> {
 
 // MARK: - Graph
 
-extension BipartiteGraph: Graph {
-    public typealias Vertices = UndirectedAdjacencyList<Vertex>.Vertices
-    public typealias Edges = UndirectedAdjacencyList<Vertex>.Edges
-    public typealias Neighbors = UndirectedAdjacencyList<Vertex>.Neighbors
+// `GraphDelegator`'s defaults would forward these too, but its base is another module's type: a
+// call to a default from inlinable code in a module that does not import AdjacencyListModule
+// (MatchingModule, ColoringModule, Covering) would need `UndirectedAdjacencyList`'s conformance,
+// which that file cannot name. Concrete members forward without it, at the same speed.
 
-    @inlinable public var vertices: Vertices { _graph.vertices }
-    @inlinable public var edges: Edges { _graph.edges }
-    @inlinable public var vertexCount: Int { _graph.vertexCount }
-    @inlinable public var edgeCount: Int { _graph.edgeCount }
-    @inlinable public func contains(_ vertex: Vertex) -> Bool { _graph.contains(vertex) }
-    @inlinable public func contains(edge: UndirectedEdge<Vertex>) -> Bool { _graph.contains(edge: edge) }
-    @inlinable public func neighbors(of vertex: Vertex) -> Neighbors { _graph.neighbors(of: vertex) }
-    @inlinable public func incidentEdges(of vertex: Vertex) -> ArraySlice<Int> { _graph.incidentEdges(of: vertex) }
-    @inlinable public func oppositeVertex(to vertex: Vertex, acrossEdgeAt position: Int) -> Vertex { _graph.oppositeVertex(to: vertex, acrossEdgeAt: position) }
-    @inlinable public func degree(of vertex: Vertex) -> Int { _graph.degree(of: vertex) }
-    @inlinable public var vertexIndexBound: Int? { _graph.vertexIndexBound }
-    @inlinable public func vertexIndex(of vertex: Vertex) -> Int { _graph.vertexIndex(of: vertex) }
-    @inlinable public func vertex(atIndex index: Int) -> Vertex { _graph.vertex(atIndex: index) }
-    @inlinable public func neighborIndices(ofIndex index: Int) -> ArraySlice<Int> { _graph.neighborIndices(ofIndex: index) }
-    @inlinable public var edgeIndexBound: Int? { _graph.edgeIndexBound }
+extension BipartiteGraph: GraphDelegator, Graph {
+    public typealias Base = UndirectedAdjacencyList<Vertex>
+    public typealias Vertices = Base.Vertices
+    public typealias Edges = Base.Edges
+    public typealias Neighbors = Base.Neighbors
+    public typealias IncidentEdges = Base.IncidentEdges
+    public typealias NeighborIndices = Base.NeighborIndices
+    public typealias IncidentEdgeIndices = Base.IncidentEdgeIndices
+
+    /// The base's generation: every insertion and removal starts a new one; reserving capacity,
+    /// a mutation that throws, and attaching or writing maps do not.
+    @inlinable public var generation: GraphGeneration { _base.generation }
+    @inlinable public var vertices: Vertices { _base.vertices }
+    @inlinable public var edges: Edges { _base.edges }
+    @inlinable public var vertexCount: Int { _base.vertexCount }
+    @inlinable public var edgeCount: Int { _base.edgeCount }
+    @inlinable public func contains(_ vertex: Vertex) -> Bool { _base.contains(vertex) }
+    @inlinable public func contains(edge: UndirectedEdge<Vertex>) -> Bool { _base.contains(edge: edge) }
+    @inlinable public func neighbors(of vertex: Vertex) -> Neighbors { _base.neighbors(of: vertex) }
+    @inlinable public func incidentEdges(of vertex: Vertex) -> IncidentEdges { _base.incidentEdges(of: vertex) }
+    @inlinable public func oppositeVertex(to vertex: Vertex, acrossEdgeAt position: Int) -> Vertex { _base.oppositeVertex(to: vertex, acrossEdgeAt: position) }
+    @inlinable public func degree(of vertex: Vertex) -> Int { _base.degree(of: vertex) }
+    @inlinable public var vertexIndexBound: Int? { _base.vertexIndexBound }
+    @inlinable public func vertexIndex(of vertex: Vertex) -> Int { _base.vertexIndex(of: vertex) }
+    @inlinable public func vertex(atIndex index: Int) -> Vertex { _base.vertex(atIndex: index) }
+    @inlinable public func neighborIndices(ofIndex index: Int) -> NeighborIndices { _base.neighborIndices(ofIndex: index) }
+    @inlinable public var edgeIndexBound: Int? { _base.edgeIndexBound }
     @inlinable public func edgeIndex(of position: Int) -> Int { position }
-    @inlinable public func incidentEdges(ofIndex index: Int) -> ArraySlice<Int> { _graph.incidentEdges(ofIndex: index) }
-    @inlinable public func incidentEdgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _graph.incidentEdgeIndices(ofIndex: index) }
-    @inlinable public func degree(ofIndex index: Int) -> Int { _graph.degree(ofIndex: index) }
-    @inlinable public func endpointIndices(ofEdgeAt position: Int) -> (u: Int, v: Int) { _graph.endpointIndices(ofEdgeAt: position) }
+    @inlinable public func incidentEdges(ofIndex index: Int) -> IncidentEdges { _base.incidentEdges(ofIndex: index) }
+    @inlinable public func incidentEdgeIndices(ofIndex index: Int) -> IncidentEdgeIndices { _base.incidentEdgeIndices(ofIndex: index) }
+    @inlinable public func degree(ofIndex index: Int) -> Int { _base.degree(ofIndex: index) }
+    @inlinable public func endpointIndices(ofEdgeAt position: Int) -> (u: Int, v: Int) { _base.endpointIndices(ofEdgeAt: position) }
 
     @inlinable
     public func _withIncidentIndexRows<Result>(
@@ -374,8 +392,115 @@ extension BipartiteGraph: Graph {
             _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
         ) -> Result
     ) -> Result? {
-        _graph._withIncidentIndexRows(body)
+        _base._withIncidentIndexRows(body)
     }
+}
+
+// MARK: - Attached maps
+
+// The base's maps (`UndirectedAdjacencyList`'s: dense, one value per slot and per edge position),
+// so they move with every removal as the base's arrays do. Concrete for the reason above.
+
+extension BipartiteGraph: PropertyGraph {
+    public typealias EdgePosition = Int
+
+    @inlinable public static var _vertexMapLayout: _MapLayout { Base._vertexMapLayout }
+    @inlinable public static var _edgeMapLayout: _MapLayout { Base._edgeMapLayout }
+    @inlinable public static func _edgeMapOffset(of position: Int) -> Int { Base._edgeMapOffset(of: position) }
+
+    /// Attaches a map from edge positions to `Value`, every edge's value `value`, and returns its
+    /// handle: the base's `addEdgeMap(default:)`. A new edge has `value`, and when a removal moves
+    /// the last edge into the removed one's position, its value moves too. O(`edgeCount`).
+    ///
+    /// Map contents take no part in equality, hashing or `Codable`.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> { _base.addEdgeMap(default: value) }
+
+    /// Attaches a map from vertices to `Value`, every vertex's value `value`, and returns its
+    /// handle; it moves with the vertices' slots, on either side. O(`vertexCount`).
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> { _base.addVertexMap(default: value) }
+
+    /// Detaches the edge map and frees its storage.
+    ///
+    /// - Precondition: `map` is attached to this graph.
+    @inlinable
+    public mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { _base.removeEdgeMap(map) }
+
+    /// Detaches the vertex map and frees its storage.
+    ///
+    /// - Precondition: `map` is attached to this graph.
+    @inlinable
+    public mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { _base.removeVertexMap(map) }
+
+    /// The value of the edge at `position` in `map`. O(1).
+    ///
+    /// - Precondition: `map` is attached to this graph, and `position` is in `0..<edgeCount`.
+    @inlinable
+    public subscript<Value>(_ map: EdgeMap<Value>, ofEdgeAt position: Int) -> Value {
+        get { _base[map, ofEdgeAt: position] }
+        set { _base[map, ofEdgeAt: position] = newValue }
+    }
+
+    /// The value of the vertex in slot `position` in `map`. O(1).
+    ///
+    /// - Precondition: `map` is attached to this graph, and `position` is in `0..<vertexCount`.
+    @inlinable
+    public subscript<Value>(_ map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
+        get { _base[map, ofVertexAt: position] }
+        set { _base[map, ofVertexAt: position] = newValue }
+    }
+
+    /// The value of `vertex` in `map`. One hash.
+    ///
+    /// - Precondition: `map` is attached to this graph, and `vertex` is a vertex.
+    @inlinable
+    public subscript<Value>(_ map: VertexMap<Value>, of vertex: Vertex) -> Value {
+        get { _base[map, of: vertex] }
+        set { _base[map, of: vertex] = newValue }
+    }
+
+    /// The value of the edge at `position` in `map`, throwing instead of trapping when no edge is
+    /// there.
+    ///
+    /// - Precondition: `map` is attached to this graph.
+    /// - Throws: `EdgeNotFound` when `position` is not in `0..<edgeCount`.
+    @inlinable
+    public subscript<Value>(_ map: EdgeMap<Value>, checkedEdgeAt position: Int) -> Value {
+        get throws(EdgeNotFound) { try _base[map, checkedEdgeAt: position] }
+    }
+
+    /// The value of the vertex in slot `position` in `map`, throwing instead of trapping when no
+    /// vertex is there.
+    ///
+    /// - Precondition: `map` is attached to this graph.
+    /// - Throws: `VertexNotFound` when `position` is not in `0..<vertexCount`.
+    @inlinable
+    public subscript<Value>(_ map: VertexMap<Value>, checkedVertexAt position: Int) -> Value {
+        get throws(VertexNotFound) { try _base[map, checkedVertexAt: position] }
+    }
+
+    /// The value of `vertex` in `map`, throwing instead of trapping when `vertex` is not a vertex.
+    /// One hash.
+    ///
+    /// - Precondition: `map` is attached to this graph.
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
+    @inlinable
+    public subscript<Value>(_ map: VertexMap<Value>, checked vertex: Vertex) -> Value {
+        get throws(VertexNotFound) { try _base[map, checked: vertex] }
+    }
+
+    /// The values of `map` by edge position: a snapshot, O(1) to make, read as a plain array.
+    ///
+    /// - Precondition: `map` is attached to this graph.
+    @inlinable
+    public func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Self, Value> { EdgeValues(_base.values(of: map)) }
+
+    /// The values of `map` by vertex index (slot): a snapshot, O(1) to make.
+    ///
+    /// - Precondition: `map` is attached to this graph.
+    @inlinable
+    public func values<Value>(of map: VertexMap<Value>) -> VertexValues<Self, Value> { VertexValues(_base.values(of: map)) }
 }
 
 // MARK: - checked: lookups
@@ -390,7 +515,7 @@ extension BipartiteGraph {
     /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
     public func side(checked vertex: Vertex) throws(VertexNotFound) -> BipartiteSide {
-        guard let slot = _graph._slotIfPresent(of: vertex) else { throw VertexNotFound() }
+        guard let slot = _base._slotIfPresent(of: vertex) else { throw VertexNotFound() }
         return _side[slot]
     }
 
@@ -400,7 +525,7 @@ extension BipartiteGraph {
     /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
     public func neighbors(checked vertex: Vertex) throws(VertexNotFound) -> Neighbors {
-        try _graph.neighbors(checked: vertex)
+        try _base.neighbors(checked: vertex)
     }
 
     /// `incidentEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex.
@@ -409,7 +534,7 @@ extension BipartiteGraph {
     /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
     public func incidentEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
-        try _graph.incidentEdges(checked: vertex)
+        try _base.incidentEdges(checked: vertex)
     }
 
     /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
@@ -417,7 +542,7 @@ extension BipartiteGraph {
     /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
     public func degree(checked vertex: Vertex) throws(VertexNotFound) -> Int {
-        try _graph.degree(checked: vertex)
+        try _base.degree(checked: vertex)
     }
 
     /// `vertexIndex(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
@@ -425,7 +550,7 @@ extension BipartiteGraph {
     /// - Throws: `VertexNotFound` when `vertex` is not a vertex.
     @inlinable
     public func vertexIndex(checked vertex: Vertex) throws(VertexNotFound) -> Int {
-        try _graph.vertexIndex(checked: vertex)
+        try _base.vertexIndex(checked: vertex)
     }
 }
 
@@ -435,10 +560,10 @@ extension BipartiteGraph: Equatable {
     /// Equal vertex sets, edge sets, and each vertex on the same side. Orders do not matter.
     @inlinable
     public static func == (lhs: BipartiteGraph, rhs: BipartiteGraph) -> Bool {
-        guard lhs._left.count == rhs._left.count, lhs._graph == rhs._graph else { return false }
+        guard lhs._left.count == rhs._left.count, lhs._base == rhs._base else { return false }
         // The same slots (a copy, or the same insertions): compare sides by slot, without hashing.
         if lhs._side == rhs._side, lhs.vertices.elementsEqual(rhs.vertices) { return true }
-        for slot in lhs._left where rhs._side[rhs._graph.vertexIndex(of: lhs._graph.vertex(atIndex: slot))] != .left { return false }
+        for slot in lhs._left where rhs._side[rhs._base.vertexIndex(of: lhs._base.vertex(atIndex: slot))] != .left { return false }
         return true
     }
 }
@@ -447,11 +572,11 @@ extension BipartiteGraph: Hashable {
     /// Hashes the graph and the left side, independently of order.
     @inlinable
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(_graph)
+        hasher.combine(_base)
         var leftHashes = 0
         for slot in _left {
             var h = Hasher()
-            h.combine(_graph.vertex(atIndex: slot))
+            h.combine(_base.vertex(atIndex: slot))
             leftHashes &+= h.finalize()
         }
         hasher.combine(_left.count)
@@ -475,7 +600,7 @@ extension BipartiteGraph: Encodable where Vertex: Encodable {
         var pairs: [Int] = []
         pairs.reserveCapacity(2 * edgeCount)
         for position in 0 ..< edgeCount {
-            let (u, v) = _graph._edgeSlots(at: position)
+            let (u, v) = _base._edgeSlots(at: position)
             pairs.append(_sideOffset[u])
             pairs.append(_left.count + _sideOffset[v])
         }
@@ -512,7 +637,7 @@ extension BipartiteGraph: Decodable where Vertex: Decodable {
             guard (pairs[i] < leftVertices.count) != (pairs[i + 1] < leftVertices.count) else {
                 throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Edge inside a side")
             }
-            guard _insertCrossEdge(_graph.vertexIndex(of: all[pairs[i]]), _graph.vertexIndex(of: all[pairs[i + 1]])).inserted else {
+            guard _insertCrossEdge(_base.vertexIndex(of: all[pairs[i]]), _base.vertexIndex(of: all[pairs[i + 1]])).inserted else {
                 throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Repeated edge")
             }
         }

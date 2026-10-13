@@ -47,8 +47,8 @@ public struct AdjacencyMatrix {
     @usableFromInline
     internal var _edgeMaps: _AttachedMaps
 
-    /// The generation, advanced by every structural mutation: told apart by `_inDegrees`, which
-    /// every structural mutation writes (`_GenerationStamp.generation(storage:)`).
+    /// The generation, advanced by every structural mutation, each of which writes `_inDegrees`
+    /// (the identity array of `_GenerationStamp`).
     @usableFromInline
     internal var _generation: _GenerationStamp
 
@@ -228,7 +228,7 @@ extension AdjacencyMatrix {
         _clearPadding()
         _recountDegrees()
         if let before { _resetEdgeMaps(removedSince: before) }
-        _generation.advanceVersion(storageIsEmpty: _inDegrees.isEmpty)
+        _generation.advance(writing: _inDegrees)
     }
 
     /// Sets every edge map's value back to the default at each edge leaving `vertex`, before its
@@ -317,13 +317,13 @@ extension AdjacencyMatrix {
         set {
             _checkVertex(source)
             _checkVertex(target)
-            if _setCell(source, target, to: newValue) { _generation.advanceVersion() }
+            if _setCell(source, target, to: newValue) { _generation.advance(writing: _inDegrees) }
         }
         _modify {
             _checkVertex(source)
             _checkVertex(target)
             var value = _bit(source, target)
-            defer { if _setCell(source, target, to: value) { _generation.advanceVersion() } }
+            defer { if _setCell(source, target, to: value) { _generation.advance(writing: _inDegrees) } }
             yield &value
         }
     }
@@ -421,7 +421,7 @@ extension AdjacencyMatrix {
         _checkVertex(edge.target)
         if _bit(edge.source, edge.target) { return (false, edge) }
         _setCell(edge.source, edge.target, to: true)
-        _generation.advanceVersion()
+        _generation.advance(writing: _inDegrees)
         return (true, edge)
     }
 
@@ -451,7 +451,7 @@ extension AdjacencyMatrix {
     public mutating func remove(edge: DirectedEdge<Int>) -> DirectedEdge<Int>? {
         guard contains(edge: edge) else { return nil }
         _setCell(edge.source, edge.target, to: false)
-        _generation.advanceVersion()
+        _generation.advance(writing: _inDegrees)
         return edge
     }
 
@@ -470,7 +470,7 @@ extension AdjacencyMatrix {
             _setCell(source, target, to: true)
             inserted += 1
         }
-        if inserted > 0 { _generation.advanceVersion() }
+        if inserted > 0 { _generation.advance(writing: _inDegrees) }
         return inserted
     }
 
@@ -495,7 +495,7 @@ extension AdjacencyMatrix {
         }
         _outDegrees[vertex] = 0
         _edgeCount -= removed
-        _generation.advanceVersion()
+        _generation.advance(writing: _inDegrees)
         return removed
     }
 
@@ -520,7 +520,7 @@ extension AdjacencyMatrix {
         }
         _inDegrees[vertex] = 0
         _edgeCount -= removed
-        _generation.advanceVersion()
+        _generation.advance(writing: _inDegrees)
         return removed
     }
 
@@ -555,7 +555,7 @@ extension AdjacencyMatrix {
         // The new cells are the Szudzik offsets vertex² ..< (vertex + 1)²: 2·vertex + 1 defaults.
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaults(count: 1) }
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 2 &* vertex &+ 1) }
-        _generation.advanceVersion()
+        _generation.advance(writing: _inDegrees)
         return vertex
     }
 
@@ -585,7 +585,7 @@ extension AdjacencyMatrix {
             _edgeMaps.appendDefaults(count: n &* n)
         }
         _edgeCount = 0
-        _generation.advanceVersion(storageIsEmpty: _inDegrees.isEmpty)
+        _generation.advance(writing: _inDegrees)
     }
 
     /// Removes every vertex and edge. Every attached map stays attached, empty.
@@ -605,7 +605,7 @@ extension AdjacencyMatrix {
         _edgeCount = 0
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advance()  // Empties `_inDegrees`: the lineage tells copies apart.
+        _generation.advance(writing: _inDegrees)
     }
 
     /// Reserves storage for at least `vertexCount` vertices, and room for their values in every
@@ -619,8 +619,8 @@ extension AdjacencyMatrix {
         }
         _words.reserveCapacity(vertexCount * _wordsPerRow)
         _outDegrees.reserveCapacity(vertexCount)
-        // Not `_inDegrees`: the generation is told apart by that array, and moving it would start
-        // a generation (see `generation`).
+        _inDegrees.reserveCapacity(vertexCount)
+        _generation.storageMayHaveMoved(_inDegrees)
         if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
         if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(vertexCount &* vertexCount) }
     }

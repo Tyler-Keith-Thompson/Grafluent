@@ -30,14 +30,14 @@ MUTANTS = [
     Mutant("samesidecase", "BipartiteGraph.swift", ".sameSide(_side[u])", ".sameSide(.left)", nth=0),
     Mutant("checkedsamesidecase", "BipartiteGraph.swift", ".sameSide(_side[u])", ".sameSide(.left)", nth=1),
     Mutant("checkedmissing", "BipartiteGraph.swift", "            throw .missingEndpoint", "            throw .sameSide(.left)", mode="stmt"),
-    Mutant("orientation", "BipartiteGraph.swift", "_side[u] == .left ? _graph._insertEdge(slots: u, v) : _graph._insertEdge(slots: v, u)", "_graph._insertEdge(slots: u, v)"),
+    Mutant("orientation", "BipartiteGraph.swift", "_side[u] == .left ? _base._insertEdge(slots: u, v) : _base._insertEdge(slots: v, u)", "_base._insertEdge(slots: u, v)"),
     Mutant("sidelistswap", "BipartiteGraph.swift", "                _left[offset] = moved", "", mode="stmt"),
     Mutant("sideoffset", "BipartiteGraph.swift", "                _sideOffset[moved] = offset", "", mode="stmt", nth=0),
     Mutant("renameslot", "BipartiteGraph.swift", "            _side[slot] = _side[last]", "", mode="stmt"),
     Mutant("renamelist", "BipartiteGraph.swift", "if _side[slot] == .left { _left[_sideOffset[slot]] = slot } else { _right[_sideOffset[slot]] = slot }", "", mode="stmt"),
     Mutant("nodeset", "BipartiteGraph.swift", "guard leftSet.contains(edge.u) != leftSet.contains(edge.v) else { return nil }", "", mode="stmt"),
     Mutant("nonvertexleft", "BipartiteGraph.swift", "            guard graph.contains(v) else { return nil }", "", mode="stmt"),
-    Mutant("equalsides", "BipartiteGraph.swift", "for slot in lhs._left where rhs._side[rhs._graph.vertexIndex(of: lhs._graph.vertex(atIndex: slot))] != .left { return false }", "", mode="stmt"),
+    Mutant("equalsides", "BipartiteGraph.swift", "for slot in lhs._left where rhs._side[rhs._base.vertexIndex(of: lhs._base.vertex(atIndex: slot))] != .left { return false }", "", mode="stmt"),
     Mutant("hashsides", "BipartiteGraph.swift", "        hasher.combine(leftHashes)", "", mode="stmt"),
     Mutant("projectionself", "BipartiteGraph.swift", "x == u || lastSeen[x] == u", "lastSeen[x] == u"),
     Mutant("projectiononce", "BipartiteGraph.swift", "if other < k { continue }", "", mode="stmt"),
@@ -46,12 +46,21 @@ MUTANTS = [
     Mutant("equalfast", "BipartiteGraph.swift", "lhs._side == rhs._side", "lhs._left.count == rhs._left.count"),
 
     # The checked: lookups
-    Mutant("checkedside", "BipartiteGraph.swift", "_graph._slotIfPresent(of: vertex)", "Optional(_graph._slotIfPresent(of: vertex) ?? 0)", nth=3),
+    Mutant("checkedside", "BipartiteGraph.swift", "_base._slotIfPresent(of: vertex)", "Optional(_base._slotIfPresent(of: vertex) ?? 0)", nth=3),
     Mutant("checkedsidevalue", "BipartiteGraph.swift", "return _side[slot]", "return .left", nth=1, mode="stmt"),
-    Mutant("checkedneighbors", "BipartiteGraph.swift", "        try _graph.neighbors(checked: vertex)", "        _graph.neighbors(of: vertex)", mode="stmt"),
-    Mutant("checkedincident", "BipartiteGraph.swift", "        try _graph.incidentEdges(checked: vertex)", "        _graph.incidentEdges(of: vertex)", mode="stmt"),
-    Mutant("checkeddegree", "BipartiteGraph.swift", "        try _graph.degree(checked: vertex)", "        _graph.degree(of: vertex)", mode="stmt"),
-    Mutant("checkedindex", "BipartiteGraph.swift", "        try _graph.vertexIndex(checked: vertex)", "        _graph.vertexIndex(of: vertex)", mode="stmt"),
+    Mutant("checkedneighbors", "BipartiteGraph.swift", "        try _base.neighbors(checked: vertex)", "        _base.neighbors(of: vertex)", mode="stmt"),
+    Mutant("checkedincident", "BipartiteGraph.swift", "        try _base.incidentEdges(checked: vertex)", "        _base.incidentEdges(of: vertex)", mode="stmt"),
+    Mutant("checkeddegree", "BipartiteGraph.swift", "        try _base.degree(checked: vertex)", "        _base.degree(of: vertex)", mode="stmt"),
+    Mutant("checkedindex", "BipartiteGraph.swift", "        try _base.vertexIndex(checked: vertex)", "        _base.vertexIndex(of: vertex)", mode="stmt"),
+
+    # Forwarding to the base: generation and attached maps
+    Mutant("generation", "BipartiteGraph.swift", "_base.generation", "GraphGeneration.untracked"),
+    Mutant("mapsetedge", "BipartiteGraph.swift", "_base[map, ofEdgeAt: position] = newValue", "", mode="stmt"),
+    Mutant("mapsetslot", "BipartiteGraph.swift", "_base[map, ofVertexAt: position] = newValue", "", mode="stmt"),
+    Mutant("mapsetvertex", "BipartiteGraph.swift", "_base[map, of: vertex] = newValue", "", mode="stmt"),
+    Mutant("mapcheckededge", "BipartiteGraph.swift", "try _base[map, checkedEdgeAt: position]", "_base[map, ofEdgeAt: position]", mode="stmt"),
+    Mutant("mapcheckedslot", "BipartiteGraph.swift", "try _base[map, checkedVertexAt: position]", "_base[map, ofVertexAt: position]", mode="stmt"),
+    Mutant("mapcheckedvertex", "BipartiteGraph.swift", "try _base[map, checked: vertex]", "_base[map, of: vertex]", mode="stmt"),
 
     # Bipartition.side(checked:)
     Mutant("ckbipartitionlookup", "Recognition.swift", "_numbers[vertex]", "Optional(_numbers[vertex] ?? 0)", nth=1),

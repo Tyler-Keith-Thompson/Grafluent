@@ -14,6 +14,14 @@
 #   vertexlivecount   vertex pages never freed: memory only.
 #   changesame        changing an edge to its own endpoint without the early exit: the entry is
 #                     killed and revived in place, the same row; time only.
+#   genremoveallwriting       `advance(writing:)` for `advance(owning:)` in `removeAll` or in
+#   genremovealledgeswriting  `removeAllEdges`, each alone: with every vertex page freed the
+#                     out-row table is the shared empty buffer, and the unforced reset then keeps the
+#                     lineage; but from one state each reset alone reaches one state, so two copies
+#                     can only collide when both resets keep it. Forcing either tells them apart;
+#                     both are forced, and "With every vertex page freed" catches the pair.
+#   genstampaddress   `stamp()` without clearing the address: every caller stamps a fresh
+#                     `_GenerationStamp()`, whose address is already 0.
 #   iddense           a numbered graph reported not dense: the searches then hand out the same
 #                     numbers lazily (through `_number`), in the same order; presizing only.
 
@@ -171,15 +179,18 @@ MUTANTS = [
     Mutant("edgesresetmaps", S, "if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt", nth=1),
 
     # Generations: each structural mutation's stamp, in file order, and one that would stamp a no-op.
-    Mutant("geninsertedge", S, "        _generation.advanceVersion()", "", mode="stmt", nth=0),
-    Mutant("genappendslot", S, "        _generation.advance()", "", mode="stmt", nth=0),
-    Mutant("genremoveslot", S, "        _generation.advance()", "", mode="stmt", nth=1),
-    Mutant("genchangetarget", S, "        _generation.advanceVersion()", "", mode="stmt", nth=1),
-    Mutant("genchangesource", S, "        _generation.advanceVersion()", "", mode="stmt", nth=2),
-    Mutant("genkillall", S, "        _generation.advanceVersion(storageIsEmpty: _edgePages.isEmpty)", "", mode="stmt", nth=0),
-    Mutant("genunlink", S, "        _generation.advanceVersion(storageIsEmpty: _edgePages.isEmpty)", "", mode="stmt", nth=1),
-    Mutant("genremoveall", S, "        _generation.advance()", "", mode="stmt", nth=2),
-    Mutant("genremovealledges", S, "        _generation.advance()", "", mode="stmt", nth=3),
+    Mutant("geninsertedge", S, "        _generation.advance(writing: _outPages)", "", mode="stmt", nth=0),
+    Mutant("genappendslot", S, "        _generation.advance(writing: _outPages)", "", mode="stmt", nth=1),
+    Mutant("genremoveslot", S, "        _generation.advance(writing: _outPages)", "", mode="stmt", nth=2),
+    Mutant("genchangetarget", S, "        _generation.advance(writing: _outPages)", "", mode="stmt", nth=3),
+    Mutant("genchangesource", S, "        _generation.advance(writing: _outPages)", "", mode="stmt", nth=4),
+    Mutant("genkillall", S, "            _generation.advance(writing: _outPages)", "", mode="stmt"),
+    Mutant("genunlink", S, "        _generation.advance(writing: _outPages)", "", mode="stmt", nth=5),
+    Mutant("genremoveall", S, "        // freed): the graph starts a new lineage either way.\n        _generation.advance(owning: &_outPages)", "", mode="stmt"),
+    Mutant("genremoveallwriting", S, "        // freed): the graph starts a new lineage either way.\n        _generation.advance(owning: &_outPages)", "        _generation.advance(writing: _outPages)", mode="stmt"),
+    Mutant("genremovealledges", S, "        // Every row page may be freed, so the out-row table is made unique to tell a copy apart.\n        _generation.advance(owning: &_outPages)", "", mode="stmt"),
+    Mutant("genremovealledgeswriting", S, "        // Every row page may be freed, so the out-row table is made unique to tell a copy apart.\n        _generation.advance(owning: &_outPages)", "        _generation.advance(writing: _outPages)", mode="stmt"),
+    Mutant("gendecodestamp", C, "        _generation.stamp()", "", mode="stmt"),
     Mutant("genkillallalways", S, "removed > 0", "true"),
 
     # GraphProtocols: the shared map storage and generations.
@@ -217,16 +228,23 @@ MUTANTS = [
     Mutant("bufferunique", "AttachedMaps.swift", "isKnownUniquelyReferenced(&entries[k].buffer)", "true", module="GraphProtocols"),
     Mutant("snapshotmark", "AttachedMaps.swift", "            dense._markShared()", "", mode="stmt", module="GraphProtocols"),
     Mutant("valueslayout", "PropertyGraph.swift", "if Base._edgeMapLayout == .dense { return _storage.denseValue(at: k) }", "", mode="stmt", module="GraphProtocols"),
-    Mutant("gencurrentversion", "GraphGeneration.swift", "        guard _version == generation._version, _lineage == generation._lineage else { return false }", "        guard _lineage == generation._lineage else { return false }", mode="stmt", module="GraphProtocols"),
-    Mutant("gencurrentlineage", "GraphGeneration.swift", "        guard _version == generation._version, _lineage == generation._lineage else { return false }", "        guard _version == generation._version else { return false }", mode="stmt", module="GraphProtocols"),
-    Mutant("gencurrentuntracked", "GraphGeneration.swift", "        guard _lineage != 0 || (_version != 0 && storage != nil) else { return false }", "", mode="stmt", module="GraphProtocols"),
-    Mutant("gencurrentneverversion", "GraphGeneration.swift", "(_version != 0 && storage != nil)", "storage != nil", module="GraphProtocols"),
-    Mutant("gencurrentstorage", "GraphGeneration.swift", "        return storage === generation._storage", "        return true", mode="stmt", module="GraphProtocols"),
-    Mutant("gennevermint", "GraphGeneration.swift", "_fastPath(isKnownUniquelyReferenced(&_token))", "_fastPath(_token != nil)", module="GraphProtocols"),
-    Mutant("genadvanceversion", "GraphGeneration.swift", "        _version &+= 1", "", mode="stmt", nth=0, module="GraphProtocols"),
-    Mutant("genemptystorage", "GraphGeneration.swift", "        if _slowPath(storageIsEmpty) { advance() } else { _version &+= 1 }", "        _version &+= 1", mode="stmt", module="GraphProtocols"),
-    Mutant("genstorageof", "GraphGeneration.swift", "array.isEmpty ? nil : unsafeBitCast(array, to: AnyObject.self)", "nil", module="GraphProtocols"),
+    Mutant("gencurrentuntracked", "GraphGeneration.swift", "_lineage != 0 && self == generation", "self == generation", module="GraphProtocols"),
+    Mutant("gencurrentequal", "GraphGeneration.swift", "_lineage != 0 && self == generation", "_lineage != 0", module="GraphProtocols"),
+    Mutant("genaddressmatch", "GraphGeneration.swift", "_fastPath(address == _address)", "_fastPath(true)", module="GraphProtocols"),
+    Mutant("genaddressmismatch", "GraphGeneration.swift", "_fastPath(address == _address)", "_fastPath(false)", module="GraphProtocols"),
+    Mutant("genadvanceversion", "GraphGeneration.swift", "            _version &+= 1", "", mode="stmt", module="GraphProtocols"),
+    Mutant("genrestartlineage", "GraphGeneration.swift", "            _lineage = Self._newLineage()", "", mode="stmt", nth=0, module="GraphProtocols"),
+    Mutant("genemptylineage", "GraphGeneration.swift", "            _lineage = Self._newLineage()", "", mode="stmt", nth=1, module="GraphProtocols"),
+    Mutant("genrestartaddress", "GraphGeneration.swift", "            _address = address", "", mode="stmt", module="GraphProtocols"),
+    Mutant("genemptymatches", "GraphGeneration.swift", "_slowPath(storage.isEmpty)", "_slowPath(false)", module="GraphProtocols"),
+    Mutant("genowning", "GraphGeneration.swift", "        storage.withUnsafeMutableBufferPointer { _ in }", "", mode="stmt", module="GraphProtocols"),
+    Mutant("genforget", "GraphGeneration.swift", "        if storage.withUnsafeBufferPointer({ UInt(bitPattern: $0.baseAddress) }) != _address { _address = 0 }", "", mode="stmt", module="GraphProtocols"),
     Mutant("genstamp", "GraphGeneration.swift", "        _lineage = Self._newLineage()", "", mode="stmt", nth=0, module="GraphProtocols"),
+    Mutant("genstampaddress", "GraphGeneration.swift", "        _address = 0", "", mode="stmt", nth=1, module="GraphProtocols"),
+    Mutant("replacemarksource", "AttachedMaps.swift", "        if markingShared { table?._someMayBeShared.store(true, ordering: .relaxed) }", "", mode="stmt", module="GraphProtocols"),
+    Mutant("copymarksource", "AttachedMaps.swift", "        _someMayBeShared.store(true, ordering: .relaxed)", "", mode="stmt", module="GraphProtocols"),
+    Mutant("releasesinit", "AttachedMaps.swift", "            releases = releases || source[j].releases", "", mode="stmt", module="GraphProtocols"),
+    Mutant("releasesappend", "AttachedMaps.swift", "            releases = releases || appending.releases", "", mode="stmt", module="GraphProtocols"),
     Mutant("genviewuntracked", "GraphAdaptor.swift", "base.generation", "GraphGeneration.untracked", nth=3, module="GraphProtocols"),
 
     # GraphProtocols: the numbered mode of _VertexIdentifiers.

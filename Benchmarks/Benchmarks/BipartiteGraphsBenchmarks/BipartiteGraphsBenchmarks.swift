@@ -94,4 +94,58 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("BipartiteGraphs: projectedGraph(onto: .right), 10⁵ people in 2000 groups") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(groups.projectedGraph(onto: .right)) }
     }
+
+    // Attached maps (the base's): inserting the affiliation graph's 5·10⁵ edges one at a time with
+    // 0 and 2 maps (an edge Double, a vertex Int), against the caller appending to two side arrays;
+    // then removing 10⁴ vertices, each with its edges, with 0 and 2 maps.
+    func inserted(maps: Bool) -> BipartiteGraph<Int> {
+        var graph = BipartiteGraph(left: 0 ..< 100_000, right: 100_000 ..< 200_000)!
+        graph.reserveCapacity(vertexCount: 200_000, edgeCount: random.count)
+        if maps {
+            _ = graph.addEdgeMap(default: 1.0)
+            _ = graph.addVertexMap(default: 0)
+        }
+        for e in random { _ = try! graph.insert(edge: e) }
+        return graph
+    }
+    Benchmark("BipartiteGraphs: insert(edge:) 5·10⁵ edges, 0 maps") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(inserted(maps: false)) }
+    }
+    Benchmark("BipartiteGraphs: insert(edge:) 5·10⁵ edges, 2 maps") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(inserted(maps: true)) }
+    }
+    Benchmark("BipartiteGraphs: BASELINE insert(edge:) 5·10⁵ edges, 0 maps and hand-maintained side arrays") { benchmark in
+        // The caller's own graph type keeps the side arrays, inside its insertion, as the base keeps its maps.
+        struct SideArrayGraph {
+            var graph: BipartiteGraph<Int>
+            var weights: [Double] = []
+            var ranks = [Int](repeating: 0, count: 200_000)
+            mutating func insert(edge: UndirectedEdge<Int>) {
+                if try! graph.insert(edge: edge).inserted { weights.append(1.0) }
+            }
+        }
+        for _ in benchmark.scaledIterations {
+            var built = SideArrayGraph(graph: BipartiteGraph(left: 0 ..< 100_000, right: 100_000 ..< 200_000)!)
+            built.graph.reserveCapacity(vertexCount: 200_000, edgeCount: random.count)
+            built.weights.reserveCapacity(random.count)
+            for e in random { built.insert(edge: e) }
+            blackHole(built)
+        }
+    }
+    let plain = inserted(maps: false)
+    let mapped = inserted(maps: true)
+    Benchmark("BipartiteGraphs: remove(_:) 10⁴ vertices with their edges, 0 maps") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var graph = plain
+            for v in stride(from: 0, to: 200_000, by: 20) { graph.remove(v) }
+            blackHole(graph)
+        }
+    }
+    Benchmark("BipartiteGraphs: remove(_:) 10⁴ vertices with their edges, 2 maps") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var graph = mapped
+            for v in stride(from: 0, to: 200_000, by: 20) { graph.remove(v) }
+            blackHole(graph)
+        }
+    }
 }

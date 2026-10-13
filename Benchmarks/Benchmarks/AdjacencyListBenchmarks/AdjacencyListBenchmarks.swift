@@ -123,9 +123,10 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Attached maps (PropertyGraph). Each row has a `no maps` twin and a `BASELINE hand-maintained
-    // side array` twin, where the caller keeps a [Double] beside the graph and mirrors every
-    // append and swap-remove itself. Gate: (t_map − t_none) ≤ 1.5 · (t_side − t_none).
+    // Attached maps (PropertyGraph). Each row has a `no maps` twin and a BASELINE twin with as
+    // many side arrays as the row has maps, kept by the caller's own graph type (`SideArrayGraph`)
+    // inside its mutating methods, as the maps are kept inside the graph's. Gate:
+    // (t_map − t_none) ≤ 1.5 · (t_side − t_none), with k side arrays for k maps.
     let bigN = 100_000
     let bigEdges = Inputs.randomEdges(vertexCount: bigN, edgeCount: 1_000_000)
     let big = AdjacencyList(vertices: 0 ..< bigN, edges: bigEdges)
@@ -140,13 +141,13 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    Benchmark("AdjacencyList maps: insert 1M edges, BASELINE hand-maintained side array") { benchmark in
-        for _ in benchmark.scaledIterations {
-            var built = AdjacencyList<Int>(vertices: 0 ..< bigN)
-            var weights: [Double] = []
-            for edge in bigEdges where built.insert(edge: edge).inserted { weights.append(1) }
-            blackHole(built)
-            blackHole(weights)
+    for arrays in 1 ... 2 {
+        Benchmark("AdjacencyList maps: insert 1M edges, BASELINE \(arrays) side array\(arrays == 1 ? "" : "s") in the caller's graph type") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var built = SideArrayGraph(AdjacencyList<Int>(vertices: 0 ..< bigN), arrays: arrays)
+                for edge in bigEdges { built.insert(edge: edge) }
+                blackHole(built)
+            }
         }
     }
 
@@ -172,21 +173,16 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    Benchmark("AdjacencyList maps: remove 100k edges by position, BASELINE hand-maintained side array") { benchmark in
-        for _ in benchmark.scaledIterations {
-            var mutable = big
-            var weights = [Double](repeating: 1, count: big.edgeCount)
-            _ = mutable._removeEdge(at: 0)
-            weights[0] = weights.removeLast()
-            benchmark.startMeasurement()
-            for p in removals {
-                _ = mutable._removeEdge(at: p)
-                let last = weights.removeLast()
-                if p < weights.count { weights[p] = last }
+    for arrays in 1 ... 2 {
+        Benchmark("AdjacencyList maps: remove 100k edges by position, BASELINE \(arrays) side array\(arrays == 1 ? "" : "s") in the caller's graph type") { benchmark in
+            for _ in benchmark.scaledIterations {
+                var mutable = SideArrayGraph(big, arrays: arrays)
+                mutable.removeEdge(at: 0)  // copies the shared storage, outside the measurement
+                benchmark.startMeasurement()
+                for p in removals { mutable.removeEdge(at: p) }
+                benchmark.stopMeasurement()
+                blackHole(mutable)
             }
-            benchmark.stopMeasurement()
-            blackHole(mutable)
-            blackHole(weights)
         }
     }
 
@@ -217,30 +213,15 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
-    // The caller mirrors a vertex removal by removing the incident edges one at a time first.
-    Benchmark("AdjacencyList maps: remove 10k vertices, BASELINE hand-maintained side arrays") { benchmark in
+    // The caller's type mirrors a vertex removal by removing the incident edges one at a time first.
+    Benchmark("AdjacencyList maps: remove 10k vertices, BASELINE 1 vertex and 1 edge side array in the caller's graph type") { benchmark in
         for _ in benchmark.scaledIterations {
-            var mutable = big
-            var vertexValues = [Double](repeating: 1, count: big.vertexCount)
-            var edgeValues = [Double](repeating: 1, count: big.edgeCount)
-            _ = mutable._removeEdge(at: 0)
-            edgeValues[0] = edgeValues.removeLast()
+            var mutable = SideArrayGraph(big, arrays: 1, vertexArray: true)
+            mutable.removeEdge(at: 0)
             benchmark.startMeasurement()
-            for v in 0 ..< 10_000 {
-                let key = mutable.vertexIndex(of: v)
-                while let p = mutable.outEdges(ofIndex: key).last ?? mutable.inEdges(ofIndex: key).last {
-                    _ = mutable._removeEdge(at: p)
-                    let last = edgeValues.removeLast()
-                    if p < edgeValues.count { edgeValues[p] = last }
-                }
-                _ = mutable._removeVertex(atKey: key)
-                let last = vertexValues.removeLast()
-                if key < vertexValues.count { vertexValues[key] = last }
-            }
+            for v in 0 ..< 10_000 { mutable.remove(v) }
             benchmark.stopMeasurement()
             blackHole(mutable)
-            blackHole(vertexValues)
-            blackHole(edgeValues)
         }
     }
 
@@ -283,5 +264,48 @@ let benchmarks: @Sendable () -> Void = {
             }
             blackHole(sum)
         }
+    }
+}
+
+/// The fair baseline of the attached-map rows: a caller's own graph type that holds the graph and
+/// `arrays` edge side arrays (and a vertex side array), keeping each in step inside its own
+/// mutating methods, as the graph keeps its maps.
+struct SideArrayGraph {
+    var graph: AdjacencyList<Int>
+    var first: [Double]
+    var second: [Double]
+    var vertexValues: [Double]
+    let arrays: Int
+
+    init(_ graph: AdjacencyList<Int>, arrays: Int, vertexArray: Bool = false) {
+        self.graph = graph
+        first = [Double](repeating: 1, count: graph.edgeCount)
+        second = arrays > 1 ? first : []
+        vertexValues = vertexArray ? [Double](repeating: 1, count: graph.vertexCount) : []
+        self.arrays = arrays
+    }
+
+    mutating func insert(edge: DirectedEdge<Int>) {
+        guard graph.insert(edge: edge).inserted else { return }
+        first.append(1)
+        if arrays > 1 { second.append(1) }
+    }
+
+    mutating func removeEdge(at p: Int) {
+        _ = graph._removeEdge(at: p)
+        let last = first.removeLast()
+        if p < first.count { first[p] = last }
+        if arrays > 1 {
+            let last = second.removeLast()
+            if p < second.count { second[p] = last }
+        }
+    }
+
+    mutating func remove(_ vertex: Int) {
+        let key = graph.vertexIndex(of: vertex)
+        while let p = graph.outEdges(ofIndex: key).last ?? graph.inEdges(ofIndex: key).last { removeEdge(at: p) }
+        _ = graph._removeVertex(atKey: key)
+        let last = vertexValues.removeLast()
+        if key < vertexValues.count { vertexValues[key] = last }
     }
 }

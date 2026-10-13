@@ -137,7 +137,7 @@ extension OrientedIncidenceMatrix: PropertyGraph {
     /// - Precondition: `map` is attached to this matrix.
     @inlinable
     public func values<Value>(of map: EdgeMap<Value>) -> EdgeValues<Self, Value> {
-        EdgeValues(_storage: _edgeMaps.storage(Value.self, in: _edgeMaps.index(of: map._token, hint: map._hint)))
+        EdgeValues(_storage: _edgeMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 
     /// A snapshot of `map`'s values by vertex, as fast to read as an array. O(1).
@@ -145,6 +145,6 @@ extension OrientedIncidenceMatrix: PropertyGraph {
     /// - Precondition: `map` is attached to this matrix.
     @inlinable
     public func values<Value>(of map: VertexMap<Value>) -> VertexValues<Self, Value> {
-        VertexValues(_storage: _vertexMaps.storage(Value.self, in: _vertexMaps.index(of: map._token, hint: map._hint)))
+        VertexValues(_storage: _vertexMaps.storage(Value.self, of: map._token, hint: map._hint))
     }
 }

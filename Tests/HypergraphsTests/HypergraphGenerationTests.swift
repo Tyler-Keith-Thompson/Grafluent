@@ -3,6 +3,8 @@
 // present, a checked insertion that throws, reserving capacity, attaching and writing maps). A
 // copy is in the same generation until either is mutated; built and decoded hypergraphs have one,
 // `init()` and `reversed` none until their first mutation. See README.md.
+// Two copies, under every interleaving of three steps, never share a generation in different
+// states.
 
 import Foundation
 import GraphProtocols
@@ -140,5 +142,111 @@ struct HypergraphGenerationTests {
         reversed.insert(9)
         #expect(reversed.generation.isCurrent(for: reversed) && !reversed.generation.isCurrent(for: directed))
         #expect(directed.generation.isCurrent(for: directed))
+    }
+
+    @Test("UndirectedIncidenceList: two copies never share a generation in different states, under every interleaving of three steps")
+    func undirectedDivergence() {
+        // Two copies of one graph, each step applied to either: whenever two generations seen along
+        // the way are current for each other, the states they were read from are the same. The
+        // states are read into plain values, which hold none of the graph's storage, so the copies'
+        // arrays are shared exactly as the steps leave them.
+        func state(of graph: UndirectedIncidenceList<Int>) -> String {
+            return "\(Array(graph.vertices)) \(graph.hyperedges.map { "\($0)" })"
+        }
+        func make() -> UndirectedIncidenceList<Int> {
+            var graph = UndirectedIncidenceList<Int>()
+            _ = graph.insert(hyperedge: [0, 1, 2])
+            _ = graph.insert(hyperedge: [2, 3])
+            return graph
+        }
+        let steps: [(String, (inout UndirectedIncidenceList<Int>) -> Void)] = [
+            ("insert(_:)", { _ = $0.insert(9) }),
+            ("insert(_:) of a vertex", { _ = $0.insert(0) }),
+            ("insert(hyperedge:)", { _ = $0.insert(hyperedge: [1, 4]) }),
+            ("insert(hyperedge:) empty", { _ = $0.insert(hyperedge: [] as [Int]) }),
+            ("insert(checked:)", { _ = try? $0.insert(checked: [0, 3]) }),
+            ("removeAll(keepingCapacity: true)", { $0.removeAll(keepingCapacity: true) }),
+            ("removeAll()", { $0.removeAll() }),
+            ("reserveCapacity", { $0.reserveCapacity(vertexCount: 64, hyperedgeCount: 64, incidenceCount: 64) }),
+            ("a map attached and written", { let w = $0.addEdgeMap(default: 0); if $0.hyperedgeCount > 0 { $0[w, ofEdgeAt: 0] = 1 } })
+        ]
+        var violations: [String] = []
+        let choices = 2 * steps.count
+        for first in 0 ..< choices {
+            for second in 0 ..< choices {
+                for third in 0 ..< choices {
+                    var a = make()
+                    var b = a
+                    var seen = [(a.generation, state(of: a), "start")]
+                    var history = ""
+                    for choice in [first, second, third] {
+                        let (name, step) = steps[choice % steps.count]
+                        if choice < steps.count { step(&a) } else { step(&b) }
+                        history += (choice < steps.count ? " a." : " b.") + name
+                        seen.append((a.generation, state(of: a), "a after" + history))
+                        seen.append((b.generation, state(of: b), "b after" + history))
+                    }
+                    for i in seen.indices {
+                        for j in seen.indices where j > i && seen[i].0.isCurrent(for: seen[j].0) && seen[i].1 != seen[j].1 {
+                            violations.append("\(seen[i].2) and \(seen[j].2)")
+                        }
+                    }
+                }
+            }
+        }
+        #expect(violations.isEmpty, "\(violations.count) violations, among them \(violations.prefix(3))")
+    }
+
+    @Test("IncidenceList: two copies never share a generation in different states, under every interleaving of three steps")
+    func directedDivergence() {
+        // Two copies of one graph, each step applied to either: whenever two generations seen along
+        // the way are current for each other, the states they were read from are the same. The
+        // states are read into plain values, which hold none of the graph's storage, so the copies'
+        // arrays are shared exactly as the steps leave them.
+        func state(of graph: IncidenceList<Int>) -> String {
+            return "\(Array(graph.vertices)) \(graph.hyperedges.map { "\($0)" })"
+        }
+        func make() -> IncidenceList<Int> {
+            var graph = IncidenceList<Int>()
+            _ = graph.insert(sources: [0, 1], targets: [2])
+            _ = graph.insert(sources: [2], targets: [3])
+            return graph
+        }
+        let steps: [(String, (inout IncidenceList<Int>) -> Void)] = [
+            ("insert(_:)", { _ = $0.insert(9) }),
+            ("insert(_:) of a vertex", { _ = $0.insert(0) }),
+            ("insert(sources:targets:)", { _ = $0.insert(sources: [1], targets: [4]) }),
+            ("insert(sources:targets:) empty", { _ = $0.insert(sources: [] as [Int], targets: [] as [Int]) }),
+            ("insert(checked:targets:)", { _ = try? $0.insert(checked: [0], targets: [3]) }),
+            ("removeAll(keepingCapacity: true)", { $0.removeAll(keepingCapacity: true) }),
+            ("removeAll()", { $0.removeAll() }),
+            ("reserveCapacity", { $0.reserveCapacity(vertexCount: 64, hyperedgeCount: 64, sourceCount: 64, targetCount: 64) }),
+            ("a map attached and written", { let w = $0.addEdgeMap(default: 0); if $0.hyperedgeCount > 0 { $0[w, ofEdgeAt: 0] = 1 } })
+        ]
+        var violations: [String] = []
+        let choices = 2 * steps.count
+        for first in 0 ..< choices {
+            for second in 0 ..< choices {
+                for third in 0 ..< choices {
+                    var a = make()
+                    var b = a
+                    var seen = [(a.generation, state(of: a), "start")]
+                    var history = ""
+                    for choice in [first, second, third] {
+                        let (name, step) = steps[choice % steps.count]
+                        if choice < steps.count { step(&a) } else { step(&b) }
+                        history += (choice < steps.count ? " a." : " b.") + name
+                        seen.append((a.generation, state(of: a), "a after" + history))
+                        seen.append((b.generation, state(of: b), "b after" + history))
+                    }
+                    for i in seen.indices {
+                        for j in seen.indices where j > i && seen[i].0.isCurrent(for: seen[j].0) && seen[i].1 != seen[j].1 {
+                            violations.append("\(seen[i].2) and \(seen[j].2)")
+                        }
+                    }
+                }
+            }
+        }
+        #expect(violations.isEmpty, "\(violations.count) violations, among them \(violations.prefix(3))")
     }
 }

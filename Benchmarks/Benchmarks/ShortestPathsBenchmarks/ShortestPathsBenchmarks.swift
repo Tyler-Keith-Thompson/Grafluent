@@ -4,6 +4,7 @@ import BenchmarkSupport
 import CompressedSparseRowModule
 import GraphProtocols
 import ShortestPaths
+import StableGraphs
 
 /// A hand-written indexed 4-ary heap of (priority, index) pairs with a position array, every step
 /// in raw buffers and no checks: the floor for PQ-B01 – B03 (the research prototype's
@@ -147,6 +148,37 @@ let benchmarks: @Sendable () -> Void = {
         return out
     })
 
+    let gridWeights = (0 ..< grid.edgeCount).map { _ in Int.random(in: 1 ... 4, using: &generator) }
+
+    // The same weights attached as edge maps (§6.3 of the attached-maps plan): each algorithm fed
+    // by `values(of:)` against the same algorithm fed by the `[Int]` above, in one run. CSR and
+    // AdjacencyList are dense (the read is one array load); StableDirectedGraph is paged, against
+    // a side array of `edgePositionBound` weights.
+    var attachingCSR = csr
+    let csrWeights = attachingCSR.addEdgeMap(default: 0)
+    for p in attachingCSR.edges.indices { attachingCSR[csrWeights, ofEdgeAt: p] = weights[p] }
+    var attachingList = list
+    let listWeights = attachingList.addEdgeMap(default: 0)
+    for p in attachingList.edges.indices { attachingList[listWeights, ofEdgeAt: p] = weights[p] }
+    var attachingStable = StableDirectedGraph(vertices: 0 ..< n, edges: edges)
+    precondition(attachingStable.edgePositionBound == edges.count && attachingStable.edges.indices.allSatisfy { attachingStable.edges[$0] == edges[$0] })
+    let stableSide = (0 ..< attachingStable.edgePositionBound).map { weights[$0] }
+    let stableWeights = attachingStable.addEdgeMap(default: 0)
+    for p in attachingStable.edges.indices { attachingStable[stableWeights, ofEdgeAt: p] = weights[p] }
+    var attachingGrid = grid
+    let gridMap = attachingGrid.addEdgeMap(default: 0)
+    for p in attachingGrid.edges.indices { attachingGrid[gridMap, ofEdgeAt: p] = gridWeights[p] }
+    // Captured as `let`s: a `var` captured by the benchmark closures is boxed, and every read of
+    // it pays an access check.
+    let weightedCSR = attachingCSR, weightedList = attachingList, stable = attachingStable, weightedGrid = attachingGrid
+    do {
+        let w = weightedCSR.values(of: csrWeights), lw = weightedList.values(of: listWeights), sw = stable.values(of: stableWeights)
+        let tree = weightedCSR.dijkstraShortestPaths(from: 0) { w[$0] }
+        precondition((0 ..< n).allSatisfy { tree.distance(toIndex: $0) == (tree.hasPath(to: $0) ? expected[$0] : nil) })
+        precondition(weightedList.dijkstraShortestPaths(from: 0) { lw[$0] }.distance(to: n - 1) == tree.distance(to: n - 1))
+        precondition(stable.dijkstraShortestPaths(from: 0) { sw[$0] }.distance(to: n - 1) == tree.distance(to: n - 1))
+    }
+
     // SP-B01: Dijkstra from one source, a full tree, against the hand-written loop.
     Benchmark("ShortestPaths: BASELINE hand-written Dijkstra on CompressedSparseRow") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(handWrittenDijkstra(csr, weights)) }
@@ -180,5 +212,47 @@ let benchmarks: @Sendable () -> Void = {
     // SP-B04: unweighted.
     Benchmark("ShortestPaths: shortestPaths (breadth-first) on CompressedSparseRow") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(csr.shortestPaths(from: 0)) }
+    }
+    // SP-B05: weights from an attached edge map through `values(of:)`, against the `[Int]` rows
+    // above (same graph, same weights). Gate: ≤ 2 % dense, ≤ 10 % paged.
+    Benchmark("ShortestPaths: dijkstraShortestPaths on CompressedSparseRow, weights from values(of:)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = weightedCSR.values(of: csrWeights)
+            blackHole(weightedCSR.dijkstraShortestPaths(from: 0) { w[$0] })
+        }
+    }
+    Benchmark("ShortestPaths: dijkstraShortestPaths on AdjacencyList<Int>, weights from values(of:)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = weightedList.values(of: listWeights)
+            blackHole(weightedList.dijkstraShortestPaths(from: 0) { w[$0] })
+        }
+    }
+    Benchmark("ShortestPaths: dijkstraShortestPaths on StableDirectedGraph, weights from a side array") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(stable.dijkstraShortestPaths(from: 0) { stableSide[$0] }) }
+    }
+    Benchmark("ShortestPaths: dijkstraShortestPaths on StableDirectedGraph, weights from values(of:) (paged)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = stable.values(of: stableWeights)
+            blackHole(stable.dijkstraShortestPaths(from: 0) { w[$0] })
+        }
+    }
+    Benchmark("ShortestPaths: bellmanFordShortestPaths on CompressedSparseRow, nonnegative weights from values(of:)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let w = weightedCSR.values(of: csrWeights)
+            blackHole(weightedCSR.bellmanFordShortestPaths(from: 0) { w[$0] })
+        }
+    }
+    Benchmark("ShortestPaths: aStarShortestPath on a 1000×1000 grid, weights 1…4 from [Int]") { benchmark in
+        let target = side * side - 1
+        for _ in benchmark.scaledIterations {
+            blackHole(grid.aStarShortestPath(from: 0, to: target, weight: { gridWeights[$0] }, heuristic: { (target / side - $0 / side) + (target % side - $0 % side) }))
+        }
+    }
+    Benchmark("ShortestPaths: aStarShortestPath on a 1000×1000 grid, weights 1…4 from values(of:)") { benchmark in
+        let target = side * side - 1
+        for _ in benchmark.scaledIterations {
+            let w = weightedGrid.values(of: gridMap)
+            blackHole(weightedGrid.aStarShortestPath(from: 0, to: target, weight: { w[$0] }, heuristic: { (target / side - $0 / side) + (target % side - $0 % side) }))
+        }
     }
 }

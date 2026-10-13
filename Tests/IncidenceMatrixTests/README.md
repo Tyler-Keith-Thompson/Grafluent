@@ -119,7 +119,9 @@ There is no hash-law file. The vertices are `Int`s, and every read is in index s
   follow appends and survive cell edits on both matrices; `removeAll` keeps the maps; the checked
   reads throw out of range; copies are copy-on-write; `transposed()`, `reversed` and the
   conversions carry no map (the handle traps there); equality and coding ignore maps; every
-  structural mutation starts a generation and a cell edit that changes nothing does not; random
+  structural mutation starts a generation and a cell edit that changes nothing does not; on both
+  matrices, two copies under every interleaving of three steps never share a generation in
+  different states; random
   mutations against arrays by column and row (swift-property-based).
 - **Stress.**
   - A multigraph at n = 2 048 and m = 2 × 10⁴, api.md's benchmark shape.

@@ -72,7 +72,8 @@ public struct AdjacencyList<Vertex: Hashable> {
     @usableFromInline
     internal var _edgeMaps: _AttachedMaps
 
-    /// The generation, advanced by every structural mutation.
+    /// The generation, advanced by every structural mutation, each of which writes the out-row
+    /// table (`_out.rows`, the identity array of `_GenerationStamp`).
     @usableFromInline
     internal var _generation: _GenerationStamp
 
@@ -430,7 +431,7 @@ extension AdjacencyList {
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaults(count: 1) }
         let position = _records.count
         let out = _out.append(target, toRow: source)
-        _generation.advanceVersion()
+        _generation.advance(writing: _out.rows)
         _outEdges.append(position, toRow: source)
         let into = _in.append(source, toRow: target)
         _inEdges.append(position, toRow: target)
@@ -498,7 +499,7 @@ extension AdjacencyList {
         _in.swapRemoveRow(slot)
         _inEdges.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
-        _generation.advanceVersion(storageIsEmpty: _out.rows.isEmpty)
+        _generation.advance(writing: _out.rows)
         return removed
     }
 
@@ -513,7 +514,7 @@ extension AdjacencyList {
         // Checked before removing, so removing an absent edge never copies shared storage.
         guard let position = _position(ofPair: _SlotPair(source, target)) else { return nil }
         _detach(position)
-        _generation.advanceVersion()
+        _generation.advance(writing: _out.rows)
         return DirectedEdge(from: _vertices[source], to: _vertices[target])
     }
 
@@ -549,8 +550,7 @@ extension AdjacencyList {
     /// Removes every vertex and edge. Attached maps stay attached, emptied.
     @inlinable
     public mutating func removeAll(keepingCapacity: Bool = false) {
-        // Empties the storage the generation is told apart by: the lineage tells copies apart.
-        if !_vertices.isEmpty { _generation.advance() }
+        let changes = !_vertices.isEmpty
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
         _vertices.removeAll(keepingCapacity: keepingCapacity)
@@ -562,15 +562,16 @@ extension AdjacencyList {
         _records.removeAll(keepingCapacity: keepingCapacity)
         _deferredEdges = nil
         _edges.removeAll(keepingCapacity: keepingCapacity)
+        if changes { _generation.advance(writing: _out.rows) } else { _generation.storageMayHaveMoved(_out.rows) }
     }
 
     /// Removes every edge, keeping every vertex. Attached edge maps stay attached, emptied.
     @inlinable
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
         guard !_records.isEmpty else { return }
-        _generation.advanceVersion()
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
         _out.removeAllEntries(keepingCapacity: keepingCapacity)
+        _generation.advance(writing: _out.rows)
         _outEdges.removeAllEntries(keepingCapacity: keepingCapacity)
         _in.removeAllEntries(keepingCapacity: keepingCapacity)
         _inEdges.removeAllEntries(keepingCapacity: keepingCapacity)
@@ -589,9 +590,8 @@ extension AdjacencyList {
         if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(edgeCount) }
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
-        // Not the row table: the generation is told apart by it, and moving it would start a
-        // generation (see `generation`).
-        _out.reserveEntryCapacity(edgeCount)
+        _out.reserveCapacity(rows: vertexCount, entries: edgeCount)
+        _generation.storageMayHaveMoved(_out.rows)
         _outEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _in.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _inEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
@@ -608,7 +608,7 @@ extension AdjacencyList {
         _vertices.append(vertex)
         _slots[vertex] = slot
         _out.appendRow()
-        _generation.advanceVersion()
+        _generation.advance(writing: _out.rows)
         _outEdges.appendRow()
         _in.appendRow()
         _inEdges.appendRow()
@@ -832,7 +832,7 @@ extension AdjacencyList: BidirectionalDirectedGraph {
     /// The current generation (see `GraphGeneration`): every insertion and removal starts a new
     /// one; reserving capacity and attaching or writing maps do not.
     @inlinable
-    public var generation: GraphGeneration { _generation.generation(storage: _GenerationStamp.storage(of: _out.rows)) }
+    public var generation: GraphGeneration { _generation.generation }
 
     /// The positions in `edges` of the edges leaving `vertex`, in the order of
     /// `successors(of:)`: the stored row. O(1).
@@ -982,7 +982,7 @@ extension AdjacencyList: MutableDirectedGraph {
     public mutating func _removeEdge(at position: Int) -> DirectedEdge<Vertex> {
         let record = _records[position]  // traps on a position out of range
         _detach(position)
-        _generation.advanceVersion()
+        _generation.advance(writing: _out.rows)
         return DirectedEdge(from: _vertices[record.source], to: _vertices[record.target])
     }
 }

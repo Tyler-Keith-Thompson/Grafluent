@@ -129,7 +129,8 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(graph == copy) }
     }
 
-    // Attached maps (PropertyGraph), against `no maps` and a caller-kept `[Double]`.
+    // Attached maps (PropertyGraph), against `no maps` and a `[Double]` the caller's own graph type
+    // keeps in step inside its mutating method (`SideArrayGraph`), as the graph keeps its maps.
     let bigEdges = Inputs.randomEdges(vertexCount: n, edgeCount: 1_000_000).map { UndirectedEdge($0.source, $0.target) }
     let big = UndirectedAdjacencyList(vertices: 0 ..< n, edges: bigEdges)
     let removedEdges = Array(bigEdges.prefix(100_000))
@@ -140,13 +141,12 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(built.edgeCount)
         }
     }
-    Benchmark("UndirectedAdjacencyList maps: insert 1M edges, BASELINE hand-maintained side array") { benchmark in
+    Benchmark("UndirectedAdjacencyList maps: insert 1M edges, BASELINE 1 side array in the caller's graph type") { benchmark in
         for _ in benchmark.scaledIterations {
-            var built = UndirectedAdjacencyList<Int>(vertices: 0 ..< n)
-            var weights: [Double] = []
-            for edge in bigEdges where built.insert(edge: edge).inserted { weights.append(1) }
-            blackHole(built.edgeCount)
-            blackHole(weights)
+            var built = SideArrayGraph(graph: UndirectedAdjacencyList<Int>(vertices: 0 ..< n))
+            for edge in bigEdges { built.insert(edge: edge) }
+            blackHole(built.graph.edgeCount)
+            blackHole(built.weights)
         }
     }
     Benchmark("UndirectedAdjacencyList maps: insert 1M edges, 1 edge map") { benchmark in
@@ -226,5 +226,16 @@ let benchmarks: @Sendable () -> Void = {
             }
             blackHole(sum)
         }
+    }
+}
+
+/// The fair baseline of the attached-map rows: a caller's own graph type that holds the graph and
+/// a side array, and appends to it inside its own insertion.
+struct SideArrayGraph {
+    var graph: UndirectedAdjacencyList<Int>
+    var weights: [Double] = []
+
+    mutating func insert(edge: UndirectedEdge<Int>) {
+        if graph.insert(edge: edge).inserted { weights.append(1) }
     }
 }
