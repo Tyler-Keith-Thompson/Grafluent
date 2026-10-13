@@ -23,6 +23,9 @@
 #                 preconditioners zero it), so only the stopping norm grows by that entry.
 #   swapsign      The sign of a row exchange in the modular elimination: an exchange happens only
 #                 when a pivot is 0 modulo a 62-bit prime, which no input of the suite meets.
+#   exactnegative Not planted: the exact count's negative-weight precondition. Without it the
+#                 residue of the same weight traps instead (a negative value converted to
+#                 `UInt64`), so the trap only moves.
 #   unscale       Undoing the root-free iteration's block scaling: `_scaleIntoRange` has already
 #                 brought every matrix near 1, so the block is never scaled.
 
@@ -171,6 +174,48 @@ MUTANTS = [
     Mutant("elimination", "GroundedElimination.swift",
            "row[k] = field.subtract(row[k], field.multiply(f, pivotRow[k]))",
            "row[k] = field.add(row[k], field.multiply(f, pivotRow[k]))", mode="stmt"),
+    Mutant("crt3", "GroundedElimination.swift",
+           "a3 >= r12 ? a3 - r12 : a3 + (p3 - r12)",
+           "r12 >= a3 ? r12 - a3 : r12 + (p3 - a3)"),
+    Mutant("garner", "GroundedElimination.swift",
+           "UInt128(p1) * UInt128(t2) + UInt128(a1)",
+           "UInt128(p2) * UInt128(t2) + UInt128(a1)"),
+    Mutant("garner3", "GroundedElimination.swift",
+           "_inverse(UInt64(p12 % UInt128(p3)), modulo: p3)",
+           "_inverse(UInt64(p12 % UInt128(p2)), modulo: p3)"),
+    Mutant("fermat", "GroundedElimination.swift",
+           "if e & 1 == 1 { inverse = _multiply(inverse, base, modulo: p) }",
+           "", mode="stmt"),
+    Mutant("twoprimesonly", "GroundedElimination.swift",
+           "guard threePrimes else { return x12 }",
+           "return x12", mode="stmt"),
+    Mutant("fitguard", "GroundedElimination.swift",
+           "guard t3 <= (UInt128.max - x12) / p12 else { return nil }",
+           "", mode="stmt"),
+    Mutant("sizegate", "GroundedElimination.swift",
+           "if exponent >= 129 { return nil }",
+           "", mode="stmt"),
+    Mutant("primesweighted", "GroundedElimination.swift",
+           "exponent > 120",
+           "exponent > 124", nth=0),
+    Mutant("primesunweighted", "GroundedElimination.swift",
+           "exponent > 120",
+           "exponent > 124", nth=1),
+    Mutant("residueindex", "GroundedElimination.swift",
+           "edgeResidues[3 * (Int(numbers[k]) - 1) + i]",
+           "edgeResidues[3 * (Int(numbers[k]) - 1)]"),
+    Mutant("estimateweights", "GroundedElimination.swift",
+           "weights[k] = edgeWeights[Int(numbers[k]) - 1]",
+           "weights[k] = 1", mode="stmt"),
+    Mutant("exactcomponents", "GroundedElimination.swift",
+           "guard rows.components().count == 1 else { return 0 }",
+           "", mode="stmt"),
+    Mutant("residuewide", "GroundedElimination.swift",
+           "return UInt64(w % W(p))",
+           "return UInt64(truncatingIfNeeded: w)", mode="stmt"),
+    Mutant("exactzeroweight", "GraphRows.swift",
+           "numbers.append(w == 0 ? 0 : Double(numbers.count + 1))",
+           "numbers.append(Double(numbers.count + 1))", mode="stmt"),
 
     # The quantities (SpectralCore.swift)
     Mutant("exactgate", "SpectralCore.swift",

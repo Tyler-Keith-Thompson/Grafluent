@@ -28,6 +28,7 @@ extension Graph {               // each also with weight: (Edges.Index) -> W, W:
     func spectralOrdering(weight:normalized:tolerance:maxIterations:) throws(NoConvergence) -> [Vertex]
     func spectralRadius(weight:tolerance:maxIterations:) throws(NoConvergence) -> Double
     func numberOfSpanningTrees(weight:) -> Double
+    func numberOfSpanningTrees(as: UInt128.Type, weight:) -> UInt128?                               // exact; nil from 2¹²⁸ on; W: BinaryInteger
     func resistanceDistance(from:to:weight:tolerance:maxIterations:) throws(NoConvergence) -> Double?  // nil across components
     func effectiveGraphResistance(weight:) -> Double?, kemenyConstant(weight:) -> Double?
 }
@@ -61,10 +62,11 @@ and after the vertices in `resistanceDistance(from:to:weight:tolerance:)`. The s
 | Ordering | Components by least index; ≤ 2 vertices in index order; ties within 1e-8 · max\|x\| in index order | SGT-127 – SGT-134 |
 | Counts | 0 empty or disconnected, 1 for one vertex; exact (correctly rounded) for integer weights below 2¹⁰⁰; `.infinity` past `Double` | SGT-148 – SGT-168, stress, accuracy |
 | Electrical | Weights are conductances; R(v, v) = 0; nil across components; 0 for n ≤ 1 | SGT-169 – SGT-204 |
+| Exact count | `numberOfSpanningTrees(as: UInt128.self)`: the exact count, nil from 2¹²⁸ on; integer weights reduced exactly | SGT-205 – SGT-230, formula tests |
 
 ## How values are pinned
 
-The catalog-row files are every file except `CanonicalSignTests.swift`,
+The catalog-row files are every file except `CanonicalSignTests.swift`, `ExactSpanningTreeFormulaTests.swift`,
 `SpectralAccuracyTests.swift`, `SpectralConformanceTests.swift`, `SpectralNoConvergenceTests.swift`,
 `SpectralPropertyTests.swift` and `Performance/SpectralStressTests.swift`.
 `swiftgen.py` generated them from `cases.md`. It sits next to `ref.py` and `cases.md` in
@@ -75,9 +77,9 @@ uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 --with num
 ```
 
 It first checks that `ref.py` reproduces `cases.md` byte for byte. Then it re-evaluates each row
-(except SGT-205 – SGT-217) on the model at full precision, asserts that the value renders to the
+(except SGT-231 – SGT-243) on the model at full precision, asserts that the value renders to the
 catalog cell, and writes one `@Test` per row. With `--phase2` it also writes
-`SpectralPhase2Tests.swift` for SGT-205 – SGT-217. Each graph is the catalog's, on the reference
+`SpectralPhase2Tests.swift` for SGT-231 – SGT-243. Each graph is the catalog's, on the reference
 conformer, with every vertex listed in `vertices` order and the edges in position order. Weights are
 `[Int]` when every weight is an integer, so that the `BinaryInteger` overload is exercised, and
 `[Double]` otherwise.

@@ -309,6 +309,60 @@ def spanning_trees(g, w):
     return det([row[1:] for row in L[1:]])
 
 
+def exact_count(v):
+    """The exact spelling's answer: τ as an int, or None (nil) from 2¹²⁸ on."""
+    assert v.denominator == 1
+    return int(v) if v < 2 ** 128 else None
+
+
+def exact_closed_form(cell, g, w):
+    """τ from a closed form where the cell has one (Cayley's n^(n−2) for K_n, m^(n−1) n^(m−1) for
+    K_{m,n}, the product of the weights on a path), else by brute-force enumeration (m ≤ 16), else
+    the determinant again by elimination over a prime field and the Chinese remainder theorem."""
+    c = cell.replace("U: ", "")
+    m = re.fullmatch(r"K\((\d+)\)", c)
+    if m and all(x == 1 for x in w):
+        n = int(m.group(1))
+        return Fraction(n ** (n - 2) if n >= 2 else 1)
+    m = re.fullmatch(r"KB\(0\.\.(\d+);(\d+)\.\.(\d+)\)", c)
+    if m and all(x == 1 for x in w):
+        a = int(m.group(1)) + 1
+        b = int(m.group(3)) - int(m.group(2)) + 1
+        return Fraction(a ** (b - 1) * b ** (a - 1))
+    if re.fullmatch(r"P\(0\.\.(\d+)\)", c):
+        return Fraction(math.prod(w))
+    if g.m <= 16:
+        return brute_spanning_trees(g, w)
+    # Modular determinants of the grounded Laplacian, recombined (independent of `det`).
+    primes = [(1 << 61) - 1, (1 << 89) - 1, (1 << 107) - 1]
+    L = laplacian(g, w)
+    residues = []
+    for p in primes:
+        M = [[int(x) % p for x in row[1:]] for row in L[1:]]
+        n, d = len(M), 1
+        for c_ in range(n):
+            r = next((r for r in range(c_, n) if M[r][c_]), None)
+            if r is None:
+                d = 0
+                break
+            if r != c_:
+                M[r], M[c_] = M[c_], M[r]
+                d = -d
+            d = d * M[c_][c_] % p
+            inv = pow(M[c_][c_], p - 2, p)
+            for r in range(c_ + 1, n):
+                f = M[r][c_] * inv % p
+                if f:
+                    for k in range(c_, n):
+                        M[r][k] = (M[r][k] - f * M[c_][k]) % p
+        residues.append(d % p)
+    x, modulus = 0, 1
+    for a, p in zip(residues, primes):
+        x += modulus * ((a - x) * pow(modulus, -1, p) % p)
+        modulus *= p
+    return Fraction(x)
+
+
 def contract(g, w, u, v):
     """G with u and v identified (loops dropped: they never lie on a spanning tree)."""
     ren = [x if x != v else u for x in range(g.n)]
@@ -734,7 +788,7 @@ def cross_check(g, w, op, value):
                 seg, mine = theirs[pos:pos + len(comp)], order[pos:pos + len(comp)]
                 assert seg == mine or seg == mine[::-1], (op, theirs, order)
                 pos += len(comp)
-    elif name == "numberOfSpanningTrees" and g.n > 0 and "root" not in op:
+    elif name == "numberOfSpanningTrees" and g.n > 0 and "root" not in op and value is not None:
         theirs = nx.number_of_spanning_trees(to_nx(g, w), weight="weight")
         assert close(float(value), float(theirs), max(1.0, float(value)), 1e-8), (op, value, theirs)
     elif name == "resistanceDistance":
@@ -842,6 +896,8 @@ def evaluate(cell, op):
                 v = arborescences(g, w, g.vertices.index(r))
             else:
                 v = spanning_trees(g, w)
+                if "UInt128" in call:
+                    v = exact_count(v)
         elif name == "resistanceDistance":
             a, b = map(int, re.findall(r"-?\d+", call)[:2])
             if a not in g.vertices or b not in g.vertices:
@@ -862,7 +918,9 @@ def evaluate(cell, op):
     cf = closed_form(cell, call)
     if cf is not None:
         assert vclose(v, cf, 1e-9), (cell, op, v, cf)
-    if name == "numberOfSpanningTrees" and g.m <= 16:
+    if name == "numberOfSpanningTrees" and "UInt128" in call:
+        assert v == exact_count(exact_closed_form(cell, g, w)), (cell, op, v)
+    if name == "numberOfSpanningTrees" and g.m <= 16 and v is not None:
         if "root" in call:
             assert v == brute_arborescences(g, w, g.vertices.index(int(re.search(r"root: (-?\d+)", call).group(1)))), op
         else:
@@ -900,6 +958,8 @@ def evaluate(cell, op):
 
 
 def render_value(name, g, v):
+    if type(v) is int:
+        return str(v)
     if name.endswith("Matrix"):
         return fmat(v)
     if name.endswith("Spectrum"):
@@ -1141,6 +1201,36 @@ def define():
     R(K, "disconnected: nil", "U: C(0,1,2), C(3,4,5)", "kemenyConstant()")
     R(K, "karate club", "U: nx(karate_club)", "kemenyConstant()")
 
+    X = "Exact spanning trees"
+    U = "numberOfSpanningTrees(as: UInt128.self)"
+    W = U + " weight: "
+    R(X, "empty graph: 0", "U:", U)
+    R(X, "one vertex: 1", "U: [0]", U)
+    R(X, "disconnected: 0", "U: C(0,1,2), C(3,4,5)", U)
+    R(X, "K2", "U: K(2)", U)
+    R(X, "K10: 10⁸", "U: K(10)", U)
+    R(X, "K25: 25²³, past 2⁵³", "U: K(25)", U)
+    R(X, "K28: 28²⁶, past 2¹²³ (three primes)", "U: K(28)", U)
+    R(X, "K29: 29²⁷, past 2¹²⁸: nil", "U: K(29)", U)
+    R(X, "K2,122: 2¹²¹·122, just below 2¹²⁸", "U: KB(0..1;2..123)", U)
+    R(X, "K8,32: 8³¹·32⁷ = 2¹²⁸ exactly: nil", "U: KB(0..7;8..39)", U)
+    R(X, "K3,74: 3⁷³·74², just past 2¹²⁸: nil", "U: KB(0..2;3..76)", U)
+    R(X, "grid 8×8", "U: grid(8,8)", U)
+    R(X, "karate club", "U: nx(karate_club)", U)
+    R(X, "doubled edge and pendant: 2", "U: 0=1, 1-2", U)
+    R(X, "loop ignored", "U: 0-0, C(0,1,2)", U)
+    R(X, "weighted triangle: 1·2 + 2·3 + 1·3", "U: C(0,1,2)", W + "[1, 2, 3]")
+    R(X, "weight 0 disconnects: 0", "U: P(0..2)", W + "[1, 0]")
+    R(X, "a weight past 2⁵³, exactly", "U: K(2)", W + "[9007199254740993]")
+    R(X, "a heavy loop ignored", "U: 0-0, 0-1", W + "[9223372036854775807, 5]")
+    R(X, "weights multiplying to 2¹²⁸ − 1", "U: P(0..4)", W + "[4294967295, 4294967297, 274177, 67280421310721]")
+    R(X, "weights multiplying to 2¹²⁸: nil", "U: P(0..4)", W + "[4294967296, 4294967296, 4294967296, 4294967296]")
+    R(X, "weights 2⁶² · 2⁶² = 2¹²⁴, past the product of the first two primes", "U: P(0..2)", W + "[4611686018427387904, 4611686018427387904]")
+    R(X, "weights the first two primes: their product", "U: P(0..2)", W + "[4611686018427387847, 4611686018427387817]")
+    R(X, "weights the three primes: past 2¹²⁸, nil", "U: P(0..3)", W + "[4611686018427387847, 4611686018427387817, 4611686018427387787]")
+    R(X, "weighted K4 near 2¹²⁷ (three primes)", "U: K(4)", W + "[2199023255551, 2199023255553, 2199023255557, 2199023255563, 2199023255579, 2199023255581]")
+    R(X, "negative weight", "U: P(0..2)", W + "[1, -1]")
+
     P = "Phase 2"
     R(P, "arborescences of a directed 3-cycle from 0", "D: C(0,1,2)", "numberOfSpanningTrees(root: 0)")
     R(P, "arborescences, both arcs of K3", "D: 0>1, 1>0, 0>2, 2>0, 1>2, 2>1", "numberOfSpanningTrees(root: 0)")
@@ -1231,7 +1321,8 @@ returning wₚ for the edge at position p (`nan`, `inf` are those `Double`s).
   a degenerate λ₂ (api.md): the test checks the order is sorted by the returned Fiedler values,
   not the exact list.
 - Exact rationals are written `p/q (decimal)`; counts past 2⁵³ are written exactly with the
-  `Double` that `numberOfSpanningTrees` returns.
+  `Double` that `numberOfSpanningTrees` returns. `numberOfSpanningTrees(as: UInt128.self)` rows
+  are the exact count, or `nil` from 2¹²⁸ on.
 - **Tolerances**: integers and rationals exact up to `Double` rounding (relative 1e-12); dense
   results (matrices, spectra, counts, effective graph resistance, Kemeny constant) within
   1e-9 · max(1, |largest value|); iterative results (`algebraicConnectivity`, `fiedlerVector`,

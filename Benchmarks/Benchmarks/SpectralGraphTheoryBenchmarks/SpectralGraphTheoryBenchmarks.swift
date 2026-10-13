@@ -127,6 +127,10 @@ let benchmarks: @Sendable () -> Void = {
         let graph = giantComponent(1_000, seed: 5)
         for _ in benchmark.scaledIterations { blackHole(graph.numberOfSpanningTrees()) }
     }
+    Benchmark("SpectralGraphTheory: numberOfSpanningTrees(as: UInt128.self), G(n, p) 1000") { benchmark in
+        let graph = giantComponent(1_000, seed: 5)
+        for _ in benchmark.scaledIterations { blackHole(graph.numberOfSpanningTrees(as: UInt128.self)) }
+    }
     // The shift-invert path: σ/λ₂ ≈ 0.4 n² on a path.
     let path = UndirectedAdjacencyList(vertices: 0 ..< 100_000, edges: (0 ..< 99_999).map { UndirectedEdge($0, $0 + 1) })
     Benchmark("SpectralGraphTheory: algebraicConnectivity(), path 10⁵ (shift-invert)") { benchmark in

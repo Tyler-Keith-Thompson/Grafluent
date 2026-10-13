@@ -162,6 +162,22 @@ struct SpectralPreconditionTests {
         #expect(try graph.resistanceDistance(from: 0, to: 2, weight: { weights[$0] }).map { abs($0 - 2) <= 1e-6 * 2 } == true)
     }
 
+    @Test("SGT-230 negative weight")
+    func sgt230() async {
+        // U: P(0..2) · numberOfSpanningTrees(as: UInt128.self) weight: [1, -1] → **trap**
+        await #expect(processExitsWith: .failure) {
+            let edges: [(Int, Int)] = [(0, 1), (1, 2)]
+            let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: edges.map { UndirectedEdge($0.0, $0.1) })
+            let weights: [Int] = [1, -1]
+            _ = graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] })
+        }
+        // Without the fault: the same graph with valid weights.
+        let edges: [(Int, Int)] = [(0, 1), (1, 2)]
+        let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: edges.map { UndirectedEdge($0.0, $0.1) })
+        let weights: [Int] = [1, 1]
+        #expect(graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] }) == 1)
+    }
+
     @Test("A negative weight traps every Laplacian-family entry point, Int and Double weights")
     func negativeWeightsEverywhere() async throws {
         await #expect(processExitsWith: .failure) {

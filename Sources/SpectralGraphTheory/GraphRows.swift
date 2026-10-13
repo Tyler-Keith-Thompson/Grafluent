@@ -112,6 +112,28 @@ extension Graph {
         SpectralGraphTheory._spectralWeights(edges.indices, count: edgeCount, weight, allowsNegative: allowsNegative)
     }
 
+    /// For the exact spanning-tree count, read once per position in position order: each edge's
+    /// number plus one (0 for a weight-0 edge, which the rows then leave out), its weight as a
+    /// `Double`, and its residues modulo the three count primes (3 per edge).
+    @inlinable
+    func _exactSpanningTreeWeights<W: BinaryInteger>(_ weight: (Edges.Index) -> W) -> (numbers: [Double], weights: [Double], residues: [UInt64]) {
+        var numbers: [Double] = [], weights: [Double] = [], residues: [UInt64] = []
+        numbers.reserveCapacity(edgeCount)
+        weights.reserveCapacity(edgeCount)
+        residues.reserveCapacity(3 * edgeCount)
+        let (p1, p2, p3) = _countPrimes
+        for position in edges.indices {
+            let w = weight(position)
+            precondition(w >= 0, "A weight is negative")
+            numbers.append(w == 0 ? 0 : Double(numbers.count + 1))
+            weights.append(Double(w))
+            residues.append(_residue(w, modulo: p1))
+            residues.append(_residue(w, modulo: p2))
+            residues.append(_residue(w, modulo: p3))
+        }
+        return (numbers, weights, residues)
+    }
+
     /// The number of `vertex`: its vertex index, or its position in `vertices`.
     @inlinable
     func _spectralNumber(of vertex: Vertex, _ numbering: (listed: [Vertex], numbers: [Vertex: Int])?) -> Int {

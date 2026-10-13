@@ -7,7 +7,7 @@ quantities of the matrix-tree theorem and of electrical networks: the number of 
 resistance distance, effective graph resistance and the Kemeny constant. Everything is pure
 Swift, on every platform, with no package dependency beyond the library.
 
-`cases.md` (SGT-001 – SGT-217, 217 rows) pins the values; SGT-205 – SGT-217 describe quantities
+`cases.md` (SGT-001 – SGT-243, 243 rows) pins the values; SGT-231 – SGT-243 describe quantities
 that no entry point computes and have no tests. `ref.py` builds every matrix from the definitions
 below in exact fractions, takes spectra from `numpy.linalg.eigvalsh`, counts spanning trees and
 resistances exactly (Kirchhoff determinants), and checks rows against closed forms (complete,
@@ -35,6 +35,7 @@ On `Graph`; the two matrices marked also on `DirectedGraph`.
 | `spectralOrdering(normalized:tolerance:)` → `[Vertex]` | The Fiedler vector's main use (envelope reduction, seriation; Barnard–Pothen–Simon) |
 | `spectralRadius(tolerance:)` → `Double` | ρ(A), the largest eigenvalue magnitude (Cvetković–Rowlinson–Simić). Sparse (Lanczos) |
 | `numberOfSpanningTrees()` → `Double` | Kirchhoff's matrix-tree theorem |
+| `numberOfSpanningTrees(as: UInt128.self)` → `UInt128?` | The same count exactly; `nil` from 2¹²⁸ on |
 | `resistanceDistance(from:to:)` → `Double?` | Klein–Randić 1993. One Laplacian solve, not a pseudoinverse |
 | `effectiveGraphResistance()` → `Double?` | The Kirchhoff index of Klein–Randić |
 | `kemenyConstant()` → `Double?` | The expected steps of the random walk to a stationary target |
@@ -79,6 +80,7 @@ extension Graph {
     // Matrix-tree theorem and electrical networks; each also with weight: (a conductance).
     // maxIterations: conjugate-gradient iterations, nil for 20,000 + 2n.
     public func numberOfSpanningTrees() -> Double
+    public func numberOfSpanningTrees(as type: UInt128.Type) -> UInt128?                  // weight: BinaryInteger only
     public func resistanceDistance(from source: Vertex, to target: Vertex, tolerance: Double = 1e-10, maxIterations: Int? = nil) throws(NoConvergence) -> Double?
     public func resistanceDistance<W>(from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, tolerance: Double = 1e-10, maxIterations: Int? = nil) throws(NoConvergence) -> Double?
     public func effectiveGraphResistance() -> Double?
@@ -189,6 +191,15 @@ With w(e) the weight of edge e (1 without `weight:`):
   correctly rounded. A weight counts as an integer when it is one below
   2⁵³; otherwise, or past 2¹⁰⁰, the GTH value is returned unrounded. The catalog pins large counts
   to a relative 10⁻⁹ (SGT-154, SGT-162, SGT-168).
+- `numberOfSpanningTrees(as: UInt128.self)` (and `(as:weight:)`, integer weights only) is the same
+  count exactly, `nil` when it is 2¹²⁸ or more (SGT-212, SGT-214 at exactly 2¹²⁸, SGT-215,
+  SGT-225); 2¹²⁸ − 1 fits (SGT-224). The GTH value decides first: past 2¹²⁹ it is `nil` without
+  further work; up to 2¹²⁰ two modular determinants recover it, beyond that three (the third prime
+  2⁶² − 117), and the reconstruction itself detects a count in [2¹²⁸, 2¹²⁹). Weights are reduced
+  modulo each prime as integers, so a weight past 2⁵³ counts exactly (SGT-222); loops are never
+  read into the determinant (SGT-223). A negative weight traps (SGT-230). Weights at and past the
+  primes check the reconstruction: 2⁶² · 2⁶² (SGT-226), the product of the first two primes
+  (SGT-227) and of all three (SGT-228), which the size check settles as `nil`.
 - `resistanceDistance(from: u, to: v)` = (e_u − e_v)ᵀ L⁺ (e_u − e_v), the effective resistance when
   each edge is a conductance w(e). 0 when u = v (SGT-172, SGT-174), returned after checking both are
   vertices and **without reading any weight** (so a negative weight elsewhere does not trap R(v,
@@ -361,6 +372,7 @@ covers `Multigraph`, `Pseudograph` and the undirected views. Directed graphs get
 | full spectra | O(n³) | n² `Double`s |
 | `algebraicConnectivity`, `fiedlerVector`, `spectralOrdering`, `spectralRadius` | O((n + m) · products), products ≈ O(√(σ / gap) · log(1/tol)) on σI − L, a few dozen solves by shift-invert; O(n³) below n = 64 | 31 n `Double`s (34 n from 5,000 vertices); shift-invert adds 7 n and the incomplete factor, O(n + m) |
 | `numberOfSpanningTrees` | O(n³) GTH elimination (less when sparse), and for integer weights two modular eliminations | n² `Double`s, n² `UInt64`s |
+| `numberOfSpanningTrees(as: UInt128.self)` | O(n³) GTH elimination for the size, then two modular eliminations (three when it passes 2¹²⁰) | n² `Double`s, n² `UInt64`s, 3 m `UInt64`s weighted |
 | `resistanceDistance` | O((n + m) √κ) conjugate gradients | about 9 n words, and the incomplete factor when built |
 | `effectiveGraphResistance`, `kemenyConstant` | O(n³) GTH elimination and the diagonal of L_g⁻¹ | n² `Double`s |
 

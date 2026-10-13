@@ -251,6 +251,8 @@ struct SpectralPropertyTests {
             } else {
                 #expect(count == Double(total), "\(context)")
             }
+            let exact = weighted ? graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] }) : graph.numberOfSpanningTrees(as: UInt128.self)
+            #expect(exact == UInt128(total), "\(context)")
         }
     }
 

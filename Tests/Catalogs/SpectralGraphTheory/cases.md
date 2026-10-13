@@ -1,4 +1,4 @@
-# SpectralGraphTheory: case catalog (SGT-001 – SGT-217, 217 rows; SGT-205 onward have no entry point)
+# SpectralGraphTheory: case catalog (SGT-001 – SGT-243, 243 rows; SGT-231 onward have no entry point)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 scipy==1.18.1 --with numpy==2.5.4 python3 Tests/Catalogs/SpectralGraphTheory/ref.py`; `--write`
@@ -50,7 +50,8 @@ returning wₚ for the edge at position p (`nan`, `inf` are those `Double`s).
   a degenerate λ₂ (api.md): the test checks the order is sorted by the returned Fiedler values,
   not the exact list.
 - Exact rationals are written `p/q (decimal)`; counts past 2⁵³ are written exactly with the
-  `Double` that `numberOfSpanningTrees` returns.
+  `Double` that `numberOfSpanningTrees` returns. `numberOfSpanningTrees(as: UInt128.self)` rows
+  are the exact count, or `nil` from 2¹²⁸ on.
 - **Tolerances**: integers and rationals exact up to `Double` rounding (relative 1e-12); dense
   results (matrices, spectra, counts, effective graph resistance, Kemeny constant) within
   1e-9 · max(1, |largest value|); iterative results (`algebraicConnectivity`, `fiedlerVector`,
@@ -265,18 +266,44 @@ returning wₚ for the edge at position p (`nan`, `inf` are those `Double`s).
 | SGT-202 | Kemeny constant | weighted | `U: C(0,1,2)` | `kemenyConstant(weight:) [1, 2, 3]` | 1.363636364 |
 | SGT-203 | Kemeny constant | disconnected: nil | `U: C(0,1,2), C(3,4,5)` | `kemenyConstant()` | nil |
 | SGT-204 | Kemeny constant | karate club | `U: nx(karate_club)` | `kemenyConstant()` | 42.88668274 |
-| SGT-205 | Phase 2 | arborescences of a directed 3-cycle from 0 | `D: C(0,1,2)` | `numberOfSpanningTrees(root: 0)` | 1 |
-| SGT-206 | Phase 2 | arborescences, both arcs of K3 | `D: 0>1, 1>0, 0>2, 2>0, 1>2, 2>1` | `numberOfSpanningTrees(root: 0)` | 3 |
-| SGT-207 | Phase 2 | arborescences: root reaches nothing | `D: 1>0, 2>0` | `numberOfSpanningTrees(root: 0)` | 0 |
-| SGT-208 | Phase 2 | arborescences: weighted | `D: 0>1, 0>2, 1>2, 2>1` | `numberOfSpanningTrees(root: 0) weight: [1, 2, 3, 4]` | 13 |
-| SGT-209 | Phase 2 | arborescences: parallel arcs and a loop | `D: 0>1, 0>1, 1>1, 1>2` | `numberOfSpanningTrees(root: 0)` | 2 |
-| SGT-210 | Phase 2 | arborescences: root not a vertex | `D: C(0,1,2)` | `numberOfSpanningTrees(root: 7)` | **trap** |
-| SGT-211 | Phase 2 | signless Laplacian of a bipartite graph = its Laplacian spectrum | `U: C(0..5)` | `signlessLaplacianSpectrum()` | 0, 1 ×2, 3 ×2, 4 |
-| SGT-212 | Phase 2 | signless Laplacian of a triangle | `U: C(0,1,2)` | `signlessLaplacianSpectrum()` | 1 ×2, 4 |
-| SGT-213 | Phase 2 | signless Laplacian with a loop: Q[v][v] gains 4 | `U: 0-0, 0-1` | `signlessLaplacianSpectrum()` | 0.7639320225, 5.236067977 |
-| SGT-214 | Phase 2 | spectral bisection of the barbell | `U: K(0..3), K(4..7), 3-4` | `spectralBisection()` | ([4, 5, 6, 7], [0, 1, 2, 3]) |
-| SGT-215 | Phase 2 | spectral bisection of P5: the zero entry joins the nonnegative side | `U: P(0..4)` | `spectralBisection()` | ([3, 4], [0, 1, 2]) |
-| SGT-216 | Phase 2 | spectral bisection, degenerate λ₂ | `U: C(0..5)` | `spectralBisection()` | degenerate λ₂: some split by a λ₂ eigenvector |
-| SGT-217 | Phase 2 | spectral bisection, disconnected | `U: C(0,1,2), C(3,4,5)` | `spectralBisection()` | nil |
+| SGT-205 | Exact spanning trees | empty graph: 0 | `U:` | `numberOfSpanningTrees(as: UInt128.self)` | 0 |
+| SGT-206 | Exact spanning trees | one vertex: 1 | `U: [0]` | `numberOfSpanningTrees(as: UInt128.self)` | 1 |
+| SGT-207 | Exact spanning trees | disconnected: 0 | `U: C(0,1,2), C(3,4,5)` | `numberOfSpanningTrees(as: UInt128.self)` | 0 |
+| SGT-208 | Exact spanning trees | K2 | `U: K(2)` | `numberOfSpanningTrees(as: UInt128.self)` | 1 |
+| SGT-209 | Exact spanning trees | K10: 10⁸ | `U: K(10)` | `numberOfSpanningTrees(as: UInt128.self)` | 100000000 |
+| SGT-210 | Exact spanning trees | K25: 25²³, past 2⁵³ | `U: K(25)` | `numberOfSpanningTrees(as: UInt128.self)` | 142108547152020037174224853515625 |
+| SGT-211 | Exact spanning trees | K28: 28²⁶, past 2¹²³ (three primes) | `U: K(28)` | `numberOfSpanningTrees(as: UInt128.self)` | 42277452950578284263485622772148731904 |
+| SGT-212 | Exact spanning trees | K29: 29²⁷, past 2¹²⁸: nil | `U: K(29)` | `numberOfSpanningTrees(as: UInt128.self)` | nil |
+| SGT-213 | Exact spanning trees | K2,122: 2¹²¹·122, just below 2¹²⁸ | `U: KB(0..1;2..123)` | `numberOfSpanningTrees(as: UInt128.self)` | 324331630971519472988528922708404076544 |
+| SGT-214 | Exact spanning trees | K8,32: 8³¹·32⁷ = 2¹²⁸ exactly: nil | `U: KB(0..7;8..39)` | `numberOfSpanningTrees(as: UInt128.self)` | nil |
+| SGT-215 | Exact spanning trees | K3,74: 3⁷³·74², just past 2¹²⁸: nil | `U: KB(0..2;3..76)` | `numberOfSpanningTrees(as: UInt128.self)` | nil |
+| SGT-216 | Exact spanning trees | grid 8×8 | `U: grid(8,8)` | `numberOfSpanningTrees(as: UInt128.self)` | 126231322912498539682594816 |
+| SGT-217 | Exact spanning trees | karate club | `U: nx(karate_club)` | `numberOfSpanningTrees(as: UInt128.self)` | 5090996323019136 |
+| SGT-218 | Exact spanning trees | doubled edge and pendant: 2 | `U: 0=1, 1-2` | `numberOfSpanningTrees(as: UInt128.self)` | 2 |
+| SGT-219 | Exact spanning trees | loop ignored | `U: 0-0, C(0,1,2)` | `numberOfSpanningTrees(as: UInt128.self)` | 3 |
+| SGT-220 | Exact spanning trees | weighted triangle: 1·2 + 2·3 + 1·3 | `U: C(0,1,2)` | `numberOfSpanningTrees(as: UInt128.self) weight: [1, 2, 3]` | 11 |
+| SGT-221 | Exact spanning trees | weight 0 disconnects: 0 | `U: P(0..2)` | `numberOfSpanningTrees(as: UInt128.self) weight: [1, 0]` | 0 |
+| SGT-222 | Exact spanning trees | a weight past 2⁵³, exactly | `U: K(2)` | `numberOfSpanningTrees(as: UInt128.self) weight: [9007199254740993]` | 9007199254740993 |
+| SGT-223 | Exact spanning trees | a heavy loop ignored | `U: 0-0, 0-1` | `numberOfSpanningTrees(as: UInt128.self) weight: [9223372036854775807, 5]` | 5 |
+| SGT-224 | Exact spanning trees | weights multiplying to 2¹²⁸ − 1 | `U: P(0..4)` | `numberOfSpanningTrees(as: UInt128.self) weight: [4294967295, 4294967297, 274177, 67280421310721]` | 340282366920938463463374607431768211455 |
+| SGT-225 | Exact spanning trees | weights multiplying to 2¹²⁸: nil | `U: P(0..4)` | `numberOfSpanningTrees(as: UInt128.self) weight: [4294967296, 4294967296, 4294967296, 4294967296]` | nil |
+| SGT-226 | Exact spanning trees | weights 2⁶² · 2⁶² = 2¹²⁴, past the product of the first two primes | `U: P(0..2)` | `numberOfSpanningTrees(as: UInt128.self) weight: [4611686018427387904, 4611686018427387904]` | 21267647932558653966460912964485513216 |
+| SGT-227 | Exact spanning trees | weights the first two primes: their product | `U: P(0..2)` | `numberOfSpanningTrees(as: UInt128.self) weight: [4611686018427387847, 4611686018427387817]` | 21267647932558653302378126310941659999 |
+| SGT-228 | Exact spanning trees | weights the three primes: past 2¹²⁸, nil | `U: P(0..3)` | `numberOfSpanningTrees(as: UInt128.self) weight: [4611686018427387847, 4611686018427387817, 4611686018427387787]` | nil |
+| SGT-229 | Exact spanning trees | weighted K4 near 2¹²⁷ (three primes) | `U: K(4)` | `numberOfSpanningTrees(as: UInt128.self) weight: [2199023255551, 2199023255553, 2199023255557, 2199023255563, 2199023255579, 2199023255581]` | 170141183463254596820090958604545301260 |
+| SGT-230 | Exact spanning trees | negative weight | `U: P(0..2)` | `numberOfSpanningTrees(as: UInt128.self) weight: [1, -1]` | **trap** |
+| SGT-231 | Phase 2 | arborescences of a directed 3-cycle from 0 | `D: C(0,1,2)` | `numberOfSpanningTrees(root: 0)` | 1 |
+| SGT-232 | Phase 2 | arborescences, both arcs of K3 | `D: 0>1, 1>0, 0>2, 2>0, 1>2, 2>1` | `numberOfSpanningTrees(root: 0)` | 3 |
+| SGT-233 | Phase 2 | arborescences: root reaches nothing | `D: 1>0, 2>0` | `numberOfSpanningTrees(root: 0)` | 0 |
+| SGT-234 | Phase 2 | arborescences: weighted | `D: 0>1, 0>2, 1>2, 2>1` | `numberOfSpanningTrees(root: 0) weight: [1, 2, 3, 4]` | 13 |
+| SGT-235 | Phase 2 | arborescences: parallel arcs and a loop | `D: 0>1, 0>1, 1>1, 1>2` | `numberOfSpanningTrees(root: 0)` | 2 |
+| SGT-236 | Phase 2 | arborescences: root not a vertex | `D: C(0,1,2)` | `numberOfSpanningTrees(root: 7)` | **trap** |
+| SGT-237 | Phase 2 | signless Laplacian of a bipartite graph = its Laplacian spectrum | `U: C(0..5)` | `signlessLaplacianSpectrum()` | 0, 1 ×2, 3 ×2, 4 |
+| SGT-238 | Phase 2 | signless Laplacian of a triangle | `U: C(0,1,2)` | `signlessLaplacianSpectrum()` | 1 ×2, 4 |
+| SGT-239 | Phase 2 | signless Laplacian with a loop: Q[v][v] gains 4 | `U: 0-0, 0-1` | `signlessLaplacianSpectrum()` | 0.7639320225, 5.236067977 |
+| SGT-240 | Phase 2 | spectral bisection of the barbell | `U: K(0..3), K(4..7), 3-4` | `spectralBisection()` | ([4, 5, 6, 7], [0, 1, 2, 3]) |
+| SGT-241 | Phase 2 | spectral bisection of P5: the zero entry joins the nonnegative side | `U: P(0..4)` | `spectralBisection()` | ([3, 4], [0, 1, 2]) |
+| SGT-242 | Phase 2 | spectral bisection, degenerate λ₂ | `U: C(0..5)` | `spectralBisection()` | degenerate λ₂: some split by a λ₂ eigenvector |
+| SGT-243 | Phase 2 | spectral bisection, disconnected | `U: C(0,1,2), C(3,4,5)` | `spectralBisection()` | nil |
 
-217 rows.
+243 rows.

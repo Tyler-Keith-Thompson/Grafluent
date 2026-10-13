@@ -50,9 +50,9 @@ with open(os.path.join(HERE, "cases.md")) as f:
     assert f.read() == TEXT, "cases.md is not ref.py's output"
 ROWS = {int(r[0][4:]): r for r in ref.ROWS}
 N = len(ROWS)
-assert N == 217
+assert N == 243
 PHASE2_FIRST = min(n for n, r in ROWS.items() if r[1] == "Phase 2")
-assert PHASE2_FIRST == 205
+assert PHASE2_FIRST == 231
 
 
 def is_trap(n): return ROWS[n][5] == "**trap**"
@@ -184,6 +184,8 @@ def raw(n):
             v = ref.arborescences(g, w, g.vertices.index(r))
         else:
             v = ref.spanning_trees(g, w)
+            if "UInt128" in call:
+                v = ref.exact_count(v)
     elif name == "resistanceDistance":
         a, b = map(int, re.findall(r"-?\d+", call)[:2])
         v = ref.resistance(g, w, g.vertices.index(a), g.vertices.index(b))
@@ -231,7 +233,7 @@ def call_expr(call, wr, var="graph"):
     inner = call[len(name) + 1:-1] if call.endswith(")") else ""
     args = [a.strip() for a in inner.split(",") if a.strip() and a.strip() != "weight:"]
     if wr is not None:
-        if name == "resistanceDistance":
+        if name == "resistanceDistance" or "UInt128" in call:
             args.append("weight: { weights[$0] }")
         else:
             args.insert(0, "weight: { weights[$0] }")
@@ -344,6 +346,9 @@ def row_test(n):
         else:
             s = max(1.0, v)
             lines.append("        #expect(abs(value - %s) <= 1e-6 * %s)" % (num(v), num(s)))
+    elif name == "numberOfSpanningTrees" and "UInt128" in call:
+        lines.append("        let count = " + ce)
+        lines.append("        #expect(count == %s)" % ("nil" if v is None else v))
     elif name == "numberOfSpanningTrees":
         lines.append("        let count = " + ce)
         x = float(v)
@@ -488,7 +493,8 @@ WITHOUT = {
     126: ("graph", None, None, "        #expect(try graph.fiedlerVector()?.values.count == 2)"),
     183: ("call", None, None, "        #expect(try graph.resistanceDistance(from: 0, to: 2).map { abs($0 - 2) <= 1e-6 * 2 } == true)"),
     184: ("weights", "[Int]", "[1, 1]", "        #expect(try graph.resistanceDistance(from: 0, to: 2, weight: { weights[$0] }).map { abs($0 - 2) <= 1e-6 * 2 } == true)"),
-    210: ("call", None, None, "        #expect(graph.numberOfSpanningTrees(root: 0) == 1)"),
+    230: ("weights", "[Int]", "[1, 1]", "        #expect(graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] }) == 1)"),
+    236: ("call", None, None, "        #expect(graph.numberOfSpanningTrees(root: 0) == 1)"),
 }
 
 
@@ -597,6 +603,10 @@ FILES = [
     ("KemenyConstantTests.swift", "SpectralGraphTheory Kemeny constant", ids("Kemeny constant"),
      "Kemeny constant (catalog SGT-194 – SGT-204): Σ 1/μᵢ over N's nonzero eigenvalues, a loop counted\n"
      "// twice in the degree; nil when not connected, 0 for zero or one vertex."),
+    ("ExactSpanningTreeCountTests.swift", "SpectralGraphTheory exact spanning tree counts", ids("Exact spanning trees"),
+     "Exact spanning tree counts (catalog SGT-205 – SGT-229): `UInt128`, nil from 2¹²⁸ on (K₂₉, K₈,₃₂ at\n"
+     "// exactly 2¹²⁸, K₃,₇₄, weights multiplying to 2¹²⁸); exact past 2⁵³ and 2¹²³ (K₂₅, K₂₈, K₂,₁₂₂ just\n"
+     "// below 2¹²⁸, weights multiplying to 2¹²⁸ − 1, 2¹²⁴ and the primes' products); integer weights past\n// 2⁵³ counted exactly."),
     ("SpectralPreconditionTests.swift", "SpectralGraphTheory preconditions", TRAPS,
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test). The\n"
      "// same setup then runs in this process without the fault, so the trap is the fault's and not the\n"
@@ -604,7 +614,7 @@ FILES = [
 ]
 if PHASE2:
     FILES.append(("SpectralPhase2Tests.swift", "SpectralGraphTheory phase 2", list(range(PHASE2_FIRST, N + 1)),
-                  "Phase 2 (catalog SGT-205 – SGT-217): directed arborescence counts, the signless spectrum and\n"
+                  "Phase 2 (catalog SGT-231 – SGT-243): directed arborescence counts, the signless spectrum and\n"
                   "// spectral bisection. Written only with --phase2."))
 
 

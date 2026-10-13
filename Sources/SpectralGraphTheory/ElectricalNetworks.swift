@@ -14,6 +14,7 @@ extension Graph {
     /// (unweighted included) and the count is below 2¹⁰⁰, it is computed exactly instead (two
     /// determinants modulo 62-bit primes, combined by the Chinese remainder theorem) and rounded
     /// once, so a count below 2⁵³ is exact. O(n³) time (less on sparse graphs), n² `Double`s.
+    /// `numberOfSpanningTrees(as: UInt128.self)` returns the exact count.
     @inlinable
     public func numberOfSpanningTrees() -> Double {
         _spectralAdjacency(nil, numbering: nil).spanningTreeCount()
@@ -35,6 +36,8 @@ extension Graph {
     ///
     /// `weight` gives the weight of the edge at each position, read once per position; a weight of
     /// 0 is no edge.
+    ///
+    /// `numberOfSpanningTrees(as: UInt128.self, weight:)` returns the exact count.
     ///
     /// - Precondition: every weight is finite and nonnegative.
     @inlinable
@@ -63,6 +66,48 @@ extension Graph {
     @inlinable
     public func numberOfSpanningTrees<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W) -> Double {
         _spectralAdjacency(_spectralWeights(weight), numbering: nil).spanningTreeCount()
+    }
+
+    /// The number of spanning trees τ(G), exactly, or nil when it is 2¹²⁸ or more. Loops never lie
+    /// on a tree; parallel edges each count. 0 for the empty graph and for a disconnected one, 1
+    /// for one vertex.
+    ///
+    /// The determinant of the Laplacian with one vertex removed, modulo two or three 62-bit primes
+    /// and recombined by the Chinese remainder theorem; the `Double` elimination of
+    /// `numberOfSpanningTrees()` first settles whether the count fits and how many primes it
+    /// needs.
+    ///
+    /// - Parameter type: `UInt128.self`.
+    /// - Returns: τ(G), or nil when it does not fit in `UInt128`.
+    /// - Complexity: O(n³) time (less on sparse graphs), n² words.
+    @inlinable
+    public func numberOfSpanningTrees(as type: UInt128.Type) -> UInt128? {
+        _spectralAdjacency(nil, numbering: nil).exactSpanningTreeCount(edgeWeights: nil, edgeResidues: [])
+    }
+
+    /// The number of spanning trees τ(G), weighted and exactly: the sum over spanning trees of the
+    /// product of their weights, or nil when it is 2¹²⁸ or more. Loops never lie on a tree;
+    /// parallel edges each count. 0 for the empty graph and for a disconnected one, 1 for one
+    /// vertex.
+    ///
+    /// The determinant of the Laplacian with one vertex removed, modulo two or three 62-bit primes
+    /// and recombined by the Chinese remainder theorem; the `Double` elimination of
+    /// `numberOfSpanningTrees(weight:)` first settles whether the count fits and how many primes
+    /// it needs. Weights are reduced modulo each prime as integers, so a weight past 2⁵³ counts
+    /// exactly.
+    ///
+    /// - Parameters:
+    ///   - type: `UInt128.self`.
+    ///   - weight: The weight of the edge at each position, read once per position; a weight of 0
+    ///     is no edge.
+    /// - Returns: The weighted τ(G), or nil when it does not fit in `UInt128`.
+    /// - Complexity: O(n³) time (less on sparse graphs), n² words.
+    /// - Precondition: every weight is nonnegative, and every weighted degree is finite as a
+    ///   `Double`.
+    @inlinable
+    public func numberOfSpanningTrees<W: BinaryInteger>(as type: UInt128.Type, weight: (Edges.Index) -> W) -> UInt128? {
+        let (numbers, weights, residues) = _exactSpanningTreeWeights(weight)
+        return _spectralAdjacency(numbers, numbering: nil).exactSpanningTreeCount(edgeWeights: weights, edgeResidues: residues)
     }
 
     /// The resistance distance between `source` and `target` (Klein and Randić 1993): the effective

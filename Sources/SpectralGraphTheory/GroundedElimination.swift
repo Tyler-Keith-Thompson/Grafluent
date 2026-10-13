@@ -205,16 +205,42 @@ struct _Montgomery {
     }
 }
 
-/// The two primes of the exact count, 2⁶² − 57 and 2⁶² − 87: their product passes 2¹²³, so any
-/// count below 2¹⁰⁰ is recovered exactly.
-@usableFromInline let _countPrimes: (UInt64, UInt64) = (0x3FFF_FFFF_FFFF_FFC7, 0x3FFF_FFFF_FFFF_FFA9)
+/// The primes of the exact counts, 2⁶² − 57, 2⁶² − 87 and 2⁶² − 117: the product of the first two
+/// passes 2¹²³ and that of all three 2¹⁸⁵, so a count below either is recovered exactly from its
+/// residues.
+@usableFromInline let _countPrimes: (UInt64, UInt64, UInt64) = (0x3FFF_FFFF_FFFF_FFC7, 0x3FFF_FFFF_FFFF_FFA9, 0x3FFF_FFFF_FFFF_FF8B)
+
+/// a · b mod p, for p below 2⁶³.
+@inline(__always)
+func _multiply(_ a: UInt64, _ b: UInt64, modulo p: UInt64) -> UInt64 {
+    p.dividingFullWidth(a.multipliedFullWidth(by: b)).remainder
+}
+
+/// a⁻¹ mod a prime p, for a not a multiple of p: a^(p − 2) (Fermat).
+func _inverse(_ a: UInt64, modulo p: UInt64) -> UInt64 {
+    var inverse: UInt64 = 1, base = a % p, e = p - 2
+    while e > 0 {
+        if e & 1 == 1 { inverse = _multiply(inverse, base, modulo: p) }
+        base = _multiply(base, base, modulo: p)
+        e >>= 1
+    }
+    return inverse
+}
+
+/// The residue of a nonnegative integer modulo `p`, for p below 2⁶³.
+@inlinable
+func _residue<W: BinaryInteger>(_ w: W, modulo p: UInt64) -> UInt64 {
+    if let small = UInt64(exactly: w) { return small % p }
+    // w passes 2⁶⁴, so W holds p.
+    return UInt64(w % W(p))
+}
 
 extension _WeightedAdjacency {
-    /// det L_g mod `prime` by Gaussian elimination with row exchanges, for rows whose weights are
-    /// integers below 2⁵³ (exact in `Double`). Rows are skipped where the pivot column is 0, so a
-    /// sparse graph eliminated in a good order costs far less than n³.
+    /// det L_g mod `prime` by Gaussian elimination with row exchanges, slot k's weight taken as
+    /// `residue(k)`. Rows are skipped where the pivot column is 0, so a sparse graph eliminated in
+    /// a good order costs far less than n³.
     @usableFromInline
-    func groundedDeterminant(modulo prime: UInt64, ground: Int) -> UInt64 {
+    func groundedDeterminant(modulo prime: UInt64, ground: Int, residue: (Int) -> UInt64) -> UInt64 {
         let n = count
         let size = n - 1
         let field = _Montgomery(prime)
@@ -226,7 +252,7 @@ extension _WeightedAdjacency {
             for k in offsets[v] ..< offsets[v + 1] {
                 let u = Int(columns[k])
                 if u == v { continue }
-                let w = field.encode(UInt64(weight(k)))
+                let w = field.encode(residue(k))
                 diagonal = field.add(diagonal, w)
                 if u != ground {
                     let j = unknown(u)
@@ -274,26 +300,70 @@ extension _WeightedAdjacency {
         return negated && value != 0 ? prime - value : value
     }
 
-    /// The exact spanning-tree count from its residues modulo the two primes (Chinese remainder),
-    /// correctly rounded to `Double`; valid for counts below 2¹²³.
+    /// det L_g from its residues modulo the first two primes (valid below 2¹²³) or, with
+    /// `threePrimes`, all three (valid below 2¹⁸⁵), by Garner's mixed-radix reconstruction; nil
+    /// when it is 2¹²⁸ or more. `residue(k, i)` is slot k's weight modulo prime i.
+    func modularSpanningTreeCount(ground: Int, threePrimes: Bool, residue: (Int, Int) -> UInt64) -> UInt128? {
+        let (p1, p2, p3) = _countPrimes
+        let a1 = groundedDeterminant(modulo: p1, ground: ground, residue: { residue($0, 0) })
+        let a2 = groundedDeterminant(modulo: p2, ground: ground, residue: { residue($0, 1) })
+        // x12 = a1 + p1 t2 with t2 = (a2 − a1) p1⁻¹ mod p2: the count modulo p1 p2.
+        let difference = a2 >= a1 % p2 ? a2 - a1 % p2 : a2 + (p2 - a1 % p2)
+        let t2 = _multiply(difference, _inverse(p1, modulo: p2), modulo: p2)
+        let x12 = UInt128(p1) * UInt128(t2) + UInt128(a1)
+        guard threePrimes else { return x12 }
+        let a3 = groundedDeterminant(modulo: p3, ground: ground, residue: { residue($0, 2) })
+        // count = x12 + p1 p2 t3 with t3 = (a3 − x12) (p1 p2)⁻¹ mod p3.
+        let p12 = UInt128(p1) * UInt128(p2)
+        let r12 = UInt64(x12 % UInt128(p3))
+        let difference3 = a3 >= r12 ? a3 - r12 : a3 + (p3 - r12)
+        let t3 = UInt128(_multiply(difference3, _inverse(UInt64(p12 % UInt128(p3)), modulo: p3), modulo: p3))
+        guard t3 <= (UInt128.max - x12) / p12 else { return nil }
+        return x12 + p12 * t3
+    }
+
+    /// The exact spanning-tree count from its residues modulo two primes, correctly rounded to
+    /// `Double`, for rows whose weights are integers below 2⁵³ (exact in `Double`); valid for
+    /// counts below 2¹²³.
     @usableFromInline
     func exactSpanningTreeCount(ground: Int) -> Double {
-        let (p1, p2) = _countPrimes
-        let a1 = groundedDeterminant(modulo: p1, ground: ground)
-        let a2 = groundedDeterminant(modulo: p2, ground: ground)
-        // τ = a1 + p1 t with t = (a2 − a1) p1⁻¹ mod p2.
-        func multiply(_ a: UInt64, _ b: UInt64) -> UInt64 { p2.dividingFullWidth(a.multipliedFullWidth(by: b)).remainder }
-        var inverse: UInt64 = 1, base = p1 % p2, e = p2 - 2
-        while e > 0 {
-            if e & 1 == 1 { inverse = multiply(inverse, base) }
-            base = multiply(base, base)
-            e >>= 1
+        Double(modularSpanningTreeCount(ground: ground, threePrimes: false, residue: { k, _ in UInt64(weight(k)) })!)
+    }
+
+    /// The exact spanning-tree count, weighted, or nil when it is 2¹²⁸ or more. Without
+    /// `edgeWeights` the rows are unweighted; with them, slot k's value is its edge's number plus
+    /// one, `edgeWeights[e]` is edge e's weight as a `Double` and `edgeResidues[3 e + i]` its
+    /// residue modulo prime i. The GTH estimate (relative error about n · 10⁻¹⁶) settles a count
+    /// past 2¹²⁹ and picks two primes below 2¹²¹, three above.
+    @usableFromInline
+    func exactSpanningTreeCount(edgeWeights: [Double]?, edgeResidues: [UInt64]) -> UInt128? {
+        let n = count
+        guard n > 0 else { return 0 }
+        guard n > 1 else { return 1 }
+        let rows: _WeightedAdjacency
+        if let edgeWeights {
+            let numbers = values!
+            var bound = 0.0
+            var weights = [Double](repeating: 0, count: numbers.count)
+            for v in 0 ..< n {
+                var sum = 0.0
+                for k in offsets[v] ..< offsets[v + 1] {
+                    weights[k] = edgeWeights[Int(numbers[k]) - 1]
+                    sum += weights[k]
+                }
+                bound = max(bound, sum)
+            }
+            rows = _WeightedAdjacency(offsets: offsets, columns: columns, values: weights, gershgorinBound: bound, hasNegativeEntry: false, hasLoop: hasLoop)
+        } else {
+            rows = self
         }
-        let difference = a2 >= a1 % p2 ? a2 - a1 % p2 : a2 + (p2 - a1 % p2)
-        let t = multiply(difference, inverse)
-        let product = p1.multipliedFullWidth(by: t)
-        let (low, carry) = product.low.addingReportingOverflow(a1)
-        let high = product.high + (carry ? 1 : 0)
-        return Double(UInt128(high) << 64 | UInt128(low))
+        guard rows.components().count == 1 else { return 0 }
+        let ground = rows.heaviestVertex()
+        let exponent = _GroundedElimination(rows, ground: ground).determinant.exponent
+        if exponent >= 129 { return nil }
+        if let numbers = values {
+            return modularSpanningTreeCount(ground: ground, threePrimes: exponent > 120) { k, i in edgeResidues[3 * (Int(numbers[k]) - 1) + i] }
+        }
+        return modularSpanningTreeCount(ground: ground, threePrimes: exponent > 120) { _, _ in 1 }
     }
 }

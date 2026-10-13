@@ -205,6 +205,8 @@ enum FuzzSpectral {
                 }
                 exact = singular ? 0 : sign * l[size - 1][size - 1]
             }
+            let exactCount = graph.numberOfSpanningTrees(as: UInt128.self, weight: { Int(weights[$0]) })
+            check(exactCount == UInt128(exact), "exact τ \(String(describing: exactCount)) against Bareiss \(exact)")
             if exact < Int128(1) << 53 {
                 check(count == Double(exact), "τ \(count) against Bareiss \(exact)")
             } else {
