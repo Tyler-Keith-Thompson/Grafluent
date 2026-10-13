@@ -169,7 +169,7 @@ public func linearSumAssignment<W: SignedNumeric & Comparable>(rowCount: Int, co
         for i in 0 ..< nr {
             for j in 0 ..< nc {
                 guard let x = transposed ? cost(j, i) : cost(i, j) else { continue }
-                precondition(x == x, "A cost is NaN")
+                precondition(x - x == .zero, "A cost is NaN or infinite")
                 values[i * nc + j] = maximize ? -x : x
                 allowed[i * nc + j] = true
             }
@@ -282,7 +282,7 @@ func _fullMatching<W: SignedNumeric & Comparable>(_ structure: _MatchingGraph, r
 extension Graph {
     @inlinable
     func _minimumWeightFullMatching<W: SignedNumeric & Comparable>(left: [Int], right: [Int], structure: _MatchingGraph, weight: (Edges.Index) -> W) -> Matching<Self, W>? {
-        let weights = _matchingWeights(structure, weight, { $0 == $0 }, "A weight is NaN")
+        let weights = _matchingWeights(structure, weight, { $0 - $0 == .zero }, "A weight is NaN or infinite")
         // A tall matrix is solved transposed.
         let mateEdge = left.count <= right.count
             ? _fullMatching(structure, rowSide: left, columnSide: right, weights: weights)

@@ -4,10 +4,11 @@
 // preconditions the catalog does not list: `mate(of:)` on a non-vertex, `mate(ofIndex:)` out of
 // range, `mate(ofProposer:)` and `mate(ofReviewer:)` out of range, a reviewer list naming a proposer
 // out of range or one twice, a position outside `edges` given to the other two checks, a NaN weight
-// to `minimumWeightMatching`, a negative column count, a NaN cost under `maximize`. Then, in
-// process, the `checked:` spellings of the four lookups, which throw instead and keep nil for a free
-// vertex or an unmatched agent. Each exit test builds its inputs inside the closure. Generated from
-// cases.md by swiftgen.py, the tests after MA-238 written by hand; see README.md.
+// to `minimumWeightMatching`, a negative column count, a NaN cost under `maximize`, an infinite
+// cost, an infinite weight in a full matching. Then, in process, the `checked:` spellings of the
+// four lookups, which throw instead and keep nil for a free vertex or an unmatched agent. Each exit
+// test builds its inputs inside the closure. Generated from cases.md by swiftgen.py, the tests after
+// MA-238 written by hand; see README.md.
 
 import AdjacencyListModule
 import BipartiteGraphs
@@ -210,6 +211,21 @@ struct MatchingPreconditionTests {
     func nanCostMaximize() async {
         await #expect(processExitsWith: .failure) {
             _ = linearSumAssignment(rowCount: 2, columnCount: 2, maximize: true) { (i: Int, j: Int) -> Double? in i == 1 && j == 0 ? .nan : 1 }
+        }
+    }
+
+    @Test("linearSumAssignment with an infinite cost traps")
+    func infiniteCost() async {
+        await #expect(processExitsWith: .failure) {
+            _ = linearSumAssignment(rowCount: 1, columnCount: 1) { (_: Int, _: Int) -> Double? in .infinity }
+        }
+    }
+
+    @Test("minimumWeightFullMatching with an infinite weight traps")
+    func fullMatchingInfiniteWeight() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = BipartiteGraph<Int>(left: [0], right: [1], edges: [UndirectedEdge(0, 1)])!
+            _ = graph.minimumWeightFullMatching(weight: { _ in -Double.infinity })
         }
     }
 
