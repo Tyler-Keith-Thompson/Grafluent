@@ -38,10 +38,8 @@ extension Hypergraph {
     public func neighbors(of vertex: Vertex) -> [Vertex] {
         _ = _indexBounds()
         let v = vertexIndex(of: vertex)
-        let hyperedges = self.hyperedges
         var found: [Int] = []
-        for h in incidentHyperedgeIndices(ofIndex: v) {
-            let position = hyperedges.index(hyperedges.startIndex, offsetBy: h)
+        for position in incidentHyperedges(ofIndex: v) {
             for w in memberIndices(ofHyperedgeAt: position) where w != v { found.append(w) }
         }
         found.sort()

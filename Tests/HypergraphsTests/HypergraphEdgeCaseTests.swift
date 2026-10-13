@@ -268,6 +268,50 @@ struct HypergraphEdgeCaseTests {
         #expect(arcs.contains(sources: ["e", "d"], targets: ["d", "c"]))
     }
 
+    @Test("neighbors(of:) on a conformer whose hyperedges are forward-only steps through them at most once per member read")
+    func neighborsOverForwardOnlyHyperedges() {
+        final class Steps { var count = 0 }
+        struct Forward: Collection {
+            let rows: [[String]]
+            let steps: Steps
+            var startIndex: Int { 0 }
+            var endIndex: Int { rows.count }
+            subscript(position: Int) -> [String] { rows[position] }
+            func index(after i: Int) -> Int {
+                steps.count += 1
+                return i + 1
+            }
+        }
+        struct Rows: Hypergraph {
+            let names: [String]
+            let hyperedges: Forward
+            let incidence: [String: [Int]]
+            var vertices: [String] { names }
+            func incidentHyperedges(of vertex: String) -> [Int] { incidence[vertex] ?? [] }
+            var vertexIndexBound: Int? { names.count }
+            func vertexIndex(of vertex: String) -> Int { names.firstIndex(of: vertex)! }
+            func vertex(atIndex index: Int) -> String { names[index] }
+            var hyperedgeIndexBound: Int? { hyperedges.rows.count }
+            func hyperedgeIndex(of position: Int) -> Int { position }
+        }
+        // 300 hyperedges {x, y}, then three at "a": the last ones sit 300 steps from the start.
+        var rows = Array(repeating: ["x", "y"], count: 300)
+        rows += [["a", "b"], ["a", "c", "d"], ["b", "a"]]
+        var incidence: [String: [Int]] = [:]
+        for (p, row) in rows.enumerated() {
+            for v in row { incidence[v, default: []].append(p) }
+        }
+        let steps = Steps()
+        let hypergraph = Rows(names: ["a", "b", "c", "d", "x", "y"], hyperedges: Forward(rows: rows, steps: steps), incidence: incidence)
+        steps.count = 0
+        #expect(hypergraph.neighbors(of: "a") == ["b", "c", "d"])
+        // K = 2 + 3 + 2 members at "a"; reaching each hyperedge by offset would take over 900 steps.
+        #expect(steps.count <= 7)
+        steps.count = 0
+        #expect(hypergraph.neighbors(of: "x") == ["y"])
+        #expect(steps.count <= 600)
+    }
+
     // MARK: - Clique expansions
 
     @Test("The clique expansions' vertex and edge tables: every vertex's index, edge membership, predecessors")
