@@ -133,8 +133,14 @@ TEST_TARGETS = [
 ]
 
 # Bazel test sizes above the default "small" (60 s timeout), for suites whose solo run takes more
-# than about 15 s and so can pass 60 s when other builds load the machine. "medium" is 300 s.
-TEST_SIZES = {name: "medium" for name in ["ColoringModuleTests", "DistancesTests", "ShortestPathsTests", "TreesTests", "TreeAlgorithmsTests", "PriorityQueueTests", "IsomorphismTests", "SpectralGraphTheoryTests", "GraphFormatsTests"]}
+# than about 15 s on a laptop or 30 s on a four-core CI runner, and so can pass 60 s when other
+# tests load the machine. "medium" is 300 s.
+TEST_SIZES = {name: "medium" for name in [
+    "ColoringModuleTests", "DistancesTests", "ShortestPathsTests", "TreesTests", "TreeAlgorithmsTests", "PriorityQueueTests",
+    "IsomorphismTests", "SpectralGraphTheoryTests", "GraphFormatsTests", "ConnectivityTests", "StableGraphsTests",
+    "AdjacencyMatrixTests", "AdjacencyListTests", "PlanarityTests", "RandomGraphsTests", "TraversalTests",
+    "DirectedAcyclicGraphTests", "SpanningTreesTests", "MultigraphsTests",
+]}
 
 # Test targets whose speed-reliant tests live in Performance/ under the target's directory: tests
 # that pass only if the code is fast enough, because they bound their own wall-clock time
