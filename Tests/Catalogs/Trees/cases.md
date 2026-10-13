@@ -259,9 +259,12 @@ vertex order).
 | TS-512 | `U: 0-1, 0-2, 1-3, 1-4, 2-5, 4-6` | `Tree : prufer` | `[1,2,0,1,4]` | |
 | TS-513 | `prufer: [1,0,0,4,2]` | `Tree : prufer` | `[1,0,0,4,2]` | Round trip: decode then encode |
 | TS-514 | `U: a-b, b-c, b-d` | `Tree : prufer` | `[b,b]` | Generic vertices: index order (`vertices` order) ranks the leaves |
-| TS-515 | `U: [3,0,1,2] 0-1, 1-2, 2-3` | `Tree : prufer` | `[2,1]` | `Int` vertices listed out of order: index order, not value order, ranks the leaves (by value it would be `[1,2]`); this is NetworkX's code of the tree relabeled by index |
+| TS-515 | `U: [3,0,1,2] 0-1, 1-2, 2-3` | `Tree : prufer` | `[1,2]` | `Int` vertices exactly `0..<n`, listed out of order: ranked by value, the standard code (NetworkX `[1, 2]`), which `Tree(pruferSequence:)` decodes back to an equal tree |
 | TS-516 | `prufer: [6,2,6,0,3]` | `Tree : prufer` | `[6,2,6,0,3]` | igraph `igraph_from_prufer.c` |
 | TS-517 | `prufer: [2,4,5,1,1,4]` | `Tree : edges` | `[0-2,2-4,3-5,5-1,6-1,1-4,4-7]` | |
+| TS-518 | `U: [4,1,2,3] 1-2, 2-3, 3-4` | `Tree : prufer` | `[3,2]` | `Int` vertices that are not `0..<n` (here `1...4`): ranked by index, the code of the tree relabeled by index; by value it would be `[2,3]` |
+| TS-519 | `U: [4,3,2,1,0] 0-1, 0-2, 0-3, 3-4` | `Tree : prufer` | `[0,0,3]` | `0..<5` listed backward: ranked by value (by index it would be `[3,0,0]`) |
+| TS-520 | `U: [1,0] 0-1` | `Tree : prufer` | `[]` | Two vertices out of order: the empty code |
 
 ## I. Graph rows
 

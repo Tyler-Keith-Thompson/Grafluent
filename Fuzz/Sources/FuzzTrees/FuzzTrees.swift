@@ -2,7 +2,8 @@
 // self-loops: Tree, Forest and Arborescence exist exactly when the definitions hold (and agree with
 // isTree and isArborescence); for every root of a tree, parent, depth, children, preorder,
 // postorder, descendants, ancestors and isAncestor agree with a breadth-first search, and every
-// path with the unique one; the Prüfer sequence decodes back to the same tree; the parent function
+// path with the unique one; the Prüfer sequence decodes back to the same tree and does not depend on
+// the order 0..<n is listed in; the parent function
 // rebuilds it; a forest's trees are its components by least vertex; the Graph laws hold. Every
 // `checked:` spelling returns its plain spelling's value at a vertex (also over `String` vertices,
 // which take the linear search or the hash table) and throws `VertexNotFound` off the tree, or
@@ -283,6 +284,11 @@ enum FuzzTrees {
             for root in 0 ..< n { checkRooted(RootedTree(tree, root: root), n, edges, root) }
             if let code = tree.pruferSequence {
                 check(Tree(pruferSequence: code) == tree, "Prüfer \(code) decodes to another tree")
+                // 0..<n listed backward is ranked by value: the same code. The names rank by index,
+                // so their code is the same one written with names.
+                let backward = Tree(vertices: (0 ..< n).reversed(), edges: undirected)!
+                check(backward.pruferSequence == code, "Prüfer of 0..<n listed backward \(backward.pruferSequence ?? []), in order \(code)")
+                check(named.pruferSequence == code.map { names[$0] }, "named Prüfer \(named.pruferSequence ?? [])")
             } else {
                 check(n == 1, "no Prüfer sequence for \(n) vertices")
             }

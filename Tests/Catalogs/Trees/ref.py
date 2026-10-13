@@ -393,11 +393,24 @@ def tree_from_prufer(seq):
     return T("Tree", list(range(n)), edges)
 
 
+def prufer_ranks(t):
+    """Each vertex index's rank: its value when the vertices are the ints 0..<n in any order,
+    its index otherwise."""
+    if all(type(v) is int for v in t.verts) and sorted(t.verts) == list(range(t.n)):
+        return list(t.verts)
+    return list(range(t.n))
+
+
 def prufer_of(t):
+    """The least-ranked leaf removed n - 2 times, run in rank space."""
     if t.n < 2:
         return None
-    deg = [len(r) for r in t.rows]
-    nb = lambda v: [t.other(k, v) for k in t.rows[v]]
+    rank = prufer_ranks(t)
+    unrank = {r: i for i, r in enumerate(rank)}
+    deg = [0] * t.n
+    for v in range(t.n):
+        deg[rank[v]] = len(t.rows[v])
+    nb = lambda r: [rank[t.other(k, unrank[r])] for k in t.rows[unrank[r]]]
     removed = [False] * t.n
     out = []
     ptr = 0
@@ -416,7 +429,7 @@ def prufer_of(t):
             while deg[ptr] != 1 or removed[ptr]:
                 ptr += 1
             leaf = ptr
-    return [t.verts[i] for i in out]
+    return [t.verts[unrank[r]] for r in out]
 
 
 def build(source, steps):
@@ -929,13 +942,20 @@ def cross_check_built(cid, t):
                         check(p is None, f"{cid}: tpath nil {a} {b}")
         if t.kind == "Tree" and t.n >= 2:
             relabeled = nx_simple(t)
-            check(nx.to_prufer_sequence(relabeled) == [t.idx[v] for v in prufer_of(t)], f"{cid}: to_prufer")
+            rank = prufer_ranks(t)
+            check(nx.to_prufer_sequence(nx.relabel_nodes(relabeled, dict(enumerate(rank)))) == [rank[t.idx[v]] for v in prufer_of(t)],
+                  f"{cid}: to_prufer")
+            if rank == t.verts:
+                # Ranked by value, the code decodes back to the same vertex and edge sets.
+                back = tree_from_prufer(prufer_of(t))
+                check(sorted(map(sorted, back.edges)) == sorted(sorted((t.verts[a], t.verts[b])) for a, b in t.edges),
+                      f"{cid}: prufer round trip")
             # naive encode
             alive = set(range(t.n))
             adj = {v: set(t.other(k, v) for k in t.rows[v]) for v in range(t.n)}
             seq = []
             for _ in range(t.n - 2):
-                leaf = min(v for v in alive if len(adj[v] & alive) == 1)
+                leaf = min((v for v in alive if len(adj[v] & alive) == 1), key=lambda v: rank[v])
                 (x,) = adj[leaf] & alive
                 seq.append(x)
                 alive.remove(leaf)

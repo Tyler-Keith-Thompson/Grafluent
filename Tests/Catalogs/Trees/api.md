@@ -51,8 +51,9 @@ extension DirectedGraph {
     /// The unique path, with the edges it takes. O(length). Precondition: both are vertices.
     public func path(from source: Vertex, to target: Vertex) -> Path<Vertex, Int>
 
-    /// Prüfer code: remove the leaf with the least vertex index, record its neighbour, n − 2
-    /// times. nil when there are fewer than 2 vertices. O(n).
+    /// Prüfer code: remove the least-ranked leaf, record its neighbour, n − 2 times. The rank is
+    /// the value for `Int` vertices exactly 0..<n (any order), the vertex index otherwise. nil when
+    /// there are fewer than 2 vertices. O(n).
     public var pruferSequence: [Vertex]? { get }
     // Graph: vertices, edges (RandomAccessCollection, Int positions 0..<n−1), neighbors(of:),
     // incidentEdges(of:), vertex indices 0..<n, edge indices 0..<n−1, the index-space rows.
@@ -60,7 +61,8 @@ extension DirectedGraph {
     // vertexIndex(checked:), path(checkedFrom:to:) throw VertexNotFound (§L).
 }
 extension Tree where Vertex == Int {
-    /// The tree on 0..<count+2 with this code; nil when an element is outside that range.
+    /// The tree on 0..<count+2 with this code; nil when an element is outside that range. Inverts
+    /// `pruferSequence` for trees on the Ints 0..<n.
     public init?(pruferSequence: some Sequence<Int>)
 }
 
@@ -214,11 +216,14 @@ O(size of tree i), so a forest of 10⁶ isolated vertices costs nothing until re
 
 ### Prüfer codes
 
-By **vertex index** (`vertices` order): for `Int` vertices `0..<n` listed in value order this is
-the standard code; listed out of order, it is the code of the tree relabeled by index (TS-515:
-`[2,1]`, where ranking by value would give `[1,2]`). nil for fewer than 2 vertices (TS-504); the
-empty code decodes to K₂ (TS-502). Decoding rejects elements outside `0..<count+2` (TS-506,
-TS-507).
+The least-ranked leaf goes first. When `Vertex` is `Int` and the vertices are exactly `0..<n`, in
+any order, a vertex's rank is its **value**: the code is the standard one, and
+`Tree(pruferSequence:)` decodes it back to an equal tree (TS-515: `[1,2]` for vertices listed
+`[3,0,1,2]`; TS-519, TS-520). Otherwise the rank is the **vertex index** (`vertices` order), giving
+the code of the tree relabeled by index (TS-514 for `String`s; TS-518 for `Int`s `1...4`, `[3,2]`
+where ranking by value would give `[2,3]`). Detecting `0..<n` is one O(n) pass. nil for fewer than
+2 vertices (TS-504); the empty code decodes to K₂ (TS-502). Decoding rejects elements outside
+`0..<count+2` (TS-506, TS-507).
 
 ### Equality, hashing, coding
 

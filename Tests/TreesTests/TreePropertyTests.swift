@@ -240,7 +240,7 @@ struct TreePropertyTests {
         }
     }
 
-    @Test("Prüfer: decoding then encoding is the identity; decoding agrees with the textbook least-leaf loop; codes of random trees decode back")
+    @Test("Prüfer: decoding then encoding is the identity; decoding and value-ranked encoding agree with the textbook least-leaf loop; codes of relabeled trees decode back")
     func prufer() async {
         let codes = Gen.int(in: 0 ... 1_000).array(of: 0 ... 8)
         await propertyCheck(count: 300, input: codes, Gen.int(in: 0 ... 1_000_000)) { raw, seed in
@@ -269,12 +269,32 @@ struct TreePropertyTests {
             // Out of range elements are rejected.
             #expect(Tree(pruferSequence: code + [n + 1]) == nil)
             #expect(Tree(pruferSequence: [-1] + code) == nil)
-            // List the vertices in a random order, vertex i written perm[i]: ranked by index, the code
-            // is the original mapped through perm, whatever the values' order (TS-515's rule).
+            // List the vertices in a random order, vertex i written perm[i] + n: those are not 0..<n,
+            // so the rank is the index, and the code is the original mapped through perm (TS-518).
             var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
             let perm = Array(0 ..< n).shuffled(using: &rng)
+            let shifted = Tree(vertices: perm.map { $0 + n }, edges: Array(tree.edges).map { UndirectedEdge(perm[$0.u] + n, perm[$0.v] + n) })
+            #expect(shifted?.pruferSequence == code.map { perm[$0] + n })
+            // Written perm[i] itself, the vertices are 0..<n out of order: the rank is the value, so
+            // the code is the relabeled tree's standard code and decodes back to it (TS-515).
             let relabeled = Tree(vertices: perm, edges: Array(tree.edges).map { UndirectedEdge(perm[$0.u], perm[$0.v]) })
-            #expect(relabeled?.pruferSequence == code.map { perm[$0] })
+            let relabeledCode = relabeled?.pruferSequence
+            #expect(relabeledCode.flatMap { Tree(pruferSequence: $0) } == relabeled)
+            // The standard code by the textbook loop on the relabeled edges.
+            var adjacency = [Set<Int>](repeating: [], count: n)
+            for e in Array(tree.edges) {
+                adjacency[perm[e.u]].insert(perm[e.v])
+                adjacency[perm[e.v]].insert(perm[e.u])
+            }
+            var standard: [Int] = []
+            for _ in 0 ..< n - 2 {
+                let leaf = (0 ..< n).first { adjacency[$0].count == 1 }!
+                let neighbor = adjacency[leaf].first!
+                standard.append(neighbor)
+                adjacency[leaf] = []
+                adjacency[neighbor].remove(leaf)
+            }
+            #expect(relabeledCode == standard, "\(code) through \(perm)")
         }
     }
 

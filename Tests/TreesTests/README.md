@@ -24,7 +24,7 @@ struct Tree<Vertex: Hashable>: Graph
     init?(edges:), init?(vertices:edges:)                            // listed vertices (repeats dropped), then endpoints
     init(_ tree: RootedTree<Vertex>)
     func path(from:to:) -> Path<Vertex, Int>                         // traps on a non-vertex
-    var pruferSequence: [Vertex]?                                    // by vertex index; nil for n < 2
+    var pruferSequence: [Vertex]?                                    // by value on Int 0..<n, else by index; nil for n < 2
 extension Tree where Vertex == Int { init?(pruferSequence: some Sequence<Int>) }
 
 struct RootedTree<Vertex: Hashable>: Graph
@@ -77,7 +77,7 @@ struct Forest<Vertex: Hashable>: Graph
 | `isAncestor` | Strict | TS-215 |
 | Paths | Up to the meeting vertex then down, with positions; independent of the root; on an `Arborescence` only downward; on a `Forest` nil across trees | §F |
 | Forest | `trees` by least vertex in `vertices` order; each tree's vertices and edges in the forest's order, edges renumbered from 0 | §G |
-| Prüfer | Least leaf by vertex index (not value); nil for n < 2; decoding rejects elements outside `0..<count+2` | §H |
+| Prüfer | Least leaf by value when the vertices are the `Int`s `0..<n` in any order, by vertex index otherwise; nil for n < 2; decoding rejects elements outside `0..<count+2` | §H |
 | Equality | Vertex set and edge set; undirected orientation ignored; `RootedTree` adds the root; `Arborescence` compares ordered arcs | §J |
 
 ## How values are pinned
@@ -107,7 +107,7 @@ property tests write their oracles inside each test.
 | `RootedQueryTests.swift` | 48 | §E: every rooted query on E1, E2, K₁, stars, paths and kary(15,2), rerooting, String vertices, the arborescence's queries; index-space queries; the queries' mutual consistency at every root |
 | `TreePathTests.swift` | 16 | §F: paths on `Tree`, `RootedTree`, `Arborescence` and `Forest`; every pair of E1 against breadth-first distances |
 | `ForestTests.swift` | 14 | §G: `trees` by least vertex, renumbered edges, listed order, isolated vertices, the empty forest, `Forest(tree)`, `component(of:)`, rejections; the trees partition the forest |
-| `PruferTests.swift` | 20 | §H: known codes and round trips, paths, stars, n < 2, out-of-range elements, index order over value order; all 125 codes of length 3 (Cayley), any `Sequence<Int>` |
+| `PruferTests.swift` | 24 | §H: known codes and round trips, paths, stars, n < 2, out-of-range elements, value order on `Int` `0..<n` in any order, index order otherwise; all 125 codes of length 3 (Cayley), any `Sequence<Int>` |
 | `TreeGraphRowTests.swift` | 16 | §I: rows, degrees, in- and out-edges; the `Graph` laws for `Tree`, `RootedTree` (at every root) and `Forest`, and the `DirectedGraph` / `BidirectionalDirectedGraph` laws for `Arborescence` |
 | `TreeEqualityTests.swift` | 10 | §J: order and orientation ignored, the root, ordered arcs, isolated vertices; sets, hashes, conversions |
 | `TreeIndexHookTests.swift` | 4 | The index-space hooks (`degree(ofIndex:)`, `endpointIndices(ofEdgeAt:)`, `outDegree(ofIndex:)`, `inDegree(ofIndex:)`, `sourceIndex(ofEdgeAt:)`, `targetIndex(ofEdgeAt:)`) against the vertex-space members |
@@ -141,7 +141,7 @@ not list.
 | TS-300 – TS-314 | F. Paths | `TreePathTests.swift` |
 | TS-315 | F. Path to a non-vertex | `TreePreconditionTests.swift` |
 | TS-400 – TS-412 | G. Forest | `ForestTests.swift` |
-| TS-500 – TS-517 | H. Prüfer codes | `PruferTests.swift` |
+| TS-500 – TS-520 | H. Prüfer codes | `PruferTests.swift` |
 | TS-600 – TS-611 | I. Graph rows | `TreeGraphRowTests.swift` |
 | TS-700 – TS-707 | J. Equality | `TreeEqualityTests.swift` |
 | TS-800 – TS-813 | K. Scale | `Performance/TreeStressTests.swift` |

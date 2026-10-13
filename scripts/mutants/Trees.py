@@ -66,6 +66,12 @@ MUTANTS = [
     Mutant("pruferdecode", "Prufer.swift", "v < pointer", "true"),
     Mutant("prufermin", "Prufer.swift", "n >= 2", "n >= 3"),
     Mutant("pruferrange", "Prufer.swift", "x < n", "true"),
+    Mutant("pruferbyindex", "Prufer.swift", "Self._rangeValues(layout.vertices)", "nil"),
+    Mutant("pruferrangecheck", "Prufer.swift", "UInt(bitPattern: x) >= count", "false"),
+    Mutant("pruferrangeint", "Prufer.swift", "        guard Vertex.self == Int.self else { return nil }", "", mode="stmt"),
+    Mutant("pruferrankdegree", "Prufer.swift", "degree[x] = layout.rowOffsets[v + 1] - layout.rowOffsets[v]", "degree[v] = layout.rowOffsets[v + 1] - layout.rowOffsets[v]"),
+    Mutant("pruferrankxor", "Prufer.swift", "xor[x] ^= values[layout.rowNeighbors[k]]", "xor[x] ^= layout.rowNeighbors[k]"),
+    Mutant("pruferranknames", "Prufer.swift", "unsafeBitCast(ContiguousArray(0 ..< n), to: ContiguousArray<Vertex>.self)", "layout.vertices"),
 
     # Input
     Mutant("orient", "TreeLayout.swift", "edge.u != vertices[ends[2 * e]]", "false"),

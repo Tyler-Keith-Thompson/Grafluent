@@ -1,6 +1,6 @@
-// §H: Prüfer codes. `Tree.pruferSequence` removes the leaf with the least vertex index (the
-// `vertices` order, not the value) n − 2 times, recording its neighbour; nil for fewer than 2
-// vertices. `Tree<Int>(pruferSequence:)` builds the tree on 0..<count+2: edge k joins the k-th
+// §H: Prüfer codes. `Tree.pruferSequence` removes the least-ranked leaf n − 2 times, recording its
+// neighbour; nil for fewer than 2 vertices. The rank is the value when the vertices are the `Int`s
+// 0..<n in any order, and the vertex index (the `vertices` order) otherwise. `Tree<Int>(pruferSequence:)` builds the tree on 0..<count+2: edge k joins the k-th
 // removed leaf to the k-th code element, the last edge the two remaining vertices; nil when an
 // element is outside that range. Decoded edges are compared as undirected edges (orientation is not
 // part of an edge's value). Expected values come from the catalog's reference (`ref.py`,
@@ -133,14 +133,17 @@ struct PruferTests {
         #expect(tree.pruferSequence == ["b", "b"])
     }
 
-    @Test("TS-515 Tree(g).pruferSequence is [2, 1]: Int vertices out of order are ranked by index, not value")
-    func indexOrderNotValueOrder() throws {
-        // U: [3,0,1,2] 0-1, 1-2, 2-3. By value it would be [1, 2].
+    @Test("TS-515 Tree(g).pruferSequence is [1, 2]: Int vertices 0..<n out of order are ranked by value, and the code decodes back")
+    func valueOrderOnRange() throws {
+        // U: [3,0,1,2] 0-1, 1-2, 2-3. By index it would be [2, 1].
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: [3, 0, 1, 2], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let tree = try #require(Tree(graph))
         #expect(Array(tree.vertices) == [3, 0, 1, 2])
-        #expect(tree.pruferSequence == [2, 1])
+        #expect(tree.pruferSequence == [1, 2])
+        let decoded = try #require(Tree(pruferSequence: [1, 2]))
+        #expect(decoded == tree)
+        #expect(Array(decoded.vertices) == [0, 1, 2, 3])
     }
 
     @Test("TS-516 Tree(pruferSequence: [6, 2, 6, 0, 3]).pruferSequence round-trips: igraph from_prufer")
@@ -157,6 +160,56 @@ struct PruferTests {
         let tree = try #require(Tree(pruferSequence: [2, 4, 5, 1, 1, 4]))
         let expected: [(Int, Int)] = [(0, 2), (2, 4), (3, 5), (5, 1), (6, 1), (1, 4), (4, 7)]
         #expect(Array(tree.edges) == expected.map { UndirectedEdge($0.0, $0.1) })
+    }
+
+    @Test("TS-518 Tree(g).pruferSequence is [3, 2]: Int vertices that are not 0..<n are ranked by index")
+    func indexOrderOffRange() throws {
+        // U: [4,1,2,3] 1-2, 2-3, 3-4. By value it would be [2, 3].
+        let pairs: [(Int, Int)] = [(1, 2), (2, 3), (3, 4)]
+        let graph = ReferencePseudograph(vertices: [4, 1, 2, 3], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+        let tree = try #require(Tree(graph))
+        #expect(Array(tree.vertices) == [4, 1, 2, 3])
+        #expect(tree.pruferSequence == [3, 2])
+        // A negative vertex is outside 0..<n too.
+        let shifted: [(Int, Int)] = [(-1, 0), (0, 1), (1, 2)]
+        let negative = try #require(Tree(ReferencePseudograph(vertices: [2, -1, 0, 1], edges: shifted.map { UndirectedEdge($0.0, $0.1) })))
+        #expect(negative.pruferSequence == [1, 0])
+    }
+
+    @Test("TS-519 Tree(g).pruferSequence is [0, 0, 3]: 0..<5 listed backward is ranked by value, not index ([3, 0, 0])")
+    func valueOrderBackward() throws {
+        // U: [4,3,2,1,0] 0-1, 0-2, 0-3, 3-4
+        let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (3, 4)]
+        let graph = ReferencePseudograph(vertices: [4, 3, 2, 1, 0], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+        let tree = try #require(Tree(graph))
+        #expect(Array(tree.vertices) == [4, 3, 2, 1, 0])
+        #expect(tree.pruferSequence == [0, 0, 3])
+        #expect(Tree(pruferSequence: [0, 0, 3]) == tree)
+    }
+
+    @Test("TS-520 Tree(g).pruferSequence is []: two Int vertices out of order")
+    func twoOutOfOrder() throws {
+        // U: [1,0] 0-1
+        let graph = ReferencePseudograph(vertices: [1, 0], edges: [UndirectedEdge(0, 1)])
+        let tree = try #require(Tree(graph))
+        #expect(tree.pruferSequence == [])
+        #expect(Tree(pruferSequence: []) == tree)
+    }
+
+    @Test("The rule holds in generic code: a Tree<Int> seen as a Tree<V> ranks by value, a Tree<String> or Tree<UInt> by index")
+    func genericContext() throws {
+        func code<V: Hashable>(_ tree: Tree<V>) -> [V]? { tree.pruferSequence }
+        let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (3, 4)]
+        let tree = try #require(Tree(ReferencePseudograph(vertices: [4, 3, 2, 1, 0], edges: pairs.map { UndirectedEdge($0.0, $0.1) })))
+        #expect(code(tree) == [0, 0, 3])
+        let named: [(String, String)] = [("0", "1"), ("0", "2"), ("0", "3"), ("3", "4")]
+        let strings = try #require(Tree(ReferencePseudograph(vertices: ["4", "3", "2", "1", "0"], edges: named.map { UndirectedEdge($0.0, $0.1) })))
+        #expect(code(strings) == ["3", "0", "0"])
+        // Only Int ranks by value: UInt vertices 0..<5 rank by index.
+        let unsigned: [(UInt, UInt)] = [(0, 1), (0, 2), (0, 3), (3, 4)]
+        let uints = try #require(Tree(ReferencePseudograph(vertices: [4, 3, 2, 1, 0] as [UInt], edges: unsigned.map { UndirectedEdge($0.0, $0.1) })))
+        #expect(uints.pruferSequence == [3, 0, 0])
+        #expect(code(uints) == [3, 0, 0])
     }
 
     @Test("Every code of length 3 decodes to a distinct tree on 5 vertices and encodes back (Cayley: 125)")
