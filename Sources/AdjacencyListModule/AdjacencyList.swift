@@ -437,8 +437,7 @@ extension AdjacencyList {
         _takeEdgeTable()
         let position = _records.count
         let out = _out.append(target, toRow: source)
-        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
-        // After the advance, which makes the maps' tables the graph's own when it leaves shared storage.
+        _generation.advance(writing: _out.rows)
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }
         _outEdges.append(position, toRow: source)
         let into = _in.append(source, toRow: target)
@@ -507,7 +506,7 @@ extension AdjacencyList {
         _in.swapRemoveRow(slot)
         _inEdges.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
-        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _out.rows)
         return removed
     }
 
@@ -522,7 +521,7 @@ extension AdjacencyList {
         // Checked before removing, so removing an absent edge never copies shared storage.
         guard let position = _position(ofPair: _SlotPair(source, target)) else { return nil }
         _detachFromRows(position)
-        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _out.rows)
         if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }
         return DirectedEdge(from: _vertices[source], to: _vertices[target])
     }
@@ -581,7 +580,7 @@ extension AdjacencyList {
         _records.removeAll(keepingCapacity: keepingCapacity)
         _deferredEdges = nil
         _edges.removeAll(keepingCapacity: keepingCapacity)
-        if changes { _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps) } else { _generation.storageMayHaveMoved(_out.rows, maps: &_vertexMaps, &_edgeMaps) }
+        if changes { _generation.advance(writing: _out.rows) } else { _generation.storageMayHaveMoved(_out.rows) }
     }
 
     /// Removes every edge, keeping every vertex. Attached edge maps stay attached, emptied.
@@ -590,7 +589,7 @@ extension AdjacencyList {
         guard !_records.isEmpty else { return }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
         _out.removeAllEntries(keepingCapacity: keepingCapacity)
-        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _out.rows)
         _outEdges.removeAllEntries(keepingCapacity: keepingCapacity)
         _in.removeAllEntries(keepingCapacity: keepingCapacity)
         _inEdges.removeAllEntries(keepingCapacity: keepingCapacity)
@@ -610,7 +609,7 @@ extension AdjacencyList {
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
         _out.reserveCapacity(rows: vertexCount, entries: edgeCount)
-        _generation.storageMayHaveMoved(_out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.storageMayHaveMoved(_out.rows)
         _outEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _in.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _inEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
@@ -626,7 +625,7 @@ extension AdjacencyList {
         _vertices.append(vertex)
         _slots[vertex] = slot
         _out.appendRow()
-        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _out.rows)
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }
         _outEdges.appendRow()
         _in.appendRow()
@@ -1026,7 +1025,7 @@ extension AdjacencyList: MutableDirectedGraph {
     public mutating func _removeEdge(at position: Int) -> DirectedEdge<Vertex> {
         let record = _records[position]  // traps on a position out of range
         _detachFromRows(position)
-        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _out.rows)
         if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }
         return DirectedEdge(from: _vertices[record.source], to: _vertices[record.target])
     }

@@ -388,7 +388,7 @@ extension UndirectedAdjacencyList {
         _neighbors.swapRemoveRow(slot)
         _incident.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
-        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _neighbors.rows)
         return removed
     }
 
@@ -404,8 +404,7 @@ extension UndirectedAdjacencyList {
         guard let position = _positions[u <= v ? _SlotPair(u, v) : _SlotPair(v, u)] else { return nil }
         let record = _records[position]
         _detachFromRows(position, record)
-        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
-        // After the advance, which makes the maps' tables the graph's own when it leaves shared storage.
+        _generation.advance(writing: _neighbors.rows)
         if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }
         return UndirectedEdge(_vertices[record.u], _vertices[record.v])
     }
@@ -472,7 +471,7 @@ extension UndirectedAdjacencyList {
         _incident.removeAll(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
         _positions.removeAll(keepingCapacity: keepingCapacity)
-        if changes { _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps) } else { _generation.storageMayHaveMoved(_neighbors.rows, maps: &_vertexMaps, &_edgeMaps) }
+        if changes { _generation.advance(writing: _neighbors.rows) } else { _generation.storageMayHaveMoved(_neighbors.rows) }
     }
 
     /// Removes every edge, keeping every vertex. Attached edge maps stay attached, emptied.
@@ -481,7 +480,7 @@ extension UndirectedAdjacencyList {
         guard !_records.isEmpty else { return }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
         _neighbors.removeAllEntries(keepingCapacity: keepingCapacity)
-        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _neighbors.rows)
         _incident.removeAllEntries(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
         _positions.removeAll(keepingCapacity: keepingCapacity)
@@ -498,7 +497,7 @@ extension UndirectedAdjacencyList {
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
         _neighbors.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
-        _generation.storageMayHaveMoved(_neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.storageMayHaveMoved(_neighbors.rows)
         _incident.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
         _records.reserveCapacity(edgeCount)
         _positions.reserveCapacity(edgeCount)
@@ -511,7 +510,7 @@ extension UndirectedAdjacencyList {
         _vertices.append(vertex)
         _slots[vertex] = slot
         _neighbors.appendRow()
-        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _neighbors.rows)
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }
         _incident.appendRow()
         return slot
@@ -806,8 +805,7 @@ extension UndirectedAdjacencyList {
         let uOffset = _neighbors.append(v, toRow: u)
         _incident.append(position, toRow: u)
         let vOffset = _neighbors.append(u, toRow: v)
-        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
-        // After the advance, which makes the maps' tables the graph's own when it leaves shared storage.
+        _generation.advance(writing: _neighbors.rows)
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultToOwnTableInline() }
         _incident.append(position, toRow: v)
         _records.append(_EdgeRecord(u: u, v: v, uOffset: uOffset, vOffset: vOffset))
@@ -823,6 +821,6 @@ extension UndirectedAdjacencyList {
         let record = _records[position]
         _records[position] = _EdgeRecord(u: record.v, v: record.u, uOffset: record.vOffset, vOffset: record.uOffset)
         // The rows are unchanged, so the row table is made unique to tell a copy apart.
-        _generation.advance(owning: &_neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(owning: &_neighbors.rows)
     }
 }

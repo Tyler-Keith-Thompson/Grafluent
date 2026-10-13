@@ -77,8 +77,8 @@ isolated vertices, because an `OrderedSet` hashes only from 16 elements.
 The catalog-row files are every file except `HypergraphConformanceTests.swift`,
 `HypergraphEdgeCaseTests.swift`, `HypergraphHashTests.swift`, `HypergraphPropertyTests.swift`,
 `IncidenceGraphViewCheckedTests.swift` (the incidence graph views' `checked:` lookups),
-`HypergraphMapTests.swift`, `HypergraphMapPropertyTests.swift`, `HypergraphGenerationTests.swift`
-and `Performance/HypergraphStressTests.swift`.
+`HypergraphMapTests.swift`, `HypergraphMapPropertyTests.swift`, `IncidenceListMapConcurrencyTests.swift`,
+`HypergraphGenerationTests.swift` and `Performance/HypergraphStressTests.swift`.
 `swiftgen.py`, which sits next to `ref.py`, generated them:
 
 ```
@@ -149,6 +149,10 @@ checked.
   insertions, checked insertions, writes, reversals and resets against dictionaries keyed by vertex
   and by position, every value read every way after every step, and a copy taken midway that must
   not change.
+- **Maps on copies mutated concurrently** (`IncidenceListMapConcurrencyTests.swift`): two copies
+  of one `IncidenceList` with an edge map and a vertex map, inserting hyperedges with new members
+  and writing their values on two threads at once, over many rounds; each copy's maps then hold
+  one value per element, and only its own.
 - **Generations** (`HypergraphGenerationTests.swift`): every structural mutation starts one, a
   call that changes nothing does not, copies share one until either is mutated, and built and
   decoded hypergraphs have one; on both representations, two copies under every interleaving of

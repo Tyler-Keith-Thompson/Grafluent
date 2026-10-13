@@ -227,15 +227,13 @@ MUTANTS = [
     Mutant("releasesall", "AttachedMaps.swift", "!_isPOD(Value.self)", "true", module="GraphProtocols"),
     Mutant("releasesnone", "AttachedMaps.swift", "!_isPOD(Value.self)", "false", module="GraphProtocols"),
     Mutant("hintwrong", "AttachedMaps.swift", "if hint >= 0, hint < entries.count, entries[hint].token === token { return hint }", "if hint >= 0, hint < entries.count { return hint }", mode="stmt", module="GraphProtocols"),
-    Mutant("tableshared", "AttachedMaps.swift", "_slowPath(!isKnownUniquelyReferenced(&_table))", "_slowPath(_table == nil)", module="GraphProtocols"),
+    Mutant("tableshared", "AttachedMaps.swift", "_slowPath(!isKnownUniquelyReferenced(&_table))", "_slowPath(_table == nil)", nth=0, module="GraphProtocols"),
     Mutant("tablemark", "AttachedMaps.swift", "_MapTable(UnsafeBufferPointer(entries), removing: nil, appending: nil, markingShared: true)", "_MapTable(UnsafeBufferPointer(entries), removing: nil, appending: nil, markingShared: false)", module="GraphProtocols"),
     Mutant("replacemark", "AttachedMaps.swift", "!isKnownUniquelyReferenced(&_table)", "false", nth=0, module="GraphProtocols"),
     Mutant("bufferflag", "AttachedMaps.swift", "        if _slowPath(entries[k].buffer._mayBeShared.load(ordering: .relaxed)) { _copyIfShared(k) }", "", mode="stmt", module="GraphProtocols"),
     Mutant("bufferunique", "AttachedMaps.swift", "isKnownUniquelyReferenced(&entries[k].buffer)", "true", module="GraphProtocols"),
     Mutant("snapshotmark", "AttachedMaps.swift", "            dense._markShared()", "", mode="stmt", module="GraphProtocols"),
     Mutant("valueslayout", "PropertyGraph.swift", "if Base._edgeMapLayout == .dense { return _storage.denseValue(at: k) }", "", mode="stmt", module="GraphProtocols"),
-    # The maps advance's restart draws a new lineage (planted first: later mutants copy its text).
-    Mutant("restartlineage", "GraphGeneration.swift", "Self._newLineage()", "_lineage", nth=3, module="GraphProtocols"),
     Mutant("gencurrentuntracked", "GraphGeneration.swift", "_lineage != 0 && self == generation", "self == generation", module="GraphProtocols"),
     Mutant("gencurrentequal", "GraphGeneration.swift", "_lineage != 0 && self == generation", "_lineage != 0", module="GraphProtocols"),
     Mutant("genaddressmatch", "GraphGeneration.swift", "_slowPath(address != _address)", "_slowPath(false)", nth=0, module="GraphProtocols"),
@@ -270,15 +268,6 @@ MUTANTS = [
     Mutant("ownedremovegeneral", "AttachedMaps.swift", "        _swapRemove(at: offset)", "", mode="stmt", module="GraphProtocols"),
     Mutant("inlinegeneral", "AttachedMaps.swift", "        table._appendDefaults(count: 1)", "", mode="stmt", module="GraphProtocols"),
     Mutant("ownnil", "AttachedMaps.swift", "        if _table != nil { _ = _ownTable() }", "", mode="stmt", module="GraphProtocols"),
-    # The maps advances: a graph that leaves its identity array makes both tables its own.
-    Mutant("mapsaddressmatch", "GraphGeneration.swift", "_slowPath(address != _address)", "_slowPath(false)", nth=1, module="GraphProtocols"),
-    Mutant("mapsadvanceversion", "GraphGeneration.swift", "        _version &+= 1", "", mode="stmt", nth=1, module="GraphProtocols"),
-    Mutant("restartown", "GraphGeneration.swift", "        vertexMaps.own()\n        edgeMaps.own()", "", mode="stmt", module="GraphProtocols"),
-    Mutant("owningmapsown", "GraphGeneration.swift", "            vertexMaps.own()\n            edgeMaps.own()\n            _lineage = Self._newLineage()", "            _lineage = Self._newLineage()", mode="stmt", module="GraphProtocols"),
-    Mutant("owningmapsempty", "GraphGeneration.swift", "_slowPath(storage.isEmpty)", "_slowPath(false)", nth=1, module="GraphProtocols"),
-    Mutant("owningmapsunique", "GraphGeneration.swift", "        storage.withUnsafeMutableBufferPointer { _ in }", "", mode="stmt", nth=1, module="GraphProtocols"),
-    Mutant("movedown", "GraphGeneration.swift", "            _address = 0\n            vertexMaps.own()\n            edgeMaps.own()", "            _address = 0", mode="stmt", module="GraphProtocols"),
-    Mutant("movedforget", "GraphGeneration.swift", "            _address = 0\n            vertexMaps.own()", "            vertexMaps.own()", mode="stmt", module="GraphProtocols"),
     Mutant("genviewuntracked", "GraphAdaptor.swift", "base.generation", "GraphGeneration.untracked", nth=3, module="GraphProtocols"),
 
     # GraphProtocols: the numbered mode of _VertexIdentifiers.

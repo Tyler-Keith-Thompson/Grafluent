@@ -379,7 +379,7 @@ extension DirectedPseudograph {
         _inEdges.append(position, toRow: target)
         _records.append(_ArcRecord(source: source, target: target, out: out, in: into))
         _parallel.append(position, key: _SlotPair(source, target))
-        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _out.rows)
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }
         return position
     }
@@ -441,7 +441,7 @@ extension DirectedPseudograph {
         _in.swapRemoveRow(slot)
         _inEdges.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
-        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _out.rows)
         if !_vertexMaps.isEmpty { _vertexMaps.swapRemoveInOwnTable(at: slot) }
         return removed
     }
@@ -522,7 +522,7 @@ extension DirectedPseudograph {
         }
         _records.removeLast()
         _parallel.removeLast()
-        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _out.rows)
         if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }
     }
 
@@ -541,7 +541,7 @@ extension DirectedPseudograph {
         _parallel.removeAll(keepingCapacity: keepingCapacity)
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        if changes { _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps) } else { _generation.storageMayHaveMoved(_out.rows, maps: &_vertexMaps, &_edgeMaps) }
+        if changes { _generation.advance(writing: _out.rows) } else { _generation.storageMayHaveMoved(_out.rows) }
     }
 
     /// Removes every edge, keeping every vertex.
@@ -555,7 +555,7 @@ extension DirectedPseudograph {
         _records.removeAll(keepingCapacity: keepingCapacity)
         _parallel.removeAll(keepingCapacity: keepingCapacity)
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _out.rows)
     }
 
     /// Reserves space for at least `vertexCount` vertices and `edgeCount` edges.
@@ -566,7 +566,7 @@ extension DirectedPseudograph {
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
         _out.reserveCapacity(rows: vertexCount, entries: edgeCount)
-        _generation.storageMayHaveMoved(_out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.storageMayHaveMoved(_out.rows)
         _outEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _in.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _inEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
@@ -586,7 +586,7 @@ extension DirectedPseudograph {
         _outEdges.appendRow()
         _in.appendRow()
         _inEdges.appendRow()
-        _generation.advance(writing: _out.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _out.rows)
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }
         return slot
     }

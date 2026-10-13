@@ -308,7 +308,7 @@ extension Pseudograph {
         _incident.append(position, toRow: v)
         _records.append(_EdgeRecord(u: u, v: v, uOffset: uOffset, vOffset: vOffset))
         _parallel.append(position, key: u <= v ? _SlotPair(u, v) : _SlotPair(v, u))
-        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _neighbors.rows)
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }
         return position
     }
@@ -357,7 +357,7 @@ extension Pseudograph {
         _neighbors.swapRemoveRow(slot)
         _incident.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
-        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _neighbors.rows)
         if !_vertexMaps.isEmpty { _vertexMaps.swapRemoveInOwnTable(at: slot) }
         return removed
     }
@@ -438,7 +438,7 @@ extension Pseudograph {
         }
         _records.removeLast()
         _parallel.removeLast()
-        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _neighbors.rows)
         if !_edgeMaps.isEmpty { _edgeMaps.swapRemoveInOwnTable(at: position) }
     }
 
@@ -470,7 +470,7 @@ extension Pseudograph {
         _parallel.removeAll(keepingCapacity: keepingCapacity)
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        if changes { _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps) } else { _generation.storageMayHaveMoved(_neighbors.rows, maps: &_vertexMaps, &_edgeMaps) }
+        if changes { _generation.advance(writing: _neighbors.rows) } else { _generation.storageMayHaveMoved(_neighbors.rows) }
     }
 
     /// Removes every edge, keeping every vertex.
@@ -482,7 +482,7 @@ extension Pseudograph {
         _records.removeAll(keepingCapacity: keepingCapacity)
         _parallel.removeAll(keepingCapacity: keepingCapacity)
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _neighbors.rows)
     }
 
     /// Reserves space for at least `vertexCount` vertices and `edgeCount` edges.
@@ -493,7 +493,7 @@ extension Pseudograph {
         _vertices.reserveCapacity(vertexCount)
         _slots.reserveCapacity(vertexCount)
         _neighbors.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
-        _generation.storageMayHaveMoved(_neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.storageMayHaveMoved(_neighbors.rows)
         _incident.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
         _records.reserveCapacity(edgeCount)
         _parallel.reserveCapacity(edgeCount)
@@ -509,7 +509,7 @@ extension Pseudograph {
         _slots[vertex] = slot
         _neighbors.appendRow()
         _incident.appendRow()
-        _generation.advance(writing: _neighbors.rows, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(writing: _neighbors.rows)
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }
         return slot
     }

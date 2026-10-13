@@ -227,12 +227,12 @@ struct AttachedMapUpkeepTests {
         #expect(keeper.storage(Int.self, in: 0).dense.count == 1001 && keeper.value(Int.self, at: 0, in: 0, layout: .dense) == 7)
     }
 
-    @Test("Owned upkeep after a maps advance: every way one copy leaves the identity array or mutates first, then every owned upkeep on the other, both directions")
+    @Test("Owned upkeep after an advance: every way one copy leaves the identity array or mutates first, then every owned upkeep on the other, both directions")
     func ownedUpkeep() {
         // A graph in miniature: an identity array (`rows`) that every structural mutation writes,
-        // a stamp advanced with the `maps:` spellings, and the upkeep after it, owned, as the list
-        // representations run it. Two copies share everything; one runs a trigger, the other an
-        // upkeep operation, and each copy's values are checked against a model of its own.
+        // a stamp advanced after it, and the upkeep with the table's inline uniqueness check, as
+        // the list representations run it. Two copies share everything; one runs a trigger, the
+        // other an upkeep operation, and each copy's values are checked against a model of its own.
         struct Graph {
             var rows: ContiguousArray<Int> = [0]
             var stamp = _GenerationStamp()
@@ -240,40 +240,40 @@ struct AttachedMapUpkeepTests {
             var edgeMaps = _AttachedMaps()
             mutating func insertVertex() {
                 rows.append(0)
-                stamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
+                stamp.advance(writing: rows)
                 if !vertexMaps.isEmpty { vertexMaps.appendDefaultsToOwnTable(count: 1) }
             }
             mutating func insertEdge(inline: Bool) {
                 rows[0] &+= 1
-                stamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
+                stamp.advance(writing: rows)
                 if !edgeMaps.isEmpty {
                     if inline { edgeMaps.appendDefaultToOwnTableInline() } else { edgeMaps.appendDefaultsToOwnTable(count: 1) }
                 }
             }
             mutating func removeEdge(at p: Int) {
                 rows[0] &-= 1
-                stamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
+                stamp.advance(writing: rows)
                 if !edgeMaps.isEmpty { edgeMaps.swapRemoveInOwnTable(at: p) }
             }
             mutating func removeVertex(at p: Int) {
                 rows.removeLast()
-                stamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
+                stamp.advance(writing: rows)
                 if !vertexMaps.isEmpty { vertexMaps.swapRemoveInOwnTable(at: p) }
             }
             /// A structural mutation that writes no row: the array is made unique to tell a copy apart.
             mutating func reorient() {
-                stamp.advance(owning: &rows, maps: &vertexMaps, &edgeMaps)
+                stamp.advance(owning: &rows)
                 if !edgeMaps.isEmpty { edgeMaps.appendDefaultsToOwnTable(count: 2) }
             }
             mutating func reserve() {
                 rows.reserveCapacity(rows.capacity * 4 + 16)
-                stamp.storageMayHaveMoved(rows, maps: &vertexMaps, &edgeMaps)
+                stamp.storageMayHaveMoved(rows)
             }
             /// A structural mutation that leaves the identity array empty, its buffer kept (and so
             /// copied first when shared); the maps are left alone, and a row comes back after.
             mutating func empty() {
                 rows.removeAll(keepingCapacity: true)
-                stamp.advance(owning: &rows, maps: &vertexMaps, &edgeMaps)
+                stamp.advance(owning: &rows)
                 rows.append(0)
             }
         }
@@ -478,52 +478,6 @@ struct AttachedMapUpkeepTests {
             guard moved.withUnsafeBufferPointer({ UInt(bitPattern: $0.baseAddress) }) == oldAddress else { continue }
             reused += 1
             movedStamp.advance(writing: moved)
-            #expect(!movedStamp.generation.isCurrent(for: taken))
-        }
-        // The maps spellings advance the same way: a write in place is the next version, a copy's
-        // write a new lineage, an emptied array a new lineage every time, and a move without a
-        // structural mutation forgets the address.
-        var vertexMaps = _AttachedMaps(), edgeMaps = _AttachedMaps()
-        var rows = ContiguousArray<Int>()
-        rows.reserveCapacity(8)
-        rows.append(1)
-        var rowStamp = _GenerationStamp()
-        rowStamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
-        let rowFirst = rowStamp.generation
-        #expect(rowFirst._lineage != 0 && rowFirst._version == 0)
-        rows.append(2)
-        rowStamp.advance(writing: rows, maps: &vertexMaps, &edgeMaps)
-        #expect(rowStamp.generation._lineage == rowFirst._lineage && rowStamp.generation._version == 1)
-        var rowCopy = rows, rowCopyStamp = rowStamp
-        rowCopy.append(3)
-        rowCopyStamp.advance(writing: rowCopy, maps: &vertexMaps, &edgeMaps)
-        #expect(rowCopyStamp.generation._lineage != rowFirst._lineage && rowCopyStamp.generation._version == 0)
-        var emptyRows = ContiguousArray<Int>()
-        rowStamp.advance(owning: &emptyRows, maps: &vertexMaps, &edgeMaps)
-        let emptiedOnce = rowStamp.generation
-        rowStamp.advance(owning: &emptyRows, maps: &vertexMaps, &edgeMaps)
-        #expect(rowStamp.generation._lineage != emptiedOnce._lineage && emptiedOnce._lineage != rowFirst._lineage)
-        var rowsReused = 0
-        for _ in 0 ..< 64 where rowsReused == 0 {
-            var original = ContiguousArray<Int>()
-            original.reserveCapacity(4)
-            original.append(1)
-            var originalStamp = _GenerationStamp()
-            originalStamp.advance(writing: original, maps: &vertexMaps, &edgeMaps)
-            let oldAddress = original.withUnsafeBufferPointer { UInt(bitPattern: $0.baseAddress) }
-            var moved = original, movedStamp = originalStamp
-            moved.reserveCapacity(64)
-            movedStamp.storageMayHaveMoved(moved, maps: &vertexMaps, &edgeMaps)
-            original.append(2)
-            originalStamp.advance(writing: original, maps: &vertexMaps, &edgeMaps)
-            let taken = originalStamp.generation
-            original = []
-            moved.removeAll()
-            moved.reserveCapacity(4)
-            moved.append(3)
-            guard moved.withUnsafeBufferPointer({ UInt(bitPattern: $0.baseAddress) }) == oldAddress else { continue }
-            rowsReused += 1
-            movedStamp.advance(writing: moved, maps: &vertexMaps, &edgeMaps)
             #expect(!movedStamp.generation.isCurrent(for: taken))
         }
         // A generation is two integers.

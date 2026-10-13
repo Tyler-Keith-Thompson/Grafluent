@@ -23,12 +23,11 @@ import Synchronization
 // no call and no retain. Other values go through closures specialized where the map was attached.
 // A map's buffer is copied on the first write after it may have become shared by a copy of the
 // graph or a `values(of:)` snapshot. A flag on the buffer and one on the table record that, so an
-// unshared buffer needs no uniqueness check of its own. A list representation runs its upkeep
-// right after its generation stamp's advance with `maps:` (see GraphGeneration.swift), with the
-// table's uniqueness check inline: a copy of the graph mutated on another thread can still hold
-// the table then, so the check is what keeps the fast path's writes to this graph's own buffer.
-// One map of `Double` or `Int` then costs the check, one call, a load and a store
-// (`_MapTable._fastBuffer`).
+// unshared buffer needs no uniqueness check of its own. A list representation's insertions and
+// removals use the upkeep with the table's uniqueness check inline (`appendDefaultsToOwnTable`,
+// `swapRemoveInOwnTable`): a copy of the graph, on this thread or another, may hold the table,
+// and the check is what keeps the fast path's writes to this graph's own buffer. One map of
+// `Double` or `Int` then costs the check, one call, a load and a store (`_MapTable._fastBuffer`).
 
 /// How a representation lays out its attached maps: one buffer by offset (`dense`), or pages of
 /// 1024 offsets (`paged`). A static property of the representation, so a specialized read folds
@@ -941,9 +940,9 @@ package struct _AttachedMaps: Sendable {
         _ownTable()?._swapRemove(at: offset)
     }
 
-    /// `swapRemove(at:)` right after a `_GenerationStamp` advance with `maps:`: one inline
-    /// uniqueness check on the table (a copy of the graph on another thread may still hold it),
-    /// then one call, whose one-map fast path is a load and a store.
+    /// `swapRemove(at:)` for a list representation's removals: one inline uniqueness check on
+    /// the table (copied first if a copy of the graph holds it), then one call, whose one-map fast
+    /// path is a load and a store.
     @inlinable
     @inline(__always)
     package mutating func swapRemoveInOwnTable(at offset: Int) {
@@ -959,9 +958,9 @@ package struct _AttachedMaps: Sendable {
         _ownTable()?._appendDefaults(count: count)
     }
 
-    /// `appendDefaults(count:)` right after a `_GenerationStamp` advance with `maps:`: one inline
-    /// uniqueness check on the table (a copy of the graph on another thread may still hold it),
-    /// then one call, whose one-map fast path is a load and a store.
+    /// `appendDefaults(count:)` for a list representation's insertions: one inline uniqueness
+    /// check on the table (copied first if a copy of the graph holds it), then one call, whose
+    /// one-map fast path is a load and a store.
     @inlinable
     @inline(__always)
     package mutating func appendDefaultsToOwnTable(count: Int) {
@@ -993,7 +992,7 @@ package struct _AttachedMaps: Sendable {
     }
 
     /// Makes the table this graph's own, copying it if a copy of the graph shares it. Out of
-    /// line: it runs when a graph leaves an identity array its copies keep, rarely.
+    /// line: the slow path of the inline uniqueness checks, taken once per copy.
     @usableFromInline
     @inline(never)
     package mutating func own() {

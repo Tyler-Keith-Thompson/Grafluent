@@ -23,10 +23,6 @@
 #                     already separate them; hash quality only, never equality.
 #   vendpointcheck    the view's endpoint precondition: every base's own read traps on the same
 #                     positions (the plane's array, the defaults' and the matrices' rank checks).
-#
-# Not planted, being equivalent: the plain `storageMayHaveMoved` for the maps spelling in
-# `reserveCapacity`: it reserves in each attached map first, which makes that map's table the
-# graph's own, so the tables are its own before the identity array moves.
 
 TESTS = ["HypergraphsTests", "IncidenceMatrixTests"]
 
@@ -285,7 +281,7 @@ MUTANTS = [
 
     Mutant("neighborsself", A, "w != v", "true"),
     Mutant("neighborsrepeat", A, "w != previous", "true"),
-    Mutant("neighborsposition", A, "hyperedges.index(hyperedges.startIndex, offsetBy: h)", "hyperedges.index(hyperedges.startIndex, offsetBy: 0)"),
+    Mutant("neighborsposition", A, "incidentHyperedges(ofIndex: v)", "incidentHyperedges(ofIndex: 0)"),
     Mutant("dualrows", A, "for h in incidentHyperedgeIndices(ofIndex: i) { flat.append(h) }", "for h in incidentHyperedgeIndices(ofIndex: i) { flat.append(m &- 1 &- h) }", mode="stmt"),
     Mutant("cliquepositions", A, "memberIndices(ofHyperedgeAt: positions[h])", "memberIndices(ofHyperedgeAt: positions[0])"),
     Mutant("lineself", A, "q > p", "q >= p"),
@@ -338,24 +334,18 @@ MUTANTS = [
 
     # Attached maps and generations: every map follows its element, the checked reads throw
     # exactly outside the elements, and every structural mutation starts a generation.
-    # A hypergraph that leaves its identity array owns both tables (the maps spellings), so the
-    # upkeep after each advance, owned, writes its own tables only. First: the mutants below copy
-    # these lines.
-    Mutant("uownsvertex", U, "            _generation.advance(owning: &_plane.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "            _generation.advance(owning: &_plane.memberOffsets)", mode="stmt"),
-    Mutant("uownsedge", U, "        _generation.advance(owning: &_plane.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(owning: &_plane.memberOffsets)", mode="stmt", nth=1),
-    Mutant("uownscheckededge", U, "        _generation.advance(owning: &_plane.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(owning: &_plane.memberOffsets)", mode="stmt", nth=2),
     Mutant("ugenbuilt", U, "        _generation.stamp()", "", mode="stmt", nth=0),
     Mutant("umapvertex", U, "            if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt"),
-    Mutant("ugenvertex", U, "            _generation.advance(owning: &_plane.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt"),
-    Mutant("ugenvertexwriting", U, "_generation.advance(owning: &_plane.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "_generation.advance(writing: _plane.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", mode="stmt", nth=0),
+    Mutant("ugenvertex", U, "            _generation.advance(owning: &_plane.memberOffsets)", "", mode="stmt"),
+    Mutant("ugenvertexwriting", U, "_generation.advance(owning: &_plane.memberOffsets)", "_generation.advance(writing: _plane.memberOffsets)", mode="stmt", nth=0),
     Mutant("umapmembers", U, "        if !_vertexMaps.isEmpty, _vertices.count != vertexCount { _vertexMaps.appendDefaultsToOwnTable(count: _vertices.count &- vertexCount) }", "", mode="stmt"),
     Mutant("umapedge", U, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt", nth=0),
-    Mutant("ugenedge", U, "        _generation.advance(owning: &_plane.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=0),
+    Mutant("ugenedge", U, "        _generation.advance(owning: &_plane.memberOffsets)", "", mode="stmt", nth=0),
     Mutant("umapcheckededge", U, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt", nth=1),
-    Mutant("ugencheckededge", U, "        _generation.advance(owning: &_plane.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=1),
+    Mutant("ugencheckededge", U, "        _generation.advance(owning: &_plane.memberOffsets)", "", mode="stmt", nth=1),
     Mutant("umapremoveallvertices", U, "        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
     Mutant("umapremovealledges", U, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
-    Mutant("ugenremoveall", U, "        _generation.advance(owning: &_plane.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=2),
+    Mutant("ugenremoveall", U, "        _generation.advance(owning: &_plane.memberOffsets)", "", mode="stmt", nth=2),
     Mutant("ugeneration", U, "_generation.generation", "GraphGeneration.untracked"),
     Mutant("umapedgecount", U, "_plane.hyperedgeCount", "0", nth=6),
     Mutant("umapvertexcount", U, "_vertices.count", "0", nth=5),
@@ -367,25 +357,19 @@ MUTANTS = [
     Mutant("umapcheckedindexlow", U, "UInt(bitPattern: index) < UInt(bitPattern: _vertices.count)", "index < _vertices.count"),
     Mutant("umapcheckedindexhigh", U, "UInt(bitPattern: index) < UInt(bitPattern: _vertices.count)", "index >= 0"),
     Mutant("umapcheckedvertex", U, "_vertices.firstIndex(of: vertex)", "Optional(_vertices.firstIndex(of: vertex) ?? 0)", nth=4),
-    # A hypergraph that leaves its identity array owns both tables (the maps spellings), so the
-    # upkeep after each advance, owned, writes its own tables only. First: the mutants below copy
-    # these lines.
-    Mutant("downsvertex", D, "            _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "            _generation.advance(owning: &_sources.memberOffsets)", mode="stmt"),
-    Mutant("downsedge", D, "        _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(owning: &_sources.memberOffsets)", mode="stmt", nth=1),
-    Mutant("downscheckededge", D, "        _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "        _generation.advance(owning: &_sources.memberOffsets)", mode="stmt", nth=2),
     Mutant("dgenbuilt", D, "        _generation.stamp()", "", mode="stmt", nth=0),
     Mutant("dgenlisted", D, "        _generation.stamp()", "", mode="stmt", nth=1),
     Mutant("dmapvertex", D, "            if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt"),
-    Mutant("dgenvertex", D, "            _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt"),
-    Mutant("dgenvertexwriting", D, "_generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "_generation.advance(writing: _sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", mode="stmt", nth=0),
+    Mutant("dgenvertex", D, "            _generation.advance(owning: &_sources.memberOffsets)", "", mode="stmt"),
+    Mutant("dgenvertexwriting", D, "_generation.advance(owning: &_sources.memberOffsets)", "_generation.advance(writing: _sources.memberOffsets)", mode="stmt", nth=0),
     Mutant("dmapmembers", D, "        if !_vertexMaps.isEmpty, _vertices.count != vertexCount { _vertexMaps.appendDefaultsToOwnTable(count: _vertices.count &- vertexCount) }", "", mode="stmt"),
     Mutant("dmapedge", D, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt", nth=0),
-    Mutant("dgenedge", D, "        _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=0),
+    Mutant("dgenedge", D, "        _generation.advance(owning: &_sources.memberOffsets)", "", mode="stmt", nth=0),
     Mutant("dmapcheckededge", D, "        if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }", "", mode="stmt", nth=1),
-    Mutant("dgencheckededge", D, "        _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=1),
+    Mutant("dgencheckededge", D, "        _generation.advance(owning: &_sources.memberOffsets)", "", mode="stmt", nth=1),
     Mutant("dmapremoveallvertices", D, "        if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
     Mutant("dmapremovealledges", D, "        if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }", "", mode="stmt"),
-    Mutant("dgenremoveall", D, "        _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)", "", mode="stmt", nth=2),
+    Mutant("dgenremoveall", D, "        _generation.advance(owning: &_sources.memberOffsets)", "", mode="stmt", nth=2),
     Mutant("dreversedvertexmaps", D, "        _vertexMaps = hypergraph._vertexMaps", "        _vertexMaps = _AttachedMaps()", mode="stmt"),
     Mutant("dreversededgemaps", D, "        _edgeMaps = hypergraph._edgeMaps", "        _edgeMaps = _AttachedMaps()", mode="stmt"),
     Mutant("dreversedgeneration", D, "        _generation = _GenerationStamp()", "        _generation = hypergraph._generation", mode="stmt", nth=2),

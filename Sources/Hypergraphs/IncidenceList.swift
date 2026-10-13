@@ -191,7 +191,7 @@ extension IncidenceList {
         if inserted {
             _sources.appendVertex()
             _targets.appendVertex()
-            _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)
+            _generation.advance(owning: &_sources.memberOffsets)
             if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }
         }
         return (inserted, _vertices[index])
@@ -226,8 +226,7 @@ extension IncidenceList {
         let position = _sources.hyperedgeCount
         _sources.appendHyperedge(sourceRow)
         _targets.appendHyperedge(targetRow)
-        _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)
-        // After the advance, which makes the maps' tables the hypergraph's own when it leaves shared storage.
+        _generation.advance(owning: &_sources.memberOffsets)
         if !_vertexMaps.isEmpty, _vertices.count != vertexCount { _vertexMaps.appendDefaultsToOwnTable(count: _vertices.count &- vertexCount) }
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }
         return position
@@ -257,7 +256,7 @@ extension IncidenceList {
         let position = _sources.hyperedgeCount
         _sources.appendHyperedge(sourceRow)
         _targets.appendHyperedge(targetRow)
-        _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(owning: &_sources.memberOffsets)
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultsToOwnTable(count: 1) }
         return position
     }
@@ -270,7 +269,7 @@ extension IncidenceList {
         _targets.removeAll(keepingCapacity: keepingCapacity)
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
-        _generation.advance(owning: &_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)
+        _generation.advance(owning: &_sources.memberOffsets)
     }
 
     /// Reserves storage for `vertexCount` vertices, `hyperedgeCount` hyperedges, and
@@ -281,7 +280,7 @@ extension IncidenceList {
         _vertices.reserveCapacity(vertexCount)
         _sources.reserveCapacity(vertexCount: vertexCount, hyperedgeCount: hyperedgeCount, incidenceCount: sourceCount)
         _targets.reserveCapacity(vertexCount: vertexCount, hyperedgeCount: hyperedgeCount, incidenceCount: targetCount)
-        _generation.storageMayHaveMoved(_sources.memberOffsets, maps: &_vertexMaps, &_edgeMaps)
+        _generation.storageMayHaveMoved(_sources.memberOffsets)
         if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
         if !_edgeMaps.isEmpty { _edgeMaps.reserveCapacity(hyperedgeCount) }
     }
