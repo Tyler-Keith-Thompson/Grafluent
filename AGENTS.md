@@ -178,7 +178,9 @@ lists each catalog's scripts and Python pins (run through `uv`).
 - `GraphAdaptor` exposes `base`; maps read through an adaptor whose positions are its base's.
   `GraphDelegator` refines it for rule-adding wrappers (`Multigraph`, `DirectedMultigraph`,
   `BipartiteGraph`, `DirectedAcyclicGraph`): every read member forwards to the base by default,
-  and the wrapper implements only its mutations. Views that reorient or filter must not use it.
+  and the wrapper implements its mutations, attached-map management and map writes. The wrapped
+  graph is stored in an internal `_base`, never settable from outside, so its rules cannot be
+  bypassed. Views that reorient or filter must not use it.
 
 ### Performance patterns
 
