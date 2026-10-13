@@ -232,15 +232,15 @@ struct RegularBipartiteTests {
 
     @Test("RG-117 n 4, d 2")
     func rg117() {
-        // UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 4, degree: 2, using: &Xoshiro256StarStar(seed: 42)) → n 4; m 4; E [0–1, 0–2, 1–3, 2–3]; draws 21; = NetworkX
+        // UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 4, degree: 2, using: &Xoshiro256StarStar(seed: 42)) → n 4; m 4; E [0–2, 0–3, 1–2, 1–3]; draws 12; = complement of NetworkX's (n − 1 − d)-regular graph
         func check(_ graph: some Graph<Int>, _ generator: Xoshiro256StarStar, _ type: String) {
             #expect(graph.vertexCount == 4 && graph.edgeCount == 4 && graph.edges.count == 4, "\(type)")
             #expect(Array(graph.vertices) == Array(0 ..< 4), "\(type)")
-            #expect(graph.edges.map { [$0.u, $0.v] } == [[0, 1], [0, 2], [1, 3], [2, 3]] as [[Int]], "\(type)")
+            #expect(graph.edges.map { [$0.u, $0.v] } == [[0, 2], [0, 3], [1, 2], [1, 3]] as [[Int]], "\(type)")
             #expect((0 ..< 4).map { graph.degree(of: $0) } == [2, 2, 2, 2] as [Int], "\(type)")
             var expected = Xoshiro256StarStar(seed: 42)
-            for _ in 0 ..< 21 { _ = expected.next() }
-            #expect(generator == expected, "\(type): 21 draws")
+            for _ in 0 ..< 12 { _ = expected.next() }
+            #expect(generator == expected, "\(type): 12 draws")
         }
         do {
             var generator = Xoshiro256StarStar(seed: 42)
@@ -261,14 +261,14 @@ struct RegularBipartiteTests {
         func checkDirected(_ graph: some DirectedGraph<Int>, _ generator: Xoshiro256StarStar, _ type: String) {
             #expect(graph.vertexCount == 4 && graph.edgeCount == 8 && graph.edges.count == 8, "\(type)")
             #expect(Array(graph.vertices) == Array(0 ..< 4), "\(type)")
-            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [0, 2], [1, 0], [1, 3], [2, 0], [2, 3], [3, 1], [3, 2]] as [[Int]], "\(type)")
+            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 2], [0, 3], [1, 2], [1, 3], [2, 0], [2, 1], [3, 0], [3, 1]] as [[Int]], "\(type)")
             #expect((0 ..< 4).map { graph.outDegree(of: $0) } == [2, 2, 2, 2] as [Int], "\(type)")
             var inDegrees = [Int](repeating: 0, count: 4)
             for edge in graph.edges { inDegrees[edge.target] += 1 }
             #expect(inDegrees == [2, 2, 2, 2] as [Int], "\(type)")
             var expected = Xoshiro256StarStar(seed: 42)
-            for _ in 0 ..< 21 { _ = expected.next() }
-            #expect(generator == expected, "\(type): 21 draws")
+            for _ in 0 ..< 12 { _ = expected.next() }
+            #expect(generator == expected, "\(type): 12 draws")
         }
         do {
             var generator = Xoshiro256StarStar(seed: 42)
@@ -302,17 +302,17 @@ struct RegularBipartiteTests {
         }
     }
 
-    @Test("RG-118 n 7, d 6: d = n − 1: the complete graph, after any retries")
+    @Test("RG-118 n 7, d 6: d = n − 1: the complete graph, no draws")
     func rg118() {
-        // UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 7, degree: 6, using: &Xoshiro256StarStar(seed: 0)) → n 7; m 21; E [0–1, 0–2, 0–3, 0–4, 0–5, 0–6, 1–2, 1–3, 1–4, 1–5, 1–6, 2–3, 2–4, 2–5, 2–6, 3–4, 3–5, 3–6, 4–5, 4–6, 5–6]; draws 163; = NetworkX
+        // UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 7, degree: 6, using: &Xoshiro256StarStar(seed: 0)) → n 7; m 21; E [0–1, 0–2, 0–3, 0–4, 0–5, 0–6, 1–2, 1–3, 1–4, 1–5, 1–6, 2–3, 2–4, 2–5, 2–6, 3–4, 3–5, 3–6, 4–5, 4–6, 5–6]; draws 0; = complement of NetworkX's (n − 1 − d)-regular graph
         func check(_ graph: some Graph<Int>, _ generator: Xoshiro256StarStar, _ type: String) {
             #expect(graph.vertexCount == 7 && graph.edgeCount == 21 && graph.edges.count == 21, "\(type)")
             #expect(Array(graph.vertices) == Array(0 ..< 7), "\(type)")
             #expect(graph.edges.map { [$0.u, $0.v] } == [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [2, 3], [2, 4], [2, 5], [2, 6], [3, 4], [3, 5], [3, 6], [4, 5], [4, 6], [5, 6]] as [[Int]], "\(type)")
             #expect((0 ..< 7).map { graph.degree(of: $0) } == [6, 6, 6, 6, 6, 6, 6] as [Int], "\(type)")
             var expected = Xoshiro256StarStar(seed: 0)
-            for _ in 0 ..< 163 { _ = expected.next() }
-            #expect(generator == expected, "\(type): 163 draws")
+            for _ in 0 ..< 0 { _ = expected.next() }
+            #expect(generator == expected, "\(type): 0 draws")
         }
         do {
             var generator = Xoshiro256StarStar(seed: 0)
@@ -339,8 +339,8 @@ struct RegularBipartiteTests {
             for edge in graph.edges { inDegrees[edge.target] += 1 }
             #expect(inDegrees == [6, 6, 6, 6, 6, 6, 6] as [Int], "\(type)")
             var expected = Xoshiro256StarStar(seed: 0)
-            for _ in 0 ..< 163 { _ = expected.next() }
-            #expect(generator == expected, "\(type): 163 draws")
+            for _ in 0 ..< 0 { _ = expected.next() }
+            #expect(generator == expected, "\(type): 0 draws")
         }
         do {
             var generator = Xoshiro256StarStar(seed: 0)
@@ -1238,74 +1238,74 @@ struct RegularBipartiteTests {
         }
     }
 
-    @Test("RG-143 n 7, d 4: the suitability check's quirk decides whether a round restarts")
+    @Test("RG-143 n 8, d 3: the suitability check's quirk decides whether a round restarts")
     func rg143() {
-        // UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 7, degree: 4, using: &Xoshiro256StarStar(seed: 3)) → n 7; m 14; E [0–1, 0–2, 0–5, 0–6, 1–2, 1–3, 1–6, 2–4, 2–5, 3–4, 3–5, 3–6, 4–5, 4–6]; draws 313; = NetworkX
+        // UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 8, degree: 3, using: &Xoshiro256StarStar(seed: 81)) → n 8; m 12; E [0–1, 0–4, 0–5, 1–5, 1–6, 2–3, 2–5, 2–6, 3–4, 3–7, 4–7, 6–7]; draws 136; = NetworkX
         func check(_ graph: some Graph<Int>, _ generator: Xoshiro256StarStar, _ type: String) {
-            #expect(graph.vertexCount == 7 && graph.edgeCount == 14 && graph.edges.count == 14, "\(type)")
-            #expect(Array(graph.vertices) == Array(0 ..< 7), "\(type)")
-            #expect(graph.edges.map { [$0.u, $0.v] } == [[0, 1], [0, 2], [0, 5], [0, 6], [1, 2], [1, 3], [1, 6], [2, 4], [2, 5], [3, 4], [3, 5], [3, 6], [4, 5], [4, 6]] as [[Int]], "\(type)")
-            #expect((0 ..< 7).map { graph.degree(of: $0) } == [4, 4, 4, 4, 4, 4, 4] as [Int], "\(type)")
-            var expected = Xoshiro256StarStar(seed: 3)
-            for _ in 0 ..< 313 { _ = expected.next() }
-            #expect(generator == expected, "\(type): 313 draws")
+            #expect(graph.vertexCount == 8 && graph.edgeCount == 12 && graph.edges.count == 12, "\(type)")
+            #expect(Array(graph.vertices) == Array(0 ..< 8), "\(type)")
+            #expect(graph.edges.map { [$0.u, $0.v] } == [[0, 1], [0, 4], [0, 5], [1, 5], [1, 6], [2, 3], [2, 5], [2, 6], [3, 4], [3, 7], [4, 7], [6, 7]] as [[Int]], "\(type)")
+            #expect((0 ..< 8).map { graph.degree(of: $0) } == [3, 3, 3, 3, 3, 3, 3, 3] as [Int], "\(type)")
+            var expected = Xoshiro256StarStar(seed: 81)
+            for _ in 0 ..< 136 { _ = expected.next() }
+            #expect(generator == expected, "\(type): 136 draws")
         }
         do {
-            var generator = Xoshiro256StarStar(seed: 3)
-            let graph = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 7, degree: 4, using: &generator)
+            var generator = Xoshiro256StarStar(seed: 81)
+            let graph = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 8, degree: 3, using: &generator)
             check(graph, generator, "UndirectedAdjacencyList<Int>")
         }
         do {
-            var generator = Xoshiro256StarStar(seed: 3)
-            let graph = Pseudograph<Int>.randomRegular(vertexCount: 7, degree: 4, using: &generator)
+            var generator = Xoshiro256StarStar(seed: 81)
+            let graph = Pseudograph<Int>.randomRegular(vertexCount: 8, degree: 3, using: &generator)
             check(graph, generator, "Pseudograph<Int>")
         }
         do {
-            var generator = Xoshiro256StarStar(seed: 3)
-            let graph = Multigraph<Int>.randomRegular(vertexCount: 7, degree: 4, using: &generator)
+            var generator = Xoshiro256StarStar(seed: 81)
+            let graph = Multigraph<Int>.randomRegular(vertexCount: 8, degree: 3, using: &generator)
             check(graph, generator, "Multigraph<Int>")
         }
         // The directed form, from the same model.
         func checkDirected(_ graph: some DirectedGraph<Int>, _ generator: Xoshiro256StarStar, _ type: String) {
-            #expect(graph.vertexCount == 7 && graph.edgeCount == 28 && graph.edges.count == 28, "\(type)")
-            #expect(Array(graph.vertices) == Array(0 ..< 7), "\(type)")
-            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [0, 2], [0, 5], [0, 6], [1, 0], [1, 2], [1, 3], [1, 6], [2, 0], [2, 1], [2, 4], [2, 5], [3, 1], [3, 4], [3, 5], [3, 6], [4, 2], [4, 3], [4, 5], [4, 6], [5, 0], [5, 2], [5, 3], [5, 4], [6, 0], [6, 1], [6, 3], [6, 4]] as [[Int]], "\(type)")
-            #expect((0 ..< 7).map { graph.outDegree(of: $0) } == [4, 4, 4, 4, 4, 4, 4] as [Int], "\(type)")
-            var inDegrees = [Int](repeating: 0, count: 7)
+            #expect(graph.vertexCount == 8 && graph.edgeCount == 24 && graph.edges.count == 24, "\(type)")
+            #expect(Array(graph.vertices) == Array(0 ..< 8), "\(type)")
+            #expect(graph.edges.map { [$0.source, $0.target] } == [[0, 1], [0, 4], [0, 5], [1, 0], [1, 5], [1, 6], [2, 3], [2, 5], [2, 6], [3, 2], [3, 4], [3, 7], [4, 0], [4, 3], [4, 7], [5, 0], [5, 1], [5, 2], [6, 1], [6, 2], [6, 7], [7, 3], [7, 4], [7, 6]] as [[Int]], "\(type)")
+            #expect((0 ..< 8).map { graph.outDegree(of: $0) } == [3, 3, 3, 3, 3, 3, 3, 3] as [Int], "\(type)")
+            var inDegrees = [Int](repeating: 0, count: 8)
             for edge in graph.edges { inDegrees[edge.target] += 1 }
-            #expect(inDegrees == [4, 4, 4, 4, 4, 4, 4] as [Int], "\(type)")
-            var expected = Xoshiro256StarStar(seed: 3)
-            for _ in 0 ..< 313 { _ = expected.next() }
-            #expect(generator == expected, "\(type): 313 draws")
+            #expect(inDegrees == [3, 3, 3, 3, 3, 3, 3, 3] as [Int], "\(type)")
+            var expected = Xoshiro256StarStar(seed: 81)
+            for _ in 0 ..< 136 { _ = expected.next() }
+            #expect(generator == expected, "\(type): 136 draws")
         }
         do {
-            var generator = Xoshiro256StarStar(seed: 3)
-            let graph = CompressedSparseRow.randomRegular(vertexCount: 7, degree: 4, using: &generator)
+            var generator = Xoshiro256StarStar(seed: 81)
+            let graph = CompressedSparseRow.randomRegular(vertexCount: 8, degree: 3, using: &generator)
             checkDirected(graph, generator, "CompressedSparseRow")
         }
         do {
-            var generator = Xoshiro256StarStar(seed: 3)
-            let graph = AdjacencyMatrix.randomRegular(vertexCount: 7, degree: 4, using: &generator)
+            var generator = Xoshiro256StarStar(seed: 81)
+            let graph = AdjacencyMatrix.randomRegular(vertexCount: 8, degree: 3, using: &generator)
             checkDirected(graph, generator, "AdjacencyMatrix")
         }
         do {
-            var generator = Xoshiro256StarStar(seed: 3)
-            let graph = AdjacencyList<Int>.randomRegular(vertexCount: 7, degree: 4, using: &generator)
+            var generator = Xoshiro256StarStar(seed: 81)
+            let graph = AdjacencyList<Int>.randomRegular(vertexCount: 8, degree: 3, using: &generator)
             checkDirected(graph, generator, "AdjacencyList<Int>")
         }
         do {
-            var generator = Xoshiro256StarStar(seed: 3)
-            let graph = DirectedPseudograph<Int>.randomRegular(vertexCount: 7, degree: 4, using: &generator)
+            var generator = Xoshiro256StarStar(seed: 81)
+            let graph = DirectedPseudograph<Int>.randomRegular(vertexCount: 8, degree: 3, using: &generator)
             checkDirected(graph, generator, "DirectedPseudograph<Int>")
         }
         do {
-            var generator = Xoshiro256StarStar(seed: 3)
-            let graph = DirectedMultigraph<Int>.randomRegular(vertexCount: 7, degree: 4, using: &generator)
+            var generator = Xoshiro256StarStar(seed: 81)
+            let graph = DirectedMultigraph<Int>.randomRegular(vertexCount: 8, degree: 3, using: &generator)
             checkDirected(graph, generator, "DirectedMultigraph<Int>")
         }
         do {
-            var generator = Xoshiro256StarStar(seed: 3)
-            let graph = StableDirectedGraph<Int>.randomRegular(vertexCount: 7, degree: 4, using: &generator)
+            var generator = Xoshiro256StarStar(seed: 81)
+            let graph = StableDirectedGraph<Int>.randomRegular(vertexCount: 8, degree: 3, using: &generator)
             checkDirected(graph, generator, "StableDirectedGraph<Int>")
         }
     }

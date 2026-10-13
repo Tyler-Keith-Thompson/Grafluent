@@ -6,13 +6,16 @@ import NamedGraphs
 /// order. A pair
 /// that is a self-loop or a repeat is not added; both its stubs are kept, by vertex in the order
 /// the vertices were first kept, for the next round. A round whose kept stubs can no longer form a
-/// new edge restarts the whole attempt. Pairs sorted, smaller end first.
+/// new edge restarts the whole attempt. For d > (n − 1) / 2 the procedure runs for n − 1 − d and the
+/// complement is returned. Pairs sorted, smaller end first.
 @inlinable
 func _randomRegularPairs<G: RandomNumberGenerator>(_ n: Int, _ d: Int, _ g: inout G) -> [DirectedEdge<Int>] {
     _checkCount(n)
     precondition(d >= 0 && d < n, "degree \(d) is not in 0..<\(n)")
     precondition(_productFits(n, d), "edge count overflows Int")
     precondition((n * d).isMultiple(of: 2), "vertexCount × degree \(n * d) is odd")
+    // n(n − 1) is even, so n(n − 1 − d) is even whenever nd is.
+    if d > (n - 1) / 2 { return _complementPairs(n, n * d / 2, _randomRegularPairs(n, n - 1 - d, &g)) }
     if d == 0 { return [] }
     let m = n * d / 2
     var edges: [DirectedEdge<Int>] = []
@@ -82,6 +85,29 @@ func _randomRegularPairs<G: RandomNumberGenerator>(_ n: Int, _ d: Int, _ g: inou
     return _sortedRowMajor(n, edges)
 }
 
+/// The pairs u < v on `0..<n` that are not in `pairs`, in lexicographic order; `pairs` is sorted the
+/// same way and `count` is the complement's size.
+@inlinable
+func _complementPairs(_ n: Int, _ count: Int, _ pairs: [DirectedEdge<Int>]) -> [DirectedEdge<Int>] {
+    var complement: [DirectedEdge<Int>] = []
+    complement.reserveCapacity(count)
+    var k = 0
+    var next = pairs.first
+    for u in 0 ..< n {
+        var v = u + 1
+        while v < n {
+            if let pair = next, pair.source == u, pair.target == v {
+                k += 1
+                next = k < pairs.count ? pairs[k] : nil
+            } else {
+                complement.append(DirectedEdge(from: u, to: v))
+            }
+            v += 1
+        }
+    }
+    return complement
+}
+
 extension _GraphConstruction {
     /// A random d-regular graph on `0..<vertexCount`: every vertex has degree d, by the pairing
     /// (configuration) model with Steger and Wormald's repair, which pairs the remaining stubs
@@ -92,11 +118,14 @@ extension _GraphConstruction {
     /// > doi:10.1017/S0963548399003867
     ///
     /// Kim and Vu showed the result asymptotically uniform for d = o(n^(1/28)) ("Generating random
-    /// regular graphs", STOC 2003, 213–222). The result has nd/2 edges. An attempt fails and starts
-    /// over with a probability that grows with d, so a d near n can take many attempts. d = 0 gives
-    /// no edges and no draws.
+    /// regular graphs", STOC 2003, 213–222). The result has nd/2 edges. For d > (n − 1) / 2 it is
+    /// the complement of the random (n − 1 − d)-regular graph this procedure draws, since
+    /// complementing maps the d-regular graphs on `0..<vertexCount` one to one onto the
+    /// (n − 1 − d)-regular ones. d = 0 gives no edges and d = n − 1 the complete graph, both with
+    /// no draws.
     ///
-    /// - Complexity: O(nd) expected for small d.
+    /// - Complexity: O(n·min(d, n − 1 − d)) expected for d or n − 1 − d small, plus O(n²) for the
+    ///   complement when d > (n − 1) / 2.
     /// - Precondition: `degree` in `0..<vertexCount`, and n·d even.
     @inlinable
     public static func randomRegular(vertexCount n: Int, degree d: Int, using generator: inout some RandomNumberGenerator) -> Self {
@@ -116,7 +145,8 @@ extension _DirectedGraphConstruction {
     /// `grid` have them. It makes the undirected form's draws, and every vertex has in- and
     /// out-degree d.
     ///
-    /// - Complexity: O(nd) expected for small d.
+    /// - Complexity: O(n·min(d, n − 1 − d)) expected for d or n − 1 − d small, plus O(n²) for the
+    ///   complement when d > (n − 1) / 2.
     /// - Precondition: `degree` in `0..<vertexCount`, and n·d even.
     @inlinable
     public static func randomRegular(vertexCount n: Int, degree d: Int, using generator: inout some RandomNumberGenerator) -> Self {

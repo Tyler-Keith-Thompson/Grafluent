@@ -340,12 +340,17 @@ def random_regular(n, d, rng, directed=False):
     """NetworkX random_regular_graph(d, n): the stubs 0..<n repeated d times, shuffled by CPython's
     shuffle (i from the last index down to 1, swapped with below(i + 1)) and paired in order; a
     self-loop or repeat keeps both stubs, by vertex in first-kept order, for the next round; a
-    round whose kept vertices cannot form a new edge restarts the attempt. Directed: both arcs."""
+    round whose kept vertices cannot form a new edge restarts the attempt. For d > (n − 1) / 2 it
+    runs the procedure for n − 1 − d and returns the complement (d = n − 1: K_n, no draws).
+    Directed: both arcs."""
     if directed:
         return both_arcs(random_regular(n, d, rng))
     _count(n)
     require(isinstance(d, int) and 0 <= d < n, f"degree {d} is not in 0..<{n}")
     require(n * d % 2 == 0, f"vertexCount × degree {n * d} is odd")
+    if d > (n - 1) // 2:
+        sparse = set(random_regular(n, n - 1 - d, rng).edges)
+        return R(n, [(u, v) for u in range(n) for v in range(u + 1, n) if (u, v) not in sparse], False)
     if d == 0:
         return R(n, [], False)
 
@@ -560,7 +565,10 @@ def nx_same(kind, args, seed, result):
         H = nx.watts_strogatz_graph(n, k, p, seed=r)
     elif kind == "reg":
         n, d = args
-        H = nx.random_regular_graph(d, n, seed=r)
+        if d > (n - 1) // 2:
+            H = nx.complement(nx.random_regular_graph(n - 1 - d, n, seed=r))
+        else:
+            H = nx.random_regular_graph(d, n, seed=r)
     elif kind == "bip":
         a, b, p = args
         if result.directed and p >= 1.0:  # NetworkX returns the undirected K(a, b) there
@@ -635,7 +643,10 @@ def exact_row(group, case, call, kind, args, seed, fn, show_positions=False):
         text += "; pos [" + ", ".join("(" + ", ".join(repr(c) for c in p) + ")" for p in r.positions) + "]"
     text += f"; draws {rng.draws}"
     if same:
-        text += "; = NetworkX"
+        if kind == "reg" and args[1] > (args[0] - 1) // 2:
+            text += "; = complement of NetworkX's (n − 1 − d)-regular graph"
+        else:
+            text += "; = NetworkX"
     ROWS.append((group, case, call.replace("SEED", str(seed)), text))
     return r
 
@@ -967,7 +978,7 @@ def build_rows():
 
     # ---- random regular graphs
     for n, d, seeds in ((8, 3, (0, 1)), (10, 4, (0,)), (4, 2, (42,)), (7, 6, (0,)), (6, 0, (0,))):
-        note = {0: "d = 0: no edges, no draws", n - 1: "d = n − 1: the complete graph, after any retries"}.get(d, "")
+        note = {0: "d = 0: no edges, no draws", n - 1: "d = n − 1: the complete graph, no draws"}.get(d, "")
         for s in seeds:
             exact_row("RandomRegular", f"n {n}, d {d}" + (f": {note}" if note else ""),
                       f"{UL}.randomRegular(vertexCount: {n}, degree: {d}, using: &Xoshiro256StarStar(seed: SEED))",
@@ -1033,9 +1044,9 @@ def build_rows():
     exact_row("WattsStrogatz", "n 4, k 2, p 0.8: a vertex rewired away from loses degree, so it is not full",
               f"{UL}.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &Xoshiro256StarStar(seed: SEED))",
               "ws", (4, 2, 0.8), 0, lambda rng: watts_strogatz(4, 2, 0.8, rng))
-    exact_row("RandomRegular", "n 7, d 4: the suitability check's quirk decides whether a round restarts",
-              f"{UL}.randomRegular(vertexCount: 7, degree: 4, using: &Xoshiro256StarStar(seed: SEED))",
-              "reg", (7, 4), 3, lambda rng: random_regular(7, 4, rng))
+    exact_row("RandomRegular", "n 8, d 3: the suitability check's quirk decides whether a round restarts",
+              f"{UL}.randomRegular(vertexCount: 8, degree: 3, using: &Xoshiro256StarStar(seed: SEED))",
+              "reg", (8, 3), 81, lambda rng: random_regular(8, 3, rng))
     exact_row("BarabasiAlbert", "directed, m 17: more than 16 targets, sorted by the full sort",
               f"{CSR}.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &Xoshiro256StarStar(seed: SEED))",
               "ba", (20, 17, True), 0, lambda rng: barabasi_albert(20, 17, rng, True))
@@ -1076,7 +1087,8 @@ HEADER = [
     "  generator equals a fresh one with the same seed advanced `draws` times.",
     "* `= NetworkX` marks rows that NetworkX 3.7 reproduces edge for edge when it runs on the same stream",
     "  (`StreamRandom` in `ref.py`). Barabási–Albert rows match when CPython's set iteration happens to be",
-    "  ascending; G(n, m) rows when 2m ≤ N.",
+    "  ascending; G(n, m) rows when 2m ≤ N. A random regular row with d > (n − 1) / 2 is the complement",
+    "  of the (n − 1 − d)-regular graph, and is checked against the complement of NetworkX's.",
     "* Statistical rows give the exact aggregate over the listed seeds, which the Swift suite asserts",
     "  exactly, and the law it satisfies, which a reimplementation must also satisfy.",
     "* `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`).",
@@ -1119,7 +1131,7 @@ def stress():
             # our port of NetworkX's order reproduces NetworkX exactly
             r = barabasi_albert(30, 3, Xoshiro256StarStar(s), networkx_order=True)
             assert nx_key(nx.barabasi_albert_graph(30, 3, seed=StreamRandom(s))) == r.key(); checked += 1
-            for n, d in ((10, 3), (13, 4), (30, 2)):
+            for n, d in ((10, 3), (13, 4), (30, 2), (9, 6), (12, 7)):
                 assert nx_same("reg", (n, d), s, random_regular(n, d, Xoshiro256StarStar(s))); checked += 1
             for a, b, p in ((5, 7, 0.3), (12, 3, 0.6)):
                 for d in (False, True):

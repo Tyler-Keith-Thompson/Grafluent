@@ -1,7 +1,8 @@
 // Scenarios the catalog rows are too small for: the random geometric graph's cell grid against
 // every pair at n ≈ 2000 (irregular radii, radius 0, and 3^d > n, where every pair is checked), in
-// both forms; and random DAGs built in bulk, then mutated by a random script of insertions and
-// removals against a model written out here. See README.md.
+// both forms; random DAGs built in bulk, then mutated by a random script of insertions and
+// removals against a model written out here; and random regular graphs with d > (n − 1) / 2 as the
+// complement of the (n − 1 − d)-regular draw. See README.md.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -203,5 +204,56 @@ struct RandomGraphScenarioTests {
             blockSizes: [3, 2], edgeProbabilities: [[1e-17, 1e-17], [1e-17, 1e-17]], using: &generator)
         #expect(blocks.vertexCount == 5 && blocks.edgeCount == 0)
         #expect(generator == Xoshiro256StarStar(seed: 7))
+    }
+
+    @Test("Random regular, n 6, d 3: the complement of the random 2-regular graph on the same stream, with the same draws")
+    func regularAboveHalfIsComplement() {
+        for seed in UInt64(0) ..< 50 {
+            var sparseGenerator = Xoshiro256StarStar(seed: seed)
+            let sparse = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 6, degree: 2, using: &sparseGenerator)
+            let sparsePairs = Set(sparse.edges.map { [$0.u, $0.v] })
+            var complement: [[Int]] = []
+            for u in 0 ..< 6 {
+                for v in u + 1 ..< 6 where !sparsePairs.contains([u, v]) {
+                    complement.append([u, v])
+                }
+            }
+            var generator = Xoshiro256StarStar(seed: seed)
+            let graph = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 6, degree: 3, using: &generator)
+            #expect(graph.edges.map { [$0.u, $0.v] } == complement, "seed \(seed)")
+            #expect((0 ..< 6).allSatisfy { graph.degree(of: $0) == 3 }, "seed \(seed)")
+            #expect(generator == sparseGenerator, "seed \(seed)")
+            var directedGenerator = Xoshiro256StarStar(seed: seed)
+            let directed = CompressedSparseRow.randomRegular(vertexCount: 6, degree: 3, using: &directedGenerator)
+            let arcs = complement.flatMap { [[$0[0], $0[1]], [$0[1], $0[0]]] }.sorted { $0.lexicographicallyPrecedes($1) }
+            #expect(directed.edges.map { [$0.source, $0.target] } == arcs, "seed \(seed)")
+            #expect(directedGenerator == sparseGenerator, "seed \(seed)")
+        }
+    }
+
+    @Test("Random regular, d = n − 1: the complete graph, with no draws")
+    func regularCompleteMakesNoDraws() {
+        struct CountingGenerator: RandomNumberGenerator {
+            var base = Xoshiro256StarStar(seed: 0)
+            var draws = 0
+            mutating func next() -> UInt64 {
+                draws += 1
+                return base.next()
+            }
+        }
+        for n in 1 ... 12 {
+            var generator = CountingGenerator()
+            let graph = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: n, degree: n - 1, using: &generator)
+            var complete: [[Int]] = []
+            for u in 0 ..< n {
+                for v in u + 1 ..< n { complete.append([u, v]) }
+            }
+            #expect(graph.edges.map { [$0.u, $0.v] } == complete, "n \(n)")
+            #expect(generator.draws == 0, "n \(n)")
+            let directed = CompressedSparseRow.randomRegular(vertexCount: n, degree: n - 1, using: &generator)
+            #expect(directed.edgeCount == n * (n - 1), "n \(n)")
+            #expect((0 ..< n).allSatisfy { directed.outDegree(of: $0) == n - 1 }, "n \(n)")
+            #expect(generator.draws == 0, "n \(n)")
+        }
     }
 }

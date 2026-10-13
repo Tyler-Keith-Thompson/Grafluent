@@ -155,7 +155,8 @@ PERFORMANCE_TESTS = [
     "CoveringTests", "CyclesTests", "DistancesTests", "FlowsTests", "FunctionalGraphsTests", "GraphDrawingTests",
     "GraphFormatsTests", "GraphOperationsTests", "HypergraphsTests", "ImplicitGraphsTests", "IncidenceMatrixTests",
     "IsomorphismTests", "LabeledGraphsTests", "MatchingModuleTests", "MultigraphsTests", "PlanarityTests",
-    "SpectralGraphTheoryTests", "StableGraphsTests", "ToursTests", "TreeAlgorithmsTests", "TreesTests",
+    "RandomGraphsTests", "SpectralGraphTheoryTests", "StableGraphsTests", "ToursTests", "TreeAlgorithmsTests",
+    "TreesTests",
 ]
 
 # Performance tests run up to their one-minute limits each, so their targets get "medium" (300 s).

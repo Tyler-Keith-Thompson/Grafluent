@@ -822,9 +822,9 @@ struct StatisticalLawTests {
 
     @Test("RG-126 law: uniform over the 3 labeled 4-cycles (one isomorphism class)")
     func rg126() {
-        // n 4, d 2 → 3 outcomes over seeds 0..<3000; χ² 0.94 ≤ 13.816 (df 2, 0.999)
+        // n 4, d 2 → 3 outcomes over seeds 0..<3000; χ² 2.43 ≤ 13.816 (df 2, 0.999)
         // Every outcome's count over the seeds, from the model.
-        let expected: [[[Int]]: Int] = [[[0, 1], [0, 2], [1, 3], [2, 3]]: 986, [[0, 1], [0, 3], [1, 2], [2, 3]]: 989, [[0, 2], [0, 3], [1, 2], [1, 3]]: 1025]
+        let expected: [[[Int]]: Int] = [[[0, 1], [0, 2], [1, 3], [2, 3]]: 1016, [[0, 1], [0, 3], [1, 2], [2, 3]]: 1024, [[0, 2], [0, 3], [1, 2], [1, 3]]: 960]
         do {
             var counts: [[[Int]]: Int] = [:]
             for seed in 0 ..< UInt64(3000) {
@@ -861,7 +861,7 @@ struct StatisticalLawTests {
             let observed = Double(expected[outcome.key] ?? 0), predicted = 3000 * outcome.value
             return sum + (observed - predicted) * (observed - predicted) / predicted
         }
-        #expect(abs(chiSquare - 0.94) <= 0.005 && chiSquare <= 13.816, "\(chiSquare)")
+        #expect(abs(chiSquare - 2.43) <= 0.005 && chiSquare <= 13.816, "\(chiSquare)")
     }
 
     @Test("RG-140 law: E[m] = a·b·p")

@@ -84,8 +84,8 @@ run on the DAG. The m > N rows run on the conformers whose N the m exceeds. A va
 call then runs in this process. RG-002 runs `Xoshiro256StarStar(state: (0, 0, 0, 0))`, then a state
 with one nonzero word.
 
-The catalog-row files are every file except `RandomGraphPropertyTests.swift` and
-`RandomGraphScenarioTests.swift`. `swiftgen.py`
+The catalog-row files are every file except `RandomGraphPropertyTests.swift`,
+`RandomGraphScenarioTests.swift` and `Performance/`. `swiftgen.py`
 generated them from `cases.md`; it sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/RandomGraphs/`](../Catalogs/RandomGraphs/):
 
@@ -115,7 +115,14 @@ re-runs every row on the model, asserts that each value is the row's cell, and w
 - random DAGs built in bulk on all three bases, the same edges inserted one by one, then 400 random
   insertions and removals of edges and vertices against a model with its own cycle check: rejected
   exactly when an edge closes a cycle, the same vertices and edges, and a topological
-  `topologicalOrder` after every step.
+  `topologicalOrder` after every step;
+- random regular graphs with d > (n − 1) / 2: n 6, d 3 is the complement of n 6, d 2 on the same
+  stream, edge for edge and draw for draw, in both forms; d = n − 1 is the complete graph and makes
+  no draws, counted by a generator written in the test.
+
+**Performance** (`Performance/`, the `RandomGraphsPerformanceTests` target, under one-minute
+limits): random regular graphs at n 100 with d 90, 96 and 98 over seeds 0..<20 are simple, have
+nd/2 edges and every degree d.
 
 **Properties** (swift-property-based, with shrinking):
 

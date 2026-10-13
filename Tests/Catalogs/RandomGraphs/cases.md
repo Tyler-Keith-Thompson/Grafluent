@@ -19,7 +19,8 @@ Conventions:
   generator equals a fresh one with the same seed advanced `draws` times.
 * `= NetworkX` marks rows that NetworkX 3.7 reproduces edge for edge when it runs on the same stream
   (`StreamRandom` in `ref.py`). Barabási–Albert rows match when CPython's set iteration happens to be
-  ascending; G(n, m) rows when 2m ≤ N.
+  ascending; G(n, m) rows when 2m ≤ N. A random regular row with d > (n − 1) / 2 is the complement
+  of the (n − 1 − d)-regular graph, and is checked against the complement of NetworkX's.
 * Statistical rows give the exact aggregate over the listed seeds, which the Swift suite asserts
   exactly, and the law it satisfies, which a reimplementation must also satisfy.
 * `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`).
@@ -142,8 +143,8 @@ Conventions:
 | RG-114 | RandomRegular | n 8, d 3 | `UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 8, degree: 3, using: &Xoshiro256StarStar(seed: 0))` | n 8; m 12; E [0–2, 0–4, 0–7, 1–2, 1–5, 1–6, 2–5, 3–4, 3–6, 3–7, 4–6, 5–7]; draws 107; = NetworkX |
 | RG-115 | RandomRegular | n 8, d 3 | `UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 8, degree: 3, using: &Xoshiro256StarStar(seed: 1))` | n 8; m 12; E [0–1, 0–6, 0–7, 1–3, 1–7, 2–3, 2–4, 2–5, 3–7, 4–5, 4–6, 5–6]; draws 43; = NetworkX |
 | RG-116 | RandomRegular | n 10, d 4 | `UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 10, degree: 4, using: &Xoshiro256StarStar(seed: 0))` | n 10; m 20; E [0–1, 0–2, 0–4, 0–5, 1–3, 1–7, 1–9, 2–3, 2–6, 2–9, 3–7, 3–8, 4–7, 4–8, 4–9, 5–6, 5–8, 5–9, 6–7, 6–8]; draws 85; = NetworkX |
-| RG-117 | RandomRegular | n 4, d 2 | `UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 4, degree: 2, using: &Xoshiro256StarStar(seed: 42))` | n 4; m 4; E [0–1, 0–2, 1–3, 2–3]; draws 21; = NetworkX |
-| RG-118 | RandomRegular | n 7, d 6: d = n − 1: the complete graph, after any retries | `UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 7, degree: 6, using: &Xoshiro256StarStar(seed: 0))` | n 7; m 21; E [0–1, 0–2, 0–3, 0–4, 0–5, 0–6, 1–2, 1–3, 1–4, 1–5, 1–6, 2–3, 2–4, 2–5, 2–6, 3–4, 3–5, 3–6, 4–5, 4–6, 5–6]; draws 163; = NetworkX |
+| RG-117 | RandomRegular | n 4, d 2 | `UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 4, degree: 2, using: &Xoshiro256StarStar(seed: 42))` | n 4; m 4; E [0–2, 0–3, 1–2, 1–3]; draws 12; = complement of NetworkX's (n − 1 − d)-regular graph |
+| RG-118 | RandomRegular | n 7, d 6: d = n − 1: the complete graph, no draws | `UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 7, degree: 6, using: &Xoshiro256StarStar(seed: 0))` | n 7; m 21; E [0–1, 0–2, 0–3, 0–4, 0–5, 0–6, 1–2, 1–3, 1–4, 1–5, 1–6, 2–3, 2–4, 2–5, 2–6, 3–4, 3–5, 3–6, 4–5, 4–6, 5–6]; draws 0; = complement of NetworkX's (n − 1 − d)-regular graph |
 | RG-119 | RandomRegular | n 6, d 0: d = 0: no edges, no draws | `UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 6, degree: 0, using: &Xoshiro256StarStar(seed: 0))` | n 6; m 0; E []; draws 0; = NetworkX |
 | RG-120 | RandomRegular | directed: both arcs of every edge, the undirected draws | `CompressedSparseRow.randomRegular(vertexCount: 6, degree: 2, using: &Xoshiro256StarStar(seed: 0))` | n 6; m 12; E [0→4, 0→5, 1→3, 1→5, 2→3, 2→4, 3→1, 3→2, 4→0, 4→2, 5→0, 5→1]; draws 18; = NetworkX |
 | RG-121 | RandomRegular | d = n | `UndirectedAdjacencyList<Int>.randomRegular(…)` | **trap**: degree 5 is not in 0..<5 |
@@ -151,7 +152,7 @@ Conventions:
 | RG-123 | RandomRegular | n·d odd | `UndirectedAdjacencyList<Int>.randomRegular(…)` | **trap**: vertexCount × degree 15 is odd |
 | RG-124 | RandomRegular | negative vertex count | `UndirectedAdjacencyList<Int>.randomRegular(…)` | **trap**: vertexCount -1 is negative |
 | RG-125 | RandomRegular | laws: nd/2 edges, every vertex of degree d, simple | `n 100, d 3, seeds 0..<50` | hold for every seed (igraph is_simple) |
-| RG-126 | RandomRegular | law: uniform over the 3 labeled 4-cycles (one isomorphism class) | `n 4, d 2` | 3 outcomes over seeds 0..<3000; χ² 0.94 ≤ 13.816 (df 2, 0.999) |
+| RG-126 | RandomRegular | law: uniform over the 3 labeled 4-cycles (one isomorphism class) | `n 4, d 2` | 3 outcomes over seeds 0..<3000; χ² 2.43 ≤ 13.816 (df 2, 0.999) |
 | RG-127 | RandomBipartite | G(4, 5, 0.4): left 0..<4, right 4..<9 | `UndirectedAdjacencyList<Int>.randomBipartite(leftCount: 4, rightCount: 5, edgeProbability: 0.4, using: &Xoshiro256StarStar(seed: 0))` | n 9; m 5; E [0–5, 0–8, 1–4, 1–6, 2–4]; draws 6; = NetworkX |
 | RG-128 | RandomBipartite | G(4, 5, 0.4): left 0..<4, right 4..<9 | `UndirectedAdjacencyList<Int>.randomBipartite(leftCount: 4, rightCount: 5, edgeProbability: 0.4, using: &Xoshiro256StarStar(seed: 1))` | n 9; m 10; E [0–6, 0–8, 1–5, 1–6, 2–4, 2–5, 2–6, 2–7, 3–6, 3–8]; draws 11; = NetworkX |
 | RG-129 | RandomBipartite | G(3, 3, 0.5): left 0..<3, right 3..<6 | `UndirectedAdjacencyList<Int>.randomBipartite(leftCount: 3, rightCount: 3, edgeProbability: 0.5, using: &Xoshiro256StarStar(seed: 42))` | n 6; m 4; E [0–3, 0–4, 1–3, 2–4]; draws 5; = NetworkX |
@@ -168,7 +169,7 @@ Conventions:
 | RG-140 | RandomBipartite | law: E[m] = a·b·p | `G(30, 20, 0.1) undirected` | Σ 12103 over seeds 0..<200 (mean 60.5150; expected 60.0000; |z| 0.99 ≤ 4) |
 | RG-141 | RandomBipartite | law: E[m] = 2·a·b·p | `G(30, 20, 0.1) directed` | Σ 24056 over seeds 0..<200 (mean 120.2800; expected 120.0000; |z| 0.38 ≤ 4) |
 | RG-142 | WattsStrogatz | n 4, k 2, p 0.8: a vertex rewired away from loses degree, so it is not full | `UndirectedAdjacencyList<Int>.wattsStrogatz(vertexCount: 4, nearestNeighborCount: 2, rewiringProbability: 0.8, using: &Xoshiro256StarStar(seed: 0))` | n 4; m 4; E [0–1, 0–2, 1–2, 1–3]; draws 34; = NetworkX |
-| RG-143 | RandomRegular | n 7, d 4: the suitability check's quirk decides whether a round restarts | `UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 7, degree: 4, using: &Xoshiro256StarStar(seed: 3))` | n 7; m 14; E [0–1, 0–2, 0–5, 0–6, 1–2, 1–3, 1–6, 2–4, 2–5, 3–4, 3–5, 3–6, 4–5, 4–6]; draws 313; = NetworkX |
+| RG-143 | RandomRegular | n 8, d 3: the suitability check's quirk decides whether a round restarts | `UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 8, degree: 3, using: &Xoshiro256StarStar(seed: 81))` | n 8; m 12; E [0–1, 0–4, 0–5, 1–5, 1–6, 2–3, 2–5, 2–6, 3–4, 3–7, 4–7, 6–7]; draws 136; = NetworkX |
 | RG-144 | BarabasiAlbert | directed, m 17: more than 16 targets, sorted by the full sort | `CompressedSparseRow.barabasiAlbert(vertexCount: 20, edgesPerVertex: 17, using: &Xoshiro256StarStar(seed: 0))` | n 20; m 51; E [1→0, 2→0, 3→0, 4→0, 5→0, 6→0, 7→0, 8→0, 9→0, 10→0, 11→0, 12→0, 13→0, 14→0, 15→0, 16→0, 17→0, 18→0, 18→1, 18→2, 18→3, 18→4, 18→5, 18→6, 18→7, 18→8, 18→9, 18→10, 18→11, 18→12, 18→13, 18→14, 18→15, 18→16, 19→0, 19→1, 19→2, 19→3, 19→4, 19→5, 19→6, 19→7, 19→8, 19→9, 19→10, 19→12, 19→13, 19→14, 19→16, 19→17, 19→18]; draws 373; = NetworkX |
 | RG-145 | RandomGeometric | n 5, radius 0.1, dimension 70: 2^d and 3^d overflow Int, every pair checked | `UndirectedAdjacencyList<Int>.randomGeometric(vertexCount: 5, radius: 0.1, dimension: 70, using: &Xoshiro256StarStar(seed: 0))` | n 5; m 0; E []; draws 350; = NetworkX |
 | RG-146 | WattsStrogatz | k > n = 0 | `UndirectedAdjacencyList<Int>.wattsStrogatz(…)` | **trap**: nearestNeighborCount 2 > vertexCount 0 |
