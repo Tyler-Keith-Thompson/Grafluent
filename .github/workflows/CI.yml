@@ -1,6 +1,7 @@
 name: CI
 
-# The test suite, on every branch but main. PR_CI and Release call it too.
+# The Bazel test suite, on every branch but main. PR_CI and Release call it too. Package.swift
+# is checked against the Bazel graph by //:package_swift_test.
 on:
   push:
     branches:
@@ -49,11 +50,3 @@ jobs:
       - name: Test (release)
         run: bazel test --keep_going --config=release //...
 
-  swiftpm:
-    name: SwiftPM build
-    runs-on: ubuntu-26.04
-    container: swift:6.3
-    steps:
-      - uses: actions/checkout@v7
-      - name: Build
-        run: swift build
