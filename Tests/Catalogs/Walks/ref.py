@@ -90,7 +90,7 @@ def rotate(vs, es, k):
 
 
 def rot_equal(a, b):
-    """Circuit/Cycle ==: equal up to rotation of the (vertex, edge) steps."""
+    """Circuit ==: equal up to rotation of the (vertex, edge) steps."""
     (va, ea), (vb, eb) = a, b
     if len(va) != len(vb):
         return False
@@ -106,18 +106,35 @@ def rot_equal_bruteforce(a, b):
     return len(va) == len(vb) and any(rotate(va, ea, k) == (vb, eb) for k in range(len(va)))
 
 
+def cycle_equal(a, b):
+    """Cycle ==: a is a rotation of b or of b reversed."""
+    return rot_equal(a, b) or rot_equal(a, reverse_cycle(*b))
+
+
+def cycle_equal_bruteforce(a, b):
+    """Every rotation of both directions of b, built step by step from the vertex sequence."""
+    (va, ea), (vb, eb) = a, b
+    n = len(vb)
+    if len(va) != n:
+        return False
+    # Backward from vb[0]: vertex vb[-i mod n], left through the edge that reached it.
+    back = ([vb[-i % n] for i in range(n)], [eb[(-i - 1) % n] for i in range(n)])
+    return any(rotate(*d, k) == (va, ea) for d in ((vb, eb), back) for k in range(n))
+
+
 MASK = (1 << 64) - 1
 
 
-def step_hash(v, e):
-    return hash(("step", v, e)) & MASK
+def edge_hash(e):
+    return hash(("edge", e)) & MASK
 
 
 def comm_hash(vs, es):
-    """Circuit/Cycle hash(into:): count, then the wrapping sum of per-step hashes."""
+    """Circuit/Cycle hash(into:): count, then the wrapping sum of per-edge hashes, so rotation
+    and reversal leave it unchanged."""
     s = 0
-    for v, e in zip(vs, es):
-        s = (s + step_hash(v, e)) & MASK
+    for e in es:
+        s = (s + edge_hash(e)) & MASK
     return hash((len(vs), s))
 
 
@@ -317,6 +334,14 @@ check("WK-605", is_cycle_storage([0, 1], [0, 1]) and is_closed_walk_in(DV, [0, 1
       "undirected negative edge 0-1 is a 2-cycle of g.directedView: arcs (0,false),(0,true)")
 # NetworkX: undirected cycles are distinct up to rotation and reversal; directed only rotation.
 check("WK-606", len(list(nx.simple_cycles(nx.cycle_graph(3)))) == 1, "undirected triangle: one simple cycle")
+# The six vertex orders of the triangle U as Cycle values: one class up to rotation and reversal.
+tri = [(list(o), [U.index(e) if e in U else U.index(e[::-1]) for e in zip(o, o[1:] + o[:1])])
+       for o in itertools.permutations([0, 1, 2])]
+classes = []
+for c in tri:
+    if not any(cycle_equal(c, d) for d in classes):
+        classes.append(c)
+check("WK-607", len(classes) == 1, "the triangle's six vertex orders are one Cycle value")
 check("WK-607", len(list(nx.simple_cycles(nx.DiGraph([(0, 1), (1, 2), (2, 0), (0, 2), (2, 1), (1, 0)])))) == 5,
       "bidirected triangle: 2 triangles + 3 digons")
 check("WK-608", list(nx.simple_cycles(nx.Graph([(0, 1)]))) == [], "a simple undirected edge is not a 2-cycle")
@@ -332,12 +357,13 @@ A = ([0, 1, 2], [10, 11, 12])
 for k in range(3):
     R = rotate(*A, k)
     check(f"WK-701 k={k}", rot_equal(A, R) and comm_hash(*A) == comm_hash(*R), f"{R}")
-check("WK-702", not rot_equal(A, ([0, 2, 1], [12, 11, 10])), "reversal is not equal")
+check("WK-702", cycle_equal(A, ([0, 2, 1], [12, 11, 10])) and not rot_equal(A, ([0, 2, 1], [12, 11, 10]))
+      and comm_hash(*A) == comm_hash([0, 2, 1], [12, 11, 10]), "a cycle equals its reversal, with the same hash")
 check("WK-703", rot_equal(A, reverse_cycle(*reverse_cycle(*A))), "reversing twice is the identity")
 check("WK-704", reverse_cycle(*A) == ([0, 2, 1], [12, 11, 10]))
-check("WK-705", not rot_equal(A, ([0, 1, 2], [10, 11, 13])), "same vertices, different edge")
-check("WK-706", not rot_equal(A, ([1, 0, 2], [10, 11, 12])), "same edges, vertices shifted against them")
-check("WK-707", rot_equal(([5], [9]), ([5], [9])) and not rot_equal(([5], [9]), ([5], [8])))
+check("WK-705", not cycle_equal(A, ([0, 1, 2], [10, 11, 13])), "same vertices, different edge")
+check("WK-706", not cycle_equal(A, ([1, 0, 2], [10, 11, 12])), "same edges, vertices shifted against them")
+check("WK-707", cycle_equal(([5], [9]), ([5], [9])) and not cycle_equal(([5], [9]), ([5], [8])))
 # Figure-eight circuit rotations: vertex 0 appears twice, but edges are distinct so one offset matches.
 F8 = ([0, 1, 2, 0, 3, 4], [0, 1, 2, 3, 4, 5])
 for k in range(6):
@@ -363,7 +389,15 @@ for trial in range(2000):
     assert rot_equal((va, ea), (vb, eb)) == rot_equal_bruteforce((va, ea), (vb, eb))
     if rot_equal((va, ea), (vb, eb)):
         assert comm_hash(va, ea) == comm_hash(vb, eb)
-check("WK-711", True, "2000 random circuits: linear equality == brute-force rotation equality; equal ⇒ equal hash")
+    # Cycles: the same, sometimes against the reversal, up to rotation and reversal.
+    if rng.random() < 0.5:
+        vb, eb = reverse_cycle(vb, eb)
+    assert cycle_equal((va, ea), (vb, eb)) == cycle_equal_bruteforce((va, ea), (vb, eb))
+    assert cycle_equal((va, ea), (vb, eb)) == cycle_equal((vb, eb), (va, ea))
+    if cycle_equal((va, ea), (vb, eb)):
+        assert comm_hash(va, ea) == comm_hash(vb, eb)
+check("WK-711", True, "2000 random circuits: linear equality == brute-force rotation equality (cycles: rotation and "
+      "reversal); equal ⇒ equal hash")
 # Walk equality is exact: rotation of a closed walk is a different Walk.
 check("WK-712", ([0, 1, 2, 0], [10, 11, 12]) != ([1, 2, 0, 1], [11, 12, 10]))
 
@@ -413,8 +447,24 @@ cat = ([0, 1, 2] + [2, 3, 1][1:], [0, 1] + [2, 3])
 check("WK-1003", cat == ([0, 1, 2, 3, 1], [0, 1, 2, 3]) and is_walk(C, *cat, True))
 check("WK-1004", ([0, 1] + [1][1:], [0] + []) == ([0, 1], [0]), "appending a trivial walk changes nothing")
 check("WK-1005", reverse_walk([7], []) == ([7], []))
-check("WK-1006", reverse_cycle([0, 1], [0, 1]) == ([0, 1], [1, 0]) and not rot_equal(([0, 1], [0, 1]), ([0, 1], [1, 0])),
-      "a digon reversed is a different cycle value")
+check("WK-1006", reverse_cycle([0, 1], [0, 1]) == ([0, 1], [1, 0]) and not rot_equal(([0, 1], [0, 1]), ([0, 1], [1, 0]))
+      and cycle_equal(([0, 1], [0, 1]), ([0, 1], [1, 0])), "a digon reversed is a different rotation class but an equal cycle")
+# In one digraph, cycle equality (rotation or reversal) is rotation equality: a reversal walks each
+# arc backward, so it is never a cycle of the same digraph.
+BT = [(0, 1), (1, 2), (2, 0), (0, 2), (2, 1), (1, 0)]
+bt_cycles = []
+for k in (1, 2, 3):
+    for order in itertools.permutations(range(3), k):
+        for es in itertools.product(range(len(BT)), repeat=k):
+            if is_cycle_storage(list(order), list(es)) and is_closed_walk_in(BT, list(order), list(es), True):
+                bt_cycles.append((list(order), list(es)))
+bt_agree = all(cycle_equal(a, b) == rot_equal(a, b) for a in bt_cycles for b in bt_cycles)
+bt_classes = []
+for c in bt_cycles:
+    if not any(cycle_equal(c, d) for d in bt_classes):
+        bt_classes.append(c)
+check("WK-1011", bt_agree and len(bt_classes) == 5 and not any(is_closed_walk_in(BT, *reverse_cycle(*c), True) for c in bt_cycles if len(c[0]) > 1),
+      f"{len(bt_cycles)} stored cycles, {len(bt_classes)} values")
 # Reversal of a walk in g.directedView: reversing order alone gives arcs pointing backward.
 check("WK-1007", is_walk(DV, [0, 1, 2], [0, 2], True) and not is_walk(DV, [2, 1, 0], [2, 0], True)
       and is_walk(DV, [2, 1, 0], [3, 1], True), "flip each arc's reversed flag to stay in g.directedView")

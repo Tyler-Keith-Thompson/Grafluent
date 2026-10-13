@@ -1,7 +1,7 @@
 // Property checks with shrinking (swift-property-based): on a failure, PropertyBased shrinks the
 // generated input and prints the smallest one that still fails. The oracles are brute force,
-// written in each test: every rotation for Circuit and Cycle equality and hashing (WK-701,
-// WK-711), every choice of parallel edges for Trail(_:in:) (WK-510), and the step law and the
+// written in each test: every rotation for Circuit and Cycle equality and hashing, and every
+// rotation of the reversal for Cycle (WK-701, WK-711), every choice of parallel edges for Trail(_:in:) (WK-510), and the step law and the
 // invariant of each type for the checked initializers (WK-101, WK-202). Case IDs (WK-nnn) refer
 // to the catalog; see README.md.
 
@@ -13,7 +13,7 @@ import Walks
 
 @Suite("Walk properties with shrinking", .tags(.randomized))
 struct WalkPropertyTests {
-    @Test("WK-701 WK-711 a circuit equals and hashes like every rotation, and differs from every perturbation that brute force says differs")
+    @Test("WK-701 WK-711 a circuit equals and hashes like every rotation, a cycle also like every rotation of its reversal, and each differs from every perturbation that brute force says differs")
     func rotationInvariance() async {
         // Up to 7 steps over vertices 0...2 (so vertices repeat), a perturbed step and a perturbed
         // vertex. Edges are the step indices, so they are distinct.
@@ -62,6 +62,16 @@ struct WalkPropertyTests {
             }
             #expect((reversed == circuit) == reversalIsRotation)
             #expect(reversed.reversed() == circuit)
+            // A cycle equals every rotation of its reversal, and hashes alike.
+            if let cycle {
+                let back = cycle.reversed()
+                for k in 0 ..< n {
+                    let rotated = Cycle(vertices: Array(back.vertices[k...] + back.vertices[..<k]), edges: Array(back.edges[k...] + back.edges[..<k]))
+                    #expect(rotated == cycle, "k = \(k)")
+                    #expect(cycle == rotated, "k = \(k)")
+                    #expect(rotated?.hashValue == cycle.hashValue, "k = \(k)")
+                }
+            }
         }
     }
 

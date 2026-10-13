@@ -130,13 +130,18 @@ public func weight<W: AdditiveArithmetic, E: Error>(_ weight: (Edge) throws(E) -
 
 - **Walk, Trail, Path.** `==` compares `vertices` and `edges` exactly, and `hash(into:)` combines
   both arrays. Rotating a closed `Walk` gives a different `Walk` (WK-712).
-- **Circuit, Cycle.** `==` holds up to rotation of the (vertex, edge) steps, not reflection. Edges
-  are distinct in a circuit, so only the rotation that lines up `other.edges[0]` can match, and
+- **Circuit.** `==` holds up to rotation of the (vertex, edge) steps, not reflection. Edges are
+  distinct in a circuit, so only the rotation that lines up `other.edges[0]` can match, and
   equality is O(n) (checked against brute force in WK-711). Undirected callers who want reflection
   write `a == b || a == b.reversed()`.
+- **Cycle.** `==` holds up to rotation and reversal: `a == b` when `a` is a rotation of `b` or of
+  `b.reversed()`, so the two directions around an undirected cycle are one value (WK-602, WK-607,
+  WK-702). A directed cycle's reversal is a cycle of the converse graph, never of the graph itself,
+  so two cycles of one directed graph are equal only up to rotation. Still O(n): the reversal is
+  compared in place, by the one offset that lines up an edge (WK-711).
 - **Hash for Circuit and Cycle.** `hash(into:)` combines `count` and the wrapping sum of one
-  finalized `Hasher` per edge position. It is rotation-invariant, O(n), allocation-free and needs
-  no `Comparable` (WK-701 to WK-711).
+  finalized `Hasher` per edge position. It is invariant under rotation and reversal, O(n),
+  allocation-free and needs no `Comparable` (WK-701 to WK-711).
 - **Rotation of results.** Algorithms emit a deterministic rotation, starting at the vertex that
   comes first in `vertices` order. `first` is not rotation-invariant.
 - **Codable** (when `Vertex` and `Edge` are): a keyed container `{"vertices": [...], "edges": [...]}`,

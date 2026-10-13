@@ -1,6 +1,6 @@
 // §6: walks of undirected graphs. The stored vertex sequence orients each edge, so one triangle
-// gives two cycles (one per direction) that are not equal: equality does not include reflection,
-// and callers who want it write `a == b || a == b.reversed()`. There and back over one edge is a
+// gives two stored orders (one per direction); as cycles they are equal, because cycle equality
+// includes reversal, and as circuits they are not. There and back over one edge is a
 // closed walk of g but a genuine 2-cycle of `g.directedView`. Fixtures: U = triangle 0–1, 1–2, 2–0;
 // UP = parallel pair 0–1, 0–1; UL = two loops at 0. Case IDs (WK-nnn) refer to the catalog; see
 // README.md.
@@ -23,14 +23,19 @@ struct UndirectedWalkTests {
         #expect(Cycle(vertices: b.vertices, edges: b.edges, in: u) != nil)
     }
 
-    @Test("WK-602 the two directions are not equal: a == b.reversed()")
-    func noReflection() throws {
+    @Test("WK-602 the two directions are one cycle, with one hash, and two circuits")
+    func reflectionEqual() throws {
         let u = ReferencePseudograph(edges: [(0, 1), (1, 2), (2, 0)].map { UndirectedEdge($0.0, $0.1) })
         let a = try #require(Cycle([0, 1, 2], in: u))
         let b = try #require(Cycle([0, 2, 1], in: u))
-        #expect(a != b)
+        #expect(a.vertices != b.vertices)
+        #expect(a == b)
+        #expect(b == a)
+        #expect(a.hashValue == b.hashValue)
         #expect(a == b.reversed())
         #expect(b == a.reversed())
+        #expect(Circuit(a) != Circuit(b))
+        #expect(Circuit(a) == Circuit(b.reversed()))
     }
 
     @Test("WK-603 there and back on one edge is a closed walk but not a trail, circuit or cycle")
@@ -71,19 +76,14 @@ struct UndirectedWalkTests {
         #expect(Cycle([0, 0], in: ul) == nil)
     }
 
-    @Test("WK-607 one undirected triangle is two cycle values and one up to reflection; the bidirected triangle has 5 directed cycles (NetworkX)")
+    @Test("WK-607 one undirected triangle is one cycle value and two circuit values; the bidirected triangle has 5 directed cycles (NetworkX)")
     func reflectionCounts() {
         let u = ReferencePseudograph(edges: [(0, 1), (1, 2), (2, 0)].map { UndirectedEdge($0.0, $0.1) })
         let orders = [[0, 1, 2], [1, 2, 0], [2, 0, 1], [0, 2, 1], [2, 1, 0], [1, 0, 2]]
         let cycles = orders.compactMap { Cycle($0, in: u) }
         #expect(cycles.count == 6)
-        #expect(Set(cycles).count == 2)
-        // Deduplicating up to reflection, as an enumerating algorithm does, leaves one.
-        var upToReflection: [Cycle<Int, Int>] = []
-        for c in cycles where !upToReflection.contains(where: { $0 == c || $0 == c.reversed() }) {
-            upToReflection.append(c)
-        }
-        #expect(upToReflection.count == 1)
+        #expect(Set(cycles).count == 1)
+        #expect(Set(cycles.map { Circuit($0) }).count == 2)
         // The bidirected triangle as a digraph: 2 triangles and 3 digons.
         let d = ReferenceDirectedMultigraph(edges: [(0, 1), (1, 2), (2, 0), (0, 2), (2, 1), (1, 0)].map { DirectedEdge(from: $0.0, to: $0.1) })
         var sequences: [[Int]] = []

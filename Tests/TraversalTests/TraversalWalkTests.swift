@@ -11,7 +11,7 @@ import Walks
 
 @Suite("Cycles and paths as walks")
 struct TraversalWalkTests {
-    @Test("WK-1202 the cycle found keeps its vertex order, and equals any rotation of itself")
+    @Test("WK-1202 the cycle found keeps its vertex order, and equals any rotation of itself or of its reversal")
     func cycleRotation() {
         // Wikipedia's example DAG with 5→0 added, at position 9.
         let edges = [(0, 3), (0, 4), (1, 3), (2, 4), (2, 7), (3, 5), (3, 6), (3, 7), (4, 6), (5, 0)].map { DirectedEdge(from: $0.0, to: $0.1) }
@@ -21,7 +21,9 @@ struct TraversalWalkTests {
         #expect(cycle?.edges == [0, 5, 9])
         #expect(cycle == Cycle(vertices: [3, 5, 0], edges: [5, 9, 0]))
         #expect(cycle == Cycle(vertices: [5, 0, 3], edges: [9, 0, 5]))
-        #expect(cycle != Cycle(vertices: [0, 5, 3], edges: [9, 5, 0]))
+        // The reversal, a cycle of the converse graph, is the same value; another edge is not.
+        #expect(cycle == Cycle(vertices: [0, 5, 3], edges: [9, 5, 0]))
+        #expect(cycle != Cycle(vertices: [0, 3, 5], edges: [0, 6, 9]))
         // The same vertices on a compressed sparse row, whose edges are its own positions.
         let sparse = CompressedSparseRow(vertexCount: 8, edges: edges)
         let found = sparse.findCycle()

@@ -66,14 +66,16 @@ struct WalkReversalTests {
         #expect(Path<Int, Int>(vertex: 7).reversed() == Path<Int, Int>(vertex: 7))
     }
 
-    @Test("WK-1006 a digon reversed is a different cycle")
+    @Test("WK-1006 a digon reversed is a different circuit but an equal cycle")
     func digonReversed() throws {
         let c = try #require(Cycle(vertices: [0, 1], edges: [0, 1]))
         let r = c.reversed()
         // Reversed, 1 reaches 0 through edge 0, and 0 closes back to 1 through edge 1.
         #expect(r.vertices == [1, 0])
         #expect(r.edges == [0, 1])
-        #expect(r != c)
+        #expect(r == c)
+        #expect(r.hashValue == c.hashValue)
+        #expect(Circuit(r) != Circuit(c))
     }
 
     @Test("WK-1007 a walk of g.directedView reversed names the original arcs, so it is not a walk of g.directedView")
@@ -131,5 +133,41 @@ struct WalkReversalTests {
         let converse = ReferenceDirectedMultigraph(edges: [(0, 1), (1, 2), (2, 3), (3, 0)].map { DirectedEdge(from: $0.1, to: $0.0) })
         #expect(Cycle(vertices: r.vertices, edges: r.edges, in: converse) == r)
         #expect(Cycle(vertices: r.vertices, edges: r.edges, in: d4) == nil)
+    }
+
+    @Test("WK-1011 two cycles of one digraph are equal exactly when one is a rotation of the other")
+    func directedCyclesRotationOnly() throws {
+        let bt = ReferenceDirectedMultigraph(edges: [(0, 1), (1, 2), (2, 0), (0, 2), (2, 1), (1, 0)].map { DirectedEdge(from: $0.0, to: $0.1) })
+        // Every stored cycle: each vertex order of length 1 to 3 with each choice of edges.
+        var cycles: [Cycle<Int, Int>] = []
+        for a in 0 ..< 3 {
+            for b in 0 ..< 3 {
+                for c in 0 ..< 3 {
+                    for order in [[a], [a, b], [a, b, c]] {
+                        var choices: [[Int]] = [[]]
+                        for _ in order { choices = choices.flatMap { prefix in (0 ..< 6).map { prefix + [$0] } } }
+                        for es in choices {
+                            if let cycle = Cycle(vertices: order, edges: es, in: bt), !cycles.contains(where: { $0.vertices == cycle.vertices && $0.edges == cycle.edges }) {
+                                cycles.append(cycle)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        #expect(cycles.count == 12)
+        for x in cycles {
+            for y in cycles {
+                let n = x.length
+                let rotation = n == y.length && (0 ..< n).contains { r in
+                    Array(x.vertices[r...] + x.vertices[..<r]) == y.vertices && Array(x.edges[r...] + x.edges[..<r]) == y.edges
+                }
+                #expect((x == y) == rotation, "\(x.vertices) \(x.edges) vs \(y.vertices) \(y.edges)")
+            }
+            // The reversal is not a cycle of bt, but it is equal.
+            if x.length > 1 { #expect(Cycle(vertices: x.reversed().vertices, edges: x.reversed().edges, in: bt) == nil) }
+            #expect(x.reversed() == x)
+        }
+        #expect(Set(cycles).count == 5)
     }
 }

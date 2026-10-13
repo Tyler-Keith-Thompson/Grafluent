@@ -1,8 +1,8 @@
 // §7: equality and hashing. Walk, Trail and Path compare their vertices and edges exactly.
-// Circuit and Cycle compare up to rotation of the (vertex, edge) steps, never reversal, and hash
-// the same for every rotation. Edge positions here are plain integers; no graph is needed.
-// Expected values come from the catalog's reference (ref.py, linear and brute-force rotation
-// equality). Case IDs (WK-nnn) refer to the catalog; see README.md.
+// Circuit compares up to rotation of the (vertex, edge) steps, never reversal; Cycle compares up
+// to rotation and reversal. Both hash alike under every rotation and reversal. Edge positions here
+// are plain integers; no graph is needed. Expected values come from the catalog's reference
+// (ref.py, linear and brute-force equality). Case IDs (WK-nnn) refer to the catalog; see README.md.
 
 import GrafluentTestSupport
 import Testing
@@ -24,11 +24,22 @@ struct WalkEqualityTests {
         }
     }
 
-    @Test("WK-702 a cycle does not equal its reversal")
-    func reversalUnequal() throws {
+    @Test("WK-702 a cycle equals its reversal and each of its rotations, with the same hash")
+    func reversalEqual() throws {
         let c = try #require(Cycle(vertices: [0, 1, 2], edges: [10, 11, 12]))
         let r = try #require(Cycle(vertices: [0, 2, 1], edges: [12, 11, 10]))
-        #expect(c != r)
+        #expect(c == r)
+        #expect(r == c)
+        #expect(c.hashValue == r.hashValue)
+        #expect(c == c.reversed())
+        for (vs, es) in [([2, 1, 0], [11, 10, 12]), ([1, 0, 2], [10, 12, 11])] {
+            let rotated = try #require(Cycle(vertices: vs, edges: es))
+            #expect(c == rotated, "\(vs)")
+            #expect(rotated == c, "\(vs)")
+            #expect(c.hashValue == rotated.hashValue, "\(vs)")
+        }
+        // As circuits, the two directions stay apart.
+        #expect(Circuit(c) != Circuit(r))
     }
 
     @Test("WK-703 reversing twice is the identity")
@@ -92,7 +103,7 @@ struct WalkEqualityTests {
         #expect(c != (try #require(Circuit(vertices: [0, 3, 4, 0, 1, 2], edges: [0, 1, 2, 3, 4, 5]))))
     }
 
-    @Test("WK-711 equality agrees with brute-force rotation equality on random circuits, and equal values hash alike", .tags(.randomized), arguments: 0 ..< 4)
+    @Test("WK-711 equality agrees with brute force on random circuits (rotation) and cycles (rotation and reversal), and equal values hash alike", .tags(.randomized), arguments: 0 ..< 4)
     func linearEqualsBruteForce(seed: Int) throws {
         var rng = SeededRandomNumberGenerator(seed: UInt(711_000 + seed))
         for _ in 0 ..< 500 {
@@ -119,10 +130,24 @@ struct WalkEqualityTests {
             #expect((b == a) == bruteForce)
             if bruteForce { #expect(a.hashValue == b.hashValue) }
             if Set(va).count == n {
+                // Sometimes the other direction: vb[0], vb[n − 1], …, vb[1], each step through the
+                // edge that joins the pair.
+                if Bool.random(using: &rng) {
+                    let rv = (0 ..< n).map { vb[(n - $0) % n] }
+                    let re = (0 ..< n).map { eb[(2 * n - 1 - $0) % n] }
+                    vb = rv
+                    eb = re
+                }
+                let cycleBruteForce = (0 ..< n).contains { r in
+                    let rotated = (Array(va[r...] + va[..<r]), Array(ea[r...] + ea[..<r]))
+                    let back = ((0 ..< n).map { rotated.0[(n - $0) % n] }, (0 ..< n).map { rotated.1[(2 * n - 1 - $0) % n] })
+                    return (rotated.0 == vb && rotated.1 == eb) || (back.0 == vb && back.1 == eb)
+                }
                 let ca = try #require(Cycle(vertices: va, edges: ea))
                 if let cb = Cycle(vertices: vb, edges: eb) {
-                    #expect((ca == cb) == bruteForce)
-                    if bruteForce { #expect(ca.hashValue == cb.hashValue) }
+                    #expect((ca == cb) == cycleBruteForce, "\(va) \(ea) vs \(vb) \(eb)")
+                    #expect((cb == ca) == cycleBruteForce)
+                    if cycleBruteForce { #expect(ca.hashValue == cb.hashValue) }
                 }
             }
         }
@@ -137,14 +162,17 @@ struct WalkEqualityTests {
         #expect(Circuit(a) == Circuit(b))
     }
 
-    @Test("WK-713 a Set of three rotations of a cycle and its reversal has two members")
+    @Test("WK-713 a Set of three rotations of a cycle and its reversal has one member")
     func setOfRotations() throws {
         let c0 = try #require(Cycle(vertices: [0, 1, 2], edges: [10, 11, 12]))
         let c1 = try #require(Cycle(vertices: [1, 2, 0], edges: [11, 12, 10]))
         let c2 = try #require(Cycle(vertices: [2, 0, 1], edges: [12, 10, 11]))
         let set: Set = [c0, c1, c2, c0.reversed()]
-        #expect(set.count == 2)
+        #expect(set.count == 1)
         #expect(set.contains(c1))
+        #expect(set.contains(c2.reversed()))
+        // The circuits keep the two directions apart.
+        #expect(Set([c0, c1, c2, c0.reversed()].map { Circuit($0) }).count == 2)
     }
 
     @Test("WK-714 paths with the same vertices and different edges are unequal")

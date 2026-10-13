@@ -54,8 +54,8 @@ extension DirectedGraph {
 ## Result types
 
 - `Cycle<Vertex, Edges.Index>` (Walks) everywhere: vertices plus edge positions, so parallel edges
-  are told apart. Equality is up to rotation; the module emits every undirected cycle once, in one
-  orientation, so equal cycles have equal `vertices` and `edges`.
+  are told apart. Equality is up to rotation and reversal; the module emits every undirected cycle
+  once, in one orientation, so equal cycles have equal `vertices` and `edges`.
 - `[Cycle]` for `cycleBasis()`.
 - Lazy sequences for `simpleCycles`: their number is exponential (K₁₃ has 710 771 275), so `first`,
   `prefix(k)` and early `break` do not pay for the rest. Each `makeIterator()` starts over from the

@@ -50,7 +50,7 @@ Cycle?(_: Walk), Cycle?(_: Trail), Cycle?(_: Circuit)                           
 | Self-loops and parallel edges | The positions are part of the value: walks over the same vertices through different parallel copies are unequal (WK-502, WK-507, WK-514); a loop is a 1-cycle, a parallel pair a 2-cycle, a single undirected edge is no 2-cycle (WK-215, WK-513, WK-605) |
 | Vertices-only initializers | Walk and Path take the first edge in `outEdges(of:)` / `incidentEdges(of:)` order; Trail, Circuit and Cycle the first unused one, which finds a trail exactly when one exists (WK-510) |
 | Undirected orientation | The vertex sequence orients each edge; in `g.directedView` the arc's `reversed` flag must match the step (WK-405, WK-604) |
-| Equality | Exact for open walks (WK-712); up to rotation, never reflection, for circuits and cycles, with a rotation-invariant hash (WK-701 – WK-716) |
+| Equality | Exact for open walks (WK-712); up to rotation for circuits, and rotation and reversal for cycles, with a hash invariant under both (WK-701 – WK-716) |
 | `reversed()` | Open walks: both sequences reversed. Circuits and cycles keep the start, `[v0] + v[1...].reversed()`, with edges reversed. Over a digraph the result is a walk of the converse (WK-1002, WK-1010) |
 | Weight | Sums the closure over the edges taken, in stored order, from `.zero`; typed throws rethrown (WK-906) |
 | Codable | `{"vertices": [...], "edges": [...]}` in the stored rotation; decoding re-validates and throws `DecodingError.dataCorrupted` (WK-1104) |
@@ -78,8 +78,8 @@ oracles inside the test.
 | `WalkCollectionTests.swift` | §3: elements, indices, `first`/`last`, consecutive pairs, the RandomAccessCollection laws for every type |
 | `WalkEdgeTests.swift` | §4: the step law on the reference graphs, `AdjacencyMatrix` and `CompressedSparseRow`; undirected orientation; `g.directedView` arcs |
 | `WalkMultigraphTests.swift` | §5: parallel edges and self-loops; first and first-unused picking; seeded brute force for WK-510 |
-| `UndirectedWalkTests.swift` | §6: both directions of a triangle, no reflection, there-and-back, `g.directedView` 2-cycles, cycle counts |
-| `WalkEqualityTests.swift` | §7: rotation equality and hashing, figure-eight rotations, seeded brute force for WK-711, `Set` and `Dictionary` |
+| `UndirectedWalkTests.swift` | §6: both directions of a triangle, one cycle value, there-and-back, `g.directedView` 2-cycles, cycle counts |
+| `WalkEqualityTests.swift` | §7: rotation and reversal equality and hashing, figure-eight rotations, seeded brute force for WK-711, `Set` and `Dictionary` |
 | `WalkConversionTests.swift` | §8: total and failable conversions, round trips |
 | `WalkWeightTests.swift` | §9: weights of parallel edges, floating-point rotation, typed throws, the weight of a reversed path |
 | `WalkReversalTests.swift` | §10: reversal over `Graph`, `DirectedGraph` and `g.directedView`, concatenation, `append` |
@@ -103,7 +103,7 @@ Case IDs (WK-101 … WK-1306) refer to the catalog (`cases.md`, with `ref.py` an
 | WK-701 – WK-716 | 7. Equality and hashing | `WalkEqualityTests.swift`; WK-701 and WK-711 also in `WalkPropertyTests.swift` |
 | WK-801 – WK-810 | 8. Conversions | `WalkConversionTests.swift` |
 | WK-901 – WK-907 | 9. Weight | `WalkWeightTests.swift` |
-| WK-1001 – WK-1010 | 10. Reversal and concatenation | `WalkReversalTests.swift` |
+| WK-1001 – WK-1011 | 10. Reversal and concatenation | `WalkReversalTests.swift` |
 | WK-1101 – WK-1110 | 11. Codable, description, Sendable | `WalkCodableTests.swift` |
 | WK-1201 – WK-1215 | 12. Results of other modules | not tested here: `ShortestPathsTests` and `TraversalTests` |
 | WK-1301 – WK-1306 | 13. Preconditions | `WalkPreconditionTests.swift` |

@@ -145,8 +145,24 @@ func _equalUpToRotation<Vertex: Equatable, Edge: Equatable>(_ lv: [Vertex], _ le
     return true
 }
 
-/// A hash invariant under rotation: the count and the wrapping sum of one hash per edge, as
-/// `Set`'s hash is invariant under order. Equal values have equal edges, so hashing the edges
+/// Whether `(lv, le)` is a rotation of `(rv, re)` traversed backward, as `Cycle.reversed()`
+/// lists it: step i of the reversal leaves `rv[n − 1 − i]` through `re[(n − 2 − i) mod n]`. As
+/// for rotation, only the offset that lines up the first edge can match. O(n).
+@inlinable
+func _equalUpToReversal<Vertex: Equatable, Edge: Equatable>(_ lv: [Vertex], _ le: [Edge], _ rv: [Vertex], _ re: [Edge]) -> Bool {
+    let n = lv.count
+    guard n == rv.count else { return false }
+    guard n > 0, let k = le.firstIndex(of: re[n == 1 ? 0 : n - 2]) else { return n == 0 }
+    for i in 0 ..< n {
+        let j = k + i < n ? k + i : k + i - n
+        let r = n - 1 - i
+        if lv[j] != rv[r] || le[j] != re[r == 0 ? n - 1 : r - 1] { return false }
+    }
+    return true
+}
+
+/// A hash invariant under rotation and reversal: the count and the wrapping sum of one hash per
+/// edge, as `Set`'s hash is invariant under order. Equal values have equal edges, so hashing the edges
 /// alone keeps the hash consistent with `==`, at half the cost of hashing each step.
 @inlinable
 func _hashUpToRotation<Vertex: Hashable, Edge: Hashable>(_ vertices: [Vertex], _ edges: [Edge], into hasher: inout Hasher) {

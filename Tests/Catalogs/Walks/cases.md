@@ -115,19 +115,19 @@ whose out- and incident orders are position order). ✓ marks a case whose expec
 | ID | Input | Expected |
 |---|---|---|
 | WK-601 ✓ | `Cycle([0,1,2], in: U)` and `Cycle([0,2,1], in: U)` | edges `[0,1,2]` and `[2,1,0]`; both valid |
-| WK-602 ✓ | WK-601 pair | `!=` (no reflection); `a == b.reversed()` |
+| WK-602 ✓ | WK-601 pair | `==` (a cycle equals its reversal), equal hashes; `a == b.reversed()` |
 | WK-603 ✓ | `Walk(vertices: [0,1,0], edges: [0,0], in: U)` | non-nil Walk; `Trail(_)`, `Circuit(_)`, `Cycle(_)` all nil |
 | WK-604 ✓ | `Cycle(vertices: [0,1], edges: [(0,false),(0,true)], in: U.directedView)` | non-nil (a 2-cycle of `g.directedView`) |
 | WK-605 ✓ | `Cycle([0,1], in: UP)` | edges `[0,1]` (parallel pair, NetworkX WK-609) |
 | WK-606 | `Cycle([0], in: UL)` | edges `[0]`; `Circuit([0,0], in: UL)` edges `[0,1]` |
-| WK-607 ✓ | NetworkX `simple_cycles(cycle_graph(3))` has 1 cycle; `DiGraph` bidirected triangle has 5 | documents the reflection difference that callers handle themselves |
+| WK-607 ✓ | the six vertex orders of U as `Cycle`s; NetworkX `simple_cycles(cycle_graph(3))` has 1 cycle; `DiGraph` bidirected triangle has 5 | one `Cycle` value, as NetworkX counts one; the bidirected triangle's 5 directed cycles stay 5 values |
 
 ## 7. Equality and hashing (WK-7xx)
 
 | ID | Input | Expected |
 |---|---|---|
 | WK-701 ✓ | `Cycle(vertices: [0,1,2], edges: [10,11,12])` vs each rotation `k = 0, 1, 2` | `==` and equal `hashValue` |
-| WK-702 ✓ | vs `Cycle(vertices: [0,2,1], edges: [12,11,10])` | `!=` |
+| WK-702 ✓ | vs `Cycle(vertices: [0,2,1], edges: [12,11,10])` (its reversal) | `==`, equal `hashValue` |
 | WK-703 ✓ | `c.reversed().reversed()` | `== c` |
 | WK-704 ✓ | `c.reversed()` | vertices `[0,2,1]`, edges `[12,11,10]` |
 | WK-705 ✓ | vs `[0,1,2]` with edges `[10,11,13]` | `!=` |
@@ -136,9 +136,9 @@ whose out- and incident orders are position order). ✓ marks a case whose expec
 | WK-708 ✓ | figure-eight `Circuit(vertices: [0,1,2,0,3,4], edges: [0,1,2,3,4,5])` vs all 6 rotations | `==`, equal hashes |
 | WK-709 ✓ | vs `[0,3,4,0,1,2]` with edges `[3,4,5,0,1,2]` | `==` (rotation from the second visit of 0) |
 | WK-710 ✓ | vs `[0,3,4,0,1,2]` with edges `[0,1,2,3,4,5]` | `!=` |
-| WK-711 ✓ | randomized circuits and perturbed rotations | linear equality equals brute-force rotation equality; equal values have equal hashes |
+| WK-711 ✓ | randomized circuits and perturbed rotations, sometimes reversed | linear equality equals brute-force rotation equality for circuits, rotation-or-reversal equality for cycles; equal values have equal hashes |
 | WK-712 ✓ | `Walk(vertices: [0,1,2,0], edges: [10,11,12])` vs `Walk(vertices: [1,2,0,1], edges: [11,12,10])` | `!=` (open types are exact) |
-| WK-713 | `Set` of 3 rotations of one cycle plus its reversal | `count == 2` |
+| WK-713 | `Set` of 3 rotations of one cycle plus its reversal | `count == 1` |
 | WK-714 | `Path` with the same vertices and different edges | `!=`, and the hashes usually differ (not required) |
 | WK-715 | `Walk(vertex: 1) == Walk(vertex: 1)`; `!= Walk(vertex: 2)` | true; true (JGraphT testFirstEmptyWalkEquality analogue: no empty walk exists) |
 | WK-716 | equal cycles with different rotations as `Dictionary` keys | one entry |
@@ -179,11 +179,12 @@ whose out- and incident orders are position order). ✓ marks a case whose expec
 | WK-1003 ✓ | `Walk([0,1,2], in: C)!.appending(Walk(vertices: [2,3,1], edges: [2,3], in: C)!)` | vertices `[0,1,2,3,1]`, edges `[0,1,2,3]` |
 | WK-1004 ✓ | `w.appending(Walk(vertex: w.target)) == w` and `Walk(vertex: w.source).appending(w) == w` | true (JGraphT testConcatPathWithSingleton) |
 | WK-1005 ✓ | `Walk(vertex: 7).reversed()` | `== Walk(vertex: 7)` |
-| WK-1006 ✓ | `Cycle(vertices: [0,1], edges: [0,1]).reversed()` | vertices `[0,1]`, edges `[1,0]`; `!=` the original |
+| WK-1006 ✓ | `Cycle(vertices: [0,1], edges: [0,1]).reversed()` | vertices `[1,0]`, edges `[0,1]`; `==` the original (as a `Circuit`, `!=`) |
 | WK-1007 ✓ | a walk of `U.directedView` with arcs `(0,false),(1,false)` over `[0,1,2]`, reversed | arcs `(1,false),(0,false)` over `[2,1,0]`: not a walk of `U.directedView` (documented) |
 | WK-1008 | `var w; w.append(x)` vs `w.appending(x)` | equal results; `append` does not copy a uniquely referenced buffer (benchmark, not a test) |
 | WK-1009 | `Path.reversed()`, `Trail.reversed()`, `Circuit.reversed()` | keep their type (`Self`) |
 | WK-1010 | `Cycle([0,1,2,3], in: D4)!.reversed()` | vertices `[0,3,2,1]`, edges `[3,2,1,0]` |
+| WK-1011 | every cycle storage of the bidirected triangle 0→1, 1→2, 2→0, 0→2, 2→1, 1→0 (all vertex orders and edge choices) | equal exactly when one is a rotation of the other: a reversal is never a cycle of the same digraph; 5 values |
 
 ## 11. Codable, description, Sendable (WK-11xx)
 
@@ -207,7 +208,7 @@ The walk types that `ShortestPaths` and `Traversal` return. Their own suites tes
 | ID | Call | Expected |
 |---|---|---|
 | WK-1201 ✓ | SP-63: `cycleGraph(5).findNegativeCycle(from: s) { weights[$0] }` (undirected, edge {1,2} negative) | `Cycle` with vertices `[1,2]`, edges `[(p,false),(p,true)]` where `p` is edge {1,2}'s position |
-| WK-1202 ✓ | TR-105: `findCycle()` cases like `== [0,3,5]` | `?.vertices == [0,3,5]`, and `==` any rotation built with the same edges |
+| WK-1202 ✓ | TR-105: `findCycle()` cases like `== [0,3,5]` | `?.vertices == [0,3,5]`, and `==` any rotation built with the same edges, or of its reversal |
 | WK-1203 ✓ | NetworkX TestFindCycle digraph `[(-1,0),(0,1),(1,0),(1,0),(2,1),(3,1)]` from `[0,1,2,3]` | NetworkX `[(0,1),(1,0)]`; Grafluent `findCycle(from: [0,1,2,3])?.vertices == [0,1]`, and its edges name the first 1→0 copy found by DFS |
 | WK-1204 ✓ | NetworkX undirected find_cycle plus 2–0 | NetworkX `[(0,1),(1,2),(2,0)]` (for the planned `Graph.cycle()`) |
 | WK-1205 ✓ | NetworkX `find_cycle(DAG, orientation='ignore')` | `[(0,1,fwd),(1,2,fwd),(0,2,rev)]`: equivalent to a cycle of `dag.undirectedView`, outside `Traversal`'s scope |

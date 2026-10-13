@@ -6,8 +6,11 @@ import GraphProtocols
 /// appears twice. A self-loop is a cycle of length 1, and two parallel edges form a cycle of
 /// length 2. Cycle detection returns a `Cycle` as its witness.
 ///
-/// Like circuits, cycles are equal up to rotation. `init?(vertices:edges:in:)` checks that a cycle
-/// belongs to a particular graph.
+/// Two cycles are equal when one is a rotation of the other or of its `reversed()`, so the two
+/// directions around an undirected cycle are one value. In a directed graph a cycle's reversal is a
+/// cycle of the converse graph, never of the graph itself, so two cycles of one directed graph are
+/// equal only up to rotation. `init?(vertices:edges:in:)` checks that a cycle belongs to a
+/// particular graph.
 @frozen
 public struct Cycle<Vertex: Hashable, Edge: Hashable> {
     @usableFromInline let _vertices: [Vertex]
@@ -137,16 +140,19 @@ extension Cycle: RandomAccessCollection {
 }
 
 extension Cycle: Equatable {
-    /// Whether both are the same steps up to rotation, not reversal. O(n), because edges are
-    /// distinct and only the rotation that lines up the first edge can match.
+    /// Whether both are the same steps up to rotation and reversal: `lhs` is a rotation of `rhs`
+    /// or of `rhs.reversed()`. O(n), because edges are distinct and only the rotation that lines
+    /// up the first edge can match.
     @inlinable
     public static func == (lhs: Self, rhs: Self) -> Bool {
         _equalUpToRotation(lhs._vertices, lhs._edges, rhs._vertices, rhs._edges)
+            || _equalUpToReversal(lhs._vertices, lhs._edges, rhs._vertices, rhs._edges)
     }
 }
 
 extension Cycle: Hashable {
-    /// Invariant under rotation, as `==` is.
+    /// Invariant under rotation and reversal, as `==` is: it hashes the length and the set of edge
+    /// positions.
     @inlinable
     public func hash(into hasher: inout Hasher) {
         _hashUpToRotation(_vertices, _edges, into: &hasher)

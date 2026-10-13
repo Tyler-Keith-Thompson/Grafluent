@@ -2,9 +2,10 @@
 // self-loops and parallel edges. For a random vertex sequence and random edge positions, each
 // checked initializer accepts exactly when brute force says the sequence is a walk, trail, path,
 // circuit or cycle of the graph; picking edges by vertices succeeds exactly when some choice of
-// edges exists (tried exhaustively); every rotation of a circuit is equal and hashes alike;
-// reversal and conversions keep the rules. (Codable is the unit tests' job: Foundation's coders
-// are not available to this toolchain against the SDK.)
+// edges exists (tried exhaustively); every rotation of a circuit is equal and hashes alike, and a
+// cycle also equals every rotation of its reversal; reversal and conversions keep the rules.
+// (Codable is the unit tests' job: Foundation's coders are not available to this toolchain
+// against the SDK.)
 
 import FuzzSupport
 import GraphProtocols
@@ -110,6 +111,16 @@ enum FuzzWalks {
                 if !directed { check(circuit(found.reversed().vertices, found.reversed().edges) != nil, "\(name) a reversed undirected circuit is not a circuit of the graph") }
                 let opened = Walk(found)
                 check(opened.isClosed && Circuit(opened) == found, "\(name) Circuit → Walk → Circuit")
+                if let asCycle = Cycle(opened) {
+                    // A cycle equals and hashes like every rotation of its reversal; in a digraph the
+                    // reversal of a cycle longer than a loop is not a cycle of the graph.
+                    let back = asCycle.reversed()
+                    for r in 0 ..< back.count {
+                        let rotated = Cycle(vertices: Array(back.vertices[r...] + back.vertices[..<r]), edges: Array(back.edges[r...] + back.edges[..<r]))!
+                        check(rotated == asCycle && asCycle == rotated && rotated.hashValue == asCycle.hashValue, "\(name) rotation \(r) of the reversal of \(asCycle) differs")
+                    }
+                    if directed && asCycle.length > 1 { check(cycle(back.vertices, back.edges) == nil, "\(name) the reversal of \(asCycle) is a cycle of the digraph") }
+                }
             }
             if let found = pickTrail(vs) {
                 check(trail(found.vertices, found.edges) != nil, "\(name) a picked trail is not a trail of the graph")
