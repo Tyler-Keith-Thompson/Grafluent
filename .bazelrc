@@ -36,15 +36,6 @@ build --features=swift.suppress_warnings
 # far more than the extraction itself; outside it, the cache persists between actions.
 build --strategy=SwiftSymbolGraphExtract=local
 
-# On Linux, Swift 6.3.3 builds made through rules_swift's persistent compile worker have produced
-# test binaries that compute wrong results (GraphDrawing's Sugiyama property test), while the same
-# sources compiled by a plain swiftc invocation are correct. Linux compiles without the worker.
-common --enable_platform_specific_config
-build:linux --strategy=SwiftCompile=local
-# A separate output directory gives Linux actions new cache keys, so outputs the worker produced
-# are never served from the remote cache.
-build:linux --platform_suffix=noworker
-
 # Show what actually failed rather than just the target.
 test --test_output=errors
 

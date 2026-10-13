@@ -82,8 +82,11 @@ struct GraphDrawingPropertyTests {
 
     @Test("Sugiyama on random digraphs: feedback arcs, downward edges, bends on the layers, separation, crossingCount by brute force")
     func sugiyamaInvariants() async {
-        let arcs = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 24)
-        await propertyCheck(count: 300, input: arcs, Gen.int(in: 1 ... 10)) { arcs, size in
+        // A local function rather than the closure given to propertyCheck: in a closure, Swift 6.3
+        // gives a closure inside a #expect argument the same discriminator as the next closure
+        // written after it, and emits one body for both (here the `loops` filter ran the
+        // `allSatisfy` predicate above it). Function bodies number their closures correctly.
+        @Sendable func check(_ arcs: [(Int, Int)], _ size: Int) {
             let n = max(size, (arcs.map { max($0.0, $0.1) }.max() ?? -1) + 1)
             let graph = DirectedPseudograph<Int>(vertices: 0 ..< n, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
             let layered = graph.sugiyamaLayout()
@@ -139,6 +142,8 @@ struct GraphDrawingPropertyTests {
             let loops = forward.edges.indices.filter { forward.source(ofEdgeAt: $0) == forward.target(ofEdgeAt: $0) }
             #expect(forward.feedbackArcSet() == loops && forward.sugiyamaLayout().reversedEdges.isEmpty, "\(context)")
         }
+        let arcs = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 24)
+        await propertyCheck(count: 300, input: arcs, Gen.int(in: 1 ... 10)) { arcs, size in check(arcs, size) }
     }
 
     @Test("Sugiyama with caller layers: upward edges reversed, flat edges without segments, layers as given")

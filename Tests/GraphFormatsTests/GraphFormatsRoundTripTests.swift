@@ -29,7 +29,7 @@ struct GraphFormatsRoundTripTests {
             // Doubles in the writers' form, the text DOT gives back.
             let doubles: [(Double, String)] = [(0.5, "0.5"), (-2.0, "-2.0"), (1e-07, "1e-07"), (1e22, "1e+22"), (9.5e15, "9500000000000000.0"),
                                                (1e16, "1e+16"), (0.0001, "0.0001"), (-0.0, "-0.0"), (.infinity, "inf"), (-.infinity, "-inf"),
-                                               (.nan, "nan"), (5e-324, "5e-324"), (123456789.125, "123456789.125")]
+                                               (.nan, "nan"), (.leastNonzeroMagnitude, "5e-324"), (123456789.125, "123456789.125")]
             var vertices: [String] = []
             for p in picks {
                 let name = p.map { pool[$0] }.joined()
@@ -148,7 +148,7 @@ struct GraphFormatsRoundTripTests {
             let (picks, pairs, codes) = input
             let pool = ["a", "x y", "q\"r", "\\", "tail\\", "é", "日本", "😀", "two\nlines", "#", "<&>", "1", " lead", "_", "&amp;",
                         "\t", "\r\n", "", "]]>", "\u{7F}"]
-            let doubles: [Double] = [0.5, -2.0, 1e-07, 1e22, 9.5e15, 1e16, 0.0001, 0.1, .infinity, -.infinity, 5e-324, 1.7976931348623157e308]
+            let doubles: [Double] = [0.5, -2.0, 1e-07, 1e22, 9.5e15, 1e16, 0.0001, 0.1, .infinity, -.infinity, .leastNonzeroMagnitude, 1.7976931348623157e308]
             var vertices: [String] = []
             for p in picks {
                 let name = p.map { pool[$0] }.joined()
@@ -281,7 +281,7 @@ struct GraphFormatsRoundTripTests {
             let (picks, pairs, codes) = input
             let pool = ["a", "x y", "q\"r", "\\", "\\u0041", "é", "日本", "😀", "two\nlines", "#", "<&>", "1", "\u{1}", "_", "\u{8}\u{C}",
                         "\t", "\r\n", "", "/", "\u{FFFF}"]
-            let doubles: [Double] = [0.5, -2.0, 1e-07, 1e22, 9.5e15, 1e16, 0.0001, 0.1, -0.0, 5e-324, 1.7976931348623157e308, 2.5e-300]
+            let doubles: [Double] = [0.5, -2.0, 1e-07, 1e22, 9.5e15, 1e16, 0.0001, 0.1, -0.0, .leastNonzeroMagnitude, 1.7976931348623157e308, 2.5e-300]
             var vertices: [String] = []
             for p in picks {
                 let name = p.map { pool[$0] }.joined()
@@ -390,7 +390,7 @@ struct GraphFormatsRoundTripTests {
         )
         await propertyCheck(count: 200, input: input) { input in
             let (n, pairs, codes) = input
-            let doubles: [Double] = [0.5, -2.0, 1e-07, 1e22, 1.152921504606847e18, 0.1, -0.0, 0.0, 5e-324, -1.7976931348623157e308, .infinity, -.infinity,
+            let doubles: [Double] = [0.5, -2.0, 1e-07, 1e22, 1.152921504606847e18, 0.1, -0.0, 0.0, .leastNonzeroMagnitude, -1.7976931348623157e308, .infinity, -.infinity,
                                      .nan, 1234.5, 3.0]
             let integers = [0, -7, 42, Int.max, Int.min + 1, 1]
             // Vertices in a shuffled order: the file's indices are positions in `vertices`, not the values.
@@ -477,7 +477,7 @@ struct GraphFormatsRoundTripTests {
         await propertyCheck(count: 200, input: input) { input in
             let (picks, pairs, codes) = input
             let pool = ["a", "é", "日本", "😀", "q\"r", "\\", "<&>", "1", "-2", "_", "x|y", "a-b"]
-            let doubles: [Double] = [0.5, -2.0, 1e-07, 1e22, 9.5e15, 1e16, 0.0001, 0.1, -0.0, 5e-324, 1.7976931348623157e308, 2.0]
+            let doubles: [Double] = [0.5, -2.0, 1e-07, 1e22, 9.5e15, 1e16, 0.0001, 0.1, -0.0, .leastNonzeroMagnitude, 1.7976931348623157e308, 2.0]
             let strings = ["x|y", "é", "a-b", "inf", "NaN", "q\"r", "1e", "--1", "0x10", "+"]
             var vertices: [String] = []
             for p in picks {

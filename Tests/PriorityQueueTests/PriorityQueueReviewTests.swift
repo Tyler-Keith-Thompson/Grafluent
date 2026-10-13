@@ -12,6 +12,12 @@ import GrafluentTestSupport
 import PriorityQueueModule
 import Testing
 
+#if arch(x86_64)
+private let trapSignal = SIGILL
+#else
+private let trapSignal = SIGTRAP
+#endif
+
 @Suite("IndexedPriorityQueue review cases")
 struct PriorityQueueReviewTests {
     @Test("PQ-44 a copy is independent when the first mutation reorders in place or clears", .tags(.copyOnWrite))
@@ -112,30 +118,30 @@ struct PriorityQueueReviewTests {
         #expect(order == [0, 2, 3, 4, 7, 9])
     }
 
-    // A precondition failure is SIGTRAP. A wild read past the slot array, if a range check were
-    // ever weakened to a debug-only assertion, would instead be SIGSEGV or SIGBUS for these
-    // indices, or no crash at all: so these expect the signal, not just any failure.
+    // A precondition failure is SIGTRAP on arm64 and SIGILL on x86_64. A wild read past the slot
+    // array, if a range check were ever weakened to a debug-only assertion, would instead be SIGSEGV
+    // or SIGBUS for these indices, or no crash at all, so these expect the trap signal itself.
     @Test("PQ-53 out-of-range indices trap in the queue itself, for every operation that reads unchecked buffers", .tags(.precondition), arguments: [4, -1, Int.min, 1 << 40, Int.max])
     func farOutOfRange(_ index: Int) async {
-        await #expect(processExitsWith: .signal(SIGTRAP)) { [index] in
+        await #expect(processExitsWith: .signal(trapSignal)) { [index] in
             var q = IndexedPriorityQueue<Int>(indexBound: 4)
             q.insert(index, priority: 1)
         }
-        await #expect(processExitsWith: .signal(SIGTRAP)) { [index] in
+        await #expect(processExitsWith: .signal(trapSignal)) { [index] in
             var q = IndexedPriorityQueue<Int>(indexBound: 4)
             q.insert(0, priority: 1)
             q.decreasePriority(of: index, to: 0)
         }
-        await #expect(processExitsWith: .signal(SIGTRAP)) { [index] in
+        await #expect(processExitsWith: .signal(trapSignal)) { [index] in
             var q = IndexedPriorityQueue<Int>(indexBound: 4)
             q.insert(0, priority: 1)
             q.updatePriority(of: index, to: 0)
         }
-        await #expect(processExitsWith: .signal(SIGTRAP)) { [index] in
+        await #expect(processExitsWith: .signal(trapSignal)) { [index] in
             var q = IndexedPriorityQueue<Int>(indexBound: 4)
             q.insertOrDecreasePriority(of: index, to: 0)
         }
-        await #expect(processExitsWith: .signal(SIGTRAP)) { [index] in
+        await #expect(processExitsWith: .signal(trapSignal)) { [index] in
             var q = IndexedPriorityQueue<Int>(indexBound: 4)
             q.insert(0, priority: 1)
             q.remove(index)
@@ -144,7 +150,7 @@ struct PriorityQueueReviewTests {
 
     @Test("PQ-53 insertOrDecreasePriority with NaN traps", .tags(.precondition))
     func insertOrDecreaseNaN() async {
-        await #expect(processExitsWith: .signal(SIGTRAP)) {
+        await #expect(processExitsWith: .signal(trapSignal)) {
             var q = IndexedPriorityQueue<Double>(indexBound: 4)
             q.insertOrDecreasePriority(of: 0, to: .nan)
         }
