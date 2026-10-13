@@ -189,4 +189,46 @@ struct GraphFormatsNumberTests {
             .writeMatrixMarket(to: &scipy, weight: { three[$0] })
         #expect(scipy.hasSuffix("2 2 3\n1 2 9.5E15\n1 2 1E16\n1 2 1E-5\n"))
     }
+
+    @Test("The smallest subnormals write description's digits, the shortest that round-trip")
+    func smallestSubnormalsShortest() {
+        let values = (1 ... 200).map { Double(bitPattern: UInt64($0)) }
+        var output = ""
+        let graph = DirectedPseudograph<Int>(vertices: 0 ..< 2, edges: Array(repeating: DirectedEdge(from: 0, to: 1), count: values.count))
+        graph.writeEdgeList(to: &output, columns: ["x"], edgeAttributes: { [("x", .double(values[$0]))] })
+        let written = output.split(separator: "\n").map { String($0.split(separator: " ")[2]) }
+        #expect(written[19] == "1e-322")
+        #expect(written[9] == "5e-323")
+        for (k, x) in values.enumerated() {
+            #expect(written[k] == x.description, "\(x.bitPattern)")
+        }
+    }
+
+    @Test("Long decimals read correctly rounded: past 16 KiB, and halfway with zeros past the 768th digit", .timeLimit(.minutes(1)))
+    func longDecimals() throws {
+        // 1 + 2⁻⁵³, exactly halfway between 1 and its successor.
+        let halfway = "1.00000000000000011102230246251565404236316680908203125"
+        let zeros = String(repeating: "0", count: 20_000)
+        let cases: [(String, Double)] = [
+            ("1" + zeros + "e-20000", 1),
+            ("0." + zeros + "1e20001", 1),
+            ("-1" + zeros + ".5e-20000", -1),
+            ("1" + zeros, .infinity),
+            ("0." + zeros + "1", 0),
+            (halfway + String(repeating: "0", count: 800), 1),
+            (halfway + String(repeating: "0", count: 800) + "1", 1.0000000000000002),
+            ("-" + halfway + zeros, -1),
+            ("-" + halfway + zeros + "1e0", -1.0000000000000002),
+            ("9007199254740993." + zeros, 9_007_199_254_740_992),
+            ("9007199254740993." + zeros + "1", 9_007_199_254_740_994),
+        ]
+        let file = cases.enumerated().map { "\($0.offset) \($0.offset) \($0.element.0)" }.joined(separator: "\n")
+        var read: [Int: Double] = [:]
+        _ = try DirectedPseudograph<Int>(edgeList: file.utf8, columns: ["x"], edgeAttribute: { p, _, value in
+            if case .double(let d) = value { read[p] = d }
+        })
+        for (k, (_, expected)) in cases.enumerated() {
+            #expect(read[k]?.bitPattern == expected.bitPattern, "case \(k): read \(String(describing: read[k])), expected \(expected)")
+        }
+    }
 }

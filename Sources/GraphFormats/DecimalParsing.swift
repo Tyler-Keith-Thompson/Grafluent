@@ -3,6 +3,12 @@
 /// library's `Double(_:)` for the rare inputs it cannot decide). No hexadecimal floats, no
 /// `nan(…)` payloads, no Foundation.
 
+// Why this parser exists: the standard library's only public way to read a double is
+// `Double(_:)` on a `String` or `Substring`, so reading from a byte buffer would build a heap
+// `String` for every number, and the readers spend most of their time on numbers. This one reads
+// the bytes in place, correctly rounded, and leaves only the rare undecided inputs to
+// `Double(_:)`. It uses public API only.
+
 /// Whether `byte` is an ASCII digit.
 @inline(__always)
 @inlinable func _isDigit(_ byte: UInt8) -> Bool { byte &- 0x30 < 10 }
@@ -141,8 +147,46 @@
         // Digits were dropped: the value lies in [w, w + 1) × 10^q; decided when both ends agree.
         if let upper = _eiselLemire(q, w &+ 1), upper == bits { return Double(bitPattern: bits | sign) }
     }
-    let string = String(decoding: UnsafeBufferPointer(rebasing: text[start ..< end]), as: UTF8.self)
-    return Double(string) ?? (parts.negative ? -.infinity : .infinity)
+    return _fallbackDouble(parts, text.baseAddress!, start, end)
+}
+
+/// The double nearest to the decimal `parts` of `base[start..<end]`, by the standard library's
+/// `Double(_:)`, for the inputs Eisel–Lemire cannot decide.
+@inline(never)
+@usableFromInline func _fallbackDouble(_ parts: _DecimalParts, _ base: UnsafePointer<UInt8>, _ start: Int, _ end: Int) -> Double {
+    let overflow: Double = parts.negative ? -.infinity : .infinity
+    if end &- start <= 700 {
+        return Double(String(decoding: UnsafeBufferPointer(start: base + start, count: end &- start), as: UTF8.self)) ?? overflow
+    }
+    // `Double(_:)` refuses a long text (past 16 KiB on Apple platforms), and on Apple platforms
+    // reads zeros past the 768th significant digit as if they were not zero. A long text is
+    // passed as the same value to within rounding instead: `0.d₁…dₖ[1] × 10^e`, its significant
+    // digits cut at 768 (a halfway point between doubles has at most 767) and trailing zeros
+    // dropped, with a 1 standing for any nonzero digit cut.
+    var digits: [UInt8] = []
+    var place = parts.integerEnd &- parts.integerStart
+    var sticky = false
+    var k = parts.integerStart
+    while k < parts.fractionEnd {
+        if k == parts.integerEnd && parts.fractionStart > k {
+            k = parts.fractionStart
+            continue
+        }
+        let digit = base[k]
+        k &+= 1
+        if digits.isEmpty && digit == UInt8(ascii: "0") {
+            place &-= 1
+        } else if digits.count < 768 {
+            digits.append(digit)
+        } else if digit != UInt8(ascii: "0") {
+            sticky = true
+        }
+    }
+    while digits.last == UInt8(ascii: "0") { digits.removeLast() }
+    if digits.isEmpty { return parts.negative ? -0.0 : 0.0 }
+    if sticky { digits.append(UInt8(ascii: "1")) }
+    let text = (parts.negative ? "-0." : "0.") + String(decoding: digits, as: UTF8.self) + "e\(place &+ parts.exponent)"
+    return Double(text) ?? overflow
 }
 
 /// `w × 10^q` as the bits of a positive double, correctly rounded, or `nil` when the

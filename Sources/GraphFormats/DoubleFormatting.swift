@@ -3,6 +3,11 @@
 /// write, or in the Matrix Market form. The table is generated (`scripts/schubfach_table.py`), and
 /// the arithmetic is 64-bit multiplications.
 
+// Why this printer exists: the standard library prints a double only through `description` (or
+// `TextOutputStream`'s underscored hooks), and most doubles' shortest digits are too long for a
+// small `String`, so every number written would allocate. This one writes the same digits straight
+// into the output buffer. It uses public API only.
+
 /// The shortest round-trip decimal digits of a finite, nonzero `|x|`: `count` digits in `digits`,
 /// with no leading or trailing zeros, and the decimal exponent of the first, so that
 /// `|x| = d₀.d₁d₂… × 10^exponent`.
@@ -85,8 +90,9 @@
     let vbl = _roundToOdd(g1, g0, cbl << UInt64(h))
     let vbr = _roundToOdd(g1, g0, cbr << UInt64(h))
     let s = vb >> 2
-    if s >= 100 {
-        // One digit shorter, when a multiple of 10 is inside the rounding interval.
+    if s >= 10 {
+        // One digit shorter, when a multiple of 10 is inside the rounding interval (only a
+        // subnormal has `s` below 100).
         let sp10 = 10 &* (s.multipliedFullWidth(by: 115_292_150_460_684_698 << 4).high)
         let tp10 = sp10 &+ 10
         let upin = vbl &+ odd <= sp10 << 2

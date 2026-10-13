@@ -56,7 +56,7 @@ MUTANTS = [
     # Matrix Market.
     Mutant("mmlimit", MM, "if rows > vertexBound { throw ParseError(.limitExceeded, at: sizeOffset) }", "", mode="stmt"),
     Mutant("mmlimiteq", MM, "rows > vertexBound", "rows >= vertexBound"),
-    Mutant("mmlimitdefault", MM, "perByte: 16).remaining", "perByte: 1 << 20).remaining"),
+    Mutant("mmlimitdefault", MM, "_ExpansionBudget(inputCount: n, perByte: 16).remaining", "_ExpansionBudget(inputCount: n, perByte: 1 << 20).remaining"),
     Mutant("mmfieldcr", MM, "(c == 0x0D && (q &+ 1 == text.count || text[q &+ 1] == 0x0A))", "c == 0x0D"),
     Mutant("mmoverflow", MM, "if o1 || o2 { overflow = true }", "", mode="stmt"),
     Mutant("mmdigits", MM, "digitsOnly = false", "", mode="stmt"),
@@ -214,6 +214,8 @@ MUTANTS = [
     Mutant("dpsubnormal", DP, "mantissa &+= mantissa & 1\n        mantissa >>= 1\n        power2 = mantissa < (1 << 52) ? 0 : 1",
            "mantissa >>= 1\n        power2 = mantissa < (1 << 52) ? 0 : 1", mode="stmt"),
     Mutant("dpsecond", DP, "high & precisionMask == precisionMask", "false"),
+    Mutant("dplongcut", DP, "end &- start <= 700", "true"),
+    Mutant("dpsticky", DP, "if sticky { digits.append(UInt8(ascii: \"1\")) }", "", mode="stmt"),
 
     # Schubfach and the layouts.
     Mutant("sftie", DF, "cmp < 0 || (cmp == 0 && s & 1 == 0) ? s : t", "cmp <= 0 ? s : t"),
@@ -225,4 +227,5 @@ MUTANTS = [
     Mutant("pyexponent", DF, "e < -4 || e >= 16", "e < -4 || e >= 15"),
     Mutant("pyexpdigits", DF, "magnitude / 10 % 10", "magnitude / 10"),
     Mutant("scipyexp", DF, "d.exponent != 0", "true"),
+    Mutant("sftwodigit", DF, "s >= 10", "s >= 100"),
 ]
