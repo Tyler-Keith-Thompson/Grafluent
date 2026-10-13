@@ -139,9 +139,9 @@ struct GraphFormatsReviewScaleTests {
     @Test("JSON objects and XML tags with many keys: each key costs the same at 17 keys as at 15, and an 8× larger one about 8×", .timeLimit(.minutes(1)))
     func manyKeys() throws {
         // Interleaved, so that both sizes run under the same load: the least time of each over
-        // five rounds, then their ratio; measured again, up to three times, while the ratio looks
-        // superlinear, since other tests share the machine (a quadratic cost stays far above).
-        func ratio(_ small: () throws -> Void, _ large: () throws -> Void) rethrows -> Double {
+        // five rounds, then their ratio; measured again, up to three times, while the ratio is at or
+        // above the bound it is checked against, since other tests share the machine (a quadratic cost stays far above).
+        func ratio(below limit: Double, _ small: () throws -> Void, _ large: () throws -> Void) rethrows -> Double {
             let clock = ContinuousClock()
             var best = Double.infinity
             for _ in 0 ..< 3 {
@@ -155,7 +155,7 @@ struct GraphFormatsReviewScaleTests {
                     largest = min(largest, clock.now - start)
                 }
                 best = min(best, largest / smallest)
-                if best < 12 { break }
+                if best < limit { break }
             }
             return best
         }
@@ -173,17 +173,17 @@ struct GraphFormatsReviewScaleTests {
                 + "<graph edgedefault=\"directed\"/></graphml>"
         }
         let below = objects(keys: 15, count: 4_000), above = objects(keys: 17, count: 4_000)
-        let perMember = try ratio({ _ = try DirectedPseudograph<String>(nodeLinkJSON: below.utf8) },
+        let perMember = try ratio(below: 3.0 * 17 / 15, { _ = try DirectedPseudograph<String>(nodeLinkJSON: below.utf8) },
                                   { _ = try DirectedPseudograph<String>(nodeLinkJSON: above.utf8) }) * 15 / 17
         #expect(perMember < 3, "a member of a 17-key object cost \(perMember)× one of a 15-key object")
         // Large objects are indexed too: a member of a 900-key object costs what one of a 17-key
         // object does, not 50 comparisons (objects up to a size compared in turn).
         let wide = objects(keys: 900, count: 80)
-        let perWideMember = try ratio({ _ = try DirectedPseudograph<String>(nodeLinkJSON: above.utf8) },
+        let perWideMember = try ratio(below: 3.0 * Double(900 * 80) / Double(17 * 4_000), { _ = try DirectedPseudograph<String>(nodeLinkJSON: above.utf8) },
                                       { _ = try DirectedPseudograph<String>(nodeLinkJSON: wide.utf8) }) * Double(17 * 4_000) / Double(900 * 80)
         #expect(perWideMember < 3, "a member of a 900-key object cost \(perWideMember)× one of a 17-key object")
         let fewer = tags(attributes: 15, count: 4_000), more = tags(attributes: 17, count: 4_000)
-        let perAttribute = try ratio({ _ = try DirectedPseudograph<String>(graphML: fewer.utf8) },
+        let perAttribute = try ratio(below: 3.0 * 17 / 15, { _ = try DirectedPseudograph<String>(graphML: fewer.utf8) },
                                      { _ = try DirectedPseudograph<String>(graphML: more.utf8) }) * 15 / 17
         #expect(perAttribute < 3, "an attribute of a 17-attribute tag cost \(perAttribute)× one of a 15-attribute tag")
         // One object of n keys, and one tag of n attributes: linear in n.
@@ -194,7 +194,7 @@ struct GraphFormatsReviewScaleTests {
         var members = 0
         _ = try DirectedPseudograph<String>(nodeLinkJSON: largeObject.utf8, graphAttribute: { _, _ in members += 1 })
         #expect(members == 160_000)
-        let objectRatio = try ratio({ _ = try DirectedPseudograph<String>(nodeLinkJSON: smallObject.utf8) },
+        let objectRatio = try ratio(below: 32, { _ = try DirectedPseudograph<String>(nodeLinkJSON: smallObject.utf8) },
                                     { _ = try DirectedPseudograph<String>(nodeLinkJSON: largeObject.utf8) })
         #expect(objectRatio < 32, "8× the keys took \(objectRatio)× as long")
         func tag(_ attributes: Int) -> String {
@@ -202,7 +202,7 @@ struct GraphFormatsReviewScaleTests {
                 + "><graph edgedefault=\"directed\"/></graphml>"
         }
         let smallTag = tag(20_000), largeTag = tag(160_000)
-        let tagRatio = try ratio({ _ = try DirectedPseudograph<String>(graphML: smallTag.utf8) },
+        let tagRatio = try ratio(below: 32, { _ = try DirectedPseudograph<String>(graphML: smallTag.utf8) },
                                  { _ = try DirectedPseudograph<String>(graphML: largeTag.utf8) })
         #expect(tagRatio < 32, "8× the attributes took \(tagRatio)× as long")
         // A repeated key is still found, at either size, and in nested objects after the index grew.
