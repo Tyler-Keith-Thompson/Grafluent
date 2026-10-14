@@ -59,6 +59,31 @@ func randomPairs(_ n: Int, _ m: Int, seed: UInt64) -> [DirectedEdge<Int>] {
     return out
 }
 
+/// d-separation by hand: Bayes-ball over flat successor and predecessor rows, after marking the
+/// ancestors of z. The baseline for DAG-B10.
+func handWrittenDSeparated(_ out: [[Int]], _ into: [[Int]], _ x: [Int], _ y: [Int], _ z: [Int]) -> Bool {
+    let n = out.count
+    var inY = [Bool](repeating: false, count: n), inZ = inY, opens = inY, up = inY, down = inY
+    for v in y { inY[v] = true }
+    for v in z { inZ[v] = true }
+    var stack = z
+    for v in z { opens[v] = true }
+    while let v = stack.popLast() { for u in into[v] where !opens[u] { opens[u] = true; stack.append(u) } }
+    var states: [(Int, Bool)] = x.map { up[$0] = true; return ($0, true) }
+    while let (v, fromChild) = states.popLast() {
+        if inY[v] { return false }
+        if fromChild {
+            if inZ[v] { continue }
+            for u in into[v] where !up[u] { up[u] = true; states.append((u, true)) }
+            for w in out[v] where !down[w] { down[w] = true; states.append((w, false)) }
+        } else {
+            if !inZ[v] { for w in out[v] where !down[w] { down[w] = true; states.append((w, false)) } }
+            if opens[v] { for u in into[v] where !up[u] { up[u] = true; states.append((u, true)) } }
+        }
+    }
+    return true
+}
+
 let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
@@ -411,5 +436,23 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("DirectedAcyclicGraph: init(_ base:) (Kahn's order), n = 10⁵, m = 5·10⁵") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(DirectedAcyclicGraph(pseudograph)) }
+    }
+
+    // DAG-B10: d-separation, minimal d-separators and the moral graph on the 10⁵-vertex DAG.
+    let out = (0 ..< 100_000).map { Array(big.successors(of: $0)) }
+    let into = (0 ..< 100_000).map { Array(big.predecessors(of: $0)) }
+    let conditioning = Array(stride(from: 3, to: 100_000, by: 97))
+    precondition(handWrittenDSeparated(out, into, [1], [99_999], conditioning) == big.isDSeparator(conditioning, between: [1], and: [99_999]))
+    Benchmark("DirectedAcyclicGraph: BASELINE hand-written Bayes-ball, n = 10⁵, m ≈ 5·10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenDSeparated(out, into, [1], [99_999], conditioning)) }
+    }
+    Benchmark("DirectedAcyclicGraph: isDSeparator, n = 10⁵, m ≈ 5·10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(big.isDSeparator(conditioning, between: [1], and: [99_999])) }
+    }
+    Benchmark("DirectedAcyclicGraph: minimalDSeparator, n = 10⁵, m ≈ 5·10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(big.minimalDSeparator(between: [1], and: [99_999])) }
+    }
+    Benchmark("DirectedAcyclicGraph: UndirectedAdjacencyList.moralGraph(of:), n = 10⁵, m ≈ 5·10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.moralGraph(of: big)) }
     }
 }

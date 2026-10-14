@@ -136,6 +136,12 @@ not from the setup.
   path. Churn on each base puts new sources first and new targets last, reorders and removes
   anywhere (so the free front slots grow, holes are made, trimmed and compacted), and after each
   round checks every place three ways and every subscript against the order.
+- **d-separation** (`DSeparationTests.swift`). Chains, forks, colliders with a descendant, the
+  diamond, String vertices on `DirectedPseudograph` with parallel copies and a
+  `StableDirectedGraph`; minimal d-separators with `including:` and `restrictedTo:`, nil when none
+  exists; the moral graph; the checked spellings and exits; and a property test against every
+  trail of random DAGs on up to six vertices, minimality and existence checked over every vertex
+  subset.
 - **Wrapper behavior** (`DirectedAcyclicGraphReviewTests.swift`). The attached maps of a
   `StableDirectedGraph` base, through the wrapper. `remove(_:)` as a `MutableDirectedGraph`
   requirement, from generic code. Vertex removal through the wrapper hashing as the bare base's

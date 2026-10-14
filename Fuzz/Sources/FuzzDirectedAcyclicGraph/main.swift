@@ -21,7 +21,9 @@
 // Every few steps: `transitiveClosure()` (the reachable pairs, existing edges at their positions),
 // `transitiveReduction()` (the first copy of each edge with no longer path, in `edges` order),
 // `longestPath()` (the documented first-tie rule, and the longest length from the model) and
-// `hasPath(from:to:)` for every pair against a breadth-first search of the model.
+// `hasPath(from:to:)` for every pair against a breadth-first search of the model; on graphs of at
+// most eight vertices, `isDSeparator` against every trail, `minimalDSeparator` (separating, minimal,
+// nil exactly when the ancestors of the pair do not separate it) and `moralGraph(of:)`.
 //
 // Decoding: as in FuzzLabeledGraphs, an in-memory decoder hands `init(from:)` an already built base
 // and the order offsets. A valid payload decodes to an equal graph with the same order; a hostile one
@@ -474,6 +476,8 @@ enum FuzzDirectedAcyclicGraph {
         check(Array(reduction.vertices) == Array(graph.vertices) && Array(reduction.topologicalOrder) == Array(graph.topologicalOrder), "reduction vertices or order: \(context)")
         checkOrder(reduction, "reduction \(context)")
 
+        checkDSeparation(graph, model, rows, reach, context)
+
         // The longest path: per vertex in order, the first in-edge achieving the maximum; the first
         // vertex in order with the greatest distance.
         guard let path = graph.longestPath() else {
@@ -510,6 +514,66 @@ enum FuzzDirectedAcyclicGraph {
             return value
         }
         check(path.edges.count == model.vertices.map(longest).max()!, "longestPath length \(path.edges.count): \(context)")
+    }
+
+    /// d-separation against every trail of the model, for each pair of its first vertices and a
+    /// conditioning set drawn from the rest; minimal separators separate, are minimal and exist
+    /// exactly when the full candidate set does; the moral graph's edges. Only on graphs of at most
+    /// eight vertices, where every trail can be listed.
+    static func checkDSeparation<B: MutableDirectedGraph<Int>>(_ graph: DirectedAcyclicGraph<B>, _ model: Model, _ rows: [Int: [Int]], _ reach: [Int: [Int: Int]], _ context: String) {
+        let vertices = Array(graph.vertices)
+        guard vertices.count >= 2, vertices.count <= 8 else { return }
+        var adjacent: [Int: Set<Int>] = [:]
+        for (a, row) in rows { for b in row where a != b { adjacent[a, default: []].insert(b); adjacent[b, default: []].insert(a) } }
+        func arc(_ a: Int, _ b: Int) -> Bool { rows[a, default: []].contains(b) }
+        func connected(_ u: Int, _ v: Int, _ z: Set<Int>) -> Bool {
+            var stack: [[Int]] = [[u]]
+            while let trail = stack.popLast() {
+                let last = trail[trail.count - 1]
+                if last == v {
+                    var active = true
+                    for i in 1 ..< trail.count - 1 {
+                        let a = trail[i - 1], m = trail[i], b = trail[i + 1]
+                        if arc(a, m) && arc(b, m) {
+                            if !z.contains(where: { $0 == m || reach[m]![$0] != nil }) { active = false }
+                        } else if z.contains(m) {
+                            active = false
+                        }
+                    }
+                    if active { return true }
+                    continue
+                }
+                for w in adjacent[last, default: []] where !trail.contains(w) { stack.append(trail + [w]) }
+            }
+            return false
+        }
+        for i in 0 ..< min(3, vertices.count / 2) {
+            let x = vertices[i], y = vertices[vertices.count - 1 - i]
+            let others = vertices.filter { $0 != x && $0 != y }
+            for pick in 0 ..< 3 {
+                let z = others.enumerated().filter { ($0.offset + pick) % 3 == 0 }.map(\.element)
+                let separated = !connected(x, y, Set(z))
+                check(graph.isDSeparator(z, between: [x], and: [y]) == separated, "isDSeparator(\(z), between: \(x), and: \(y)): \(context)")
+            }
+            let anyExists = !connected(x, y, Set(others.filter { reach[$0]![x] != nil || reach[$0]![y] != nil }))
+            let found = graph.minimalDSeparator(between: [x], and: [y])
+            check((found != nil) == anyExists, "minimalDSeparator(between: \(x), and: \(y)) \(String(describing: found)): \(context)")
+            if let found {
+                check(!connected(x, y, Set(found)), "minimalDSeparator \(found) does not separate \(x) and \(y): \(context)")
+                for drop in found {
+                    check(connected(x, y, Set(found.filter { $0 != drop })), "minimalDSeparator \(found) is not minimal for \(x), \(y): \(context)")
+                }
+            }
+        }
+        var expected = Set<UndirectedEdge<Int>>()
+        for (a, row) in rows { for b in row { expected.insert(UndirectedEdge(a, b)) } }
+        for v in vertices {
+            let parents = Set(rows.filter { $0.value.contains(v) }.map(\.key)).sorted()
+            for (k, a) in parents.enumerated() { for b in parents[(k + 1)...] { expected.insert(UndirectedEdge(a, b)) } }
+        }
+        let moral = UndirectedAdjacencyList<Int>.moralGraph(of: graph)
+        let mapped = Set(moral.edges.map { UndirectedEdge(vertices[$0.u], vertices[$0.v]) })
+        check(mapped == expected && moral.edgeCount == expected.count, "moralGraph: \(context)")
     }
 
     // MARK: - Decoding

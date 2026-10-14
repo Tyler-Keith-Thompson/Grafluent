@@ -56,6 +56,11 @@
 #   psmovedlast       was the last: the wrapper then relabels that key with its own slot and
 #                     frees the slot, the same as the plain removal.
 
+#   d-separation, removed as equivalent: the ancestors of z as the open colliders (a ball bounces
+#   up from z through the descendants instead, Shachter's Bayes-ball); the ancestral check on a
+#   minimal separator's parents (ancestors are closed under parents); the ancestral filter on the
+#   first candidate set (a candidate outside it is never reached, so the first update drops it).
+
 TESTS = ["DirectedAcyclicGraphTests", "ShortestPathsTests", "AdjacencyListTests", "MultigraphsTests", "StableGraphsTests"]
 
 K = "DirectedAcyclicGraph.swift"
@@ -317,8 +322,22 @@ MUTANTS = [
     Mutant("stmoved", ST, "        _ = _removeSlot(key)\n        return nil", "        _ = _removeSlot(key)\n        return 0", mode="stmt", module="StableGraphs"),
     # Attached maps through the wrapper: GraphDelegator's PropertyGraph defaults, the base's members.
     Mutant("pmlayout", PM, "Base._edgeMapLayout", "_MapLayout.dense", module="GraphProtocols"),
-    Mutant("pmcheckededge", PM, "try _base[map, checkedEdgeAt: position]", "_base[map, ofEdgeAt: position]", nth=1, module="GraphProtocols"),
-    Mutant("pmcheckedvertex", PM, "try _base[map, checked: vertex]", "_base[map, of: vertex]", module="GraphProtocols"),
-    Mutant("pmcheckedposition", PM, "try _base[map, checkedVertexAt: position]", "_base[map, ofVertexAt: position]", module="GraphProtocols"),
+    Mutant("pmcheckededge", PM, "try base[map, checkedEdgeAt: position]", "base[map, ofEdgeAt: position]", nth=3, module="GraphProtocols"),
+    Mutant("pmcheckedvertex", PM, "try base[map, checked: vertex]", "base[map, of: vertex]", nth=1, module="GraphProtocols"),
+    Mutant("pmcheckedposition", PM, "try base[map, checkedVertexAt: position]", "base[map, ofVertexAt: position]", module="GraphProtocols"),
     Mutant("stremovelookup", ST, "        _slots.removeValue(forKey: _vertex(atSlot: key))", "", mode="stmt", module="StableGraphs"),
+
+    # d-separation and the moral graph
+    Mutant("ds_bounce", "DirectedAcyclicGraph+DSeparation.swift", "inZ[p]", "false", nth=2),
+    Mutant("ds_upblocked", "DirectedAcyclicGraph+DSeparation.swift", "                guard !inZ[p] else { continue }", "", mode="stmt"),
+    Mutant("ds_downblocked", "DirectedAcyclicGraph+DSeparation.swift", "!inZ[p]", "true", nth=1),
+    Mutant("ds_disjoint", "DirectedAcyclicGraph+DSeparation.swift", "        precondition(!ys.contains { inX[$0] } && !zs.contains { inX[$0] || inY[$0] }, \"x, y and z must be disjoint\")", "", mode="stmt"),
+    Mutant("ds_ballz", "DirectedAcyclicGraph+DSeparation.swift", "!z[p] || intoV", "!z[p]"),
+    Mutant("ds_update", "DirectedAcyclicGraph+DSeparation.swift", "z[p] && !fromX[p] && !inI[p]", "z[p] && !fromX[p]"),
+    Mutant("ds_final", "DirectedAcyclicGraph+DSeparation.swift", "fromY[p] || inI[p]", "true"),
+    Mutant("ds_none", "DirectedAcyclicGraph+DSeparation.swift", "ys.contains(where: { fromX[$0] })", "false"),
+    Mutant("ds_restrict", "DirectedAcyclicGraph+DSeparation.swift", "        precondition(!included.contains { !allowed[$0] }, \"including must be inside restrictedTo\")", "", mode="stmt"),
+    Mutant("ds_checked", "DirectedAcyclicGraph+DSeparation.swift", "        for v in z where !contains(v) { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("mg_marry", "DirectedAcyclicGraph+DSeparation.swift", "                for j in i + 1 ..< distinct { pairs.append(UndirectedEdge(u, parents[j])) }", "", mode="stmt"),
+    Mutant("mg_dedupe", "DirectedAcyclicGraph+DSeparation.swift", "i == 0 || parents[i] != parents[i - 1]", "true"),
 ]
