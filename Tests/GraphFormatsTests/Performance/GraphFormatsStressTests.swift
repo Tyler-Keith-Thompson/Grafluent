@@ -207,4 +207,75 @@ struct GraphFormatsStressTests {
             #expect(recorder.pieces.count >= size / 65_536)
         }.value
     }
+
+    @Test("10⁵ weighted edges through GML, Pajek, Cytoscape JSON, DIMACS, METIS, sparse6 and a delimited edge list", .timeLimit(.minutes(1)))
+    func weightedEdgesNewFormats() async throws {
+        try await Task {
+            let clock = ContinuousClock()
+            let start = clock.now
+            let n = 20_000, m = 100_000
+            var arcs: [DirectedEdge<Int>] = [], simple: [UndirectedEdge<Int>] = []
+            var seen = Set<[Int]>()
+            for k in 0 ..< m {
+                let (u, v) = (k % n, (k * 7_919 + 13) % n)
+                arcs.append(DirectedEdge(from: u, to: v))
+                if u != v && seen.insert([min(u, v), max(u, v)]).inserted { simple.append(UndirectedEdge(u, v)) }
+            }
+            let directed = DirectedPseudograph<Int>(vertices: 0 ..< n, edges: arcs)
+            let undirected = Pseudograph<Int>(vertices: 0 ..< n, edges: simple)
+            let weights = (0 ..< m).map { $0 % 1_000 - 60 }
+
+            func check(_ name: String, _ read: () throws -> (count: Int, weights: [Int: AttributeValue]), count: Int, weight: (Int) -> AttributeValue) {
+                do {
+                    let (edges, values) = try read()
+                    #expect(edges == count, "\(name)")
+                    #expect((0 ..< count).allSatisfy { values[$0] == weight($0) }, "\(name)")
+                } catch {
+                    Issue.record("\(name): \(error)")
+                }
+            }
+            var text = ""
+            try directed.writeGML(to: &text, edgeAttributes: { [("weight", .integer(weights[$0]))] })
+            check("GML", {
+                var values: [Int: AttributeValue] = [:]
+                let g = try DirectedPseudograph<String>(gml: text.utf8, edgeAttribute: { values[$0] = $2 })
+                return (g.edgeCount, values)
+            }, count: m, weight: { .integer(weights[$0]) })
+            text = ""
+            try directed.writePajek(to: &text, edgeAttributes: { [("weight", .integer(weights[$0]))] })
+            check("Pajek", {
+                var values: [Int: AttributeValue] = [:]
+                let g = try DirectedPseudograph<String>(pajek: text.utf8, edgeAttribute: { if $1 == "weight" { values[$0] = $2 } })
+                return (g.edgeCount, values)
+            }, count: m, weight: { .double(Double(weights[$0])) })
+            text = ""
+            try directed.writeCytoscapeJSON(to: &text, edgeAttributes: { [("weight", .integer(weights[$0]))] })
+            check("Cytoscape JSON", {
+                var values: [Int: AttributeValue] = [:]
+                let g = try DirectedPseudograph<String>(cytoscapeJSON: text.utf8, edgeAttribute: { values[$0] = $2 })
+                return (g.edgeCount, values)
+            }, count: m, weight: { .integer(weights[$0]) })
+            text = ""
+            directed.writeDIMACS(to: &text, weight: { weights[$0] })
+            check("DIMACS", {
+                var values: [Int: AttributeValue] = [:]
+                let g = try DirectedPseudograph<Int>(dimacs: text.utf8, edgeAttribute: { values[$0] = $2 })
+                return (g.edgeCount, values)
+            }, count: m, weight: { .integer(weights[$0]) })
+            text = ""
+            try directed.writeEdgeList(to: &text, columns: ["weight"], delimiter: ",", edgeAttributes: { [("weight", .integer(weights[$0]))] })
+            check("delimited edge list", {
+                var values: [Int: AttributeValue] = [:]
+                let g = try DirectedPseudograph<Int>(edgeList: text.utf8, columns: ["weight"], delimiter: ",", edgeAttribute: { values[$0] = $2 })
+                return (g.edgeCount, values)
+            }, count: m, weight: { .integer(weights[$0]) })
+            text = ""
+            try undirected.writeMETIS(to: &text)
+            #expect((try? Pseudograph<Int>(metis: text.utf8))?.edgeCount == simple.count, "METIS")
+            text = ""
+            undirected.writeSparse6(to: &text)
+            #expect((try? Pseudograph<Int>(sparse6: text.utf8))?.edgeCount == simple.count, "sparse6")
+            #expect(clock.now - start < .seconds(40))
+        }.value
+    }
 }

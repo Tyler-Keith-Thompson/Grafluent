@@ -1,6 +1,7 @@
-// Node-link JSON (catalog GF-083 – GF-110, GF-228 and GF-229 read, GF-200 – GF-206 write): the layout over
-// strict RFC 8259 JSON, scalar attributes only; ref.py checks the write rows byte for byte against
-// json.dumps(node_link_data).
+// Node-link JSON (catalog GF-083 – GF-110, GF-228 – GF-229, GF-233 – GF-236, GF-248, GF-256, GF-258 –
+// GF-259, GF-287 – GF-293 read, GF-200 – GF-206 write): the layout over strict RFC 8259 JSON, scalar
+// attributes only, array ids as their canonical text; ref.py checks the write rows byte for byte
+// against json.dumps(node_link_data).
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphFormats
@@ -842,5 +843,144 @@ struct GraphFormatsNodeLinkJSONTests {
         #expect(edgeValues == [0: ["w": .integer(1)], 1: ["w": .integer(3)]])
         #expect(graphKeys == [])
         #expect(graphValues == [:])
+    }
+
+    @Test("GF-287 array ids (NetworkX tuples) are their canonical JSON text")
+    func gf287() throws {
+        // DirectedPseudograph<String>(nodeLinkJSON:) → D: "[0, 1]", "[\"a\", [1, 2.5]]"; "[0, 1]">"[\"a\", [1, 2.5]]"
+        let input = "{\"directed\": true, \"multigraph\": false, \"graph\": {}, \"nodes\": [{\"id\": [0, 1]}, {\"id\": [\"a\", [1, 2.5]]}], \"edges\": [{\"source\": [0, 1], \"target\": [\"a\", [1, 2.5]]}]}"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["[0, 1]", "[\"a\", [1, 2.5]]"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["[0, 1]", "[\"a\", [1, 2.5]]"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-288 an array id written with other spacing is the same id")
+    func gf288() throws {
+        // Pseudograph<String>(nodeLinkJSON:) → U: "[0, 1]", "[1, 0]"; "[0, 1]"-"[1, 0]"
+        let input = "{\"nodes\": [{\"id\": [0,1]}, {\"id\": [ 1 , 0 ]}], \"edges\": [{\"source\": [ 0,1 ], \"target\": [1,0]}]}"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try Pseudograph<String>(nodeLinkJSON: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["[0, 1]", "[1, 0]"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["[0, 1]", "[1, 0]"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-289 empty array, null, booleans, a double and escapes in array ids")
+    func gf289() throws {
+        // DirectedPseudograph<String>(nodeLinkJSON:) → D: "[]", "[null, true, false, 100.0, \"\\u00e9\\\"\"]"
+        let input = "{\"directed\": true, \"nodes\": [{\"id\": []}, {\"id\": [null, true, false, 1e2, \"\\u00e9\\\"\"]}], \"edges\": []}"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["[]", "[null, true, false, 100.0, \"\\u00e9\\\"\"]"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 0)
+        #expect(Array(graph.edges.indices) == [])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-290 an object inside an array id")
+    func gf290() {
+        // DirectedPseudograph<String>(nodeLinkJSON:) → **invalidValue** at 1:37
+        let input = "{\"directed\": true, \"nodes\": [{\"id\": [1, {\"a\": 2}]}], \"edges\": []}"
+        do {
+            let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8)
+            Issue.record("expected invalidValue, read \(graph)")
+        } catch {
+            #expect(error.kind == .invalidValue)
+            #expect([error.line, error.column, error.byteOffset] == [1, 37, 36])
+        }
+    }
+
+    @Test("GF-291 an array id into an Int target")
+    func gf291() {
+        // DirectedPseudograph<Int>(nodeLinkJSON:) → **invalidVertex** at 1:37
+        let input = "{\"directed\": true, \"nodes\": [{\"id\": [1, 2]}], \"edges\": []}"
+        do {
+            let graph = try DirectedPseudograph<Int>(nodeLinkJSON: input.utf8)
+            Issue.record("expected invalidVertex, read \(graph)")
+        } catch {
+            #expect(error.kind == .invalidVertex)
+            #expect([error.line, error.column, error.byteOffset] == [1, 37, 36])
+        }
+    }
+
+    @Test("GF-292 an array id and the string of its text are one id")
+    func gf292() {
+        // DirectedPseudograph<String>(nodeLinkJSON:) → **duplicateVertex** at 1:53
+        let input = "{\"directed\": true, \"nodes\": [{\"id\": [1, 2]}, {\"id\": \"[1, 2]\"}], \"edges\": []}"
+        do {
+            let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8)
+            Issue.record("expected duplicateVertex, read \(graph)")
+        } catch {
+            #expect(error.kind == .duplicateVertex)
+            #expect([error.line, error.column, error.byteOffset] == [1, 53, 52])
+        }
+    }
+
+    @Test("GF-293 an edge to an array id no node declares")
+    func gf293() {
+        // DirectedPseudograph<String>(nodeLinkJSON:) → **undeclaredVertex** at 1:80
+        let input = "{\"directed\": true, \"nodes\": [{\"id\": [1]}], \"edges\": [{\"source\": [1], \"target\": [2]}]}"
+        do {
+            let graph = try DirectedPseudograph<String>(nodeLinkJSON: input.utf8)
+            Issue.record("expected undeclaredVertex, read \(graph)")
+        } catch {
+            #expect(error.kind == .undeclaredVertex)
+            #expect([error.line, error.column, error.byteOffset] == [1, 80, 79])
+        }
     }
 }

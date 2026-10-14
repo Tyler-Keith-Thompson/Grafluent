@@ -7,7 +7,10 @@ import GraphProtocols
 import Multigraphs
 
 // Inputs: a random directed graph of 10⁵ vertices and 10⁶ edges with a double weight per edge,
-// written in each format; DOT on 10⁴ vertices and 10⁵ edges without attributes.
+// written in each format; DOT on 10⁴ vertices and 10⁵ edges without attributes. The undirected
+// formats (sparse6, DIMACS `p edge`, METIS) take the same edges as a simple undirected graph (loops
+// and repeated pairs dropped); graph6 and digraph6, whose data is a bit per pair, a random graph of
+// 2,000 vertices and 10⁵ edges.
 //
 // Parse-only rows read the same text with one bad line appended (an entry too many, a one-field
 // line, trailing text after the document): the line formats collect the whole file before
@@ -47,6 +50,46 @@ let benchmarks: @Sendable () -> Void = {
     try! small.writeDOT(to: &dot)
     var mermaid = ""
     try! graph.writeMermaid(to: &mermaid, vertexID: { "v\($0)" })
+
+    // The new formats' inputs.
+    var seenPairs = Set<UndirectedEdge<Int>>()
+    var simpleEdges: [UndirectedEdge<Int>] = []
+    for e in edges where e.source != e.target && seenPairs.insert(UndirectedEdge(e.source, e.target)).inserted {
+        simpleEdges.append(UndirectedEdge(e.source, e.target))
+    }
+    let undirected = Pseudograph(vertices: 0 ..< n, edges: simpleEdges)
+    var denseSeen = Set<UndirectedEdge<Int>>()
+    var denseEdges: [UndirectedEdge<Int>] = []
+    for e in Inputs.randomEdges(vertexCount: 2_000, edgeCount: 110_000, seed: 4)
+    where e.source != e.target && denseSeen.insert(UndirectedEdge(e.source, e.target)).inserted && denseEdges.count < 100_000 {
+        denseEdges.append(UndirectedEdge(e.source, e.target))
+    }
+    let dense = Pseudograph(vertices: 0 ..< 2_000, edges: denseEdges)
+    let denseDirected = DirectedPseudograph(vertices: 0 ..< 2_000, edges: denseEdges.map { DirectedEdge(from: $0.u, to: $0.v) })
+    let integerWeights = weights.map { Int($0 * 1_000_000) }
+
+    var csv = ""
+    try! graph.writeEdgeList(to: &csv, columns: ["weight"], delimiter: ",", edgeAttributes: { [("weight", .double(weights[$0]))] })
+    var dictList = ""
+    for (k, e) in edges.enumerated() { dictList += "\(e.source) \(e.target) {'weight': \(integerWeights[k])}\n" }
+    var gml = ""
+    try! graph.writeGML(to: &gml, edgeAttributes: { [("weight", .double(weights[$0]))] })
+    var pajek = ""
+    try! graph.writePajek(to: &pajek, edgeAttributes: { [("weight", .double(weights[$0]))] })
+    var graph6 = ""
+    try! dense.writeGraph6(to: &graph6)
+    var digraph6 = ""
+    try! denseDirected.writeDigraph6(to: &digraph6)
+    var sparse6 = ""
+    undirected.writeSparse6(to: &sparse6)
+    var dimacs = ""
+    graph.writeDIMACS(to: &dimacs, weight: { integerWeights[$0] })
+    var dimacsEdge = ""
+    undirected.writeDIMACS(to: &dimacsEdge)
+    var metis = ""
+    try! undirected.writeMETIS(to: &metis, weight: { integerWeights[$0] })
+    var cytoscape = ""
+    try! graph.writeCytoscapeJSON(to: &cytoscape, edgeAttributes: { [("weight", .double(weights[$0]))] })
 
     // MARK: Edge list
 
@@ -144,6 +187,16 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    Benchmark("GraphFormats: DirectedPseudograph<String>(nodeLinkJSON:), 10⁶ weighted edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var read = [Double](repeating: 0, count: edges.count)
+            let g = try DirectedPseudograph<String>(nodeLinkJSON: nodeLink.utf8, edgeAttribute: { e, _, value in
+                if case .double(let w) = value { read[e] = w }
+            })
+            blackHole((g, read))
+        }
+    }
+
     Benchmark("GraphFormats: parse only, node-link JSON (the document check), 10⁶ weighted edges") { benchmark in
         let text = nodeLink + "x"
         for _ in benchmark.scaledIterations { blackHole(try? DirectedPseudograph<Int>(nodeLinkJSON: text.utf8)) }
@@ -207,4 +260,168 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("GraphFormats: DirectedPseudograph<String>(mermaid:), 10⁶ edges") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(try DirectedPseudograph<String>(mermaid: mermaid.utf8)) }
     }
+
+    // MARK: Delimited edge list and dict data
+
+    Benchmark("GraphFormats: writeEdgeList(delimiter: \",\"), 10⁶ weighted edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var out = ByteCounter()
+            try graph.writeEdgeList(to: &out, columns: ["weight"], delimiter: ",", edgeAttributes: { [("weight", .double(weights[$0]))] })
+            blackHole(out)
+        }
+    }
+    Benchmark("GraphFormats: DirectedPseudograph<Int>(edgeList:columns:delimiter: \",\"), 10⁶ weighted edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var read = [Double](repeating: 0, count: edges.count)
+            let g = try DirectedPseudograph<Int>(edgeList: csv.utf8, columns: ["weight"], delimiter: ",", edgeAttribute: { e, _, value in
+                if case .double(let w) = value { read[e] = w }
+            })
+            blackHole((g, read))
+        }
+    }
+    Benchmark("GraphFormats: DirectedPseudograph<Int>(edgeList:), dict data, 10⁶ edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var read = [Int](repeating: 0, count: edges.count)
+            let g = try DirectedPseudograph<Int>(edgeList: dictList.utf8, edgeAttribute: { e, _, value in
+                if case .integer(let w) = value { read[e] = w }
+            })
+            blackHole((g, read))
+        }
+    }
+
+    // MARK: GML
+
+    Benchmark("GraphFormats: writeGML, 10⁶ weighted edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var out = ByteCounter()
+            try graph.writeGML(to: &out, edgeAttributes: { [("weight", .double(weights[$0]))] })
+            blackHole(out)
+        }
+    }
+    Benchmark("GraphFormats: DirectedPseudograph<String>(gml:), 10⁶ weighted edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var read = [Double](repeating: 0, count: edges.count)
+            let g = try DirectedPseudograph<String>(gml: gml.utf8, edgeAttribute: { e, _, value in
+                if case .double(let w) = value { read[e] = w }
+            })
+            blackHole((g, read))
+        }
+    }
+
+    // MARK: Pajek
+
+    Benchmark("GraphFormats: writePajek, 10⁶ weighted edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var out = ByteCounter()
+            try graph.writePajek(to: &out, edgeAttributes: { [("weight", .double(weights[$0]))] })
+            blackHole(out)
+        }
+    }
+    Benchmark("GraphFormats: DirectedPseudograph<String>(pajek:), 10⁶ weighted edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var read = [Double](repeating: 0, count: edges.count)
+            let g = try DirectedPseudograph<String>(pajek: pajek.utf8, edgeAttribute: { e, _, value in
+                if case .double(let w) = value { read[e] = w }
+            })
+            blackHole((g, read))
+        }
+    }
+
+    // MARK: graph6, digraph6, sparse6
+
+    Benchmark("GraphFormats: writeGraph6, 2,000 vertices, 10⁵ edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var out = ByteCounter()
+            try dense.writeGraph6(to: &out)
+            blackHole(out)
+        }
+    }
+    Benchmark("GraphFormats: Pseudograph<Int>(graph6:), 2,000 vertices, 10⁵ edges") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try Pseudograph<Int>(graph6: graph6.utf8)) }
+    }
+    Benchmark("GraphFormats: writeDigraph6, 2,000 vertices, 10⁵ arcs") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var out = ByteCounter()
+            try denseDirected.writeDigraph6(to: &out)
+            blackHole(out)
+        }
+    }
+    Benchmark("GraphFormats: DirectedPseudograph<Int>(digraph6:), 2,000 vertices, 10⁵ arcs") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try DirectedPseudograph<Int>(digraph6: digraph6.utf8)) }
+    }
+    Benchmark("GraphFormats: writeSparse6, 10⁶ edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var out = ByteCounter()
+            undirected.writeSparse6(to: &out)
+            blackHole(out)
+        }
+    }
+    Benchmark("GraphFormats: Pseudograph<Int>(sparse6:), 10⁶ edges") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try Pseudograph<Int>(sparse6: sparse6.utf8)) }
+    }
+
+    // MARK: DIMACS
+
+    Benchmark("GraphFormats: writeDIMACS(weight:), 10⁶ arcs") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var out = ByteCounter()
+            graph.writeDIMACS(to: &out, weight: { integerWeights[$0] })
+            blackHole(out)
+        }
+    }
+    Benchmark("GraphFormats: DirectedPseudograph<Int>(dimacs:), 10⁶ weighted arcs") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var read = [Int](repeating: 0, count: edges.count)
+            let g = try DirectedPseudograph<Int>(dimacs: dimacs.utf8, edgeAttribute: { e, _, value in
+                if case .integer(let w) = value { read[e] = w }
+            })
+            blackHole((g, read))
+        }
+    }
+    Benchmark("GraphFormats: Pseudograph<Int>(dimacs:), p edge, 10⁶ edges") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try Pseudograph<Int>(dimacs: dimacsEdge.utf8)) }
+    }
+
+    // MARK: METIS
+
+    Benchmark("GraphFormats: writeMETIS(weight:), 10⁶ edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var out = ByteCounter()
+            try undirected.writeMETIS(to: &out, weight: { integerWeights[$0] })
+            blackHole(out)
+        }
+    }
+    Benchmark("GraphFormats: Pseudograph<Int>(metis:), 10⁶ weighted edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var read = [Int](repeating: 0, count: simpleEdges.count)
+            let g = try Pseudograph<Int>(metis: metis.utf8, edgeAttribute: { e, _, value in
+                if case .integer(let w) = value { read[e] = w }
+            })
+            blackHole((g, read))
+        }
+    }
+
+    // MARK: Cytoscape JSON
+
+    Benchmark("GraphFormats: writeCytoscapeJSON, 10⁶ weighted edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var out = ByteCounter()
+            try graph.writeCytoscapeJSON(to: &out, edgeAttributes: { [("weight", .double(weights[$0]))] })
+            blackHole(out)
+        }
+    }
+    Benchmark("GraphFormats: DirectedPseudograph<String>(cytoscapeJSON:), 10⁶ weighted edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var read = [Double](repeating: 0, count: edges.count)
+            let g = try DirectedPseudograph<String>(cytoscapeJSON: cytoscape.utf8, edgeAttribute: { e, _, value in
+                if case .double(let w) = value { read[e] = w }
+            })
+            blackHole((g, read))
+        }
+    }
+    Benchmark("GraphFormats: parse only, Cytoscape JSON (the document check), 10⁶ weighted edges") { benchmark in
+        let text = cytoscape + "x"
+        for _ in benchmark.scaledIterations { blackHole(try? DirectedPseudograph<String>(cytoscapeJSON: text.utf8)) }
+    }
+
 }

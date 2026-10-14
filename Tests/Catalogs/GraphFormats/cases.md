@@ -1,21 +1,24 @@
-# GraphFormats: case catalog (GF-001 – GF-259, 259 rows)
+# GraphFormats: case catalog (GF-001 – GF-592, 592 rows)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 scipy==1.18.1 --with pydot==4.0.1 python3 Tests/Catalogs/GraphFormats/ref.py`; `--write`
-regenerates this file, `--stress` adds random round trips and mutated inputs). 219 read rows
-(110 of them errors) and 40 write rows. The model implements api.md independently of the
+regenerates this file, `--stress` adds random round trips and mutated inputs). 510 read rows
+(287 of them errors) and 82 write rows. The model implements api.md independently of the
 libraries; each row is then compared with NetworkX 3.7 (GraphML, node-link JSON, edge list,
-adjacency list), SciPy 1.18.1 (Matrix Market) or pydot 4.0.1 (DOT), where the library reads or writes
-the format, and every write row is read back by the model. Rows where a library differs are listed,
+adjacency list, GML, Pajek, graph6, sparse6, Cytoscape JSON), SciPy 1.18.1 (Matrix Market) or pydot
+4.0.1 (DOT), where the library reads or writes the format (no Python library reads digraph6, DIMACS
+or METIS), and every write row is read back by the model. Rows where a library differs are listed,
 with the reason, under "Library disagreements" in api.md.
 
 ## Notation
 
 **Op.** A read row calls the reader initializer on the target type, with the default vertex
-mapping (`String` IDs as they are; `Int` targets take Matrix Market's 1-based indices minus one,
-and node-link integer ids). A write row calls the writer on the graph in **Input** with the default
-`vertexID` (`String(describing:)`) and the graph's attributes as the attribute closures (`label`
-only, for Mermaid; `weight:` for Matrix Market, `columns:` for the edge list).
+mapping (`String` IDs as they are; `Int` targets take Matrix Market's, DIMACS's and METIS's
+1-based indices minus one, node-link integer ids, and the nauty formats' vertices `0..<n`), with the
+options shown (`columns:`, `delimiter:`, `maximumVertexCount:`). A write row calls the writer on the
+graph in **Input** with the default `vertexID` (`String(describing:)`) and the graph's attributes as
+the attribute closures (`label` only, for Mermaid; `weight:` for Matrix Market, DIMACS and METIS,
+`columns:` and `delimiter:` for the edge list, `header:` for the nauty formats).
 
 **Input** of a read row and **Expected** of a write row are the exact text, as a JSON string
 literal (so `\n` is a line feed, `\t` a tab). `bytes …` is input that is not UTF-8.
@@ -62,9 +65,9 @@ offending character, the column counted in Unicode scalars (api.md, Errors).
 | GF-027 | DOT read | graph into a directed target | `DirectedPseudograph<String>(dot:)` | `"graph { a -- b }"` | **kindMismatch** at 1:1 |
 | GF-028 | DOT read | digraph into an undirected target | `Pseudograph<String>(dot:)` | `"digraph { a -> b }"` | **kindMismatch** at 1:1 |
 | GF-029 | DOT read | -- in a digraph | `DirectedPseudograph<String>(dot:)` | `"digraph { a -- b }"` | **syntax** at 1:13 |
-| GF-030 | DOT read | subgraph (unsupported) | `DirectedPseudograph<String>(dot:)` | `"digraph { subgraph s { a } }"` | **unsupported** at 1:11 |
-| GF-031 | DOT read | anonymous subgraph as an endpoint (unsupported) | `DirectedPseudograph<String>(dot:)` | `"digraph { a -> { b c } }"` | **unsupported** at 1:16 |
-| GF-032 | DOT read | port (unsupported) | `DirectedPseudograph<String>(dot:)` | `"digraph { a:p -> b }"` | **unsupported** at 1:12 |
+| GF-030 | DOT read | subgraph: its vertices join the graph | `DirectedPseudograph<String>(dot:)` | `"digraph { subgraph s { a } }"` | `D: a` |
+| GF-031 | DOT read | anonymous subgraph as an endpoint: an edge to each of its vertices | `DirectedPseudograph<String>(dot:)` | `"digraph { a -> { b c } }"` | `D: a, b, c; a>b, a>c` |
+| GF-032 | DOT read | port: the tail's port is the edge's tailport | `DirectedPseudograph<String>(dot:)` | `"digraph { a:p -> b }"` | `D: a, b; a>b{tailport="p"}` |
 | GF-033 | DOT read | a second graph (unsupported) | `DirectedPseudograph<String>(dot:)` | `"digraph { a }\ndigraph { b }"` | **unsupported** at 2:1 |
 | GF-034 | DOT read | unterminated quoted string | `DirectedPseudograph<String>(dot:)` | `"digraph { \"a }"` | **unexpectedEndOfInput** at 1:11 |
 | GF-035 | DOT read | unterminated comment | `DirectedPseudograph<String>(dot:)` | `"digraph { /* a }"` | **unexpectedEndOfInput** at 1:11 |
@@ -105,7 +108,7 @@ offending character, the column counted in Unicode scalars (api.md, Errors).
 | GF-070 | GraphML read | int value that is not an integer | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><key id=\"k\" for=\"node\" attr.type=\"int\"/><graph edgedefault=\"directed\"><node id=\"a\"><data key=\"k\">1.5</data></node></graph></graphml>"` | **invalidValue** at 1:139 |
 | GF-071 | GraphML read | long beyond Int64 | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><key id=\"k\" for=\"node\" attr.type=\"long\"/><graph edgedefault=\"directed\"><node id=\"a\"><data key=\"k\">9223372036854775808</data></node></graph></graphml>"` | **numberOutOfRange** at 1:140 |
 | GF-072 | GraphML read | boolean is true, false, 1 or 0 | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><key id=\"k\" for=\"node\" attr.type=\"boolean\"/><graph edgedefault=\"directed\"><node id=\"a\"><data key=\"k\">True</data></node></graph></graphml>"` | **invalidValue** at 1:143 |
-| GF-073 | GraphML read | nested graph (unsupported) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"><graph edgedefault=\"directed\"/></node></graph></graphml>"` | **unsupported** at 1:99 |
+| GF-073 | GraphML read | an empty nested graph | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"><graph edgedefault=\"directed\"/></node></graph></graphml>"` | `D: a` |
 | GF-074 | GraphML read | a second graph (unsupported) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"/><graph edgedefault=\"directed\"/></graphml>"` | **unsupported** at 1:87 |
 | GF-075 | GraphML read | hyperedge (unsupported) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><hyperedge/></graph></graphml>"` | **unsupported** at 1:100 |
 | GF-076 | GraphML read | an edge whose directed differs from edgedefault (unsupported) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><edge source=\"a\" target=\"a\" directed=\"false\"/></graph></graphml>"` | **unsupported** at 1:128 |
@@ -292,3 +295,336 @@ offending character, the column counted in Unicode scalars (api.md, Errors).
 | GF-257 | Matrix Market read | a 69-byte file claiming 2^24 vertices is over the default maximumVertexCount | `DirectedPseudograph<Int>(matrixMarket:)` | `"%%MatrixMarket matrix coordinate pattern general\n16777216 16777216 0\n"` | **limitExceeded** at 2:1 |
 | GF-258 | Node-link JSON read | multigraph: key-less edges after key 2 get new_edge_key 3 and 4; key 3 is the first | `DirectedPseudograph<String>(nodeLinkJSON:)` | `"{\"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\", \"w\": 1}, {\"source\": \"a\", \"target\": \"b\", \"key\": 2, \"w\": 2}, {\"source\": \"a\", \"target\": \"b\", \"w\": 3}, {\"source\": \"a\", \"target\": \"b\", \"w\": 4}, {\"source\": \"a\", \"target\": \"b\", \"key\": 3, \"w\": 5}]}"` | `D: a, b; a>b{w=1}, a>b{w=2}, a>b{w=5}, a>b{w=4}` |
 | GF-259 | Node-link JSON read | multigraph: key 1 after two key-less edges is the second | `DirectedPseudograph<String>(nodeLinkJSON:)` | `"{\"directed\": true, \"multigraph\": true, \"nodes\": [{\"id\": \"a\"}, {\"id\": \"b\"}], \"edges\": [{\"source\": \"a\", \"target\": \"b\", \"w\": 1}, {\"source\": \"a\", \"target\": \"b\", \"w\": 2}, {\"source\": \"a\", \"target\": \"b\", \"key\": 1, \"w\": 3}]}"` | `D: a, b; a>b{w=1}, a>b{w=3}` |
+| GF-260 | DOT read | subgraph scope: node and edge defaults set inside stay inside | `DirectedPseudograph<String>(dot:)` | `"digraph { node [c=1]; subgraph { node [c=2]; edge [w=x]; a -> b } c; d -> e }"` | `D: a{c="2"}, b{c="2"}, c{c="1"}, d{c="1"}, e{c="1"}; a>b{w="x"}, d>e` |
+| GF-261 | DOT read | { a b } -> { c d }: every tail to every head, tails outer, attributes on each | `DirectedPseudograph<String>(dot:)` | `"digraph { { a b } -> { c d } [w=1] }"` | `D: a, b, c, d; a>c{w="1"}, a>d{w="1"}, b>c{w="1"}, b>d{w="1"}` |
+| GF-262 | DOT read | a subgraph operand's own edges come before the chain's | `DirectedPseudograph<String>(dot:)` | `"digraph { x -> { a -> b } }"` | `D: x, a, b; a>b, x>a, x>b` |
+| GF-263 | DOT read | nested named subgraphs as an operand: every vertex mentioned inside | `DirectedPseudograph<String>(dot:)` | `"digraph { subgraph s1 { a subgraph s2 { b } a } -> c }"` | `D: a, b, c; a>c, b>c` |
+| GF-264 | DOT read | graph attributes inside a subgraph are not reported | `DirectedPseudograph<String>(dot:)` | `"digraph { k=1; subgraph { k=2; graph [m=3]; a } }"` | `D: a; graph{k="1"}` |
+| GF-265 | DOT read | a subgraph's edge defaults apply to edges from it, not to a later chain | `DirectedPseudograph<String>(dot:)` | `"digraph { subgraph { edge [w=1]; a -> b } -> c }"` | `D: a, b, c; a>b{w="1"}, a>c, b>c` |
+| GF-266 | DOT read | ports in a chain: each hop's tail and head port | `DirectedPseudograph<String>(dot:)` | `"digraph { a:p -> b:q:n -> c }"` | `D: a, b, c; a>b{tailport="p", headport="q:n"}, b>c{tailport="q:n"}` |
+| GF-267 | DOT read | a port on a node statement is ignored; an explicit tailport wins | `DirectedPseudograph<String>(dot:)` | `"digraph { a:p [x=1]; a:p -> b [tailport=s] }"` | `D: a{x="1"}, b; a>b{tailport="s"}` |
+| GF-268 | DOT read | undirected: a quoted port and a compass point | `Pseudograph<String>(dot:)` | `"graph { a:\"p q\" -- b:sw }"` | `U: a, b; a-b{tailport="p q", headport="sw"}` |
+| GF-269 | DOT read | edge defaults come before the ports | `DirectedPseudograph<String>(dot:)` | `"digraph { edge [headport=z, w=1]; a -> b:q }"` | `D: a, b; a>b{headport="q", w="1"}` |
+| GF-270 | DOT read | strict: an edge from a subgraph merges with an earlier one | `DirectedPseudograph<String>(dot:)` | `"strict digraph { a -> b [x=1]; { a } -> b [y=2] }"` | `D: a, b; a>b{x="1", y="2"}` |
+| GF-271 | DOT read | 64 nested subgraphs | `DirectedPseudograph<String>(dot:)` | `"digraph { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { a } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } }"` | `D: a` |
+| GF-272 | DOT read | 65 nested subgraphs | `DirectedPseudograph<String>(dot:)` | `"digraph { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { a } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } }"` | **nestingTooDeep** at 1:139 |
+| GF-273 | DOT read | a port on a subgraph operand | `DirectedPseudograph<String>(dot:)` | `"digraph { { a }:p -> b }"` | **syntax** at 1:16 |
+| GF-274 | DOT read | subgraph without a body (unsupported) | `DirectedPseudograph<String>(dot:)` | `"digraph { subgraph s; a }"` | **unsupported** at 1:11 |
+| GF-275 | DOT read | an unterminated subgraph | `DirectedPseudograph<String>(dot:)` | `"digraph { { a }"` | **unexpectedEndOfInput** at 1:16 |
+| GF-276 | DOT read | a port without an ID | `DirectedPseudograph<String>(dot:)` | `"digraph { a: -> b }"` | **syntax** at 1:14 |
+| GF-277 | GraphML read | yEd group: the group node, then its content; edges at any depth | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"g\" yfiles.foldertype=\"group\"><graph id=\"g:\" edgedefault=\"directed\"><node id=\"g::a\"/><node id=\"g::b\"/><edge source=\"g::a\" target=\"g::b\"/></graph></node><node id=\"c\"/><edge source=\"c\" target=\"g::a\"/></graph></graphml>"` | `D: g, "g::a", "g::b", c; "g::a">"g::b", c>"g::a"` |
+| GF-278 | GraphML read | a group inside a group | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"g\" yfiles.foldertype=\"group\"><graph edgedefault=\"directed\"><node id=\"h\" yfiles.foldertype=\"group\"><graph edgedefault=\"directed\"><node id=\"x\"/></graph></node><node id=\"y\"/></graph></node><edge source=\"x\" target=\"y\"/></graph></graphml>"` | `D: g, h, x, y; x>y` |
+| GF-279 | GraphML read | data of a group node and its content; the nested graph's own data is skipped | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><key id=\"n\" for=\"node\" attr.name=\"n\"/><key id=\"t\" for=\"graph\" attr.name=\"t\"/><graph edgedefault=\"directed\"><data key=\"t\">root</data><node id=\"g\" yfiles.foldertype=\"group\"><data key=\"n\">0</data><graph edgedefault=\"directed\"><data key=\"t\">inner</data><node id=\"a\"><data key=\"n\">1</data></node></graph></node></graph></graphml>"` | `D: g{n="0"}, a{n="1"}; graph{t="root"}` |
+| GF-280 | GraphML read | undirected nested graph; an edge before the nodes it names | `Pseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"undirected\"><edge source=\"a\" target=\"b\"/><node id=\"g\" yfiles.foldertype=\"group\"><graph edgedefault=\"undirected\"><node id=\"a\"/></graph></node><node id=\"b\"/></graph></graphml>"` | `U: g, a, b; a-b` |
+| GF-281 | GraphML read | a nested graph in a node that is not a yEd group | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"g\"><graph edgedefault=\"directed\"><node id=\"a\"/></graph></node></graph></graphml>"` | `D: g, a` |
+| GF-282 | GraphML read | a nested graph without edgedefault | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"g\"><graph><node id=\"a\"/></graph></node></graph></graphml>"` | **syntax** at 1:99 |
+| GF-283 | GraphML read | a nested graph of the other kind (unsupported) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"g\"><graph edgedefault=\"undirected\"/></node></graph></graphml>"` | **unsupported** at 1:99 |
+| GF-284 | GraphML read | data after a node's nested graph (unsupported) | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><key id=\"n\" for=\"node\" attr.name=\"n\"/><graph edgedefault=\"directed\"><node id=\"g\"><graph edgedefault=\"directed\"><node id=\"a\"/></graph><data key=\"n\">0</data></node></graph></graphml>"` | **unsupported** at 1:189 |
+| GF-285 | GraphML read | a node inside a nested graph declared twice | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><node id=\"g\"><graph edgedefault=\"directed\"><node id=\"a\"/></graph></node></graph></graphml>"` | **duplicateVertex** at 1:149 |
+| GF-286 | GraphML read | a graph inside an edge stays unsupported | `DirectedPseudograph<String>(graphML:)` | `"<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><edge source=\"a\" target=\"a\"><graph edgedefault=\"directed\"/></edge></graph></graphml>"` | **unsupported** at 1:128 |
+| GF-287 | Node-link JSON read | array ids (NetworkX tuples) are their canonical JSON text | `DirectedPseudograph<String>(nodeLinkJSON:)` | `"{\"directed\": true, \"multigraph\": false, \"graph\": {}, \"nodes\": [{\"id\": [0, 1]}, {\"id\": [\"a\", [1, 2.5]]}], \"edges\": [{\"source\": [0, 1], \"target\": [\"a\", [1, 2.5]]}]}"` | `D: "[0, 1]", "[\"a\", [1, 2.5]]"; "[0, 1]">"[\"a\", [1, 2.5]]"` |
+| GF-288 | Node-link JSON read | an array id written with other spacing is the same id | `Pseudograph<String>(nodeLinkJSON:)` | `"{\"nodes\": [{\"id\": [0,1]}, {\"id\": [ 1 , 0 ]}], \"edges\": [{\"source\": [ 0,1 ], \"target\": [1,0]}]}"` | `U: "[0, 1]", "[1, 0]"; "[0, 1]"-"[1, 0]"` |
+| GF-289 | Node-link JSON read | empty array, null, booleans, a double and escapes in array ids | `DirectedPseudograph<String>(nodeLinkJSON:)` | `"{\"directed\": true, \"nodes\": [{\"id\": []}, {\"id\": [null, true, false, 1e2, \"\\u00e9\\\"\"]}], \"edges\": []}"` | `D: "[]", "[null, true, false, 100.0, \"\\u00e9\\\"\"]"` |
+| GF-290 | Node-link JSON read | an object inside an array id | `DirectedPseudograph<String>(nodeLinkJSON:)` | `"{\"directed\": true, \"nodes\": [{\"id\": [1, {\"a\": 2}]}], \"edges\": []}"` | **invalidValue** at 1:37 |
+| GF-291 | Node-link JSON read | an array id into an Int target | `DirectedPseudograph<Int>(nodeLinkJSON:)` | `"{\"directed\": true, \"nodes\": [{\"id\": [1, 2]}], \"edges\": []}"` | **invalidVertex** at 1:37 |
+| GF-292 | Node-link JSON read | an array id and the string of its text are one id | `DirectedPseudograph<String>(nodeLinkJSON:)` | `"{\"directed\": true, \"nodes\": [{\"id\": [1, 2]}, {\"id\": \"[1, 2]\"}], \"edges\": []}"` | **duplicateVertex** at 1:53 |
+| GF-293 | Node-link JSON read | an edge to an array id no node declares | `DirectedPseudograph<String>(nodeLinkJSON:)` | `"{\"directed\": true, \"nodes\": [{\"id\": [1]}], \"edges\": [{\"source\": [1], \"target\": [2]}]}"` | **undeclaredVertex** at 1:80 |
+| GF-294 | Edge list read | NetworkX data=True: a Python dict after u v; {} is no data | `DirectedPseudograph<String>(edgeList:)` | `"a b {'weight': 3, 'color': 'red'}\nb c {}\n"` | `D: a, b, c; a>b{weight=3, color="red"}, b>c` |
+| GF-295 | Edge list read | dict values: floats, booleans, inf, nan, signs, a trailing comma | `DirectedPseudograph<String>(edgeList:)` | `"a b {'x': 1.5, \"y\": -2, 'ok': True, 'no': False, 'i': inf, 'm': -inf, 'n': nan, 'e': 1e-05, 'p': +7,}\n"` | `D: a, b; a>b{x=1.5, y=-2, ok=true, no=false, i=inf, m=-inf, n=nan, e=1e-05, p=7}` |
+| GF-296 | Edge list read | dict string escapes | `DirectedPseudograph<String>(edgeList:)` | `"a b {'s': 'q\\'\\\"\\\\\\n\\t\\x41\\u00e9\\U0001F600\\101\\0\\q'}\n"` | `D: a, b; a>b{s="q'\"\\\n\tAé😀A\u0000\\q"}` |
+| GF-297 | Edge list read | a dict string may hold # and the delimiter; a comment may follow the dict | `DirectedPseudograph<String>(edgeList:)` | `"a b {'s': 'x#y z'}  # comment\n"` | `D: a, b; a>b{s="x#y z"}` |
+| GF-298 | Edge list read | a repeated dict key is reported again, the last value winning | `DirectedPseudograph<String>(edgeList:)` | `"a b {'w': 1, 'v': 2, 'w': 3}\n"` | `D: a, b; a>b{w=3, v=2}` |
+| GF-299 | Edge list read | dicts on an undirected list; blanks inside the dict | `Pseudograph<String>(edgeList:)` | `"a b {  'w' :1 ,'v':  2  }\nb a\n"` | `U: a, b; a-b{w=1, v=2}, b-a` |
+| GF-300 | Edge list read | None in a dict (unsupported) | `DirectedPseudograph<String>(edgeList:)` | `"a b {'w': None}\n"` | **unsupported** at 1:11 |
+| GF-301 | Edge list read | a list in a dict (unsupported) | `DirectedPseudograph<String>(edgeList:)` | `"a b {'w': [1, 2]}\n"` | **unsupported** at 1:11 |
+| GF-302 | Edge list read | a non-string dict key (unsupported) | `DirectedPseudograph<String>(edgeList:)` | `"a b {1: 2}\n"` | **unsupported** at 1:6 |
+| GF-303 | Edge list read | an unterminated dict | `DirectedPseudograph<String>(edgeList:)` | `"a b {'w': 1\n"` | **syntax** at 1:12 |
+| GF-304 | Edge list read | text after the dict | `DirectedPseudograph<String>(edgeList:)` | `"a b {'w': 1} x\n"` | **syntax** at 1:14 |
+| GF-305 | Edge list read | a dict string not closed on its line | `DirectedPseudograph<String>(edgeList:)` | `"a b {'w': 'x}\n"` | **syntax** at 1:11 |
+| GF-306 | Edge list read | a dict integer beyond Int64 | `DirectedPseudograph<String>(edgeList:)` | `"a b {'w': 9223372036854775808}\n"` | **numberOutOfRange** at 1:11 |
+| GF-307 | Edge list read | a malformed \x escape | `DirectedPseudograph<String>(edgeList:)` | `"a b {'w': '\\x4'}\n"` | **syntax** at 1:12 |
+| GF-308 | Edge list read | a surrogate escape | `DirectedPseudograph<String>(edgeList:)` | `"a b {'w': '\\ud800'}\n"` | **invalidValue** at 1:12 |
+| GF-309 | Edge list read | a dict with a missing colon | `DirectedPseudograph<String>(edgeList:)` | `"a b {'w' 1}\n"` | **syntax** at 1:10 |
+| GF-310 | Edge list read | a bare name in a dict | `DirectedPseudograph<String>(edgeList:)` | `"a b {'w': x}\n"` | **syntax** at 1:11 |
+| GF-311 | Edge list read | with columns, a dict is a field like any other | `DirectedPseudograph<String>(edgeList:, columns: ["w"])` | `"a b {'w':1}\n"` | `D: a, b; a>b{w="{'w':1}"}` |
+| GF-312 | Edge list read | comma delimiter: fields kept exactly, spaces included | `DirectedPseudograph<String>(edgeList:, delimiter: ",")` | `"a,b\n c,d \n"` | `D: a, b, " c", "d "; a>b, " c">"d "` |
+| GF-313 | Edge list read | a delimiter ending the line adds an empty field at the end | `DirectedPseudograph<String>(edgeList:, delimiter: "\t")` | `"a\tb\t"` | **syntax** at 1:5 |
+| GF-314 | Edge list read | semicolon delimiter with columns | `DirectedPseudograph<String>(edgeList:, columns: ["w", "s"], delimiter: ";")` | `"a;b;1;x y\nb;c;2.5;\n"` | `D: a, b, c; a>b{w=1, s="x y"}, b>c{w=2.5, s=""}` |
+| GF-315 | Edge list read | tab delimiter: spaces stay in fields; blank, whitespace and comment lines skipped | `DirectedPseudograph<String>(edgeList:, delimiter: "\t")` | `"a b\tc d\n\n   \n# x\nc d\ta # tail\n"` | `D: "a b", "c d", "a "; "a b">"c d", "c d">"a "` |
+| GF-316 | Edge list read | empty fields are IDs | `DirectedPseudograph<String>(edgeList:, delimiter: ",")` | `",b\nb,\n"` | `D: "", b; "">b, b>""` |
+| GF-317 | Edge list read | a dict after delimited endpoints may hold the delimiter | `DirectedPseudograph<String>(edgeList:, delimiter: ",")` | `"a,b,{'w': 1, 'x': 2}\n"` | `D: a, b; a>b{w=1, x=2}` |
+| GF-318 | Edge list read | comma-delimited integers into an Int target | `DirectedPseudograph<Int>(edgeList:, delimiter: ",")` | `"1,2\n2,3\r\n"` | `D: 1, 2, 3; 1>2, 2>3` |
+| GF-319 | Edge list read | a simple target merges b,a into a,b | `UndirectedAdjacencyList<String>(edgeList:, columns: ["w"], delimiter: ",")` | `"a,b,1\nb,a,2\n"` | `U: a, b; a-b{w=2}` |
+| GF-320 | Edge list read | delimited: too few fields | `DirectedPseudograph<String>(edgeList:, delimiter: ",")` | `"a,b\nc\n"` | **syntax** at 2:2 |
+| GF-321 | Edge list read | delimited: an extra field | `DirectedPseudograph<String>(edgeList:, delimiter: ",")` | `"a,b,c\n"` | **syntax** at 1:5 |
+| GF-322 | Edge list read | delimited: a missing column | `DirectedPseudograph<String>(edgeList:, columns: ["w"], delimiter: ",")` | `"a,b,1\nb,c\n"` | **syntax** at 2:4 |
+| GF-323 | GML read | NetworkX's write_gml output | `DirectedPseudograph<String>(gml:)` | `"graph [\n  directed 1\n  name \"g\"\n  node [\n    id 0\n    label \"a\"\n    color \"red\"\n  ]\n  node [\n    id 1\n    label \"b\"\n  ]\n  edge [\n    source 0\n    target 1\n    weight 2.5\n  ]\n]\n"` | `D: a{color="red"}, b; a>b{weight=2.5}; graph{name="g"}` |
+| GF-324 | GML read | undirected by default; nodes named by their labels | `Pseudograph<String>(gml:)` | `"graph [ node [ id 7 label \"x\" ] node [ id 3 label \"y\" ] edge [ source 3 target 7 ] ]"` | `U: x, y; y-x` |
+| GF-325 | GML read | a node without a label is named by its id | `Pseudograph<String>(gml:)` | `"graph [ node [ id 5 ] node [ id 6 label \"six\" ] edge [ source 5 target 6 ] ]"` | `U: 5, six; 5-six` |
+| GF-326 | GML read | values: integers, reals, strings, INF, -INF, NAN, 1.E-05 | `DirectedPseudograph<String>(gml:)` | `"graph [ directed 1 node [ id 0 label \"a\" i -3 r 2.0 e 1.E-05 s \"t\" p +INF m -INF q INF n NAN f .5 ] ]"` | `D: a{i=-3, r=2.0, e=1e-05, s="t", p=inf, m=-inf, q=inf, n=nan, f=0.5}` |
+| GF-327 | GML read | character references and the four named entities are decoded; others are kept | `DirectedPseudograph<String>(gml:)` | `"graph [ directed 1 node [ id 0 label \"&#233;&#x41;&amp;&lt;&gt;&quot;&apos;&nbsp;&#xD800;&#1114112;&\" ] ]"` | `D: "éA&<>\"&apos;&nbsp;&#xD800;&#1114112;&"` |
+| GF-328 | GML read | lists such as graphics are skipped; top-level keys are ignored; # comments | `DirectedPseudograph<String>(gml:)` | `"# made by hand\nCreator \"yFiles\"\nVersion 2.2\ngraph [\n  directed 1 # a comment\n  node [ id 0 label \"a\"\n    graphics [ x 1.0 y 2.0 fill \"#FF0000\" inner [ deep 1 ] ] w 1 ]\n  edge [ source 0 target 0 graphics [ width 2 ] ]\n]\n"` | `D: a{w=1}; a>a` |
+| GF-329 | GML read | edges may come before the nodes they name; key is an ordinary attribute | `DirectedPseudograph<String>(gml:)` | `"graph [ directed 1 edge [ source 1 target 0 key 4 ] node [ id 0 label \"a\" ] node [ id 1 label \"b\" ] ]"` | `D: a, b; b>a{key=4}` |
+| GF-330 | GML read | multigraph 1: parallel edges kept | `DirectedPseudograph<String>(gml:)` | `"graph [ directed 1 multigraph 1 node [ id 0 label \"a\" ] edge [ source 0 target 0 key 0 ] edge [ source 0 target 0 key 1 ] ]"` | `D: a; a>a{key=0}, a>a{key=1}` |
+| GF-331 | GML read | simple target: parallel edges merge, last value wins | `AdjacencyList<String>(gml:)` | `"graph [ directed 1 node [ id 0 label \"a\" ] node [ id 1 label \"b\" ] edge [ source 0 target 1 w 1 ] edge [ source 0 target 1 w 2 ] ]"` | `D: a, b; a>b{w=2}` |
+| GF-332 | GML read | simple undirected target: 1-0 is 0-1 | `UndirectedAdjacencyList<String>(gml:)` | `"graph [ node [ id 0 ] node [ id 1 ] edge [ source 0 target 1 ] edge [ source 1 target 0 ] ]"` | `U: 0, 1; 0-1` |
+| GF-333 | GML read | a string may span lines | `DirectedPseudograph<String>(gml:)` | `"graph [ directed 1 node [ id 0 label \"two\nlines\" ] ]"` | `D: "two\nlines"` |
+| GF-334 | GML read | a number as a label is its text | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 label 1.50 ] node [ id 1 label -7 ] ]"` | `U: "1.50", "-7"` |
+| GF-335 | GML read | graph attributes where they are read; a repeated key is reported again | `Pseudograph<String>(gml:)` | `"graph [ a 1 node [ id 0 ] b \"x\" a 2 node [ id 1 c 1 c 2 ] ]"` | `U: 0, 1{c=2}; graph{a=2, b="x"}` |
+| GF-336 | GML read | a byte-order mark, CR LF and tabs | `Pseudograph<String>(gml:)` | `"﻿graph [\r\n\tnode [\r\n\t\tid 0\r\n\t]\r\n]\r\n"` | `U: 0` |
+| GF-337 | GML read | empty graph | `Pseudograph<String>(gml:)` | `"graph [ ]"` | `U:` |
+| GF-338 | GML read | directed 0 | `Pseudograph<String>(gml:)` | `"graph [ directed 0 node [ id 0 ] ]"` | `U: 0` |
+| GF-339 | GML read | no graph | `Pseudograph<String>(gml:)` | `"Creator \"x\"\n"` | **unexpectedEndOfInput** at 2:1 |
+| GF-340 | GML read | empty input | `Pseudograph<String>(gml:)` | `""` | **unexpectedEndOfInput** at 1:1 |
+| GF-341 | GML read | a second graph (unsupported) | `Pseudograph<String>(gml:)` | `"graph [ ] graph [ ]"` | **unsupported** at 1:11 |
+| GF-342 | GML read | graph whose value is not a list | `Pseudograph<String>(gml:)` | `"graph 1"` | **invalidValue** at 1:7 |
+| GF-343 | GML read | directed that is not 0 or 1 | `Pseudograph<String>(gml:)` | `"graph [ directed 2 ]"` | **invalidValue** at 1:18 |
+| GF-344 | GML read | directed 1 into an undirected target | `Pseudograph<String>(gml:)` | `"graph [ directed 1 ]"` | **kindMismatch** at 1:18 |
+| GF-345 | GML read | no directed into a directed target | `DirectedPseudograph<String>(gml:)` | `"graph [ node [ id 0 ] ]"` | **kindMismatch** at 1:1 |
+| GF-346 | GML read | directed 0 into a directed target | `DirectedPseudograph<String>(gml:)` | `"graph [ directed 0 ]"` | **kindMismatch** at 1:18 |
+| GF-347 | GML read | directed twice | `Pseudograph<String>(gml:)` | `"graph [ directed 0 directed 0 ]"` | **duplicateKey** at 1:20 |
+| GF-348 | GML read | multigraph that is not 0 or 1 | `Pseudograph<String>(gml:)` | `"graph [ multigraph \"yes\" ]"` | **invalidValue** at 1:20 |
+| GF-349 | GML read | a node without an id | `Pseudograph<String>(gml:)` | `"graph [ node [ label \"a\" ] ]"` | **syntax** at 1:9 |
+| GF-350 | GML read | an id that is not an integer | `Pseudograph<String>(gml:)` | `"graph [ node [ id \"a\" ] ]"` | **invalidValue** at 1:19 |
+| GF-351 | GML read | two ids in one node | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 id 1 ] ]"` | **duplicateKey** at 1:21 |
+| GF-352 | GML read | two labels in one node | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 label \"a\" label \"b\" ] ]"` | **duplicateKey** at 1:31 |
+| GF-353 | GML read | a label that is a list | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 label [ x 1 ] ] ]"` | **invalidValue** at 1:27 |
+| GF-354 | GML read | an id declared twice | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 ] node [ id 0 ] ]"` | **duplicateVertex** at 1:33 |
+| GF-355 | GML read | two nodes with one label | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 label \"a\" ] node [ id 1 label \"a\" ] ]"` | **duplicateVertex** at 1:51 |
+| GF-356 | GML read | a label equal to another node's id text | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 ] node [ id 1 label \"0\" ] ]"` | **duplicateVertex** at 1:41 |
+| GF-357 | GML read | node whose value is not a list | `Pseudograph<String>(gml:)` | `"graph [ node 1 ]"` | **invalidValue** at 1:14 |
+| GF-358 | GML read | an edge without a target | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 ] edge [ source 0 ] ]"` | **syntax** at 1:23 |
+| GF-359 | GML read | a source that is not an integer | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 ] edge [ source 0.0 target 0 ] ]"` | **invalidValue** at 1:37 |
+| GF-360 | GML read | two sources in one edge | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 ] edge [ source 0 source 0 target 0 ] ]"` | **duplicateKey** at 1:39 |
+| GF-361 | GML read | an edge to an undeclared node | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 ] edge [ source 0 target 9 ] ]"` | **undeclaredVertex** at 1:46 |
+| GF-362 | GML read | an unterminated string | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 label \"a ] ]"` | **unexpectedEndOfInput** at 1:27 |
+| GF-363 | GML read | an unclosed list | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 ]"` | **unexpectedEndOfInput** at 1:22 |
+| GF-364 | GML read | ] at the top level | `Pseudograph<String>(gml:)` | `"graph [ ] ]"` | **syntax** at 1:11 |
+| GF-365 | GML read | a number followed by a letter | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0x ] ]"` | **syntax** at 1:20 |
+| GF-366 | GML read | a string followed by a letter | `Pseudograph<String>(gml:)` | `"graph [ node [ id 0 label \"a\"b ] ]"` | **syntax** at 1:30 |
+| GF-367 | GML read | a value where a key should be | `Pseudograph<String>(gml:)` | `"graph [ 1 2 ]"` | **syntax** at 1:9 |
+| GF-368 | GML read | a key where a value should be | `Pseudograph<String>(gml:)` | `"graph [ node [ id label ] ]"` | **syntax** at 1:19 |
+| GF-369 | GML read | an integer beyond Int64 | `Pseudograph<String>(gml:)` | `"graph [ x 9223372036854775808 ]"` | **numberOutOfRange** at 1:11 |
+| GF-370 | GML read | a real that overflows | `Pseudograph<String>(gml:)` | `"graph [ x 1e999 ]"` | **numberOutOfRange** at 1:11 |
+| GF-371 | GML read | 65 nested lists | `Pseudograph<String>(gml:)` | `"graph [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ]"` | **nestingTooDeep** at 1:263 |
+| GF-372 | GML read | 64 nested lists | `Pseudograph<String>(gml:)` | `"graph [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ a [ ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ] ]"` | `U:` |
+| GF-373 | GML read | a key starting with an underscore | `Pseudograph<String>(gml:)` | `"graph [ _x 1 ]"` | **syntax** at 1:9 |
+| GF-374 | GML read | invalid UTF-8 | `Pseudograph<String>(gml:)` | `bytes 67 72 61 70 68 20 5b 20 78 20 22 ff 22 20 5d` | **invalidUTF8** at 1:12 |
+| GF-375 | Pajek read | NetworkX's write_pajek output | `Pseudograph<String>(pajek:)` | `"*vertices 4\n1 0 0.0 0.0 ellipse\n2 1 0.0 0.0 ellipse\n3 2 0.0 0.0 ellipse\n4 3 0.0 0.0 ellipse\n*edges\n1 2 1.0\n2 3 1.0\n3 4 1.0\n"` | `U: 0{x=0.0, y=0.0, shape="ellipse"}, 1{x=0.0, y=0.0, shape="ellipse"}, 2{x=0.0, y=0.0, shape="ellipse"}, 3{x=0.0, y=0.0, shape="ellipse"}; 0-1{weight=1.0}, 1-2{weight=1.0}, 2-3{weight=1.0}` |
+| GF-376 | Pajek read | arcs with weights and key-value pairs; vertices with coordinates, shape and pairs | `DirectedPseudograph<String>(pajek:)` | `"*Vertices 3\n1 \"a\" 0.1 0.2 box ic Red\n2 \"b\"\n3 \"c\" 1 2\n*Arcs\n1 2 2.5 c Blue l \"x y\"\n2 3\n3 3 -1\n"` | `D: a{x=0.1, y=0.2, shape="box", ic="Red"}, b, c{x=1.0, y=2.0}; a>b{weight=2.5, c="Blue", l="x y"}, b>c, c>c{weight=-1.0}` |
+| GF-377 | Pajek read | quoting as shlex: double and single quotes, escapes, joined pieces | `Pseudograph<String>(pajek:)` | `"*vertices 4\n1 \"a b\"\n2 'c \"d'\n3 x\\ y\n4 p\"q r\"s\\\"t\n*edges\n1 2\n3 4\n"` | `U: "a b", "c \"d", "x y", "pq rs\"t"; "a b"-"c \"d", "x y"-"pq rs\"t"` |
+| GF-378 | Pajek read | a vertex without a line is named by its number; lines in any order | `Pseudograph<String>(pajek:)` | `"*vertices 4\n3 \"c\"\n1 \"a\"\n*edges\n2 4\n1 3\n"` | `U: a, 2, c, 4; 2-4, a-c` |
+| GF-379 | Pajek read | a vertex line with only its number is labelled by it | `Pseudograph<String>(pajek:)` | `"*vertices 2\n2\n1 a\n*edges\n1 2\n"` | `U: a, 2; a-2` |
+| GF-380 | Pajek read | *network, % comments, blank lines, keywords in any case, a 2-mode count | `DirectedPseudograph<String>(pajek:)` | `"% made by hand\n*Network my net  \n\n*VERTICES 3 2\n% between\n1 a\n2 b\n3 c\n\n*arcs :1 \"rel\"\n1 3\n"` | `D: a, b, c; a>c; graph{name="my net"}` |
+| GF-381 | Pajek read | *arcslist: a vertex then its successors | `DirectedPseudograph<String>(pajek:)` | `"*vertices 3\n*arcslist\n1 2 3\n2\n3 1 1\n"` | `D: 1, 2, 3; 1>2, 1>3, 3>1, 3>1` |
+| GF-382 | Pajek read | *edgeslist | `Pseudograph<String>(pajek:)` | `"*vertices 3\n*edgeslist\n1 2 3\n"` | `U: 1, 2, 3; 1-2, 1-3` |
+| GF-383 | Pajek read | labels that map to one vertex are that vertex | `Pseudograph<String>(pajek:)` | `"*vertices 3\n1 \"x\"\n2 \"x\"\n*edges\n1 2\n2 3\n"` | `U: x, 3; x-x, x-3` |
+| GF-384 | Pajek read | simple target: parallel arcs merge, last weight wins | `AdjacencyList<String>(pajek:)` | `"*vertices 2\n1 a\n2 b\n*arcs\n1 2 1\n1 2 2\n"` | `D: a, b; a>b{weight=2.0}` |
+| GF-385 | Pajek read | weights inf, -inf, nan and integers read as doubles | `DirectedPseudograph<String>(pajek:)` | `"*vertices 2\n1 a\n2 b\n*arcs\n1 2 inf\n2 1 -Infinity\n1 1 NaN\n2 2 3\n"` | `D: a, b; a>b{weight=inf}, b>a{weight=-inf}, a>a{weight=nan}, b>b{weight=3.0}` |
+| GF-386 | Pajek read | CR LF | `Pseudograph<String>(pajek:)` | `"*vertices 2\r\n1 a\r\n2 b\r\n*edges\r\n1 2\r\n"` | `U: a, b; a-b` |
+| GF-387 | Pajek read | a byte-order mark | `Pseudograph<String>(pajek:)` | `"﻿*vertices 1\n1 a\n*edges\n"` | `U: a` |
+| GF-388 | Pajek read | no vertices | `Pseudograph<String>(pajek:)` | `"*vertices 0\n*edges\n"` | `U:` |
+| GF-389 | Pajek read | an empty file is an empty graph | `DirectedPseudograph<String>(pajek:)` | `""` | `D:` |
+| GF-390 | Pajek read | two *arcs sections | `DirectedPseudograph<String>(pajek:)` | `"*vertices 2\n1 a\n2 b\n*arcs\n1 2\n*arcs\n2 1\n"` | `D: a, b; a>b, b>a` |
+| GF-391 | Pajek read | an empty quoted label | `DirectedPseudograph<String>(pajek:)` | `"*vertices 1\n1 \"\"\n"` | `D: ""` |
+| GF-392 | Pajek read | *network after the vertices does not end their section | `DirectedPseudograph<String>(pajek:)` | `"*vertices 2\n1 a\n*network n\n2 b\n"` | `D: a, b; graph{name="n"}` |
+| GF-393 | Pajek read | a data line before *vertices | `Pseudograph<String>(pajek:)` | `"1 a\n"` | **syntax** at 1:1 |
+| GF-394 | Pajek read | *edges before *vertices | `Pseudograph<String>(pajek:)` | `"*edges\n1 2\n"` | **syntax** at 1:1 |
+| GF-395 | Pajek read | *vertices without a count | `Pseudograph<String>(pajek:)` | `"*vertices\n"` | **syntax** at 1:10 |
+| GF-396 | Pajek read | a count that is not a number | `Pseudograph<String>(pajek:)` | `"*vertices x\n"` | **syntax** at 1:11 |
+| GF-397 | Pajek read | a third field on *vertices | `Pseudograph<String>(pajek:)` | `"*vertices 2 1 0\n"` | **syntax** at 1:15 |
+| GF-398 | Pajek read | a count past Int64 | `Pseudograph<String>(pajek:)` | `"*vertices 9223372036854775808\n"` | **numberOutOfRange** at 1:11 |
+| GF-399 | Pajek read | a count above the default maximumVertexCount | `Pseudograph<String>(pajek:)` | `"*vertices 16777216\n"` | **limitExceeded** at 1:11 |
+| GF-400 | Pajek read | a count above maximumVertexCount | `Pseudograph<String>(pajek:, maximumVertexCount: 2)` | `"*vertices 3\n"` | **limitExceeded** at 1:11 |
+| GF-401 | Pajek read | a count at maximumVertexCount | `DirectedPseudograph<String>(pajek:, maximumVertexCount: 2)` | `"*vertices 2\n1 a\n2 b\n"` | `D: a, b` |
+| GF-402 | Pajek read | a vertex number 0 | `Pseudograph<String>(pajek:)` | `"*vertices 2\n0 a\n"` | **indexOutOfRange** at 2:1 |
+| GF-403 | Pajek read | a vertex number beyond n | `Pseudograph<String>(pajek:)` | `"*vertices 2\n3 a\n"` | **indexOutOfRange** at 2:1 |
+| GF-404 | Pajek read | a vertex number that is not an integer | `Pseudograph<String>(pajek:)` | `"*vertices 2\nx a\n"` | **syntax** at 2:1 |
+| GF-405 | Pajek read | a vertex number given twice | `Pseudograph<String>(pajek:)` | `"*vertices 2\n1 a\n1 b\n"` | **duplicateVertex** at 3:1 |
+| GF-406 | Pajek read | an x that is not a number | `Pseudograph<String>(pajek:)` | `"*vertices 1\n1 a x 0.0\n"` | **invalidValue** at 2:5 |
+| GF-407 | Pajek read | a key without a value | `Pseudograph<String>(pajek:)` | `"*vertices 1\n1 a 0 0 box ic\n"` | **syntax** at 2:13 |
+| GF-408 | Pajek read | *arcs into an undirected target | `Pseudograph<String>(pajek:)` | `"*vertices 1\n*arcs\n"` | **kindMismatch** at 2:1 |
+| GF-409 | Pajek read | *edges into a directed target | `DirectedPseudograph<String>(pajek:)` | `"*vertices 1\n*edges\n"` | **kindMismatch** at 2:1 |
+| GF-410 | Pajek read | an edge line of one field | `Pseudograph<String>(pajek:)` | `"*vertices 1\n*edges\n1\n"` | **syntax** at 3:2 |
+| GF-411 | Pajek read | an endpoint beyond n | `Pseudograph<String>(pajek:)` | `"*vertices 1\n*edges\n1 2\n"` | **indexOutOfRange** at 3:3 |
+| GF-412 | Pajek read | an endpoint that is not an integer | `Pseudograph<String>(pajek:)` | `"*vertices 1\n*edges\n1 a\n"` | **syntax** at 3:3 |
+| GF-413 | Pajek read | a weight that is not a number | `Pseudograph<String>(pajek:)` | `"*vertices 1\n*edges\n1 1 w\n"` | **invalidValue** at 3:5 |
+| GF-414 | Pajek read | an unclosed quote | `Pseudograph<String>(pajek:)` | `"*vertices 1\n1 \"a\n"` | **syntax** at 2:3 |
+| GF-415 | Pajek read | a backslash at the end of a line | `Pseudograph<String>(pajek:)` | `"*vertices 1\n1 a\\\n"` | **syntax** at 2:4 |
+| GF-416 | Pajek read | *matrix (unsupported) | `Pseudograph<String>(pajek:)` | `"*vertices 2\n*matrix\n0 1\n1 0\n"` | **unsupported** at 2:1 |
+| GF-417 | Pajek read | a second *vertices (unsupported) | `Pseudograph<String>(pajek:)` | `"*vertices 1\n*vertices 1\n"` | **unsupported** at 2:1 |
+| GF-418 | Pajek read | an unknown section (unsupported) | `Pseudograph<String>(pajek:)` | `"*vertices 1\n*partition p\n1\n"` | **unsupported** at 2:1 |
+| GF-419 | graph6 read | graph6: five vertices, edges 0-1, 1-2, 3-4 | `Pseudograph<Int>(graph6:)` | `"DgC\n"` | `U: 0, 1, 2, 3, 4; 0-1, 1-2, 3-4` |
+| GF-420 | graph6 read | graph6: no vertices | `Pseudograph<Int>(graph6:)` | `"?\n"` | `U:` |
+| GF-421 | graph6 read | graph6: one vertex, no data | `Pseudograph<Int>(graph6:)` | `"@\n"` | `U: 0` |
+| GF-422 | graph6 read | graph6: the header, no final newline | `Pseudograph<Int>(graph6:)` | `">>graph6<<Bw"` | `U: 0, 1, 2; 0-1, 0-2, 1-2` |
+| GF-423 | graph6 read | graph6: CR LF | `Pseudograph<Int>(graph6:)` | `"C~\r\n"` | `U: 0, 1, 2, 3; 0-1, 0-2, 1-2, 0-3, 1-3, 2-3` |
+| GF-424 | graph6 read | graph6 into a simple target | `UndirectedAdjacencyList<Int>(graph6:)` | `"Ch\n"` | `U: 0, 1, 2, 3; 0-1, 1-2, 2-3` |
+| GF-425 | graph6 read | graph6: 63 vertices take the four-byte size | `Pseudograph<Int>(graph6:)` | `"~??~??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????@\n"` | **syntax** at 1:331 |
+| GF-426 | graph6 read | graph6: empty input | `Pseudograph<Int>(graph6:)` | `""` | **unexpectedEndOfInput** at 1:1 |
+| GF-427 | graph6 read | graph6: a size byte below 63 | `Pseudograph<Int>(graph6:)` | `"!\n"` | **syntax** at 1:1 |
+| GF-428 | graph6 read | graph6: a data byte above 126 | `Pseudograph<Int>(graph6:)` | `"C\n"` | **syntax** at 1:2 |
+| GF-429 | graph6 read | graph6: too few data bytes | `Pseudograph<Int>(graph6:)` | `"D?\n"` | **unexpectedEndOfInput** at 1:3 |
+| GF-430 | graph6 read | graph6: too many data bytes | `Pseudograph<Int>(graph6:)` | `"Bw?\n"` | **syntax** at 1:3 |
+| GF-431 | graph6 read | graph6: padding bits that are not 0 | `Pseudograph<Int>(graph6:)` | `"Bx\n"` | **invalidValue** at 1:2 |
+| GF-432 | graph6 read | graph6: text after the line feed | `Pseudograph<Int>(graph6:)` | `"Bw\nBw\n"` | **syntax** at 2:1 |
+| GF-433 | graph6 read | graph6: a four-byte size cut short | `Pseudograph<Int>(graph6:)` | `"~?\n"` | **unexpectedEndOfInput** at 1:3 |
+| GF-434 | graph6 read | graph6: a sparse6 line | `Pseudograph<Int>(graph6:)` | `":Bw\n"` | **syntax** at 1:1 |
+| GF-435 | graph6 read | graph6: invalid UTF-8 | `Pseudograph<Int>(graph6:)` | `bytes 42 c3 0a` | **invalidUTF8** at 1:2 |
+| GF-436 | digraph6 read | digraph6: arcs and a loop, row by row | `DirectedPseudograph<Int>(digraph6:)` | `"&BQ_\n"` | `D: 0, 1, 2; 0>1, 1>1, 2>0` |
+| GF-437 | digraph6 read | digraph6: the header | `DirectedPseudograph<Int>(digraph6:)` | `">>digraph6<<&CC__\n"` | `D: 0, 1, 2, 3; 0>3, 1>2, 3>0` |
+| GF-438 | digraph6 read | digraph6: no vertices | `DirectedPseudograph<Int>(digraph6:)` | `"&?\n"` | `D:` |
+| GF-439 | digraph6 read | digraph6 into a simple target | `AdjacencyList<Int>(digraph6:)` | `"&AW\n"` | `D: 0, 1; 0>1, 1>0` |
+| GF-440 | digraph6 read | digraph6: no & | `DirectedPseudograph<Int>(digraph6:)` | `"BQ_\n"` | **syntax** at 1:1 |
+| GF-441 | digraph6 read | digraph6: empty input | `DirectedPseudograph<Int>(digraph6:)` | `""` | **unexpectedEndOfInput** at 1:1 |
+| GF-442 | digraph6 read | digraph6: too few data bytes | `DirectedPseudograph<Int>(digraph6:)` | `"&C\n"` | **unexpectedEndOfInput** at 1:3 |
+| GF-443 | digraph6 read | digraph6: padding bits that are not 0 | `DirectedPseudograph<Int>(digraph6:)` | `"&AX\n"` | **invalidValue** at 1:3 |
+| GF-444 | sparse6 read | sparse6: nauty's example, seven vertices | `Pseudograph<Int>(sparse6:)` | `":Fa@x^\n"` | `U: 0, 1, 2, 3, 4, 5, 6; 0-1, 0-2, 1-2, 5-6` |
+| GF-445 | sparse6 read | sparse6: loops and parallel edges | `Pseudograph<Int>(sparse6:)` | `":B_M\n"` | `U: 0, 1, 2; 0-1, 0-1, 1-1, 2-2` |
+| GF-446 | sparse6 read | sparse6 into a simple target: parallel edges merge | `UndirectedAdjacencyList<Int>(sparse6:)` | `":B_M\n"` | `U: 0, 1, 2; 0-1, 1-1, 2-2` |
+| GF-447 | sparse6 read | sparse6: the header, a jump over vertices | `Pseudograph<Int>(sparse6:)` | `">>sparse6<<:GwYJ\n"` | `U: 0, 1, 2, 3, 4, 5, 6, 7; 1-6, 2-7, 2-7` |
+| GF-448 | sparse6 read | sparse6: one vertex with a loop (k = 0) | `Pseudograph<Int>(sparse6:)` | `":@^\n"` | `U: 0; 0-0` |
+| GF-449 | sparse6 read | sparse6: no vertices | `Pseudograph<Int>(sparse6:)` | `":?\n"` | `U:` |
+| GF-450 | sparse6 read | sparse6: the padding special case (n = 4, last edge at vertex 2) | `Pseudograph<Int>(sparse6:)` | ``":C`b\n"`` | `U: 0, 1, 2, 3; 0-1, 1-1, 0-2` |
+| GF-451 | sparse6 read | sparse6: incremental sparse6 (unsupported) | `Pseudograph<Int>(sparse6:)` | `";Bc\n"` | **unsupported** at 1:1 |
+| GF-452 | sparse6 read | sparse6: no colon | `Pseudograph<Int>(sparse6:)` | `"Bc\n"` | **syntax** at 1:1 |
+| GF-453 | sparse6 read | sparse6: empty input | `Pseudograph<Int>(sparse6:)` | `""` | **unexpectedEndOfInput** at 1:1 |
+| GF-454 | sparse6 read | sparse6: a data byte below 63 | `Pseudograph<Int>(sparse6:)` | `":Bc \n"` | **syntax** at 1:4 |
+| GF-455 | sparse6 read | sparse6: a size above the default maximumVertexCount | `Pseudograph<Int>(sparse6:)` | `":~~??F???\n"` | **limitExceeded** at 1:2 |
+| GF-456 | sparse6 read | sparse6: a size above maximumVertexCount | `Pseudograph<Int>(sparse6:, maximumVertexCount: 3)` | `":C\n"` | **limitExceeded** at 1:2 |
+| GF-457 | sparse6 read | sparse6: a size cut short | `Pseudograph<Int>(sparse6:)` | `":~~??\n"` | **unexpectedEndOfInput** at 1:6 |
+| GF-458 | sparse6 read | sparse6: text after the line feed | `Pseudograph<Int>(sparse6:)` | `":?\nx"` | **syntax** at 2:1 |
+| GF-459 | DIMACS read | shortest path (.gr): comments, the problem line, weighted arcs | `DirectedPseudograph<Int>(dimacs:)` | `"c 9th DIMACS challenge\np sp 3 3\nc arcs\na 1 2 7\na 2 3 -1\na 3 1 0\n"` | `D: 0, 1, 2; 0>1{weight=7}, 1>2{weight=-1}, 2>0{weight=0}` |
+| GF-460 | DIMACS read | clique (p edge): edges, isolated vertices | `Pseudograph<Int>(dimacs:)` | `"c\np edge 4 2\ne 1 2\ne 4 2\n"` | `U: 0, 1, 2, 3; 0-1, 3-1` |
+| GF-461 | DIMACS read | colouring (p col), tabs, CR LF, blank lines | `Pseudograph<Int>(dimacs:)` | `"p col 2 1\r\n\r\ne\t1\t2\r\n"` | `U: 0, 1; 0-1` |
+| GF-462 | DIMACS read | simple target: a repeated arc merges, last weight wins | `AdjacencyList<Int>(dimacs:)` | `"p sp 2 2\na 1 2 1\na 1 2 5\n"` | `D: 0, 1; 0>1{weight=5}` |
+| GF-463 | DIMACS read | parallel arcs and loops kept | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 3\na 1 2 1\na 1 2 2\na 2 2 3\n"` | `D: 0, 1; 0>1{weight=1}, 0>1{weight=2}, 1>1{weight=3}` |
+| GF-464 | DIMACS read | no edges | `Pseudograph<Int>(dimacs:)` | `"p edge 3 0\n"` | `U: 0, 1, 2` |
+| GF-465 | DIMACS read | no problem line | `DirectedPseudograph<Int>(dimacs:)` | `"c only\n"` | **unexpectedEndOfInput** at 2:1 |
+| GF-466 | DIMACS read | an arc before the problem line | `DirectedPseudograph<Int>(dimacs:)` | `"a 1 2 3\np sp 2 1\n"` | **syntax** at 1:1 |
+| GF-467 | DIMACS read | a second problem line | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 1 0\np sp 1 0\n"` | **syntax** at 2:1 |
+| GF-468 | DIMACS read | a flow problem (unsupported) | `DirectedPseudograph<Int>(dimacs:)` | `"p max 2 1\n"` | **unsupported** at 1:3 |
+| GF-469 | DIMACS read | an unknown problem | `DirectedPseudograph<Int>(dimacs:)` | `"p foo 2 1\n"` | **syntax** at 1:3 |
+| GF-470 | DIMACS read | p sp into an undirected target | `Pseudograph<Int>(dimacs:)` | `"p sp 2 0\n"` | **kindMismatch** at 1:3 |
+| GF-471 | DIMACS read | p edge into a directed target | `DirectedPseudograph<Int>(dimacs:)` | `"p edge 2 0\n"` | **kindMismatch** at 1:3 |
+| GF-472 | DIMACS read | a problem line of three fields | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2\n"` | **syntax** at 1:7 |
+| GF-473 | DIMACS read | a problem line of five fields | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 0 x\n"` | **syntax** at 1:10 |
+| GF-474 | DIMACS read | a vertex count that is not a number | `DirectedPseudograph<Int>(dimacs:)` | `"p sp x 0\n"` | **syntax** at 1:6 |
+| GF-475 | DIMACS read | a vertex count above the default maximumVertexCount | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 16777216 0\n"` | **limitExceeded** at 1:6 |
+| GF-476 | DIMACS read | a vertex count above maximumVertexCount | `DirectedPseudograph<Int>(dimacs:, maximumVertexCount: 2)` | `"p sp 3 0\n"` | **limitExceeded** at 1:6 |
+| GF-477 | DIMACS read | an index 0 | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 1\na 0 1 1\n"` | **indexOutOfRange** at 2:3 |
+| GF-478 | DIMACS read | an index beyond n | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 1\na 1 3 1\n"` | **indexOutOfRange** at 2:5 |
+| GF-479 | DIMACS read | a signed index | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 1\na +1 2 1\n"` | **syntax** at 2:3 |
+| GF-480 | DIMACS read | a weight that is not an integer | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 1\na 1 2 1.5\n"` | **invalidValue** at 2:7 |
+| GF-481 | DIMACS read | a weight beyond Int64 | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 1\na 1 2 9223372036854775808\n"` | **numberOutOfRange** at 2:7 |
+| GF-482 | DIMACS read | a missing weight | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 1\na 1 2\n"` | **syntax** at 2:6 |
+| GF-483 | DIMACS read | an extra field on an edge | `Pseudograph<Int>(dimacs:)` | `"p edge 2 1\ne 1 2 3\n"` | **syntax** at 2:7 |
+| GF-484 | DIMACS read | more arcs than declared | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 1\na 1 2 1\na 2 1 1\n"` | **entryCountMismatch** at 3:1 |
+| GF-485 | DIMACS read | fewer arcs than declared | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 2\na 1 2 1\n"` | **entryCountMismatch** at 3:1 |
+| GF-486 | DIMACS read | an e line in a shortest-path file | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 1\ne 1 2\n"` | **syntax** at 2:1 |
+| GF-487 | DIMACS read | a node descriptor line (unsupported) | `Pseudograph<Int>(dimacs:)` | `"p edge 2 0\nn 1 5\n"` | **unsupported** at 2:1 |
+| GF-488 | DIMACS read | an unknown line | `DirectedPseudograph<Int>(dimacs:)` | `"p sp 2 0\nx 1\n"` | **syntax** at 2:1 |
+| GF-489 | METIS read | the METIS manual's graph: unweighted | `Pseudograph<Int>(metis:)` | `"7 11\n5 3 2\n1 3 4\n5 4 2 1\n2 3 6 7\n1 3 6\n5 4 7\n6 4\n"` | `U: 0, 1, 2, 3, 4, 5, 6; 0-4, 0-2, 0-1, 1-2, 1-3, 2-4, 2-3, 3-5, 3-6, 4-5, 5-6` |
+| GF-490 | METIS read | fmt 1: edge weights | `Pseudograph<Int>(metis:)` | `"3 2 1\n2 5 3 1\n1 5\n1 1\n"` | `U: 0, 1, 2; 0-1{weight=5}, 0-2{weight=1}` |
+| GF-491 | METIS read | fmt 011: a vertex weight, then neighbours with edge weights | `Pseudograph<Int>(metis:)` | `"3 2 011\n4 2 1\n2 1 1 3 2\n0 2 2\n"` | `U: 0{weight=4}, 1{weight=2}, 2{weight=0}; 0-1{weight=1}, 1-2{weight=2}` |
+| GF-492 | METIS read | fmt 110 with ncon 1: a size and a weight per vertex | `Pseudograph<Int>(metis:)` | `"2 1 110 1\n3 4 2\n5 6 1\n"` | `U: 0{size=3, weight=4}, 1{size=5, weight=6}; 0-1` |
+| GF-493 | METIS read | comments anywhere; a blank line is a vertex without neighbours; trailing blank lines | `Pseudograph<Int>(metis:)` | `"% header next\n\n3 1\n% vertex 1\n2\n1\n\n\n% done\n\n"` | `U: 0, 1, 2; 0-1` |
+| GF-494 | METIS read | parallel entries on both sides into a simple target | `UndirectedAdjacencyList<Int>(metis:)` | `"2 2\n2 2\n1 1\n"` | `U: 0, 1; 0-1` |
+| GF-495 | METIS read | no vertices | `Pseudograph<Int>(metis:)` | `"0 0\n"` | `U:` |
+| GF-496 | METIS read | CR LF and tabs | `Pseudograph<Int>(metis:)` | `"2 1\r\n2\r\n1\t\r\n"` | `U: 0, 1; 0-1` |
+| GF-497 | METIS read | an empty file | `Pseudograph<Int>(metis:)` | `""` | **unexpectedEndOfInput** at 1:1 |
+| GF-498 | METIS read | a header of one field | `Pseudograph<Int>(metis:)` | `"3\n"` | **syntax** at 1:2 |
+| GF-499 | METIS read | a header of five fields | `Pseudograph<Int>(metis:)` | `"1 0 010 1 9\n"` | **syntax** at 1:11 |
+| GF-500 | METIS read | a fmt that is not 0s and 1s | `Pseudograph<Int>(metis:)` | `"1 0 2\n\n"` | **invalidValue** at 1:5 |
+| GF-501 | METIS read | ncon 2 (unsupported) | `Pseudograph<Int>(metis:)` | `"1 0 010 2\n5 6\n"` | **unsupported** at 1:9 |
+| GF-502 | METIS read | ncon 0 | `Pseudograph<Int>(metis:)` | `"1 0 010 0\n\n"` | **invalidValue** at 1:9 |
+| GF-503 | METIS read | ncon without vertex weights | `Pseudograph<Int>(metis:)` | `"1 0 1 1\n\n"` | **invalidValue** at 1:7 |
+| GF-504 | METIS read | a vertex count above the default maximumVertexCount | `Pseudograph<Int>(metis:)` | `"16777216 0\n"` | **limitExceeded** at 1:1 |
+| GF-505 | METIS read | a vertex count above maximumVertexCount | `Pseudograph<Int>(metis:, maximumVertexCount: 2)` | `"3 0\n\n\n\n"` | **limitExceeded** at 1:1 |
+| GF-506 | METIS read | a neighbour 0 | `Pseudograph<Int>(metis:)` | `"2 1\n0\n1\n"` | **indexOutOfRange** at 2:1 |
+| GF-507 | METIS read | a neighbour beyond n | `Pseudograph<Int>(metis:)` | `"2 1\n3\n1\n"` | **indexOutOfRange** at 2:1 |
+| GF-508 | METIS read | a neighbour that is not a number | `Pseudograph<Int>(metis:)` | `"2 1\nx\n1\n"` | **syntax** at 2:1 |
+| GF-509 | METIS read | a loop | `Pseudograph<Int>(metis:)` | `"2 1\n1\n1\n"` | **invalidValue** at 2:1 |
+| GF-510 | METIS read | a missing edge weight | `Pseudograph<Int>(metis:)` | `"2 1 1\n2\n1 1\n"` | **syntax** at 2:2 |
+| GF-511 | METIS read | an edge weight that is not an integer | `Pseudograph<Int>(metis:)` | `"2 1 1\n2 x\n1 1\n"` | **invalidValue** at 2:3 |
+| GF-512 | METIS read | a missing vertex weight | `Pseudograph<Int>(metis:)` | `"2 1 010\n\n1\n"` | **syntax** at 2:1 |
+| GF-513 | METIS read | fewer vertex lines than n | `Pseudograph<Int>(metis:)` | `"3 1\n2\n1\n"` | **unexpectedEndOfInput** at 4:1 |
+| GF-514 | METIS read | a line after the last vertex | `Pseudograph<Int>(metis:)` | `"1 0\n\n5\n"` | **syntax** at 3:1 |
+| GF-515 | METIS read | an edge listed on one side only | `Pseudograph<Int>(metis:)` | `"3 1\n2\n\n\n"` | **invalidValue** at 2:1 |
+| GF-516 | METIS read | a lower entry with no mirror | `Pseudograph<Int>(metis:)` | `"3 1\n2\n1 3\n\n"` | **invalidValue** at 3:3 |
+| GF-517 | METIS read | weights that differ on the two sides | `Pseudograph<Int>(metis:)` | `"2 1 1\n2 1\n1 2\n"` | **invalidValue** at 3:1 |
+| GF-518 | METIS read | an edge count that is not m | `Pseudograph<Int>(metis:)` | `"2 2\n2\n1\n"` | **entryCountMismatch** at 1:3 |
+| GF-519 | Cytoscape JSON read | NetworkX's cytoscape_data(path_graph(3)) | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"data\": [], \"directed\": false, \"multigraph\": false, \"elements\": {\"nodes\": [{\"data\": {\"id\": \"0\", \"value\": 0, \"name\": \"0\"}}, {\"data\": {\"id\": \"1\", \"value\": 1, \"name\": \"1\"}}, {\"data\": {\"id\": \"2\", \"value\": 2, \"name\": \"2\"}}], \"edges\": [{\"data\": {\"source\": 0, \"target\": 1}}, {\"data\": {\"source\": 1, \"target\": 2}}]}}"` | `U: 0{value=0, name="0"}, 1{value=1, name="1"}, 2{value=2, name="2"}; 0-1, 1-2` |
+| GF-520 | Cytoscape JSON read | directed, attributes, NetworkX's graph data pairs | `DirectedPseudograph<String>(cytoscapeJSON:)` | `"{\"data\": [[\"name\", \"g\"], [\"n\", 2]], \"directed\": true, \"multigraph\": false, \"elements\": {\"nodes\": [{\"data\": {\"color\": \"red\", \"id\": \"a\", \"value\": \"a\", \"name\": \"a\"}}, {\"data\": {\"id\": \"b\"}}], \"edges\": [{\"data\": {\"w\": 1.5, \"id\": \"e1\", \"source\": \"a\", \"target\": \"b\"}}]}}"` | `D: a{color="red", value="a", name="a"}, b; a>b{w=1.5, id="e1"}; graph{name="g", n=2}` |
+| GF-521 | Cytoscape JSON read | Cytoscape.js: an array of elements with group; position and classes ignored; data object | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"data\": {\"title\": \"t\"}, \"elements\": [{\"group\": \"nodes\", \"data\": {\"id\": \"a\"}, \"position\": {\"x\": 1, \"y\": 2}, \"classes\": \"c\", \"selected\": false}, {\"group\": \"edges\", \"data\": {\"id\": \"e\", \"source\": \"a\", \"target\": \"b\"}}, {\"group\": \"nodes\", \"data\": {\"id\": \"b\"}}]}"` | `U: a, b; a-b{id="e"}; graph{title="t"}` |
+| GF-522 | Cytoscape JSON read | without group, an element is an edge when its data has source | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": [{\"data\": {\"source\": \"x\", \"target\": \"y\"}}, {\"data\": {\"id\": \"x\"}}, {\"data\": {\"id\": \"y\"}}]}"` | `U: x, y; x-y` |
+| GF-523 | Cytoscape JSON read | multigraph true: every edge kept, key not reported | `DirectedPseudograph<String>(cytoscapeJSON:)` | `"{\"directed\": true, \"multigraph\": true, \"elements\": {\"nodes\": [{\"data\": {\"id\": \"a\"}}], \"edges\": [{\"data\": {\"source\": \"a\", \"target\": \"a\", \"key\": 0}}, {\"data\": {\"source\": \"a\", \"target\": \"a\", \"key\": 0, \"w\": 2}}]}}"` | `D: a; a>a, a>a{w=2}` |
+| GF-524 | Cytoscape JSON read | multigraph false: parallel edges kept, key reported | `DirectedPseudograph<String>(cytoscapeJSON:)` | `"{\"directed\": true, \"elements\": {\"nodes\": [{\"data\": {\"id\": \"a\"}}], \"edges\": [{\"data\": {\"source\": \"a\", \"target\": \"a\", \"key\": 7}}, {\"data\": {\"source\": \"a\", \"target\": \"a\"}}]}}"` | `D: a; a>a{key=7}, a>a` |
+| GF-525 | Cytoscape JSON read | simple target: parallel edges merge, last value wins | `AdjacencyList<String>(cytoscapeJSON:)` | `"{\"directed\": true, \"elements\": {\"nodes\": [{\"data\": {\"id\": \"a\"}}, {\"data\": {\"id\": \"b\"}}], \"edges\": [{\"data\": {\"source\": \"a\", \"target\": \"b\", \"w\": 1}}, {\"data\": {\"source\": \"a\", \"target\": \"b\", \"w\": 2}}]}}"` | `D: a, b; a>b{w=2}` |
+| GF-526 | Cytoscape JSON read | integer ids and endpoints are their decimal text | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {\"nodes\": [{\"data\": {\"id\": 1}}, {\"data\": {\"id\": \"2\"}}], \"edges\": [{\"data\": {\"source\": \"1\", \"target\": 2}}]}}"` | `U: 1, 2; 1-2` |
+| GF-527 | Cytoscape JSON read | no nodes or edges members | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {}}"` | `U:` |
+| GF-528 | Cytoscape JSON read | no elements | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"directed\": false}"` | **syntax** at 1:1 |
+| GF-529 | Cytoscape JSON read | top level not an object | `Pseudograph<String>(cytoscapeJSON:)` | `"[]"` | **syntax** at 1:1 |
+| GF-530 | Cytoscape JSON read | directed into an undirected target | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"directed\": true, \"elements\": {}}"` | **kindMismatch** at 1:14 |
+| GF-531 | Cytoscape JSON read | no directed into a directed target | `DirectedPseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {}}"` | **kindMismatch** at 1:1 |
+| GF-532 | Cytoscape JSON read | directed that is not a boolean | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"directed\": 0, \"elements\": {}}"` | **invalidValue** at 1:14 |
+| GF-533 | Cytoscape JSON read | multigraph that is not a boolean | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"multigraph\": \"no\", \"elements\": {}}"` | **invalidValue** at 1:16 |
+| GF-534 | Cytoscape JSON read | data that is neither an object nor an array | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"data\": 1, \"elements\": {}}"` | **invalidValue** at 1:10 |
+| GF-535 | Cytoscape JSON read | a data pair that is not [string, value] | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"data\": [[1, 2]], \"elements\": {}}"` | **invalidValue** at 1:11 |
+| GF-536 | Cytoscape JSON read | a data value that is a list (unsupported) | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"data\": {\"x\": [1]}, \"elements\": {}}"` | **unsupported** at 1:16 |
+| GF-537 | Cytoscape JSON read | elements that are neither an object nor an array | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": 3}"` | **invalidValue** at 1:14 |
+| GF-538 | Cytoscape JSON read | nodes that are not an array | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {\"nodes\": {}}}"` | **invalidValue** at 1:24 |
+| GF-539 | Cytoscape JSON read | an element that is not an object | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": [1]}"` | **invalidValue** at 1:15 |
+| GF-540 | Cytoscape JSON read | a group other than nodes or edges | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": [{\"group\": \"x\", \"data\": {\"id\": \"a\"}}]}"` | **invalidValue** at 1:25 |
+| GF-541 | Cytoscape JSON read | a node without data | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {\"nodes\": [{\"id\": \"a\"}]}}"` | **syntax** at 1:25 |
+| GF-542 | Cytoscape JSON read | a node's data that is not an object | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {\"nodes\": [{\"data\": 1}]}}"` | **invalidValue** at 1:34 |
+| GF-543 | Cytoscape JSON read | a node without an id | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {\"nodes\": [{\"data\": {\"name\": \"a\"}}]}}"` | **syntax** at 1:34 |
+| GF-544 | Cytoscape JSON read | an id that is a boolean | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {\"nodes\": [{\"data\": {\"id\": true}}]}}"` | **invalidValue** at 1:41 |
+| GF-545 | Cytoscape JSON read | a node declared twice (1 and "1") | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {\"nodes\": [{\"data\": {\"id\": 1}}, {\"data\": {\"id\": \"1\"}}]}}"` | **duplicateVertex** at 1:62 |
+| GF-546 | Cytoscape JSON read | a null attribute (unsupported) | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {\"nodes\": [{\"data\": {\"id\": \"a\", \"x\": null}}]}}"` | **unsupported** at 1:51 |
+| GF-547 | Cytoscape JSON read | an edge without a source | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {\"nodes\": [{\"data\": {\"id\": \"a\"}}], \"edges\": [{\"data\": {\"target\": \"a\"}}]}}"` | **syntax** at 1:68 |
+| GF-548 | Cytoscape JSON read | an edge to an undeclared node | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {\"nodes\": [{\"data\": {\"id\": \"a\"}}], \"edges\": [{\"data\": {\"source\": \"a\", \"target\": \"b\"}}]}}"` | **undeclaredVertex** at 1:94 |
+| GF-549 | Cytoscape JSON read | an edge attribute that is an object (unsupported) | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {\"nodes\": [{\"data\": {\"id\": \"a\"}}], \"edges\": [{\"data\": {\"source\": \"a\", \"target\": \"a\", \"x\": {}}}]}}"` | **unsupported** at 1:104 |
+| GF-550 | Cytoscape JSON read | a duplicate key | `Pseudograph<String>(cytoscapeJSON:)` | `"{\"elements\": {}, \"elements\": {}}"` | **duplicateKey** at 1:18 |
+| GF-551 | GML write | empty digraph | `writeGML(to:)` | `D:` | `"graph [\n  directed 1\n]\n"` |
+| GF-552 | GML write | empty undirected graph: no directed line | `writeGML(to:)` | `U:` | `"graph [\n]\n"` |
+| GF-553 | GML write | every vertex, then every edge, in order | `writeGML(to:)` | `D: a, b, z; a>b` | `"graph [\n  directed 1\n  node [\n    id 0\n    label \"a\"\n  ]\n  node [\n    id 1\n    label \"b\"\n  ]\n  node [\n    id 2\n    label \"z\"\n  ]\n  edge [\n    source 0\n    target 1\n  ]\n]\n"` |
+| GF-554 | GML write | typed attributes; graph attributes first; booleans as 1 and 0 | `writeGML(to:)` | `D: a{color="x y", n=3, x=2.0, ok=true, no=false}, b; a>b{weight=2, w2=-0.5}, b>b{weight=1.5}; graph{title="G", n=1}` | `"graph [\n  directed 1\n  title \"G\"\n  n 1\n  node [\n    id 0\n    label \"a\"\n    color \"x y\"\n    n 3\n    x 2.0\n    ok 1\n    no 0\n  ]\n  node [\n    id 1\n    label \"b\"\n  ]\n  edge [\n    source 0\n    target 1\n    weight 2\n    w2 -0.5\n  ]\n  edge [\n    source 1\n    target 1\n    weight 1.5\n  ]\n]\n"` |
+| GF-555 | GML write | undirected, a loop, parallel edges: multigraph 1 | `writeGML(to:)` | `U: a, b, c; b-a, a-a, a-b, c-b` | `"graph [\n  multigraph 1\n  node [\n    id 0\n    label \"a\"\n  ]\n  node [\n    id 1\n    label \"b\"\n  ]\n  node [\n    id 2\n    label \"c\"\n  ]\n  edge [\n    source 1\n    target 0\n  ]\n  edge [\n    source 0\n    target 0\n  ]\n  edge [\n    source 0\n    target 1\n  ]\n  edge [\n    source 2\n    target 1\n  ]\n]\n"` |
+| GF-556 | GML write | integers outside 32 bits as strings; reals as NetworkX writes them | `writeGML(to:)` | `U: a{big=2147483648, low=-2147483648, top=2147483647, e=1e-05, f=1e+16, p=inf, m=-inf, q=nan, z=-0.0}` | `"graph [\n  node [\n    id 0\n    label \"a\"\n    big \"2147483648\"\n    low -2147483648\n    top 2147483647\n    e 1.E-05\n    f 1.E+16\n    p +INF\n    m -INF\n    q NAN\n    z -0.0\n  ]\n]\n"` |
+| GF-557 | GML write | character references for quotes, ampersands and everything outside ASCII | `writeGML(to:)` | `D: "a\"&<b>", "é\n😀", "~ "{s="tab\tquote\"amp&"}; "a\"&<b>">"é\n😀"` | `"graph [\n  directed 1\n  node [\n    id 0\n    label \"a&#34;&#38;<b>\"\n  ]\n  node [\n    id 1\n    label \"&#233;&#10;&#128512;\"\n  ]\n  node [\n    id 2\n    label \"~ \"\n    s \"tab&#9;quote&#34;amp&#38;\"\n  ]\n  edge [\n    source 0\n    target 1\n  ]\n]\n"` |
+| GF-558 | GML write | Int vertices: labels are their text | `writeGML(to:)` | `U: 0, 1, 2; 0-1, 1-2` | `"graph [\n  node [\n    id 0\n    label \"0\"\n  ]\n  node [\n    id 1\n    label \"1\"\n  ]\n  node [\n    id 2\n    label \"2\"\n  ]\n  edge [\n    source 0\n    target 1\n  ]\n  edge [\n    source 1\n    target 2\n  ]\n]\n"` |
+| GF-559 | Pajek write | empty digraph | `writePajek(to:)` | `D:` | `"*vertices 0\n*arcs\n"` |
+| GF-560 | Pajek write | undirected path: NetworkX's defaults for x, y, shape and weight | `writePajek(to:)` | `U: 0, 1, 2; 0-1, 1-2` | `"*vertices 3\n1 0 0.0 0.0 ellipse\n2 1 0.0 0.0 ellipse\n3 2 0.0 0.0 ellipse\n*edges\n1 2 1.0\n2 3 1.0\n"` |
+| GF-561 | Pajek write | coordinates, shape, weights and key-value pairs | `writePajek(to:)` | `D: a{x=0.5, y=2, shape="box", ic="Red"}, b{ic="Blue", x=-1.0}, c; a>b{weight=2.5, c="Green"}, b>c{weight=3}, c>c{l=1}` | `"*vertices 3\n1 a 0.5 2 box ic Red\n2 b -1.0 0.0 ellipse ic Blue\n3 c 0.0 0.0 ellipse\n*arcs\n1 2 2.5 c Green\n2 3 3\n3 3 1.0 l 1\n"` |
+| GF-562 | Pajek write | quoting: whitespace, quotes, backslashes, apostrophes, empty strings | `writePajek(to:)` | `U: "a b", "q\"r", "back\\slash", "it's", "", plain{"k y"="v w", e=""}, "nb sp"; "a b"-"q\"r", "it's"-""` | `"*vertices 7\n1 \"a b\" 0.0 0.0 ellipse\n2 \"q\\\"r\" 0.0 0.0 ellipse\n3 \"back\\\\slash\" 0.0 0.0 ellipse\n4 \"it's\" 0.0 0.0 ellipse\n5 \"\" 0.0 0.0 ellipse\n6 plain 0.0 0.0 ellipse \"k y\" \"v w\" e \"\"\n7 \"nb\u00a0sp\" 0.0 0.0 ellipse\n*edges\n1 2 1.0\n4 5 1.0\n"` |
+| GF-563 | Pajek write | parallel edges and a loop | `writePajek(to:)` | `U: a, b, c; b-a, a-a, a-b, c-b` | `"*vertices 3\n1 a 0.0 0.0 ellipse\n2 b 0.0 0.0 ellipse\n3 c 0.0 0.0 ellipse\n*edges\n2 1 1.0\n1 1 1.0\n1 2 1.0\n3 2 1.0\n"` |
+| GF-564 | graph6 write | graph6: a path and an edge | `writeGraph6(to:)` | `U: 0, 1, 2, 3, 4; 0-1, 1-2, 3-4` | `"DgC\n"` |
+| GF-565 | graph6 write | graph6: with the header | `writeGraph6(to:, header: true)` | `U: 0, 1, 2, 3, 4; 0-1, 1-2, 3-4` | `">>graph6<<DgC\n"` |
+| GF-566 | graph6 write | graph6: no vertices | `writeGraph6(to:)` | `U:` | `"?\n"` |
+| GF-567 | graph6 write | graph6: K4, edges in any orientation | `writeGraph6(to:)` | `U: 0, 1, 2, 3; 1-0, 0-2, 3-0, 1-2, 3-1, 2-3` | `"C~\n"` |
+| GF-568 | graph6 write | graph6: 63 vertices take the four-byte size | `writeGraph6(to:)` | `U: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62; 61-62` | `"~??~?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????G\n"` |
+| GF-569 | digraph6 write | digraph6: arcs and a loop | `writeDigraph6(to:)` | `D: 0, 1, 2; 0>1, 1>1, 2>0` | `"&BQ_\n"` |
+| GF-570 | digraph6 write | digraph6: with the header | `writeDigraph6(to:, header: true)` | `D: 0, 1, 2, 3; 0>3, 3>0` | `">>digraph6<<&CC?_\n"` |
+| GF-571 | digraph6 write | digraph6: no vertices | `writeDigraph6(to:)` | `D:` | `"&?\n"` |
+| GF-572 | sparse6 write | sparse6: nauty's example | `writeSparse6(to:)` | `U: 0, 1, 2, 3, 4, 5, 6; 0-1, 0-2, 1-2, 5-6` | `":Fa@x^\n"` |
+| GF-573 | sparse6 write | sparse6: loops and parallel edges | `writeSparse6(to:)` | `U: 0, 1, 2; 0-1, 1-0, 1-1, 2-2` | `":B_M\n"` |
+| GF-574 | sparse6 write | sparse6: with the header, a jump over vertices | `writeSparse6(to:, header: true)` | `U: 0, 1, 2, 3, 4, 5, 6, 7; 6-1, 7-2, 7-2` | `">>sparse6<<:GwYJ\n"` |
+| GF-575 | sparse6 write | sparse6: the padding special case | `writeSparse6(to:)` | `U: 0, 1, 2, 3; 0-1, 1-1, 0-2` | ``":C`b\n"`` |
+| GF-576 | sparse6 write | sparse6: a loop at vertex 0 of four (nauty's padding) | `writeSparse6(to:)` | `U: 0, 1, 2, 3; 0-0` | `":CF\n"` |
+| GF-577 | sparse6 write | sparse6: one vertex with a loop (k = 0) | `writeSparse6(to:)` | `U: 0; 0-0` | `":@^\n"` |
+| GF-578 | sparse6 write | sparse6: no vertices | `writeSparse6(to:)` | `U:` | `":?\n"` |
+| GF-579 | DIMACS write | shortest path: p sp and weighted arcs in position order | `writeDIMACS(to:, weight: [7, -2, 0])` | `D: 0, 1, 2; 0>1, 2>0, 1>1` | `"p sp 3 3\na 1 2 7\na 3 1 -2\na 2 2 0\n"` |
+| GF-580 | DIMACS write | clique: p edge and edges as stored | `writeDIMACS(to:)` | `U: 0, 1, 2, 3; 1-0, 2-3` | `"p edge 4 2\ne 2 1\ne 3 4\n"` |
+| GF-581 | DIMACS write | empty digraph | `writeDIMACS(to:, weight: [])` | `D:` | `"p sp 0 0\n"` |
+| GF-582 | METIS write | unweighted: neighbours in the order of the incident edges | `writeMETIS(to:)` | `U: 0, 1, 2, 3; 0-1, 2-0, 1-2` | `"4 3\n2 3\n1 3\n1 2\n\n"` |
+| GF-583 | METIS write | edge weights: fmt 1 | `writeMETIS(to:, weight: [5, -3])` | `U: 0, 1, 2; 0-1, 2-1` | `"3 2 1\n2 5\n1 5 3 -3\n2 -3\n"` |
+| GF-584 | METIS write | isolated vertices are empty lines | `writeMETIS(to:)` | `U: 0, 1, 2; 2-0` | `"3 1\n3\n\n1\n"` |
+| GF-585 | METIS write | no vertices | `writeMETIS(to:)` | `U:` | `"0 0\n"` |
+| GF-586 | Cytoscape JSON write | empty digraph | `writeCytoscapeJSON(to:)` | `D:` | `"{\"data\": [], \"directed\": true, \"multigraph\": false, \"elements\": {\"nodes\": [], \"edges\": []}}"` |
+| GF-587 | Cytoscape JSON write | undirected path | `writeCytoscapeJSON(to:)` | `U: 0, 1, 2; 0-1, 1-2` | `"{\"data\": [], \"directed\": false, \"multigraph\": false, \"elements\": {\"nodes\": [{\"data\": {\"id\": \"0\", \"value\": \"0\", \"name\": \"0\"}}, {\"data\": {\"id\": \"1\", \"value\": \"1\", \"name\": \"1\"}}, {\"data\": {\"id\": \"2\", \"value\": \"2\", \"name\": \"2\"}}], \"edges\": [{\"data\": {\"source\": \"0\", \"target\": \"1\"}}, {\"data\": {\"source\": \"1\", \"target\": \"2\"}}]}}"` |
+| GF-588 | Cytoscape JSON write | typed attributes; a vertex's own name and value stay in place | `writeCytoscapeJSON(to:)` | `D: a{label="x y", n=3, x=2.0, ok=true}, b{name="B", value=7}; a>b{weight=2, w2=-0.5}, b>b{id="e1"}; graph{title="G", k=1}` | `"{\"data\": [[\"title\", \"G\"], [\"k\", 1]], \"directed\": true, \"multigraph\": false, \"elements\": {\"nodes\": [{\"data\": {\"label\": \"x y\", \"n\": 3, \"x\": 2.0, \"ok\": true, \"id\": \"a\", \"value\": \"a\", \"name\": \"a\"}}, {\"data\": {\"name\": \"B\", \"value\": 7, \"id\": \"b\"}}], \"edges\": [{\"data\": {\"weight\": 2, \"w2\": -0.5, \"source\": \"a\", \"target\": \"b\"}}, {\"data\": {\"id\": \"e1\", \"source\": \"b\", \"target\": \"b\"}}]}}"` |
+| GF-589 | Cytoscape JSON write | parallel edges: multigraph true and NetworkX's keys | `writeCytoscapeJSON(to:)` | `D: a, b; a>b, b>a{w=1}, a>b, a>b` | `"{\"data\": [], \"directed\": true, \"multigraph\": true, \"elements\": {\"nodes\": [{\"data\": {\"id\": \"a\", \"value\": \"a\", \"name\": \"a\"}}, {\"data\": {\"id\": \"b\", \"value\": \"b\", \"name\": \"b\"}}], \"edges\": [{\"data\": {\"source\": \"a\", \"target\": \"b\", \"key\": 0}}, {\"data\": {\"w\": 1, \"source\": \"b\", \"target\": \"a\", \"key\": 0}}, {\"data\": {\"source\": \"a\", \"target\": \"b\", \"key\": 1}}, {\"data\": {\"source\": \"a\", \"target\": \"b\", \"key\": 2}}]}}"` |
+| GF-590 | Cytoscape JSON write | non-ASCII and control characters are escaped | `writeCytoscapeJSON(to:)` | `D: "é"{s="\b\f/'"}, "😀", "c\u0001"; "é">"😀"` | `"{\"data\": [], \"directed\": true, \"multigraph\": false, \"elements\": {\"nodes\": [{\"data\": {\"s\": \"\\b\\f/'\", \"id\": \"\\u00e9\", \"value\": \"\\u00e9\", \"name\": \"\\u00e9\"}}, {\"data\": {\"id\": \"\\ud83d\\ude00\", \"value\": \"\\ud83d\\ude00\", \"name\": \"\\ud83d\\ude00\"}}, {\"data\": {\"id\": \"c\\u0001\", \"value\": \"c\\u0001\", \"name\": \"c\\u0001\"}}], \"edges\": [{\"data\": {\"source\": \"\\u00e9\", \"target\": \"\\ud83d\\ude00\"}}]}}"` |
+| GF-591 | Edge list write | a comma delimiter: IDs may hold spaces | `writeEdgeList(to:, delimiter: ",")` | `D: "a b", c; "a b">c, c>c` | `"a b,c\nc,c\n"` |
+| GF-592 | Edge list write | a tab delimiter with columns; an empty string value | `writeEdgeList(to:, columns: ["w", "s"], delimiter: "\t")` | `D: x, y; x>y{w=1.5, s=""}` | `"x\ty\t1.5\t\n"` |

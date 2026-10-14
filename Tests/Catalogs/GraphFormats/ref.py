@@ -5,9 +5,10 @@ Run: uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 --wit
          python3 Tests/Catalogs/GraphFormats/ref.py [--write] [--stress] [--bench]
 
 The model is an independent Python implementation of api.md: one reader and one writer per
-format (DOT, GraphML, node-link JSON, Matrix Market, edge list, adjacency list, Mermaid), with
-its own UTF-8, XML and JSON scanners, so that every rule api.md states (what is accepted, what
-is an error and where, what a writer prints byte for byte) is code here.
+format (DOT, GraphML, node-link JSON, Matrix Market, edge list, adjacency list, Mermaid, GML,
+Pajek, graph6, sparse6, digraph6, DIMACS, METIS, Cytoscape JSON), with its own UTF-8, XML and JSON
+scanners, so that every rule api.md states (what is accepted, what is an error and where, what a
+writer prints byte for byte) is code here.
 
   * A reader fills a target: `D` (DirectedPseudograph), `DS` (AdjacencyList: a parallel edge
     returns the existing position), `U` (Pseudograph), `US` (UndirectedAdjacencyList). Attribute
@@ -25,6 +26,12 @@ KNOWN with the reason, and in api.md under disagreements):
   * edge list, adjacency list: NetworkX `read_edgelist` / `read_adjlist` on read rows; writer rows
     byte-equal to `write_edgelist(data=columns)` / `write_adjlist` (its three header comment lines
     removed), on simple graphs.
+  * GML, Pajek, graph6, sparse6, Cytoscape JSON: NetworkX's parse_gml, parse_pajek,
+    from_graph6_bytes, from_sparse6_bytes and cytoscape_graph on read rows; writer rows byte-equal to
+    generate_gml, generate_pajek, to_graph6_bytes, to_sparse6_bytes and
+    json.dumps(cytoscape_data(G)), edges compared as sets where NetworkX lists them by adjacency.
+    digraph6, DIMACS and METIS have no Python implementation: the model follows nauty's
+    formats.txt, the DIMACS challenge pages and the METIS manual.
   * DOT: pydot 4.0.1 parses every writer row back to the same edges and explicit attributes;
     read rows are compared on edges and explicit attributes where pydot's grammar agrees (pydot
     applies no defaults and has no strict merge). Graphviz itself is not installable without a
@@ -374,58 +381,74 @@ def dot_read(t, g):
         ident()
     if take()[0] != "{":
         fail(toks[i - 1])
-    node_defaults, edge_defaults, merged = {}, {}, {}
+    merged = {}
+    # The open subgraphs' vertex lists (each an insertion-ordered dict), innermost last.
+    open_lists = []
 
-    def node(name):
+    def mention(v):
+        for members in open_lists:
+            members.setdefault(v, None)
+
+    def node(name, node_defaults):
         if name in g.index:
-            return g.index[name]
-        v = g.vertex(name)
-        for k, x in node_defaults.items():
-            g.vattrs[v][k] = x
+            v = g.index[name]
+        else:
+            v = g.vertex(name)
+            for k, x in node_defaults.items():
+                g.vattrs[v][k] = x
+        mention(v)
         return v
 
-    while True:
-        tok = peek()
-        if tok[0] == "}":
-            take()
-            break
-        if tok[0] == "eof":
-            fail(tok)
-        if tok[0] == ";":
-            take()
-            continue
-        if tok[0] == "{" or (tok[0] == "kw" and tok[1] == "subgraph"):
-            fail(tok, "unsupported")
-        if tok[0] == "kw" and tok[1] in ("graph", "node", "edge"):
-            take()
-            if peek()[0] != "[":
+    def is_subgraph(tok):
+        return tok[0] == "{" or (tok[0] == "kw" and tok[1] == "subgraph")
+
+    def subgraph(depth, node_defaults, edge_defaults):
+        """A subgraph at the current token: its vertices in order of first mention."""
+        tok = take()
+        if tok[0] == "kw":
+            if peek()[0] == "id":
+                ident()
+            if peek()[0] != "{":
+                raise ParseError("unsupported", tok[2])
+            tok = take()
+        if depth > MAX_DEPTH:
+            raise ParseError("nestingTooDeep", tok[2])
+        members = {}
+        open_lists.append(members)
+        statements(depth, dict(node_defaults), dict(edge_defaults), root=False)
+        open_lists.pop()
+        for v in members:
+            mention(v)
+        return list(members)
+
+    def operand(depth, node_defaults, edge_defaults):
+        """An edge operand: (vertices, port)."""
+        if is_subgraph(peek()):
+            vs = subgraph(depth + 1, node_defaults, edge_defaults)
+            if peek()[0] == ":":
                 fail(peek())
-            pairs = attr_list()
-            target = {"graph": g.gattrs, "node": node_defaults, "edge": edge_defaults}[tok[1]]
-            for k, x in pairs:
-                target[k] = x
-        elif tok[0] == "id":
-            a = ident()
-            if peek()[0] == "=":
+            return vs, None
+        name = ident()
+        port = None
+        if peek()[0] == ":":
+            take()
+            port = ident()
+            if peek()[0] == ":":
                 take()
-                g.gattrs[a] = ident()
-            elif peek()[0] == ":":
-                fail(peek(), "unsupported")
-            elif peek()[0] in ("->", "--"):
-                names = [a]
-                while peek()[0] in ("->", "--"):
-                    e = take()
-                    if e[0] != op:
-                        fail(e)
-                    nxt = peek()
-                    if nxt[0] == "{" or (nxt[0] == "kw" and nxt[1] == "subgraph"):
-                        fail(nxt, "unsupported")
-                    names.append(ident())
-                    if peek()[0] == ":":
-                        fail(peek(), "unsupported")
-                pairs = attr_list()
-                vs = [node(x) for x in names]
-                for u, v in zip(vs, vs[1:]):
+                port += ":" + ident()
+        return [node(name, node_defaults)], port
+
+    def chain(first, depth, node_defaults, edge_defaults):
+        operands = [first]
+        while peek()[0] in ("->", "--"):
+            e = take()
+            if e[0] != op:
+                fail(e)
+            operands.append(operand(depth, node_defaults, edge_defaults))
+        pairs = attr_list()
+        for (tails, tport), (heads, hport) in zip(operands, operands[1:]):
+            for u in tails:
+                for v in heads:
                     k = g.key(u, v)
                     if strict and k in merged:
                         p = merged[k]
@@ -434,17 +457,66 @@ def dot_read(t, g):
                         merged.setdefault(k, p)
                         for kk, x in edge_defaults.items():
                             g.eattrs[p][kk] = x
+                    if tport is not None:
+                        g.eattrs[p]["tailport"] = tport
+                    if hport is not None:
+                        g.eattrs[p]["headport"] = hport
                     for kk, x in pairs:
                         g.eattrs[p][kk] = x
-            else:
+
+    def statements(depth, node_defaults, edge_defaults, root):
+        while True:
+            tok = peek()
+            if tok[0] == "}":
+                take()
+                return
+            if tok[0] == "eof":
+                fail(tok)
+            if tok[0] == ";":
+                take()
+                continue
+            if is_subgraph(tok):
+                vs = subgraph(depth + 1, node_defaults, edge_defaults)
+                if peek()[0] == ":":
+                    fail(peek())
+                if peek()[0] in ("->", "--"):
+                    chain((vs, None), depth, node_defaults, edge_defaults)
+            elif tok[0] == "kw" and tok[1] in ("graph", "node", "edge"):
+                take()
+                if peek()[0] != "[":
+                    fail(peek())
                 pairs = attr_list()
-                v = node(a)
+                target = {"graph": g.gattrs if root else {}, "node": node_defaults, "edge": edge_defaults}[tok[1]]
                 for k, x in pairs:
-                    g.vattrs[v][k] = x
-        else:
-            fail(tok)
-        if peek()[0] == ";":
-            take()
+                    target[k] = x
+            elif tok[0] == "id":
+                name = ident()
+                if peek()[0] == "=":
+                    take()
+                    value = ident()
+                    if root:
+                        g.gattrs[name] = value
+                else:
+                    port = None
+                    if peek()[0] == ":":
+                        take()
+                        port = ident()
+                        if peek()[0] == ":":
+                            take()
+                            port += ":" + ident()
+                    if peek()[0] in ("->", "--"):
+                        chain(([node(name, node_defaults)], port), depth, node_defaults, edge_defaults)
+                    else:
+                        pairs = attr_list()
+                        v = node(name, node_defaults)
+                        for k, x in pairs:
+                            g.vattrs[v][k] = x
+            else:
+                fail(tok)
+            if peek()[0] == ";":
+                take()
+
+    statements(0, {}, {}, root=True)
     tok = peek()
     if tok[0] != "eof":
         fail(tok, "unsupported" if tok[0] == "kw" and tok[1] in ("strict", "graph", "digraph") else "syntax")
@@ -823,9 +895,9 @@ def graphml_read(t, g):
     if (ed == "directed") != g.directed:
         raise ParseError("kindMismatch", gr.offset)
 
-    def data_of(el, dom):
+    def data_of(el, dom, children=None):
         out = {}
-        for c in el.children:
+        for c in (el.children if children is None else children):
             if c.local != "data":
                 continue
             if "key" not in c.attrs:
@@ -844,38 +916,65 @@ def graphml_read(t, g):
 
     g.gattrs.update(data_of(gr, "graph"))
     edges = []
-    for el in gr.children:
-        if el.local == "node":
-            if "id" not in el.attrs:
-                raise ParseError("syntax", el.offset)
-            nid, off = el.attrs["id"]
-            if nid in g.index:
-                raise ParseError("duplicateVertex", off)
-            for c in el.children:
-                if c.local in ("graph", "port"):
-                    raise ParseError("unsupported", c.offset)
-            v = g.vertex(nid)
-            g.vattrs[v].update(data_of(el, "node"))
-        elif el.local == "edge":
-            for a in ("source", "target"):
-                if a not in el.attrs:
+
+    def walk(graph_el):
+        for el in graph_el.children:
+            if el.local == "node":
+                if "id" not in el.attrs:
                     raise ParseError("syntax", el.offset)
-            for a in ("sourceport", "targetport"):
-                if a in el.attrs:
-                    raise ParseError("unsupported", el.attrs[a][1])
-            if "directed" in el.attrs:
-                d, off = el.attrs["directed"]
-                d = d.strip(" \t\n\r")  # xs:boolean: true, false, 1, 0, whitespace collapsed
-                if d not in ("true", "false", "1", "0"):
-                    raise ParseError("invalidValue", off)
-                if (d in ("true", "1")) != g.directed:
-                    raise ParseError("unsupported", off)
-            for c in el.children:
-                if c.local == "graph":
-                    raise ParseError("unsupported", c.offset)
-            edges.append(el)
-        elif el.local == "hyperedge":
-            raise ParseError("unsupported", el.offset)
+                nid, off = el.attrs["id"]
+                if nid in g.index:
+                    raise ParseError("duplicateVertex", off)
+                # A node's data and ports come before its nested graph (graphml.xsd); after it they
+                # are unsupported.
+                before = []
+                for c in el.children:
+                    if c.local == "graph":
+                        break
+                    before.append(c)
+                for c in before:
+                    if c.local == "port":
+                        raise ParseError("unsupported", c.offset)
+                v = g.vertex(nid)
+                g.vattrs[v].update(data_of(el, "node", before))
+                # A nested graph (a yEd group's content): its nodes and edges are the graph's.
+                nested = False
+                for c in el.children:
+                    if nested and c.local in ("data", "port"):
+                        raise ParseError("unsupported", c.offset)
+                    if c.local == "graph":
+                        nested = True
+                        if "edgedefault" not in c.attrs:
+                            raise ParseError("syntax", c.offset)
+                        ned, noff = c.attrs["edgedefault"]
+                        ned = ned.strip(" \t\n\r")
+                        if ned not in ("directed", "undirected"):
+                            raise ParseError("invalidValue", noff)
+                        if (ned == "directed") != g.directed:
+                            raise ParseError("unsupported", c.offset)
+                        walk(c)
+            elif el.local == "edge":
+                for a in ("source", "target"):
+                    if a not in el.attrs:
+                        raise ParseError("syntax", el.offset)
+                for a in ("sourceport", "targetport"):
+                    if a in el.attrs:
+                        raise ParseError("unsupported", el.attrs[a][1])
+                if "directed" in el.attrs:
+                    d, off = el.attrs["directed"]
+                    d = d.strip(" \t\n\r")  # xs:boolean: true, false, 1, 0, whitespace collapsed
+                    if d not in ("true", "false", "1", "0"):
+                        raise ParseError("invalidValue", off)
+                    if (d in ("true", "1")) != g.directed:
+                        raise ParseError("unsupported", off)
+                for c in el.children:
+                    if c.local == "graph":
+                        raise ParseError("unsupported", c.offset)
+                edges.append(el)
+            elif el.local == "hyperedge":
+                raise ParseError("unsupported", el.offset)
+
+    walk(gr)
     for el in edges:
         ends = []
         for a in ("source", "target"):
@@ -1144,6 +1243,12 @@ def node_link_read(t, g):
 
     def vid(v):
         x, xoff = v
+        if isinstance(x, list):
+            # An array id (NetworkX's tuple node): its canonical JSON text, as a string id.
+            text = json_id_text(x, xoff)
+            if g.vtype is int:
+                raise ParseError("invalidVertex", xoff)
+            return text, xoff
         if type(x) is int:
             name = x if g.vtype is int else str(x)
         elif type(x) is str and g.vtype is str:
@@ -1209,6 +1314,21 @@ def node_link_read(t, g):
         for kk, (x, _) in edge.items.items():
             if kk not in ("source", "target", "key"):
                 g.eattrs[p][kk] = scalar(x)
+
+
+def json_id_text(items, offset):
+    """An array id's canonical JSON text: elements as the writer writes values, ", " between."""
+    parts = []
+    for x, _ in items:
+        if isinstance(x, JObj):
+            raise ParseError("invalidValue", offset)
+        if isinstance(x, list):
+            parts.append(json_id_text(x, offset))
+        elif x is JNull:
+            parts.append("null")
+        else:
+            parts.append(json_value(x))
+    return "[" + ", ".join(parts) + "]"
 
 
 def json_str(s):
@@ -1481,17 +1601,175 @@ def list_tokens_of(off, s):
     return [(off + m.start(), m.group()) for m in re.finditer(r"[^\s]+", s)]
 
 
-def edge_list_read(t, g, columns=()):
+def check_delimiter(d):
+    """A delimiter is one ASCII scalar that cannot start or continue a field's number or name: not a
+    letter, a digit, '.', '+', '-', '#', LF or CR (a precondition)."""
+    assert d is None or (len(d) == 1 and d.isascii() and not d.isalnum() and d not in ".+-#\n\r"), \
+        "precondition: delimiter"
+
+
+PY_DECIMAL = re.compile(r"[+-]?(?:[0-9]+\.[0-9]*|\.[0-9]+|[0-9]+)(?:[eE][+-]?[0-9]+)?")
+PY_INT = re.compile(r"[+-]?[0-9]+\Z")
+PY_WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def py_string(t, q):
+    """The Python string literal at t[q] (a quote) on one line: (value, end)."""
+    quote, out, p, n = t[q], [], q + 1, len(t)
+    while True:
+        if p >= n or t[p] == "\n":
+            raise ParseError("syntax", q)
+        c = t[p]
+        if c == quote:
+            return "".join(out), p + 1
+        if c != "\\":
+            out.append(c)
+            p += 1
+            continue
+        if p + 1 >= n or t[p + 1] == "\n":
+            raise ParseError("syntax", q)
+        e = t[p + 1]
+        simple = {"\\": "\\", "'": "'", '"': '"', "a": "\a", "b": "\b", "f": "\f", "n": "\n", "r": "\r",
+                  "t": "\t", "v": "\v"}
+        if e in simple:
+            out.append(simple[e])
+            p += 2
+        elif e in "xuU":
+            width = {"x": 2, "u": 4, "U": 8}[e]
+            h = t[p + 2:p + 2 + width]
+            if not re.fullmatch(r"[0-9A-Fa-f]{%d}" % width, h):
+                raise ParseError("syntax", p)
+            code = int(h, 16)
+            if code > 0x10FFFF or 0xD800 <= code < 0xE000:
+                raise ParseError("invalidValue", p)
+            out.append(chr(code))
+            p += 2 + width
+        elif e in "01234567":
+            m = re.compile(r"[0-7]{1,3}").match(t, p + 1)
+            out.append(chr(int(m.group(), 8)))
+            p = m.end()
+        else:
+            out.append("\\" + e)
+            p += 2
+
+
+def py_dict(t, q, end, eattrs):
+    """The Python dict literal at t[q] ('{'), within the line t[:end]; the items go into eattrs in
+    order. Returns the offset past its '}'."""
+    def blanks(p):
+        while p < end and t[p] in " \t":
+            p += 1
+        return p
+
+    def value(p):
+        if p >= end:
+            raise ParseError("syntax", p)
+        c = t[p]
+        if c in "'\"":
+            return py_string(t, p)
+        if c in "[({":
+            raise ParseError("unsupported", p)
+        for word, x in (("-inf", -math.inf), ("inf", math.inf), ("nan", math.nan)):
+            if t.startswith(word, p) and not (p + len(word) < end and (t[p + len(word)].isalnum() or t[p + len(word)] == "_")):
+                return x, p + len(word)
+        m = PY_WORD.match(t, p)
+        if m and m.end() <= end:
+            w = m.group()
+            if w == "True":
+                return True, m.end()
+            if w == "False":
+                return False, m.end()
+            if w == "None":
+                raise ParseError("unsupported", p)
+            raise ParseError("syntax", p)
+        m = PY_DECIMAL.match(t, p)
+        if not m or m.end() > end:
+            raise ParseError("syntax", p)
+        s = m.group()
+        if m.end() < end and t[m.end()] not in " \t,}":
+            raise ParseError("syntax", m.end())
+        if PY_INT.match(s):
+            x = int(s)
+            if not INT_MIN <= x <= INT_MAX:
+                raise ParseError("numberOutOfRange", p)
+            return x, m.end()
+        return float(s), m.end()
+
+    p = blanks(q + 1)
+    first = True
+    while True:
+        if p >= end:
+            raise ParseError("syntax", p)
+        c = t[p]
+        if c == "}":
+            return p + 1
+        if not first:
+            raise ParseError("syntax", p)
+        if c not in "'\"":
+            if c.isalnum() or c in "+-.([{_":
+                raise ParseError("unsupported", p)
+            raise ParseError("syntax", p)
+        key, p = py_string(t, p)
+        p = blanks(p)
+        if p >= end or t[p] != ":":
+            raise ParseError("syntax", p)
+        p = blanks(p + 1)
+        x, p = value(p)
+        eattrs[key] = x
+        p = blanks(p)
+        if p < end and t[p] == ",":
+            p = blanks(p + 1)
+            first = True
+        else:
+            first = False
+
+
+def edge_list_read(t, g, columns=(), delimiter=None):
+    check_delimiter(delimiter)
     width = 2 + len(columns)
-    for off, line in text_lines(t):
-        toks = list_tokens_of(off, line)
-        if not toks:
+
+    def vertex(tok):
+        """An ID's vertex: the text, or for an Int target the decimal Int it spells."""
+        off, s = tok
+        if g.vtype is int:
+            if not INT_DEC.match(s) or not INT_MIN <= int(s) <= INT_MAX:
+                raise ParseError("invalidVertex", off)
+            return g.vertex(int(s))
+        return g.vertex(s)
+    for off, raw in lines_of(t):
+        h = raw.find("#")
+        content = raw if h < 0 else raw[:h]
+        if delimiter is None:
+            toks = list_tokens_of(off, content)
+            if not toks:
+                continue
+        else:
+            if content == "" or (delimiter not in content and content.isspace()):
+                continue
+            toks, start = [], 0
+            for piece in content.split(delimiter):
+                toks.append((off + start, piece))
+                start += len(piece) + 1
+        if not columns and len(toks) >= 3 and toks[2][1].startswith("{"):
+            u = vertex(toks[0])
+            v = vertex(toks[1])
+            attrs = {}
+            end = off + len(raw)
+            p = py_dict(t, toks[2][0], end, attrs)
+            while p < end and t[p] in " \t":
+                p += 1
+            if p < end and t[p] != "#":
+                raise ParseError("syntax", p)
+            e = g.edge(u, v)
+            for k, x in attrs.items():
+                g.eattrs[e][k] = x
             continue
         if len(toks) < width:
-            raise ParseError("syntax", off + len(line))
+            raise ParseError("syntax", off + len(content))
         if len(toks) > width:
             raise ParseError("syntax", toks[width][0])
-        p = g.edge(g.vertex(toks[0][1]), g.vertex(toks[1][1]))
+        u = vertex(toks[0])
+        p = g.edge(u, vertex(toks[1]))
         for name, (_, s) in zip(columns, toks[2:]):
             g.eattrs[p][name] = lexical(s)
 
@@ -1514,15 +1792,22 @@ def token(s):
     return s
 
 
-def edge_list_write(g, columns=()):
+def delimited_token(s, delimiter):
+    assert not ({delimiter, "#", "\n", "\r"} & set(s)), "precondition: token-safe"
+    return s
+
+
+def edge_list_write(g, columns=(), delimiter=None):
+    check_delimiter(delimiter)
+    tok = token if delimiter is None else (lambda s: delimited_token(s, delimiter))
     out = []
     for (u, v), a in zip(g.edges, g.eattrs):
-        parts = [token(str(g.vertices[u])), token(str(g.vertices[v]))]
+        parts = [tok(str(g.vertices[u])), tok(str(g.vertices[v]))]
         for c in columns:
             x = a[c]
             assert type(x) is not bool
-            parts.append(token(py_double(x) if type(x) is float else str(x)))
-        out.append(" ".join(parts) + "\n")
+            parts.append(tok(py_double(x) if type(x) is float else str(x)))
+        out.append((delimiter or " ").join(parts) + "\n")
     return "".join(out)
 
 
@@ -1799,14 +2084,1062 @@ def mermaid_write(g):
     return "".join(out)
 
 
+# ============================================================================ GML
+
+GML_KEY = re.compile(r"[A-Za-z][A-Za-z0-9_]*")
+GML_NUMBER = re.compile(r"[+-]?(?:[0-9]+\.[0-9]*|\.[0-9]+|[0-9]+)(?:[eE][+-]?[0-9]+)?")
+GML_KEYCHAR = re.compile(r"[A-Za-z0-9_]")
+
+
+def gml_unescape(s):
+    def sub(m):
+        text = m.group(0)
+        if text[1] == "#":
+            code = int(text[3:-1], 16) if text[2] == "x" else int(text[2:-1])
+            if code > 0x10FFFF or 0xD800 <= code < 0xE000:
+                return text
+            return chr(code)
+        return {"amp": "&", "lt": "<", "gt": ">", "quot": '"'}[text[1:-1]]
+    return re.sub(r"&(?:#[0-9]+|#x[0-9A-Fa-f]+|amp|lt|gt|quot);", sub, s)
+
+
+class GMLLexer:
+    """Tokens on demand: (kind, value, offset, text); kinds key, int, real, string, [, ], eof."""
+
+    def __init__(self, t):
+        self.t, self.p = t, 0
+
+    def next(self):
+        t, n = self.t, len(self.t)
+        p = self.p
+        while p < n:
+            c = t[p]
+            if c in " \t\r\n":
+                p += 1
+            elif c == "#":
+                q = t.find("\n", p)
+                p = n if q < 0 else q
+            else:
+                break
+        if p >= n:
+            self.p = p
+            return ("eof", None, n, "")
+        c = t[p]
+        if c in "[]":
+            self.p = p + 1
+            return (c, None, p, c)
+        if c == '"':
+            q = t.find('"', p + 1)
+            if q < 0:
+                raise ParseError("unexpectedEndOfInput", p)
+            self.boundary(q + 1)
+            self.p = q + 1
+            return ("string", gml_unescape(t[p + 1:q]), p, t[p:q + 1])
+        if c.isascii() and c.isalpha():
+            m = GML_KEY.match(t, p)
+            self.p = m.end()
+            return ("key", m.group(), p, m.group())
+        if c in "+-" and t.startswith("INF", p + 1):
+            q = p + 4
+            self.boundary(q)
+            self.p = q
+            return ("real", -math.inf if c == "-" else math.inf, p, t[p:q])
+        m = GML_NUMBER.match(t, p)
+        if not m:
+            raise ParseError("syntax", p)
+        s = m.group()
+        self.boundary(m.end())
+        self.p = m.end()
+        if re.fullmatch(r"[+-]?[0-9]+", s):
+            x = int(s)
+            if not INT_MIN <= x <= INT_MAX:
+                raise ParseError("numberOutOfRange", p)
+            return ("int", x, p, s)
+        x = float(s)
+        if math.isinf(x):
+            raise ParseError("numberOutOfRange", p)
+        return ("real", x, p, s)
+
+    def boundary(self, q):
+        if q < len(self.t) and GML_KEYCHAR.match(self.t[q]):
+            raise ParseError("syntax", q)
+
+
+def gml_read(t, g):
+    lex = GMLLexer(t)
+
+    def value():
+        """A value token: scalars as is; INF and NAN keys as doubles."""
+        tok = lex.next()
+        if tok[0] == "key" and tok[1] in ("INF", "NAN"):
+            return ("real", math.inf if tok[1] == "INF" else math.nan, tok[2], tok[1])
+        if tok[0] in ("int", "real", "string", "["):
+            return tok
+        if tok[0] == "eof":
+            raise ParseError("unexpectedEndOfInput", tok[2])
+        raise ParseError("syntax", tok[2])
+
+    def skip_list(depth, open_offset):
+        """The rest of a list whose '[' was read (at depth `depth`)."""
+        if depth > MAX_DEPTH:
+            raise ParseError("nestingTooDeep", open_offset)
+        while True:
+            tok = lex.next()
+            if tok[0] == "]":
+                return
+            if tok[0] == "eof":
+                raise ParseError("unexpectedEndOfInput", tok[2])
+            if tok[0] != "key":
+                raise ParseError("syntax", tok[2])
+            v = value()
+            if v[0] == "[":
+                skip_list(depth + 1, v[2])
+
+    def pairs(depth, open_offset):
+        """The (key token, value token) pairs of a list whose '[' was read, lists skipped (value '[')
+        or handed to `on_list`."""
+        if depth > MAX_DEPTH:
+            raise ParseError("nestingTooDeep", open_offset)
+        while True:
+            tok = lex.next()
+            if tok[0] == "]":
+                return
+            if tok[0] == "eof":
+                raise ParseError("unexpectedEndOfInput", tok[2])
+            if tok[0] != "key":
+                raise ParseError("syntax", tok[2])
+            yield tok, value()
+
+    def scalar(v):
+        return v[1]
+
+    ids, edges = {}, []  # node id -> vertex; edges: (source token, target token, attrs)
+    graph_seen = None
+
+    def read_node(node_key, depth, open_offset):
+        id_tok = label_tok = None
+        attrs = {}
+        for k, v in pairs(depth, open_offset):
+            if k[1] == "id":
+                if id_tok is not None:
+                    raise ParseError("duplicateKey", k[2])
+                if v[0] != "int":
+                    raise ParseError("invalidValue", v[2])
+                id_tok = v
+            elif k[1] == "label":
+                if label_tok is not None:
+                    raise ParseError("duplicateKey", k[2])
+                if v[0] == "[":
+                    raise ParseError("invalidValue", v[2])
+                label_tok = v
+            elif v[0] == "[":
+                skip_list(depth + 1, v[2])
+            else:
+                attrs[k[1]] = scalar(v)
+        if id_tok is None:
+            raise ParseError("syntax", node_key[2])
+        if id_tok[1] in ids:
+            raise ParseError("duplicateVertex", id_tok[2])
+        if label_tok is not None:
+            name = label_tok[1] if label_tok[0] == "string" else label_tok[3]
+            at = label_tok[2]
+        else:
+            name = str(id_tok[1])
+            at = id_tok[2]
+        if g.vtype is int:
+            raise ParseError("invalidVertex", at)
+        if name in g.index:
+            raise ParseError("duplicateVertex", at)
+        v = g.vertex(name)
+        ids[id_tok[1]] = v
+        g.vattrs[v].update(attrs)
+
+    def read_edge(edge_key, depth, open_offset):
+        ends = {"source": None, "target": None}
+        attrs = {}
+        for k, v in pairs(depth, open_offset):
+            if k[1] in ends:
+                if ends[k[1]] is not None:
+                    raise ParseError("duplicateKey", k[2])
+                if v[0] != "int":
+                    raise ParseError("invalidValue", v[2])
+                ends[k[1]] = v
+            elif v[0] == "[":
+                skip_list(depth + 1, v[2])
+            else:
+                attrs[k[1]] = scalar(v)
+        if ends["source"] is None or ends["target"] is None:
+            raise ParseError("syntax", edge_key[2])
+        edges.append((ends["source"], ends["target"], attrs))
+
+    def read_graph(graph_key, open_offset):
+        seen = {}
+        for k, v in pairs(1, open_offset):
+            name = k[1]
+            if name in ("directed", "multigraph"):
+                if name in seen:
+                    raise ParseError("duplicateKey", k[2])
+                if v[0] != "int" or v[1] not in (0, 1):
+                    raise ParseError("invalidValue", v[2])
+                seen[name] = v
+                if name == "directed" and (v[1] == 1) != g.directed:
+                    raise ParseError("kindMismatch", v[2])
+            elif name in ("node", "edge"):
+                if v[0] != "[":
+                    raise ParseError("invalidValue", v[2])
+                (read_node if name == "node" else read_edge)(k, 2, v[2])
+            elif v[0] == "[":
+                skip_list(2, v[2])
+            else:
+                g.gattrs[name] = scalar(v)
+        if g.directed and "directed" not in seen:
+            raise ParseError("kindMismatch", graph_key[2])
+        resolved = []
+        for s, d, attrs in edges:
+            for tok in (s, d):
+                if tok[1] not in ids:
+                    raise ParseError("undeclaredVertex", tok[2])
+            resolved.append((ids[s[1]], ids[d[1]], attrs))
+        for u, v, attrs in resolved:
+            p = g.edge(u, v)
+            g.eattrs[p].update(attrs)
+
+    while True:
+        tok = lex.next()
+        if tok[0] == "eof":
+            break
+        if tok[0] != "key":
+            raise ParseError("syntax", tok[2])
+        if tok[1] == "graph":
+            if graph_seen is not None:
+                raise ParseError("unsupported", tok[2])
+            graph_seen = tok
+            v = value()
+            if v[0] != "[":
+                raise ParseError("invalidValue", v[2])
+            read_graph(tok, v[2])
+        else:
+            v = value()
+            if v[0] == "[":
+                skip_list(1, v[2])
+    if graph_seen is None:
+        raise ParseError("unexpectedEndOfInput", len(t))
+
+
+def gml_escape(s):
+    return re.sub('[^ -~]|[&"]', lambda m: "&#" + str(ord(m.group(0))) + ";", s)
+
+
+GML_VALID_KEY = re.compile(r"[A-Za-z][0-9A-Za-z_]*\Z")
+
+
+def gml_value(x):
+    if type(x) is bool:
+        return "1" if x else "0"
+    if type(x) is int:
+        return str(x) if -(2 ** 31) <= x < 2 ** 31 else '"' + str(x) + '"'
+    if type(x) is float:
+        text = repr(x).upper()
+        if text == "INF":
+            return "+INF"
+        e = text.rfind("E")
+        if e != -1 and text.find(".", 0, e) == -1:
+            text = text[:e] + "." + text[e:]
+        return text
+    return '"' + gml_escape(x) + '"'
+
+
+def gml_write(g):
+    def attrs(a, indent, reserved):
+        out = []
+        for k, x in a.items():
+            assert GML_VALID_KEY.match(k) and k not in reserved, "WriteError"
+            out.append(f"{indent}{k} {gml_value(x)}\n")
+        return out
+    out = ["graph [\n"]
+    if g.directed:
+        out.append("  directed 1\n")
+    if has_parallel(g):
+        out.append("  multigraph 1\n")
+    out += attrs(g.gattrs, "  ", {"directed", "multigraph", "node", "edge"})
+    for i, (v, a) in enumerate(zip(g.vertices, g.vattrs)):
+        out += ["  node [\n", f"    id {i}\n", f'    label "{gml_escape(str(v))}"\n']
+        out += attrs(a, "    ", {"id", "label"})
+        out.append("  ]\n")
+    for (u, v), a in zip(g.edges, g.eattrs):
+        out += ["  edge [\n", f"    source {u}\n", f"    target {v}\n"]
+        out += attrs(a, "    ", {"source", "target"})
+        out.append("  ]\n")
+    out.append("]\n")
+    return "".join(out)
+
+
+# ============================================================================ Pajek
+
+def pajek_fields(t, off, line):
+    """POSIX shlex fields of a line: [(offset of the field's first character, text)]."""
+    out, p, n = [], 0, len(line)
+    while True:
+        while p < n and line[p] in " \t\r":
+            p += 1
+        if p >= n:
+            return out
+        start, buf = p, []
+        while p < n and line[p] not in " \t\r":
+            c = line[p]
+            if c == '"':
+                q = p + 1
+                while True:
+                    if q >= n:
+                        raise ParseError("syntax", off + p)
+                    d = line[q]
+                    if d == '"':
+                        break
+                    if d == "\\" and q + 1 < n and line[q + 1] in '"\\':
+                        buf.append(line[q + 1])
+                        q += 2
+                        continue
+                    buf.append(d)
+                    q += 1
+                p = q + 1
+            elif c == "'":
+                q = line.find("'", p + 1)
+                if q < 0:
+                    raise ParseError("syntax", off + p)
+                buf.append(line[p + 1:q])
+                p = q + 1
+            elif c == "\\":
+                if p + 1 >= n:
+                    raise ParseError("syntax", off + p)
+                buf.append(line[p + 1])
+                p += 2
+            else:
+                buf.append(c)
+                p += 1
+        out.append((off + start, "".join(buf)))
+
+
+def pajek_number(tok, off):
+    low = ascii_lower(tok)
+    if FLOAT_DEC.match(tok) or re.fullmatch(r"[+-]?(inf|infinity|nan)", low):
+        return float(tok)
+    raise ParseError("invalidValue", off)
+
+
+def pajek_read(t, g, maximumVertexCount=None):
+    bound = mm_max_vertices(t) if maximumVertexCount is None else maximumVertexCount
+    section = None  # None, "vertices", "arcs", "edges", "arcslist", "edgeslist"
+    n = None
+    vertex_lines = {}  # number -> (label, label offset, attrs list)
+    num2v = None
+    count_offset = None
+
+    def finish_vertices():
+        nonlocal num2v
+        num2v = [None] * (n + 1)
+        for k in range(1, n + 1):
+            label = vertex_lines[k][0] if k in vertex_lines else str(k)
+            num2v[k] = g.vertex(label)
+        order = sorted(vertex_lines.items(), key=lambda kv: kv[1][3])
+        for k, (_, _, attrs, _) in order:
+            for key, x in attrs:
+                g.vattrs[num2v[k]][key] = x
+
+    def index(tok, off):
+        if not INT_DEC.match(tok):
+            raise ParseError("syntax", off)
+        x = int(tok)
+        if not 1 <= x <= n:
+            raise ParseError("indexOutOfRange", off)
+        return x
+
+    def pairs_of(fields):
+        out = []
+        for j in range(0, len(fields), 2):
+            if j + 1 >= len(fields):
+                raise ParseError("syntax", fields[j][0])
+            out.append((fields[j][1], fields[j + 1][1]))
+        return out
+
+    for off, line in lines_of(t):
+        stripped = line.lstrip(" \t\r")
+        lead = off + len(line) - len(stripped)
+        if not stripped or stripped.startswith("%"):
+            continue
+        if stripped.startswith("*"):
+            m = re.match(r"[^ \t\r]*", stripped)
+            word = ascii_lower(m.group())
+            kw_end = lead + m.end()
+            if word == "*network":
+                rest = line[kw_end - off:].lstrip(" \t\r").rstrip(" \t\r")
+                g.gattrs["name"] = rest
+                continue
+            if word == "*vertices":
+                if n is not None:
+                    raise ParseError("unsupported", lead)
+                toks = tokens_of(kw_end, line[kw_end - off:])
+                if not toks:
+                    raise ParseError("syntax", off + len(line))
+                if len(toks) > 2:
+                    raise ParseError("syntax", toks[2][0])
+                for o, s in toks:
+                    if not re.fullmatch(r"[0-9]+", s):
+                        raise ParseError("syntax", o)
+                    if int(s) > INT_MAX:
+                        raise ParseError("numberOutOfRange", o)
+                n = int(toks[0][1])
+                count_offset = toks[0][0]
+                if n > bound:
+                    raise ParseError("limitExceeded", count_offset)
+                section = "vertices"
+                continue
+            kinds = {"*arcs": True, "*edges": False, "*arcslist": True, "*edgeslist": False}
+            if word in kinds:
+                if n is None:
+                    raise ParseError("syntax", lead)
+                if section == "vertices":
+                    finish_vertices()
+                if kinds[word] != g.directed:
+                    raise ParseError("kindMismatch", lead)
+                section = word[1:]
+                continue
+            raise ParseError("unsupported", lead)
+        fields = pajek_fields(t, off, line)
+        if section is None:
+            raise ParseError("syntax", lead)
+        if section == "vertices":
+            k = index(fields[0][1], fields[0][0])
+            if k in vertex_lines:
+                raise ParseError("duplicateVertex", fields[0][0])
+            label, loff = (fields[1][1], fields[1][0]) if len(fields) > 1 else (str(k), fields[0][0])
+            attrs = []
+            if len(fields) > 2:
+                attrs.append(("x", pajek_number(fields[2][1], fields[2][0])))
+            if len(fields) > 3:
+                attrs.append(("y", pajek_number(fields[3][1], fields[3][0])))
+            if len(fields) > 4:
+                attrs.append(("shape", fields[4][1]))
+            attrs += pairs_of(fields[5:])
+            vertex_lines[k] = (label, loff, attrs, off)
+        elif section in ("arcs", "edges"):
+            if len(fields) < 2:
+                raise ParseError("syntax", off + len(line))
+            u = index(fields[0][1], fields[0][0])
+            v = index(fields[1][1], fields[1][0])
+            attrs = []
+            if len(fields) > 2:
+                attrs.append(("weight", pajek_number(fields[2][1], fields[2][0])))
+            attrs += pairs_of(fields[3:])
+            p = g.edge(num2v[u], num2v[v])
+            for key, x in attrs:
+                g.eattrs[p][key] = x
+        else:
+            u = index(fields[0][1], fields[0][0])
+            for o, s in fields[1:]:
+                v = index(s, o)
+                g.edge(num2v[u], num2v[v])
+    if section == "vertices":
+        finish_vertices()
+
+
+def pajek_quote(s):
+    if s == "" or any(c.isspace() or c in "\"\\'" for c in s):
+        return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    return s
+
+
+def pajek_text(x):
+    if type(x) is bool:
+        return "true" if x else "false"
+    if type(x) is float:
+        return py_double(x)
+    return str(x)
+
+
+def pajek_write(g):
+    out = [f"*vertices {len(g.vertices)}\n"]
+    for i, (v, a) in enumerate(zip(g.vertices, g.vattrs), 1):
+        assert "\n" not in str(v)
+        for k in ("x", "y", "weight"):
+            assert k not in a or type(a[k]) in (int, float), "WriteError invalidValue"
+        x = pajek_text(a.get("x", 0.0))
+        y = pajek_text(a.get("y", 0.0))
+        shape = pajek_quote(pajek_text(a.get("shape", "ellipse")))
+        s = f"{i} {pajek_quote(str(v))} {x} {y} {shape}"
+        for k, val in a.items():
+            if k not in ("x", "y", "shape"):
+                s += f" {pajek_quote(k)} {pajek_quote(pajek_text(val))}"
+        out.append(s + "\n")
+    out.append("*arcs\n" if g.directed else "*edges\n")
+    for (u, v), a in zip(g.edges, g.eattrs):
+        s = f"{u + 1} {v + 1} {pajek_text(a.get('weight', 1.0))}"
+        for k, val in a.items():
+            if k != "weight":
+                s += f" {pajek_quote(k)} {pajek_quote(pajek_text(val))}"
+        out.append(s + "\n")
+    return "".join(out)
+
+
+# ============================================================================ graph6, sparse6, digraph6
+
+def nauty_data(t, p, header):
+    """After an optional header at p: (start of N, end of data, offset of the line feed or None)."""
+    if t.startswith(header, p):
+        p += len(header)
+    lf = t.find("\n", p)
+    end = len(t) if lf < 0 else lf
+    if lf >= 0 and end > p and t[end - 1] == "\r":
+        end -= 1
+    return p, end, lf
+
+
+def nauty_byte(t, q):
+    o = ord(t[q])
+    if not 63 <= o <= 126:
+        raise ParseError("syntax", q)
+    return o - 63
+
+
+def nauty_size(t, p, end):
+    """N(n) at p: (n, offset past it)."""
+    def need(q):
+        if q >= end:
+            raise ParseError("unexpectedEndOfInput", end)
+        return nauty_byte(t, q)
+    b = need(p)
+    if b < 63:
+        return b, p + 1
+    b1 = need(p + 1)
+    if b1 < 63:
+        n = 0
+        for q in range(p + 1, p + 4):
+            n = n << 6 | need(q)
+        return n, p + 4
+    n = 0
+    for q in range(p + 2, p + 8):
+        n = n << 6 | need(q)
+    return n, p + 8
+
+
+def nauty_trailing(t, lf):
+    if lf is not None and lf >= 0 and lf + 1 < len(t):
+        raise ParseError("syntax", lf + 1)
+
+
+def nauty_bits(t, start, count):
+    bits = []
+    for q in range(start, start + count):
+        b = ord(t[q]) - 63
+        bits += [(b >> s) & 1 for s in range(5, -1, -1)]
+    return bits
+
+
+def nauty_dense(t, g, header, lead, bit_count, pair):
+    p, end, lf = nauty_data(t, 0, header)
+    if lead is not None:
+        if p >= end:
+            raise ParseError("unexpectedEndOfInput", end)
+        if t[p] != lead:
+            raise ParseError("syntax", p)
+        p += 1
+    size_at = p
+    n, p = nauty_size(t, p, end)
+    m = bit_count(n)
+    needed = (m + 5) // 6
+    for q in range(p, min(end, p + needed)):
+        nauty_byte(t, q)
+    if end - p < needed:
+        raise ParseError("unexpectedEndOfInput", end)
+    if end - p > needed:
+        raise ParseError("syntax", p + needed)
+    bits = nauty_bits(t, p, needed)
+    if any(bits[m:]):
+        raise ParseError("invalidValue", p + needed - 1)
+    nauty_trailing(t, lf)
+    for i in range(n):
+        g.vertex(i if g.vtype is int else str(i))
+    for k in range(m):
+        if bits[k]:
+            g.edge(*pair(n, k))
+
+
+def graph6_pairs(n):
+    return [(i, j) for j in range(1, n) for i in range(j)]
+
+
+def graph6_read(t, g):
+    cache = {}
+
+    def pair(n, k):
+        if n not in cache:
+            cache[n] = graph6_pairs(n)
+        return cache[n][k]
+    nauty_dense(t, g, ">>graph6<<", None, lambda n: n * (n - 1) // 2, pair)
+
+
+def digraph6_read(t, g):
+    nauty_dense(t, g, ">>digraph6<<", "&", lambda n: n * n, lambda n, k: divmod(k, n))
+
+
+def sparse6_k(n):
+    return max(n - 1, 0).bit_length()
+
+
+def sparse6_read(t, g, maximumVertexCount=None):
+    bound = mm_max_vertices(t) if maximumVertexCount is None else maximumVertexCount
+    p, end, lf = nauty_data(t, 0, ">>sparse6<<")
+    if p >= end:
+        raise ParseError("unexpectedEndOfInput", end)
+    if t[p] == ";":
+        raise ParseError("unsupported", p)
+    if t[p] != ":":
+        raise ParseError("syntax", p)
+    p += 1
+    size_at = p
+    n, p = nauty_size(t, p, end)
+    if n > bound:
+        raise ParseError("limitExceeded", size_at)
+    for q in range(p, end):
+        nauty_byte(t, q)
+    nauty_trailing(t, lf)
+    for i in range(n):
+        g.vertex(i if g.vtype is int else str(i))
+    k = sparse6_k(n)
+    bits = nauty_bits(t, p, end - p)
+    i, v = 0, 0
+    while i + 1 + k <= len(bits):
+        b = bits[i]
+        x = 0
+        for s in bits[i + 1:i + 1 + k]:
+            x = x << 1 | s
+        i += 1 + k
+        if b:
+            v += 1
+        if x >= n or v >= n:
+            break
+        if x > v:
+            v = x
+        else:
+            g.edge(x, v)
+
+
+def nauty_n(n):
+    if n <= 62:
+        return chr(63 + n)
+    if n <= 258047:
+        return "~" + "".join(chr(63 + (n >> s & 63)) for s in (12, 6, 0))
+    return "~~" + "".join(chr(63 + (n >> s & 63)) for s in (30, 24, 18, 12, 6, 0))
+
+
+def nauty_pack(bits):
+    bits = bits + [0] * (-len(bits) % 6)
+    return "".join(chr(63 + sum(b << (5 - s) for s, b in enumerate(bits[q:q + 6]))) for q in range(0, len(bits), 6))
+
+
+def graph6_write(g, header=False):
+    n = len(g.vertices)
+    adj = set()
+    for u, v in g.edges:
+        assert u != v, "WriteError selfLoop"
+        k = (min(u, v), max(u, v))
+        assert k not in adj, "WriteError parallelEdge"
+        adj.add(k)
+    bits = [1 if p in adj else 0 for p in graph6_pairs(n)]
+    return (">>graph6<<" if header else "") + nauty_n(n) + nauty_pack(bits) + "\n"
+
+
+def digraph6_write(g, header=False):
+    n = len(g.vertices)
+    adj = set()
+    for u, v in g.edges:
+        assert (u, v) not in adj, "WriteError parallelEdge"
+        adj.add((u, v))
+    bits = [1 if (i, j) in adj else 0 for i in range(n) for j in range(n)]
+    return (">>digraph6<<" if header else "") + "&" + nauty_n(n) + nauty_pack(bits) + "\n"
+
+
+def sparse6_write(g, header=False):
+    n = len(g.vertices)
+    k = sparse6_k(n)
+
+    def enc(x):
+        return [(x >> (k - 1 - s)) & 1 for s in range(k)]
+    edges = sorted((max(u, v), min(u, v)) for u, v in g.edges)
+    bits, cur = [], 0
+    for j, i in edges:
+        if j == cur:
+            bits += [0] + enc(i)
+        elif j == cur + 1:
+            cur = j
+            bits += [1] + enc(i)
+        else:
+            cur = j
+            bits += [1] + enc(j) + [0] + enc(i)
+    pad = -len(bits) % 6
+    last = edges[-1][0] if edges else None
+    if pad and k < 6 and n == (1 << k) and last == n - 2 and pad >= k + 1:
+        bits += [0] + [1] * (pad - 1)
+    else:
+        bits += [1] * pad
+    return (">>sparse6<<" if header else "") + ":" + nauty_n(n) + nauty_pack(bits) + "\n"
+
+
+# ============================================================================ DIMACS
+
+def dimacs_read(t, g, maximumVertexCount=None):
+    bound = mm_max_vertices(t) if maximumVertexCount is None else maximumVertexCount
+    fmt = None
+    n = m = 0
+    seen = 0
+    for off, line in lines_of(t):
+        toks = tokens_of(off, line)
+        if not toks or toks[0][1] == "c":
+            continue
+        first, foff = toks[0][1], toks[0][0]
+        if first == "p":
+            if fmt is not None:
+                raise ParseError("syntax", foff)
+            if len(toks) < 4:
+                raise ParseError("syntax", off + len(line))
+            if len(toks) > 4:
+                raise ParseError("syntax", toks[4][0])
+            word, woff = toks[1][1], toks[1][0]
+            if word in ("max", "min", "asn", "cut"):
+                raise ParseError("unsupported", woff)
+            if word not in ("sp", "edge", "col"):
+                raise ParseError("syntax", woff)
+            if (word == "sp") != g.directed:
+                raise ParseError("kindMismatch", woff)
+            n = mm_int(toks[2][1], toks[2][0], sign=False)
+            m = mm_int(toks[3][1], toks[3][0], sign=False)
+            if n > bound:
+                raise ParseError("limitExceeded", toks[2][0])
+            fmt = word
+            for i in range(n):
+                g.vertex(i if g.vtype is int else str(i))
+            continue
+        if first == "n":
+            raise ParseError("unsupported", foff)
+        letter = "a" if g.directed else "e"
+        if fmt is None or first != letter:
+            raise ParseError("syntax", foff)
+        if seen == m:
+            raise ParseError("entryCountMismatch", foff)
+        width = 4 if g.directed else 3
+        if len(toks) < width:
+            raise ParseError("syntax", off + len(line))
+        if len(toks) > width:
+            raise ParseError("syntax", toks[width][0])
+        ends = []
+        for o, s in toks[1:3]:
+            x = mm_int(s, o, sign=False)
+            if not 1 <= x <= n:
+                raise ParseError("indexOutOfRange", o)
+            ends.append(x - 1)
+        w = mm_int(toks[3][1], toks[3][0]) if g.directed else None
+        seen += 1
+        p = g.edge(*ends)
+        if w is not None:
+            g.eattrs[p]["weight"] = w
+    if fmt is None:
+        raise ParseError("unexpectedEndOfInput", len(t))
+    if seen < m:
+        raise ParseError("entryCountMismatch", len(t))
+
+
+def dimacs_write(g, weight=None):
+    n = len(g.vertices)
+    if g.directed:
+        out = [f"p sp {n} {len(g.edges)}\n"]
+        out += [f"a {u + 1} {v + 1} {weight[p]}\n" for p, (u, v) in enumerate(g.edges)]
+    else:
+        out = [f"p edge {n} {len(g.edges)}\n"]
+        out += [f"e {u + 1} {v + 1}\n" for u, v in g.edges]
+    return "".join(out)
+
+
+# ============================================================================ METIS
+
+def metis_read(t, g, maximumVertexCount=None):
+    bound = mm_max_vertices(t) if maximumVertexCount is None else maximumVertexCount
+    ls = [(o, s) for o, s in lines_of(t) if not s.startswith("%")]
+    k = 0
+    while k < len(ls) and not ls[k][1].strip(" \t"):
+        k += 1
+    if k >= len(ls):
+        raise ParseError("unexpectedEndOfInput", len(t))
+    off, line = ls[k]
+    head = tokens_of(off, line)
+    if len(head) < 2:
+        raise ParseError("syntax", off + len(line))
+    if len(head) > 4:
+        raise ParseError("syntax", head[4][0])
+    n = mm_int(head[0][1], head[0][0], sign=False)
+    m = mm_int(head[1][1], head[1][0], sign=False)
+    sizes = vweights = eweights = False
+    if len(head) > 2:
+        o, s = head[2]
+        if not re.fullmatch(r"[01]{1,3}", s):
+            raise ParseError("invalidValue", o)
+        s = s.rjust(3, "0")
+        sizes, vweights, eweights = s[0] == "1", s[1] == "1", s[2] == "1"
+    if len(head) > 3:
+        o, s = head[3]
+        if not re.fullmatch(r"[0-9]+", s):
+            raise ParseError("syntax", o)
+        if not vweights or int(s) == 0:
+            raise ParseError("invalidValue", o)
+        if int(s) > 1:
+            raise ParseError("unsupported", o)
+    if n > bound:
+        raise ParseError("limitExceeded", head[0][0])
+    for i in range(n):
+        g.vertex(i if g.vtype is int else str(i))
+    entries = []  # (u, v, w, offset) in document order
+    lines = ls[k + 1:]
+    for u in range(n):
+        if u >= len(lines):
+            raise ParseError("unexpectedEndOfInput", len(t))
+        off, line = lines[u]
+        toks = tokens_of(off, line)
+        q = 0
+
+        def field_value(name):
+            nonlocal q
+            if q >= len(toks):
+                raise ParseError("syntax", off + len(line))
+            o, s = toks[q]
+            q += 1
+            if not INT_DEC.match(s):
+                raise ParseError("invalidValue", o)
+            x = int(s)
+            if not INT_MIN <= x <= INT_MAX:
+                raise ParseError("numberOutOfRange", o)
+            g.vattrs[u][name] = x
+        if sizes:
+            field_value("size")
+        if vweights:
+            field_value("weight")
+        while q < len(toks):
+            o, s = toks[q]
+            q += 1
+            v = mm_int(s, o, sign=False)
+            if not 1 <= v <= n:
+                raise ParseError("indexOutOfRange", o)
+            v -= 1
+            if v == u:
+                raise ParseError("invalidValue", o)
+            w = None
+            if eweights:
+                if q >= len(toks):
+                    raise ParseError("syntax", off + len(line))
+                wo, ws = toks[q]
+                q += 1
+                w = mm_int(ws, wo)
+            entries.append((u, v, w, o))
+    for off, line in lines[n:]:
+        if line.strip(" \t"):
+            raise ParseError("syntax", off + len(line) - len(line.lstrip(" \t")))
+    # Mirrors: after every line is read.
+    pending = {}
+    consumed = set()
+    for idx, (u, v, w, o) in enumerate(entries):
+        if v > u:
+            pending.setdefault((u, v, w), []).append(idx)
+        else:
+            q = pending.get((v, u, w))
+            if not q:
+                raise ParseError("invalidValue", o)
+            consumed.add(q.pop(0))
+    for idx, (u, v, w, o) in enumerate(entries):
+        if v > u and idx not in consumed:
+            raise ParseError("invalidValue", o)
+    count = 0
+    for u, v, w, o in entries:
+        if v > u:
+            p = g.edge(u, v)
+            count += 1
+            if w is not None:
+                g.eattrs[p]["weight"] = w
+    if count != m:
+        raise ParseError("entryCountMismatch", head[1][0])
+
+
+def metis_write(g, weight=None):
+    n = len(g.vertices)
+    rows = [[] for _ in range(n)]
+    seen = set()
+    for p, (u, v) in enumerate(g.edges):
+        assert u != v, "WriteError selfLoop"
+        k = (min(u, v), max(u, v))
+        assert k not in seen, "WriteError parallelEdge"
+        seen.add(k)
+        rows[u].append((v, p))
+        rows[v].append((u, p))
+    out = [f"{n} {len(g.edges)}" + (" 1" if weight is not None else "") + "\n"]
+    for row in rows:
+        parts = []
+        for x, p in row:
+            parts.append(str(x + 1))
+            if weight is not None:
+                parts.append(str(weight[p]))
+        out.append(" ".join(parts) + "\n")
+    return "".join(out)
+
+
+# ============================================================================ Cytoscape JSON
+
+def cytoscape_read(t, g):
+    (top, off) = json_parse(t)
+    if not isinstance(top, JObj):
+        raise ParseError("syntax", off)
+    items = top.items
+
+    def get(key, default):
+        return items[key][0] if key in items else (default, None)
+
+    def scalar(v):
+        x, xoff = v
+        if x is JNull or isinstance(x, (JObj, list)):
+            raise ParseError("unsupported", xoff)
+        return x
+
+    (directed, doff) = get("directed", False)
+    if type(directed) is not bool:
+        raise ParseError("invalidValue", doff)
+    if directed != g.directed:
+        raise ParseError("kindMismatch", doff if doff is not None else off)
+    (multigraph, moff) = get("multigraph", False)
+    if type(multigraph) is not bool:
+        raise ParseError("invalidValue", moff)
+    if "data" in items:
+        (data, daoff) = items["data"][0]
+        if isinstance(data, JObj):
+            for k, (v, _) in data.items.items():
+                g.gattrs[k] = scalar(v)
+        elif isinstance(data, list):
+            for pair, poff in data:
+                if not (isinstance(pair, list) and len(pair) == 2 and type(pair[0][0]) is str):
+                    raise ParseError("invalidValue", poff)
+                g.gattrs[pair[0][0]] = scalar(pair[1])
+        else:
+            raise ParseError("invalidValue", daoff)
+    if "elements" not in items:
+        raise ParseError("syntax", off)
+    (elements, eloff) = items["elements"][0]
+    nodes, edges = [], []
+    if isinstance(elements, JObj):
+        for key, out in (("nodes", nodes), ("edges", edges)):
+            if key in elements.items:
+                (arr, aoff) = elements.items[key][0]
+                if not isinstance(arr, list):
+                    raise ParseError("invalidValue", aoff)
+                out += arr
+    elif isinstance(elements, list):
+        for el, eoff in elements:
+            if not isinstance(el, JObj):
+                raise ParseError("invalidValue", eoff)
+            if "group" in el.items:
+                (grp, goff) = el.items["group"][0]
+                if grp not in ("nodes", "edges"):
+                    raise ParseError("invalidValue", goff)
+                (edges if grp == "edges" else nodes).append((el, eoff))
+            else:
+                d = el.items.get("data")
+                is_edge = d is not None and isinstance(d[0][0], JObj) and "source" in d[0][0].items
+                (edges if is_edge else nodes).append((el, eoff))
+    else:
+        raise ParseError("invalidValue", eloff)
+
+    def data_of(el, eoff):
+        if not isinstance(el, JObj):
+            raise ParseError("invalidValue", eoff)
+        if "data" not in el.items:
+            raise ParseError("syntax", eoff)
+        (d, doff2) = el.items["data"][0]
+        if not isinstance(d, JObj):
+            raise ParseError("invalidValue", doff2)
+        return d, doff2
+
+    def ident(v):
+        x, xoff = v
+        if type(x) is int:
+            return str(x), xoff
+        if type(x) is str:
+            return x, xoff
+        raise ParseError("invalidValue", xoff)
+
+    for el, eoff in nodes:
+        d, doff2 = data_of(el, eoff)
+        if "id" not in d.items:
+            raise ParseError("syntax", doff2)
+        name, xoff = ident(d.items["id"][0])
+        if name in g.index:
+            raise ParseError("duplicateVertex", xoff)
+        v = g.vertex(name)
+        for k, (x, _) in d.items.items():
+            if k != "id":
+                g.vattrs[v][k] = scalar(x)
+    pending = []
+    for el, eoff in edges:
+        d, doff2 = data_of(el, eoff)
+        ends = []
+        for a in ("source", "target"):
+            if a not in d.items:
+                raise ParseError("syntax", doff2)
+            name, xoff = ident(d.items[a][0])
+            if name not in g.index:
+                raise ParseError("undeclaredVertex", xoff)
+            ends.append(g.index[name])
+        attrs = {}
+        for k, (x, _) in d.items.items():
+            if k in ("source", "target") or (k == "key" and multigraph):
+                continue
+            attrs[k] = scalar(x)
+        pending.append((ends, attrs))
+    for ends, attrs in pending:
+        p = g.edge(*ends)
+        g.eattrs[p].update(attrs)
+
+
+def cytoscape_write(g):
+    multi = has_parallel(g)
+    obj = lambda pairs: "{" + ", ".join(f"{json_str(k)}: {v}" for k, v in pairs) + "}"
+    nodes = []
+    for v, a in zip(g.vertices, g.vattrs):
+        assert "id" not in a, "WriteError reservedKey"
+        pairs = [(k, json_value(x)) for k, x in a.items()] + [("id", json_str(str(v)))]
+        for extra in ("value", "name"):
+            if extra not in a:
+                pairs.append((extra, json_str(str(v))))
+        nodes.append(obj([("data", obj(pairs))]))
+    edges, count = [], {}
+    for (u, v), a in zip(g.edges, g.eattrs):
+        assert not {"source", "target", "key"} & set(a), "WriteError reservedKey"
+        pairs = [(k, json_value(x)) for k, x in a.items()]
+        pairs += [("source", json_str(str(g.vertices[u]))), ("target", json_str(str(g.vertices[v])))]
+        if multi:
+            k = g.key(u, v)
+            pairs.append(("key", str(count.get(k, 0))))
+            count[k] = count.get(k, 0) + 1
+        edges.append(obj([("data", obj(pairs))]))
+    data = "[" + ", ".join(f"[{json_str(k)}, {json_value(x)}]" for k, x in g.gattrs.items()) + "]"
+    return obj([("data", data), ("directed", json_value(g.directed)), ("multigraph", json_value(multi)),
+                ("elements", obj([("nodes", "[" + ", ".join(nodes) + "]"), ("edges", "[" + ", ".join(edges) + "]")]))])
+
+
 # ============================================================================ readers table
 
 def reader_for(fmt, **kw):
     if fmt == "edgeList":
-        return lambda t, g: edge_list_read(t, g, kw.get("columns", ()))
+        return lambda t, g: edge_list_read(t, g, kw.get("columns", ()), kw.get("delimiter"))
+    bounded = {"pajek": pajek_read, "sparse6": sparse6_read, "dimacs": dimacs_read, "metis": metis_read}
+    if fmt in bounded:
+        return lambda t, g: bounded[fmt](t, g, kw.get("maximumVertexCount"))
     return {"dot": dot_read, "graphML": graphml_read, "nodeLinkJSON": node_link_read,
             "matrixMarket": mm_read, "adjacencyList": adjacency_list_read,
-            "mermaid": mermaid_read}[fmt]
+            "mermaid": mermaid_read, "gml": gml_read, "graph6": graph6_read, "digraph6": digraph6_read,
+            "cytoscapeJSON": cytoscape_read}[fmt]
 
 
 TARGETS = {
@@ -1817,17 +3150,25 @@ TARGETS = {
     "DI": ("DirectedPseudograph<Int>", True, False, int),
     "UI": ("Pseudograph<Int>", False, False, int),
     "DSI": ("AdjacencyList<Int>", True, True, int),
+    "USI": ("UndirectedAdjacencyList<Int>", False, True, int),
 }
 
 LABEL = {"dot": "dot", "graphML": "graphML", "nodeLinkJSON": "nodeLinkJSON", "matrixMarket": "matrixMarket",
-         "edgeList": "edgeList", "adjacencyList": "adjacencyList", "mermaid": "mermaid"}
+         "edgeList": "edgeList", "adjacencyList": "adjacencyList", "mermaid": "mermaid", "gml": "gml",
+         "pajek": "pajek", "graph6": "graph6", "sparse6": "sparse6", "digraph6": "digraph6", "dimacs": "dimacs",
+         "metis": "metis", "cytoscapeJSON": "cytoscapeJSON"}
 WRITER = {"dot": "writeDOT(to:)", "graphML": "writeGraphML(to:)", "nodeLinkJSON": "writeNodeLinkJSON(to:)",
           "matrixMarket": "writeMatrixMarket(to:)", "edgeList": "writeEdgeList(to:)",
-          "adjacencyList": "writeAdjacencyList(to:)", "mermaid": "writeMermaid(to:)"}
+          "adjacencyList": "writeAdjacencyList(to:)", "mermaid": "writeMermaid(to:)", "gml": "writeGML(to:)",
+          "pajek": "writePajek(to:)", "graph6": "writeGraph6(to:)", "sparse6": "writeSparse6(to:)",
+          "digraph6": "writeDigraph6(to:)", "dimacs": "writeDIMACS(to:)", "metis": "writeMETIS(to:)",
+          "cytoscapeJSON": "writeCytoscapeJSON(to:)"}
 PREFIX = {"dot": "DT", "graphML": "GM", "nodeLinkJSON": "NL", "matrixMarket": "MM", "edgeList": "EL",
           "adjacencyList": "AL", "mermaid": "MD"}
 GROUP = {"dot": "DOT", "graphML": "GraphML", "nodeLinkJSON": "Node-link JSON", "matrixMarket": "Matrix Market",
-         "edgeList": "Edge list", "adjacencyList": "Adjacency list", "mermaid": "Mermaid"}
+         "edgeList": "Edge list", "adjacencyList": "Adjacency list", "mermaid": "Mermaid", "gml": "GML",
+         "pajek": "Pajek", "graph6": "graph6", "sparse6": "sparse6", "digraph6": "digraph6", "dimacs": "DIMACS",
+         "metis": "METIS", "cytoscapeJSON": "Cytoscape JSON"}
 
 
 def make_target(code):
@@ -1885,9 +3226,9 @@ R("dot", "D", "statements need no separator", "digraph { a b -> c d }")
 E("dot", "D", "graph into a directed target", "graph { a -- b }")
 E("dot", "U", "digraph into an undirected target", "digraph { a -> b }")
 E("dot", "D", "-- in a digraph", "digraph { a -- b }")
-E("dot", "D", "subgraph (unsupported)", "digraph { subgraph s { a } }")
-E("dot", "D", "anonymous subgraph as an endpoint (unsupported)", "digraph { a -> { b c } }")
-E("dot", "D", "port (unsupported)", "digraph { a:p -> b }")
+R("dot", "D", "subgraph: its vertices join the graph", "digraph { subgraph s { a } }")
+R("dot", "D", "anonymous subgraph as an endpoint: an edge to each of its vertices", "digraph { a -> { b c } }")
+R("dot", "D", "port: the tail's port is the edge's tailport", "digraph { a:p -> b }")
 E("dot", "D", "a second graph (unsupported)", "digraph { a }\ndigraph { b }")
 E("dot", "D", "unterminated quoted string", 'digraph { "a }')
 E("dot", "D", "unterminated comment", "digraph { /* a }")
@@ -1975,7 +3316,7 @@ E("graphML", "D", "long beyond Int64", H + '<key id="k" for="node" attr.type="lo
   '<graph edgedefault="directed"><node id="a"><data key="k">9223372036854775808</data></node></graph></graphml>')
 E("graphML", "D", "boolean is true, false, 1 or 0", H + '<key id="k" for="node" attr.type="boolean"/>'
   '<graph edgedefault="directed"><node id="a"><data key="k">True</data></node></graph></graphml>')
-E("graphML", "D", "nested graph (unsupported)", H + '<graph edgedefault="directed"><node id="a"><graph edgedefault="directed"/>'
+R("graphML", "D", "an empty nested graph", H + '<graph edgedefault="directed"><node id="a"><graph edgedefault="directed"/>'
   '</node></graph></graphml>')
 E("graphML", "D", "a second graph (unsupported)", H + '<graph edgedefault="directed"/><graph edgedefault="directed"/></graphml>')
 E("graphML", "D", "hyperedge (unsupported)", H + '<graph edgedefault="directed"><node id="a"/><hyperedge/></graph></graphml>')
@@ -2265,6 +3606,461 @@ R("nodeLinkJSON", "D", "multigraph: key 1 after two key-less edges is the second
   '{"source": "a", "target": "b", "key": 1, "w": 3}]}')
 
 
+# ---------------------------------------------------------------- GF-260 on: DOT subgraphs and ports
+R("dot", "D", "subgraph scope: node and edge defaults set inside stay inside",
+  "digraph { node [c=1]; subgraph { node [c=2]; edge [w=x]; a -> b } c; d -> e }")
+R("dot", "D", "{ a b } -> { c d }: every tail to every head, tails outer, attributes on each",
+  "digraph { { a b } -> { c d } [w=1] }")
+R("dot", "D", "a subgraph operand's own edges come before the chain's", "digraph { x -> { a -> b } }")
+R("dot", "D", "nested named subgraphs as an operand: every vertex mentioned inside",
+  "digraph { subgraph s1 { a subgraph s2 { b } a } -> c }")
+R("dot", "D", "graph attributes inside a subgraph are not reported", "digraph { k=1; subgraph { k=2; graph [m=3]; a } }")
+R("dot", "D", "a subgraph's edge defaults apply to edges from it, not to a later chain",
+  "digraph { subgraph { edge [w=1]; a -> b } -> c }")
+R("dot", "D", "ports in a chain: each hop's tail and head port", "digraph { a:p -> b:q:n -> c }")
+R("dot", "D", "a port on a node statement is ignored; an explicit tailport wins",
+  "digraph { a:p [x=1]; a:p -> b [tailport=s] }")
+R("dot", "U", "undirected: a quoted port and a compass point", 'graph { a:"p q" -- b:sw }')
+R("dot", "D", "edge defaults come before the ports", "digraph { edge [headport=z, w=1]; a -> b:q }")
+R("dot", "D", "strict: an edge from a subgraph merges with an earlier one",
+  "strict digraph { a -> b [x=1]; { a } -> b [y=2] }")
+R("dot", "D", "64 nested subgraphs", "digraph { " + "{ " * 64 + "a " + "} " * 64 + "}")
+E("dot", "D", "65 nested subgraphs", "digraph { " + "{ " * 65 + "a " + "} " * 65 + "}")
+E("dot", "D", "a port on a subgraph operand", "digraph { { a }:p -> b }")
+E("dot", "D", "subgraph without a body (unsupported)", "digraph { subgraph s; a }")
+E("dot", "D", "an unterminated subgraph", "digraph { { a }")
+E("dot", "D", "a port without an ID", "digraph { a: -> b }")
+
+# ---------------------------------------------------------------- GraphML nested graphs
+YED = ' xmlns:y="http://www.yworks.com/xml/graphml"'
+R("graphML", "D", "yEd group: the group node, then its content; edges at any depth",
+  '<graphml xmlns="http://graphml.graphdrawing.org/xmlns">'
+  '<graph edgedefault="directed"><node id="g" yfiles.foldertype="group"><graph id="g:" edgedefault="directed">'
+  '<node id="g::a"/><node id="g::b"/><edge source="g::a" target="g::b"/></graph></node><node id="c"/>'
+  '<edge source="c" target="g::a"/></graph></graphml>')
+R("graphML", "D", "a group inside a group",
+  H + '<graph edgedefault="directed"><node id="g" yfiles.foldertype="group"><graph edgedefault="directed">'
+  '<node id="h" yfiles.foldertype="group"><graph edgedefault="directed"><node id="x"/></graph></node>'
+  '<node id="y"/></graph></node><edge source="x" target="y"/></graph></graphml>')
+R("graphML", "D", "data of a group node and its content; the nested graph's own data is skipped",
+  H + '<key id="n" for="node" attr.name="n"/><key id="t" for="graph" attr.name="t"/>'
+  '<graph edgedefault="directed"><data key="t">root</data><node id="g" yfiles.foldertype="group">'
+  '<data key="n">0</data><graph edgedefault="directed"><data key="t">inner</data><node id="a"><data key="n">1</data>'
+  '</node></graph></node></graph></graphml>')
+R("graphML", "U", "undirected nested graph; an edge before the nodes it names",
+  H + '<graph edgedefault="undirected"><edge source="a" target="b"/><node id="g" yfiles.foldertype="group">'
+  '<graph edgedefault="undirected"><node id="a"/></graph></node><node id="b"/></graph></graphml>')
+R("graphML", "D", "a nested graph in a node that is not a yEd group",
+  H + '<graph edgedefault="directed"><node id="g"><graph edgedefault="directed"><node id="a"/></graph></node>'
+  '</graph></graphml>')
+E("graphML", "D", "a nested graph without edgedefault",
+  H + '<graph edgedefault="directed"><node id="g"><graph><node id="a"/></graph></node></graph></graphml>')
+E("graphML", "D", "a nested graph of the other kind (unsupported)",
+  H + '<graph edgedefault="directed"><node id="g"><graph edgedefault="undirected"/></node></graph></graphml>')
+E("graphML", "D", "data after a node's nested graph (unsupported)",
+  H + '<key id="n" for="node" attr.name="n"/><graph edgedefault="directed"><node id="g"><graph edgedefault="directed">'
+  '<node id="a"/></graph><data key="n">0</data></node></graph></graphml>')
+E("graphML", "D", "a node inside a nested graph declared twice",
+  H + '<graph edgedefault="directed"><node id="a"/><node id="g"><graph edgedefault="directed"><node id="a"/>'
+  '</graph></node></graph></graphml>')
+E("graphML", "D", "a graph inside an edge stays unsupported",
+  H + '<graph edgedefault="directed"><node id="a"/><edge source="a" target="a"><graph edgedefault="directed"/>'
+  '</edge></graph></graphml>')
+
+# ---------------------------------------------------------------- node-link tuple ids
+R("nodeLinkJSON", "D", "array ids (NetworkX tuples) are their canonical JSON text",
+  '{"directed": true, "multigraph": false, "graph": {}, "nodes": [{"id": [0, 1]}, {"id": ["a", [1, 2.5]]}], '
+  '"edges": [{"source": [0, 1], "target": ["a", [1, 2.5]]}]}')
+R("nodeLinkJSON", "U", "an array id written with other spacing is the same id",
+  '{"nodes": [{"id": [0,1]}, {"id": [ 1 , 0 ]}], "edges": [{"source": [ 0,1 ], "target": [1,0]}]}')
+R("nodeLinkJSON", "D", "empty array, null, booleans, a double and escapes in array ids",
+  '{"directed": true, "nodes": [{"id": []}, {"id": [null, true, false, 1e2, "\\u00e9\\""]}], "edges": []}')
+E("nodeLinkJSON", "D", "an object inside an array id",
+  '{"directed": true, "nodes": [{"id": [1, {"a": 2}]}], "edges": []}')
+E("nodeLinkJSON", "DI", "an array id into an Int target", '{"directed": true, "nodes": [{"id": [1, 2]}], "edges": []}')
+E("nodeLinkJSON", "D", "an array id and the string of its text are one id",
+  '{"directed": true, "nodes": [{"id": [1, 2]}, {"id": "[1, 2]"}], "edges": []}')
+E("nodeLinkJSON", "D", "an edge to an array id no node declares",
+  '{"directed": true, "nodes": [{"id": [1]}], "edges": [{"source": [1], "target": [2]}]}')
+
+# ---------------------------------------------------------------- edge list: dict data, delimiters
+R("edgeList", "D", "NetworkX data=True: a Python dict after u v; {} is no data",
+  "a b {'weight': 3, 'color': 'red'}\nb c {}\n")
+R("edgeList", "D", "dict values: floats, booleans, inf, nan, signs, a trailing comma",
+  "a b {'x': 1.5, \"y\": -2, 'ok': True, 'no': False, 'i': inf, 'm': -inf, 'n': nan, 'e': 1e-05, 'p': +7,}\n")
+R("edgeList", "D", "dict string escapes", "a b {'s': 'q\\'\\\"\\\\\\n\\t\\x41\\u00e9\\U0001F600\\101\\0\\q'}\n")
+R("edgeList", "D", "a dict string may hold # and the delimiter; a comment may follow the dict",
+  "a b {'s': 'x#y z'}  # comment\n")
+R("edgeList", "D", "a repeated dict key is reported again, the last value winning", "a b {'w': 1, 'v': 2, 'w': 3}\n")
+R("edgeList", "U", "dicts on an undirected list; blanks inside the dict", "a b {  'w' :1 ,'v':  2  }\nb a\n")
+E("edgeList", "D", "None in a dict (unsupported)", "a b {'w': None}\n")
+E("edgeList", "D", "a list in a dict (unsupported)", "a b {'w': [1, 2]}\n")
+E("edgeList", "D", "a non-string dict key (unsupported)", "a b {1: 2}\n")
+E("edgeList", "D", "an unterminated dict", "a b {'w': 1\n")
+E("edgeList", "D", "text after the dict", "a b {'w': 1} x\n")
+E("edgeList", "D", "a dict string not closed on its line", "a b {'w': 'x}\n")
+E("edgeList", "D", "a dict integer beyond Int64", "a b {'w': 9223372036854775808}\n")
+E("edgeList", "D", "a malformed \\x escape", "a b {'w': '\\x4'}\n")
+E("edgeList", "D", "a surrogate escape", "a b {'w': '\\ud800'}\n")
+E("edgeList", "D", "a dict with a missing colon", "a b {'w' 1}\n")
+E("edgeList", "D", "a bare name in a dict", "a b {'w': x}\n")
+E("edgeList", "D", "with columns, a dict is a field like any other", "a b {'w':1}\n", columns=["w"])
+R("edgeList", "D", "comma delimiter: fields kept exactly, spaces included", "a,b\n c,d \n", delimiter=",")
+E("edgeList", "D", "a delimiter ending the line adds an empty field at the end", "a\tb\t", delimiter="\t")
+R("edgeList", "D", "semicolon delimiter with columns", "a;b;1;x y\nb;c;2.5;\n", delimiter=";", columns=["w", "s"])
+R("edgeList", "D", "tab delimiter: spaces stay in fields; blank, whitespace and comment lines skipped",
+  "a b\tc d\n\n   \n# x\nc d\ta # tail\n", delimiter="\t")
+R("edgeList", "D", "empty fields are IDs", ",b\nb,\n", delimiter=",")
+R("edgeList", "D", "a dict after delimited endpoints may hold the delimiter", "a,b,{'w': 1, 'x': 2}\n", delimiter=",")
+R("edgeList", "DI", "comma-delimited integers into an Int target", "1,2\n2,3\r\n", delimiter=",")
+R("edgeList", "US", "a simple target merges b,a into a,b", "a,b,1\nb,a,2\n", delimiter=",", columns=["w"])
+E("edgeList", "D", "delimited: too few fields", "a,b\nc\n", delimiter=",")
+E("edgeList", "D", "delimited: an extra field", "a,b,c\n", delimiter=",")
+E("edgeList", "D", "delimited: a missing column", "a,b,1\nb,c\n", delimiter=",", columns=["w"])
+
+# ---------------------------------------------------------------- GML read
+R("gml", "D", "NetworkX's write_gml output",
+  'graph [\n  directed 1\n  name "g"\n  node [\n    id 0\n    label "a"\n    color "red"\n  ]\n  node [\n    id 1\n'
+  '    label "b"\n  ]\n  edge [\n    source 0\n    target 1\n    weight 2.5\n  ]\n]\n')
+R("gml", "U", "undirected by default; nodes named by their labels", 'graph [ node [ id 7 label "x" ] node [ id 3 label "y" ]'
+  ' edge [ source 3 target 7 ] ]')
+R("gml", "U", "a node without a label is named by its id", "graph [ node [ id 5 ] node [ id 6 label \"six\" ] edge [ source 5 target 6 ] ]")
+R("gml", "D", "values: integers, reals, strings, INF, -INF, NAN, 1.E-05",
+  'graph [ directed 1 node [ id 0 label "a" i -3 r 2.0 e 1.E-05 s "t" p +INF m -INF q INF n NAN f .5 ] ]')
+R("gml", "D", "character references and the four named entities are decoded; others are kept",
+  'graph [ directed 1 node [ id 0 label "&#233;&#x41;&amp;&lt;&gt;&quot;&apos;&nbsp;&#xD800;&#1114112;&" ] ]')
+R("gml", "D", "lists such as graphics are skipped; top-level keys are ignored; # comments",
+  '# made by hand\nCreator "yFiles"\nVersion 2.2\ngraph [\n  directed 1 # a comment\n  node [ id 0 label "a"\n'
+  '    graphics [ x 1.0 y 2.0 fill "#FF0000" inner [ deep 1 ] ] w 1 ]\n  edge [ source 0 target 0 graphics [ width 2 ] ]\n]\n')
+R("gml", "D", "edges may come before the nodes they name; key is an ordinary attribute",
+  'graph [ directed 1 edge [ source 1 target 0 key 4 ] node [ id 0 label "a" ] node [ id 1 label "b" ] ]')
+R("gml", "D", "multigraph 1: parallel edges kept", 'graph [ directed 1 multigraph 1 node [ id 0 label "a" ]'
+  ' edge [ source 0 target 0 key 0 ] edge [ source 0 target 0 key 1 ] ]')
+R("gml", "DS", "simple target: parallel edges merge, last value wins", 'graph [ directed 1 node [ id 0 label "a" ]'
+  ' node [ id 1 label "b" ] edge [ source 0 target 1 w 1 ] edge [ source 0 target 1 w 2 ] ]')
+R("gml", "US", "simple undirected target: 1-0 is 0-1", 'graph [ node [ id 0 ] node [ id 1 ] edge [ source 0 target 1 ]'
+  ' edge [ source 1 target 0 ] ]')
+R("gml", "D", "a string may span lines", 'graph [ directed 1 node [ id 0 label "two\nlines" ] ]')
+R("gml", "U", "a number as a label is its text", "graph [ node [ id 0 label 1.50 ] node [ id 1 label -7 ] ]")
+R("gml", "U", "graph attributes where they are read; a repeated key is reported again",
+  'graph [ a 1 node [ id 0 ] b "x" a 2 node [ id 1 c 1 c 2 ] ]')
+R("gml", "U", "a byte-order mark, CR LF and tabs", "\ufeffgraph [\r\n\tnode [\r\n\t\tid 0\r\n\t]\r\n]\r\n")
+R("gml", "U", "empty graph", "graph [ ]")
+R("gml", "U", "directed 0", "graph [ directed 0 node [ id 0 ] ]")
+E("gml", "U", "no graph", 'Creator "x"\n')
+E("gml", "U", "empty input", "")
+E("gml", "U", "a second graph (unsupported)", "graph [ ] graph [ ]")
+E("gml", "U", "graph whose value is not a list", "graph 1")
+E("gml", "U", "directed that is not 0 or 1", "graph [ directed 2 ]")
+E("gml", "U", "directed 1 into an undirected target", "graph [ directed 1 ]")
+E("gml", "D", "no directed into a directed target", "graph [ node [ id 0 ] ]")
+E("gml", "D", "directed 0 into a directed target", "graph [ directed 0 ]")
+E("gml", "U", "directed twice", "graph [ directed 0 directed 0 ]")
+E("gml", "U", "multigraph that is not 0 or 1", 'graph [ multigraph "yes" ]')
+E("gml", "U", "a node without an id", 'graph [ node [ label "a" ] ]')
+E("gml", "U", "an id that is not an integer", 'graph [ node [ id "a" ] ]')
+E("gml", "U", "two ids in one node", "graph [ node [ id 0 id 1 ] ]")
+E("gml", "U", "two labels in one node", 'graph [ node [ id 0 label "a" label "b" ] ]')
+E("gml", "U", "a label that is a list", "graph [ node [ id 0 label [ x 1 ] ] ]")
+E("gml", "U", "an id declared twice", "graph [ node [ id 0 ] node [ id 0 ] ]")
+E("gml", "U", "two nodes with one label", 'graph [ node [ id 0 label "a" ] node [ id 1 label "a" ] ]')
+E("gml", "U", "a label equal to another node's id text", 'graph [ node [ id 0 ] node [ id 1 label "0" ] ]')
+E("gml", "U", "node whose value is not a list", "graph [ node 1 ]")
+E("gml", "U", "an edge without a target", "graph [ node [ id 0 ] edge [ source 0 ] ]")
+E("gml", "U", "a source that is not an integer", "graph [ node [ id 0 ] edge [ source 0.0 target 0 ] ]")
+E("gml", "U", "two sources in one edge", "graph [ node [ id 0 ] edge [ source 0 source 0 target 0 ] ]")
+E("gml", "U", "an edge to an undeclared node", "graph [ node [ id 0 ] edge [ source 0 target 9 ] ]")
+E("gml", "U", "an unterminated string", 'graph [ node [ id 0 label "a ] ]')
+E("gml", "U", "an unclosed list", "graph [ node [ id 0 ]")
+E("gml", "U", "] at the top level", "graph [ ] ]")
+E("gml", "U", "a number followed by a letter", "graph [ node [ id 0x ] ]")
+E("gml", "U", "a string followed by a letter", 'graph [ node [ id 0 label "a"b ] ]')
+E("gml", "U", "a value where a key should be", "graph [ 1 2 ]")
+E("gml", "U", "a key where a value should be", "graph [ node [ id label ] ]")
+E("gml", "U", "an integer beyond Int64", "graph [ x 9223372036854775808 ]")
+E("gml", "U", "a real that overflows", "graph [ x 1e999 ]")
+E("gml", "U", "65 nested lists", "graph [ " + "a [ " * 64 + "] " * 64 + "]")
+R("gml", "U", "64 nested lists", "graph [ " + "a [ " * 63 + "] " * 63 + "]")
+E("gml", "U", "a key starting with an underscore", "graph [ _x 1 ]")
+E("gml", "U", "invalid UTF-8", b'graph [ x "\xff" ]')
+
+# ---------------------------------------------------------------- Pajek read
+R("pajek", "U", "NetworkX's write_pajek output",
+  "*vertices 4\n1 0 0.0 0.0 ellipse\n2 1 0.0 0.0 ellipse\n3 2 0.0 0.0 ellipse\n4 3 0.0 0.0 ellipse\n*edges\n"
+  "1 2 1.0\n2 3 1.0\n3 4 1.0\n")
+R("pajek", "D", "arcs with weights and key-value pairs; vertices with coordinates, shape and pairs",
+  '*Vertices 3\n1 "a" 0.1 0.2 box ic Red\n2 "b"\n3 "c" 1 2\n*Arcs\n1 2 2.5 c Blue l "x y"\n2 3\n3 3 -1\n')
+R("pajek", "U", "quoting as shlex: double and single quotes, escapes, joined pieces",
+  "*vertices 4\n1 \"a b\"\n2 'c \"d'\n3 x\\ y\n4 p\"q r\"s\\\"t\n*edges\n1 2\n3 4\n")
+R("pajek", "U", "a vertex without a line is named by its number; lines in any order",
+  '*vertices 4\n3 "c"\n1 "a"\n*edges\n2 4\n1 3\n')
+R("pajek", "U", "a vertex line with only its number is labelled by it", "*vertices 2\n2\n1 a\n*edges\n1 2\n")
+R("pajek", "D", "*network, % comments, blank lines, keywords in any case, a 2-mode count",
+  "% made by hand\n*Network my net  \n\n*VERTICES 3 2\n% between\n1 a\n2 b\n3 c\n\n*arcs :1 \"rel\"\n1 3\n")
+R("pajek", "D", "*arcslist: a vertex then its successors", "*vertices 3\n*arcslist\n1 2 3\n2\n3 1 1\n")
+R("pajek", "U", "*edgeslist", "*vertices 3\n*edgeslist\n1 2 3\n")
+R("pajek", "U", "labels that map to one vertex are that vertex", '*vertices 3\n1 "x"\n2 "x"\n*edges\n1 2\n2 3\n')
+R("pajek", "DS", "simple target: parallel arcs merge, last weight wins", "*vertices 2\n1 a\n2 b\n*arcs\n1 2 1\n1 2 2\n")
+R("pajek", "D", "weights inf, -inf, nan and integers read as doubles", "*vertices 2\n1 a\n2 b\n*arcs\n1 2 inf\n2 1 -Infinity\n1 1 NaN\n2 2 3\n")
+R("pajek", "U", "CR LF", "*vertices 2\r\n1 a\r\n2 b\r\n*edges\r\n1 2\r\n")
+R("pajek", "U", "a byte-order mark", "\ufeff*vertices 1\n1 a\n*edges\n")
+R("pajek", "U", "no vertices", "*vertices 0\n*edges\n")
+R("pajek", "D", "an empty file is an empty graph", "")
+R("pajek", "D", "two *arcs sections", "*vertices 2\n1 a\n2 b\n*arcs\n1 2\n*arcs\n2 1\n")
+R("pajek", "D", "an empty quoted label", '*vertices 1\n1 ""\n')
+R("pajek", "D", "*network after the vertices does not end their section", "*vertices 2\n1 a\n*network n\n2 b\n")
+E("pajek", "U", "a data line before *vertices", "1 a\n")
+E("pajek", "U", "*edges before *vertices", "*edges\n1 2\n")
+E("pajek", "U", "*vertices without a count", "*vertices\n")
+E("pajek", "U", "a count that is not a number", "*vertices x\n")
+E("pajek", "U", "a third field on *vertices", "*vertices 2 1 0\n")
+E("pajek", "U", "a count past Int64", "*vertices 9223372036854775808\n")
+E("pajek", "U", "a count above the default maximumVertexCount", "*vertices 16777216\n")
+E("pajek", "U", "a count above maximumVertexCount", "*vertices 3\n", maximumVertexCount=2)
+R("pajek", "D", "a count at maximumVertexCount", "*vertices 2\n1 a\n2 b\n", maximumVertexCount=2)
+E("pajek", "U", "a vertex number 0", "*vertices 2\n0 a\n")
+E("pajek", "U", "a vertex number beyond n", "*vertices 2\n3 a\n")
+E("pajek", "U", "a vertex number that is not an integer", "*vertices 2\nx a\n")
+E("pajek", "U", "a vertex number given twice", "*vertices 2\n1 a\n1 b\n")
+E("pajek", "U", "an x that is not a number", "*vertices 1\n1 a x 0.0\n")
+E("pajek", "U", "a key without a value", "*vertices 1\n1 a 0 0 box ic\n")
+E("pajek", "U", "*arcs into an undirected target", "*vertices 1\n*arcs\n")
+E("pajek", "D", "*edges into a directed target", "*vertices 1\n*edges\n")
+E("pajek", "U", "an edge line of one field", "*vertices 1\n*edges\n1\n")
+E("pajek", "U", "an endpoint beyond n", "*vertices 1\n*edges\n1 2\n")
+E("pajek", "U", "an endpoint that is not an integer", "*vertices 1\n*edges\n1 a\n")
+E("pajek", "U", "a weight that is not a number", "*vertices 1\n*edges\n1 1 w\n")
+E("pajek", "U", "an unclosed quote", '*vertices 1\n1 "a\n')
+E("pajek", "U", "a backslash at the end of a line", "*vertices 1\n1 a\\\n")
+E("pajek", "U", "*matrix (unsupported)", "*vertices 2\n*matrix\n0 1\n1 0\n")
+E("pajek", "U", "a second *vertices (unsupported)", "*vertices 1\n*vertices 1\n")
+E("pajek", "U", "an unknown section (unsupported)", "*vertices 1\n*partition p\n1\n")
+
+# ---------------------------------------------------------------- graph6, sparse6, digraph6 read
+R("graph6", "UI", "graph6: five vertices, edges 0-1, 1-2, 3-4", "DgC\n")
+R("graph6", "UI", "graph6: no vertices", "?\n")
+R("graph6", "UI", "graph6: one vertex, no data", "@\n")
+R("graph6", "UI", "graph6: the header, no final newline", ">>graph6<<Bw")
+R("graph6", "UI", "graph6: CR LF", "C~\r\n")
+R("graph6", "USI", "graph6 into a simple target", "Ch\n")
+R("graph6", "UI", "graph6: 63 vertices take the four-byte size", "~??~" + "?" * 326 + "@\n")
+E("graph6", "UI", "graph6: empty input", "")
+E("graph6", "UI", "graph6: a size byte below 63", "!\n")
+E("graph6", "UI", "graph6: a data byte above 126", "C\x7f\n")
+E("graph6", "UI", "graph6: too few data bytes", "D?\n")
+E("graph6", "UI", "graph6: too many data bytes", "Bw?\n")
+E("graph6", "UI", "graph6: padding bits that are not 0", "Bx\n")
+E("graph6", "UI", "graph6: text after the line feed", "Bw\nBw\n")
+E("graph6", "UI", "graph6: a four-byte size cut short", "~?\n")
+E("graph6", "UI", "graph6: a sparse6 line", ":Bw\n")
+E("graph6", "UI", "graph6: invalid UTF-8", b"B\xc3\n")
+R("digraph6", "DI", "digraph6: arcs and a loop, row by row", "&BQ_\n")
+R("digraph6", "DI", "digraph6: the header", ">>digraph6<<&CC__\n")
+R("digraph6", "DI", "digraph6: no vertices", "&?\n")
+R("digraph6", "DSI", "digraph6 into a simple target", "&AW\n")
+E("digraph6", "DI", "digraph6: no &", "BQ_\n")
+E("digraph6", "DI", "digraph6: empty input", "")
+E("digraph6", "DI", "digraph6: too few data bytes", "&C\n")
+E("digraph6", "DI", "digraph6: padding bits that are not 0", "&AX\n")
+R("sparse6", "UI", "sparse6: nauty's example, seven vertices", ":Fa@x^\n")
+R("sparse6", "UI", "sparse6: loops and parallel edges", ":B_M\n")
+R("sparse6", "USI", "sparse6 into a simple target: parallel edges merge", ":B_M\n")
+R("sparse6", "UI", "sparse6: the header, a jump over vertices", ">>sparse6<<:GwYJ\n")
+R("sparse6", "UI", "sparse6: one vertex with a loop (k = 0)", ":@^\n")
+R("sparse6", "UI", "sparse6: no vertices", ":?\n")
+R("sparse6", "UI", "sparse6: the padding special case (n = 4, last edge at vertex 2)", ":C`b\n")
+E("sparse6", "UI", "sparse6: incremental sparse6 (unsupported)", ";Bc\n")
+E("sparse6", "UI", "sparse6: no colon", "Bc\n")
+E("sparse6", "UI", "sparse6: empty input", "")
+E("sparse6", "UI", "sparse6: a data byte below 63", ":Bc \n")
+E("sparse6", "UI", "sparse6: a size above the default maximumVertexCount", ":~~??F???\n")
+E("sparse6", "UI", "sparse6: a size above maximumVertexCount", ":C\n", maximumVertexCount=3)
+E("sparse6", "UI", "sparse6: a size cut short", ":~~??\n")
+E("sparse6", "UI", "sparse6: text after the line feed", ":?\nx")
+
+# ---------------------------------------------------------------- DIMACS read
+R("dimacs", "DI", "shortest path (.gr): comments, the problem line, weighted arcs",
+  "c 9th DIMACS challenge\np sp 3 3\nc arcs\na 1 2 7\na 2 3 -1\na 3 1 0\n")
+R("dimacs", "UI", "clique (p edge): edges, isolated vertices", "c\np edge 4 2\ne 1 2\ne 4 2\n")
+R("dimacs", "UI", "colouring (p col), tabs, CR LF, blank lines", "p col 2 1\r\n\r\ne\t1\t2\r\n")
+R("dimacs", "DSI", "simple target: a repeated arc merges, last weight wins", "p sp 2 2\na 1 2 1\na 1 2 5\n")
+R("dimacs", "DI", "parallel arcs and loops kept", "p sp 2 3\na 1 2 1\na 1 2 2\na 2 2 3\n")
+R("dimacs", "UI", "no edges", "p edge 3 0\n")
+E("dimacs", "DI", "no problem line", "c only\n")
+E("dimacs", "DI", "an arc before the problem line", "a 1 2 3\np sp 2 1\n")
+E("dimacs", "DI", "a second problem line", "p sp 1 0\np sp 1 0\n")
+E("dimacs", "DI", "a flow problem (unsupported)", "p max 2 1\n")
+E("dimacs", "DI", "an unknown problem", "p foo 2 1\n")
+E("dimacs", "UI", "p sp into an undirected target", "p sp 2 0\n")
+E("dimacs", "DI", "p edge into a directed target", "p edge 2 0\n")
+E("dimacs", "DI", "a problem line of three fields", "p sp 2\n")
+E("dimacs", "DI", "a problem line of five fields", "p sp 2 0 x\n")
+E("dimacs", "DI", "a vertex count that is not a number", "p sp x 0\n")
+E("dimacs", "DI", "a vertex count above the default maximumVertexCount", "p sp 16777216 0\n")
+E("dimacs", "DI", "a vertex count above maximumVertexCount", "p sp 3 0\n", maximumVertexCount=2)
+E("dimacs", "DI", "an index 0", "p sp 2 1\na 0 1 1\n")
+E("dimacs", "DI", "an index beyond n", "p sp 2 1\na 1 3 1\n")
+E("dimacs", "DI", "a signed index", "p sp 2 1\na +1 2 1\n")
+E("dimacs", "DI", "a weight that is not an integer", "p sp 2 1\na 1 2 1.5\n")
+E("dimacs", "DI", "a weight beyond Int64", "p sp 2 1\na 1 2 9223372036854775808\n")
+E("dimacs", "DI", "a missing weight", "p sp 2 1\na 1 2\n")
+E("dimacs", "UI", "an extra field on an edge", "p edge 2 1\ne 1 2 3\n")
+E("dimacs", "DI", "more arcs than declared", "p sp 2 1\na 1 2 1\na 2 1 1\n")
+E("dimacs", "DI", "fewer arcs than declared", "p sp 2 2\na 1 2 1\n")
+E("dimacs", "DI", "an e line in a shortest-path file", "p sp 2 1\ne 1 2\n")
+E("dimacs", "UI", "a node descriptor line (unsupported)", "p edge 2 0\nn 1 5\n")
+E("dimacs", "DI", "an unknown line", "p sp 2 0\nx 1\n")
+
+# ---------------------------------------------------------------- METIS read
+R("metis", "UI", "the METIS manual's graph: unweighted",
+  "7 11\n5 3 2\n1 3 4\n5 4 2 1\n2 3 6 7\n1 3 6\n5 4 7\n6 4\n")
+R("metis", "UI", "fmt 1: edge weights", "3 2 1\n2 5 3 1\n1 5\n1 1\n")
+R("metis", "UI", "fmt 011: a vertex weight, then neighbours with edge weights", "3 2 011\n4 2 1\n2 1 1 3 2\n0 2 2\n")
+R("metis", "UI", "fmt 110 with ncon 1: a size and a weight per vertex", "2 1 110 1\n3 4 2\n5 6 1\n")
+R("metis", "UI", "comments anywhere; a blank line is a vertex without neighbours; trailing blank lines",
+  "% header next\n\n3 1\n% vertex 1\n2\n1\n\n\n% done\n\n")
+R("metis", "USI", "parallel entries on both sides into a simple target", "2 2\n2 2\n1 1\n")
+R("metis", "UI", "no vertices", "0 0\n")
+R("metis", "UI", "CR LF and tabs", "2 1\r\n2\r\n1\t\r\n")
+E("metis", "UI", "an empty file", "")
+E("metis", "UI", "a header of one field", "3\n")
+E("metis", "UI", "a header of five fields", "1 0 010 1 9\n")
+E("metis", "UI", "a fmt that is not 0s and 1s", "1 0 2\n\n")
+E("metis", "UI", "ncon 2 (unsupported)", "1 0 010 2\n5 6\n")
+E("metis", "UI", "ncon 0", "1 0 010 0\n\n")
+E("metis", "UI", "ncon without vertex weights", "1 0 1 1\n\n")
+E("metis", "UI", "a vertex count above the default maximumVertexCount", "16777216 0\n")
+E("metis", "UI", "a vertex count above maximumVertexCount", "3 0\n\n\n\n", maximumVertexCount=2)
+E("metis", "UI", "a neighbour 0", "2 1\n0\n1\n")
+E("metis", "UI", "a neighbour beyond n", "2 1\n3\n1\n")
+E("metis", "UI", "a neighbour that is not a number", "2 1\nx\n1\n")
+E("metis", "UI", "a loop", "2 1\n1\n1\n")
+E("metis", "UI", "a missing edge weight", "2 1 1\n2\n1 1\n")
+E("metis", "UI", "an edge weight that is not an integer", "2 1 1\n2 x\n1 1\n")
+E("metis", "UI", "a missing vertex weight", "2 1 010\n\n1\n")
+E("metis", "UI", "fewer vertex lines than n", "3 1\n2\n1\n")
+E("metis", "UI", "a line after the last vertex", "1 0\n\n5\n")
+E("metis", "UI", "an edge listed on one side only", "3 1\n2\n\n\n")
+E("metis", "UI", "a lower entry with no mirror", "3 1\n2\n1 3\n\n")
+E("metis", "UI", "weights that differ on the two sides", "2 1 1\n2 1\n1 2\n")
+E("metis", "UI", "an edge count that is not m", "2 2\n2\n1\n")
+
+# ---------------------------------------------------------------- Cytoscape JSON read
+R("cytoscapeJSON", "U", "NetworkX's cytoscape_data(path_graph(3))",
+  '{"data": [], "directed": false, "multigraph": false, "elements": {"nodes": [{"data": {"id": "0", "value": 0, '
+  '"name": "0"}}, {"data": {"id": "1", "value": 1, "name": "1"}}, {"data": {"id": "2", "value": 2, "name": "2"}}], '
+  '"edges": [{"data": {"source": 0, "target": 1}}, {"data": {"source": 1, "target": 2}}]}}')
+R("cytoscapeJSON", "D", "directed, attributes, NetworkX's graph data pairs",
+  '{"data": [["name", "g"], ["n", 2]], "directed": true, "multigraph": false, "elements": {"nodes": '
+  '[{"data": {"color": "red", "id": "a", "value": "a", "name": "a"}}, {"data": {"id": "b"}}], '
+  '"edges": [{"data": {"w": 1.5, "id": "e1", "source": "a", "target": "b"}}]}}')
+R("cytoscapeJSON", "U", "Cytoscape.js: an array of elements with group; position and classes ignored; data object",
+  '{"data": {"title": "t"}, "elements": [{"group": "nodes", "data": {"id": "a"}, "position": {"x": 1, "y": 2}, '
+  '"classes": "c", "selected": false}, {"group": "edges", "data": {"id": "e", "source": "a", "target": "b"}}, '
+  '{"group": "nodes", "data": {"id": "b"}}]}')
+R("cytoscapeJSON", "U", "without group, an element is an edge when its data has source",
+  '{"elements": [{"data": {"source": "x", "target": "y"}}, {"data": {"id": "x"}}, {"data": {"id": "y"}}]}')
+R("cytoscapeJSON", "D", "multigraph true: every edge kept, key not reported",
+  '{"directed": true, "multigraph": true, "elements": {"nodes": [{"data": {"id": "a"}}], "edges": ['
+  '{"data": {"source": "a", "target": "a", "key": 0}}, {"data": {"source": "a", "target": "a", "key": 0, "w": 2}}]}}')
+R("cytoscapeJSON", "D", "multigraph false: parallel edges kept, key reported",
+  '{"directed": true, "elements": {"nodes": [{"data": {"id": "a"}}], "edges": ['
+  '{"data": {"source": "a", "target": "a", "key": 7}}, {"data": {"source": "a", "target": "a"}}]}}')
+R("cytoscapeJSON", "DS", "simple target: parallel edges merge, last value wins",
+  '{"directed": true, "elements": {"nodes": [{"data": {"id": "a"}}, {"data": {"id": "b"}}], "edges": ['
+  '{"data": {"source": "a", "target": "b", "w": 1}}, {"data": {"source": "a", "target": "b", "w": 2}}]}}')
+R("cytoscapeJSON", "U", "integer ids and endpoints are their decimal text",
+  '{"elements": {"nodes": [{"data": {"id": 1}}, {"data": {"id": "2"}}], "edges": [{"data": {"source": "1", "target": 2}}]}}')
+R("cytoscapeJSON", "U", "no nodes or edges members", '{"elements": {}}')
+E("cytoscapeJSON", "U", "no elements", '{"directed": false}')
+E("cytoscapeJSON", "U", "top level not an object", "[]")
+E("cytoscapeJSON", "U", "directed into an undirected target", '{"directed": true, "elements": {}}')
+E("cytoscapeJSON", "D", "no directed into a directed target", '{"elements": {}}')
+E("cytoscapeJSON", "U", "directed that is not a boolean", '{"directed": 0, "elements": {}}')
+E("cytoscapeJSON", "U", "multigraph that is not a boolean", '{"multigraph": "no", "elements": {}}')
+E("cytoscapeJSON", "U", "data that is neither an object nor an array", '{"data": 1, "elements": {}}')
+E("cytoscapeJSON", "U", "a data pair that is not [string, value]", '{"data": [[1, 2]], "elements": {}}')
+E("cytoscapeJSON", "U", "a data value that is a list (unsupported)", '{"data": {"x": [1]}, "elements": {}}')
+E("cytoscapeJSON", "U", "elements that are neither an object nor an array", '{"elements": 3}')
+E("cytoscapeJSON", "U", "nodes that are not an array", '{"elements": {"nodes": {}}}')
+E("cytoscapeJSON", "U", "an element that is not an object", '{"elements": [1]}')
+E("cytoscapeJSON", "U", "a group other than nodes or edges", '{"elements": [{"group": "x", "data": {"id": "a"}}]}')
+E("cytoscapeJSON", "U", "a node without data", '{"elements": {"nodes": [{"id": "a"}]}}')
+E("cytoscapeJSON", "U", "a node's data that is not an object", '{"elements": {"nodes": [{"data": 1}]}}')
+E("cytoscapeJSON", "U", "a node without an id", '{"elements": {"nodes": [{"data": {"name": "a"}}]}}')
+E("cytoscapeJSON", "U", "an id that is a boolean", '{"elements": {"nodes": [{"data": {"id": true}}]}}')
+E("cytoscapeJSON", "U", "a node declared twice (1 and \"1\")", '{"elements": {"nodes": [{"data": {"id": 1}}, {"data": {"id": "1"}}]}}')
+E("cytoscapeJSON", "U", "a null attribute (unsupported)", '{"elements": {"nodes": [{"data": {"id": "a", "x": null}}]}}')
+E("cytoscapeJSON", "U", "an edge without a source", '{"elements": {"nodes": [{"data": {"id": "a"}}], "edges": [{"data": {"target": "a"}}]}}')
+E("cytoscapeJSON", "U", "an edge to an undeclared node",
+  '{"elements": {"nodes": [{"data": {"id": "a"}}], "edges": [{"data": {"source": "a", "target": "b"}}]}}')
+E("cytoscapeJSON", "U", "an edge attribute that is an object (unsupported)",
+  '{"elements": {"nodes": [{"data": {"id": "a"}}], "edges": [{"data": {"source": "a", "target": "a", "x": {}}}]}}')
+E("cytoscapeJSON", "U", "a duplicate key", '{"elements": {}, "elements": {}}')
+
+# ---------------------------------------------------------------- writers of the new formats
+GML_TYPED = graph(True, ["a", "b"], [("a", "b"), ("b", "b")],
+                  {"a": {"color": "x y", "n": 3, "x": 2.0, "ok": True, "no": False}},
+                  {0: {"weight": 2, "w2": -0.5}, 1: {"weight": 1.5}}, {"title": "G", "n": 1})
+GML_NUMBERS = graph(False, ["a"], [], {"a": {"big": 2 ** 31, "low": -(2 ** 31), "top": 2 ** 31 - 1, "e": 1e-05,
+                                             "f": 1e16, "p": math.inf, "m": -math.inf, "q": math.nan, "z": -0.0}})
+GML_ESCAPES = graph(True, ['a"&<b>', "é\n😀", "~ "], [('a"&<b>', "é\n😀")], {"~ ": {"s": "tab\tquote\"amp&"}})
+W("gml", "empty digraph", EMPTY_D)
+W("gml", "empty undirected graph: no directed line", graph(False, [], []))
+W("gml", "every vertex, then every edge, in order", ISO)
+W("gml", "typed attributes; graph attributes first; booleans as 1 and 0", GML_TYPED)
+W("gml", "undirected, a loop, parallel edges: multigraph 1", UNDIRECTED)
+W("gml", "integers outside 32 bits as strings; reals as NetworkX writes them", GML_NUMBERS)
+W("gml", "character references for quotes, ampersands and everything outside ASCII", GML_ESCAPES)
+W("gml", "Int vertices: labels are their text", INTS)
+PAJEK_TYPED = graph(True, ["a", "b", "c"], [("a", "b"), ("b", "c"), ("c", "c")],
+                    {"a": {"x": 0.5, "y": 2, "shape": "box", "ic": "Red"}, "b": {"ic": "Blue", "x": -1.0}},
+                    {0: {"weight": 2.5, "c": "Green"}, 1: {"weight": 3}, 2: {"l": 1}})
+PAJEK_QUOTES = graph(False, ["a b", 'q"r', "back\\slash", "it's", "", "plain", "nb\u00a0sp"],
+                     [("a b", 'q"r'), ("it's", "")], {"plain": {"k y": "v w", "e": ""}})
+W("pajek", "empty digraph", EMPTY_D)
+W("pajek", "undirected path: NetworkX's defaults for x, y, shape and weight", graph(False, ["0", "1", "2"], [("0", "1"), ("1", "2")]))
+W("pajek", "coordinates, shape, weights and key-value pairs", PAJEK_TYPED)
+W("pajek", "quoting: whitespace, quotes, backslashes, apostrophes, empty strings", PAJEK_QUOTES)
+W("pajek", "parallel edges and a loop", UNDIRECTED)
+NAUTY_PATH = graph(False, [0, 1, 2, 3, 4], [(0, 1), (1, 2), (3, 4)])
+W("graph6", "graph6: a path and an edge", NAUTY_PATH)
+W("graph6", "graph6: with the header", NAUTY_PATH, header=True)
+W("graph6", "graph6: no vertices", graph(False, [], []))
+W("graph6", "graph6: K4, edges in any orientation", graph(False, [0, 1, 2, 3], [(1, 0), (0, 2), (3, 0), (1, 2), (3, 1), (2, 3)]))
+W("graph6", "graph6: 63 vertices take the four-byte size", graph(False, list(range(63)), [(61, 62)]))
+W("digraph6", "digraph6: arcs and a loop", graph(True, [0, 1, 2], [(0, 1), (1, 1), (2, 0)]))
+W("digraph6", "digraph6: with the header", graph(True, [0, 1, 2, 3], [(0, 3), (3, 0)]), header=True)
+W("digraph6", "digraph6: no vertices", graph(True, [], []))
+W("sparse6", "sparse6: nauty's example", graph(False, list(range(7)), [(0, 1), (0, 2), (1, 2), (5, 6)]))
+W("sparse6", "sparse6: loops and parallel edges", graph(False, [0, 1, 2], [(0, 1), (1, 0), (1, 1), (2, 2)]))
+W("sparse6", "sparse6: with the header, a jump over vertices", graph(False, list(range(8)), [(6, 1), (7, 2), (7, 2)]), header=True)
+W("sparse6", "sparse6: the padding special case", graph(False, [0, 1, 2, 3], [(0, 1), (1, 1), (0, 2)]))
+W("sparse6", "sparse6: a loop at vertex 0 of four (nauty's padding)", graph(False, [0, 1, 2, 3], [(0, 0)]))
+W("sparse6", "sparse6: one vertex with a loop (k = 0)", graph(False, [0], [(0, 0)]))
+W("sparse6", "sparse6: no vertices", graph(False, [], []))
+W("dimacs", "shortest path: p sp and weighted arcs in position order",
+  graph(True, [0, 1, 2], [(0, 1), (2, 0), (1, 1)]), weight=[7, -2, 0])
+W("dimacs", "clique: p edge and edges as stored", graph(False, [0, 1, 2, 3], [(1, 0), (2, 3)]))
+W("dimacs", "empty digraph", graph(True, [], []), weight=[])
+W("metis", "unweighted: neighbours in the order of the incident edges",
+  graph(False, [0, 1, 2, 3], [(0, 1), (2, 0), (1, 2)]))
+W("metis", "edge weights: fmt 1", graph(False, [0, 1, 2], [(0, 1), (2, 1)]), weight=[5, -3])
+W("metis", "isolated vertices are empty lines", graph(False, [0, 1, 2], [(2, 0)]))
+W("metis", "no vertices", graph(False, [], []))
+CY_TYPED = graph(True, ["a", "b"], [("a", "b"), ("b", "b")],
+                 {"a": {"label": "x y", "n": 3, "x": 2.0, "ok": True}, "b": {"name": "B", "value": 7}},
+                 {0: {"weight": 2, "w2": -0.5}, 1: {"id": "e1"}}, {"title": "G", "k": 1})
+W("cytoscapeJSON", "empty digraph", EMPTY_D)
+W("cytoscapeJSON", "undirected path", graph(False, ["0", "1", "2"], [("0", "1"), ("1", "2")]))
+W("cytoscapeJSON", "typed attributes; a vertex's own name and value stay in place", CY_TYPED)
+W("cytoscapeJSON", "parallel edges: multigraph true and NetworkX's keys", MULTI)
+W("cytoscapeJSON", "non-ASCII and control characters are escaped", UNICODE)
+W("edgeList", "a comma delimiter: IDs may hold spaces", graph(True, ["a b", "c"], [("a b", "c"), ("c", "c")]), delimiter=",")
+W("edgeList", "a tab delimiter with columns; an empty string value", graph(
+    True, ["x", "y"], [("x", "y")], {}, {0: {"w": 1.5, "s": ""}}), delimiter="\t", columns=["w", "s"])
+
+
 def write_output(c):
     g, kw = c["graph"], c["kw"]
     f = c["fmt"]
@@ -2277,9 +4073,25 @@ def write_output(c):
     if f == "matrixMarket":
         return mm_write(g, kw.get("weight"))
     if f == "edgeList":
-        return edge_list_write(g, kw.get("columns", ()))
+        return edge_list_write(g, kw.get("columns", ()), kw.get("delimiter"))
     if f == "adjacencyList":
         return adjacency_list_write(g)
+    if f == "gml":
+        return gml_write(g)
+    if f == "pajek":
+        return pajek_write(g)
+    if f == "graph6":
+        return graph6_write(g, kw.get("header", False))
+    if f == "sparse6":
+        return sparse6_write(g, kw.get("header", False))
+    if f == "digraph6":
+        return digraph6_write(g, kw.get("header", False))
+    if f == "dimacs":
+        return dimacs_write(g, kw.get("weight"))
+    if f == "metis":
+        return metis_write(g, kw.get("weight"))
+    if f == "cytoscapeJSON":
+        return cytoscape_write(g)
     return mermaid_write(g)
 
 
@@ -2340,6 +4152,205 @@ def nx_create(g):
 TARGETS_SIMPLE = {}
 
 
+NEW_FORMATS = {"gml", "pajek", "graph6", "sparse6", "digraph6", "dimacs", "metis", "cytoscapeJSON"}
+
+
+def known(c):
+    """The KNOWN reason for a row: by (format, case) for the formats added after the first seven,
+    whose case texts repeat the first ones'; by case otherwise."""
+    if (c["fmt"], c["case"]) in KNOWN:
+        return KNOWN[(c["fmt"], c["case"])]
+    if c["fmt"] in NEW_FORMATS:
+        return None
+    return KNOWN.get(c["case"])
+
+
+def py_id_text(x):
+    """A NetworkX tuple node as the reader names an array id."""
+    if isinstance(x, tuple):
+        return "[" + ", ".join(py_id_text(e) for e in x) + "]"
+    if x is None:
+        return "null"
+    return json_value(x)
+
+
+def strip_attrs(G, node_keys=(), edge_keys=()):
+    for _, d in G.nodes(data=True):
+        for k in node_keys:
+            d.pop(k, None)
+    for e in (G.edges(keys=True, data=True) if G.is_multigraph() else G.edges(data=True)):
+        for k in edge_keys:
+            e[-1].pop(k, None)
+    return G
+
+
+def library_read_new(c, raw, ours, directed, simple):
+    """library_read for the formats added after the first seven: a graph from the library, or a
+    string verdict, or None for no library."""
+    f = c["fmt"]
+    text = raw.decode("utf-8")
+    if f == "gml":
+        try:
+            G = nx.parse_gml(text, label="label")
+        except nx.NetworkXError as e:
+            if "has no 'label'" not in str(e):
+                raise
+            G = nx.parse_gml(text, label="id")
+    elif f == "pajek":
+        G = nx.parse_pajek(text)
+        strip_attrs(G, node_keys=("id",))
+    elif f == "graph6":
+        G = nx.from_graph6_bytes(raw.rstrip(b"\n"))
+    elif f == "sparse6":
+        G = nx.from_sparse6_bytes(raw.rstrip(b"\n"))
+    elif f == "cytoscapeJSON":
+        data = json.loads(text)
+        G = nx.cytoscape_graph(data)
+        strip_attrs(G, node_keys=("id",), edge_keys=("source", "target") + (("key",) if data.get("multigraph") else ()))
+    else:
+        return "no library"
+    if G.is_directed() != directed:
+        return "library reads the other kind"
+    if simple:
+        G = (nx.DiGraph if directed else nx.Graph)(G)
+    return G
+
+
+def library_write_new(c, out):
+    g, kw, f = c["graph"], c["kw"], c["fmt"]
+
+    def nx_graph(multi):
+        G = ((nx.MultiDiGraph if multi else nx.DiGraph) if g.directed else (nx.MultiGraph if multi else nx.Graph))()
+        for v, a in zip(g.vertices, g.vattrs):
+            G.add_node(v, **a)
+        for (u, v), a in zip(g.edges, g.eattrs):
+            G.add_edge(g.vertices[u], g.vertices[v], **a)
+        G.graph.update(g.gattrs)
+        return G
+
+    if f == "gml":
+        G = nx_graph(has_parallel(g))
+        ref = "".join(line + "\n" for line in nx.generate_gml(G) if not re.fullmatch(r"    key [0-9]+", line))
+        if ref == out:
+            return None
+        def split(s):
+            head, _, rest = s[:-2].partition("  edge [\n")  # without the graph's closing ]
+            blocks = []
+            for b in ("  edge [\n" + rest).split("  edge [\n")[1:]:
+                lines = b.split("\n")
+                if not g.directed:  # NetworkX orients an undirected edge by adjacency
+                    ends = sorted(int(x.split()[1]) for x in lines[:2])
+                    lines[:2] = [f"    source {ends[0]}", f"    target {ends[1]}"]
+                blocks.append("\n".join(lines))
+            return head, sorted(blocks)
+        return None if split(ref) == split(out) else f"NetworkX writes {ref!r}"
+    if f == "pajek":
+        G = nx_graph(True)
+        ref = "".join(line + "\n" for line in nx.generate_pajek(G))
+        if ref == out:
+            return None
+        def edge_lines(s):
+            out = []
+            for line in s.splitlines():
+                parts = line.split(" ")
+                if not g.directed and len(parts) >= 2 and parts[0].isdigit():
+                    parts[:2] = sorted(parts[:2], key=int)
+                out.append(" ".join(parts))
+            return sorted(out)
+        a, b = ref.split("*", 2), out.split("*", 2)
+        if a[:2] == b[:2] and edge_lines(a[2]) == edge_lines(b[2]):
+            return None
+        return f"NetworkX writes {ref!r}"
+    if f == "graph6":
+        G = nx.Graph()
+        G.add_nodes_from(g.vertices)
+        G.add_edges_from((g.vertices[u], g.vertices[v]) for u, v in g.edges)
+        ref = nx.to_graph6_bytes(G, header=kw.get("header", False)).decode()
+        return None if ref == out else f"NetworkX writes {ref!r}"
+    if f == "sparse6":
+        G = nx.MultiGraph()
+        G.add_nodes_from(g.vertices)
+        G.add_edges_from((g.vertices[u], g.vertices[v]) for u, v in g.edges)
+        ref = nx.to_sparse6_bytes(G, header=kw.get("header", False)).decode()
+        return None if ref == out else f"NetworkX writes {ref!r}"
+    if f == "cytoscapeJSON":
+        G = nx_graph(has_parallel(g))
+        ref = json.dumps(nx.cytoscape_data(G))
+        if ref == out:
+            return None
+        a, b = json.loads(ref), json.loads(out)
+        ea, eb = a["elements"].pop("edges"), b["elements"].pop("edges")
+        def norm(e):
+            d = dict(e["data"])
+            if not g.directed:
+                d["source"], d["target"] = sorted((d["source"], d["target"]))
+            return json.dumps(d, sort_keys=True)
+        if a == b and sorted(map(norm, ea)) == sorted(map(norm, eb)):
+            return None
+        return f"NetworkX writes {ref!r}"
+    return None
+
+
+def round_trip_new(c, out):
+    """round_trip for the formats added after the first seven."""
+    g, kw, f = c["graph"], c["kw"], c["fmt"]
+    integral = f in ("graph6", "sparse6", "digraph6", "dimacs", "metis")
+    vtype = int if integral else str
+    back = run_reader(reader_for(f, **kw), out, Target(g.directed, False, vtype))
+    if isinstance(back, ParseError):
+        return f"reads back as {back}"
+    expect = Target(g.directed, False, vtype)
+    for v in g.vertices:
+        expect.vertex(v if integral else str(v))
+
+    def gml_back(x):
+        if type(x) is bool:
+            return int(x)
+        if type(x) is int and not -(2 ** 31) <= x < 2 ** 31:
+            return str(x)
+        return x
+
+    for i, a in enumerate(g.vattrs):
+        if f == "gml":
+            expect.vattrs[i] = {k: gml_back(x) for k, x in a.items()}
+        elif f == "pajek":
+            e = {"x": float(a.get("x", 0.0)), "y": float(a.get("y", 0.0)), "shape": pajek_text(a.get("shape", "ellipse"))}
+            e.update({k: pajek_text(x) for k, x in a.items() if k not in ("x", "y", "shape")})
+            expect.vattrs[i] = e
+        elif f == "cytoscapeJSON":
+            e = dict(a)
+            for extra in ("value", "name"):
+                e.setdefault(extra, str(g.vertices[i]))
+            expect.vattrs[i] = e
+    if f == "gml":
+        expect.gattrs = {k: gml_back(x) for k, x in g.gattrs.items()}
+    elif f == "cytoscapeJSON":
+        expect.gattrs = dict(g.gattrs)
+    for p, (u, v) in enumerate(g.edges):
+        a = g.eattrs[p]
+        if f in ("graph6", "sparse6", "metis"):
+            u, v = min(u, v), max(u, v)
+        q = expect.edge(u, v)
+        if f == "gml":
+            expect.eattrs[q] = {k: gml_back(x) for k, x in a.items()}
+        elif f == "pajek":
+            e = {"weight": float(a.get("weight", 1.0))}
+            e.update({k: pajek_text(x) for k, x in a.items() if k != "weight"})
+            expect.eattrs[q] = e
+        elif f == "cytoscapeJSON":
+            expect.eattrs[q] = dict(a)
+        elif f in ("dimacs", "metis") and kw.get("weight") is not None:
+            expect.eattrs[q] = {"weight": kw["weight"][p]}
+    if f in ("graph6", "sparse6", "digraph6", "metis"):
+        same_edges = edge_multiset(our_edges(expect), g.directed) == edge_multiset(our_edges(back), g.directed)
+        ok = expect.vertices == back.vertices and same_edges
+    else:
+        ok = (expect.vertices == back.vertices and expect.edges == back.edges and expect.gattrs == back.gattrs and
+              all(same_attrs(x, y) for x, y in zip(expect.vattrs, back.vattrs)) and
+              all(same_attrs(x, y) for x, y in zip(expect.eattrs, back.eattrs)))
+    return None if ok else f"reads back as {fmt_graph(back)}, expected {fmt_graph(expect)}"
+
+
 def library_read(c):
     """What the reference library makes of a read row: a graph comparison or None when it agrees."""
     raw = c["text"].encode() if isinstance(c["text"], str) else c["text"]
@@ -2347,7 +4358,13 @@ def library_read(c):
     _, directed, simple, vtype = TARGETS[c["target"]]
     f = c["fmt"]
     try:
-        if f == "graphML":
+        if f in NEW_FORMATS:
+            G = library_read_new(c, raw, ours, directed, simple)
+            if G == "no library":
+                return None
+            if isinstance(G, str):
+                return G
+        elif f == "graphML":
             G = nx.read_graphml(io.BytesIO(raw))
             if not G.is_directed() == directed:
                 return "library reads the other kind"
@@ -2355,6 +4372,7 @@ def library_read(c):
                 G = (nx.DiGraph if directed else nx.Graph)(G)
         elif f == "nodeLinkJSON":
             G = nx.node_link_graph(json.loads(raw.decode("utf-8")))
+            G = nx.relabel_nodes(G, {v: py_id_text(v) for v in G if isinstance(v, tuple)})
             if simple:
                 G = (nx.DiGraph if directed else nx.Graph)(G)
         elif f == "matrixMarket":
@@ -2374,7 +4392,8 @@ def library_read(c):
         elif f == "edgeList":
             cols = c["kw"].get("columns", [])
             create = (nx.DiGraph if simple else nx.MultiDiGraph)() if directed else (nx.Graph if simple else nx.MultiGraph)()
-            G = nx.read_edgelist(io.BytesIO(raw), create_using=create, data=[(k, lexical) for k in cols] if cols else False)
+            data = [(k, lexical) for k in cols] if cols else (b"{" in raw)
+            G = nx.read_edgelist(io.BytesIO(raw), create_using=create, data=data, delimiter=c["kw"].get("delimiter"))
         elif f == "adjacencyList":
             create = (nx.DiGraph if simple else nx.MultiDiGraph)() if directed else (nx.Graph if simple else nx.MultiGraph)()
             G = nx.read_adjlist(io.BytesIO(raw), create_using=create)
@@ -2383,13 +4402,15 @@ def library_read(c):
             if not gs:
                 raise ValueError("pydot: no graph")
             pg = gs[0]
-            edges = [(dot_unquote(e.get_source()), dot_unquote(e.get_destination())) for e in pg.get_edges()]
+            edges = pydot_edges(pg)
             if isinstance(ours, ParseError):
                 return "library accepts it"
             if pg.get_strict() or c["target"].endswith("S"):
                 return None  # pydot does not merge
-            mine = [(g1, g2) for g1, g2, _ in our_edges(ours)]
-            return None if edges == [(str(u), str(v)) for u, v in mine] else f"edges {edges}"
+            mine = [(str(g1), str(g2)) for g1, g2, _ in our_edges(ours)]
+            if pg.get_subgraph_list():  # pydot keeps a subgraph's edges apart from the root's
+                return None if sorted(edges) == sorted(mine) else f"edges {edges}"
+            return None if edges == mine else f"edges {edges}"
         else:
             return None
     except Exception as e:  # noqa: BLE001
@@ -2402,6 +4423,22 @@ def library_read(c):
         b = sorted(repr((tuple(sorted((u, v))), sorted(d.items()))) for u, v, d in our_edges(ours))
         return None if a == b else "entries"
     return nx_matches(ours, G)
+
+
+def pydot_edges(pg):
+    """Every edge pydot read, a subgraph endpoint expanded to its vertices (tails outer)."""
+    def ends(x):
+        if isinstance(x, str):
+            return [dot_unquote(x)]
+        return [dot_unquote(k) for k in x["nodes"]]
+    out = []
+    for e in pg.get_edges():
+        for u in ends(e.get_source()):
+            for v in ends(e.get_destination()):
+                out.append((u, v))
+    for s in pg.get_subgraph_list():
+        out += pydot_edges(s)
+    return out
 
 
 def quiet_pydot(text):
@@ -2422,6 +4459,8 @@ def dot_unquote(s):
 def library_write(c, out):
     """Byte comparison with the library's writer, or a read-back by the library."""
     g, kw, f = c["graph"], c["kw"], c["fmt"]
+    if f in NEW_FORMATS:
+        return library_write_new(c, out)
     if f == "nodeLinkJSON":
         G = (nx.MultiDiGraph if has_parallel(g) else nx.DiGraph)() if g.directed else (
             nx.MultiGraph if has_parallel(g) else nx.Graph)()
@@ -2499,7 +4538,7 @@ def library_write(c, out):
         if f == "edgeList":
             if [(str(u), str(v)) for u, v in G.edges] != [(str(g.vertices[u]), str(g.vertices[v])) for u, v in g.edges]:
                 return None  # NetworkX lists edges by adjacency, not by position
-            nx.write_edgelist(G, b, data=list(kw.get("columns", [])) or False)
+            nx.write_edgelist(G, b, data=list(kw.get("columns", [])) or False, delimiter=kw.get("delimiter") or " ")
             ref = b.getvalue().decode()
         else:
             nx.write_adjlist(G, b)
@@ -2525,6 +4564,8 @@ def round_trip(c, out):
     """The model reads the writer's output back; returns None when it gives the graph back, up to what
     the format does not carry (api.md, Round trips)."""
     g, kw, f = c["graph"], c["kw"], c["fmt"]
+    if f in NEW_FORMATS:
+        return round_trip_new(c, out)
     vtype = int if g.vertices and isinstance(g.vertices[0], int) and f in ("matrixMarket", "nodeLinkJSON") else str
     back = run_reader(reader_for(f, **kw), out, Target(g.directed, False, vtype))
     if isinstance(back, ParseError):
@@ -2590,6 +4631,7 @@ def dot_text(x):
 
 # Library behaviour that differs from ours on purpose (api.md, Library disagreements).
 KNOWN = {
+    "a delimiter ending the line adds an empty field at the end": "NetworkX ignores fields past the declared data",
     # GF-232 – GF-256
     "a vertex count above the default maximumVertexCount (16 a byte plus 4,096)": "SciPy makes the empty 2^24 + 1 square matrix lazily",
     # GF-257 – GF-259
@@ -2610,8 +4652,6 @@ KNOWN = {
     "graph into a directed target": "pydot has no target: it reads either kind",
     "digraph into an undirected target": "pydot has no target: it reads either kind",
     "-- in a digraph": "pydot accepts either edge operator in either kind (Graphviz: syntax error)",
-    "subgraph (unsupported)": "pydot reads subgraphs",
-    "port (unsupported)": "pydot keeps the port in the vertex name (a:p)",
     "a second graph (unsupported)": "pydot returns a list of graphs",
     "numeral followed by a letter": "pydot splits 1a into two IDs (Graphviz warns and splits)",
     "attribute without a value": "pydot accepts [k] (Graphviz: syntax error)",
@@ -2624,7 +4664,6 @@ KNOWN = {
     "undirected into a directed target": "NetworkX has no target: it reads either kind",
     "edge to an undeclared node": "NetworkX adds the node",
     "duplicate node id": "NetworkX merges the two nodes",
-    "nested graph (unsupported)": "NetworkX flattens nested graphs",
     "a second graph (unsupported)": "NetworkX reads the first graph only",
     "encoding other than UTF-8": "NetworkX (expat) decodes ISO-8859-1",
     "nesting deeper than 64 elements": "NetworkX has no depth limit",
@@ -2655,6 +4694,100 @@ KNOWN = {
     "skew-symmetric diagonal entry": "SciPy keeps a diagonal entry in a skew-symmetric file",
     "pattern skew-symmetric": "SciPy accepts the combination the spec forbids",
     "signed index": "SciPy accepts +1 as an index",
+    # DOT subgraphs (pydot 4.0.1)
+    "a subgraph operand's own edges come before the chain's": "pydot drops the chain's edges from a subgraph that holds an edge",
+    "nested named subgraphs as an operand: every vertex mentioned inside": "pydot gives a subgraph operand only its direct node statements",
+    "a subgraph's edge defaults apply to edges from it, not to a later chain": "pydot reads the keyword edge in a subgraph operand as a node",
+    "64 nested subgraphs": "pydot's parser exceeds Python's recursion limit",
+    "subgraph without a body (unsupported)": "pydot accepts a subgraph reference",
+    # GraphML nested graphs (NetworkX 3.7)
+    "a nested graph in a node that is not a yEd group": "NetworkX reads a nested graph's nodes only under yfiles.foldertype=\"group\"",
+    "a nested graph without edgedefault": "NetworkX does not check a nested graph",
+    "a nested graph of the other kind (unsupported)": "NetworkX does not check a nested graph",
+    "a node inside a nested graph declared twice": "NetworkX merges the two nodes",
+    "data after a node's nested graph (unsupported)": "NetworkX reads a node's data wherever it is among its children",
+    "a graph inside an edge stays unsupported": "NetworkX ignores it",
+    # node-link tuple ids (NetworkX 3.7)
+    "array ids (NetworkX tuples) are their canonical JSON text": "NetworkX makes an edge endpoint's array a tuple without converting the arrays inside it (unhashable)",
+    "an array id into an Int target": "NetworkX has no target: the id is a tuple",
+    "an array id and the string of its text are one id": "NetworkX keeps the tuple (1, 2) and the string \"[1, 2]\" apart",
+    "an edge to an array id no node declares": "NetworkX adds the node",
+    # edge list dict data and delimiters (NetworkX 3.7 parse_edgelist)
+    "dict values: floats, booleans, inf, nan, signs, a trailing comma": "literal_eval reads no inf or nan",
+    "a dict string may hold # and the delimiter; a comment may follow the dict": "NetworkX cuts the line at the first #, inside the dict too",
+    "None in a dict (unsupported)": "NetworkX stores None",
+    "a list in a dict (unsupported)": "NetworkX stores the list",
+    "a dict integer beyond Int64": "literal_eval reads an int of any size",
+    "a surrogate escape": "Python keeps a lone surrogate in the str",
+    "comma-delimited integers into an Int target": "NetworkX splits only the LF, so the CR stays in the last field",
+    "delimited: too few fields": "NetworkX skips lines with fewer than two fields",
+    "delimited: an extra field": "NetworkX with data=False ignores fields past the endpoints",
+    "delimited: a missing column": "NetworkX accepts a line without its data",
+    # GML (NetworkX 3.7 parse_gml)
+    ("gml", "a node without a label is named by its id"): "NetworkX names every node by label (label=\"label\") or every one by id (label=\"id\")",
+    ("gml", "character references and the four named entities are decoded; others are kept"):
+        "NetworkX decodes every HTML 4 entity (&nbsp;) and makes &#xD800; a lone surrogate",
+    ("gml", "lists such as graphics are skipped; top-level keys are ignored; # comments"): "NetworkX keeps a list value as a dict attribute",
+    ("gml", "multigraph 1: parallel edges kept"): "NetworkX takes key as the edge's key, not an attribute",
+    ("gml", "simple target: parallel edges merge, last value wins"): "NetworkX rejects a parallel edge without multigraph 1",
+    ("gml", "simple undirected target: 1-0 is 0-1"): "NetworkX rejects a parallel edge without multigraph 1",
+    ("gml", "a string may span lines"): "NetworkX joins the lines of a string with a space and fails on this one",
+    ("gml", "a number as a label is its text"): "NetworkX keeps a numeric label as a number (1.5, not 1.50)",
+    ("gml", "graph attributes where they are read; a repeated key is reported again"): "NetworkX makes a repeated key a list",
+    ("gml", "a byte-order mark, CR LF and tabs"): "NetworkX does not skip a byte-order mark",
+    ("gml", "directed that is not 0 or 1"): "NetworkX reads any true value as directed",
+    ("gml", "directed 1 into an undirected target"): "NetworkX has no target: it reads either kind",
+    ("gml", "no directed into a directed target"): "NetworkX has no target: it reads either kind",
+    ("gml", "directed 0 into a directed target"): "NetworkX has no target: it reads either kind",
+    ("gml", "directed twice"): "NetworkX makes a repeated key a list",
+    ("gml", "multigraph that is not 0 or 1"): "NetworkX reads any true value as a multigraph",
+    ("gml", "an id that is not an integer"): "NetworkX takes any value as an id",
+    ("gml", "a label equal to another node's id text"): "NetworkX compares a label with labels only",
+    ("gml", "a source that is not an integer"): "NetworkX takes any value as an endpoint (0.0 == 0)",
+    ("gml", "a key where a value should be"): "NetworkX takes an unquoted word as the value of id, label, source and target",
+    ("gml", "an integer beyond Int64"): "NetworkX reads an int of any size",
+    ("gml", "65 nested lists"): "NetworkX has no depth limit",
+    # Pajek (NetworkX 3.7 parse_pajek)
+    ("pajek", "arcs with weights and key-value pairs; vertices with coordinates, shape and pairs"):
+        "NetworkX reads x, y and shape only from lines of five fields or more",
+    ("pajek", "a vertex without a line is named by its number; lines in any order"): "NetworkX reads exactly n lines after *vertices",
+    ("pajek", "a vertex line with only its number is labelled by it"): "NetworkX requires a label on every vertex line (ValueError)",
+    ("pajek", "*network, % comments, blank lines, keywords in any case, a 2-mode count"):
+        "NetworkX fails on a second number after *vertices and does not skip % comments",
+    ("pajek", "*arcslist: a vertex then its successors"): "NetworkX reads exactly n lines after *vertices and has no *arcslist",
+    ("pajek", "*edgeslist"): "NetworkX reads exactly n lines after *vertices and has no *edgeslist",
+    ("pajek", "labels that map to one vertex are that vertex"): "NetworkX reads exactly n lines after *vertices",
+    ("pajek", "a byte-order mark"): "NetworkX does not skip a byte-order mark",
+    ("pajek", "*network after the vertices does not end their section"): "NetworkX reads exactly n lines after *vertices",
+    ("pajek", "a data line before *vertices"): "NetworkX ignores lines outside a section",
+    ("pajek", "a vertex number given twice"): "NetworkX reads both lines",
+    ("pajek", "an x that is not a number"): "NetworkX drops x, y and shape it cannot read",
+    ("pajek", "a key without a value"): "NetworkX drops an unpaired field",
+    ("pajek", "a second *vertices (unsupported)"): "NetworkX reads every *vertices section",
+    ("pajek", "an unknown section (unsupported)"): "NetworkX ignores lines outside a section",
+    ("pajek", "coordinates, shape, weights and key-value pairs"): "NetworkX skips non-string attributes (with a warning)",
+    ("pajek", "quoting: whitespace, quotes, backslashes, apostrophes, empty strings"):
+        "NetworkX leaves an apostrophe and an empty string unquoted (unreadable by shlex) and skips empty values",
+    # graph6, sparse6 (NetworkX 3.7)
+    ("graph6", "graph6: CR LF"): "NetworkX strips only the LF",
+    ("graph6", "graph6: padding bits that are not 0"): "NetworkX does not check the padding",
+    ("sparse6", "sparse6: one vertex with a loop (k = 0)"): "NetworkX uses k = 1 for n <= 1 (nauty: the bits of n - 1, so 0)",
+    ("sparse6", "sparse6: a size above the default maximumVertexCount"): "NetworkX makes every vertex",
+    ("sparse6", "sparse6: a size above maximumVertexCount"): "NetworkX has no bound",
+    ("sparse6", "sparse6: a loop at vertex 0 of four (nauty's padding)"):
+        "NetworkX pads with a 0 bit whenever the last vertex is below n - 1 (:CB); nauty only when it is n - 2 (:CF)",
+    # Cytoscape JSON (NetworkX 3.7 cytoscape_graph)
+    ("cytoscapeJSON", "directed, attributes, NetworkX's graph data pairs"): "NetworkX requires every node's value",
+    ("cytoscapeJSON", "Cytoscape.js: an array of elements with group; position and classes ignored; data object"):
+        "NetworkX requires data as pairs and elements as an object",
+    ("cytoscapeJSON", "without group, an element is an edge when its data has source"): "NetworkX requires data and elements as an object",
+    ("cytoscapeJSON", "multigraph true: every edge kept, key not reported"): "NetworkX requires data and each node's value",
+    ("cytoscapeJSON", "multigraph false: parallel edges kept, key reported"): "NetworkX requires data and each node's value",
+    ("cytoscapeJSON", "simple target: parallel edges merge, last value wins"): "NetworkX requires data and each node's value",
+    ("cytoscapeJSON", "integer ids and endpoints are their decimal text"): "NetworkX requires data and each node's value",
+    ("cytoscapeJSON", "no nodes or edges members"): "NetworkX requires data, nodes and edges",
+    ("cytoscapeJSON", "typed attributes; a vertex's own name and value stay in place"):
+        "NetworkX overwrites a node's value attribute with the node",
     # edge list, adjacency list: NetworkX 3.7
     "one token": "NetworkX skips lines with fewer than two tokens",
     "an extra token": "NetworkX ignores tokens past the declared data",
@@ -2693,11 +4826,19 @@ def op_of(c):
     f = c["fmt"]
     if c["kind"] == "read":
         extra = ", columns: " + json.dumps(c["kw"]["columns"]) if "columns" in c["kw"] else ""
+        if "delimiter" in c["kw"]:
+            extra += ", delimiter: " + json.dumps(c["kw"]["delimiter"])
+        if "maximumVertexCount" in c["kw"]:
+            extra += f", maximumVertexCount: {c['kw']['maximumVertexCount']}"
         return f"{TARGETS[c['target']][0]}({LABEL[f]}:{extra})"
     kw = c["kw"]
     extra = ""
     if "columns" in kw:
         extra = ", columns: " + json.dumps(kw["columns"])
+    if "delimiter" in kw:
+        extra += ", delimiter: " + json.dumps(kw["delimiter"])
+    if kw.get("header"):
+        extra += ", header: true"
     if "weight" in kw:
         extra = ", weight: " + "[" + ", ".join(fmt_value(w) for w in kw["weight"]) + "]"
     return WRITER[f].replace("(to:)", f"(to:{extra})")
@@ -2727,17 +4868,20 @@ scipy==1.18.1 --with pydot==4.0.1 python3 Tests/Catalogs/GraphFormats/ref.py`; `
 regenerates this file, `--stress` adds random round trips and mutated inputs). {reads} read rows
 ({errors} of them errors) and {writes} write rows. The model implements api.md independently of the
 libraries; each row is then compared with NetworkX 3.7 (GraphML, node-link JSON, edge list,
-adjacency list), SciPy 1.18.1 (Matrix Market) or pydot 4.0.1 (DOT), where the library reads or writes
-the format, and every write row is read back by the model. Rows where a library differs are listed,
+adjacency list, GML, Pajek, graph6, sparse6, Cytoscape JSON), SciPy 1.18.1 (Matrix Market) or pydot
+4.0.1 (DOT), where the library reads or writes the format (no Python library reads digraph6, DIMACS
+or METIS), and every write row is read back by the model. Rows where a library differs are listed,
 with the reason, under "Library disagreements" in api.md.
 
 ## Notation
 
 **Op.** A read row calls the reader initializer on the target type, with the default vertex
-mapping (`String` IDs as they are; `Int` targets take Matrix Market's 1-based indices minus one,
-and node-link integer ids). A write row calls the writer on the graph in **Input** with the default
-`vertexID` (`String(describing:)`) and the graph's attributes as the attribute closures (`label`
-only, for Mermaid; `weight:` for Matrix Market, `columns:` for the edge list).
+mapping (`String` IDs as they are; `Int` targets take Matrix Market's, DIMACS's and METIS's
+1-based indices minus one, node-link integer ids, and the nauty formats' vertices `0..<n`), with the
+options shown (`columns:`, `delimiter:`, `maximumVertexCount:`). A write row calls the writer on the
+graph in **Input** with the default `vertexID` (`String(describing:)`) and the graph's attributes as
+the attribute closures (`label` only, for Mermaid; `weight:` for Matrix Market, DIMACS and METIS,
+`columns:` and `delimiter:` for the edge list, `header:` for the nauty formats).
 
 **Input** of a read row and **Expected** of a write row are the exact text, as a JSON string
 literal (so `\\n` is a line feed, `\\t` a tab). `bytes …` is input that is not UTF-8.
@@ -2768,9 +4912,10 @@ def check_rows():
             why = library_read(c)
         else:
             why = library_write(c, r) or round_trip(c, r)
-        if why and c["case"] not in KNOWN:
+        reason = known(c)
+        if why and reason is None:
             bad.append(f"{key} {c['fmt']} {c['case']}: {why}")
-        if not why and c["case"] in KNOWN and KNOWN[c["case"]]:
+        if not why and reason:
             bad.append(f"{key} listed in KNOWN but agrees")
     return bad
 
@@ -2851,6 +4996,74 @@ def stress():
             why = round_trip(c, out) or library_write(c, out)
             if why:
                 failures.append(f"{f} {fmt_graph(plain)}: {why}")
+        # The formats added after the first seven.
+        gs = random_graph(rng, directed)
+        # NetworkX's GML writer quotes every value under a key named label (label 5 is "5"); the
+        # vertex label is the ID here, so neither carries one.
+        for a in gs.vattrs + gs.eattrs:
+            a.pop("label", None)
+        for f in ("gml", "cytoscapeJSON", "pajek"):
+            gp = gs
+            if f == "pajek":
+                if any("\n" in v for v in gs.vertices):
+                    continue
+                gp = graph(directed, gs.vertices, [(gs.vertices[u], gs.vertices[v]) for u, v in gs.edges])
+                for i, a in enumerate(gs.vattrs):
+                    gp.vattrs[i] = {k: x for k, x in a.items() if not (type(x) is str and "\n" in x) and k not in ("x", "y")}
+                for i, a in enumerate(gs.eattrs):
+                    gp.eattrs[i] = {k: x for k, x in a.items() if not (type(x) is str and "\n" in x) and k != "weight"}
+            c = dict(kind="write", fmt=f, case="stress", graph=gp, kw={})
+            out = write_output(c)
+            count += 1
+            why = round_trip(c, out)
+            if not why and f in ("gml", "cytoscapeJSON"):
+                why = library_write(c, out)
+            if why:
+                failures.append(f"{f} {fmt_graph(gp)}: {why}")
+        gu = random_graph(rng, False, int, attrs=False)
+        gu = graph(False, list(range(len(gu.vertices))), [])
+        n = len(gu.vertices)
+        for _ in range(rng.randint(0, 12) if n else 0):
+            gu.edges.append((rng.randrange(n), rng.randrange(n)))
+            gu.eattrs.append({})
+        simple = graph(False, list(range(n)), [])
+        seen = set()
+        for u, v in gu.edges:
+            if u != v and (min(u, v), max(u, v)) not in seen:
+                seen.add((min(u, v), max(u, v)))
+                simple.edges.append((u, v))
+                simple.eattrs.append({})
+        gd = graph(True, list(range(n)), [])
+        for u, v in set(gu.edges):
+            gd.edges.append((u, v))
+            gd.eattrs.append({})
+        cases = [("graph6", simple, {}), ("graph6", simple, {"header": True}), ("sparse6", gu, {}),
+                 ("digraph6", gd, {}), ("dimacs", gd, {"weight": [rng.randint(-9, 9) for _ in gd.edges]}),
+                 ("dimacs", gu, {}), ("metis", simple, {}), ("metis", simple, {"weight": [rng.randint(-9, 9) for _ in simple.edges]})]
+        for f, gg, kw in cases:
+            c = dict(kind="write", fmt=f, case="stress", graph=gg, kw=kw)
+            out = write_output(c)
+            count += 1
+            why = round_trip(c, out)
+            if not why and f == "graph6":
+                why = library_write(c, out)
+            if not why and f == "sparse6" and n > 1:
+                G = nx.from_sparse6_bytes(out.rstrip("\n").encode())
+                if edge_multiset([(u, v, {}) for u, v in G.edges()], False) != edge_multiset(
+                        [(gg.vertices[u], gg.vertices[v], {}) for u, v in gg.edges], False):
+                    why = f"NetworkX reads {sorted(G.edges())}"
+            if why:
+                failures.append(f"{f} {fmt_graph(gg)} {kw}: {why}")
+        gl = graph(directed, ["a b", "c", "", "d#"[:1]], [])
+        for _ in range(rng.randint(0, 5)):
+            gl.edges.append((rng.randrange(4), rng.randrange(4)))
+            gl.eattrs.append({"w": rng.choice([1, -2.5, "x y", ""])})
+        c = dict(kind="write", fmt="edgeList", case="stress", graph=gl, kw={"delimiter": ",", "columns": ["w"]})
+        out = write_output(c)
+        count += 1
+        why = round_trip(c, out)
+        if why:
+            failures.append(f"edgeList , {fmt_graph(gl)}: {why}")
     # mutated inputs: every model reader returns a graph or a ParseError
     seeds = [c for c in CASES if c["kind"] == "read"]
     crashes = 0
@@ -2872,7 +5085,7 @@ def stress():
             crashes += 1
             failures.append(f"{c['fmt']} mutated {bytes(raw)!r}: {type(e).__name__} {e}")
     print(f"stress: {count} round trips, 3000 mutated inputs, {len(failures)} failures")
-    for f in failures[:20]:
+    for f in sorted(failures, key=lambda s: s.split()[0])[:20]:
         print("  ", f)
     return not failures
 

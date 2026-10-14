@@ -324,4 +324,168 @@ struct GraphFormatsWriteErrorTests {
         #expect(recorder.pieces.count > 1)
         #expect(recorder.pieces.joined().hasPrefix("vertex0 vertex1\nvertex1 vertex2\n"))
     }
+
+    @Test("graph6 throws selfLoop and parallelEdge, whichever edge comes first; digraph6 parallelEdge only")
+    func nautyUnrepresentableEdges() throws {
+        var output = "kept"
+        #expect(throws: WriteError.selfLoop) {
+            try Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 1)]).writeGraph6(to: &output)
+        }
+        #expect(throws: WriteError.parallelEdge) {
+            try Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 0), UndirectedEdge(1, 1)]).writeGraph6(to: &output)
+        }
+        #expect(throws: WriteError.parallelEdge) {
+            try DirectedPseudograph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 0), DirectedEdge(from: 0, to: 0)]).writeDigraph6(to: &output)
+        }
+        #expect(output == "kept")
+        // Without the faults: one edge each way is two arcs, and a loop is an arc.
+        output = ""
+        try DirectedPseudograph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 0, to: 0)])
+            .writeDigraph6(to: &output, header: true)
+        #expect(output == ">>digraph6<<&Aw\n")
+        output = ""
+        try Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(1, 0)]).writeGraph6(to: &output)
+        #expect(output == "A_\n")
+        // sparse6 holds both.
+        output = ""
+        Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 0), UndirectedEdge(1, 1)]).writeSparse6(to: &output)
+        let reread = try Pseudograph<Int>(sparse6: output.utf8)
+        #expect(reread.edges.map { [$0.u, $0.v] } == [[0, 1], [0, 1], [1, 1]])
+    }
+
+    @Test("METIS throws selfLoop and parallelEdge, whichever edge comes first")
+    func metisUnrepresentableEdges() throws {
+        var output = "kept"
+        #expect(throws: WriteError.selfLoop) {
+            try Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(1, 1), UndirectedEdge(0, 1), UndirectedEdge(1, 0)]).writeMETIS(to: &output)
+        }
+        #expect(throws: WriteError.parallelEdge) {
+            try Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 0), UndirectedEdge(1, 1)]).writeMETIS(to: &output)
+        }
+        #expect(throws: WriteError.parallelEdge) {
+            try Pseudograph<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 2), UndirectedEdge(2, 0)]).writeMETIS(to: &output, weight: { $0 })
+        }
+        #expect(output == "kept")
+        output = ""
+        try Pseudograph<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 2), UndirectedEdge(2, 1)]).writeMETIS(to: &output, weight: { $0 + 5 })
+        #expect(output == "3 2 1\n3 5\n3 6\n1 5 2 6\n")
+    }
+
+    @Test("GML: a repeated label, a key GML cannot spell, and a key the format uses throw")
+    func gmlKeys() throws {
+        var output = "kept"
+        #expect(throws: WriteError.duplicateID) {
+            try DirectedPseudograph<Int>(vertices: [1, 2]).writeGML(to: &output, vertexID: { _ in "x" })
+        }
+        let invalid = ["", "1a", "_a", "a-b", "a b", "é"]
+        for key in invalid {
+            #expect(throws: WriteError.invalidKey) {
+                try DirectedPseudograph<Int>(vertices: [1]).writeGML(to: &output, vertexAttributes: { _ in [(key, .integer(1))] })
+            }
+        }
+        let reserved: [(String, Int)] = [("id", 0), ("label", 0), ("source", 1), ("target", 1), ("directed", 2), ("multigraph", 2), ("node", 2), ("edge", 2)]
+        for (key, element) in reserved {
+            #expect(throws: WriteError.reservedKey) {
+                let graph = Pseudograph<Int>(vertices: [1], edges: [UndirectedEdge(1, 1)])
+                try graph.writeGML(to: &output, vertexAttributes: { _ in element == 0 ? [(key, .integer(1))] : [] },
+                                   edgeAttributes: { _ in element == 1 ? [(key, .integer(1))] : [] },
+                                   graphAttributes: element == 2 ? [(key, .integer(1))] : [])
+            }
+        }
+        #expect(output == "kept")
+        // Without the faults: the same keys where the format does not use them, and every string.
+        output = ""
+        try Pseudograph<Int>(vertices: [1], edges: [UndirectedEdge(1, 1)]).writeGML(
+            to: &output, vertexID: { _ in "\"&é\n" }, vertexAttributes: { _ in [("source", .integer(1)), ("a_1", .string(""))] },
+            edgeAttributes: { _ in [("id", .boolean(true)), ("key", .integer(1 << 40))] }, graphAttributes: [("label", .double(1e-5))])
+        #expect(output == "graph [\n  label 1.E-05\n  node [\n    id 0\n    label \"&#34;&#38;&#233;&#10;\"\n    source 1\n    a_1 \"\"\n  ]\n"
+            + "  edge [\n    source 0\n    target 0\n    id 1\n    key \"1099511627776\"\n  ]\n]\n")
+    }
+
+    @Test("Pajek: a repeated label, a line feed in a token, and a coordinate or weight that is not a number throw")
+    func pajekTokens() throws {
+        var output = "kept"
+        #expect(throws: WriteError.duplicateID) {
+            try DirectedPseudograph<Int>(vertices: [1, 2]).writePajek(to: &output, vertexID: { _ in "x" })
+        }
+        #expect(throws: WriteError.invalidID) {
+            try DirectedPseudograph<String>(vertices: ["a\nb"]).writePajek(to: &output)
+        }
+        #expect(throws: WriteError.invalidKey) {
+            try DirectedPseudograph<String>(vertices: ["a"]).writePajek(to: &output, vertexAttributes: { _ in [("k\n", .integer(1))] })
+        }
+        #expect(throws: WriteError.invalidValue) {
+            try Pseudograph<String>(edges: [UndirectedEdge("a", "b")]).writePajek(to: &output, edgeAttributes: { _ in [("c", .string("\n"))] })
+        }
+        for key in ["x", "y"] {
+            #expect(throws: WriteError.invalidValue) {
+                try DirectedPseudograph<String>(vertices: ["a"]).writePajek(to: &output, vertexAttributes: { _ in [(key, .string("1"))] })
+            }
+        }
+        #expect(throws: WriteError.invalidValue) {
+            try DirectedPseudograph<String>(edges: [DirectedEdge(from: "a", to: "b")]).writePajek(to: &output, edgeAttributes: { _ in [("weight", .boolean(true))] })
+        }
+        #expect(output == "kept")
+        output = ""
+        try DirectedPseudograph<String>(edges: [DirectedEdge(from: "a b", to: "")]).writePajek(
+            to: &output, vertexAttributes: { $0 == "" ? [("y", .integer(2)), ("shape", .string("a'b")), ("x", .double(-0.5))] : [] },
+            edgeAttributes: { _ in [("c", .boolean(false)), ("weight", .integer(3)), ("\"", .string("\\"))] })
+        #expect(output == "*vertices 2\n1 \"a b\" 0.0 0.0 ellipse\n2 \"\" -0.5 2 \"a'b\"\n*arcs\n1 2 3 c false \"\\\"\" \"\\\\\"\n")
+    }
+
+    @Test("Cytoscape JSON: a repeated ID, a reserved key and a non-finite double throw")
+    func cytoscapeJSON() throws {
+        var output = "kept"
+        #expect(throws: WriteError.duplicateID) {
+            try DirectedPseudograph<Int>(vertices: [1, 2]).writeCytoscapeJSON(to: &output, vertexID: { _ in "x" })
+        }
+        #expect(throws: WriteError.reservedKey) {
+            try DirectedPseudograph<Int>(vertices: [1]).writeCytoscapeJSON(to: &output, vertexAttributes: { _ in [("id", .integer(1))] })
+        }
+        for key in ["source", "target", "key"] {
+            #expect(throws: WriteError.reservedKey) {
+                try Pseudograph<Int>(edges: [UndirectedEdge(1, 2)]).writeCytoscapeJSON(to: &output, edgeAttributes: { _ in [(key, .integer(1))] })
+            }
+        }
+        #expect(throws: WriteError.invalidValue) {
+            try Pseudograph<Int>(vertices: [1]).writeCytoscapeJSON(to: &output, graphAttributes: [("g", .double(.nan))])
+        }
+        #expect(throws: WriteError.invalidValue) {
+            try Pseudograph<Int>(edges: [UndirectedEdge(1, 2)]).writeCytoscapeJSON(to: &output, edgeAttributes: { _ in [("w", .double(.infinity))] })
+        }
+        #expect(output == "kept")
+        output = ""
+        try Pseudograph<Int>(edges: [UndirectedEdge(1, 2), UndirectedEdge(2, 1)]).writeCytoscapeJSON(
+            to: &output, vertexAttributes: { $0 == 1 ? [("name", .string("one")), ("value", .integer(1))] : [] }, edgeAttributes: { _ in [("id", .integer(1))] })
+        #expect(output == "{\"data\": [], \"directed\": false, \"multigraph\": true, \"elements\": {\"nodes\": [{\"data\": {\"name\": \"one\", \"value\": 1, \"id\": \"1\"}}, "
+            + "{\"data\": {\"id\": \"2\", \"value\": \"2\", \"name\": \"2\"}}], \"edges\": [{\"data\": {\"id\": 1, \"source\": \"1\", \"target\": \"2\", \"key\": 0}}, "
+            + "{\"data\": {\"id\": 1, \"source\": \"2\", \"target\": \"1\", \"key\": 1}}]}}")
+    }
+
+    @Test("Edge list with a delimiter: a token holding the delimiter, #, LF or CR throws; whitespace and empty tokens are fine")
+    func delimitedEdgeList() throws {
+        var output = "kept"
+        for id in ["a,b", "a#", "a\nb", "a\r"] {
+            #expect(throws: WriteError.invalidID) {
+                try DirectedPseudograph<String>(edges: [DirectedEdge(from: id, to: "b")]).writeEdgeList(to: &output, delimiter: ",")
+            }
+        }
+        #expect(throws: WriteError.invalidValue) {
+            try DirectedPseudograph<String>(edges: [DirectedEdge(from: "a", to: "b")]).writeEdgeList(
+                to: &output, columns: ["w"], delimiter: ";", edgeAttributes: { _ in [("w", .string("x;y"))] })
+        }
+        #expect(throws: WriteError.invalidValue) {
+            try DirectedPseudograph<String>(edges: [DirectedEdge(from: "a", to: "b")]).writeEdgeList(
+                to: &output, columns: ["w"], delimiter: ";", edgeAttributes: { _ in [("w", .boolean(true))] })
+        }
+        #expect(output == "kept")
+        output = ""
+        try DirectedPseudograph<String>(edges: [DirectedEdge(from: "a b", to: ""), DirectedEdge(from: "", to: "\t")]).writeEdgeList(
+            to: &output, columns: ["w"], delimiter: ";", edgeAttributes: { [("w", $0 == 0 ? .string("x y") : .double(1.5))] })
+        #expect(output == "a b;;x y\n;\t;1.5\n")
+        var values: [Int: AttributeValue] = [:]
+        let reread = try DirectedPseudograph<String>(edgeList: output.utf8, columns: ["w"], delimiter: ";", edgeAttribute: { values[$0] = $2 })
+        #expect(Array(reread.vertices) == ["a b", "", "\t"])
+        #expect(values == [0: .string("x y"), 1: .double(1.5)])
+    }
 }

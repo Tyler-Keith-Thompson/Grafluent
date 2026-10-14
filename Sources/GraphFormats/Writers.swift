@@ -161,7 +161,7 @@ extension DirectedGraph {
     }
 
     /// Writes the graph as an edge list: `u v` and the value of each of `columns`, one line per edge
-    /// in position order.
+    /// in position order, the fields separated by a space or by `delimiter`.
     ///
     /// Isolated vertices are not written, and `vertexID` is called only for the vertices an edge
     /// names. The text reaches `output` once the whole list is made.
@@ -171,24 +171,30 @@ extension DirectedGraph {
     ///   - vertexID: Each vertex's ID, called once per vertex an edge names. Defaults to its
     ///     description.
     ///   - columns: The attribute names whose values follow the endpoints, in order.
+    ///   - delimiter: The field separator; `nil`, the default, is a space. It must be ASCII and not
+    ///     a letter, a digit, `.`, `+`, `-`, `#`, LF or CR.
     ///   - edgeAttributes: Each edge's attribute pairs, by position; each key once, and a value for
     ///     every name in `columns`.
     /// - Complexity: O(n + m + output size), plus the closures' cost.
     /// - Throws: A `WriteError`, and then nothing is written:
     ///   - `duplicateID` when two vertices have the same ID, compared by Unicode scalars;
-    ///   - `invalidID` when an ID is empty or holds whitespace or `#`;
-    ///   - `invalidValue` when a column's value is a boolean, or a string that is empty or holds
-    ///     whitespace or `#`.
+    ///   - `invalidID` when an ID is empty or holds whitespace or `#` (with a delimiter: holds the
+    ///     delimiter, `#`, LF or CR);
+    ///   - `invalidValue` when a column's value is a boolean, or a string that could not be one
+    ///     field in the same way.
     ///
-    /// Traps when an edge's attributes have no value for one of `columns`, or give one key twice.
+    /// Traps when an edge's attributes have no value for one of `columns`, or give one key twice,
+    /// or when `delimiter` is not allowed.
     @inlinable public func writeEdgeList(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) },
         columns: [String] = [],
+        delimiter: Unicode.Scalar? = nil,
         edgeAttributes: (Edges.Index) -> [(key: String, value: AttributeValue)] = { _ in [] }
     ) throws(WriteError) {
         try _withHeldOutputBuffer(&output) { (out) throws(WriteError) in
-            try _writeEdgeList(_DirectedSource(self), to: &out, vertexID: vertexID, columns: columns, edgeAttributes: edgeAttributes)
+            try _writeEdgeList(_DirectedSource(self), to: &out, vertexID: vertexID, columns: columns,
+                               delimiter: _listDelimiter(delimiter), edgeAttributes: edgeAttributes)
         }
     }
 
@@ -381,7 +387,7 @@ extension Graph {
     }
 
     /// Writes the graph as an edge list: `u v` and the value of each of `columns`, one line per edge
-    /// in position order.
+    /// in position order, the fields separated by a space or by `delimiter`.
     ///
     /// Isolated vertices are not written, and `vertexID` is called only for the vertices an edge
     /// names. The text reaches `output` once the whole list is made.
@@ -391,24 +397,30 @@ extension Graph {
     ///   - vertexID: Each vertex's ID, called once per vertex an edge names. Defaults to its
     ///     description.
     ///   - columns: The attribute names whose values follow the endpoints, in order.
+    ///   - delimiter: The field separator; `nil`, the default, is a space. It must be ASCII and not
+    ///     a letter, a digit, `.`, `+`, `-`, `#`, LF or CR.
     ///   - edgeAttributes: Each edge's attribute pairs, by position; each key once, and a value for
     ///     every name in `columns`.
     /// - Complexity: O(n + m + output size), plus the closures' cost.
     /// - Throws: A `WriteError`, and then nothing is written:
     ///   - `duplicateID` when two vertices have the same ID, compared by Unicode scalars;
-    ///   - `invalidID` when an ID is empty or holds whitespace or `#`;
-    ///   - `invalidValue` when a column's value is a boolean, or a string that is empty or holds
-    ///     whitespace or `#`.
+    ///   - `invalidID` when an ID is empty or holds whitespace or `#` (with a delimiter: holds the
+    ///     delimiter, `#`, LF or CR);
+    ///   - `invalidValue` when a column's value is a boolean, or a string that could not be one
+    ///     field in the same way.
     ///
-    /// Traps when an edge's attributes have no value for one of `columns`, or give one key twice.
+    /// Traps when an edge's attributes have no value for one of `columns`, or give one key twice,
+    /// or when `delimiter` is not allowed.
     @inlinable public func writeEdgeList(
         to output: inout some TextOutputStream,
         vertexID: (Vertex) -> String = { _defaultVertexID($0) },
         columns: [String] = [],
+        delimiter: Unicode.Scalar? = nil,
         edgeAttributes: (Edges.Index) -> [(key: String, value: AttributeValue)] = { _ in [] }
     ) throws(WriteError) {
         try _withHeldOutputBuffer(&output) { (out) throws(WriteError) in
-            try _writeEdgeList(_UndirectedSource(self), to: &out, vertexID: vertexID, columns: columns, edgeAttributes: edgeAttributes)
+            try _writeEdgeList(_UndirectedSource(self), to: &out, vertexID: vertexID, columns: columns,
+                               delimiter: _listDelimiter(delimiter), edgeAttributes: edgeAttributes)
         }
     }
 

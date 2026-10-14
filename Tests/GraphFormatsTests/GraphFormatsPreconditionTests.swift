@@ -84,4 +84,57 @@ struct GraphFormatsPreconditionTests {
         try DirectedPseudograph<Int>(vertices: [1]).writeNodeLinkJSON(to: &output, vertexID: { _ in .string("1.5") })
         #expect(output == "{\"directed\": true, \"multigraph\": false, \"graph\": {}, \"nodes\": [{\"id\": \"1.5\"}], \"edges\": []}")
     }
+
+    @Test("A key given twice for one element traps in the GML, Pajek and Cytoscape JSON writers")
+    func duplicateKeyInNewWriters() async throws {
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            let graph = DirectedPseudograph<String>(vertices: ["a"])
+            _ = try? graph.writeGML(to: &output, vertexAttributes: { _ in [("k", .integer(1)), ("k", .integer(2))] })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            let graph = Pseudograph<String>(edges: [UndirectedEdge("a", "b")])
+            _ = try? graph.writePajek(to: &output, edgeAttributes: { _ in [("weight", .double(1)), ("weight", .double(2))] })
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            let graph = Pseudograph<String>(vertices: ["a"])
+            _ = try? graph.writeCytoscapeJSON(to: &output, graphAttributes: [("g", .boolean(true)), ("g", .boolean(false))])
+        }
+        // Without the fault: the same keys once each.
+        var output = ""
+        try DirectedPseudograph<String>(vertices: ["a"]).writeGML(to: &output, vertexAttributes: { _ in [("k", .integer(1)), ("l", .integer(2))] })
+        #expect(output == "graph [\n  directed 1\n  node [\n    id 0\n    label \"a\"\n    k 1\n    l 2\n  ]\n]\n")
+        output = ""
+        try Pseudograph<String>(edges: [UndirectedEdge("a", "b")]).writePajek(to: &output, edgeAttributes: { _ in [("weight", .double(1)), ("w", .double(2))] })
+        #expect(output == "*vertices 2\n1 a 0.0 0.0 ellipse\n2 b 0.0 0.0 ellipse\n*edges\n1 2 1.0 w 2.0\n")
+    }
+
+    @Test("An edge-list delimiter that is not ASCII, or is a letter, a digit, '.', '+', '-', '#', LF or CR, traps")
+    func edgeListDelimiter() async throws {
+        await #expect(processExitsWith: .failure) {
+            _ = try? DirectedPseudograph<String>(edgeList: "a\u{E9}b\n".utf8, delimiter: "\u{E9}")
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = try? DirectedPseudograph<String>(edgeList: "1.2\n".utf8, delimiter: ".")
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = try? Pseudograph<Int>(edgeList: "1#2\n".utf8, delimiter: "#")
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            _ = try? DirectedPseudograph<String>(edges: [DirectedEdge(from: "a", to: "b")]).writeEdgeList(to: &output, delimiter: "x")
+        }
+        await #expect(processExitsWith: .failure) {
+            var output = ""
+            _ = try? Pseudograph<Int>(edges: [UndirectedEdge(1, 2)]).writeEdgeList(to: &output, delimiter: "\n")
+        }
+        // Without the fault: the same calls with a comma.
+        let graph = try DirectedPseudograph<String>(edgeList: "a,b\n".utf8, delimiter: ",")
+        #expect(Array(graph.vertices) == ["a", "b"])
+        var output = ""
+        try Pseudograph<Int>(edges: [UndirectedEdge(1, 2)]).writeEdgeList(to: &output, delimiter: ",")
+        #expect(output == "1,2\n")
+    }
 }

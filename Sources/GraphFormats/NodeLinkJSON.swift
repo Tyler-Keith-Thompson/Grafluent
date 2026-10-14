@@ -263,13 +263,20 @@
 
     @inlinable init(json: _JSONScanner) { self.json = json }
 
-    /// The id at `offset`, which must be a string or an integer, in `idKey` and as a value.
+    /// The id at `offset`, which must be a string, an integer or an array (as the string of its
+    /// canonical text), in `idKey` and as a value.
     @inlinable mutating func readID(_ offset: Int) throws(ParseError) -> AttributeValue {
         switch json.kind(offset) {
         case .string:
             idKey.removeAll(keepingCapacity: true)
             idKey.append(UInt8(ascii: "s"))
             _ = try json.string(offset, into: &idKey, decode: true)
+            return .string(String(decoding: idKey[1...], as: UTF8.self))
+        case .array:
+            // NetworkX's tuple node: the array's canonical text, as a string id.
+            idKey.removeAll(keepingCapacity: true)
+            idKey.append(UInt8(ascii: "s"))
+            try _appendCanonicalJSONArray(json, offset, id: offset, to: &idKey, scratch: &scratch)
             return .string(String(decoding: idKey[1...], as: UTF8.self))
         case .number:
             guard case .integer(let i)? = json.scalar(offset, scratch: &scratch) else { throw ParseError(.invalidValue, at: offset) }
@@ -940,6 +947,30 @@
 
 // MARK: - Writer
 
+/// Appends the (checked) array at `offset` as canonical JSON: each element as the writer writes a
+/// value (strings ASCII-escaped, doubles in the short form), `null`, or a nested array, with `", "`
+/// between. An object anywhere in it is `invalidValue` at `id`.
+@inlinable func _appendCanonicalJSONArray(
+    _ json: _JSONScanner, _ offset: Int, id: Int, to out: inout [UInt8], scratch: inout [UInt8]
+) throws(ParseError) {
+    out.append(UInt8(ascii: "["))
+    var first = true
+    try json.forEachElement(offset) { (element) throws(ParseError) -> Int in
+        if !first { out.appendASCII(", ") }
+        first = false
+        switch json.kind(element) {
+        case .object: throw ParseError(.invalidValue, at: id)
+        case .array: try _appendCanonicalJSONArray(json, element, id: id, to: &out, scratch: &scratch)
+        case .null: out.appendASCII("null")
+        default:
+            // A checked scalar: a string, a boolean or a number within range, all finite.
+            try? _appendJSONValue(json.scalar(element, scratch: &scratch)!, to: &out)
+        }
+        return json.skip(element)
+    }
+    out.append(UInt8(ascii: "]"))
+}
+
 /// Appends `s` as an ASCII JSON string: `"` and `\` escaped, `\n \r \t \b \f`, every other character outside ` `…`~` as `\uXXXX`
 /// (lowercase hexadecimal, astral characters as surrogate pairs).
 @inlinable func _appendJSONString<Sink: _ByteSink & ~Copyable>(_ s: String, to sink: inout Sink) {
@@ -1073,51 +1104,8 @@
         self.source = source
         ids = _IDCache(vertexCount: source.vertexCount)
         cursor = source.firstEdge
-        // Each edge's key is the number of earlier edges between its pair: the edges ordered by
-        // their first end with a stable counting sort, then counted per second end within each
-        // row, with a stamp per vertex for the row that last counted it. No table of pairs.
-        let n = source.vertexCount, m = source.edgeCount
-        var firsts = [Int32](repeating: 0, count: m), seconds = [Int32](repeating: 0, count: m)
-        var offsets = [Int](repeating: 0, count: n &+ 1)
-        do {
-            var i = 0
-            source.forEachEdge { _, u, v in
-                let (a, b) = Source.isDirected || u <= v ? (u, v) : (v, u)
-                firsts[i] = Int32(truncatingIfNeeded: a)
-                seconds[i] = Int32(truncatingIfNeeded: b)
-                offsets[a &+ 1] &+= 1
-                i &+= 1
-            }
-        }
-        for k in 0 ..< n { offsets[k &+ 1] &+= offsets[k] }
-        var order = [Int32](repeating: 0, count: m)
-        do {
-            var fill = offsets
-            for i in 0 ..< m {
-                let a = Int(firsts[i])
-                order[fill[a]] = Int32(truncatingIfNeeded: i)
-                fill[a] &+= 1
-            }
-        }
-        var edgeKeys = [Int32](repeating: 0, count: m)
-        var multigraph = false
-        do {
-            var stamp = [Int](repeating: -1, count: n), counts = [Int32](repeating: 0, count: n)
-            for a in 0 ..< n {
-                for k in offsets[a] ..< offsets[a &+ 1] {
-                    let i = Int(order[k]), b = Int(seconds[i])
-                    if stamp[b] != a {
-                        stamp[b] = a
-                        counts[b] = 0
-                    } else {
-                        multigraph = true
-                    }
-                    edgeKeys[i] = counts[b]
-                    counts[b] &+= 1
-                }
-            }
-        }
-        keys = multigraph ? edgeKeys : nil
+        keys = _parallelEdgeKeys(source)
+        let multigraph = keys != nil
         out.appendASCII(Source.isDirected ? "{\"directed\": true, " : "{\"directed\": false, ")
         out.appendASCII(multigraph ? "\"multigraph\": true, \"graph\": {" : "\"multigraph\": false, \"graph\": {")
     }
@@ -1222,4 +1210,51 @@
         try _appendJSONValue(value, to: &out)
         out.appendASCII(", ")
     }
+}
+
+/// Each edge's number among the edges between its pair (ordered when directed) that come before it,
+/// when some pair has two edges; `nil` when none does. The edges are ordered by their first end with
+/// a stable counting sort, then counted per second end within each row, with a stamp per vertex for
+/// the row that last counted it: O(n + m), no table of pairs.
+@inlinable func _parallelEdgeKeys<Source: _WriteSource>(_ source: Source) -> [Int32]? {
+    let n = source.vertexCount, m = source.edgeCount
+    var firsts = [Int32](repeating: 0, count: m), seconds = [Int32](repeating: 0, count: m)
+    var offsets = [Int](repeating: 0, count: n &+ 1)
+    do {
+        var i = 0
+        source.forEachEdge { _, u, v in
+            let (a, b) = Source.isDirected || u <= v ? (u, v) : (v, u)
+            firsts[i] = Int32(truncatingIfNeeded: a)
+            seconds[i] = Int32(truncatingIfNeeded: b)
+            offsets[a &+ 1] &+= 1
+            i &+= 1
+        }
+    }
+    for k in 0 ..< n { offsets[k &+ 1] &+= offsets[k] }
+    var order = [Int32](repeating: 0, count: m)
+    do {
+        var fill = offsets
+        for i in 0 ..< m {
+            let a = Int(firsts[i])
+            order[fill[a]] = Int32(truncatingIfNeeded: i)
+            fill[a] &+= 1
+        }
+    }
+    var edgeKeys = [Int32](repeating: 0, count: m)
+    var multigraph = false
+    var stamp = [Int](repeating: -1, count: n), counts = [Int32](repeating: 0, count: n)
+    for a in 0 ..< n {
+        for k in offsets[a] ..< offsets[a &+ 1] {
+            let i = Int(order[k]), b = Int(seconds[i])
+            if stamp[b] != a {
+                stamp[b] = a
+                counts[b] = 0
+            } else {
+                multigraph = true
+            }
+            edgeKeys[i] = counts[b]
+            counts[b] &+= 1
+        }
+    }
+    return multigraph ? edgeKeys : nil
 }

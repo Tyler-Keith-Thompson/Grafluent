@@ -106,10 +106,49 @@
     return e
 }
 
-/// Reads an edge list into an `Int` target (see the file comment).
+/// The integer field at `q` of a line split at `delimiter`, parsed in one pass, `q` moved past it;
+/// `nil` when it is not a decimal `Int` ending at the delimiter, a line feed, a `#`, a carriage
+/// return or the end.
+@inline(__always)
+@inlinable func _delimitedIntegerField(_ base: UnsafePointer<UInt8>, _ q: inout Int, _ n: Int, _ delimiter: UInt8) -> Int? {
+    var negative = false
+    if q < n && (base[q] == UInt8(ascii: "-") || base[q] == UInt8(ascii: "+")) {
+        negative = base[q] == UInt8(ascii: "-")
+        q &+= 1
+    }
+    let digits = q
+    var magnitude: UInt64 = 0
+    while q < n {
+        let d = base[q] &- 0x30
+        if d >= 10 { break }
+        if q &- digits >= 18 {
+            let (m, o1) = magnitude.multipliedReportingOverflow(by: 10)
+            let (s, o2) = m.addingReportingOverflow(UInt64(d))
+            if o1 || o2 { return nil }
+            magnitude = s
+        } else {
+            magnitude = magnitude &* 10 &+ UInt64(d)
+        }
+        q &+= 1
+    }
+    if q == digits { return nil }
+    if q < n {
+        let c = base[q]
+        guard c == delimiter || c == 0x0A || c == 0x0D || c == UInt8(ascii: "#") else { return nil }
+    }
+    if negative {
+        if magnitude > UInt64(Int.max) &+ 1 { return nil }
+        return magnitude == UInt64(Int.max) &+ 1 ? Int.min : -Int(magnitude)
+    }
+    if magnitude > UInt64(Int.max) { return nil }
+    return Int(magnitude)
+}
+
+/// Reads an edge list into an `Int` target (see the file comment). Dict data, and with a delimiter
+/// anything but integer fields and numeric columns, goes to the general scanner.
 @inlinable func _readIntegerEdgeList<Direction>(
-    _ text: UnsafeBufferPointer<UInt8>, columnCount: Int, into target: inout _BulkTarget<Int, Direction>,
-    value: (Int, Int, AttributeValue) -> Void
+    _ text: UnsafeBufferPointer<UInt8>, columnCount: Int, delimiter: UInt8?, into target: inout _BulkTarget<Int, Direction>,
+    buffer: inout _AttributeBuffer
 ) throws(ParseError) {
     guard let base = text.baseAddress else { return }
     let n = text.count
@@ -117,65 +156,134 @@
     var keys = _IntegerKeys(inputCount: n)
     var values: [AttributeValue] = []
     values.reserveCapacity(columnCount)
+    var names = _ListNames()
+    var scratch: [UInt8] = []
     target.reserve(vertexCount: 0, edgeCount: n / 8)
     var p = 0
     lines: while p < n {
         // The fast path: two integers, the columns, then the end of the line or a comment.
         let lineStart = p
         var q = p
-        fast: do {
-            _skipIntegerBlanks(base, &q, n)
-            if q >= n || base[q] == 0x0A {
-                p = q &+ 1
-                continue lines
-            }
-            if base[q] == UInt8(ascii: "#") { break fast }
-            guard let u = _integerField(base, &q, n) else { break fast }
-            _skipIntegerBlanks(base, &q, n)
-            guard q < n, base[q] != 0x0A, base[q] != UInt8(ascii: "#"), let v = _integerField(base, &q, n) else { break fast }
-            // The columns, each read as it is scanned (a number in one pass), kept until the
-            // line's field count is known to be right.
-            values.removeAll(keepingCapacity: true)
-            while true {
-                _skipIntegerBlanks(base, &q, n)
-                if q >= n || base[q] == 0x0A || base[q] == UInt8(ascii: "#") { break }
-                if values.count == columnCount { break fast }
-                let (number, end) = _scanNumberPrefix(base, q, n)
-                if end > q && (end == n || base[end] == 0x0A || _endsIntegerField(base[end])) {
+        if let delimiter {
+            fast: do {
+                if q < n && base[q] == 0x0A {
+                    p = q &+ 1
+                    continue lines
+                }
+                guard let u = _delimitedIntegerField(base, &q, n, delimiter), q < n, base[q] == delimiter else { break fast }
+                q &+= 1
+                guard let v = _delimitedIntegerField(base, &q, n, delimiter) else { break fast }
+                values.removeAll(keepingCapacity: true)
+                while q < n && base[q] == delimiter {
+                    if values.count == columnCount { break fast }
+                    q &+= 1
+                    let (number, end) = _scanNumberPrefix(base, q, n)
+                    guard end > q, end == n || base[end] == delimiter || base[end] == 0x0A || base[end] == UInt8(ascii: "#")
+                        || (base[end] == 0x0D && (end &+ 1 == n || base[end &+ 1] == 0x0A)) else { break fast }
                     switch number {
                     case .integer(let i): values.append(.integer(i))
                     case .double(let d): values.append(.double(d))
                     case .none: break fast
                     }
                     q = end
-                } else {
-                    guard let e = _plainFieldEnd(base, q, n) else { break fast }
-                    values.append(_lexicalValue(text, q, e))
-                    q = e
                 }
+                guard values.count == columnCount else { break fast }
+                if q < n && base[q] == 0x0D {
+                    guard q &+ 1 == n || base[q &+ 1] == 0x0A else { break fast }
+                }
+                while q < n && base[q] != 0x0A { q &+= 1 }
+                let edge = target.insertEdge(keys.key(of: u, into: &target), keys.key(of: v, into: &target))
+                for k in 0 ..< columnCount { buffer.record(edge, k, values[k]) }
+                p = q &+ 1
+                continue lines
             }
-            guard values.count == columnCount else { break fast }
-            while q < n && base[q] != 0x0A { q &+= 1 }
-            let edge = target.insertEdge(keys.key(of: u, into: &target), keys.key(of: v, into: &target))
-            for k in 0 ..< columnCount { value(edge, k, values[k]) }
-            p = q &+ 1
-            continue lines
+        } else {
+            fast: do {
+                _skipIntegerBlanks(base, &q, n)
+                if q >= n || base[q] == 0x0A {
+                    p = q &+ 1
+                    continue lines
+                }
+                if base[q] == UInt8(ascii: "#") { break fast }
+                guard let u = _integerField(base, &q, n) else { break fast }
+                _skipIntegerBlanks(base, &q, n)
+                guard q < n, base[q] != 0x0A, base[q] != UInt8(ascii: "#"), let v = _integerField(base, &q, n) else { break fast }
+                // Dict data after `u v`: the edge, then the dict, as the general scanner reads it.
+                if columnCount == 0 {
+                    _skipIntegerBlanks(base, &q, n)
+                    if q < n && base[q] == UInt8(ascii: "{") {
+                        let edge = target.insertEdge(keys.key(of: u, into: &target), keys.key(of: v, into: &target))
+                        try _readListDict(text, at: q, edge: edge, names: &names, buffer: &buffer, scratch: &scratch)
+                        while q < n && base[q] != 0x0A { q &+= 1 }
+                        p = q &+ 1
+                        continue lines
+                    }
+                }
+                // The columns, each read as it is scanned (a number in one pass), kept until the
+                // line's field count is known to be right.
+                values.removeAll(keepingCapacity: true)
+                while true {
+                    _skipIntegerBlanks(base, &q, n)
+                    if q >= n || base[q] == 0x0A || base[q] == UInt8(ascii: "#") { break }
+                    if values.count == columnCount { break fast }
+                    let (number, end) = _scanNumberPrefix(base, q, n)
+                    if end > q && (end == n || base[end] == 0x0A || _endsIntegerField(base[end])) {
+                        switch number {
+                        case .integer(let i): values.append(.integer(i))
+                        case .double(let d): values.append(.double(d))
+                        case .none: break fast
+                        }
+                        q = end
+                    } else {
+                        guard let e = _plainFieldEnd(base, q, n) else { break fast }
+                        values.append(_lexicalValue(text, q, e))
+                        q = e
+                    }
+                }
+                guard values.count == columnCount else { break fast }
+                while q < n && base[q] != 0x0A { q &+= 1 }
+                let edge = target.insertEdge(keys.key(of: u, into: &target), keys.key(of: v, into: &target))
+                for k in 0 ..< columnCount { buffer.record(edge, k, values[k]) }
+                p = q &+ 1
+                continue lines
+            }
         }
         // The general scanner, for this line only.
-        let line = _ListLine(text, from: lineStart, limit: width)
-        p = line.next
-        if line.count == 0 { continue }
-        if line.count < width { throw ParseError(.syntax, at: line.contentEnd) }
-        if line.count > width { throw ParseError(.syntax, at: line.extraStart) }
-        let (s0, e0) = line.first, (s1, e1) = line.second
+        let count: Int, first: (Int, Int), second: (Int, Int), thirdStart: Int, extraStart: Int, contentEnd: Int
+        if let delimiter {
+            let line = _DelimitedLine(text, from: lineStart, delimiter: delimiter, limit: width)
+            p = line.next
+            if line.isBlank { continue }
+            (count, first, second, thirdStart, extraStart, contentEnd) =
+                (line.count, line.first, line.second, line.thirdStart, line.extraStart, line.contentEnd)
+        } else {
+            let line = _ListLine(text, from: lineStart, limit: width)
+            p = line.next
+            if line.count == 0 { continue }
+            (count, first, second, thirdStart, extraStart, contentEnd) =
+                (line.count, line.first, line.second, line.thirdStart, line.extraStart, line.contentEnd)
+        }
+        let dict = count > width && columnCount == 0 && extraStart < contentEnd && text[extraStart] == UInt8(ascii: "{")
+        if count < width { throw ParseError(.syntax, at: contentEnd) }
+        if count > width && !dict { throw ParseError(.syntax, at: extraStart) }
+        let (s0, e0) = first, (s1, e1) = second
         guard let u = _integerID(UnsafeBufferPointer(rebasing: text[s0 ..< e0])) else { throw ParseError(.invalidVertex, at: s0) }
         guard let v = _integerID(UnsafeBufferPointer(rebasing: text[s1 ..< e1])) else { throw ParseError(.invalidVertex, at: s1) }
         let edge = target.insertEdge(keys.key(of: u, into: &target), keys.key(of: v, into: &target))
-        if columnCount > 0 {
-            var c = line.thirdStart
+        if dict {
+            try _readListDict(text, at: extraStart, edge: edge, names: &names, buffer: &buffer, scratch: &scratch)
+        } else if columnCount > 0 {
+            var c = thirdStart
             for k in 0 ..< columnCount {
-                guard let (s, e) = _nextListField(text, &c) else { break }
-                value(edge, k, _lexicalValue(text, s, e))
+                if let delimiter {
+                    var e = c
+                    while e < contentEnd && text[e] != delimiter { e &+= 1 }
+                    buffer.record(edge, k, _lexicalValue(text, c, e))
+                    c = e &+ 1
+                } else {
+                    guard let (s, e) = _nextListField(text, &c) else { break }
+                    buffer.record(edge, k, _lexicalValue(text, s, e))
+                }
             }
         }
     }

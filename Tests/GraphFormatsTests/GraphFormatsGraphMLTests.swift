@@ -1,6 +1,7 @@
-// GraphML (catalog GF-043 – GF-082 and GF-227 read, GF-193 – GF-199 write): the XML subset (no DTD, no
-// entities but the five), typed keys with defaults, edges resolved after the nodes, unsupported
-// features rejected precisely; the writer's keys by first appearance, graph keys first.
+// GraphML (catalog GF-043 – GF-082, GF-227, GF-241 – GF-243, GF-254, GF-277 – GF-286 read, GF-193 –
+// GF-199 write): the XML subset (no DTD, no entities but the five), typed keys with defaults, nested
+// graphs read into the one graph, edges resolved after the nodes, unsupported features rejected
+// precisely; the writer's keys by first appearance, graph keys first.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
@@ -657,17 +658,33 @@ struct GraphFormatsGraphMLTests {
         }
     }
 
-    @Test("GF-073 nested graph (unsupported)")
-    func gf073() {
-        // DirectedPseudograph<String>(graphML:) → **unsupported** at 1:99
+    @Test("GF-073 an empty nested graph")
+    func gf073() throws {
+        // DirectedPseudograph<String>(graphML:) → D: a
         let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"><graph edgedefault=\"directed\"/></node></graph></graphml>"
-        do {
-            let graph = try DirectedPseudograph<String>(graphML: input.utf8)
-            Issue.record("expected unsupported, read \(graph)")
-        } catch {
-            #expect(error.kind == .unsupported)
-            #expect([error.line, error.column, error.byteOffset] == [1, 99, 98])
-        }
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(graphML: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a"])
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
+        #expect(Array(graph.edges.indices) == [])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
     }
 
     @Test("GF-074 a second graph (unsupported)")
@@ -997,6 +1014,216 @@ struct GraphFormatsGraphMLTests {
         } catch {
             #expect(error.kind == .syntax)
             #expect([error.line, error.column, error.byteOffset] == [1, 97, 96])
+        }
+    }
+
+    @Test("GF-277 yEd group: the group node, then its content; edges at any depth")
+    func gf277() throws {
+        // DirectedPseudograph<String>(graphML:) → D: g, "g::a", "g::b", c; "g::a">"g::b", c>"g::a"
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"g\" yfiles.foldertype=\"group\"><graph id=\"g:\" edgedefault=\"directed\"><node id=\"g::a\"/><node id=\"g::b\"/><edge source=\"g::a\" target=\"g::b\"/></graph></node><node id=\"c\"/><edge source=\"c\" target=\"g::a\"/></graph></graphml>"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(graphML: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["g", "g::a", "g::b", "c"])
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 2)
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["g::a", "g::b"], ["c", "g::a"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-278 a group inside a group")
+    func gf278() throws {
+        // DirectedPseudograph<String>(graphML:) → D: g, h, x, y; x>y
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"g\" yfiles.foldertype=\"group\"><graph edgedefault=\"directed\"><node id=\"h\" yfiles.foldertype=\"group\"><graph edgedefault=\"directed\"><node id=\"x\"/></graph></node><node id=\"y\"/></graph></node><edge source=\"x\" target=\"y\"/></graph></graphml>"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(graphML: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["g", "h", "x", "y"])
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["x", "y"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-279 data of a group node and its content; the nested graph's own data is skipped")
+    func gf279() throws {
+        // DirectedPseudograph<String>(graphML:) → D: g{n="0"}, a{n="1"}; graph{t="root"}
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><key id=\"n\" for=\"node\" attr.name=\"n\"/><key id=\"t\" for=\"graph\" attr.name=\"t\"/><graph edgedefault=\"directed\"><data key=\"t\">root</data><node id=\"g\" yfiles.foldertype=\"group\"><data key=\"n\">0</data><graph edgedefault=\"directed\"><data key=\"t\">inner</data><node id=\"a\"><data key=\"n\">1</data></node></graph></node></graph></graphml>"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(graphML: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["g", "a"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 0)
+        #expect(Array(graph.edges.indices) == [])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [])
+        #expect(vertexKeys == ["g": ["n"], "a": ["n"]])
+        #expect(vertexValues == ["g": ["n": .string("0")], "a": ["n": .string("1")]])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == ["t"])
+        #expect(graphValues == ["t": .string("root")])
+    }
+
+    @Test("GF-280 undirected nested graph; an edge before the nodes it names")
+    func gf280() throws {
+        // Pseudograph<String>(graphML:) → U: g, a, b; a-b
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"undirected\"><edge source=\"a\" target=\"b\"/><node id=\"g\" yfiles.foldertype=\"group\"><graph edgedefault=\"undirected\"><node id=\"a\"/></graph></node><node id=\"b\"/></graph></graphml>"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try Pseudograph<String>(graphML: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["g", "a", "b"])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-281 a nested graph in a node that is not a yEd group")
+    func gf281() throws {
+        // DirectedPseudograph<String>(graphML:) → D: g, a
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"g\"><graph edgedefault=\"directed\"><node id=\"a\"/></graph></node></graph></graphml>"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(graphML: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["g", "a"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 0)
+        #expect(Array(graph.edges.indices) == [])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-282 a nested graph without edgedefault")
+    func gf282() {
+        // DirectedPseudograph<String>(graphML:) → **syntax** at 1:99
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"g\"><graph><node id=\"a\"/></graph></node></graph></graphml>"
+        do {
+            let graph = try DirectedPseudograph<String>(graphML: input.utf8)
+            Issue.record("expected syntax, read \(graph)")
+        } catch {
+            #expect(error.kind == .syntax)
+            #expect([error.line, error.column, error.byteOffset] == [1, 99, 98])
+        }
+    }
+
+    @Test("GF-283 a nested graph of the other kind (unsupported)")
+    func gf283() {
+        // DirectedPseudograph<String>(graphML:) → **unsupported** at 1:99
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"g\"><graph edgedefault=\"undirected\"/></node></graph></graphml>"
+        do {
+            let graph = try DirectedPseudograph<String>(graphML: input.utf8)
+            Issue.record("expected unsupported, read \(graph)")
+        } catch {
+            #expect(error.kind == .unsupported)
+            #expect([error.line, error.column, error.byteOffset] == [1, 99, 98])
+        }
+    }
+
+    @Test("GF-284 data after a node's nested graph (unsupported)")
+    func gf284() {
+        // DirectedPseudograph<String>(graphML:) → **unsupported** at 1:189
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><key id=\"n\" for=\"node\" attr.name=\"n\"/><graph edgedefault=\"directed\"><node id=\"g\"><graph edgedefault=\"directed\"><node id=\"a\"/></graph><data key=\"n\">0</data></node></graph></graphml>"
+        do {
+            let graph = try DirectedPseudograph<String>(graphML: input.utf8)
+            Issue.record("expected unsupported, read \(graph)")
+        } catch {
+            #expect(error.kind == .unsupported)
+            #expect([error.line, error.column, error.byteOffset] == [1, 189, 188])
+        }
+    }
+
+    @Test("GF-285 a node inside a nested graph declared twice")
+    func gf285() {
+        // DirectedPseudograph<String>(graphML:) → **duplicateVertex** at 1:149
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><node id=\"g\"><graph edgedefault=\"directed\"><node id=\"a\"/></graph></node></graph></graphml>"
+        do {
+            let graph = try DirectedPseudograph<String>(graphML: input.utf8)
+            Issue.record("expected duplicateVertex, read \(graph)")
+        } catch {
+            #expect(error.kind == .duplicateVertex)
+            #expect([error.line, error.column, error.byteOffset] == [1, 149, 148])
+        }
+    }
+
+    @Test("GF-286 a graph inside an edge stays unsupported")
+    func gf286() {
+        // DirectedPseudograph<String>(graphML:) → **unsupported** at 1:128
+        let input = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><graph edgedefault=\"directed\"><node id=\"a\"/><edge source=\"a\" target=\"a\"><graph edgedefault=\"directed\"/></edge></graph></graphml>"
+        do {
+            let graph = try DirectedPseudograph<String>(graphML: input.utf8)
+            Issue.record("expected unsupported, read \(graph)")
+        } catch {
+            #expect(error.kind == .unsupported)
+            #expect([error.line, error.column, error.byteOffset] == [1, 128, 127])
         }
     }
 }

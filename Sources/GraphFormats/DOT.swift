@@ -1,5 +1,5 @@
-/// DOT without subgraphs or ports (both `unsupported`), read into any target; and a canonical
-/// writer.
+/// DOT read into any target, subgraphs and ports included (their vertices and edges join the one
+/// graph; a port becomes the edge's `tailport` or `headport`); and a canonical writer.
 
 // MARK: - Lexer
 
@@ -175,6 +175,52 @@
                      edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
 }
 
+/// The `node` or `edge` defaults in force: the pairs in order of their first setting, each key's
+/// place found through an index.
+@usableFromInline internal struct _DOTDefaults {
+    @usableFromInline var pairs: [(String, String)] = []
+    @usableFromInline var index: [_ScalarKey: Int] = [:]
+
+    @inlinable init() {}
+
+    @inlinable mutating func set(_ key: String, _ value: String) {
+        if let place = index[_ScalarKey(key)] {
+            pairs[place].1 = value
+        } else {
+            index[_ScalarKey(key)] = pairs.count
+            pairs.append((key, value))
+        }
+    }
+}
+
+/// An edge statement being read: its operands so far (each a group of vertex keys and its port) and
+/// where it starts.
+@usableFromInline internal struct _DOTChain {
+    @usableFromInline var operands: [(keys: [Int], port: String?)]
+    @usableFromInline var statement: Int
+
+    @inlinable init(operands: [(keys: [Int], port: String?)], statement: Int) {
+        self.operands = operands
+        self.statement = statement
+    }
+}
+
+/// The graph or a subgraph being read: its defaults, where its statement starts, and the edge
+/// statement it is an operand of.
+@usableFromInline internal struct _DOTScope {
+    @usableFromInline var nodeDefaults: _DOTDefaults
+    @usableFromInline var edgeDefaults: _DOTDefaults
+    @usableFromInline var statement: Int
+    @usableFromInline var chain: _DOTChain?
+
+    @inlinable init(nodeDefaults: _DOTDefaults, edgeDefaults: _DOTDefaults, statement: Int, chain: _DOTChain?) {
+        self.nodeDefaults = nodeDefaults
+        self.edgeDefaults = edgeDefaults
+        self.statement = statement
+        self.chain = chain
+    }
+}
+
 @usableFromInline internal struct _DOTParser<Target: _ReadTarget>: ~Copyable {
     @usableFromInline let text: UnsafeBufferPointer<UInt8>
     @usableFromInline let tokens: [_Lexeme]
@@ -183,6 +229,12 @@
     @usableFromInline var scratch: [UInt8] = []
     /// The attribute calls defaults and edge chains may still multiply (`_ExpansionBudget`).
     @usableFromInline var budget: _ExpansionBudget
+    /// Whether the graph is `strict`, and then the first edge between each pair.
+    @usableFromInline var strict = false
+    @usableFromInline var merged: [_KeyPair: Target.Position] = [:]
+    /// The vertices of each subgraph being read, innermost last: their keys in order of first
+    /// mention, and the set of them.
+    @usableFromInline var members: [(order: [Int], seen: Set<Int>)] = []
 
     @inlinable init(text: UnsafeBufferPointer<UInt8>, tokens: [_Lexeme]) {
         self.text = text
@@ -283,42 +335,103 @@
         graphAttribute: (String, AttributeValue) -> Void
     ) throws(ParseError) {
         var lexeme = take()
-        var strict = false
         if lexeme.token == .keyword(.strict) {
             strict = true
             lexeme = take()
         }
         guard lexeme.token == .keyword(.graph) || lexeme.token == .keyword(.digraph) else { throw fail(lexeme) }
         if (lexeme.token == .keyword(.digraph)) != Target.isDirected { throw ParseError(.kindMismatch, at: lexeme.start) }
-        let edgeOperator: _DOTToken = Target.isDirected ? .arrow : .dashes
         switch peek.token {
         case .quoted, .html, .numeral, .identifier: _ = try identifierString()
         default: break
         }
         let open = take()
         guard isPunctuation(open, "{") else { throw fail(open) }
+        try statements(into: &target, registry: &registry, map: map, vertexAttribute: vertexAttribute,
+                       edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        let last = peek
+        if last.token != .end {
+            switch last.token {
+            case .keyword(.strict), .keyword(.graph), .keyword(.digraph): throw fail(last, .unsupported)
+            default: throw fail(last)
+            }
+        }
+    }
 
-        // The defaults in order of their first setting, each key's place found through an index.
-        var nodeDefaults: [(String, String)] = []
-        var edgeDefaults: [(String, String)] = []
-        var nodeDefaultIndex: [_ScalarKey: Int] = [:]
-        var edgeDefaultIndex: [_ScalarKey: Int] = [:]
-        var merged: [_KeyPair: Target.Position] = [:]
-        var names: [(offset: Int, range: Range<Int>)] = []
-        var keys: [Int] = []
+    /// Whether `lexeme` starts a subgraph: `subgraph` or `{`.
+    @inlinable func isSubgraph(_ lexeme: _Lexeme) -> Bool {
+        isPunctuation(lexeme, "{") || lexeme.token == .keyword(.subgraph)
+    }
 
+    /// The statements of the graph, up to and past its `}`, subgraphs included. Subgraphs are read
+    /// with an explicit stack of scopes (not by recursion, so that 64 nested ones cost no stack):
+    /// each has the defaults in force where it starts, its own `node`/`edge` defaults end with it,
+    /// and its graph attributes are the subgraph's (not reported). A subgraph that is an edge
+    /// operand suspends its edge statement, which resumes when the subgraph ends.
+    @inlinable mutating func statements(
+        into target: inout Target, registry: inout _Registry<Target>, map: (UnsafeBufferPointer<UInt8>) -> Target.Vertex?,
+        vertexAttribute: (Target.Vertex, String, AttributeValue) -> Void,
+        edgeAttribute: (Target.Position, String, AttributeValue) -> Void,
+        graphAttribute: (String, AttributeValue) -> Void
+    ) throws(ParseError) {
+        var scopes = [_DOTScope(nodeDefaults: _DOTDefaults(), edgeDefaults: _DOTDefaults(), statement: -1, chain: nil)]
+        // The edge statement being read, when a subgraph operand did not suspend it.
+        var chain: _DOTChain?
         while true {
+            if var current = chain {
+                // The rest of an edge statement: its operands, then its attribute list.
+                chain = nil
+                let defaults = scopes[scopes.count &- 1]
+                var suspended = false
+                while peek.token == .arrow || peek.token == .dashes {
+                    let op = take()
+                    guard op.token == (Target.isDirected ? .arrow : .dashes) else { throw fail(op) }
+                    if isSubgraph(peek) {
+                        try openSubgraph(&scopes, statement: current.statement, chain: current)
+                        suspended = true
+                        break
+                    }
+                    scratch.removeAll(keepingCapacity: true)
+                    let name = try identifier()
+                    let port = try self.port()
+                    let id = try resolve(name, into: &target, registry: &registry, map: map, defaults: defaults.nodeDefaults.pairs,
+                                         statement: current.statement, vertexAttribute: vertexAttribute)
+                    mention(registry.keys[id])
+                    current.operands.append(([registry.keys[id]], port))
+                }
+                if suspended { continue }
+                try addEdges(current, edgeDefaults: defaults.edgeDefaults, into: &target, edgeAttribute: edgeAttribute)
+                if isPunctuation(peek, ";") { _ = take() }
+                continue
+            }
             let lexeme = peek
             if isPunctuation(lexeme, "}") {
                 _ = take()
-                break
+                let closed = scopes.removeLast()
+                if scopes.isEmpty { return }
+                // Its vertices, which `mention` also gave every enclosing subgraph. A port after it
+                // is `syntax` at the `:`, as the next statement.
+                let order = members.removeLast().order
+                if var suspended = closed.chain {
+                    suspended.operands.append((order, nil))
+                    chain = suspended
+                } else if peek.token == .arrow || peek.token == .dashes {
+                    chain = _DOTChain(operands: [(order, nil)], statement: closed.statement)
+                } else if isPunctuation(peek, ";") {
+                    _ = take()
+                }
+                continue
             }
             if lexeme.token == .end { throw fail(lexeme) }
             if isPunctuation(lexeme, ";") {
                 _ = take()
                 continue
             }
-            if isPunctuation(lexeme, "{") || lexeme.token == .keyword(.subgraph) { throw fail(lexeme, .unsupported) }
+            if isSubgraph(lexeme) {
+                try openSubgraph(&scopes, statement: lexeme.start, chain: nil)
+                continue
+            }
+            let root = scopes.count == 1
             switch lexeme.token {
             case .keyword(let keyword) where keyword == .graph || keyword == .node || keyword == .edge:
                 _ = take()
@@ -326,22 +439,9 @@
                 let pairs = try attributeList()
                 for (k, v) in pairs {
                     switch keyword {
-                    case .graph:
-                        graphAttribute(k, .string(v))
-                    case .node:
-                        if let place = nodeDefaultIndex[_ScalarKey(k)] {
-                            nodeDefaults[place].1 = v
-                        } else {
-                            nodeDefaultIndex[_ScalarKey(k)] = nodeDefaults.count
-                            nodeDefaults.append((k, v))
-                        }
-                    default:
-                        if let place = edgeDefaultIndex[_ScalarKey(k)] {
-                            edgeDefaults[place].1 = v
-                        } else {
-                            edgeDefaultIndex[_ScalarKey(k)] = edgeDefaults.count
-                            edgeDefaults.append((k, v))
-                        }
+                    case .graph: if root { graphAttribute(k, .string(v)) }
+                    case .node: scopes[scopes.count &- 1].nodeDefaults.set(k, v)
+                    default: scopes[scopes.count &- 1].edgeDefaults.set(k, v)
                     }
                 }
             case .quoted, .html, .numeral, .identifier:
@@ -350,47 +450,23 @@
                 if isPunctuation(peek, "=") {
                     _ = take()
                     let key = scratch.withUnsafeBufferPointer { _string(UnsafeBufferPointer(rebasing: $0[first.range])) }
-                    graphAttribute(key, .string(try identifierString()))
-                } else if isPunctuation(peek, ":") {
-                    throw fail(peek, .unsupported)
-                } else if peek.token == .arrow || peek.token == .dashes {
-                    names.removeAll(keepingCapacity: true)
-                    names.append(first)
-                    while peek.token == .arrow || peek.token == .dashes {
-                        let op = take()
-                        guard op.token == edgeOperator else { throw fail(op) }
-                        let next = peek
-                        if isPunctuation(next, "{") || next.token == .keyword(.subgraph) { throw fail(next, .unsupported) }
-                        names.append(try identifier())
-                        if isPunctuation(peek, ":") { throw fail(peek, .unsupported) }
-                    }
-                    let pairs = try attributeList()
-                    keys.removeAll(keepingCapacity: true)
-                    for name in names {
-                        let id = try resolve(name, into: &target, registry: &registry, map: map, defaults: nodeDefaults,
-                                             statement: lexeme.start, vertexAttribute: vertexAttribute)
-                        keys.append(registry.keys[id])
-                    }
-                    for k in 1 ..< keys.count {
-                        let u = keys[k - 1], v = keys[k]
-                        let position: Target.Position
-                        let pair = _KeyPair(u, v, directed: Target.isDirected)
-                        if strict, let existing = merged[pair] {
-                            position = existing
-                            try budget.spend(pairs.count, at: lexeme.start)
-                        } else {
-                            try budget.spend(edgeDefaults.count &+ pairs.count, at: lexeme.start)
-                            position = target.insertEdge(u, v)
-                            if strict && merged[pair] == nil { merged[pair] = position }
-                            for (key, value) in edgeDefaults { edgeAttribute(position, key, .string(value)) }
-                        }
-                        for (key, value) in pairs { edgeAttribute(position, key, .string(value)) }
-                    }
+                    let value = try identifierString()
+                    if root { graphAttribute(key, .string(value)) }
                 } else {
+                    let port = try self.port()
+                    let defaults = scopes[scopes.count &- 1].nodeDefaults.pairs
+                    if peek.token == .arrow || peek.token == .dashes {
+                        let id = try resolve(first, into: &target, registry: &registry, map: map, defaults: defaults,
+                                             statement: lexeme.start, vertexAttribute: vertexAttribute)
+                        mention(registry.keys[id])
+                        chain = _DOTChain(operands: [([registry.keys[id]], port)], statement: lexeme.start)
+                        continue
+                    }
                     let pairs = try attributeList()
-                    let resolved = try resolve(first, into: &target, registry: &registry, map: map, defaults: nodeDefaults,
-                                               statement: lexeme.start, vertexAttribute: vertexAttribute)
-                    let vertex = registry.vertices[resolved]
+                    let id = try resolve(first, into: &target, registry: &registry, map: map, defaults: defaults,
+                                         statement: lexeme.start, vertexAttribute: vertexAttribute)
+                    mention(registry.keys[id])
+                    let vertex = registry.vertices[id]
                     for (key, value) in pairs { vertexAttribute(vertex, key, .string(value)) }
                 }
             default:
@@ -398,11 +474,75 @@
             }
             if isPunctuation(peek, ";") { _ = take() }
         }
-        let last = peek
-        if last.token != .end {
-            switch last.token {
-            case .keyword(.strict), .keyword(.graph), .keyword(.digraph): throw fail(last, .unsupported)
-            default: throw fail(last)
+    }
+
+    /// A port after a node ID, `: ID [: ID]` (the IDs joined by `:`), or `nil` when none follows.
+    @inlinable mutating func port() throws(ParseError) -> String? {
+        guard isPunctuation(peek, ":") else { return nil }
+        _ = take()
+        var port = try identifierString()
+        if isPunctuation(peek, ":") {
+            _ = take()
+            port += ":" + (try identifierString())
+        }
+        return port
+    }
+
+    /// Records the vertex with `key` as a member of every subgraph being read.
+    @inlinable mutating func mention(_ key: Int) {
+        for k in members.indices where members[k].seen.insert(key).inserted { members[k].order.append(key) }
+    }
+
+    /// Opens the subgraph at the next token (`subgraph [ID] {` or `{`): a scope with the defaults in
+    /// force, and the edge statement it is an operand of, if any. More than 64 nested is
+    /// `nestingTooDeep` at its `{`.
+    @inlinable mutating func openSubgraph(_ scopes: inout [_DOTScope], statement: Int, chain: _DOTChain?) throws(ParseError) {
+        var open = take()
+        if open.token == .keyword(.subgraph) {
+            let keyword = open
+            switch peek.token {
+            case .quoted, .html, .numeral, .identifier: _ = try identifierString()
+            default: break
+            }
+            guard isPunctuation(peek, "{") else { throw ParseError(.unsupported, at: keyword.start) }
+            open = take()
+        }
+        if scopes.count > 64 { throw ParseError(.nestingTooDeep, at: open.start) }
+        let enclosing = scopes[scopes.count &- 1]
+        scopes.append(_DOTScope(nodeDefaults: enclosing.nodeDefaults, edgeDefaults: enclosing.edgeDefaults, statement: statement, chain: chain))
+        members.append(([], []))
+    }
+
+    /// Reads an edge statement's attribute list and adds an edge per hop for every tail and head,
+    /// tails outer.
+    @inlinable mutating func addEdges(
+        _ chain: _DOTChain, edgeDefaults: _DOTDefaults, into target: inout Target,
+        edgeAttribute: (Target.Position, String, AttributeValue) -> Void
+    ) throws(ParseError) {
+        let pairs = try attributeList()
+        let statement = chain.statement, operands = chain.operands
+        for hop in 1 ..< operands.count {
+            let (tails, tailPort) = operands[hop &- 1], (heads, headPort) = operands[hop]
+            let ports = (tailPort == nil ? 0 : 1) &+ (headPort == nil ? 0 : 1)
+            // A hop between groups adds an edge per pair: each is spent from the budget too.
+            let perEdge = tails.count == 1 && heads.count == 1 ? 0 : 1
+            for u in tails {
+                for v in heads {
+                    let position: Target.Position
+                    let pair = _KeyPair(u, v, directed: Target.isDirected)
+                    if strict, let existing = merged[pair] {
+                        position = existing
+                        try budget.spend(perEdge &+ ports &+ pairs.count, at: statement)
+                    } else {
+                        try budget.spend(perEdge &+ edgeDefaults.pairs.count &+ ports &+ pairs.count, at: statement)
+                        position = target.insertEdge(u, v)
+                        if strict && merged[pair] == nil { merged[pair] = position }
+                        for (key, value) in edgeDefaults.pairs { edgeAttribute(position, key, .string(value)) }
+                    }
+                    if let tailPort { edgeAttribute(position, "tailport", .string(tailPort)) }
+                    if let headPort { edgeAttribute(position, "headport", .string(headPort)) }
+                    for (key, value) in pairs { edgeAttribute(position, key, .string(value)) }
+                }
             }
         }
     }

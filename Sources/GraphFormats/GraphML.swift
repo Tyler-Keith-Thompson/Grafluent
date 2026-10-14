@@ -1,5 +1,6 @@
-/// GraphML (graphml.xsd): one `<graph>`, typed `<key>`s with `<default>`s, node, edge and graph
-/// `<data>`, read over the XML subset of `XMLScanner.swift`; and the writer.
+/// GraphML (graphml.xsd): one `<graph>` (with the graphs nested in its nodes, as yEd writes groups),
+/// typed `<key>`s with `<default>`s, node, edge and graph `<data>`, read over the XML subset of
+/// `XMLScanner.swift`; and the writer.
 ///
 /// Reading takes two walks. The first checks that the document is well-formed XML and collects the
 /// root's `<key>`s, its `<graph>`s and the graph's own `<data>`; those are checked next (keys, then
@@ -478,20 +479,27 @@
 /// What receives the graph's nodes and edges, each when its element ends, and the graph's end.
 /// Their attributes go to `buffer`.
 @usableFromInline internal protocol _GraphMLSink: ~Copyable {
+    /// Whether the target is directed: a nested graph of the other kind is `unsupported`.
+    static var isDirected: Bool { get }
     mutating func node(_ node: borrowing _GraphMLNode, buffer: inout _AttributeBuffer) throws(ParseError)
     mutating func edge(_ edge: borrowing _GraphMLEdge, buffer: inout _AttributeBuffer) throws(ParseError)
     mutating func finish(buffer: inout _AttributeBuffer) throws(ParseError)
 }
 
 /// An observer that collects the first graph's `<node>` and `<edge>` elements (their attributes
-/// and data) and hands each to its sink, with the buffer for their attributes.
+/// and data), and those of the graphs nested in its nodes, and hands each to its sink, with the
+/// buffer for their attributes: a node when it ends, or, when it holds a nested graph, when that
+/// graph starts (before the nodes inside it).
 @usableFromInline internal struct _GraphMLCollector<Sink: _GraphMLSink & ~Copyable>: _XMLObserver, ~Copyable {
     @usableFromInline var sink: Sink
     /// The document, whose text pieces a data element keeps as they are.
     @usableFromInline let input: UnsafeBufferPointer<UInt8>
     @usableFromInline var buffer = _AttributeBuffer(names: [])
     @usableFromInline var graphsSeen = 0
-    @usableFromInline var inGraph = false
+    /// The depths of the graphs being read: the first graph's (1), then each nested one's.
+    @usableFromInline var levels: [Int] = []
+    /// Whether the element open is a node already handed over (its nested graph has ended).
+    @usableFromInline var inHandedNode = false
     @usableFromInline var node = _GraphMLNode()
     @usableFromInline var edge = _GraphMLEdge()
     @usableFromInline var inNode = false, inEdge = false
@@ -520,13 +528,16 @@
     }
 
     @inlinable mutating func start(_ tag: _XMLStartTag, depth: Int, scanner: borrowing _XMLScanner) throws(ParseError) {
-        switch depth {
-        case 1:
+        if depth == 1 {
             if scanner.isLocal(tag, "graph") {
                 graphsSeen += 1
-                inGraph = graphsSeen == 1
+                if graphsSeen == 1 { levels = [1] }
             }
-        case 2 where inGraph:
+            return
+        }
+        guard let level = levels.last else { return }
+        switch depth &- level {
+        case 1:
             if scanner.isLocal(tag, "node") {
                 inNode = true
                 node.offset = tag.offset
@@ -568,19 +579,26 @@
             } else if scanner.isLocal(tag, "hyperedge") {
                 throw ParseError(.unsupported, at: tag.offset)
             }
-        case 3 where inGraph:
+        case 2:
             let isData = scanner.isLocal(tag, "data")
-            if inNode {
-                if node.unsupported == nil && (scanner.isLocal(tag, "graph") || scanner.isLocal(tag, "port")) {
-                    node.unsupported = tag.offset
+            if inNode || inHandedNode {
+                if scanner.isLocal(tag, "graph") {
+                    try startNestedGraph(tag, depth: depth, scanner: scanner)
+                    return
                 }
+                if inHandedNode {
+                    // A node's data and ports come before its nested graph.
+                    if isData || scanner.isLocal(tag, "port") { throw ParseError(.unsupported, at: tag.offset) }
+                    return
+                }
+                if node.unsupported == nil && scanner.isLocal(tag, "port") { node.unsupported = tag.offset }
                 if isData { _startData(&node.data, &node.dataCount, offset: tag.offset, scanner) }
             } else if inEdge {
                 if edge.nestedGraph == nil && scanner.isLocal(tag, "graph") { edge.nestedGraph = tag.offset }
                 if isData { _startData(&edge.data, &edge.dataCount, offset: tag.offset, scanner) }
             }
             inData = isData && (inNode || inEdge)
-        case 4 where inGraph && inData:
+        case 3 where inData:
             if inNode { node.data[node.dataCount - 1].hasElements = true }
             if inEdge { edge.data[edge.dataCount - 1].hasElements = true }
         default:
@@ -588,7 +606,25 @@
         }
     }
 
-    @inlinable func wantsText(depth: Int) -> Bool { depth == 3 && inData }
+    /// A `<graph>` inside the node being read: checks its `edgedefault` (required, the first graph's
+    /// kind), hands the node over, and reads the nested graph's nodes and edges as the graph's.
+    @inlinable mutating func startNestedGraph(_ tag: _XMLStartTag, depth: Int, scanner: borrowing _XMLScanner) throws(ParseError) {
+        if inNode {
+            inNode = false
+            try sink.node(node, buffer: &buffer)
+        }
+        guard let a = scanner.attribute("edgedefault") else { throw ParseError(.syntax, at: tag.offset) }
+        var bytes: [UInt8] = []
+        scanner.value(of: a, into: &bytes)
+        let word = _collapsed(bytes)
+        let isDirected = word.elementsEqual("directed".utf8)
+        guard isDirected || word.elementsEqual("undirected".utf8) else { throw ParseError(.invalidValue, at: a.nameStart) }
+        if isDirected != Sink.isDirected { throw ParseError(.unsupported, at: tag.offset) }
+        inHandedNode = false
+        levels.append(depth)
+    }
+
+    @inlinable func wantsText(depth: Int) -> Bool { inData && depth == (levels.last ?? 0) &+ 2 }
 
     @inlinable mutating func text(_ bytes: UnsafeBufferPointer<UInt8>, depth: Int) {
         let input = self.input
@@ -597,21 +633,28 @@
     }
 
     @inlinable mutating func end(depth: Int) throws(ParseError) {
-        guard inGraph else { return }
-        switch depth {
-        case 3:
-            inData = false
+        guard let level = levels.last else { return }
+        switch depth &- level {
         case 2:
+            inData = false
+        case 1:
             if inNode {
                 inNode = false
                 try sink.node(node, buffer: &buffer)
             } else if inEdge {
                 inEdge = false
                 try sink.edge(edge, buffer: &buffer)
+            } else {
+                inHandedNode = false
             }
-        case 1:
-            inGraph = false
-            try sink.finish(buffer: &buffer)
+        case 0:
+            levels.removeLast()
+            if levels.isEmpty {
+                try sink.finish(buffer: &buffer)
+            } else {
+                // Back in the node that holds the graph.
+                inHandedNode = true
+            }
         default:
             break
         }
@@ -675,6 +718,8 @@
             edgeError = error
         }
     }
+
+    @inlinable static var isDirected: Bool { Direction.isDirected }
 
     @inlinable mutating func insert(_ edge: borrowing _GraphMLEdge, _ u: Int, _ v: Int, buffer: inout _AttributeBuffer) throws(ParseError) {
         let number = target.insertEdge(u, v)
@@ -832,6 +877,8 @@
         edgeCount &+= 1
         if !noteAttributes(of: edge.data, count: edge.dataCount, in: .edge, at: edge.offset, element: number) { active = false }
     }
+
+    @inlinable static var isDirected: Bool { Direction.isDirected }
 
     @inlinable mutating func finish(buffer: inout _AttributeBuffer) {}
 

@@ -391,3 +391,24 @@ extension MutableGraph {
     if case .value(let v) = _parseInteger(bytes, 0, bytes.count, signed: true) { return v }
     return nil
 }
+
+/// The most vertices a reader inserts eagerly from a count in the file (Matrix Market, Pajek,
+/// DIMACS, METIS, sparse6): `maximumVertexCount`, or by default 16 per input byte plus 4,096.
+@inlinable func _vertexBound(_ maximumVertexCount: Int?, inputCount: Int) -> Int {
+    maximumVertexCount ?? _ExpansionBudget(inputCount: inputCount, perByte: 16).remaining
+}
+
+/// Inserts the vertices `0..<n`, each index mapped by `map` (`nil`: `invalidVertex` at `offset`),
+/// or, when `identity`, known to be the distinct `0..<n`; returns each index's key.
+@inlinable func _insertIndexVertices<Vertex, Direction>(
+    _ n: Int, into target: inout _BulkTarget<Vertex, Direction>, identity: Bool, map: (Int) -> Vertex?, at offset: Int
+) throws(ParseError) -> [Int] {
+    var keys: [Int] = []
+    keys.reserveCapacity(n)
+    target.vertices.reserveCapacity(n)
+    for i in 0 ..< n {
+        guard let vertex = map(i) else { throw ParseError(.invalidVertex, at: offset) }
+        keys.append(identity ? target.appendDistinct(vertex) : target.key(for: vertex).key)
+    }
+    return keys
+}

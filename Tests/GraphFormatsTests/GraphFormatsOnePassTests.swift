@@ -294,7 +294,8 @@ struct GraphFormatsOnePassTests {
         #expect(read(text) == "limitExceeded \(offset) \(k)")
     }
 
-    @Test("GraphML: the lookahead reads as the second walk reads, on random documents and errors", arguments: 0 ..< 400 as Range<UInt>)
+    @Test("GraphML: the lookahead reads as the second walk reads, on random documents (nested graphs too) and errors",
+          arguments: 0 ..< 400 as Range<UInt>)
     func graphMLLookahead(seed: UInt) {
         var rng = SeededRandomNumberGenerator(seed: seed)
         func pick<T>(_ options: [T]) -> T { options[Int.random(in: 0 ..< options.count, using: &rng)] }
@@ -341,9 +342,22 @@ struct GraphFormatsOnePassTests {
         let nodeIDs = Array(ids.shuffled(using: &rng).prefix(Int.random(in: 0 ... 5, using: &rng)))
         var body: [String] = []
         var declared: [String] = []
+        // Groups (a node holding a nested graph) open while their nodes and edges are written.
+        var groups = 0
         for id in nodeIDs {
             let extra = chance(0.03) ? "<port name=\"p\"/>" : ""
-            body.append(chance(0.02) ? "<node>\(data("node"))</node>" : "<node id=\"\(id)\">\(data("node"))\(extra)</node>")
+            if groups < 3 && chance(0.15) {
+                let kind = chance(0.95) ? (directed ? "directed" : "undirected") : pick(["both", "undirected", "directed"])
+                let edgeDefault = chance(0.97) ? " edgedefault=\"\(kind)\"" : ""
+                body.append("<node id=\"\(id)\" yfiles.foldertype=\"group\">\(data("node"))\(extra)<graph id=\"\(id):\"\(edgeDefault)>\(chance(0.2) ? data("graph") : "")")
+                groups += 1
+            } else {
+                body.append(chance(0.02) ? "<node>\(data("node"))</node>" : "<node id=\"\(id)\">\(data("node"))\(extra)</node>")
+            }
+            if groups > 0 && chance(0.3) {
+                body.append("</graph>\(chance(0.03) ? data("node") : "")</node>")
+                groups -= 1
+            }
             declared.append(id)
             if chance(0.04) { body.append("<node id=\"\(id)\"/>") }
             for _ in 0 ..< Int.random(in: 0 ... 2, using: &rng) where !declared.isEmpty {
@@ -357,6 +371,7 @@ struct GraphFormatsOnePassTests {
             // An edge before a node it names: it waits, with every later edge.
             body.insert("<edge source=\"\(first)\" target=\"\(nodeIDs.last!)\">\(data("edge"))</edge>", at: 0)
         }
+        body += Array(repeating: "</graph></node>", count: groups)
         if chance(0.02) { body.append("<hyperedge/>") }
         let graphData = chance(0.3) ? data("graph") : ""
         let graph = "<graph edgedefault=\"\(chance(0.97) ? (directed ? "directed" : "undirected") : "both")\">\(graphData)\(body.joined())</graph>"
@@ -401,6 +416,64 @@ struct GraphFormatsOnePassTests {
         for simple in [false, true] {
             #expect(render(lookahead, simple: simple) == render(secondWalk, simple: simple), "\(seed) \(simple): \(lookahead)")
         }
+    }
+
+    @Test("Cytoscape JSON: the common layout reads in one pass as the two-pass reader reads it, on random documents and errors",
+          arguments: 0 ..< 400 as Range<UInt>)
+    func cytoscapeOnePass(seed: UInt) {
+        var rng = SeededRandomNumberGenerator(seed: seed)
+        func pick<T>(_ options: [T]) -> T { options[Int.random(in: 0 ..< options.count, using: &rng)] }
+        func chance(_ p: Double) -> Bool { Double.random(in: 0 ..< 1, using: &rng) < p }
+        func scalar() -> String {
+            pick(["1", "-7", "0.5", "1e3", "-0.0", "true", "false", "\"s\"", "\"\\u00e9\\n\"", "\"\""]
+                 + (chance(0.05) ? ["null", "[1]", "{}", "01", "1.", "\"\\ud800\"", "nul"] : []))
+        }
+        let idPool = ["\"a\"", "\"b\"", "\"c\"", "\"\\u0061\"", "1", "2", "\"1\"", "\"bad\""] + (chance(0.05) ? ["1.5", "true", "[0]", "\"x\ty\""] : [])
+        let ids = (0 ..< Int.random(in: 0 ... 4, using: &rng)).map { _ in pick(idPool) }
+        let multigraph = pick(["", "\"multigraph\": true, ", "\"multigraph\": false, ", "\"multigraph\": 1, "])
+        let late = chance(0.2)
+        var top: [String] = []
+        if chance(0.9) { top.append("\"directed\": \(chance(0.95) ? "true" : "false")") }
+        if !late && !multigraph.isEmpty { top.append(String(multigraph.dropLast(2))) }
+        if chance(0.3) { top.append("\"data\": \(pick(["{\"g\": 1}", "[[\"g\", 2]]", "[]", "[1]"]))") }
+        let nodes = ids.map { id -> String in
+            var members = (0 ..< Int.random(in: 0 ... 2, using: &rng)).map { k in "\"\(pick(["w", "name", "value", "k\(k)"]))\": \(scalar())" }
+            if !chance(0.03) { members.insert("\"id\": \(id)", at: Int.random(in: 0 ... members.count, using: &rng)) }
+            let extra = chance(0.03) ? ", \"classes\": \"x\"" : ""
+            return "{\"data\": {\(members.joined(separator: ", "))}\(extra)}"
+        }
+        let edges = (0 ..< (ids.isEmpty ? 0 : Int.random(in: 0 ... 5, using: &rng))).map { _ -> String in
+            var members = ["\"source\": \(chance(0.95) ? pick(ids) : pick(idPool))", "\"target\": \(chance(0.95) ? pick(ids) : pick(idPool))"]
+            if chance(0.3) { members.append("\"key\": \(pick(["0", "1", "\"k\""]))") }
+            if chance(0.5) { members.append("\"w\": \(scalar())") }
+            if chance(0.03) { members.removeFirst() }
+            if chance(0.2) { members.shuffle(using: &rng) }
+            return "{\"data\": {\(members.joined(separator: ", "))}}"
+        }
+        top.append("\"elements\": {\"nodes\": [\(nodes.joined(separator: ", "))], \"edges\": [\(edges.joined(separator: ", "))]}")
+        if late && !multigraph.isEmpty { top.append(String(multigraph.dropLast(2))) }
+        var document = "{\(top.joined(separator: ", "))}"
+        if chance(0.03) { document.insert(pick([",", "}", "x"]), at: document.index(document.startIndex, offsetBy: Int.random(in: 1 ..< document.count, using: &rng))) }
+        // An escaped key the reader ignores sends the document to the two-pass reader.
+        let twoPass = document.hasPrefix("{}") ? document : "{\"\\u0078\": 0, " + document.dropFirst()
+        func render(_ text: String, shift: Int) -> String {
+            var log: [String] = []
+            func show(_ v: AttributeValue) -> String {
+                if case .double(let d) = v { return "d\(d.bitPattern)" }
+                return "\(v)"
+            }
+            do throws(ParseError) {
+                let g = try DirectedPseudograph<String>(cytoscapeJSON: text.utf8, vertex: { log.append("map \($0)"); return $0 == "bad" ? nil : $0.lowercased() },
+                                                        vertexAttribute: { log.append("v \($0) \($1) \(show($2))") },
+                                                        edgeAttribute: { log.append("e \($0) \($1) \(show($2))") },
+                                                        graphAttribute: { log.append("g \($0) \(show($1))") })
+                return "\(Array(g.vertices)) \(g.edges.map { "\($0.source)>\($0.target)" }) \(log)"
+            } catch {
+                // The escaped member moves every later offset by its length.
+                return "\(error.kind) \(error.byteOffset > 1 ? error.byteOffset - shift : error.byteOffset) \(log)"
+            }
+        }
+        #expect(render(document, shift: 0) == render(twoPass, shift: twoPass == document ? 0 : 13), "\(seed): \(document)")
     }
 
     @Test("GraphML: vertex and edge attributes are reported in document order, interleaved, after the build")

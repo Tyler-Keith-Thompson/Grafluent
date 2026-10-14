@@ -1,6 +1,7 @@
-// DOT (catalog GF-001 – GF-042 and GF-226 read, GF-186 – GF-192 write): the grammar without subgraphs
-// and ports, values read as strings, node and edge defaults applied to later statements, strict
-// merging, DOT's quoting; the writer's canonical form, quoting only where an ID needs it.
+// DOT (catalog GF-001 – GF-042, GF-226, GF-260 – GF-276 read, GF-186 – GF-192 write): the grammar with
+// subgraphs and ports, values read as strings, node and edge defaults applied to later statements and
+// scoped by subgraphs, strict merging, DOT's quoting; the writer's canonical form, quoting only where
+// an ID needs it.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule
@@ -804,43 +805,91 @@ struct GraphFormatsDOTTests {
         }
     }
 
-    @Test("GF-030 subgraph (unsupported)")
-    func gf030() {
-        // DirectedPseudograph<String>(dot:) → **unsupported** at 1:11
+    @Test("GF-030 subgraph: its vertices join the graph")
+    func gf030() throws {
+        // DirectedPseudograph<String>(dot:) → D: a
         let input = "digraph { subgraph s { a } }"
-        do {
-            let graph = try DirectedPseudograph<String>(dot: input.utf8)
-            Issue.record("expected unsupported, read \(graph)")
-        } catch {
-            #expect(error.kind == .unsupported)
-            #expect([error.line, error.column, error.byteOffset] == [1, 11, 10])
-        }
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a"])
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
+        #expect(Array(graph.edges.indices) == [])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
     }
 
-    @Test("GF-031 anonymous subgraph as an endpoint (unsupported)")
-    func gf031() {
-        // DirectedPseudograph<String>(dot:) → **unsupported** at 1:16
+    @Test("GF-031 anonymous subgraph as an endpoint: an edge to each of its vertices")
+    func gf031() throws {
+        // DirectedPseudograph<String>(dot:) → D: a, b, c; a>b, a>c
         let input = "digraph { a -> { b c } }"
-        do {
-            let graph = try DirectedPseudograph<String>(dot: input.utf8)
-            Issue.record("expected unsupported, read \(graph)")
-        } catch {
-            #expect(error.kind == .unsupported)
-            #expect([error.line, error.column, error.byteOffset] == [1, 16, 15])
-        }
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b", "c"])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 2)
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["a", "c"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
     }
 
-    @Test("GF-032 port (unsupported)")
-    func gf032() {
-        // DirectedPseudograph<String>(dot:) → **unsupported** at 1:12
+    @Test("GF-032 port: the tail's port is the edge's tailport")
+    func gf032() throws {
+        // DirectedPseudograph<String>(dot:) → D: a, b; a>b{tailport="p"}
         let input = "digraph { a:p -> b }"
-        do {
-            let graph = try DirectedPseudograph<String>(dot: input.utf8)
-            Issue.record("expected unsupported, read \(graph)")
-        } catch {
-            #expect(error.kind == .unsupported)
-            #expect([error.line, error.column, error.byteOffset] == [1, 12, 11])
-        }
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["tailport"]])
+        #expect(edgeValues == [0: ["tailport": .string("p")]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
     }
 
     @Test("GF-033 a second graph (unsupported)")
@@ -1085,5 +1134,418 @@ struct GraphFormatsDOTTests {
         #expect(edgeValues == [:])
         #expect(graphKeys == [])
         #expect(graphValues == [:])
+    }
+
+    @Test("GF-260 subgraph scope: node and edge defaults set inside stay inside")
+    func gf260() throws {
+        // DirectedPseudograph<String>(dot:) → D: a{c="2"}, b{c="2"}, c{c="1"}, d{c="1"}, e{c="1"}; a>b{w="x"}, d>e
+        let input = "digraph { node [c=1]; subgraph { node [c=2]; edge [w=x]; a -> b } c; d -> e }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b", "c", "d", "e"])
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 2)
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["d", "e"]])
+        #expect(vertexKeys == ["a": ["c"], "b": ["c"], "c": ["c"], "d": ["c"], "e": ["c"]])
+        #expect(vertexValues == ["a": ["c": .string("2")], "b": ["c": .string("2")], "c": ["c": .string("1")], "d": ["c": .string("1")], "e": ["c": .string("1")]])
+        #expect(edgeKeys == [0: ["w"]])
+        #expect(edgeValues == [0: ["w": .string("x")]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-261 { a b } -> { c d }: every tail to every head, tails outer, attributes on each")
+    func gf261() throws {
+        // DirectedPseudograph<String>(dot:) → D: a, b, c, d; a>c{w="1"}, a>d{w="1"}, b>c{w="1"}, b>d{w="1"}
+        let input = "digraph { { a b } -> { c d } [w=1] }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b", "c", "d"])
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 4)
+        #expect(Array(graph.edges.indices) == [0, 1, 2, 3])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "c"], ["a", "d"], ["b", "c"], ["b", "d"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["w"], 1: ["w"], 2: ["w"], 3: ["w"]])
+        #expect(edgeValues == [0: ["w": .string("1")], 1: ["w": .string("1")], 2: ["w": .string("1")], 3: ["w": .string("1")]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-262 a subgraph operand's own edges come before the chain's")
+    func gf262() throws {
+        // DirectedPseudograph<String>(dot:) → D: x, a, b; a>b, x>a, x>b
+        let input = "digraph { x -> { a -> b } }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["x", "a", "b"])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 3)
+        #expect(Array(graph.edges.indices) == [0, 1, 2])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["x", "a"], ["x", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-263 nested named subgraphs as an operand: every vertex mentioned inside")
+    func gf263() throws {
+        // DirectedPseudograph<String>(dot:) → D: a, b, c; a>c, b>c
+        let input = "digraph { subgraph s1 { a subgraph s2 { b } a } -> c }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b", "c"])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 2)
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "c"], ["b", "c"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-264 graph attributes inside a subgraph are not reported")
+    func gf264() throws {
+        // DirectedPseudograph<String>(dot:) → D: a; graph{k="1"}
+        let input = "digraph { k=1; subgraph { k=2; graph [m=3]; a } }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a"])
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
+        #expect(Array(graph.edges.indices) == [])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == ["k"])
+        #expect(graphValues == ["k": .string("1")])
+    }
+
+    @Test("GF-265 a subgraph's edge defaults apply to edges from it, not to a later chain")
+    func gf265() throws {
+        // DirectedPseudograph<String>(dot:) → D: a, b, c; a>b{w="1"}, a>c, b>c
+        let input = "digraph { subgraph { edge [w=1]; a -> b } -> c }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b", "c"])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 3)
+        #expect(Array(graph.edges.indices) == [0, 1, 2])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["a", "c"], ["b", "c"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["w"]])
+        #expect(edgeValues == [0: ["w": .string("1")]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-266 ports in a chain: each hop's tail and head port")
+    func gf266() throws {
+        // DirectedPseudograph<String>(dot:) → D: a, b, c; a>b{tailport="p", headport="q:n"}, b>c{tailport="q:n"}
+        let input = "digraph { a:p -> b:q:n -> c }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b", "c"])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 2)
+        #expect(Array(graph.edges.indices) == [0, 1])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"], ["b", "c"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["tailport", "headport"], 1: ["tailport"]])
+        #expect(edgeValues == [0: ["tailport": .string("p"), "headport": .string("q:n")], 1: ["tailport": .string("q:n")]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-267 a port on a node statement is ignored; an explicit tailport wins")
+    func gf267() throws {
+        // DirectedPseudograph<String>(dot:) → D: a{x="1"}, b; a>b{tailport="s"}
+        let input = "digraph { a:p [x=1]; a:p -> b [tailport=s] }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"]])
+        #expect(vertexKeys == ["a": ["x"]])
+        #expect(vertexValues == ["a": ["x": .string("1")]])
+        #expect(edgeKeys == [0: ["tailport"]])
+        #expect(edgeValues == [0: ["tailport": .string("s")]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-268 undirected: a quoted port and a compass point")
+    func gf268() throws {
+        // Pseudograph<String>(dot:) → U: a, b; a-b{tailport="p q", headport="sw"}
+        let input = "graph { a:\"p q\" -- b:sw }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try Pseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["tailport", "headport"]])
+        #expect(edgeValues == [0: ["tailport": .string("p q"), "headport": .string("sw")]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-269 edge defaults come before the ports")
+    func gf269() throws {
+        // DirectedPseudograph<String>(dot:) → D: a, b; a>b{headport="q", w="1"}
+        let input = "digraph { edge [headport=z, w=1]; a -> b:q }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["headport", "w"]])
+        #expect(edgeValues == [0: ["headport": .string("q"), "w": .string("1")]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-270 strict: an edge from a subgraph merges with an earlier one")
+    func gf270() throws {
+        // DirectedPseudograph<String>(dot:) → D: a, b; a>b{x="1", y="2"}
+        let input = "strict digraph { a -> b [x=1]; { a } -> b [y=2] }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+        #expect(Array(graph.edges.indices) == [0])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [["a", "b"]])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [0: ["x", "y"]])
+        #expect(edgeValues == [0: ["x": .string("1"), "y": .string("2")]])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-271 64 nested subgraphs")
+    func gf271() throws {
+        // DirectedPseudograph<String>(dot:) → D: a
+        let input = "digraph { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { a } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } }"
+        var vertexKeys: [String: [String]] = [:]
+        var vertexValues: [String: [String: AttributeValue]] = [:]
+        var edgeKeys: [Int: [String]] = [:]
+        var edgeValues: [Int: [String: AttributeValue]] = [:]
+        var graphKeys: [String] = []
+        var graphValues: [String: AttributeValue] = [:]
+        let graph = try DirectedPseudograph<String>(dot: input.utf8, vertexAttribute: { v, key, value in
+            if vertexValues[v, default: [:]].updateValue(value, forKey: key) == nil { vertexKeys[v, default: []].append(key) }
+        }, edgeAttribute: { e, key, value in
+            if edgeValues[e, default: [:]].updateValue(value, forKey: key) == nil { edgeKeys[e, default: []].append(key) }
+        }, graphAttribute: { key, value in
+            if graphValues.updateValue(value, forKey: key) == nil { graphKeys.append(key) }
+        })
+        #expect(Array(graph.vertices) == ["a"])
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
+        #expect(Array(graph.edges.indices) == [])
+        #expect(graph.edges.indices.map { [graph.source(ofEdgeAt: $0), graph.target(ofEdgeAt: $0)] } == [])
+        #expect(vertexKeys == [:])
+        #expect(vertexValues == [:])
+        #expect(edgeKeys == [:])
+        #expect(edgeValues == [:])
+        #expect(graphKeys == [])
+        #expect(graphValues == [:])
+    }
+
+    @Test("GF-272 65 nested subgraphs")
+    func gf272() {
+        // DirectedPseudograph<String>(dot:) → **nestingTooDeep** at 1:139
+        let input = "digraph { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { { a } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } }"
+        do {
+            let graph = try DirectedPseudograph<String>(dot: input.utf8)
+            Issue.record("expected nestingTooDeep, read \(graph)")
+        } catch {
+            #expect(error.kind == .nestingTooDeep)
+            #expect([error.line, error.column, error.byteOffset] == [1, 139, 138])
+        }
+    }
+
+    @Test("GF-273 a port on a subgraph operand")
+    func gf273() {
+        // DirectedPseudograph<String>(dot:) → **syntax** at 1:16
+        let input = "digraph { { a }:p -> b }"
+        do {
+            let graph = try DirectedPseudograph<String>(dot: input.utf8)
+            Issue.record("expected syntax, read \(graph)")
+        } catch {
+            #expect(error.kind == .syntax)
+            #expect([error.line, error.column, error.byteOffset] == [1, 16, 15])
+        }
+    }
+
+    @Test("GF-274 subgraph without a body (unsupported)")
+    func gf274() {
+        // DirectedPseudograph<String>(dot:) → **unsupported** at 1:11
+        let input = "digraph { subgraph s; a }"
+        do {
+            let graph = try DirectedPseudograph<String>(dot: input.utf8)
+            Issue.record("expected unsupported, read \(graph)")
+        } catch {
+            #expect(error.kind == .unsupported)
+            #expect([error.line, error.column, error.byteOffset] == [1, 11, 10])
+        }
+    }
+
+    @Test("GF-275 an unterminated subgraph")
+    func gf275() {
+        // DirectedPseudograph<String>(dot:) → **unexpectedEndOfInput** at 1:16
+        let input = "digraph { { a }"
+        do {
+            let graph = try DirectedPseudograph<String>(dot: input.utf8)
+            Issue.record("expected unexpectedEndOfInput, read \(graph)")
+        } catch {
+            #expect(error.kind == .unexpectedEndOfInput)
+            #expect([error.line, error.column, error.byteOffset] == [1, 16, 15])
+        }
+    }
+
+    @Test("GF-276 a port without an ID")
+    func gf276() {
+        // DirectedPseudograph<String>(dot:) → **syntax** at 1:14
+        let input = "digraph { a: -> b }"
+        do {
+            let graph = try DirectedPseudograph<String>(dot: input.utf8)
+            Issue.record("expected syntax, read \(graph)")
+        } catch {
+            #expect(error.kind == .syntax)
+            #expect([error.line, error.column, error.byteOffset] == [1, 14, 13])
+        }
     }
 }

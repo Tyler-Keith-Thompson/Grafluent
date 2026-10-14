@@ -14,7 +14,10 @@ import GraphProtocols
 
 extension MutableDirectedGraph {
     /// Reads DOT: `digraph` only; `node`/`edge` defaults, `strict` merging, every value a
-    /// string. `vertex` maps each new ID once (`nil`: `invalidVertex` at the ID).
+    /// string. Subgraphs join the one graph (their defaults scoped to them, their graph attributes
+    /// not reported; as an edge operand, an edge per tail and head); an endpoint's port is the
+    /// edge's `tailport` or `headport`. `vertex` maps each new ID once (`nil`: `invalidVertex` at
+    /// the ID).
     @inlinable public init(
         dot input: some Sequence<UInt8>,
         vertex: (String) -> Vertex?,
@@ -30,8 +33,9 @@ extension MutableDirectedGraph {
         self = target.graph
     }
 
-    /// Reads GraphML: one `<graph>` whose `edgedefault` is the target's kind, typed `<key>`s with
-    /// defaults, node, edge and graph `<data>`. No DTD (any `<!DOCTYPE` is `doctypeNotAllowed`), no
+    /// Reads GraphML: one `<graph>` whose `edgedefault` is the target's kind (with the graphs
+    /// nested in its nodes, as yEd writes groups: their nodes and edges are the graph's), typed
+    /// `<key>`s with defaults, node, edge and graph `<data>`. No DTD (any `<!DOCTYPE` is `doctypeNotAllowed`), no
     /// entities but the predefined five and character references.
     @inlinable public init(
         graphML input: some Sequence<UInt8>,
@@ -47,7 +51,8 @@ extension MutableDirectedGraph {
     }
 
     /// Reads node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
-    /// `links`). `vertex` maps each node `id` (a string or an integer) once.
+    /// `links`). `vertex` maps each node `id` (a string or an integer; an array, NetworkX's tuple,
+    /// as `.string` of its canonical JSON text, `[0, 1]`) once.
     @inlinable public init(
         nodeLinkJSON input: some Sequence<UInt8>,
         vertex: (AttributeValue) -> Vertex?,
@@ -81,16 +86,20 @@ extension MutableDirectedGraph {
     }
 
     /// Reads an edge list: `u v` and one field per column on each line, `#` comments; each column's
-    /// value typed by its text.
+    /// value typed by its text. Fields are separated by whitespace, or by exactly one `delimiter`
+    /// each (kept as they are, blanks included). With no columns, a Python dict literal after `u v`
+    /// (`{'weight': 3}`, as NetworkX writes edge data) gives the edge's attributes by name. A
+    /// delimiter must be ASCII and not a letter, a digit, `.`, `+`, `-`, `#`, LF or CR (else a trap).
     @inlinable public init(
         edgeList input: some Sequence<UInt8>,
         columns: [String] = [],
+        delimiter: Unicode.Scalar? = nil,
         vertex: (String) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
         self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
-            try _readEdgeList(text, columnCount: columns.count, into: &target, map: { vertex(_string($0)) },
-                              value: { buffer.record($0, $1, $2) })
+            try _readEdgeList(text, columnCount: columns.count, delimiter: _listDelimiter(delimiter), into: &target,
+                              map: { vertex(_string($0)) }, buffer: &buffer)
         }
     }
 
@@ -168,11 +177,12 @@ extension MutableDirectedGraph where Vertex == String {
     @inlinable public init(
         edgeList input: some Sequence<UInt8>,
         columns: [String] = [],
+        delimiter: Unicode.Scalar? = nil,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
         self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
-            try _readEdgeList(text, columnCount: columns.count, into: &target, map: _string,
-                              value: { buffer.record($0, $1, $2) })
+            try _readEdgeList(text, columnCount: columns.count, delimiter: _listDelimiter(delimiter), into: &target, map: _string,
+                              buffer: &buffer)
         }
     }
 
@@ -232,10 +242,11 @@ extension MutableDirectedGraph where Vertex == Int {
     @inlinable public init(
         edgeList input: some Sequence<UInt8>,
         columns: [String] = [],
+        delimiter: Unicode.Scalar? = nil,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
         self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
-            try _readIntegerEdgeList(text, columnCount: columns.count, into: &target, value: { buffer.record($0, $1, $2) })
+            try _readIntegerEdgeList(text, columnCount: columns.count, delimiter: _listDelimiter(delimiter), into: &target, buffer: &buffer)
         }
     }
 
@@ -251,7 +262,10 @@ extension MutableDirectedGraph where Vertex == Int {
 
 extension MutableGraph {
     /// Reads DOT: `graph` only; `node`/`edge` defaults, `strict` merging, every value a
-    /// string. `vertex` maps each new ID once (`nil`: `invalidVertex` at the ID).
+    /// string. Subgraphs join the one graph (their defaults scoped to them, their graph attributes
+    /// not reported; as an edge operand, an edge per tail and head); an endpoint's port is the
+    /// edge's `tailport` or `headport`. `vertex` maps each new ID once (`nil`: `invalidVertex` at
+    /// the ID).
     @inlinable public init(
         dot input: some Sequence<UInt8>,
         vertex: (String) -> Vertex?,
@@ -267,8 +281,9 @@ extension MutableGraph {
         self = target.graph
     }
 
-    /// Reads GraphML: one `<graph>` whose `edgedefault` is the target's kind, typed `<key>`s with
-    /// defaults, node, edge and graph `<data>`. No DTD (any `<!DOCTYPE` is `doctypeNotAllowed`), no
+    /// Reads GraphML: one `<graph>` whose `edgedefault` is the target's kind (with the graphs
+    /// nested in its nodes, as yEd writes groups: their nodes and edges are the graph's), typed
+    /// `<key>`s with defaults, node, edge and graph `<data>`. No DTD (any `<!DOCTYPE` is `doctypeNotAllowed`), no
     /// entities but the predefined five and character references.
     @inlinable public init(
         graphML input: some Sequence<UInt8>,
@@ -284,7 +299,8 @@ extension MutableGraph {
     }
 
     /// Reads node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
-    /// `links`). `vertex` maps each node `id` (a string or an integer) once.
+    /// `links`). `vertex` maps each node `id` (a string or an integer; an array, NetworkX's tuple,
+    /// as `.string` of its canonical JSON text, `[0, 1]`) once.
     @inlinable public init(
         nodeLinkJSON input: some Sequence<UInt8>,
         vertex: (AttributeValue) -> Vertex?,
@@ -318,16 +334,20 @@ extension MutableGraph {
     }
 
     /// Reads an edge list: `u v` and one field per column on each line, `#` comments; each column's
-    /// value typed by its text.
+    /// value typed by its text. Fields are separated by whitespace, or by exactly one `delimiter`
+    /// each (kept as they are, blanks included). With no columns, a Python dict literal after `u v`
+    /// (`{'weight': 3}`, as NetworkX writes edge data) gives the edge's attributes by name. A
+    /// delimiter must be ASCII and not a letter, a digit, `.`, `+`, `-`, `#`, LF or CR (else a trap).
     @inlinable public init(
         edgeList input: some Sequence<UInt8>,
         columns: [String] = [],
+        delimiter: Unicode.Scalar? = nil,
         vertex: (String) -> Vertex?,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
         self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
-            try _readEdgeList(text, columnCount: columns.count, into: &target, map: { vertex(_string($0)) },
-                              value: { buffer.record($0, $1, $2) })
+            try _readEdgeList(text, columnCount: columns.count, delimiter: _listDelimiter(delimiter), into: &target,
+                              map: { vertex(_string($0)) }, buffer: &buffer)
         }
     }
 
@@ -405,11 +425,12 @@ extension MutableGraph where Vertex == String {
     @inlinable public init(
         edgeList input: some Sequence<UInt8>,
         columns: [String] = [],
+        delimiter: Unicode.Scalar? = nil,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
         self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
-            try _readEdgeList(text, columnCount: columns.count, into: &target, map: _string,
-                              value: { buffer.record($0, $1, $2) })
+            try _readEdgeList(text, columnCount: columns.count, delimiter: _listDelimiter(delimiter), into: &target, map: _string,
+                              buffer: &buffer)
         }
     }
 
@@ -469,10 +490,11 @@ extension MutableGraph where Vertex == Int {
     @inlinable public init(
         edgeList input: some Sequence<UInt8>,
         columns: [String] = [],
+        delimiter: Unicode.Scalar? = nil,
         edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in }
     ) throws(ParseError) {
         self = try Self._readBulk(input, names: columns, edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
-            try _readIntegerEdgeList(text, columnCount: columns.count, into: &target, value: { buffer.record($0, $1, $2) })
+            try _readIntegerEdgeList(text, columnCount: columns.count, delimiter: _listDelimiter(delimiter), into: &target, buffer: &buffer)
         }
     }
 

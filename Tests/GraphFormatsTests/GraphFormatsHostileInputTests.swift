@@ -52,11 +52,25 @@ struct GraphFormatsHostileInputTests {
             ("dot", [0xFF, 0xFE] + Array("d\0i\0".utf8), [1, 1, 0]),
             ("dot", [0xEF, 0xBB, 0xBF] + Array("digraph { ".utf8) + [0xE9] + Array(" }".utf8), [1, 11, 10]),
             ("dot", Array("digraph {\r\n  \"é😀\" -> ".utf8) + [0xC3], [2, 11, 25]),
+            ("gml", Array("graph [ label \"".utf8) + [0xC3, 0x28] + Array("\" ]".utf8), [1, 16, 15]),
+            ("pajek", Array("*vertices 1\n1 \"".utf8) + [0xED, 0xA0, 0x80] + Array("\"\n".utf8), [2, 4, 15]),
+            ("graph6", [0xFF], [1, 1, 0]),
+            ("dimacs", Array("c ".utf8) + [0x80], [1, 3, 2]),
+            ("metis", Array("1 0\n".utf8) + [0xC0, 0xAF], [2, 1, 4]),
+            ("cytoscapeJSON", Array("{\"elements\": \"".utf8) + [0xF4, 0x90, 0x80, 0x80] + Array("\"}".utf8), [1, 15, 14]),
+            ("delimitedEdgeList", Array("a,b # ".utf8) + [0xE2, 0x82] + Array("\n".utf8), [1, 7, 6]),
         ]
         for (format, input, position) in cases {
             do {
                 let graph: DirectedPseudograph<String>
                 switch format {
+                case "gml": graph = try DirectedPseudograph<String>(gml: input)
+                case "pajek": graph = try DirectedPseudograph<String>(pajek: input)
+                case "graph6": graph = DirectedPseudograph<String>(vertices: try Pseudograph<Int>(graph6: input).vertices.map(String.init))
+                case "dimacs": graph = try DirectedPseudograph<String>(dimacs: input, vertex: { String($0) })
+                case "metis": graph = DirectedPseudograph<String>(vertices: try Pseudograph<Int>(metis: input).vertices.map(String.init))
+                case "cytoscapeJSON": graph = try DirectedPseudograph<String>(cytoscapeJSON: input)
+                case "delimitedEdgeList": graph = try DirectedPseudograph<String>(edgeList: input, delimiter: ",")
                 case "dot": graph = try DirectedPseudograph<String>(dot: input)
                 case "graphML": graph = try DirectedPseudograph<String>(graphML: input)
                 case "nodeLinkJSON": graph = try DirectedPseudograph<String>(nodeLinkJSON: input)

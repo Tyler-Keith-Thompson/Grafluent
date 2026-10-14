@@ -364,6 +364,80 @@
         }
     }
 
+    /// `forEachMember`, where `body` may read the value itself and return the offset past it (`nil`:
+    /// the value is skipped), so that a value is walked once; `-1` ends the walk there (and is
+    /// returned), the rest of the object not looked at.
+    @discardableResult
+    @inlinable func forEachMemberReading(
+        _ p: Int, key: inout [UInt8], _ body: (_ key: UnsafeBufferPointer<UInt8>, _ value: Int) throws(ParseError) -> Int?
+    ) throws(ParseError) -> Int {
+        var q = whitespace(p &+ 1)
+        if text[q] == UInt8(ascii: "}") { return q &+ 1 }
+        while true {
+            var e = q &+ 1
+            var escaped = false
+            while text[e] != UInt8(ascii: "\"") {
+                if text[e] == UInt8(ascii: "\\") {
+                    escaped = true
+                    e &+= 2
+                } else {
+                    e &+= 1
+                }
+            }
+            let value = whitespace(whitespace(e &+ 1) &+ 1)
+            let end: Int?
+            if escaped {
+                key.removeAll(keepingCapacity: true)
+                _ = try? string(q, into: &key, decode: true)
+                end = try key.withUnsafeBufferPointer { (k) throws(ParseError) in try body(k, value) }
+            } else {
+                end = try body(UnsafeBufferPointer(rebasing: text[(q &+ 1) ..< e]), value)
+            }
+            if end == -1 { return -1 }
+            q = whitespace(end ?? skip(value))
+            if text[q] == UInt8(ascii: "}") { return q &+ 1 }
+            q = whitespace(q &+ 1)
+        }
+    }
+
+    /// The bytes of the string at `p` when it has no escape and is closed: the range between its
+    /// quotes.
+    @inline(__always)
+    @inlinable func rawString(_ p: Int) -> Range<Int>? {
+        var q = p &+ 1
+        while q < n {
+            let c = text[q]
+            if c == UInt8(ascii: "\"") { return (p &+ 1) ..< q }
+            if c == UInt8(ascii: "\\") { return nil }
+            q &+= 1
+        }
+        return nil
+    }
+
+    /// The (checked) value at `p` read as a scalar, and the offset past it; `nil` for `null`, an
+    /// array or an object, which is skipped.
+    @inline(__always)
+    @inlinable func scalarAndEnd(_ p: Int, scratch: inout [UInt8]) -> (value: AttributeValue?, end: Int) {
+        switch text[p] {
+        case UInt8(ascii: "\""):
+            scratch.removeAll(keepingCapacity: true)
+            let end = (try? string(p, into: &scratch, decode: true)) ?? skip(p)
+            return (.string(String(decoding: scratch, as: UTF8.self)), end)
+        case UInt8(ascii: "t"): return (.boolean(true), p &+ 4)
+        case UInt8(ascii: "f"): return (.boolean(false), p &+ 5)
+        case UInt8(ascii: "n"), UInt8(ascii: "{"), UInt8(ascii: "["): return (nil, skip(p))
+        default:
+            // A checked number, in one scan: JSON's grammar is within the decimal grammar, and the
+            // check has kept integers within `Int` and doubles finite.
+            let (number, end) = _scanNumberPrefix(text.baseAddress!, p, n)
+            switch number {
+            case .integer(let i): return (.integer(i), end)
+            case .double(let d): return (.double(d), end)
+            case .none: return (nil, skip(p))
+            }
+        }
+    }
+
     /// Calls `body` with the offset of each element of the (checked) array at `p`; `body` returns
     /// the offset past the element.
     @inlinable func forEachElement(_ p: Int, _ body: (Int) throws(ParseError) -> Int) throws(ParseError) {

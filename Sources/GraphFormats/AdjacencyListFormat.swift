@@ -82,7 +82,7 @@
     var ids = _IDCache(vertexCount: n)
     for k in 0 ..< n {
         let id = vertexID(source.vertex(at: k))
-        try ids.set(k) { (bytes) throws(WriteError) in if !_appendListToken(id, to: &bytes) { throw .invalidID } }
+        try ids.set(k) { (bytes) throws(WriteError) in if !_appendListToken(id, delimiter: nil, to: &bytes) { throw .invalidID } }
     }
     rowStart.withUnsafeBufferPointer { rowStart in
         far.withUnsafeBufferPointer { far in

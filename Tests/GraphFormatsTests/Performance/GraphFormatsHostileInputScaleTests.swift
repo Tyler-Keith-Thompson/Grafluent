@@ -44,13 +44,29 @@ struct GraphFormatsHostileInputScaleTests {
             #expect(error.kind == .nestingTooDeep)
             #expect([error.line, error.column, error.byteOffset] == [1, 407, 406])
         }
-        // DOT: a brace is a subgraph (unsupported), rejected at the first; an HTML string never closes.
+        // DOT: a brace is a subgraph; the 65th nested one is too deep. An HTML string never closes.
         do {
             let graph = try DirectedPseudograph<String>(dot: ("digraph { " + String(repeating: "{ ", count: 100_000)).utf8)
-            Issue.record("expected unsupported, read \(graph)")
+            Issue.record("expected nestingTooDeep, read \(graph)")
         } catch {
-            #expect(error.kind == .unsupported)
-            #expect([error.line, error.column, error.byteOffset] == [1, 11, 10])
+            #expect(error.kind == .nestingTooDeep)
+            #expect([error.line, error.column, error.byteOffset] == [1, 139, 138])
+        }
+        do {
+            let graph = try DirectedPseudograph<String>(dot: ("digraph { a -> " + String(repeating: "subgraph { ", count: 100_000)).utf8)
+            Issue.record("expected nestingTooDeep, read \(graph)")
+        } catch {
+            // The 65th `{`: after "digraph { a -> " (15 bytes), 64 times "subgraph { " (11 bytes), then "subgraph ".
+            #expect(error.kind == .nestingTooDeep)
+            #expect([error.line, error.column, error.byteOffset] == [1, 729, 728])
+        }
+        // GML: the graph's list is depth 1; the 64th list inside it is the 65th.
+        do {
+            let graph = try DirectedPseudograph<String>(gml: ("graph [ " + String(repeating: "a [ ", count: 100_000)).utf8)
+            Issue.record("expected nestingTooDeep, read \(graph)")
+        } catch {
+            #expect(error.kind == .nestingTooDeep)
+            #expect([error.line, error.column, error.byteOffset] == [1, 263, 262])
         }
         do {
             let graph = try DirectedPseudograph<String>(dot: ("digraph { a [label=<" + String(repeating: "<", count: 100_000) + "> }").utf8)
@@ -177,6 +193,16 @@ struct GraphFormatsHostileInputScaleTests {
             ("edgeList", "# é😀\né😀 b 12\nb c -1.5e-3\n"),
             ("adjacencyList", "é😀 b c\nb c # x\nd\n"),
             ("mermaid", "---\ntitle: é\n---\nflowchart LR\n  A[\"é😀 #quot;\"] -->|yes| B((round)) --> C\n  %% c\n  A -.-> C;\n"),
+            ("dotSubgraph", "digraph { subgraph s { node [k=v]; a:p:n -> { \"é😀\" c } [w=1] } }"),
+            ("gml", "Creator \"é😀\"\ngraph [\n  directed 1\n  node [ id 0 label \"é&#128512;\" x 1.5 graphics [ w 2 ] ]\n  node [ id 1 ]\n  edge [ source 0 target 1 w -INF ]\n]"),
+            ("pajek", "*Network é😀\n*Vertices 3\n1 \"é 😀\" 0.5 0.25 box ic Red\n2 b\n*Arcs\n1 2 1.5 c \"x y\"\n*Arcslist\n2 1 3\n"),
+            ("graph6", ">>graph6<<Dhc"),
+            ("sparse6", ">>sparse6<<:Fa@x^"),
+            ("digraph6", ">>digraph6<<&DI?AO?"),
+            ("dimacs", "c é😀\np sp 3 2\na 1 2 7\na 2 3 -1\n"),
+            ("metis", "% é😀\n3 2 011\n5 2 7\n1 1 7 3 2\n2 2 2\n"),
+            ("cytoscapeJSON", "{\"directed\": true, \"data\": [[\"g\", 1]], \"elements\": {\"nodes\": [{\"data\": {\"id\": \"é\\ud83d\\ude00\"}}, {\"data\": {\"id\": 7, \"x\": -1.5e-3}}], \"edges\": [{\"data\": {\"source\": 7, \"target\": \"é😀\", \"ok\": false}}]}}"),
+            ("edgeListDict", "é😀,b,{'w': 1.5, 's': 'x,y'} # c\nb,c,{}\n"),
         ]
         let clock = ContinuousClock()
         let start = clock.now
@@ -193,14 +219,24 @@ struct GraphFormatsHostileInputScaleTests {
                     case "matrixMarket": _ = try DirectedPseudograph<Int>(matrixMarket: input)
                     case "edgeList": _ = try DirectedPseudograph<String>(edgeList: input, columns: ["w"])
                     case "adjacencyList": _ = try DirectedPseudograph<String>(adjacencyList: input)
-                    default: _ = try DirectedPseudograph<String>(mermaid: input)
+                    case "mermaid": _ = try DirectedPseudograph<String>(mermaid: input)
+                    case "dotSubgraph": _ = try DirectedPseudograph<String>(dot: input)
+                    case "gml": _ = try DirectedPseudograph<String>(gml: input)
+                    case "pajek": _ = try DirectedPseudograph<String>(pajek: input)
+                    case "graph6": _ = try Pseudograph<Int>(graph6: input)
+                    case "sparse6": _ = try Pseudograph<Int>(sparse6: input)
+                    case "digraph6": _ = try DirectedPseudograph<Int>(digraph6: input)
+                    case "dimacs": _ = try DirectedPseudograph<Int>(dimacs: input)
+                    case "metis": _ = try Pseudograph<Int>(metis: input)
+                    case "cytoscapeJSON": _ = try DirectedPseudograph<String>(cytoscapeJSON: input)
+                    default: _ = try DirectedPseudograph<String>(edgeList: input, delimiter: ",")
                     }
                 } catch {
                     thrown = error
                 }
                 let complete = cut == bytes.count
                 if complete { #expect(thrown == nil, "\(format) whole file: \(String(describing: thrown))") }
-                if ["dot", "graphML", "nodeLinkJSON"].contains(format) && !complete {
+                if ["dot", "graphML", "nodeLinkJSON", "dotSubgraph", "gml", "graph6", "digraph6", "cytoscapeJSON"].contains(format) && !complete {
                     #expect(thrown != nil, "\(format) prefix of \(cut) bytes was accepted")
                 }
                 // A cut inside a scalar: invalidUTF8 at its lead byte.
@@ -235,6 +271,16 @@ struct GraphFormatsHostileInputScaleTests {
             ("edgeList", "# c\na b 1 x\nb c -2.5 y # z\n"),
             ("adjacencyList", "a b c\nb a # c\nd\n"),
             ("mermaid", "flowchart TD\n  A[box] -->|yes| B(round) -.-> C{d}\n  B == t ==> D;\n  classDef x fill:#f00\n"),
+            ("dot", "digraph { subgraph cluster { edge [w=2]; a:p -> {b c} -> d:q:n } e -> subgraph { f } }"),
+            ("gml", "graph [ directed 1 node [ id 1 label \"a&amp;\" w 1.5 ] node [ id 2 g [ x 1 ] ] edge [ source 1 target 2 k \"v\" ] ]"),
+            ("pajek", "*Vertices 3\n1 \"a b\" 0.1 0.2 box c 'x'\n*Arcs\n1 2 3.5 l \"q\\\"\"\n*Arcslist\n3 1 2\n"),
+            ("graph6", "Dhc\n"),
+            ("sparse6", ":Fa@x^\n"),
+            ("digraph6", "&DI?AO?\n"),
+            ("dimacs", "c x\np sp 3 2\na 1 2 5\na 3 1 -2\n"),
+            ("metis", "3 2 1\n2 4\n1 4 3 1\n2 1\n"),
+            ("cytoscapeJSON", "{\"directed\": true, \"data\": {\"n\": \"g\"}, \"elements\": [{\"data\": {\"id\": \"a\", \"w\": 1}}, {\"group\": \"nodes\", \"data\": {\"id\": 2}}, {\"data\": {\"source\": \"a\", \"target\": 2}}]}"),
+            ("edgeListDict", "a b {'w': 1, 's': 'x # y', 'ok': True}\nb c {}\n"),
         ]
         let alphabet = Array("<>{}[]\"&;#-=|\\\n\r\t 0aZ%.:".utf8) + [0xC3, 0xFF]
         var rng = SeededRandomNumberGenerator(seed: 7)
@@ -261,7 +307,16 @@ struct GraphFormatsHostileInputScaleTests {
                 case "matrixMarket": _ = try DirectedPseudograph<Int>(matrixMarket: input)
                 case "edgeList": _ = try Pseudograph<String>(edgeList: input, columns: ["w", "s"])
                 case "adjacencyList": _ = try DirectedPseudograph<String>(adjacencyList: input)
-                default: _ = try DirectedPseudograph<String>(mermaid: input)
+                case "mermaid": _ = try DirectedPseudograph<String>(mermaid: input)
+                case "gml": _ = try DirectedPseudograph<String>(gml: input)
+                case "pajek": _ = try DirectedPseudograph<String>(pajek: input)
+                case "graph6": _ = try Pseudograph<Int>(graph6: input)
+                case "sparse6": _ = try Pseudograph<Int>(sparse6: input)
+                case "digraph6": _ = try DirectedPseudograph<Int>(digraph6: input)
+                case "dimacs": _ = try DirectedPseudograph<Int>(dimacs: input)
+                case "metis": _ = try Pseudograph<Int>(metis: input)
+                case "cytoscapeJSON": _ = try DirectedPseudograph<String>(cytoscapeJSON: input)
+                default: _ = try Pseudograph<String>(edgeList: input)
                 }
                 accepted += 1
             } catch {

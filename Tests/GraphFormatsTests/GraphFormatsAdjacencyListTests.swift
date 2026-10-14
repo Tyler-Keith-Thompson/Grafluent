@@ -1,6 +1,6 @@
-// Adjacency list (catalog GF-156 – GF-160 read, GF-219 – GF-221 write): a head and its neighbours
-// per line; ref.py checks the write rows byte for byte against NetworkX's write_adjlist without
-// its header.
+// Adjacency list (catalog GF-156 – GF-160, GF-240 read, GF-219 – GF-221 write): a head and its
+// neighbours per line; ref.py checks the write rows byte for byte against NetworkX's write_adjlist
+// without its header.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule

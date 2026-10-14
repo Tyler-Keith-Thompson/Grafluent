@@ -1,6 +1,6 @@
-// Matrix Market (catalog GF-111 – GF-146 and GF-230 read, GF-207 – GF-214 write): coordinate matrices into
-// vertices 0..<n, symmetric files into either kind, weights under "weight"; ref.py checks the
-// write rows byte for byte against SciPy's mmwrite.
+// Matrix Market (catalog GF-111 – GF-146, GF-230, GF-232, GF-247, GF-249 – GF-251, GF-257 read, GF-207
+// – GF-214 write): coordinate matrices into vertices 0..<n, symmetric files into either kind, weights
+// under "weight"; ref.py checks the write rows byte for byte against SciPy's mmwrite.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule

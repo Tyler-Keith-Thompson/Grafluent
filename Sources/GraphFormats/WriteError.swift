@@ -21,4 +21,9 @@ public enum WriteError: Error, Hashable, Sendable {
     /// One GraphML attribute name holding values of two types, other than integers and doubles
     /// (which share a `double` key).
     case typeMismatch
+    /// A self-loop, in a format that cannot hold one (graph6, METIS).
+    case selfLoop
+    /// Two edges between one pair of vertices, in a format that cannot hold them: graph6 and METIS
+    /// (an unordered pair), digraph6 (an ordered pair).
+    case parallelEdge
 }

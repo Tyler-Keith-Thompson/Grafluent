@@ -1,5 +1,5 @@
-// Mermaid (catalog GF-161 – GF-185 and GF-231 read, GF-222 – GF-225 write): flowcharts with every
-// supported shape and link, labels kept and styling skipped; the writer quotes every label.
+// Mermaid (catalog GF-161 – GF-185, GF-231, GF-244 – GF-246 read, GF-222 – GF-225 write): flowcharts
+// with every supported shape and link, labels kept and styling skipped; the writer quotes every label.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import AdjacencyListModule

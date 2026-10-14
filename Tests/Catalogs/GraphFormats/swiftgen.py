@@ -42,7 +42,7 @@ for line in TEXT.split("\n"):
     if line.startswith("| GF-"):
         ROWS[line.split(" | ")[0][2:]] = line
 CASES = ref.CASES
-assert len(CASES) == len(ROWS) == 259
+assert len(CASES) == len(ROWS) == 592
 for c in CASES:
     r = ref.evaluate(c)
     cells = ROWS[c["id"]].split(" | ")
@@ -188,6 +188,10 @@ def read_test(c):
     label = FORMAT_LABEL[fmt]
     columns = c["kw"].get("columns")
     col_arg = f", columns: {arr(lit(x) for x in columns)}" if columns is not None else ""
+    if c["kw"].get("delimiter") is not None:
+        col_arg += f", delimiter: {lit(c['kw']['delimiter'])}"
+    if c["kw"].get("maximumVertexCount") is not None:
+        col_arg += f", maximumVertexCount: {c['kw']['maximumVertexCount']}"
     if isinstance(r, ref.ParseError):
         lines.append("        do {")
         lines.append(f"            let graph = try {typ}({label}: {arg}{col_arg})")
@@ -198,9 +202,10 @@ def read_test(c):
         lines.append("        }")
         lines.append("    }")
         return lines
-    has_va = fmt in ("dot", "graphML", "nodeLinkJSON")
-    has_ea = fmt in ("dot", "graphML", "nodeLinkJSON", "matrixMarket", "edgeList")
-    has_ga = fmt in ("dot", "graphML", "nodeLinkJSON")
+    has_va = fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "pajek", "metis", "cytoscapeJSON")
+    has_ea = fmt in ("dot", "graphML", "nodeLinkJSON", "matrixMarket", "edgeList", "gml", "pajek", "metis",
+                     "cytoscapeJSON") or (fmt == "dimacs" and directed)
+    has_ga = fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "pajek", "cytoscapeJSON")
     closures = []
     if has_va:
         lines.append(f"        var vertexKeys: [{vt}: [String]] = [:]")
@@ -298,7 +303,7 @@ def write_test(c):
     vcases = [(vname(v), a) for v, a in zip(g.vertices, g.vattrs) if a]
     ecases = [(str(p), a) for p, a in enumerate(g.eattrs) if a]
     args = []
-    if fmt in ("dot", "graphML", "nodeLinkJSON"):
+    if fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "cytoscapeJSON", "pajek"):
         vc = switch_closure("v", vcases)
         ec = switch_closure("e", ecases)
         if vc:
@@ -306,8 +311,19 @@ def write_test(c):
         if ec:
             args.append("edgeAttributes: " + ec)
         if g.gattrs:
+            assert fmt != "pajek"
             args.append("graphAttributes: " + attribute_pairs([(lit(k), value(x)) for k, x in g.gattrs.items()]))
-        call = {"dot": "writeDOT", "graphML": "writeGraphML", "nodeLinkJSON": "writeNodeLinkJSON"}[fmt]
+        call = {"dot": "writeDOT", "graphML": "writeGraphML", "nodeLinkJSON": "writeNodeLinkJSON", "gml": "writeGML",
+                "cytoscapeJSON": "writeCytoscapeJSON", "pajek": "writePajek"}[fmt]
+    elif fmt in ("graph6", "sparse6", "digraph6"):
+        call = {"graph6": "writeGraph6", "sparse6": "writeSparse6", "digraph6": "writeDigraph6"}[fmt]
+        if kw.get("header"):
+            args.append("header: true")
+    elif fmt in ("dimacs", "metis"):
+        call = {"dimacs": "writeDIMACS", "metis": "writeMETIS"}[fmt]
+        if kw.get("weight") is not None:
+            lines.append(f"        let weights: [Int] = {arr(str(x) for x in kw['weight'])}")
+            args.append("weight: { weights[$0] }")
     elif fmt == "matrixMarket":
         call = "writeMatrixMarket"
         if "weight" in kw:
@@ -321,6 +337,8 @@ def write_test(c):
         call = "writeEdgeList"
         if "columns" in kw:
             args.append("columns: " + arr(lit(x) for x in kw["columns"]))
+        if kw.get("delimiter") is not None:
+            args.append("delimiter: " + lit(kw["delimiter"]))
         ec = switch_closure("e", ecases)
         if ec and "columns" in kw:
             args.append("edgeAttributes: " + ec)
@@ -336,7 +354,7 @@ def write_test(c):
             args.append("edgeLabel: " + el)
     lines.append('        var output = ""')
     # Every writer but Matrix Market's throws WriteError on data its format cannot hold.
-    throwing = call != "writeMatrixMarket"
+    throwing = call not in ("writeMatrixMarket", "writeSparse6", "writeDIMACS")
     if throwing:
         lines[1] = f"    func {fname(c)}() throws {{"
     lines.append("        " + ("try " if throwing else "") + f"graph.{call}(to: &output" + "".join(", " + a for a in args) + ")")
@@ -345,41 +363,84 @@ def write_test(c):
     return lines
 
 
+def id_ranges(fmts, kind):
+    """The catalog IDs of a file's rows of one kind, as runs: GF-001 – GF-042, GF-226."""
+    nums = [int(c["id"][3:]) for c in CASES if c["fmt"] in fmts and c["kind"] == kind]
+    runs, start = [], None
+    for k, n in enumerate(nums):
+        if start is None:
+            start = n
+        if k + 1 == len(nums) or nums[k + 1] != n + 1:
+            runs.append(f"GF-{start:03d}" + (f" – GF-{n:03d}" if n != start else ""))
+            start = None
+    return ", ".join(runs)
+
+
+def catalog_comment(title, fmts, text):
+    reads, writes = id_ranges(fmts, "read"), id_ranges(fmts, "write")
+    head = f"{title} (catalog {reads} read" + (f", {writes} write" if writes else "") + "): "
+    words, lines, line = (head + text).split(" "), [], ""
+    for w in words:
+        if len(line) + len(w) + 1 > 100 and line:
+            lines.append(line)
+            line = w
+        else:
+            line = w if not line else line + " " + w
+    lines.append(line)
+    return "\n// ".join(lines)
+
+
 FILES = [
-    ("GraphFormatsDOTTests.swift", "GraphFormats DOT", "dot",
-     "DOT (catalog GF-001 – GF-042 and GF-226 read, GF-186 – GF-192 write): the grammar without subgraphs\n"
-     "// and ports, values read as strings, node and edge defaults applied to later statements, strict\n"
-     "// merging, DOT's quoting; the writer's canonical form, quoting only where an ID needs it."),
-    ("GraphFormatsGraphMLTests.swift", "GraphFormats GraphML", "graphML",
-     "GraphML (catalog GF-043 – GF-082 and GF-227 read, GF-193 – GF-199 write): the XML subset (no DTD, no\n"
-     "// entities but the five), typed keys with defaults, edges resolved after the nodes, unsupported\n"
-     "// features rejected precisely; the writer's keys by first appearance, graph keys first."),
-    ("GraphFormatsNodeLinkJSONTests.swift", "GraphFormats node-link JSON", "nodeLinkJSON",
-     "Node-link JSON (catalog GF-083 – GF-110, GF-228 and GF-229 read, GF-200 – GF-206 write): the layout over\n"
-     "// strict RFC 8259 JSON, scalar attributes only; ref.py checks the write rows byte for byte against\n"
-     "// json.dumps(node_link_data)."),
-    ("GraphFormatsMatrixMarketTests.swift", "GraphFormats Matrix Market", "matrixMarket",
-     "Matrix Market (catalog GF-111 – GF-146 and GF-230 read, GF-207 – GF-214 write): coordinate matrices into\n"
-     "// vertices 0..<n, symmetric files into either kind, weights under \"weight\"; ref.py checks the\n"
-     "// write rows byte for byte against SciPy's mmwrite."),
-    ("GraphFormatsEdgeListTests.swift", "GraphFormats edge list", "edgeList",
-     "Edge list (catalog GF-147 – GF-155 read, GF-215 – GF-218 write): two fields and the declared\n"
-     "// columns per line, typed by their text; ref.py checks the write rows byte for byte against\n"
-     "// NetworkX's write_edgelist."),
-    ("GraphFormatsAdjacencyListTests.swift", "GraphFormats adjacency list", "adjacencyList",
-     "Adjacency list (catalog GF-156 – GF-160 read, GF-219 – GF-221 write): a head and its neighbours\n"
-     "// per line; ref.py checks the write rows byte for byte against NetworkX's write_adjlist without\n"
-     "// its header."),
-    ("GraphFormatsMermaidTests.swift", "GraphFormats Mermaid", "mermaid",
-     "Mermaid (catalog GF-161 – GF-185 and GF-231 read, GF-222 – GF-225 write): flowcharts with every\n"
-     "// supported shape and link, labels kept and styling skipped; the writer quotes every label."),
+    ("GraphFormatsDOTTests.swift", "GraphFormats DOT", ("dot",), "DOT",
+     "the grammar with subgraphs and ports, values read as strings, node and edge defaults applied to later "
+     "statements and scoped by subgraphs, strict merging, DOT's quoting; the writer's canonical form, quoting only "
+     "where an ID needs it."),
+    ("GraphFormatsGraphMLTests.swift", "GraphFormats GraphML", ("graphML",), "GraphML",
+     "the XML subset (no DTD, no entities but the five), typed keys with defaults, nested graphs read into the one "
+     "graph, edges resolved after the nodes, unsupported features rejected precisely; the writer's keys by first "
+     "appearance, graph keys first."),
+    ("GraphFormatsNodeLinkJSONTests.swift", "GraphFormats node-link JSON", ("nodeLinkJSON",), "Node-link JSON",
+     "the layout over strict RFC 8259 JSON, scalar attributes only, array ids as their canonical text; ref.py "
+     "checks the write rows byte for byte against json.dumps(node_link_data)."),
+    ("GraphFormatsMatrixMarketTests.swift", "GraphFormats Matrix Market", ("matrixMarket",), "Matrix Market",
+     "coordinate matrices into vertices 0..<n, symmetric files into either kind, weights under \"weight\"; ref.py "
+     "checks the write rows byte for byte against SciPy's mmwrite."),
+    ("GraphFormatsEdgeListTests.swift", "GraphFormats edge list", ("edgeList",), "Edge list",
+     "two fields and the declared columns per line, typed by their text, or a NetworkX data dict; whitespace or a "
+     "delimiter between fields; ref.py checks the write rows byte for byte against NetworkX's write_edgelist."),
+    ("GraphFormatsAdjacencyListTests.swift", "GraphFormats adjacency list", ("adjacencyList",), "Adjacency list",
+     "a head and its neighbours per line; ref.py checks the write rows byte for byte against NetworkX's "
+     "write_adjlist without its header."),
+    ("GraphFormatsMermaidTests.swift", "GraphFormats Mermaid", ("mermaid",), "Mermaid",
+     "flowcharts with every supported shape and link, labels kept and styling skipped; the writer quotes every "
+     "label."),
+    ("GraphFormatsGMLTests.swift", "GraphFormats GML", ("gml",), "GML",
+     "Himsolt's key-value lists, nodes named by their labels, typed values, lists skipped, edges resolved after "
+     "the graph; ref.py checks the write rows byte for byte against NetworkX's write_gml."),
+    ("GraphFormatsPajekTests.swift", "GraphFormats Pajek", ("pajek",), "Pajek",
+     "*vertices with labels, coordinates and pairs, *arcs and *edges with weights, the list sections, shlex "
+     "quoting; ref.py checks the write rows byte for byte against NetworkX's write_pajek."),
+    ("GraphFormatsNautyTests.swift", "GraphFormats graph6, sparse6, digraph6", ("graph6", "sparse6", "digraph6"),
+     "graph6, sparse6 and digraph6",
+     "nauty's formats on vertices 0..<n, with and without headers; ref.py checks the graph6 and sparse6 write "
+     "rows byte for byte against NetworkX, except where nauty's padding rule differs."),
+    ("GraphFormatsDIMACSTests.swift", "GraphFormats DIMACS", ("dimacs",), "DIMACS",
+     "shortest-path files (p sp, weighted arcs) and clique and colouring files (p edge, p col) on vertices "
+     "0..<n, the declared edge count checked."),
+    ("GraphFormatsMETISTests.swift", "GraphFormats METIS", ("metis",), "METIS",
+     "the header with its fmt and ncon, one line per vertex, every edge listed from both ends, sizes and "
+     "weights."),
+    ("GraphFormatsCytoscapeJSONTests.swift", "GraphFormats Cytoscape JSON", ("cytoscapeJSON",), "Cytoscape JSON",
+     "elements as an object or an array, data as an object or NetworkX's pairs, ids as text; ref.py checks the "
+     "write rows byte for byte against json.dumps(cytoscape_data)."),
 ]
 IMPORTS = {"AdjacencyListModule": ("AdjacencyList<", "UndirectedAdjacencyList<"),
            "Multigraphs": ("DirectedPseudograph<", "Pseudograph<")}
 
 
-def write(name, suite, fmt, comment):
-    tests = [read_test(c) if c["kind"] == "read" else write_test(c) for c in CASES if c["fmt"] == fmt]
+def write(name, suite, fmts, heading, text):
+    comment = catalog_comment(heading, fmts, text)
+    tests = [read_test(c) if c["kind"] == "read" else write_test(c) for c in CASES if c["fmt"] in fmts]
     body = []
     for i, t in enumerate(tests):
         if i:
@@ -423,8 +484,8 @@ def write_traps():
 
 os.makedirs(OUT, exist_ok=True)
 total = 0
-for name, suite, fmt, comment in FILES:
-    k = write(name, suite, fmt, comment)
+for name, suite, fmts, heading, text in FILES:
+    k = write(name, suite, fmts, heading, text)
     print(name, k)
     total += k
 assert total == len(CASES), total

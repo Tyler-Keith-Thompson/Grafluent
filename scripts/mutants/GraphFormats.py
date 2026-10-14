@@ -1,4 +1,5 @@
-# Planted bugs for GraphFormats: the scanners (UTF-8, lines, XML, JSON, the shared key index), every
+# Planted bugs for GraphFormats (GML, Pajek, the nauty formats, DIMACS, METIS, Cytoscape JSON and
+# delimited and dict edge lists included): the scanners (UTF-8, lines, XML, JSON, the shared key index), every
 # reader and writer, node-link's one-pass read and GraphML's lookahead, the limits (Matrix Market's
 # vertex bound, the expansion budget), the decimal parser and Schubfach, and the bulk hooks in
 # AdjacencyListModule and Multigraphs the readers build through. Run with `just mutate
@@ -6,7 +7,14 @@
 #
 # Not planted, being equivalent: `q > -53` → `q > -52` in Schubfach's integer shortcut (only
 # q = -52 changes, i.e. [1, 2), whose one integer is 1.0, and the general path gives it the same
-# shortest digits).
+# shortest digits). `if x >= n || v >= n { break }` → `if v >= n { break }` in the sparse6
+# reader: with v < n ≤ x the next step sets v = x ≥ n, after which no unit adds an edge (nauty's
+# own reader goes on that way), so stopping or not reads the same graph. In the Cytoscape edge
+# pass, counting a multigraph's `key` as an attribute only marks the edge for the reporting pass,
+# which skips `key` itself: the same calls either way. In the plain Pajek edge-line path a quote,
+# apostrophe or backslash makes the field fail `_fastDecimal` anyway, and a `-` before an unsigned
+# field gives a value below 1 that fails the range check, so both lines go to the general reading
+# either way.
 
 TESTS = ["GraphFormatsTests"]
 
@@ -32,6 +40,14 @@ OB = "OutputBuffer.swift"
 IDT = "IDTable.swift"
 FO = "FileOrderConstruction.swift"
 PM = "Pseudograph+MutableGraph.swift"
+IL = "IntegerLists.swift"
+NA = "Nauty.swift"
+DI = "DIMACS.swift"
+ME = "METIS.swift"
+GF = "GML.swift"
+PJ = "Pajek.swift"
+CY = "CytoscapeJSON.swift"
+PY = "PythonLiterals.swift"
 
 MUTANTS = [
     # UTF-8 and positions.
@@ -72,9 +88,9 @@ MUTANTS = [
     Mutant("mmcount", MM, "if seen < entries { throw ParseError(.entryCountMismatch, at: n) }", "", mode="stmt"),
 
     # Edge and adjacency lists.
-    Mutant("elcount", EL, "if line.count > width { throw ParseError(.syntax, at: line.extraStart) }", "", mode="stmt"),
-    Mutant("elshort", EL, "if line.count < width { throw ParseError(.syntax, at: line.contentEnd) }", "", mode="stmt"),
-    Mutant("elcolumns", EL, "value(position, k, _lexicalValue(text, s, e))", "value(position, 0, _lexicalValue(text, s, e))", mode="stmt"),
+    Mutant("elcount", EL, "if count > width && !dict { throw ParseError(.syntax, at: extraStart) }", "", mode="stmt"),
+    Mutant("elshort", EL, "if count < width { throw ParseError(.syntax, at: contentEnd) }", "", mode="stmt"),
+    Mutant("elcolumns", EL, "buffer.record(position, k, _lexicalValue(text, s, e))", "buffer.record(position, 0, _lexicalValue(text, s, e))", mode="stmt"),
     Mutant("alhead", AL, "_ = target.insertEdge(head, resolved.key)", "_ = target.insertEdge(resolved.key, head)", mode="stmt"),
     Mutant("alline", AL, "while q < n && text[q] != 0x0A { q &+= 1 }", "", mode="stmt"),
 
@@ -96,11 +112,11 @@ MUTANTS = [
     Mutant("parallelkey", PM, "undirected && b < a ? _SlotPair(b, a) : _SlotPair(a, b)", "_SlotPair(a, b)", module="Multigraphs"),
 
     # DOT.
-    Mutant("dotdefaultplace", DOT, "nodeDefaults[place].1 = v", "nodeDefaults.append((k, v))", mode="stmt"),
-    Mutant("dotdefaultscalar", DOT, "edgeDefaultIndex[_ScalarKey(k)]", "edgeDefaults.firstIndex(where: { $0.0 == k })", nth=0),
+    Mutant("dotdefaultplace", DOT, "pairs[place].1 = value", "pairs.append((key, value))", mode="stmt"),
+    Mutant("dotdefaultscalar", DOT, "index[_ScalarKey(key)]", "pairs.firstIndex(where: { $0.0 == key })", nth=0),
     Mutant("dotbudgetvertex", DOT, "try budget.spend(defaults.count, at: statement)", "", mode="stmt"),
-    Mutant("dotbudgetedge", DOT, "try budget.spend(edgeDefaults.count &+ pairs.count, at: lexeme.start)",
-           "try budget.spend(edgeDefaults.count, at: lexeme.start)", mode="stmt"),
+    Mutant("dotbudgetedge", DOT, "try budget.spend(perEdge &+ edgeDefaults.pairs.count &+ ports &+ pairs.count, at: statement)",
+           "try budget.spend(perEdge &+ edgeDefaults.pairs.count, at: statement)", mode="stmt"),
     Mutant("dotidcheck", DOT, "try ids.set(k) { _appendDOTID(id, to: &$0) }",
            "try ids.set(k) { _appendDOTID(id + \"\\(k)\", to: &$0) }", mode="stmt"),
 
@@ -206,10 +222,10 @@ MUTANTS = [
 
     # Write errors: each check, and the held output of the writers that check as they write.
     Mutant("heldoutput", OB, "pieces.append(piece)", "output.write(piece)"),
-    Mutant("elidtoken", EL, "if !_appendListToken(id, to: &bytes) { throw .invalidID }", "_ = _appendListToken(id, to: &bytes)", mode="stmt"),
-    Mutant("elvaluetoken", EL, "if !_appendListToken(s, to: &scratch) { throw .invalidValue }", "_ = _appendListToken(s, to: &scratch)", mode="stmt"),
+    Mutant("elidtoken", EL, "if !_appendListToken(id, delimiter: delimiter, to: &bytes) { throw .invalidID }", "_ = _appendListToken(id, delimiter: delimiter, to: &bytes)", mode="stmt"),
+    Mutant("elvaluetoken", EL, "if !_appendListToken(s, delimiter: delimiter, to: &scratch) { throw .invalidValue }", "_ = _appendListToken(s, delimiter: delimiter, to: &scratch)", mode="stmt"),
     Mutant("elboolean", EL, "throw .invalidValue", "out.appendASCII(\"True\")", mode="stmt", nth=1),
-    Mutant("alidtoken", AL, "if !_appendListToken(id, to: &bytes) { throw .invalidID }", "_ = _appendListToken(id, to: &bytes)", mode="stmt"),
+    Mutant("alidtoken", AL, "if !_appendListToken(id, delimiter: nil, to: &bytes) { throw .invalidID }", "_ = _appendListToken(id, delimiter: nil, to: &bytes)", mode="stmt"),
     Mutant("gmlvaluexml", GML, "if !_isXMLRepresentable(s) { throw .invalidValue }", "", mode="stmt"),
     Mutant("gmlkeyxml", GML, "if !_isXMLRepresentable(pair.key) { throw .invalidKey }", "", mode="stmt"),
     Mutant("gmlidxml", GML, "_isXMLRepresentable(id)", "true"),
@@ -246,4 +262,171 @@ MUTANTS = [
     Mutant("pyexpdigits", DF, "magnitude / 10 % 10", "magnitude / 10"),
     Mutant("scipyexp", DF, "d.exponent != 0", "true"),
     Mutant("sftwodigit", DF, "s >= 10", "s >= 100"),
+    # Shared helpers of the readers that insert a declared vertex count.
+    Mutant("vertexbounddefault", RT, "_ExpansionBudget(inputCount: inputCount, perByte: 16).remaining", "_ExpansionBudget(inputCount: inputCount, perByte: 1 << 20).remaining"),
+    Mutant("indexidentity", RT, "keys.append(identity ? target.appendDistinct(vertex) : target.key(for: vertex).key)", "keys.append(target.appendDistinct(vertex))", mode="stmt"),
+
+    # graph6, sparse6, digraph6.
+    Mutant("nautyheader", NA, "return matches ? k : 0", "return 0", mode="stmt"),
+    Mutant("nautysizeshort", NA, "if first < 126 { return (Int(first &- 63), p &+ 1) }", "if first <= 126 { return (Int(first &- 63), p &+ 1) }", mode="stmt"),
+    Mutant("nautysizewide", NA, "text[q] == 126", "false"),
+    Mutant("nautyextra", NA, "q &- p == limit || !_isNautyByte(text[q])", "!_isNautyByte(text[q])"),
+    Mutant("nautyshort", NA, "if end &- dataStart < needed { throw ParseError(.unexpectedEndOfInput, at: end) }", "", mode="stmt"),
+    Mutant("nautypadding", NA, "if needed > 0 && (text[end &- 1] &- 63) & UInt8((1 << padding) &- 1) != 0 { throw ParseError(.invalidValue, at: end &- 1) }", "", mode="stmt"),
+    Mutant("nautytrailing", NA, "if q < count { throw ParseError(.syntax, at: q) }", "", mode="stmt"),
+    Mutant("nautycrlf", NA, "lineFeed > p && text[lineFeed &- 1] == 0x0D", "false"),
+    Mutant("nautycolumn", NA, "i == j", "i > j"),
+    Mutant("nautyrow", NA, "j == n", "j > n"),
+    Mutant("sparse6width", NA, "n <= 1 ? 0 : Int.bitWidth &- (n &- 1).leadingZeroBitCount", "n <= 1 ? 1 : Int.bitWidth &- (n &- 1).leadingZeroBitCount"),
+    Mutant("sparse6orient", NA, "_ = target.insertEdge(keys[x], keys[v])", "_ = target.insertEdge(keys[v], keys[x])", mode="stmt"),
+    Mutant("sparse6limit", NA, "if n > _vertexBound(maximumVertexCount, inputCount: text.count) { throw ParseError(.limitExceeded, at: sizeOffset) }", "", mode="stmt"),
+    Mutant("sparse6incremental", NA, "if text[p] == UInt8(ascii: \";\") { throw ParseError(.unsupported, at: p) }", "", mode="stmt"),
+    Mutant("nautyloop", NA, "if u == v { throw .selfLoop }", "", mode="stmt"),
+    Mutant("nautyparallel", NA, "if data[byte] & mask != 0 { throw .parallelEdge }", "", mode="stmt"),
+    Mutant("sparse6pad", NA, "k >= width &+ 1 && last == n &- 2 && n == 1 << width", "false"),
+    Mutant("sparse6skip", NA, "j > last &+ 1", "j > last &+ 2"),
+    Mutant("nautysizeeight", NA, "n > 258_047", "n > 262_143"),
+
+    # DIMACS.
+    Mutant("dimacscomment", DI, "if e0 &- s0 == 1 && text[s0] == UInt8(ascii: \"c\") { continue }", "", mode="stmt"),
+    Mutant("dimacskind", DI, "if shortestPath != directed { throw ParseError(.kindMismatch, at: s) }", "", mode="stmt"),
+    Mutant("dimacsmany", DI, "if seen == m { throw ParseError(.entryCountMismatch, at: s0) }", "", mode="stmt"),
+    Mutant("dimacsfew", DI, "if seen < m { throw ParseError(.entryCountMismatch, at: text.count) }", "", mode="stmt"),
+    Mutant("dimacsindex", DI, "if value < 1 || value > n { throw ParseError(.indexOutOfRange, at: field.0) }", "if value < 1 || value > n &+ 1 { throw ParseError(.indexOutOfRange, at: field.0) }", mode="stmt"),
+    Mutant("dimacsweight", DI, "if directed { weight(edge, w) }", "", mode="stmt"),
+    Mutant("dimacswidth", DI, "width = letter == UInt8(ascii: \"a\") ? 4 : 3", "width = 4", mode="stmt"),
+    Mutant("dimacslimit", DI, "if n > _vertexBound(maximumVertexCount, inputCount: text.count) { throw ParseError(.limitExceeded, at: fields[2].0) }", "", mode="stmt"),
+    Mutant("dimacsflow", DI, "_matches(text, s, e, \"max\")", "false"),
+    Mutant("dimacswriteweight", DI, "out.appendDecimal(weight(position))", "out.appendDecimal(0)", mode="stmt"),
+
+    # METIS.
+    Mutant("metisfmt", ME, "if place == 0 { hasEdgeWeight = true } else if place == 1 { hasVertexWeight = true } else { hasSize = true }",
+           "if place == 1 { hasEdgeWeight = true } else if place == 0 { hasVertexWeight = true } else { hasSize = true }", mode="stmt"),
+    Mutant("metisncon", ME, "if ncon > 1 { throw ParseError(.unsupported, at: s) }", "", mode="stmt"),
+    Mutant("metisloop", ME, "if v == u { throw ParseError(.invalidValue, at: field.0) }", "", mode="stmt"),
+    Mutant("metismirror", ME, "unmirrored = field.0", "", mode="stmt"),
+    Mutant("metisunconsumed", ME, "unmirrored ?? mirrors.firstUnconsumed()", "unmirrored"),
+    Mutant("metiscount", ME, "if later != m { throw ParseError(.entryCountMismatch, at: edgeCountOffset) }", "", mode="stmt"),
+    Mutant("metisweight", ME, "!consumed[k] && weight[k] == w", "!consumed[k]"),
+    Mutant("metissort", ME, "!sorted", "false"),
+    Mutant("metisorder", ME, "order[k] < best", "order[k] > best"),
+    Mutant("metistrailing", ME, "if q < line.end { throw ParseError(.syntax, at: q) }", "", mode="stmt"),
+    Mutant("metiscomment", ME, "if line.end > line.start && text[line.start] == UInt8(ascii: \"%\") { continue }", "", mode="stmt", nth=1),
+    Mutant("metissize", ME, "buffer.recordVertex(keys[u], 1, .integer(try _integerValue(text, field)))", "buffer.recordVertex(keys[u], 0, .integer(try _integerValue(text, field)))", mode="stmt"),
+    Mutant("metiswriterrepeat", ME, "if stamp[far[k]] == u { firstRepeat = min(firstRepeat, edge[k]) }", "", mode="stmt"),
+    Mutant("metiswriterloop", ME, "if firstLoop < firstRepeat { throw .selfLoop }", "", mode="stmt"),
+    Mutant("metiswriterheader", ME, "out.appendASCII(hasWeight ? \" 1\\n\" : \"\\n\")", "out.appendASCII(\"\\n\")", mode="stmt"),
+
+    # GML.
+    Mutant("gmlcomment", GF, "c == UInt8(ascii: \"#\")", "false"),
+    Mutant("gmlinf", GF, "if isKey(word, \"INF\") { return (.double(.infinity), start) }", "", mode="stmt"),
+    Mutant("gmlintegral", GF, "if integral { throw ParseError(.numberOutOfRange, at: start) }", "", mode="stmt"),
+    Mutant("gmlboundary", GF, "if p < n && _isGMLKeyByte(text[p]) { throw ParseError(.syntax, at: p) }", "", mode="stmt"),
+    Mutant("gmldepth", GF, "if depth > 64 { throw ParseError(.nestingTooDeep, at: open) }", "if depth > 65 { throw ParseError(.nestingTooDeep, at: open) }", mode="stmt"),
+    Mutant("gmlsecond", GF, "if graphSeen { throw ParseError(.unsupported, at: name.lowerBound) }", "", mode="stmt"),
+    Mutant("gmlnograph", GF, "if !graphSeen { throw ParseError(.unexpectedEndOfInput, at: n) }", "", mode="stmt"),
+    Mutant("gmldirected", GF, "if directed && (flag == 1) != Direction.isDirected { throw ParseError(.kindMismatch, at: offset) }", "", mode="stmt"),
+    Mutant("gmlmissingdirected", GF, "if Direction.isDirected && !directedSeen { throw ParseError(.kindMismatch, at: graphOffset) }", "", mode="stmt"),
+    Mutant("gmlundeclared", GF, "ids[targets[k]]", "ids[sources[k]]"),
+    Mutant("gmldupid", GF, "if ids[id] != nil { throw ParseError(.duplicateVertex, at: idOffset) }", "", mode="stmt"),
+    Mutant("gmlname", GF, "map(label.map(AttributeValue.string) ?? .integer(id))", "map(.integer(id))"),
+    Mutant("gmllabeltext", GF, "label = _string(UnsafeBufferPointer(rebasing: text[offset ..< p]))", "label = \"\"", mode="stmt"),
+    Mutant("gmlids", GF, "return id < dense.count && dense[id] != 0 ? dense[id] &- 1 : nil", "return id < dense.count && dense[id] != 0 ? dense[id] : nil", mode="stmt"),
+    Mutant("gmlamp", GF, "decoded = \"&\"", "decoded = nil", mode="stmt"),
+    Mutant("gmlhex", GF, "k < end && text[k] == UInt8(ascii: \"x\")", "false"),
+    Mutant("gmlclamp", GF, "min(value &* (hex ? 16 : 10) &+ digit, 0x110000)", "value &* (hex ? 16 : 10) &+ digit"),
+    Mutant("gmlwideint", GF, "i >= -(1 << 31) && i < 1 << 31", "true"),
+    Mutant("gmldot", GF, "if !dot { out.append(UInt8(ascii: \".\")) }", "", mode="stmt"),
+    Mutant("gmlinfwrite", GF, "out.appendASCII(d < 0 ? \"-INF\" : \"+INF\")", "out.appendASCII(d < 0 ? \"-INF\" : \"INF\")", mode="stmt"),
+    Mutant("gmlescape", GF, "v >= 0x20 && v <= 0x7E && v != 0x22 && v != 0x26", "v >= 0x20 && v <= 0x7E && v != 0x22"),
+    Mutant("gmlinvalidkey", GF, "guard _isGMLKey(key) else { throw .invalidKey }", "", mode="stmt"),
+    Mutant("gmlreserved", GF, "for word in reserved where _sameScalars(key, ascii: word) { throw .reservedKey }", "", mode="stmt"),
+    Mutant("gmlmultigraph", GF, "if _parallelEdgeKeys(source) != nil { out.appendASCII(\"  multigraph 1\\n\") }", "", mode="stmt"),
+
+    # Pajek.
+    Mutant("pajekdquote", PJ, "if e != UInt8(ascii: \"\\\"\") && e != UInt8(ascii: \"\\\\\") { bytes.append(d) }", "", mode="stmt"),
+    Mutant("pajekescape", PJ, "bytes.append(text[q &+ 1])\n                    q &+= 2", "bytes.append(c)\n                    q &+= 2", mode="stmt"),
+    Mutant("pajeksquote", PJ, "c == UInt8(ascii: \"'\") || c == UInt8(ascii: \"\\\"\")", "c == UInt8(ascii: \"\\\"\")"),
+    Mutant("pajekcomment", PJ, "if q == line.end || text[q] == UInt8(ascii: \"%\") { continue }", "if q == line.end { continue }", mode="stmt"),
+    Mutant("pajekkind", PJ, "if arcs != Direction.isDirected { throw ParseError(.kindMismatch, at: q) }", "", mode="stmt"),
+    Mutant("pajeknetwork", PJ, "graphAttribute(\"name\", .string(_string(UnsafeBufferPointer(rebasing: text[s ..< t]))))", "", mode="stmt"),
+    Mutant("pajekdup", PJ, "if listed[k] { throw ParseError(.duplicateVertex, at: words.offsets[0]) }", "", mode="stmt"),
+    Mutant("pajeklabeldefault", PJ, "labels.append(contentsOf: String(k &+ 1).utf8)", "labels.append(contentsOf: String(k).utf8)", mode="stmt"),
+    Mutant("pajekunlisted", PJ, "scratch.append(contentsOf: String(k &+ 1).utf8)", "scratch.append(contentsOf: String(k).utf8)", mode="stmt"),
+    Mutant("pajekxy", PJ, "f == 4 ? .string(words.string(f)) : .double(try words.real(f))", ".string(words.string(f))"),
+    Mutant("pajekpair", PJ, "guard f &+ 1 < words.count else { throw ParseError(.syntax, at: words.offsets[f]) }", "if f &+ 1 >= words.count { break }", mode="stmt", nth=0),
+    Mutant("pajekweight", PJ, "if let weight { buffer.record(edge, 0, .double(weight)) }", "", mode="stmt", nth=1),
+    Mutant("pajekfastnoweight", PJ, "if let weight { buffer.record(edge, 0, .double(weight)) }", "", mode="stmt", nth=0),
+    Mutant("pajeklist", PJ, "1 ..< max(1, words.count)", "2 ..< max(2, words.count)"),
+    Mutant("pajeklimit", PJ, "if n > _vertexBound(maximumVertexCount, inputCount: text.count) { throw ParseError(.limitExceeded, at: countOffset) }", "", mode="stmt"),
+    Mutant("pajeksecond", PJ, "if verticesSeen { throw ParseError(.unsupported, at: q) }", "", mode="stmt"),
+    Mutant("pajeklistkind", PJ, "section = list ? .edgeLists : .edges", "section = .edges", mode="stmt"),
+    Mutant("pajekapostrophe", PJ, "b == UInt8(ascii: \"\\\"\") || b == UInt8(ascii: \"'\") || b == UInt8(ascii: \"\\\\\")", "b == UInt8(ascii: \"\\\"\") || b == UInt8(ascii: \"\\\\\")"),
+    Mutant("pajekescapewrite", PJ, "sink.append(UInt8(ascii: \"\\\\\"))\n            run = k", "run = k", mode="stmt"),
+    Mutant("pajekskipshape", PJ, "_sameScalars($0, ascii: \"x\") || _sameScalars($0, ascii: \"y\") || _sameScalars($0, ascii: \"shape\")",
+           "_sameScalars($0, ascii: \"x\") || _sameScalars($0, ascii: \"y\")"),
+    Mutant("pajeklinefeed", PJ, "for b in bytes where b == 0x0A { return false }", "", mode="stmt"),
+
+    # Cytoscape JSON.
+    Mutant("cykind", CY, "if isDirected != Direction.isDirected { throw ParseError(.kindMismatch, at: directed ?? top) }", "", mode="stmt"),
+    Mutant("cypairs", CY, "guard items.count == 2, json.kind(items[0]) == .string else { throw ParseError(.invalidValue, at: pair) }", "guard items.count >= 2 else { throw ParseError(.invalidValue, at: pair) }", mode="stmt"),
+    Mutant("cygroup", CY, "guard isNodes || isEdge else { throw ParseError(.invalidValue, at: group) }", "", mode="stmt"),
+    Mutant("cyinferedge", CY, "isEdge = _jsonMember(json, data, \"source\", key: &key) != nil", "isEdge = false", mode="stmt"),
+    Mutant("cydup", CY, "if registry.find(bytes) != nil { throw ParseError(.duplicateVertex, at: idOffset) }", "", mode="stmt"),
+    Mutant("cyintid", CY, "self[keyPath: buffer].append(contentsOf: String(i).utf8)", "self[keyPath: buffer].append(contentsOf: String(i &+ 1).utf8)", mode="stmt"),
+    Mutant("cy1intid", CY, "arena.append(contentsOf: String(i).utf8)", "arena.append(contentsOf: String(i &+ 1).utf8)", mode="stmt"),
+    Mutant("cyunsupported", CY, "unsupported = value", "", mode="stmt", nth=1),
+    Mutant("cynodeunsupported", CY, "unsupported = value", "", mode="stmt", nth=0),
+    Mutant("cyvalue", CY, "!hasValue", "true"),
+    Mutant("cyname", CY, "!hasName", "true"),
+    Mutant("cyreserved", CY, "if _sameScalars(key, ascii: \"id\") { throw .reservedKey }", "", mode="stmt"),
+    Mutant("cykeys", CY, "out.appendDecimal(Int(keys[edge]))", "out.appendDecimal(0)", mode="stmt"),
+
+    # Edge list: delimiters and dict data.
+    Mutant("dictdetect", EL, "count > width && columnCount == 0 && extraStart < contentEnd && text[extraStart] == UInt8(ascii: \"{\")", "false"),
+    Mutant("dictdetectint", IL, "count > width && columnCount == 0 && extraStart < contentEnd && text[extraStart] == UInt8(ascii: \"{\")", "false"),
+    Mutant("dicttail", EL, "if q < end && text[q] != UInt8(ascii: \"#\") { throw ParseError(.syntax, at: q) }", "", mode="stmt"),
+    Mutant("delimblank", EL, "isBlank = k >= end", "isBlank = false", mode="stmt"),
+    Mutant("delimcr", EL, "if end == lineEnd && end > p && text[end &- 1] == 0x0D { end &-= 1 }", "", mode="stmt"),
+    Mutant("delimcolumn", EL, "while e < contentEnd && text[e] != delimiter { e &+= 1 }", "while e < contentEnd { e &+= 1 }", mode="stmt", nth=0),
+    Mutant("delimintcolumn", IL, "values.append(.integer(i))", "values.append(.double(Double(i)))", mode="stmt", nth=0),
+    Mutant("delimseparator", EL, "out.append(separator)", "out.append(0x20)", mode="stmt", nth=0),
+    Mutant("delimtoken", EL, "b == delimiter || b == UInt8(ascii: \"#\") || b == 0x0A || b == 0x0D", "b == UInt8(ascii: \"#\") || b == 0x0A || b == 0x0D"),
+    Mutant("delimascii", EL, "precondition(v < 0x80, \"An edge-list delimiter must be ASCII\")", "", mode="stmt"),
+    Mutant("pyquotes", PY, "simple = e", "simple = 0x5C", mode="stmt"),
+    Mutant("pyhexwidth", PY, "e == UInt8(ascii: \"u\") ? 4 : 8", "4"),
+    Mutant("pyoctal", PY, "k < q &+ 4", "k < q &+ 3"),
+    Mutant("pyunknown", PY, "out.append(UInt8(ascii: \"\\\\\"))\n            q &+= 1", "q &+= 1", mode="stmt"),
+    Mutant("pysurrogate", PY, "Unicode.Scalar(scalar)", "Unicode.Scalar(scalar > 0x10FFFF ? 0x41 : scalar)"),
+    Mutant("pytrue", PY, "if _matches(text, q, e, \"True\") { return (.boolean(true), e) }", "", mode="stmt"),
+    Mutant("pynone", PY, "if _matches(text, q, e, \"None\") { throw ParseError(.unsupported, at: q) }", "", mode="stmt"),
+    Mutant("pyminusinf", PY, "if _matches(text, q, e, \"-inf\") { return (.double(-.infinity), e) }", "", mode="stmt"),
+    Mutant("pyintegral", PY, "if integral { throw ParseError(.numberOutOfRange, at: q) }", "", mode="stmt"),
+    Mutant("pytrailingcomma", PY, "if q < end && text[q] == UInt8(ascii: \"}\") { return q &+ 1 }", "", mode="stmt", nth=1),
+    Mutant("pykey", PY, "if _startsPythonValue(c) { throw ParseError(.unsupported, at: q) }", "", mode="stmt"),
+
+    # DOT subgraphs and ports.
+    Mutant("dotsubdepth", DOT, "if scopes.count > 64 { throw ParseError(.nestingTooDeep, at: open.start) }", "if scopes.count > 65 { throw ParseError(.nestingTooDeep, at: open.start) }", mode="stmt"),
+    Mutant("dotsubgraphattr", DOT, "if root { graphAttribute(k, .string(v)) }", "graphAttribute(k, .string(v))", mode="stmt"),
+    Mutant("dotsubgraphassign", DOT, "if root { graphAttribute(key, .string(value)) }", "graphAttribute(key, .string(value))", mode="stmt"),
+    Mutant("dottailport", DOT, "if let tailPort { edgeAttribute(position, \"tailport\", .string(tailPort)) }", "", mode="stmt"),
+    Mutant("dotcompass", DOT, "port += \":\" + (try identifierString())", "_ = try identifierString()", mode="stmt"),
+    Mutant("dotproduct", DOT, "suspended.operands.append((order, nil))", "suspended.operands.append((Array(order.prefix(1)), nil))", mode="stmt"),
+    Mutant("dotsubgraphref", DOT, "guard isPunctuation(peek, \"{\") else { throw ParseError(.unsupported, at: keyword.start) }", "guard isPunctuation(peek, \"{\") else { throw ParseError(.syntax, at: keyword.start) }", mode="stmt"),
+    Mutant("dotperedge", DOT, "tails.count == 1 && heads.count == 1 ? 0 : 1", "0"),
+
+    # GraphML nested graphs, node-link array ids.
+    Mutant("gmlnestedkind", GML, "if isDirected != Sink.isDirected { throw ParseError(.unsupported, at: tag.offset) }", "", mode="stmt"),
+    Mutant("gmlnestedafter", GML, "if isData || scanner.isLocal(tag, \"port\") { throw ParseError(.unsupported, at: tag.offset) }", "", mode="stmt"),
+    Mutant("gmlnestedback", GML, "inHandedNode = true", "inHandedNode = false", mode="stmt"),
+    Mutant("nlarrayobject", NL, "throw ParseError(.invalidValue, at: id)", "out.appendASCII(\"{}\")", mode="stmt"),
+    Mutant("nlarrayseparator", NL, "if !first { out.appendASCII(\", \") }", "if !first { out.appendASCII(\",\") }", mode="stmt"),
+    Mutant("nlarraynull", NL, "out.appendASCII(\"null\")", "", mode="stmt"),
+    # Cytoscape JSON's one pass, and the fast paths of Pajek, METIS and DIMACS fields.
+    Mutant("cy1multikey", CY, "guard multigraphKnown == true, scalar() != nil else { return false }", "guard scalar() != nil else { return false }", mode="stmt"),
+    Mutant("cy1rawcontrol", CY, "!raw.contains(where: { text[$0] < 0x20 })", "true"),
+    Mutant("cy1end", CY, "return p == n", "return true", mode="stmt"),
+    Mutant("cy1sourcefirst", CY, "guard hasSource, noteID(node: false) else { return false }", "guard noteID(node: false) else { return false }", mode="stmt"),
+    Mutant("pajekfastweight", PJ, "weight = d", "weight = -d", mode="stmt"),
+    Mutant("metisfastrange", ME, "value >= 1 && value <= n", "value >= 1 && value <= n &+ 1"),
 ]

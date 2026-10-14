@@ -14,6 +14,7 @@ import FuzzSupport
 import GraphFormats
 import GraphProtocols
 import Multigraphs
+import StableGraphs
 
 /// A value rendered with its type and, for a double, its bits (NaN as one value).
 func render(_ value: AttributeValue) -> String {
@@ -286,10 +287,18 @@ func writable(_ format: Format, _ reading: Reading, directed: Bool) -> Bool {
     }
 }
 
-func roundTrip(_ format: Format, _ first: Reading, _ second: Reading, directed: Bool, text: String) {
+func roundTrip(_ format: Format, _ first: Reading, _ second: Reading, directed: Bool, text: String, columns: [String]) {
     let exact = format != .graphML || graphMLWritable(first).exact
     guard exact else { return }
     var a = first
+    if format == .edgeList {
+        // Only the columns are written: dict data (`{'w': 1}`) on a line without columns is not.
+        a.edgeAttributes = a.edgeAttributes.map { r in
+            var kept = Recorded()
+            for (k, v) in r.pairs where columns.contains(k) { kept.set(k, v) }
+            return kept
+        }
+    }
     let b = second
     if format == .dot {
         // DOT is untyped: every value comes back as its text.
@@ -353,7 +362,7 @@ func fuzzDirected<G: MutableDirectedGraph>(_ type: G.Type, _ format: Format, _ b
         check(false, "\(format) did not read back:\n\(text)")
         return
     }
-    roundTrip(format, reading, back, directed: true, text: text)
+    roundTrip(format, reading, back, directed: true, text: text, columns: columns)
 }
 
 func fuzzUndirected<G: MutableGraph>(_ type: G.Type, _ format: Format, _ bytes: [UInt8], columns: [String]) where G.Vertex == String {
@@ -390,7 +399,7 @@ func fuzzUndirected<G: MutableGraph>(_ type: G.Type, _ format: Format, _ bytes: 
         check(false, "\(format) did not read back:\n\(text)")
         return
     }
-    roundTrip(format, reading, back, directed: false, text: text)
+    roundTrip(format, reading, back, directed: false, text: text, columns: columns)
 }
 
 /// Node-link JSON and GraphML read one way or two: node-link JSON with its members in the
@@ -463,6 +472,11 @@ enum FuzzGraphFormats {
     static func main() {
         runFuzzer { input in
             let selector = input.byte()
+            if selector >= 252 {
+                // The formats added later: a second byte picks the format and the target.
+                fuzzNewFormat(&input)
+                return
+            }
             guard let format = Format(rawValue: selector % 7) else { return }
             let columns = Array(["w", "x"].prefix(selector / 28 % 3))
             var bytes: [UInt8] = []
