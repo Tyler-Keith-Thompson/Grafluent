@@ -10,14 +10,17 @@ recognition algorithms:
 * Recognition on any `Graph`: `isBipartite`, `bipartition()` (the two sides, with a canonical
   assignment per connected component, or nil), and `findOddCycle()` (the witness when the graph
   is not bipartite, a `Cycle` as Cycles returns).
-* `projectedGraph(onto:)`, the one-mode projection onto a side.
+* `projectedGraph(onto:)`, the one-mode projection onto a side, and its weighted forms
+  `weightedProjectedGraph(onto:)`, `overlapWeightedProjectedGraph(onto:jaccard:)` and
+  `collaborationWeightedProjectedGraph(onto:)`, each a `WeightedProjection`.
 
-`cases.md` (BP-001 – BP-172) pins the values. `ref.py` computes every row with a model of this API
+`cases.md` (BP-001 – BP-197) pins the values. `ref.py` computes every row with a model of this API
 (a port of `UndirectedAdjacencyList`'s swap-remove mutation, wrapped as below) and checks it
 independently against NetworkX 3.7. Recognition is checked against `is_bipartite`, `sets`, `color`
 and `is_bipartite_node_set`. Odd cycles are checked for validity (a simple cycle of the graph, odd,
 in canonical form), not identity. Mutation sequences are checked against a NetworkX graph built by
-the same operations, and projections against `projected_graph`. Run
+the same operations, and projections against `projected_graph`, `weighted_projected_graph`,
+`overlap_weighted_projected_graph` (both forms) and `collaboration_weighted_projected_graph`. Run
 `uv run --quiet --no-project --with networkx==3.7 python3 ref.py`; `--write` regenerates the
 catalog.
 
@@ -92,9 +95,19 @@ import AdjacencyListModule
     /// The graph on one side's vertices (in `left` or `right` order), with an edge between two
     /// vertices that share a neighbour, once however many they share.
     public func projectedGraph(onto side: BipartiteSide) -> UndirectedAdjacencyList<Vertex>
+    public func weightedProjectedGraph(onto side: BipartiteSide) -> WeightedProjection<Vertex, Int>
+    public func overlapWeightedProjectedGraph(onto side: BipartiteSide, jaccard: Bool = true) -> WeightedProjection<Vertex, Double>
+    public func collaborationWeightedProjectedGraph(onto side: BipartiteSide) -> WeightedProjection<Vertex, Double>
 
     /// A side's vertices: a value, unaffected by later changes to the graph.
     @frozen public struct SideVertices: RandomAccessCollection { /* Int indices from 0 */ }
+}
+
+/// A projection with a weight per edge: `projectedGraph(onto:)`'s graph, at the same positions,
+/// and an edge map attached to it (read `graph[weights, ofEdgeAt: p]`).
+@frozen public struct WeightedProjection<Vertex: Hashable, Weight: Sendable> {
+    public var graph: UndirectedAdjacencyList<Vertex>
+    public let weights: EdgeMap<Weight>
 }
 
 extension BipartiteGraph: Graph, GraphDelegator, PropertyGraph {}   // every requirement, the maps and `generation` are the base's
@@ -234,6 +247,21 @@ each neighbour w in u's row, for each x in w's row with x ≠ u, insert {u, x}. 
 documented function of the rows. `ref.py` checks every row against NetworkX's `projected_graph`
 (BP-140, BP-150 – BP-161).
 
+### Weighted projections
+
+Each is `projectedGraph(onto:)`'s graph, edge for edge at the same positions, with an `EdgeMap`
+attached to that graph holding each edge's weight; the map is the graph's own, so it follows later
+mutations of `graph`. For an edge {u, v} with S = N(u) ∩ N(v), never empty:
+
+* `weightedProjectedGraph`: |S|, an `Int` (NetworkX's `weighted_projected_graph`; its `ratio` form is
+  |S| divided by the other side's size).
+* `overlapWeightedProjectedGraph`: |S| / |N(u) ∪ N(v)|, or |S| / min(d(u), d(v)) with
+  `jaccard: false`.
+* `collaborationWeightedProjectedGraph`: Σ_{w ∈ S} 1 / (d(w) − 1), summed over the row of the end
+  earlier in side order, in row order.
+
+(BP-173 – BP-197.)
+
 ## Complexity
 
 n vertices, m edges; Δ_S the greatest degree on side S.
@@ -250,6 +278,7 @@ n vertices, m edges; Δ_S the greatest degree on side S.
 | `remove(_:)` | O(degree + degree of the vertex moved into the slot) | — |
 | `side(of:)` | O(1) expected (one hash) | — |
 | `projectedGraph(onto: S)` | O(Σ_{u ∈ S} Σ_{w ∈ N(u)} deg(w)) ≤ O(m Δ_{other}) expected | the projection |
+| the weighted projections onto S | O(n + Σ_{u ∈ S} Σ_{w ∈ N(u)} deg(w)) expected | the projection, n counts (and n sums for collaboration) |
 | `==`, `hash(into:)` | O(n + m) expected | — |
 
 ## Storage

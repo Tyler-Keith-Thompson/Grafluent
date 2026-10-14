@@ -6,7 +6,8 @@
 // `insert(checked:)`, which then change nothing), checking the invariant, the Graph laws that matter (counts, degrees, rows parallel), the
 // `checked:` lookups (the trapping answer for a vertex, `VertexNotFound` otherwise), `left` and
 // `right` against the model, equality, hashing and the `init(_:left:)` round trip (Codable is the test suite's: the fuzzing
-// toolchain has no JSON coders).
+// toolchain has no JSON coders); then the plain and weighted projections onto each side against
+// their definitions.
 
 import AdjacencyListModule
 import BipartiteGraphs
@@ -149,9 +150,37 @@ enum FuzzBipartiteGraphs {
                 }
             }
         }
+        projections(graph)
         let rebuilt = BipartiteGraph(left: graph.left.shuffled(), right: graph.right.shuffled(), edges: graph.edges.shuffled())!
         check(rebuilt == graph && rebuilt.hashValue == graph.hashValue, "equality or hashing depends on order")
         check(BipartiteGraph(graph, left: graph.left) == graph, "init(_:left:) round trip")
+    }
+
+    /// The four projections onto each side, after the mutations: the weighted ones are the plain
+    /// one's graph at the same positions, with the shared-neighbour count, both overlaps and the
+    /// collaboration sum of each edge's ends by their definitions.
+    static func projections(_ graph: BipartiteGraph<Int>) {
+        for side in [BipartiteSide.left, .right] {
+            let plain = graph.projectedGraph(onto: side)
+            let count = graph.weightedProjectedGraph(onto: side)
+            let jaccard = graph.overlapWeightedProjectedGraph(onto: side)
+            let lesser = graph.overlapWeightedProjectedGraph(onto: side, jaccard: false)
+            let collaboration = graph.collaborationWeightedProjectedGraph(onto: side)
+            let edges = plain.edges.map { [$0.u, $0.v] }
+            for g in [count.graph, jaccard.graph, lesser.graph, collaboration.graph] {
+                check(Array(g.vertices) == Array(plain.vertices) && g.edges.map { [$0.u, $0.v] } == edges, "weighted projection's graph")
+            }
+            for (p, e) in plain.edges.enumerated() {
+                let a = Set(graph.neighbors(of: e.u)), b = Set(graph.neighbors(of: e.v))
+                let shared = a.intersection(b)
+                check(!shared.isEmpty && count.graph[count.weights, ofEdgeAt: p] == shared.count, "shared count \(e)")
+                let j = Double(shared.count) / Double(a.union(b).count), l = Double(shared.count) / Double(min(a.count, b.count))
+                check(abs(jaccard.graph[jaccard.weights, ofEdgeAt: p] - j) <= 1e-12, "jaccard \(e)")
+                check(abs(lesser.graph[lesser.weights, ofEdgeAt: p] - l) <= 1e-12, "lesser overlap \(e)")
+                let sum = shared.reduce(0.0) { $0 + 1 / Double(graph.degree(of: $1) - 1) }
+                check(abs(collaboration.graph[collaboration.weights, ofEdgeAt: p] - sum) <= 1e-12, "collaboration \(e)")
+            }
+        }
     }
 
     static func fuzz(_ input: inout FuzzInput) {

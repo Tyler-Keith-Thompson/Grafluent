@@ -4,6 +4,35 @@ import BenchmarkSupport
 import BipartiteGraphs
 import GraphProtocols
 
+/// The shared-neighbour projection by hand over flat rows: for each vertex u of `side` (in order),
+/// a count per vertex met two steps away, then the pairs after u with their counts, built into an
+/// `UndirectedAdjacencyList` with a parallel weight array. The baseline for
+/// `weightedProjectedGraph(onto:)`.
+func handWrittenSharedCounts(_ offsets: [Int], _ targets: [Int], side: [Int], rank: [Int]) -> (UndirectedAdjacencyList<Int>, [Int]) {
+    var shared = [Int](repeating: 0, count: offsets.count - 1)
+    var touched: [Int] = []
+    var edges: [UndirectedEdge<Int>] = [], weights: [Int] = []
+    for (k, u) in side.enumerated() {
+        for e in offsets[u] ..< offsets[u + 1] {
+            let w = targets[e]
+            for f in offsets[w] ..< offsets[w + 1] where targets[f] != u {
+                let x = targets[f]
+                if shared[x] == 0 { touched.append(x) }
+                shared[x] += 1
+            }
+        }
+        for x in touched {
+            if rank[x] > k {
+                edges.append(UndirectedEdge(u, x))
+                weights.append(shared[x])
+            }
+            shared[x] = 0
+        }
+        touched.removeAll(keepingCapacity: true)
+    }
+    return (UndirectedAdjacencyList(vertices: side, edges: edges), weights)
+}
+
 /// Two-colouring by hand over flat rows: the baseline for `isBipartite`.
 func handWrittenIsBipartite(_ offsets: [Int], _ targets: [Int]) -> Bool {
     let n = offsets.count - 1
@@ -93,6 +122,29 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("BipartiteGraphs: projectedGraph(onto: .right), 10⁵ people in 2000 groups") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(groups.projectedGraph(onto: .right)) }
+    }
+    // The groups' flat rows, by vertex index, for the hand-written baseline.
+    var groupOffsets = [0], groupTargets: [Int] = []
+    for v in 0 ..< groups.vertexCount {
+        groupTargets += groups.neighborIndices(ofIndex: v)
+        groupOffsets.append(groupTargets.count)
+    }
+    let groupSide = groups.right.map { groups.vertexIndex(of: $0) }
+    var groupRank = [Int](repeating: -1, count: groups.vertexCount)
+    for (k, v) in groupSide.enumerated() { groupRank[v] = k }
+    precondition(handWrittenSharedCounts(groupOffsets, groupTargets, side: groupSide, rank: groupRank).1.reduce(0, +)
+        == { let p = groups.weightedProjectedGraph(onto: .right); return p.graph.edges.indices.reduce(0) { $0 + p.graph[p.weights, ofEdgeAt: $1] } }())
+    Benchmark("BipartiteGraphs: BASELINE hand-written shared-neighbour counts over flat rows, 10⁵ people in 2000 groups") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenSharedCounts(groupOffsets, groupTargets, side: groupSide, rank: groupRank)) }
+    }
+    Benchmark("BipartiteGraphs: weightedProjectedGraph(onto: .right), 10⁵ people in 2000 groups") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(groups.weightedProjectedGraph(onto: .right)) }
+    }
+    Benchmark("BipartiteGraphs: overlapWeightedProjectedGraph(onto: .right), 10⁵ people in 2000 groups") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(groups.overlapWeightedProjectedGraph(onto: .right)) }
+    }
+    Benchmark("BipartiteGraphs: collaborationWeightedProjectedGraph(onto: .right), 10⁵ people in 2000 groups") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(groups.collaborationWeightedProjectedGraph(onto: .right)) }
     }
 
     // Attached maps (the base's): inserting the affiliation graph's 5·10⁵ edges one at a time with

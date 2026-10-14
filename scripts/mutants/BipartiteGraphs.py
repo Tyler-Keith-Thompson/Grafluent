@@ -5,6 +5,8 @@
 #                   ([v] and [e]: the climb stops at once, and w's list drops to nothing).
 #   projectiononce  the skip of pairs already found from their earlier end: the second insertion
 #                   of a pair is refused as a repeat, so the output is the same, found twice.
+#   (not planted) `other > k` as `other >= k` in the weighted projections: x is never u, so
+#                   `other == k` cannot occur.
 
 TESTS = ["BipartiteGraphsTests"]
 
@@ -67,4 +69,16 @@ MUTANTS = [
     Mutant("ckbipartitionvalue", "Recognition.swift", "return _sides[v]", "return .left", mode="stmt", nth=1),
     Mutant("ckbipartitionguard", "Recognition.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
     Mutant("ckbipartitionthrow", "Recognition.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt"),
+
+    # Weighted projections
+    Mutant("wpfirstmet", "WeightedProjection.swift", "if shared[x] == 0 { touched.append(x) }", "touched.append(x)", mode="stmt"),
+    Mutant("wpcount", "WeightedProjection.swift", "shared[x] &+= 1", "shared[x] = 1", mode="stmt"),
+    Mutant("wpearlier", "WeightedProjection.swift", "other > k", "true"),
+    Mutant("wpreset", "WeightedProjection.swift", "shared[x] = 0", "", mode="stmt"),
+    Mutant("wpsumreset", "WeightedProjection.swift", "if collaboration { sums[x] = 0 }", "", mode="stmt"),
+    Mutant("wpshare", "WeightedProjection.swift", "1 / Double(dw &- 1)", "1 / Double(dw)"),
+    Mutant("wpxdegree", "WeightedProjection.swift", "_base.degree(ofIndex: x)", "du"),
+    Mutant("wpjaccard", "WeightedProjection.swift", "du &+ dx &- shared", "du &+ dx"),
+    Mutant("wplesser", "WeightedProjection.swift", "Swift.min(du, dx)", "Swift.max(du, dx)"),
+    Mutant("wpwrite", "WeightedProjection.swift", "for p in values.indices { result[map, ofEdgeAt: p] = values[p] }", "", mode="stmt"),
 ]

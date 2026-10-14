@@ -8,7 +8,9 @@ the row in cases.md character for character, and an independent NetworkX check r
 recognition rows against is_bipartite / sets / color / is_bipartite_node_set, odd cycles for
 validity (a simple cycle of the graph, odd length, canonical rotation) rather than identity, side
 initializers and mutation sequences against a NetworkX graph built with the same operations under
-set semantics, projections against projected_graph.
+set semantics, projections against projected_graph, weighted projections against
+weighted_projected_graph, overlap_weighted_projected_graph (both forms) and
+collaboration_weighted_projected_graph (weights within 1e-12; counts exactly).
 
 Index-space conventions modelled (api.md, Semantics):
 * A fixture graph is V (vertex order = vertex indices) and E (edge positions). Rows list edge ends
@@ -373,6 +375,34 @@ class BG:
                         out.insert_edge(self.g.verts[slot], self.g.verts[x])
         return out
 
+    def weighted(self, s, kind):
+        """`weightedProjectedGraph` ("count"), `overlapWeightedProjectedGraph` ("jaccard", or
+        "overlap" for jaccard: false) and `collaborationWeightedProjectedGraph` ("collab") onto side
+        s: the vertices in side order; for each u in side order, the vertices x after u met through
+        u's row, in the order first met, each edge {u, x} with its weight. The collaboration sum
+        runs over u's row in order."""
+        slots = self.lists[s]
+        verts = [self.g.verts[u] for u in slots]
+        edges, weights = [], []
+        deg = lambda v: len(self.g.nbr[v])
+        for k, u in enumerate(slots):
+            shared, sums, order = {}, {}, []
+            for w in self.g.nbr[u]:
+                share = 1 / (deg(w) - 1) if deg(w) > 1 else 0
+                for x in self.g.nbr[w]:
+                    if x == u:
+                        continue
+                    if x not in shared:
+                        order.append(x); shared[x] = 0; sums[x] = 0.0
+                    shared[x] += 1
+                    sums[x] += share
+            for x in order:
+                if self.off[x] > k:
+                    edges.append((self.g.verts[u], self.g.verts[x]))
+                    c, du, dx = shared[x], deg(u), deg(x)
+                    weights.append({"count": c, "jaccard": c / (du + dx - c), "overlap": c / min(du, dx), "collab": sums[x]}[kind])
+        return verts, edges, weights
+
     def key(self):
         """Equality: vertex sets, edge sets (unordered), and each vertex's side."""
         return (frozenset((v, self.side[i]) for i, v in enumerate(self.g.verts)),
@@ -646,6 +676,28 @@ proj("isolated left vertex kept", [0, 1, 5], [2], [(0, 2), (1, 2)], LEFT)
 proj("C6 onto one side: a triangle", [0, 2, 4], [1, 3, 5], cyc(6), LEFT)
 proj("affiliation network: people onto events they share", ["p1", "p2", "p3", "p4"], ["e1", "e2", "e3"],
      [("p1", "e1"), ("p2", "e1"), ("p2", "e2"), ("p3", "e2"), ("p4", "e3")], LEFT)
+
+# Weighted projections
+WPROJ = []
+def wproj(name, left, right, edges, s, kind):
+    WPROJ.append(dict(name=name, left=left, right=right, edges=edges, side=s, kind=kind))
+
+WP_IRREGULAR = ([0, 1, 2], [3, 4, 5, 6], [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (2, 5), (2, 6), (1, 6)])
+WP_PEOPLE = (["p1", "p2", "p3", "p4"], ["e1", "e2", "e3"], [("p1", "e1"), ("p2", "e1"), ("p3", "e1"), ("p2", "e2"), ("p3", "e2"), ("p4", "e3"), ("p3", "e3")])
+for kind in ("count", "jaccard", "overlap", "collab"):
+    wproj("K2,3 onto left: three shared neighbours", [0, 1], [2, 3, 4], kbip(2, 3), LEFT, kind)
+    wproj("path a–x–b–y–c onto left", *E0, LEFT, kind)
+    wproj("uneven degrees onto left", *WP_IRREGULAR, LEFT, kind)
+    wproj("uneven degrees onto right", *WP_IRREGULAR, RIGHT, kind)
+    wproj("affiliation network onto people", *WP_PEOPLE, LEFT, kind)
+wproj("star centre left, onto right: K4, each pair one shared neighbour", [0], [1, 2, 3, 4], [(0, i) for i in range(1, 5)], RIGHT, "count")
+wproj("star onto right: collaboration 1/3 per pair", [0], [1, 2, 3, 4], [(0, i) for i in range(1, 5)], RIGHT, "collab")
+wproj("edgeless: isolated vertices, no weights", [0, 1], [2], [], LEFT, "count")
+wproj("empty side", [], [0, 1], [], LEFT, "jaccard")
+wproj("isolated left vertex kept", [0, 1, 5], [2], [(0, 2), (1, 2)], LEFT, "overlap")
+
+WPROJ_CALL = {"count": "weightedProjectedGraph(onto: {})", "jaccard": "overlapWeightedProjectedGraph(onto: {})",
+              "overlap": "overlapWeightedProjectedGraph(onto: {}, jaccard: false)", "collab": "collaborationWeightedProjectedGraph(onto: {})"}
 
 # Equality
 EQ = []
@@ -923,6 +975,25 @@ def build_rows():
         b, G, sides, res, _ = apply_ops(c["init"], c["ops"])
         call = fmt_init(c["init"]) + "; " + "; ".join(fmt_op(o) for o in c["ops"])
         rows.append(("insert(checked:)", c["name"], call, " / ".join(res) + f"; final {b.describe()}"))
+    for c in WPROJ:
+        b = BG.from_sides(c["left"], c["right"], c["edges"])
+        verts, edges, weights = b.weighted(c["side"], c["kind"])
+        p = b.projected(c["side"])
+        assert edges == p.edges() and verts == p.verts, c["name"]  # projectedGraph's graph, same positions
+        G = nx.Graph(); G.add_nodes_from(c["left"] + c["right"]); G.add_edges_from(c["edges"])
+        nodes = c["left"] if c["side"] == LEFT else c["right"]
+        P = {"count": lambda: nxb.weighted_projected_graph(G, nodes),
+             "jaccard": lambda: nxb.overlap_weighted_projected_graph(G, nodes),
+             "overlap": lambda: nxb.overlap_weighted_projected_graph(G, nodes, jaccard=False),
+             "collab": lambda: nxb.collaboration_weighted_projected_graph(G, nodes)}[c["kind"]]()
+        assert set(P.nodes()) == set(verts) and set(map(frozenset, P.edges())) == set(map(frozenset, edges)), c["name"]
+        for (u, v), w in zip(edges, weights):
+            want = P[u][v]["weight"]
+            assert abs(w - want) <= 1e-12 * max(1, abs(want)), (c["name"], u, v, w, want)
+            if c["kind"] == "count":
+                assert w == want and isinstance(w, int)
+        call = fmt_init((c["left"], c["right"], c["edges"])) + "; " + WPROJ_CALL[c["kind"]].format(SIDE_NAME[c["side"]])
+        rows.append(("WeightedProjection", c["name"], call, f"V {fmt(verts)}; E {fmt_edges(edges)}; W {fmt([repr(w) for w in weights])}"))
     return rows
 
 
@@ -948,6 +1019,8 @@ Conventions:
   nil). `ref.py`'s NetworkX checks of odd cycles are validity only.
 * `BipartiteGraph` rows print `V` (`vertices` order), `L` (`left`), `R` (`right`), `E` (`edges`
   by position, each left endpoint first). Mutation rows list each call's result, separated by `/`.
+* `WeightedProjection` rows print the projection's `V` and `E` (`projectedGraph(onto:)`'s, at the same
+  positions) and `W`, each edge's weight in position order.
 * `trap` rows are preconditions: tests run them as exit tests (`#expect(processExitsWith:)`).
   `throws .case` is a call that threw that `BipartitionError` case and changed nothing.
 

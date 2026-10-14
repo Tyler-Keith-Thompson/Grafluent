@@ -61,6 +61,7 @@ struct Bipartition<G: Graph>: Equatable, CustomStringConvertible  // left, right
 | Equality | Vertex sets, edge sets and each vertex's side; not orders or orientations | BP-162 – BP-166 |
 | Attached maps | The base's (dense, one value per slot and per edge position): every removal swap-moves the values with the storage, so a value stays with its edge or vertex on either side; a new element reads the default; a mutation that throws `BipartitionError` changes no map; `removeAllEdges()` / `removeAll()` empty the maps and keep them attached; plain reads trap outside the graph and `checked` reads throw; `BipartiteGraph(list)` keeps the list's maps; equality, hashing and coding ignore them | `BipartiteGraphDelegatorTests.swift`, `BipartiteGraphMapPropertyTests.swift`, `BipartiteGraphMapPreconditionTests.swift` |
 | Generations | The base's: every insertion and removal starts one; a call that changes nothing, a throw, reserving capacity and map writes do not; built, converted and decoded graphs have one | `BipartiteGraphGenerationTests.swift` |
+| Weighted projection | `projectedGraph(onto:)`'s graph at the same positions, with an `EdgeMap` of weights attached: shared-neighbour count, Jaccard or lesser-degree overlap, Newman's collaboration sum over the earlier end's row | BP-173 – BP-197 |
 | Projection | The side's vertices in side order; {u, x} once when they share a neighbour, inserted in discovery order (u in side order, w in u's row, x ≠ u in w's row), oriented (u, x) | BP-150 – BP-161 |
 
 ## How values are pinned
@@ -73,7 +74,7 @@ initializers named in the row. The catalog-row files (`RecognitionTests.swift`,
 `RecognitionRepresentationTests.swift`, `BipartiteGraphFromGraphTests.swift`,
 `BipartiteGraphSideInitializerTests.swift`, `BipartiteGraphMutationTests.swift`,
 `BipartiteGraphPreconditionTests.swift` except its last two tests, `ProjectionTests.swift`,
-`BipartiteGraphEqualityTests.swift`) were generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py` and `cases.md` in [`Tests/Catalogs/BipartiteGraphs/`](../Catalogs/BipartiteGraphs/), which says how to
+`BipartiteGraphEqualityTests.swift`, `WeightedProjectionTests.swift`) were generated from `cases.md` by a script (`swiftgen.py`, next to `ref.py` and `cases.md` in [`Tests/Catalogs/BipartiteGraphs/`](../Catalogs/BipartiteGraphs/), which says how to
 run it). It first checks that `ref.py` reproduces `cases.md` exactly, then re-evaluates each row
 with `ref.py`'s model functions, asserts the value matches the catalog cell, and writes it out.
 Odd-cycle rows assert the exact cycle (vertices and edge positions) and its validity: odd length,
@@ -111,6 +112,8 @@ generalizes BP-039 and was also computed with `ref.py`'s model.
 | `BipartiteGraphPreconditionTests.swift` | 6 | Exit tests: BP-146 – BP-149; then `side(of:)` and `insert(edge:)` on the empty graph, `Bipartition.side(of:)` on a non-vertex and `side(ofIndex:)` out of range |
 | `ProjectionTests.swift` | 12 | BP-150 – BP-161: `projectedGraph(onto:)` |
 | `BipartiteGraphEqualityTests.swift` | 5 | BP-162 – BP-166: equality and hashing |
+| `WeightedProjectionTests.swift` | 25 | BP-173 – BP-197: `weightedProjectedGraph(onto:)`, `overlapWeightedProjectedGraph(onto:jaccard:)` both ways and `collaborationWeightedProjectedGraph(onto:)`: the graph `projectedGraph(onto:)`'s at the same positions, each weight read through the attached map |
+| `WeightedProjectionPropertyTests.swift` | 2 | PropertyBased, shrinking: the four projections of random bipartite graphs after random removals, onto either side, against their definitions over neighbour sets (counts exactly, the overlaps and collaboration sums within 1e-12); the weight map following a swap-remove in the projection |
 | `BipartiteGraphLawTests.swift` | 4 | `Graph`'s laws (counts, index maps, rows against `edges`, `oppositeVertex`, degrees, `contains(edge:)`, edge indices, `_withIncidentIndexRows` read back against the index-space rows) and the side invariant on seven graphs, fresh and after removals; the `checked:` lookups against the trapping ones, and `VertexNotFound` for non-vertices and a removed vertex; generic code; stored sides that are not the canonical ones |
 | `BipartiteGraphConformanceTests.swift` | 9 | Codable round trips (JSON, property lists; orders and positions kept), invalid payloads throwing `dataCorrupted` or another error but never trapping, Hashable (orders ignored, edges and sides seen), `Sendable` across a `Task`, descriptions (16-item limit, `String` vertices), `SideVertices` as a value, copy-on-write, capacity calls, `BipartiteSide` |
 | `BipartitionTests.swift` | 6 | `Bipartition` equality and description, the copy of the graph it holds, generic code, `CompressedSparseRow` through `AdjacencyList(csr).undirectedView`, `graph.directedView.undirectedView` (every edge a parallel pair), closed forms on paths, cycles, Kₙ and Kₐ,ₙ₋ₐ for n ≤ 9 |
@@ -123,15 +126,16 @@ generalizes BP-039 and was also computed with `ref.py`'s model.
 | `BipartiteGraphMapPropertyTests.swift` | 1 | PropertyBased, shrinking: random insertions on either side, edges plain and `checked:` (across, inside a side, with a missing endpoint), removals, clears, copies and value writes against a model keyed by edge and vertex; after every step every value through the subscripts and `values(of:)`, the sides, left-first storage and the `checked` throws |
 | `Performance/BipartiteStressTests.swift` | 5 | Inside a `Task` with a one-minute limit: the 10⁵-vertex path on both kinds of rows, C₁₀₀₀₀₁ and C₁₀₀₀₀₂, the 300 × 300 grid with and without a diagonal, a 10⁵-vertex `BipartiteGraph` built by insertion and half removed, the projections of K₁,₄₀₀ and of the 10⁵-vertex path |
 
-172 catalog rows (168 value rows, 4 trap rows), their 84 representation tests, and more tests
+197 catalog rows (193 value rows, 4 trap rows), their 84 representation tests, and more tests
 (precondition, laws, conformance, bipartition and view, property, stress, and 19 for attached maps
-and generations): 307 tests in all.
+and generations): 334 tests in all.
 
 ## Case IDs
 
-Case IDs (BP-001 … BP-172) refer to the catalog (`cases.md`), whose values `ref.py` computes with
+Case IDs (BP-001 … BP-197) refer to the catalog (`cases.md`), whose values `ref.py` computes with
 api.md's model and checks against NetworkX 3.7 (`is_bipartite`, `sets`, `color`,
-`is_bipartite_node_set`, `projected_graph`; odd cycles for validity only). Each test's name starts with its ID; tests without an ID check laws,
+`is_bipartite_node_set`, `projected_graph`, `weighted_projected_graph`, `overlap_weighted_projected_graph`,
+`collaboration_weighted_projected_graph`; odd cycles for validity only). Each test's name starts with its ID; tests without an ID check laws,
 representations, properties or conformance that the catalog does not list.
 
 | Cases | Section | File |
@@ -145,6 +149,7 @@ representations, properties or conformance that the catalog does not list.
 | BP-150 – BP-161 | Projection | `ProjectionTests.swift` |
 | BP-162 – BP-166 | Equality | `BipartiteGraphEqualityTests.swift` |
 | BP-167 – BP-172 | `insert(checked:)` | `BipartiteGraphMutationTests.swift` |
+| BP-173 – BP-197 | Weighted projections | `WeightedProjectionTests.swift` |
 
 Rows with parallel edges (BP-010 – BP-014, BP-089) are not repeated on the adjacency lists or the
 matrix, which cannot hold them; they run on the unindexed conformer. Rows whose vertices are not

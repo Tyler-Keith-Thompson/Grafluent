@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses.
+# BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses, one-mode projections (plain, shared-neighbour, overlap and collaboration weighted).
 swift_library(
     name = "BipartiteGraphs",
     srcs = glob(["**/*.swift"]),

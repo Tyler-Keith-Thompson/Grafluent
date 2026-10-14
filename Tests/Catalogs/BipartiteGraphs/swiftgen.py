@@ -29,9 +29,9 @@ for line in text.splitlines():
     if line.startswith("| BP-"):
         parts = [p.strip() for p in line.strip("|").split(" | ")]
         CELLS[parts[0]] = parts
-assert len(CELLS) == 172
+assert len(CELLS) == 197
 
-ids = iter(f"BP-{i:03d}" for i in range(1, 173))
+ids = iter(f"BP-{i:03d}" for i in range(1, 198))
 REC_IDS = [next(ids) for _ in ref.REC]
 INITG_IDS = [next(ids) for _ in ref.INITG]
 INITS_IDS = [next(ids) for _ in ref.INITS]
@@ -41,6 +41,7 @@ TRAP_IDS = [next(ids) for _ in ref.TRAP]
 PROJ_IDS = [next(ids) for _ in ref.PROJ]
 EQ_IDS = [next(ids) for _ in ref.EQ]
 CHECKED_IDS = [next(ids) for _ in ref.CHECKED]
+WPROJ_IDS = [next(ids) for _ in ref.WPROJ]
 
 # ---------------------------------------------------------------------------------------------
 # Swift literals
@@ -679,6 +680,38 @@ def gen_equality():
     write("BipartiteGraphEqualityTests.swift", out)
 
 
+def gen_weighted_projection():
+    out = header([
+        f"The weighted projections (catalog {WPROJ_IDS[0]} – {WPROJ_IDS[-1]}): `weightedProjectedGraph(onto:)`, the",
+        "number of shared neighbours; `overlapWeightedProjectedGraph(onto:jaccard:)`, |N(u) ∩ N(v)| over the",
+        "union's size or the lesser degree; `collaborationWeightedProjectedGraph(onto:)`, Σ 1/(d(w) − 1) over",
+        "the shared neighbours in the earlier end's row order. The graph is `projectedGraph(onto:)`'s, at",
+        "the same positions, and each weight is read through the attached map. ref.py checks every row",
+        "against NetworkX 3.7's weighted projections. Generated from cases.md by swiftgen.py; see README.md.",
+    ], ["AdjacencyListModule", "BipartiteGraphs", "GraphProtocols", "Testing"],
+        "Weighted projections", "WeightedProjectionTests")
+    call = {"count": "weightedProjectedGraph(onto: {})", "jaccard": "overlapWeightedProjectedGraph(onto: {})",
+            "overlap": "overlapWeightedProjectedGraph(onto: {}, jaccard: false)", "collab": "collaborationWeightedProjectedGraph(onto: {})"}
+    for c, id_ in zip(ref.WPROJ, WPROJ_IDS):
+        T = ty(c["left"] + c["right"])
+        b = ref.BG.from_sides(c["left"], c["right"], c["edges"])
+        verts, edges, weights = b.weighted(c["side"], c["kind"])
+        assert CELLS[id_][4] == f"V {ref.fmt(verts)}; E {ref.fmt_edges(edges)}; W {ref.fmt([repr(w) for w in weights])}"
+        W = "Int" if c["kind"] == "count" else "Double"
+        body = [f"// {CELLS[id_][3]}",
+                f"let graph = try #require({side_init_expr(c['left'], c['right'], c['edges'], T)})",
+                f"let projection = graph.{call[c['kind']].format(SIDE[c['side']])}",
+                f"#expect(Array(projection.graph.vertices) == {arr(verts)} as [{T}])",
+                f"#expect(projection.graph.edges.map {{ [$0.u, $0.v] }} == {nested(edges)} as [[{T}]])",
+                f"#expect(projection.graph.edges.indices.map {{ projection.graph[projection.weights, ofEdgeAt: $0] }} == [{', '.join(repr(w) for w in weights)}] as [{W}])",
+                f"// The graph is projectedGraph(onto:)'s, edge for edge.",
+                f"#expect(projection.graph.edges.map {{ [$0.u, $0.v] }} == graph.projectedGraph(onto: {SIDE[c['side']]}).edges.map {{ [$0.u, $0.v] }})"]
+        title = f"{id_} {c['name']}: {call[c['kind']].split('(')[0]}"
+        out += ["", f'    @Test("{name_str(title)}")', f"    func {fn(id_)}() throws {{"] + ind(body, 8) + ["    }"]
+    out.append("}")
+    write("WeightedProjectionTests.swift", out)
+
+
 gen_recognition()
 gen_representations()
 gen_from_graph()
@@ -687,3 +720,4 @@ gen_mutation()
 gen_preconditions()
 gen_projection()
 gen_equality()
+gen_weighted_projection()
