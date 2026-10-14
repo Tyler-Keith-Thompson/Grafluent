@@ -1,10 +1,11 @@
-# Centrality: case catalog (CE-001 – CE-206, 162 cases)
+# Centrality: case catalog (CE-001 – CE-248, 204 cases)
 
-Cases for the Centrality module (api.md): degree, in- and out-degree, closeness, harmonic and
-betweenness centrality, eigenvector and Katz centrality, PageRank and HITS, on `Graph` and
-`DirectedGraph`, unweighted and weighted. Every Expected cell is recomputed by `ref.py`, which also
-checks it against the definition (Floyd–Warshall distances; betweenness as Σ σ_sv·σ_vt/σ_st over
-edge sequences), dense numpy / scipy linear algebra for the iterative measures, and NetworkX 3.7
+Cases for the Centrality module (api.md): degree, in- and out-degree, closeness, harmonic, vertex
+and edge betweenness centrality (exact or estimated from pivots), eigenvector and Katz centrality,
+PageRank and HITS, on `Graph` and `DirectedGraph`, unweighted and weighted. Every Expected cell is
+recomputed by `ref.py`, which also checks it against the definition (Floyd–Warshall distances;
+betweenness as Σ σ_sv·σ_vt/σ_st over edge sequences, edge betweenness as Σ σ_sa·σ_bt/σ_st over the
+arcs a → b on shortest paths), dense numpy / scipy linear algebra for the iterative measures, and NetworkX 3.7
 wherever NetworkX shares the semantics (see its docstring). `uv run --quiet --no-project --with
 networkx==3.7 --with scipy==1.18.1 python3 ref.py` prints "all values agree".
 
@@ -29,10 +30,12 @@ position order, an undirected self-loop twice.
 is `{ w[$0] }` by edge position (`weight: e%k+c`: edge e weighs e mod k + c); `personalization:
 [p0, …]` is `{ p[vertexIndex($0)] }`. `directed > op` runs op on `graph.directedView` (each edge two
 arcs, a self-loop two loop arcs). `hits.hubs` / `hits.authorities` read the two members of
-`hits()`'s result; `of: v` is the one-vertex form, returning a scalar.
+`hits()`'s result; `of: v` is the one-vertex form, returning a scalar. `pivots: [a, …]` lists the
+pivot vertices (in any order) of the estimate from pivots.
 
 **Expected**: per-vertex scores in `vertices` order, printed to 12 significant digits
-(`score(ofIndex: i)` for each i); `#x` a scalar; `NoConvergence` (an iterative method threw it: it did
+(`score(ofIndex: i)` for each i), or for `edgeBetweennessCentrality` per-edge scores in position
+order (`score(ofEdgeAt:)`); `nan` is NaN; `#x` a scalar; `NoConvergence` (an iterative method threw it: it did
 not converge within `maxIterations`); `trap` a precondition failure.
 
 **Tol**: how far the Swift result may lie from Expected, per score, relative to max(1, |Expected|).
@@ -244,3 +247,50 @@ NetworkX where it applies, land within Tol.
 | CE-204 | `U: nx(karate_club)` | `directed > hits.hubs` | `[0.0714127288083, 0.0534272312355, 0.0637190645564, 0.0424227371247, 0.0152609597062, 0.0159669135031, 0.0159669135031, 0.0343431672191, 0.0456819251198, 0.0206256677494, 0.0152609597062, 0.0106178915111, 0.0169254507923, 0.0454948640681, 0.0203703458256, 0.0203703458256, 0.0047480318473, 0.0185616370374, 0.0203703458256, 0.0297133338864, 0.0203703458256, 0.0185616370374, 0.0203703458256, 0.0301564975094, 0.011460952231, 0.0118936643963, 0.0151827343303, 0.0268134941171, 0.026331505778, 0.0271115396282, 0.0351062379767, 0.038375741863, 0.0620018464738, 0.0750029421566]` | 1e-4 | Symmetric A: hubs = authorities = eigenvector centrality rescaled to sum 1 |
 | CE-205 | `U: nx(karate_club)` | `directed > hits.authorities` | `[0.0714127288083, 0.0534272312355, 0.0637190645564, 0.0424227371247, 0.0152609597062, 0.0159669135031, 0.0159669135031, 0.0343431672191, 0.0456819251198, 0.0206256677494, 0.0152609597062, 0.0106178915111, 0.0169254507923, 0.0454948640681, 0.0203703458256, 0.0203703458256, 0.0047480318473, 0.0185616370374, 0.0203703458256, 0.0297133338864, 0.0203703458256, 0.0185616370374, 0.0203703458256, 0.0301564975094, 0.011460952231, 0.0118936643963, 0.0151827343303, 0.0268134941171, 0.026331505778, 0.0271115396282, 0.0351062379767, 0.038375741863, 0.0620018464738, 0.0750029421566]` | 1e-4 | |
 | CE-206 | `D: 0>1, 0>2, 3>1` | `hits(maxIterations: 1).hubs` | `NoConvergence` | 1e-4 | |
+
+## I. Edge betweenness and pivots
+
+| ID | Graph | Op | Expected | Tol | Notes |
+|---|---|---|---|---|---|
+| CE-207 | `U: P(0..4)` | `edgeBetweennessCentrality` | `[0.4, 0.6, 0.6, 0.4]` | exact | Normalized (default): ÷ n(n − 1)/2 pairs |
+| CE-208 | `U: P(0..4)` | `edgeBetweennessCentrality(normalized: false)` | `[4, 6, 6, 4]` | exact | Unordered pairs: each edge separates i + 1 from 4 − i vertices |
+| CE-209 | `U: C(0,1,2,3)` | `edgeBetweennessCentrality(normalized: false)` | `[2, 2, 2, 2]` | exact | Opposite pairs split ½ ½ |
+| CE-210 | `U: 0-1, 1-2, 0-2, 2-3, 3-4, 4-5, 3-5` | `edgeBetweennessCentrality(normalized: false)` | `[1, 4, 4, 9, 4, 1, 4]` | exact | Two triangles and a bridge: the bridge carries all 9 crossing pairs |
+| CE-211 | `U: nx(krackhardt_kite)` | `edgeBetweennessCentrality` | `[0.0592592592593, 0.0333333333333, 0.0407407407407, 0.103703703704, 0.0407407407407, 0.0333333333333, 0.103703703704, 0.0666666666667, 0.1, 0.0666666666667, 0.0740740740741, 0.0740740740741, 0.1, 0.0592592592593, 0.233333333333, 0.233333333333, 0.355555555556, 0.2]` | exact | NetworkX agrees |
+| CE-212 | `U: nx(karate_club)` | `edgeBetweennessCentrality` | `[0.0252525252525, 0.0777876807289, 0.0204991087344, 0.0522875816993, 0.0781342840166, 0.0781342840166, 0.0228206434089, 0.0742395948278, 0.0522875816993, 0.0588235294118, 0.0465240641711, 0.0423718982543, 0.0401239283592, 0.0459369606428, 0.0401239283592, 0.127259994907, 0.0232323232323, 0.00772430184195, 0.00742296918768, 0.0124055682879, 0.0186996010525, 0.0146337322808, 0.0186996010525, 0.0322807911043, 0.0224301841949, 0.0252143281555, 0.00917579152873, 0.0308038366862, 0.00763093116034, 0.0411920323685, 0.0227824463119, 0.0689867866338, 0.00336558865971, 0.0122994652406, 0.0149223325694, 0.00475341651812, 0.00297088532383, 0.00297088532383, 0.00475341651812, 0.0294117647059, 0.0294117647059, 0.00980392156863, 0.0304416716181, 0.0404365786719, 0.0296154825567, 0.0678238972357, 0.0240839770252, 0.0347395523866, 0.0240839770252, 0.0347395523866, 0.0240839770252, 0.0347395523866, 0.0593823387941, 0.0240839770252, 0.0347395523866, 0.0240839770252, 0.0347395523866, 0.0197761933056, 0.0105367399485, 0.00665478312537, 0.0223410576352, 0.032669835611, 0.00421865715983, 0.0186571598336, 0.0401069518717, 0.0420578332343, 0.00453272217978, 0.054290807232, 0.0304770393006, 0.0148544266191, 0.0245649775062, 0.0233285233285, 0.0298078827491, 0.0170528817588, 0.0268143621085, 0.0414339473163, 0.0533938828056, 0.00822510822511]` | exact | |
+| CE-213 | `D: P(0,1,2)` | `edgeBetweennessCentrality` | `[0.333333333333, 0.333333333333]` | exact | Directed normalized: ÷ n(n − 1) ordered pairs |
+| CE-214 | `D: P(0,1,2)` | `edgeBetweennessCentrality(normalized: false)` | `[2, 2]` | exact | Ordered pairs, not halved |
+| CE-215 | `D: C(0,1,2,3)` | `edgeBetweennessCentrality(normalized: false)` | `[6, 6, 6, 6]` | exact | |
+| CE-216 | `U: 0-1, 0-1, 1-2` | `edgeBetweennessCentrality(normalized: false)` | `[1, 1, 2]` | exact | Parallel copies share their pairs' paths equally (NetworkX's MultiGraph split agrees here) |
+| CE-217 | `D: 0>1, 0>1, 1>2` | `edgeBetweennessCentrality(normalized: false)` | `[1, 1, 2]` | exact | |
+| CE-218 | `U: P(0,1,2), 1-1` | `edgeBetweennessCentrality(normalized: false)` | `[2, 2, 0]` | exact | A self-loop scores 0 |
+| CE-219 | `U: P(0,1,2), 3-4` | `edgeBetweennessCentrality` | `[0.2, 0.2, 0.1]` | exact | Unreachable pairs add nothing; n is the whole graph's |
+| CE-220 | `U: []` | `edgeBetweennessCentrality` | `[]` | exact | |
+| CE-221 | `U: 0-0` | `edgeBetweennessCentrality` | `[0]` | exact | n < 2: nothing is scaled |
+| CE-222 | `U: P(0,1,2)` | `directed > edgeBetweennessCentrality(normalized: false)` | `[2, 2, 2, 2]` | exact | Each arc its direction's ordered pairs; an edge's two arcs add to twice its undirected value |
+| CE-223 | `U: C(0,1,2,3)` | `edgeBetweennessCentrality(normalized: false, weight: [1, 1, 1, 3])` | `[2.5, 3.5, 2.5, 0.5]` | exact | 0 → 3 ties at 3: direct, and through 1, 2 |
+| CE-224 | `U: 0-1, 1-2, 0-3, 3-2` | `edgeBetweennessCentrality(normalized: false, weight: [0.1, 0.2, 0.15, 0.15])` | `[2, 1, 3, 2]` | exact | Exact equality of sums: 0.1 + 0.2 > 0.15 + 0.15, so 0 → 2 has one shortest path |
+| CE-225 | `D: 0>1, 1>2, 0>2` | `edgeBetweennessCentrality(normalized: false, weight: [1, 1, 2])` | `[1.5, 1.5, 0.5]` | exact | 0 → 2 ties: the arc and the two-step path, ½ each |
+| CE-226 | `U: nx(karate_club)` | `edgeBetweennessCentrality(weight: e%3+1)` | `[0.0776886512181, 0.0332739156269, 0.00475341651812, 0.106951871658, 0.106951871658, 0.0516934046346, 0.0368389780154, 0.0225787284611, 0, 0.0588235294118, 0.0383244206774, 0.00713012477718, 0.0588235294118, 0.0117349970291, 0.0172311348782, 0.288770053476, 0.0167855020796, 0.00267379679144, 0.0148544266191, 0.0252525252525, 0, 0.0374331550802, 0.0415923945336, 0.0148544266191, 0.0460487225193, 0.00623885918004, 0.00267379679144, 0.0499108734403, 0.00920974450386, 0.0130718954248, 0.0242127153892, 0.0460487225193, 0.000891265597148, 0.0300059417706, 0.0213903743316, 0.00356506238859, 0.0552584670232, 0.0017825311943, 0.00356506238859, 0.0570409982175, 0.0017825311943, 0.000891265597148, 0.0220439691028, 0.0119429590018, 0.00891265597148, 0.0641711229947, 0.0463458110517, 0.0124777183601, 0.0469994058229, 0.0131313131313, 0.0017825311943, 0.0570409982175, 0.033422459893, 0.0017825311943, 0.0570409982175, 0.0463458110517, 0.0124777183601, 0.0448603683898, 0.0160427807487, 0.00297088532383, 0.0811645870469, 0.0226381461676, 0.0017825311943, 0.0314913844326, 0.0653594771242, 0.0121806298277, 0.0317884729649, 0.0270350564468, 0.017825311943, 0.0448603683898, 0.0147058823529, 0.00356506238859, 0.0805109922757, 0.0323826500297, 0.0106951871658, 0.160487225193, 0.0909685086156, 0.000653594771242]` | exact | |
+| CE-227 | `U: P(0,1,2)` | `edgeBetweennessCentrality(weight: [0, 1])` | `trap` | exact | Precondition: weight > 0 |
+| CE-228 | `U: P(0,1,2), 1-1` | `edgeBetweennessCentrality(weight: [1.0, 1.0, nan])` | `trap` | exact | Every weight is checked, loops included |
+| CE-229 | `U: P(0..4)` | `betweennessCentrality(pivots: [0, 2])` | `[0, 0.666666666667, 0.666666666667, 0.333333333333, 0]` | exact | Brandes–Pich from pivots: a pivot scaled by N/(k − 1), the others by N/k, N = n − 1 (NetworkX's `k=` with this sample agrees) |
+| CE-230 | `U: P(0..4)` | `betweennessCentrality(normalized: false, pivots: [0, 2])` | `[0, 4, 4, 2, 0]` | exact | |
+| CE-231 | `U: P(0..4)` | `betweennessCentrality(endpoints: true, pivots: [2, 0])` | `[0.625, 0.75, 0.875, 0.5, 0.25]` | exact | With endpoints N = n and every vertex is scaled by N/k |
+| CE-232 | `U: P(0..4)` | `betweennessCentrality(normalized: false, endpoints: true, pivots: [0, 2])` | `[6.25, 7.5, 8.75, 5, 2.5]` | exact | |
+| CE-233 | `U: P(0..4)` | `betweennessCentrality(pivots: [2])` | `[0, 0.333333333333, nan, 0.333333333333, 0]` | exact | One pivot: its own estimate is 0/0 (NaN), as in NetworkX |
+| CE-234 | `U: P(0..4)` | `betweennessCentrality(pivots: [0, 1, 2, 3, 4])` | `[0, 0.5, 0.666666666667, 0.5, 0]` | exact | Every vertex a pivot: CE-090 |
+| CE-235 | `U: P(0..4)` | `edgeBetweennessCentrality(pivots: [0, 2])` | `[0.625, 0.625, 0.5, 0.25]` | exact | Edges: scaled by n/k, ÷ k(n − 1) when normalized |
+| CE-236 | `U: P(0..4)` | `edgeBetweennessCentrality(normalized: false, pivots: [0, 2])` | `[6.25, 6.25, 5, 2.5]` | exact | |
+| CE-237 | `D: C(0,1,2,3)` | `betweennessCentrality(pivots: [0, 1])` | `[0, 1, 0.75, 0.25]` | exact | |
+| CE-238 | `D: C(0,1,2,3)` | `betweennessCentrality(normalized: false, pivots: [0, 1])` | `[0, 6, 4.5, 1.5]` | exact | |
+| CE-239 | `D: C(0,1,2,3)` | `edgeBetweennessCentrality(normalized: false, pivots: [1, 0])` | `[6, 10, 6, 2]` | exact | |
+| CE-240 | `U: nx(karate_club)` | `betweennessCentrality(pivots: [0, 5, 10, 33])` | `[0.675992063492, 0.0200892857143, 0.0950520833333, 0.00212053571429, 0.00260416666667, 0.0243055555556, 0.0104166666667, 0, 0.096521577381, 0.00186011904762, 0.00347222222222, 0, 0, 0.0696242559524, 0, 0, 0, 0, 0, 0.0578311011905, 0, 0, 0, 0.00390625, 0, 0.00260416666667, 0, 0.00837053571429, 0.00186011904762, 0, 0.0053943452381, 0.151953125, 0.0699404761905, 0.152281746032]` | exact | |
+| CE-241 | `U: nx(karate_club)` | `edgeBetweennessCentrality(pivots: [0, 5, 10, 33])` | `[0.0340909090909, 0.111652236652, 0.0227272727273, 0.0176767676768, 0.244949494949, 0.0252525252525, 0.0248917748918, 0.11452020202, 0.237373737374, 0.030303030303, 0.0287878787879, 0.073575036075, 0.0270562770563, 0.073575036075, 0.0270562770563, 0.1625, 0, 0, 0.00162337662338, 0.00523088023088, 0.00324675324675, 0.00523088023088, 0.00324675324675, 0.0165945165945, 0, 0.00324675324675, 0.00180375180375, 0.024531024531, 0.00180375180375, 0.0270562770563, 0.0131673881674, 0.0313852813853, 0.000541125541126, 0.00151515151515, 0.00963203463203, 0.00505050505051, 0.0126262626263, 0.0126262626263, 0.0277777777778, 0.0227272727273, 0.00757575757576, 0.0113636363636, 0.0295815295815, 0.0602272727273, 0.00937950937951, 0.0750901875902, 0.00974025974026, 0.0205627705628, 0.00974025974026, 0.0205627705628, 0.00974025974026, 0.0205627705628, 0.0636544011544, 0.00974025974026, 0.0205627705628, 0.00974025974026, 0.0205627705628, 0.00631313131313, 0.00252525252525, 0, 0.00757575757576, 0.0214646464646, 0, 0.00378787878788, 0.0265151515152, 0.0290404040404, 0, 0.030303030303, 0.0131673881674, 0.0113636363636, 0.00937950937951, 0.00974025974026, 0.0205627705628, 0, 0.0128066378066, 0.0295815295815, 0.0659992784993, 0.00937950937951]` | exact | |
+| CE-242 | `U: nx(karate_club)` | `betweennessCentrality(weight: e%3+1, pivots: [0, 5, 10, 33])` | `[0.670138888889, 0.0598958333333, 0.03125, 0.0078125, 0.25, 0.03125, 0, 0, 0.0015625, 0, 0, 0, 0.0078125, 0.0299479166667, 0, 0.0015625, 0, 0, 0, 0.0104166666667, 0, 0, 0, 0.02109375, 0.0234375, 0, 0, 0.00390625, 0.00390625, 0.015625, 0, 0.410416666667, 0.1171875, 0.125]` | exact | |
+| CE-243 | `U: nx(karate_club)` | `edgeBetweennessCentrality(weight: e%3+1, pivots: [33, 0])` | `[0.0454545454545, 0.0353535353535, 0.00505050505051, 0.0606060606061, 0.0606060606061, 0.030303030303, 0.020202020202, 0.0151515151515, 0, 0.030303030303, 0.020202020202, 0.00757575757576, 0.030303030303, 0.00757575757576, 0.00757575757576, 0.361111111111, 0, 0, 0.010101010101, 0.0277777777778, 0, 0.0277777777778, 0.0227272727273, 0.00757575757576, 0.00505050505051, 0, 0, 0.0151515151515, 0.00757575757576, 0, 0.00757575757576, 0, 0, 0.020202020202, 0.030303030303, 0, 0.030303030303, 0, 0, 0.030303030303, 0, 0, 0.0030303030303, 0.0181818181818, 0.0151515151515, 0.0732323232323, 0.0151515151515, 0.0151515151515, 0.0181818181818, 0.0181818181818, 0, 0.030303030303, 0.0353535353535, 0, 0.030303030303, 0.0151515151515, 0.0151515151515, 0.0227272727273, 0, 0, 0.0257575757576, 0.0333333333333, 0, 0.0227272727273, 0.0378787878788, 0.00757575757576, 0.0151515151515, 0.0151515151515, 0.0227272727273, 0.0151515151515, 0.0227272727273, 0, 0.0454545454545, 0.00757575757576, 0.0151515151515, 0.0939393939394, 0.227777777778, 0.0030303030303]` | exact | |
+| CE-244 | `U: 0-1, 0-1, 1-2` | `betweennessCentrality(pivots: [0])` | `[nan, 1, 0]` | exact | Parallel copies count as distinct paths; the lone pivot's own estimate is NaN |
+| CE-245 | `U: P(0,1,2)` | `betweennessCentrality(pivots: [0, 0])` | `trap` | exact | Precondition: no pivot repeated |
+| CE-246 | `U: P(0,1,2)` | `betweennessCentrality(pivots: [3])` | `trap` | exact | Precondition: every pivot a vertex |
+| CE-247 | `D: P(0,1,2)` | `edgeBetweennessCentrality(pivots: [])` | `trap` | exact | Precondition: at least one pivot in a graph with vertices |
+| CE-248 | `U: []` | `betweennessCentrality(pivots: [])` | `[]` | exact | No vertices: no pivots, an empty result |

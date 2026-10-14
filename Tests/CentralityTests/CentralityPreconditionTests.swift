@@ -125,6 +125,58 @@ struct CentralityPreconditionTests {
         }
     }
 
+    @Test("CE-227 U(P(0,1,2)).edgeBetweennessCentrality(weight: [0, 1]) traps: Precondition: weight > 0")
+    func edgeBetweenness227() async {
+        await #expect(processExitsWith: .failure) {
+            // U: P(0,1,2)
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
+            let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            let w = [0, 1]
+            _ = graph.edgeBetweennessCentrality(weight: { w[$0] })
+        }
+    }
+
+    @Test("CE-228 U(P(0,1,2), 1-1).edgeBetweennessCentrality(weight: [1.0, 1.0, nan]) traps: Every weight is checked, loops included")
+    func edgeBetweenness228() async {
+        await #expect(processExitsWith: .failure) {
+            // U: P(0,1,2), 1-1
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2), (1, 1)]
+            let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            let w: [Double] = [1, 1, .nan]
+            _ = graph.edgeBetweennessCentrality(weight: { w[$0] })
+        }
+    }
+
+    @Test("CE-245 U(P(0,1,2)).betweennessCentrality(pivots: [0, 0]) traps: Precondition: no pivot repeated")
+    func betweenness245() async {
+        await #expect(processExitsWith: .failure) {
+            // U: P(0,1,2)
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
+            let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            _ = graph.betweennessCentrality(pivots: [0, 0])
+        }
+    }
+
+    @Test("CE-246 U(P(0,1,2)).betweennessCentrality(pivots: [3]) traps: Precondition: every pivot a vertex")
+    func betweenness246() async {
+        await #expect(processExitsWith: .failure) {
+            // U: P(0,1,2)
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
+            let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            _ = graph.betweennessCentrality(pivots: [3])
+        }
+    }
+
+    @Test("CE-247 D(P(0,1,2)).edgeBetweennessCentrality(pivots: []) traps: Precondition: at least one pivot in a graph with vertices")
+    func edgeBetweenness247() async {
+        await #expect(processExitsWith: .failure) {
+            // D: P(0,1,2)
+            let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
+            let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+            _ = graph.edgeBetweennessCentrality(pivots: [])
+        }
+    }
+
     @Test("score(of:) traps on a non-vertex, on an undirected and a directed result")
     func scoreOfNonVertex() async throws {
         await #expect(processExitsWith: .failure) {

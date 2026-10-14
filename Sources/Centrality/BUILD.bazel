@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Degree, closeness, harmonic, betweenness, eigenvector, Katz, PageRank, HITS.
+# Degree, closeness, harmonic, betweenness (vertex and edge, exact or from pivots), load, percolation, current-flow betweenness and closeness, subgraph centrality and communicability, group centralities, VoteRank, eigenvector, Katz, PageRank, HITS.
 swift_library(
     name = "Centrality",
     srcs = glob(["**/*.swift"]),

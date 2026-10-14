@@ -22,7 +22,7 @@ OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE.parent.parent / "Centrali
 ROWS = []
 section = None
 for line in ref.CASES.read_text().splitlines():
-    m = re.match(r"## ([A-H])\. (.*)", line)
+    m = re.match(r"## ([A-I])\. (.*)", line)
     if m:
         section = m.group(1)
     m = re.match(r"\| (CE-\d+) \| (.*?) \| (.*?) \| (.*?) \| (.*?) \|(.*)\|$", line)
@@ -125,7 +125,7 @@ def build_graph(cell, indent, kind="reference"):
     return g, lines
 
 
-ARG_ORDER = ["of", "weight", "alpha", "beta", "dampingFactor", "personalization", "normalized", "endpoints",
+ARG_ORDER = ["of", "weight", "pivots", "alpha", "beta", "dampingFactor", "personalization", "normalized", "endpoints",
              "wfImproved", "tolerance", "maxIterations"]
 
 
@@ -152,6 +152,8 @@ def call(name, a, view, weight_access=None, part=None):
         elif k == "weight":
             acc = weight_access or ("{ w[$0.position] }" if view == "directed" else "{ w[$0] }")
             args.append(f"weight: {acc}")
+        elif k == "pivots":
+            args.append("pivots: [" + ", ".join(lit(ref.vtok(x)) for x in ref.split_top(v[1:-1])) + "]")
         elif k == "personalization":
             ps = [float(x) for x in ref.split_top(v[1:-1])]
             decls.append("let p: [Double] = [" + ", ".join(num(x) for x in ps) + "]")
@@ -171,13 +173,32 @@ def check_vector(lines, ind, result, expected, tol, target):
     lines.append(f"{ind}let expected: [Double] = " + wrap([num(float(x)) for x in expected], ind))
     lines.append(f"{ind}#expect({result}.scores.count == expected.count)")
     lines.append(f"{ind}for (i, value) in expected.enumerated() {{")
+    nan = any(x != x for x in expected)
+    if nan:
+        lines.append(f"{ind}    if value.isNaN {{")
+        lines.append(f"{ind}        #expect({result}.score(ofIndex: i).isNaN, \"index \\(i)\")")
+        lines.append(f"{ind}        continue")
+        lines.append(f"{ind}    }}")
     lines.append(f"{ind}    let error = abs({result}.score(ofIndex: i) - value)")
     lines.append(f"{ind}    #expect(error <= {tol} * max(1, abs(value)), \"index \\(i)\")")
     lines.append(f"{ind}}}")
+    bits = ".map(\\.bitPattern)" if nan else ""
     lines.append(f"{ind}let byIndex = {result}.scores.indices.map {{ {result}.score(ofIndex: $0) }}")
-    lines.append(f"{ind}#expect(byIndex == {result}.scores)")
+    lines.append(f"{ind}#expect(byIndex{bits} == {result}.scores{bits})")
     lines.append(f"{ind}let byVertex = {target}.vertices.map {{ {result}.score(of: $0) }}")
-    lines.append(f"{ind}#expect(byVertex == {result}.scores)")
+    lines.append(f"{ind}#expect(byVertex{bits} == {result}.scores{bits})")
+
+
+def check_edges(lines, ind, result, expected, tol, target):
+    """Per-edge scores in position order, read by position."""
+    lines.append(f"{ind}let expected: [Double] = " + wrap([num(float(x)) for x in expected], ind))
+    lines.append(f"{ind}#expect({result}.scores.count == expected.count)")
+    lines.append(f"{ind}for (e, position) in {target}.edges.indices.enumerated() {{")
+    lines.append(f"{ind}    let error = abs({result}.score(ofEdgeAt: position) - expected[e])")
+    lines.append(f"{ind}    #expect(error <= {tol} * max(1, abs(expected[e])), \"edge \\(e)\")")
+    lines.append(f"{ind}}}")
+    lines.append(f"{ind}let byPosition = {target}.edges.indices.map {{ {result}.score(ofEdgeAt: $0) }}")
+    lines.append(f"{ind}#expect(byPosition == {result}.scores)")
 
 
 def no_convergence(ind, var, expr, name, a):
@@ -244,6 +265,19 @@ def emit_row_body(row, ind, kind="reference", override=None):
         throws = True
     else:
         lines.append(f"{ind}let result = {target}.{text}")
+    if name == "edgeBetweennessCentrality":
+        check_edges(lines, ind, "result", exact, tol, target)
+        # graph.directedView: an edge's two arcs add up to its value, twice it unnormalized.
+        if view is None and not g.directed and kind != "skipview":
+            _, _, dtext = call(name, a, "directed")
+            factor = "2 * " if a.get("normalized", True) is False else ""
+            lines.append(f"{ind}let arcs = graph.directedView.{dtext}")
+            lines.append(f"{ind}for (e, position) in graph.edges.indices.enumerated() {{")
+            lines.append(f"{ind}    let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))")
+            lines.append(f"{ind}    let error = abs(pair - {factor}expected[e])")
+            lines.append(f"{ind}    #expect(error <= {tol} * max(1, abs({factor}expected[e])), \"graph.directedView, edge \\(e)\")")
+            lines.append(f"{ind}}}")
+        return lines, throws
     check_vector(lines, ind, "result", exact, tol, target)
     if g.n > 0 and name == "pageRank":
         lines.append(f"{ind}let total = result.scores.reduce(0, +)")
@@ -270,6 +304,11 @@ def emit_row_body(row, ind, kind="reference", override=None):
             lines.append(f"{ind}let arcs = graph.directedView.{dtext}")
         factor = "2 * " if twice else ""
         lines.append(f"{ind}for (i, value) in expected.enumerated() {{")
+        if any(x != x for x in exact):
+            lines.append(f"{ind}    if value.isNaN {{")
+            lines.append(f"{ind}        #expect(arcs.score(ofIndex: i).isNaN, \"graph.directedView, index \\(i)\")")
+            lines.append(f"{ind}        continue")
+            lines.append(f"{ind}    }}")
         lines.append(f"{ind}    let error = abs(arcs.score(ofIndex: i) - {factor}value)")
         lines.append(f"{ind}    #expect(error <= {tol} * max(1, abs({factor}value)), \"graph.directedView, index \\(i)\")")
         lines.append(f"{ind}}}")
@@ -290,6 +329,7 @@ def exp_desc(row, exact):
 FUNC_PREFIX = {
     "degreeCentrality": "degree", "inDegreeCentrality": "inDegree", "outDegreeCentrality": "outDegree",
     "closenessCentrality": "closeness", "harmonicCentrality": "harmonic", "betweennessCentrality": "betweenness",
+    "edgeBetweennessCentrality": "edgeBetweenness",
     "eigenvectorCentrality": "eigenvector", "katzCentrality": "katz", "pageRank": "pageRank", "hits": "hits",
 }
 
@@ -386,6 +426,13 @@ SECTIONS = {
         "start where σ₁ is not simple; parallel arcs adding; weights; `graph.directedView` on the karate club",
         "(hubs = authorities); NoConvergence after one iteration. Each test also checks that the other",
         "vector has one score per vertex.",
+    ]),
+    "I": ("EdgeBetweennessTests.swift", "Edge betweenness and pivots", "EdgeBetweennessTests", [
+        "§I: edge betweenness (Brandes' edge accumulation) with its rescaling, parallel copies sharing",
+        "their pairs' paths, self-loops scoring 0, weights with ties by exact equality; and vertex and",
+        "edge betweenness estimated from pivots (Brandes and Pich), a lone pivot's own estimate NaN.",
+        "Edge rows read each score by position, and on `graph.directedView` an edge's two arcs add up",
+        "to its value (twice it unnormalized).",
     ]),
 }
 

@@ -2,9 +2,11 @@
 
 Vertex centrality on `Graph` and `DirectedGraph`: degree (and in- and out-degree), closeness,
 harmonic, Brandes betweenness, eigenvector, Katz, PageRank, and HITS (on `DirectedGraph`),
-unweighted and weighted. Every measure returns one value type, `CentralityScores`: a dense
-`Double` per vertex with `score(of:)` / `score(ofIndex:)`. HITS returns two of them. `cases.md`
-(CE-001 – CE-206, 162 cases) pins the values. `ref.py` recomputes every one with the model below
+unweighted and weighted; edge betweenness; and vertex and edge betweenness estimated from pivots.
+Every vertex measure returns one value type, `CentralityScores`: a dense `Double` per vertex with
+`score(of:)` / `score(ofIndex:)`. HITS returns two of them. Edge betweenness returns
+`EdgeCentralityScores`, a `Double` per edge with `score(ofEdgeAt:)` / `score(checkedEdgeAt:)`.
+`cases.md` (CE-001 – CE-248, 204 cases) pins the values. `ref.py` recomputes every one with the model below
 and checks it against the definitions (Floyd–Warshall; Σ σ_sv·σ_vt/σ_st over edge sequences),
 dense numpy/scipy solves, and NetworkX 3.7 wherever NetworkX shares the semantics
 (`uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 python3 ref.py`).
@@ -18,6 +20,8 @@ dense numpy/scipy solves, and NetworkX 3.7 wherever NetworkX shares the semantic
 | `closenessCentrality(wfImproved:)`, `closenessCentrality(of:wfImproved:)`, each also `(weight:)` | both | One vertex costs one search, not n |
 | `harmonicCentrality()`, `harmonicCentrality(of:)`, each also `(weight:)` | both | Closeness for disconnected graphs without a correction factor (Marchiori–Latora 2000, Boldi–Vigna 2014) |
 | `betweennessCentrality(normalized:endpoints:)`, also `(weight:normalized:endpoints:)` | both | Brandes 2001 |
+| `betweennessCentrality(pivots:normalized:endpoints:)`, `betweennessCentrality(pivotCount:normalized:endpoints:using:)`, each also `(weight:…)` | both | Estimate from k sources (Brandes–Pich 2007): O(km) instead of O(nm) |
+| `edgeBetweennessCentrality(normalized:)`, `(pivots:normalized:)`, `(pivotCount:normalized:using:)`, each also `(weight:…)` → `EdgeCentralityScores` | both | Girvan–Newman 2002 edge betweenness, Brandes 2001's edge accumulation |
 | `eigenvectorCentrality(tolerance:maxIterations:)`, also `(weight:…)` | both | Power iteration on A + I |
 | `katzCentrality(alpha:beta:normalized:tolerance:maxIterations:)`, also `(weight:…)` | both | Katz 1953 |
 | `pageRank(dampingFactor:tolerance:maxIterations:)`, `pageRank(dampingFactor:personalization:tolerance:maxIterations:)`, each also `(weight:…)` | both | Personalization serves recommendation and local ranking |
@@ -61,6 +65,16 @@ extension Graph {
     func betweennessCentrality(normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<DirectedView<Self>>
     func betweennessCentrality<W: Comparable & AdditiveArithmetic>(
         weight: (Edges.Index) -> W, normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<DirectedView<Self>>
+
+    /// From pivots (Brandes–Pich): the sums over the pivots' searches, scaled to all n sources.
+    /// Precondition: every pivot a vertex, none repeated, at least one when n > 0; 1...n random ones.
+    func betweennessCentrality(pivots: some Sequence<Vertex>, normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<DirectedView<Self>>
+    func betweennessCentrality(pivotCount: Int, normalized: Bool = true, endpoints: Bool = false,
+                               using generator: inout some RandomNumberGenerator) -> CentralityScores<DirectedView<Self>>
+    // … and each with a leading weight:.
+
+    /// Edge betweenness: normalized ÷ n(n − 1)/2 pairs. Also (weight:), (pivots:) and (pivotCount:using:).
+    func edgeBetweennessCentrality(normalized: Bool = true) -> EdgeCentralityScores<Edges.Index>
 
     /// Throws NoConvergence when the iteration has not converged after `maxIterations` steps.
     func eigenvectorCentrality(tolerance: Double = 1e-6, maxIterations: Int = 100) throws(NoConvergence) -> CentralityScores<DirectedView<Self>>
@@ -186,6 +200,29 @@ No scaling when the divisor would be 0 (n ≤ 2, or n < 2 with endpoints; CE-013
 * Path counts σ are `Double`: they grow as 2^{n/2} on ladder-like graphs
   and would overflow `Int`; above 2⁵³ they are rounded, which the ratios σ_v/σ_w tolerate.
 
+### Edge betweenness
+
+EB(e) = Σ σ_st(e)/σ_st over ordered pairs s ≠ t with t reachable, σ_st(e) the shortest s–t paths
+crossing e (Girvan–Newman 2002), accumulated as Brandes 2001 does: each slot v → w of the
+shortest-path DAG takes σ_v/σ_w · (1 + δ_w). Normalized ÷ n(n − 1) on the ordered sum for both kinds
+(per unordered pair ÷ n(n − 1)/2, NetworkX's rule); unnormalized undirected ÷ 2; nothing scaled
+when n < 2 (CE-221). Parallel copies are distinct path steps, so they share their pairs' paths
+equally (CE-216, CE-217); a self-loop scores 0 (CE-218). On `graph.directedView` each arc takes its
+direction's pairs, so an edge's two arcs add up to its value (twice it unnormalized; CE-222).
+Weights, ties and preconditions as for vertex betweenness (CE-223 – CE-228). The result is keyed
+by edge position: O(1) lookups when the positions are the integers 0..<m, a binary search over the
+positions otherwise (`AdjacencyMatrix` cells, `graph.directedView` arcs).
+
+### Betweenness from pivots
+
+With pivots S (k of them), the sums run over the searches from S only, then are scaled to all n
+sources (Brandes–Pich 2007; NetworkX 3.7's `_rescale` with `k=`): N = n − 1 without endpoints, n with
+them and for edges; a vertex is scaled by N/k, except that without endpoints a pivot's own search
+adds nothing to it, so a pivot is scaled by N/(k − 1) (NaN when k = 1, CE-233, CE-244); then
+÷ (N − 1) when normalized, ÷ 2 when undirected and not; nothing is scaled when N < 2. Every vertex
+as a pivot reproduces the exact measure bit for bit (CE-234). `pivotCount:using:` draws k distinct
+pivots by a partial Fisher–Yates shuffle, one `next(upperBound:)` per pivot.
+
 ### Eigenvector centrality
 
 The principal eigenvector of Aᵀ (in-arcs for a directed graph: a vertex is central when central
@@ -270,7 +307,8 @@ n vertices, m edges, k iterations.
 | `inDegreeCentrality()`, directed `degreeCentrality()` | O(n + m): one pass over the rows | n |
 | `closenessCentrality()`, `harmonicCentrality()` | O(n(n + m)); weighted O(n · m log n) (Dijkstra, 4-ary indexed heap) | O(n + m) |
 | `closenessCentrality(of:)`, `harmonicCentrality(of:)` | one search: O(n + m), weighted O(m log n); directed also O(n + m) to transpose the rows | O(n + m) |
-| `betweennessCentrality()` | O(nm) (Brandes); weighted O(n · m log n) | O(n + m) |
+| `betweennessCentrality()`, `edgeBetweennessCentrality()` | O(nm) (Brandes); weighted O(n · m log n) | O(n + m) |
+| the same from k pivots | O(km); weighted O(k · m log n); O(n) to draw random pivots | O(n + m) |
 | `eigenvectorCentrality`, `katzCentrality`, `pageRank`, `hits` | O(n + m) to copy the rows, then O(n + m) per iteration (HITS two passes) | O(n + m) |
 
 Iterations to converge: geometric in |λ₂/λ₁| (eigenvector, with the shift (1 + λ₂)/(1 + λ₁)), αρ(A)

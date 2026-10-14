@@ -18,7 +18,7 @@ import Testing
 
 @Suite("Centrality on every representation")
 struct CentralityRepresentationTests {
-    @Test("CE-001, CE-002, CE-003, CE-004, CE-005, CE-006, CE-007 on UndirectedAdjacencyList: U: []")
+    @Test("CE-001, CE-002, CE-003, CE-004, CE-005, CE-006, CE-007, CE-220, CE-248 on UndirectedAdjacencyList: U: []")
     func undirectedAdjacencyList001() throws {
         // U: []
         let graph = UndirectedAdjacencyList<Int>(vertices: [], edges: [])
@@ -164,6 +164,43 @@ struct CentralityRepresentationTests {
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-220: edgeBetweennessCentrality
+            let result = graph.edgeBetweennessCentrality()
+            let expected: [Double] = []
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality()
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
+        do {
+            // CE-248: betweennessCentrality(pivots: [])
+            let result = graph.betweennessCentrality(pivots: [])
+            let expected: [Double] = []
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+            let arcs = graph.directedView.betweennessCentrality(pivots: [])
+            for (i, value) in expected.enumerated() {
+                let error = abs(arcs.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
             }
         }
     }
@@ -967,7 +1004,7 @@ struct CentralityRepresentationTests {
         }
     }
 
-    @Test("CE-031, CE-109, CE-139, CE-168, CE-182 on UndirectedAdjacencyList: U: P(0,1,2), 1-1")
+    @Test("CE-031, CE-109, CE-139, CE-168, CE-182, CE-218 on UndirectedAdjacencyList: U: P(0,1,2), 1-1")
     func undirectedAdjacencyList031() throws {
         // U: P(0,1,2), 1-1
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (1, 1)]
@@ -1074,9 +1111,27 @@ struct CentralityRepresentationTests {
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
             }
         }
+        do {
+            // CE-218: edgeBetweennessCentrality(normalized: false)
+            let result = graph.edgeBetweennessCentrality(normalized: false)
+            let expected: [Double] = [2, 2, 0]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality(normalized: false)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - 2 * expected[e])
+                #expect(error <= 1e-12 * max(1, abs(2 * expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
     }
 
-    @Test("CE-033, CE-034, CE-035, CE-054, CE-055, CE-066, CE-072, CE-102, CE-103, CE-142, CE-166, CE-175, CE-178, CE-179, CE-195, CE-196 on AdjacencyList: D: P(0,1,2)")
+    @Test("CE-033, CE-034, CE-035, CE-054, CE-055, CE-066, CE-072, CE-102, CE-103, CE-142, CE-166, CE-175, CE-178, CE-179, CE-195, CE-196, CE-213, CE-214 on AdjacencyList: D: P(0,1,2)")
     func adjacencyList033() throws {
         // D: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
@@ -1335,9 +1390,33 @@ struct CentralityRepresentationTests {
             let otherTotal = hubs.reduce(0, +)
             #expect(abs(otherTotal - 1) <= 1e-12)
         }
+        do {
+            // CE-213: edgeBetweennessCentrality
+            let result = graph.edgeBetweennessCentrality()
+            let expected: [Double] = [0.3333333333333333, 0.3333333333333333]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
+        do {
+            // CE-214: edgeBetweennessCentrality(normalized: false)
+            let result = graph.edgeBetweennessCentrality(normalized: false)
+            let expected: [Double] = [2, 2]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
     }
 
-    @Test("CE-033, CE-034, CE-035, CE-054, CE-055, CE-066, CE-072, CE-102, CE-103, CE-142, CE-166, CE-175, CE-178, CE-179, CE-195, CE-196 on CompressedSparseRow, arcs in row-major order: D: P(0,1,2)")
+    @Test("CE-033, CE-034, CE-035, CE-054, CE-055, CE-066, CE-072, CE-102, CE-103, CE-142, CE-166, CE-175, CE-178, CE-179, CE-195, CE-196, CE-213, CE-214 on CompressedSparseRow, arcs in row-major order: D: P(0,1,2)")
     func compressedSparseRow033() throws {
         // D: [0..2] 0>1, 1>2
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
@@ -1596,9 +1675,33 @@ struct CentralityRepresentationTests {
             let otherTotal = hubs.reduce(0, +)
             #expect(abs(otherTotal - 1) <= 1e-12)
         }
+        do {
+            // CE-213: edgeBetweennessCentrality
+            let result = graph.edgeBetweennessCentrality()
+            let expected: [Double] = [0.3333333333333333, 0.3333333333333333]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
+        do {
+            // CE-214: edgeBetweennessCentrality(normalized: false)
+            let result = graph.edgeBetweennessCentrality(normalized: false)
+            let expected: [Double] = [2, 2]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
     }
 
-    @Test("CE-033, CE-034, CE-035, CE-054, CE-055, CE-066, CE-072, CE-102, CE-103, CE-142, CE-166, CE-175, CE-178, CE-179, CE-195, CE-196 on AdjacencyMatrix, arcs in row-major order: D: P(0,1,2)")
+    @Test("CE-033, CE-034, CE-035, CE-054, CE-055, CE-066, CE-072, CE-102, CE-103, CE-142, CE-166, CE-175, CE-178, CE-179, CE-195, CE-196, CE-213, CE-214 on AdjacencyMatrix, arcs in row-major order: D: P(0,1,2)")
     func adjacencyMatrix033() throws {
         // D: [0..2] 0>1, 1>2
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
@@ -1857,6 +1960,30 @@ struct CentralityRepresentationTests {
             let otherTotal = hubs.reduce(0, +)
             #expect(abs(otherTotal - 1) <= 1e-12)
         }
+        do {
+            // CE-213: edgeBetweennessCentrality
+            let result = graph.edgeBetweennessCentrality()
+            let expected: [Double] = [0.3333333333333333, 0.3333333333333333]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
+        do {
+            // CE-214: edgeBetweennessCentrality(normalized: false)
+            let result = graph.edgeBetweennessCentrality(normalized: false)
+            let expected: [Double] = [2, 2]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
     }
 
     @Test("CE-036, CE-037 on AdjacencyList: D: 0>0, 0>1")
@@ -2033,7 +2160,7 @@ struct CentralityRepresentationTests {
         }
     }
 
-    @Test("CE-039, CE-059, CE-074, CE-099, CE-119, CE-135, CE-145, CE-146, CE-162, CE-163, CE-180, CE-186, CE-204, CE-205 on UndirectedAdjacencyList: U: nx(karate_club)")
+    @Test("CE-039, CE-059, CE-074, CE-099, CE-119, CE-135, CE-145, CE-146, CE-162, CE-163, CE-180, CE-186, CE-204, CE-205, CE-212, CE-226, CE-240, CE-241, CE-242, CE-243 on UndirectedAdjacencyList: U: nx(karate_club)")
     func undirectedAdjacencyList039() throws {
         // U: nx(karate_club)
         let pairs: [(Int, Int)] = [
@@ -2411,9 +2538,213 @@ struct CentralityRepresentationTests {
             let otherTotal = hubs.reduce(0, +)
             #expect(abs(otherTotal - 1) <= 1e-12)
         }
+        do {
+            // CE-212: edgeBetweennessCentrality
+            let result = graph.edgeBetweennessCentrality()
+            let expected: [Double] = [
+                0.025252525252525245, 0.0777876807288572, 0.02049910873440285, 0.0522875816993464,
+                0.07813428401663694, 0.07813428401663695, 0.0228206434088787, 0.07423959482783014,
+                0.0522875816993464, 0.058823529411764705, 0.04652406417112298, 0.04237189825425121,
+                0.04012392835922248, 0.045936960642843, 0.040123928359222474, 0.12725999490705373,
+                0.023232323232323233, 0.0077243018419489, 0.007422969187675069, 0.012405568287921232,
+                0.01869960105254222, 0.014633732280791106, 0.018699601052542224, 0.032280791104320514,
+                0.022430184194890075, 0.02521432815550462, 0.009175791528732704, 0.030803836686189634,
+                0.007630931160342923, 0.04119203236850297, 0.022782446311858072, 0.06898678663384543,
+                0.003365588659706307, 0.012299465240641707, 0.01492233256939139, 0.0047534165181224,
+                0.0029708853238265, 0.0029708853238265003, 0.0047534165181224, 0.029411764705882353,
+                0.029411764705882353, 0.00980392156862745, 0.0304416716181422, 0.04043657867187279,
+                0.029615482556659026, 0.06782389723566191, 0.024083977025153493, 0.0347395523866112,
+                0.024083977025153493, 0.0347395523866112, 0.024083977025153493, 0.0347395523866112,
+                0.0593823387941035, 0.024083977025153493, 0.0347395523866112, 0.024083977025153493,
+                0.03473955238661121, 0.019776193305605066, 0.010536739948504653, 0.00665478312537136,
+                0.022341057635175274, 0.03266983561101209, 0.0042186571598336305, 0.018657159833630418,
+                0.040106951871657755, 0.04205783323430382, 0.004532722179781003, 0.0542908072319837,
+                0.030477039300568713, 0.0148544266191325, 0.024564977506153975, 0.023328523328523323,
+                0.029807882749059215, 0.01705288175876411, 0.02681436210847975, 0.04143394731630025,
+                0.05339388280564751, 0.008225108225108226
+            ]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality()
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
+        do {
+            // CE-226: edgeBetweennessCentrality(weight: e%3+1)
+            let w = (0 ..< 78).map { $0 % 3 + 1 }
+            let result = graph.edgeBetweennessCentrality(weight: { w[$0] })
+            let expected: [Double] = [
+                0.07768865121806297, 0.033273915626856804, 0.004753416518122399, 0.10695187165775401,
+                0.10695187165775401, 0.0516934046345811, 0.03683897801544861, 0.0225787284610814, 0,
+                0.058823529411764705, 0.03832442067736185, 0.0071301247771836, 0.058823529411764705,
+                0.011734997029114676, 0.017231134878193697, 0.2887700534759358, 0.016785502079619725,
+                0.00267379679144385, 0.0148544266191325, 0.025252525252525245, 0, 0.03743315508021391,
+                0.04159239453357099, 0.0148544266191325, 0.04604872251931075, 0.006238859180035651,
+                0.00267379679144385, 0.049910873440285206, 0.00920974450386215, 0.013071895424836598,
+                0.024212715389185978, 0.046048722519310754, 0.00089126559714795, 0.030005941770647648,
+                0.0213903743315508, 0.0035650623885918, 0.0552584670231729, 0.0017825311942959,
+                0.0035650623885918, 0.0570409982174688, 0.0017825311942959, 0.00089126559714795,
+                0.02204396910279263, 0.01194295900178253, 0.0089126559714795, 0.0641711229946524,
+                0.0463458110516934, 0.012477718360071301, 0.046999405822935235, 0.01313131313131313,
+                0.0017825311942959, 0.0570409982174688, 0.03342245989304812, 0.0017825311942959,
+                0.0570409982174688, 0.0463458110516934, 0.012477718360071301, 0.04486036838978015,
+                0.0160427807486631, 0.0029708853238265, 0.08116458704693998, 0.02263814616755793,
+                0.0017825311942959, 0.031491384432560894, 0.06535947712418301, 0.01218062982768865,
+                0.03178847296494355, 0.027035056446821155, 0.017825311942959, 0.04486036838978015,
+                0.014705882352941176, 0.0035650623885918, 0.08051099227569815, 0.032382650029708845,
+                0.0106951871657754, 0.16048722519310754, 0.09096850861556742, 0.0006535947712418301
+            ]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality(weight: { w[$0.position] })
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
+        do {
+            // CE-240: betweennessCentrality(pivots: [0, 5, 10, 33])
+            let result = graph.betweennessCentrality(pivots: [0, 5, 10, 33])
+            let expected: [Double] = [
+                0.6759920634920633, 0.020089285714285712, 0.09505208333333333, 0.0021205357142857146,
+                0.0026041666666666665, 0.024305555555555552, 0.010416666666666666, 0,
+                0.09652157738095238, 0.0018601190476190475, 0.003472222222222222, 0, 0,
+                0.06962425595238095, 0, 0, 0, 0, 0, 0.057831101190476186, 0, 0, 0, 0.00390625, 0,
+                0.0026041666666666665, 0, 0.008370535714285714, 0.0018601190476190475, 0,
+                0.005394345238095237, 0.151953125, 0.06994047619047618, 0.152281746031746
+            ]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+            let arcs = graph.directedView.betweennessCentrality(pivots: [0, 5, 10, 33])
+            for (i, value) in expected.enumerated() {
+                let error = abs(arcs.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-241: edgeBetweennessCentrality(pivots: [0, 5, 10, 33])
+            let result = graph.edgeBetweennessCentrality(pivots: [0, 5, 10, 33])
+            let expected: [Double] = [
+                0.03409090909090909, 0.11165223665223666, 0.022727272727272728, 0.017676767676767676,
+                0.24494949494949492, 0.025252525252525252, 0.024891774891774892, 0.11452020202020202,
+                0.23737373737373738, 0.030303030303030304, 0.028787878787878786, 0.07357503607503608,
+                0.027056277056277056, 0.07357503607503608, 0.027056277056277056, 0.1625, 0, 0,
+                0.0016233766233766233, 0.00523088023088023, 0.0032467532467532465, 0.00523088023088023,
+                0.0032467532467532465, 0.016594516594516592, 0, 0.0032467532467532465,
+                0.0018037518037518038, 0.024531024531024532, 0.0018037518037518038, 0.02705627705627706,
+                0.013167388167388168, 0.031385281385281384, 0.0005411255411255411,
+                0.0015151515151515154, 0.009632034632034632, 0.00505050505050505, 0.012626262626262626,
+                0.012626262626262626, 0.027777777777777773, 0.022727272727272728, 0.007575757575757576,
+                0.011363636363636364, 0.029581529581529577, 0.060227272727272727, 0.00937950937950938,
+                0.07509018759018758, 0.00974025974025974, 0.020562770562770564, 0.00974025974025974,
+                0.020562770562770564, 0.00974025974025974, 0.020562770562770564, 0.06365440115440116,
+                0.00974025974025974, 0.020562770562770564, 0.00974025974025974, 0.020562770562770564,
+                0.006313131313131313, 0.002525252525252525, 0, 0.007575757575757576,
+                0.021464646464646464, 0, 0.003787878787878788, 0.026515151515151516,
+                0.029040404040404044, 0, 0.030303030303030304, 0.013167388167388168,
+                0.011363636363636364, 0.00937950937950938, 0.00974025974025974, 0.020562770562770564, 0,
+                0.012806637806637806, 0.029581529581529577, 0.0659992784992785, 0.00937950937950938
+            ]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality(pivots: [0, 5, 10, 33])
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
+        do {
+            // CE-242: betweennessCentrality(weight: e%3+1, pivots: [0, 5, 10, 33])
+            let w = (0 ..< 78).map { $0 % 3 + 1 }
+            let result = graph.betweennessCentrality(weight: { w[$0] }, pivots: [0, 5, 10, 33])
+            let expected: [Double] = [
+                0.6701388888888888, 0.05989583333333333, 0.03125, 0.0078125, 0.25, 0.03125, 0, 0,
+                0.0015625, 0, 0, 0, 0.0078125, 0.029947916666666664, 0, 0.0015625, 0, 0, 0,
+                0.010416666666666666, 0, 0, 0, 0.02109375, 0.0234375, 0, 0, 0.00390625, 0.00390625,
+                0.015625, 0, 0.41041666666666665, 0.1171875, 0.125
+            ]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+            let arcs = graph.directedView.betweennessCentrality(weight: { w[$0.position] }, pivots: [0, 5, 10, 33])
+            for (i, value) in expected.enumerated() {
+                let error = abs(arcs.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-243: edgeBetweennessCentrality(weight: e%3+1, pivots: [33, 0])
+            let w = (0 ..< 78).map { $0 % 3 + 1 }
+            let result = graph.edgeBetweennessCentrality(weight: { w[$0] }, pivots: [33, 0])
+            let expected: [Double] = [
+                0.045454545454545456, 0.03535353535353535, 0.00505050505050505, 0.06060606060606061,
+                0.06060606060606061, 0.030303030303030304, 0.0202020202020202, 0.015151515151515152, 0,
+                0.030303030303030304, 0.0202020202020202, 0.007575757575757576, 0.030303030303030304,
+                0.007575757575757576, 0.007575757575757576, 0.3611111111111111, 0, 0,
+                0.0101010101010101, 0.027777777777777776, 0, 0.027777777777777776, 0.022727272727272728,
+                0.007575757575757576, 0.00505050505050505, 0, 0, 0.015151515151515152,
+                0.007575757575757576, 0, 0.007575757575757576, 0, 0, 0.0202020202020202,
+                0.030303030303030304, 0, 0.030303030303030304, 0, 0, 0.030303030303030304, 0, 0,
+                0.0030303030303030307, 0.01818181818181818, 0.015151515151515152, 0.07323232323232323,
+                0.015151515151515152, 0.015151515151515152, 0.01818181818181818, 0.01818181818181818, 0,
+                0.030303030303030304, 0.03535353535353535, 0, 0.030303030303030304,
+                0.015151515151515152, 0.015151515151515152, 0.022727272727272728, 0, 0,
+                0.025757575757575757, 0.03333333333333334, 0, 0.022727272727272728, 0.03787878787878788,
+                0.007575757575757576, 0.015151515151515152, 0.015151515151515152, 0.022727272727272728,
+                0.015151515151515152, 0.022727272727272728, 0, 0.045454545454545456,
+                0.007575757575757576, 0.015151515151515152, 0.09393939393939395, 0.22777777777777775,
+                0.0030303030303030307
+            ]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality(weight: { w[$0.position] }, pivots: [33, 0])
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
     }
 
-    @Test("CE-040, CE-062, CE-068, CE-076, CE-106, CE-107, CE-131, CE-144, CE-147, CE-160, CE-164, CE-165, CE-170, CE-190 on UndirectedAdjacencyList: U: P(0,1,2)")
+    @Test("CE-040, CE-062, CE-068, CE-076, CE-106, CE-107, CE-131, CE-144, CE-147, CE-160, CE-164, CE-165, CE-170, CE-190, CE-222 on UndirectedAdjacencyList: U: P(0,1,2)")
     func undirectedAdjacencyList040() throws {
         // U: P(0,1,2)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
@@ -2686,9 +3017,21 @@ struct CentralityRepresentationTests {
             let total = result.scores.reduce(0, +)
             #expect(abs(total - 1) <= 1e-12, "scores sum to 1")
         }
+        do {
+            // CE-222: directed > edgeBetweennessCentrality(normalized: false)
+            let result = graph.directedView.edgeBetweennessCentrality(normalized: false)
+            let expected: [Double] = [2, 2, 2, 2]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.directedView.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.directedView.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
     }
 
-    @Test("CE-050, CE-065, CE-070, CE-078, CE-090, CE-091, CE-092, CE-093 on UndirectedAdjacencyList: U: P(0..4)")
+    @Test("CE-050, CE-065, CE-070, CE-078, CE-090, CE-091, CE-092, CE-093, CE-207, CE-208, CE-229, CE-230, CE-231, CE-232, CE-233, CE-234, CE-235, CE-236 on UndirectedAdjacencyList: U: P(0..4)")
     func undirectedAdjacencyList050() {
         // U: P(0..4)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
@@ -2844,9 +3187,203 @@ struct CentralityRepresentationTests {
                 #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
             }
         }
+        do {
+            // CE-207: edgeBetweennessCentrality
+            let result = graph.edgeBetweennessCentrality()
+            let expected: [Double] = [0.4, 0.6000000000000001, 0.6000000000000001, 0.4]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality()
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
+        do {
+            // CE-208: edgeBetweennessCentrality(normalized: false)
+            let result = graph.edgeBetweennessCentrality(normalized: false)
+            let expected: [Double] = [4, 6, 6, 4]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality(normalized: false)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - 2 * expected[e])
+                #expect(error <= 1e-12 * max(1, abs(2 * expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
+        do {
+            // CE-229: betweennessCentrality(pivots: [0, 2])
+            let result = graph.betweennessCentrality(pivots: [0, 2])
+            let expected: [Double] = [0, 0.6666666666666666, 0.6666666666666666, 0.3333333333333333, 0]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+            let arcs = graph.directedView.betweennessCentrality(pivots: [0, 2])
+            for (i, value) in expected.enumerated() {
+                let error = abs(arcs.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-230: betweennessCentrality(normalized: false, pivots: [0, 2])
+            let result = graph.betweennessCentrality(pivots: [0, 2], normalized: false)
+            let expected: [Double] = [0, 4, 4, 2, 0]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+            let arcs = graph.directedView.betweennessCentrality(pivots: [0, 2], normalized: false)
+            for (i, value) in expected.enumerated() {
+                let error = abs(arcs.score(ofIndex: i) - 2 * value)
+                #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-231: betweennessCentrality(endpoints: true, pivots: [2, 0])
+            let result = graph.betweennessCentrality(pivots: [2, 0], endpoints: true)
+            let expected: [Double] = [0.625, 0.75, 0.875, 0.5, 0.25]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+            let arcs = graph.directedView.betweennessCentrality(pivots: [2, 0], endpoints: true)
+            for (i, value) in expected.enumerated() {
+                let error = abs(arcs.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-232: betweennessCentrality(normalized: false, endpoints: true, pivots: [0, 2])
+            let result = graph.betweennessCentrality(pivots: [0, 2], normalized: false, endpoints: true)
+            let expected: [Double] = [6.25, 7.5, 8.75, 5, 2.5]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+            let arcs = graph.directedView.betweennessCentrality(pivots: [0, 2], normalized: false, endpoints: true)
+            for (i, value) in expected.enumerated() {
+                let error = abs(arcs.score(ofIndex: i) - 2 * value)
+                #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-233: betweennessCentrality(pivots: [2])
+            let result = graph.betweennessCentrality(pivots: [2])
+            let expected: [Double] = [0, 0.3333333333333333, .nan, 0.3333333333333333, 0]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                if value.isNaN {
+                    #expect(result.score(ofIndex: i).isNaN, "index \(i)")
+                    continue
+                }
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex.map(\.bitPattern) == result.scores.map(\.bitPattern))
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex.map(\.bitPattern) == result.scores.map(\.bitPattern))
+            let arcs = graph.directedView.betweennessCentrality(pivots: [2])
+            for (i, value) in expected.enumerated() {
+                if value.isNaN {
+                    #expect(arcs.score(ofIndex: i).isNaN, "graph.directedView, index \(i)")
+                    continue
+                }
+                let error = abs(arcs.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-234: betweennessCentrality(pivots: [0, 1, 2, 3, 4])
+            let result = graph.betweennessCentrality(pivots: [0, 1, 2, 3, 4])
+            let expected: [Double] = [0, 0.5, 0.6666666666666666, 0.5, 0]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+            let arcs = graph.directedView.betweennessCentrality(pivots: [0, 1, 2, 3, 4])
+            for (i, value) in expected.enumerated() {
+                let error = abs(arcs.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-235: edgeBetweennessCentrality(pivots: [0, 2])
+            let result = graph.edgeBetweennessCentrality(pivots: [0, 2])
+            let expected: [Double] = [0.625, 0.625, 0.5, 0.25]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality(pivots: [0, 2])
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
+        do {
+            // CE-236: edgeBetweennessCentrality(normalized: false, pivots: [0, 2])
+            let result = graph.edgeBetweennessCentrality(pivots: [0, 2], normalized: false)
+            let expected: [Double] = [6.25, 6.25, 5, 2.5]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality(pivots: [0, 2], normalized: false)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - 2 * expected[e])
+                #expect(error <= 1e-12 * max(1, abs(2 * expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
     }
 
-    @Test("CE-051, CE-052, CE-071, CE-101 on UndirectedAdjacencyList: U: P(0,1,2), 3-4")
+    @Test("CE-051, CE-052, CE-071, CE-101, CE-219 on UndirectedAdjacencyList: U: P(0,1,2), 3-4")
     func undirectedAdjacencyList051() {
         // U: P(0,1,2), 3-4
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (3, 4)]
@@ -2941,6 +3478,24 @@ struct CentralityRepresentationTests {
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-12 * max(1, abs(value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-219: edgeBetweennessCentrality
+            let result = graph.edgeBetweennessCentrality()
+            let expected: [Double] = [0.2, 0.2, 0.1]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality()
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "graph.directedView, edge \(e)")
             }
         }
     }
@@ -3058,7 +3613,7 @@ struct CentralityRepresentationTests {
         }
     }
 
-    @Test("CE-057, CE-097, CE-134 on UndirectedAdjacencyList: U: nx(krackhardt_kite)")
+    @Test("CE-057, CE-097, CE-134, CE-211 on UndirectedAdjacencyList: U: nx(krackhardt_kite)")
     func undirectedAdjacencyList057() throws {
         // U: nx(krackhardt_kite)
         let pairs: [(Int, Int)] = [
@@ -3139,6 +3694,29 @@ struct CentralityRepresentationTests {
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - value)
                 #expect(error <= 1e-4 * max(1, abs(value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-211: edgeBetweennessCentrality
+            let result = graph.edgeBetweennessCentrality()
+            let expected: [Double] = [
+                0.05925925925925925, 0.03333333333333333, 0.040740740740740744, 0.1037037037037037,
+                0.040740740740740744, 0.03333333333333333, 0.1037037037037037, 0.06666666666666667, 0.1,
+                0.06666666666666667, 0.07407407407407408, 0.07407407407407407, 0.1, 0.05925925925925926,
+                0.23333333333333334, 0.23333333333333334, 0.35555555555555557, 0.2
+            ]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality()
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "graph.directedView, edge \(e)")
             }
         }
     }
@@ -3364,7 +3942,7 @@ struct CentralityRepresentationTests {
         }
     }
 
-    @Test("CE-061, CE-077, CE-096, CE-113 on UndirectedAdjacencyList: U: C(0,1,2,3)")
+    @Test("CE-061, CE-077, CE-096, CE-113, CE-209, CE-223 on UndirectedAdjacencyList: U: C(0,1,2,3)")
     func undirectedAdjacencyList061() {
         // U: C(0,1,2,3)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
@@ -3459,6 +4037,43 @@ struct CentralityRepresentationTests {
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - 2 * value)
                 #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-209: edgeBetweennessCentrality(normalized: false)
+            let result = graph.edgeBetweennessCentrality(normalized: false)
+            let expected: [Double] = [2, 2, 2, 2]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality(normalized: false)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - 2 * expected[e])
+                #expect(error <= 1e-12 * max(1, abs(2 * expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
+        do {
+            // CE-223: edgeBetweennessCentrality(normalized: false, weight: [1, 1, 1, 3])
+            let w = [1, 1, 1, 3]
+            let result = graph.edgeBetweennessCentrality(weight: { w[$0] }, normalized: false)
+            let expected: [Double] = [2.5, 3.5, 2.5, 0.5]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality(weight: { w[$0.position] }, normalized: false)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - 2 * expected[e])
+                #expect(error <= 1e-12 * max(1, abs(2 * expected[e])), "graph.directedView, edge \(e)")
             }
         }
     }
@@ -3638,7 +4253,7 @@ struct CentralityRepresentationTests {
         }
     }
 
-    @Test("CE-104, CE-118 on AdjacencyList: D: C(0,1,2,3)")
+    @Test("CE-104, CE-118, CE-215, CE-237, CE-238, CE-239 on AdjacencyList: D: C(0,1,2,3)")
     func adjacencyList104() {
         // D: C(0,1,2,3)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
@@ -3673,9 +4288,61 @@ struct CentralityRepresentationTests {
             let byVertex = graph.vertices.map { result.score(of: $0) }
             #expect(byVertex == result.scores)
         }
+        do {
+            // CE-215: edgeBetweennessCentrality(normalized: false)
+            let result = graph.edgeBetweennessCentrality(normalized: false)
+            let expected: [Double] = [6, 6, 6, 6]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
+        do {
+            // CE-237: betweennessCentrality(pivots: [0, 1])
+            let result = graph.betweennessCentrality(pivots: [0, 1])
+            let expected: [Double] = [0, 1, 0.75, 0.25]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+        }
+        do {
+            // CE-238: betweennessCentrality(normalized: false, pivots: [0, 1])
+            let result = graph.betweennessCentrality(pivots: [0, 1], normalized: false)
+            let expected: [Double] = [0, 6, 4.5, 1.5]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+        }
+        do {
+            // CE-239: edgeBetweennessCentrality(normalized: false, pivots: [1, 0])
+            let result = graph.edgeBetweennessCentrality(pivots: [1, 0], normalized: false)
+            let expected: [Double] = [6, 10, 6, 2]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
     }
 
-    @Test("CE-104, CE-118 on CompressedSparseRow, arcs in row-major order: D: C(0,1,2,3)")
+    @Test("CE-104, CE-118, CE-215, CE-237, CE-238, CE-239 on CompressedSparseRow, arcs in row-major order: D: C(0,1,2,3)")
     func compressedSparseRow104() {
         // D: [0..3] 0>1, 1>2, 2>3, 3>0
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
@@ -3710,9 +4377,61 @@ struct CentralityRepresentationTests {
             let byVertex = graph.vertices.map { result.score(of: $0) }
             #expect(byVertex == result.scores)
         }
+        do {
+            // CE-215: edgeBetweennessCentrality(normalized: false)
+            let result = graph.edgeBetweennessCentrality(normalized: false)
+            let expected: [Double] = [6, 6, 6, 6]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
+        do {
+            // CE-237: betweennessCentrality(pivots: [0, 1])
+            let result = graph.betweennessCentrality(pivots: [0, 1])
+            let expected: [Double] = [0, 1, 0.75, 0.25]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+        }
+        do {
+            // CE-238: betweennessCentrality(normalized: false, pivots: [0, 1])
+            let result = graph.betweennessCentrality(pivots: [0, 1], normalized: false)
+            let expected: [Double] = [0, 6, 4.5, 1.5]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+        }
+        do {
+            // CE-239: edgeBetweennessCentrality(normalized: false, pivots: [1, 0])
+            let result = graph.edgeBetweennessCentrality(pivots: [1, 0], normalized: false)
+            let expected: [Double] = [6, 10, 6, 2]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
     }
 
-    @Test("CE-104, CE-118 on AdjacencyMatrix, arcs in row-major order: D: C(0,1,2,3)")
+    @Test("CE-104, CE-118, CE-215, CE-237, CE-238, CE-239 on AdjacencyMatrix, arcs in row-major order: D: C(0,1,2,3)")
     func adjacencyMatrix104() {
         // D: [0..3] 0>1, 1>2, 2>3, 3>0
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 0)]
@@ -3747,6 +4466,58 @@ struct CentralityRepresentationTests {
             #expect(byIndex == result.scores)
             let byVertex = graph.vertices.map { result.score(of: $0) }
             #expect(byVertex == result.scores)
+        }
+        do {
+            // CE-215: edgeBetweennessCentrality(normalized: false)
+            let result = graph.edgeBetweennessCentrality(normalized: false)
+            let expected: [Double] = [6, 6, 6, 6]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
+        do {
+            // CE-237: betweennessCentrality(pivots: [0, 1])
+            let result = graph.betweennessCentrality(pivots: [0, 1])
+            let expected: [Double] = [0, 1, 0.75, 0.25]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+        }
+        do {
+            // CE-238: betweennessCentrality(normalized: false, pivots: [0, 1])
+            let result = graph.betweennessCentrality(pivots: [0, 1], normalized: false)
+            let expected: [Double] = [0, 6, 4.5, 1.5]
+            #expect(result.scores.count == expected.count)
+            for (i, value) in expected.enumerated() {
+                let error = abs(result.score(ofIndex: i) - value)
+                #expect(error <= 1e-12 * max(1, abs(value)), "index \(i)")
+            }
+            let byIndex = result.scores.indices.map { result.score(ofIndex: $0) }
+            #expect(byIndex == result.scores)
+            let byVertex = graph.vertices.map { result.score(of: $0) }
+            #expect(byVertex == result.scores)
+        }
+        do {
+            // CE-239: edgeBetweennessCentrality(normalized: false, pivots: [1, 0])
+            let result = graph.edgeBetweennessCentrality(pivots: [1, 0], normalized: false)
+            let expected: [Double] = [6, 10, 6, 2]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
         }
     }
 
@@ -3874,7 +4645,7 @@ struct CentralityRepresentationTests {
         }
     }
 
-    @Test("CE-114 on UndirectedAdjacencyList: U: 0-1, 1-2, 0-3, 3-2")
+    @Test("CE-114, CE-224 on UndirectedAdjacencyList: U: 0-1, 1-2, 0-3, 3-2")
     func undirectedAdjacencyList114() {
         // U: 0-1, 1-2, 0-3, 3-2
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 3), (3, 2)]
@@ -3898,6 +4669,25 @@ struct CentralityRepresentationTests {
             for (i, value) in expected.enumerated() {
                 let error = abs(arcs.score(ofIndex: i) - 2 * value)
                 #expect(error <= 1e-12 * max(1, abs(2 * value)), "graph.directedView, index \(i)")
+            }
+        }
+        do {
+            // CE-224: edgeBetweennessCentrality(normalized: false, weight: [0.1, 0.2, 0.15, 0.15])
+            let w: [Double] = [0.1, 0.2, 0.15, 0.15]
+            let result = graph.edgeBetweennessCentrality(weight: { w[$0] }, normalized: false)
+            let expected: [Double] = [2, 1, 3, 2]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality(weight: { w[$0.position] }, normalized: false)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - 2 * expected[e])
+                #expect(error <= 1e-12 * max(1, abs(2 * expected[e])), "graph.directedView, edge \(e)")
             }
         }
     }
@@ -5006,6 +5796,122 @@ struct CentralityRepresentationTests {
             let failure = #expect(throws: NoConvergence.self) { try graph.hits(maxIterations: 1) }
             #expect(failure?.iterations == 1)
             #expect(failure.map { !($0.residual < 1e-08) } == true)
+        }
+    }
+
+    @Test("CE-210 on UndirectedAdjacencyList: U: 0-1, 1-2, 0-2, 2-3, 3-4, 4-5, 3-5")
+    func undirectedAdjacencyList210() {
+        // U: 0-1, 1-2, 0-2, 2-3, 3-4, 4-5, 3-5
+        let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (4, 5), (3, 5)]
+        let graph = UndirectedAdjacencyList(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+        #expect(Array(graph.vertices) == [0, 1, 2, 3, 4, 5])
+        do {
+            // CE-210: edgeBetweennessCentrality(normalized: false)
+            let result = graph.edgeBetweennessCentrality(normalized: false)
+            let expected: [Double] = [1, 4, 4, 9, 4, 1, 4]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality(normalized: false)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - 2 * expected[e])
+                #expect(error <= 1e-12 * max(1, abs(2 * expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
+    }
+
+    @Test("CE-221 on UndirectedAdjacencyList: U: 0-0")
+    func undirectedAdjacencyList221() {
+        // U: 0-0
+        let pairs: [(Int, Int)] = [(0, 0)]
+        let graph = UndirectedAdjacencyList(vertices: 0 ..< 1, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+        #expect(Array(graph.vertices) == [0])
+        do {
+            // CE-221: edgeBetweennessCentrality
+            let result = graph.edgeBetweennessCentrality()
+            let expected: [Double] = [0]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+            let arcs = graph.directedView.edgeBetweennessCentrality()
+            for (e, position) in graph.edges.indices.enumerated() {
+                let pair = arcs.score(ofEdgeAt: .init(position: position, reversed: false)) + arcs.score(ofEdgeAt: .init(position: position, reversed: true))
+                let error = abs(pair - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "graph.directedView, edge \(e)")
+            }
+        }
+    }
+
+    @Test("CE-225 on AdjacencyList: D: 0>1, 1>2, 0>2")
+    func adjacencyList225() {
+        // D: 0>1, 1>2, 0>2
+        let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2)]
+        let graph = AdjacencyList(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+        #expect(Array(graph.vertices) == [0, 1, 2])
+        do {
+            // CE-225: edgeBetweennessCentrality(normalized: false, weight: [1, 1, 2])
+            let w = [1, 1, 2]
+            let result = graph.edgeBetweennessCentrality(weight: { w[$0] }, normalized: false)
+            let expected: [Double] = [1.5, 1.5, 0.5]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
+    }
+
+    @Test("CE-225 on CompressedSparseRow, arcs in row-major order: D: 0>1, 1>2, 0>2")
+    func compressedSparseRow225() {
+        // D: [0..2] 0>1, 0>2, 1>2
+        let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
+        let graph = CompressedSparseRow(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+        #expect(Array(graph.edges) == pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+        do {
+            // CE-225: edgeBetweennessCentrality(normalized: false, weight: [1, 1, 2]) (weights carried with their arcs)
+            let w = [1, 2, 1]
+            let result = graph.edgeBetweennessCentrality(weight: { w[$0] }, normalized: false)
+            let expected: [Double] = [1.5, 0.5, 1.5]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
+        }
+    }
+
+    @Test("CE-225 on AdjacencyMatrix, arcs in row-major order: D: 0>1, 1>2, 0>2")
+    func adjacencyMatrix225() {
+        // D: [0..2] 0>1, 0>2, 1>2
+        let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
+        let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+        #expect(Array(graph.edges) == pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+        do {
+            // CE-225: edgeBetweennessCentrality(normalized: false, weight: [1, 1, 2]) (weights carried with their arcs)
+            let w = [1, 2, 1]
+            let arcs = pairs.map { DirectedEdge(from: $0.0, to: $0.1) }
+            let result = graph.edgeBetweennessCentrality(weight: { w[arcs.firstIndex(of: graph.edges[$0])!] }, normalized: false)
+            let expected: [Double] = [1.5, 0.5, 1.5]
+            #expect(result.scores.count == expected.count)
+            for (e, position) in graph.edges.indices.enumerated() {
+                let error = abs(result.score(ofEdgeAt: position) - expected[e])
+                #expect(error <= 1e-12 * max(1, abs(expected[e])), "edge \(e)")
+            }
+            let byPosition = graph.edges.indices.map { result.score(ofEdgeAt: $0) }
+            #expect(byPosition == result.scores)
         }
     }
 }

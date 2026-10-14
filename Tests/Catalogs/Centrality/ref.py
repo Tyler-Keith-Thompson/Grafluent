@@ -26,6 +26,7 @@ checked independently:
 
 import heapq
 import math
+import random
 import re
 import sys
 from pathlib import Path
@@ -332,13 +333,101 @@ def rescale(b, n, normalized, endpoints, directed):
     return [float(x * scale) if scale is not None else float(x) for x in b]
 
 
-def betweenness_model(g, w, normalized, endpoints):
+def rescale_pivots(b, n, pivots, normalized, endpoints, directed):
+    """Brandes and Pich's extrapolation from k pivots (NetworkX 3.7's `_rescale` with a sample):
+    N = n (n - 1 without endpoints); a pivot is scaled by N/(k - 1) without endpoints (NaN for k =
+    1), every other vertex by N/k; then / (N - 1) when normalized, / 2 when undirected and not."""
+    N = n if endpoints else n - 1
+    if N < 2:
+        return [float(x) for x in b]
+    k = len(pivots)
+    corr = 1 if directed else 2
+    out = []
+    for v, x in enumerate(b):
+        src = k - 1 if (not endpoints and v in pivots) else k
+        if src == 0:
+            out.append(math.nan)
+            continue
+        scale = 1 / (src * (N - 1)) if normalized else N / (src * corr)
+        out.append(float(x * scale))
+    return out
+
+
+def pivot_numbers(g, a):
+    """The pivots argument as vertex numbers: every one a vertex, none repeated, at least one when
+    the graph has vertices."""
+    if "pivots" not in a:
+        return None
+    labels = [vtok(x) for x in split_top(a["pivots"][1:-1])]
+    if any(x not in g.vertices for x in labels) or len(set(labels)) != len(labels) or (not labels and g.n > 0):
+        raise Trap()
+    return sorted(g.vertices.index(x) for x in labels)
+
+
+def edge_rescale(b, n, k, normalized, directed):
+    """Edge sums over ordered pairs from k sources (k = n exact): / k(n - 1) normalized, else
+    * n / k, halved when undirected; nothing when n < 2."""
+    if n < 2:
+        return [float(x) for x in b]
+    scale = 1 / (k * (n - 1)) if normalized else n / (k * (1 if directed else 2))
+    return [float(x * scale) for x in b]
+
+
+def edge_betweenness_model(g, w, normalized, pivots=None):
+    """Brandes' edge accumulation: each DAG slot v -> t takes sigma(v)/sigma(t) * (1 + delta(t))."""
+    wt = None if w is None else weights_of(g, w, positive=True)
+    rows = search_rows(g, reverse=False)
+    n = g.n
+    eb = [0.0] * g.m
+    for s in (range(n) if pivots is None else pivots):
+        sigma = [0.0] * n
+        dist = [None] * n
+        sigma[s], dist[s] = 1.0, 0
+        order = []
+        if wt is None:
+            q = [s]
+            for v in q:
+                order.append(v)
+                for t, e in rows[v]:
+                    if dist[t] is None:
+                        dist[t] = dist[v] + 1
+                        q.append(t)
+                    if dist[t] == dist[v] + 1:
+                        sigma[t] += sigma[v]
+        else:
+            h, done = [(0, s)], [False] * n
+            while h:
+                d, v = heapq.heappop(h)
+                if done[v] or d != dist[v]:
+                    continue
+                done[v] = True
+                order.append(v)
+                for t, e in rows[v]:
+                    nd = d + wt[edge_of_rows(e)]
+                    if dist[t] is None or nd < dist[t]:
+                        dist[t] = nd
+                        sigma[t] = sigma[v]
+                        heapq.heappush(h, (nd, t))
+                    elif nd == dist[t]:
+                        sigma[t] += sigma[v]
+        delta = [0.0] * n
+        for v in reversed(order):
+            for t, e in rows[v]:
+                step = 1 if wt is None else wt[edge_of_rows(e)]
+                if dist[t] is not None and dist[t] == dist[v] + step:
+                    c = sigma[v] / sigma[t] * (1 + delta[t])
+                    eb[e] += c
+                    delta[v] += c
+    return edge_rescale(eb, n, n if pivots is None else len(pivots), normalized, g.directed)
+
+
+def betweenness_model(g, w, normalized, endpoints, pivots=None):
     """Brandes, successor-side accumulation, edge-path counting, exact distance equality."""
     wt = None if w is None else weights_of(g, w, positive=True)
     rows = search_rows(g, reverse=False)
     n = g.n
     bc = [0.0] * n
-    for s in range(n):
+    for s in (range(n) if pivots is None else pivots):
         sigma = [0.0] * n
         dist = [None] * n
         sigma[s], dist[s] = 1.0, 0
@@ -379,6 +468,8 @@ def betweenness_model(g, w, normalized, endpoints):
                 bc[v] += delta[v] + (1 if endpoints else 0)
         if endpoints:
             bc[s] += len(order) - 1
+    if pivots is not None:
+        return rescale_pivots(bc, n, pivots, normalized, endpoints, g.directed)
     return rescale(bc, n, normalized, endpoints, g.directed)
 
 
@@ -538,6 +629,64 @@ def brute_closeness(g, w, wf, harmonic):
     return res
 
 
+def brute_sigma(g, w):
+    """Floyd-Warshall distances, the arcs (edge, a, b, weight) without loops, and sigma_st over
+    edge sequences."""
+    n = g.n
+    D = floyd(g, w, False)
+    arcs = []
+    for e, (a, b) in enumerate(g.ends):
+        if a == b:
+            continue
+        c = 1 if w is None else w[e]
+        arcs.append((e, a, b, c))
+        if not g.directed:
+            arcs.append((e, b, a, c))
+    sig = [[0] * n for _ in range(n)]
+    for s in range(n):
+        order = sorted((v for v in range(n) if D[s][v] < float("inf")), key=lambda v: D[s][v])
+        sig[s][s] = 1
+        for v in order:
+            for _, a, b, c in arcs:
+                if b == v and a != v and D[s][a] + c == D[s][v] and D[s][a] < D[s][v]:
+                    sig[s][v] += sig[s][a]
+    return D, arcs, sig
+
+
+def brute_edge_betweenness(g, w, normalized, pivots=None):
+    """EB(e) = sum over ordered s != t and arcs a -> b of e with D(s,a) + w + D(b,t) = D(s,t) of
+    sigma_sa sigma_bt / sigma_st."""
+    n = g.n
+    D, arcs, sig = brute_sigma(g, w)
+    eb = [0.0] * g.m
+    for s in (range(n) if pivots is None else pivots):
+        for t in range(n):
+            if s == t or D[s][t] == float("inf"):
+                continue
+            for e, a, b, c in arcs:
+                if D[s][a] + c + D[b][t] == D[s][t]:
+                    eb[e] += sig[s][a] * sig[b][t] / sig[s][t]
+    return edge_rescale(eb, n, n if pivots is None else len(pivots), normalized, g.directed)
+
+
+def brute_pivot_betweenness(g, w, normalized, endpoints, pivots):
+    """The definition's sum over the pivots' pairs, extrapolated as rescale_pivots does."""
+    n = g.n
+    D, arcs, sig = brute_sigma(g, w)
+    bc = [0.0] * n
+    for s in pivots:
+        for t in range(n):
+            if s == t or D[s][t] == float("inf"):
+                continue
+            if endpoints:
+                bc[s] += 1
+                bc[t] += 1
+            for v in range(n):
+                if v not in (s, t) and D[s][v] + D[v][t] == D[s][t]:
+                    bc[v] += sig[s][v] * sig[v][t] / sig[s][t]
+    return rescale_pivots(bc, n, pivots, normalized, endpoints, g.directed)
+
+
 def brute_betweenness(g, w, normalized, endpoints):
     """BC(v) = sum over ordered s != v != t of sigma_sv sigma_vt / sigma_st, edge sequences."""
     n = g.n
@@ -679,7 +828,13 @@ def run(g, name, a, part, defaults=False):
         of = a.get("of")
         return closeness_model(g, w, False, only=None if of is None else g.vertices.index(of), harmonic=True)
     if name == "betweennessCentrality":
-        return betweenness_model(g, w, a.get("normalized", True), a.get("endpoints", False))
+        if w is not None:
+            weights_of(g, w, positive=True)
+        return betweenness_model(g, w, a.get("normalized", True), a.get("endpoints", False), pivot_numbers(g, a))
+    if name == "edgeBetweennessCentrality":
+        if w is not None:
+            weights_of(g, w, positive=True)
+        return edge_betweenness_model(g, w, a.get("normalized", True), pivot_numbers(g, a))
     if name == "eigenvectorCentrality":
         if not defaults:
             return eig_limit(g, w)
@@ -725,6 +880,8 @@ def parse_expected(s):
 def close(a, b, tol):
     if isinstance(a, list):
         return isinstance(b, list) and len(a) == len(b) and all(close(x, y, tol) for x, y in zip(a, b))
+    if a != a or b != b:
+        return a != a and b != b
     return abs(a - b) <= tol * max(1.0, abs(b))
 
 
@@ -743,6 +900,18 @@ def evaluate(gcell, op):
     if name in ITERATIVE and dflt is None:
         exact = None  # the documented result is NoConvergence; no limit is claimed
     return g, name, a, part, exact, dflt
+
+
+class FixedSample(random.Random):
+    """A NetworkX seed whose `sample` returns the given pivots, so `k=` uses them."""
+
+    def __init__(self, pivots):
+        super().__init__(0)
+        self.pivots = list(pivots)
+
+    def sample(self, population, k):
+        assert k == len(self.pivots)
+        return list(self.pivots)
 
 
 def nx_value(g, name, a, part):
@@ -766,10 +935,15 @@ def nx_value(g, name, a, part):
         if "of" in a:
             return float(nx.harmonic_centrality(G_, nbunch=[g.vertices.index(a["of"])], distance=wk)[g.vertices.index(a["of"])])
         return vec(nx.harmonic_centrality(G_, distance=wk))
-    if name == "betweennessCentrality":
+    if name in ("betweennessCentrality", "edgeBetweennessCentrality"):
         if not simple or (w is not None and any(x == 0 for x in w)):
             return NotImplemented
-        return vec(nx.betweenness_centrality(G_, weight=wk, normalized=a.get("normalized", True), endpoints=a.get("endpoints", False)))
+        p = pivot_numbers(g, a)
+        sample = {} if p is None else dict(k=len(p), seed=FixedSample(p))
+        if name == "betweennessCentrality":
+            return vec(nx.betweenness_centrality(G_, weight=wk, normalized=a.get("normalized", True), endpoints=a.get("endpoints", False), **sample))
+        d = nx.edge_betweenness_centrality(G_, weight=wk, normalized=a.get("normalized", True), **sample)
+        return [float(d[(x, y)] if (x, y) in d else d[(y, x)]) for x, y in g.ends]
     pr = name in ("pageRank",)
     if g.n == 0 and name == "eigenvectorCentrality":
         return NotImplemented  # NetworkX raises NetworkXPointlessConcept
@@ -803,7 +977,12 @@ def independent(g, name, a, part, exact):
         r = brute_closeness(g, w, a.get("wfImproved", True), name == "harmonicCentrality")
         return r[g.vertices.index(a["of"])] if "of" in a else r
     if name == "betweennessCentrality":
+        p = pivot_numbers(g, a)
+        if p is not None:
+            return brute_pivot_betweenness(g, w, a.get("normalized", True), a.get("endpoints", False), p)
         return brute_betweenness(g, w, a.get("normalized", True), a.get("endpoints", False))
+    if name == "edgeBetweennessCentrality":
+        return brute_edge_betweenness(g, w, a.get("normalized", True), pivot_numbers(g, a))
     if exact is None or g.n == 0:
         return None
     if name == "eigenvectorCentrality":

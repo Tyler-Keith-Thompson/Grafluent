@@ -3,7 +3,10 @@
 `Centrality` scores every vertex: degree (in, out, total), closeness (with or without the
 Wasserman–Faust correction), harmonic, Brandes betweenness, eigenvector, Katz, PageRank (with an
 optional personalization) and HITS (hubs and authorities), on `Graph` and `DirectedGraph`,
-unweighted and weighted. The API description (`api.md`), the catalog and its generator are in
+unweighted and weighted; load, percolation, the group measures (betweenness, closeness, degree),
+VoteRank, current-flow betweenness and closeness, subgraph centrality and communicability; and every
+edge by edge betweenness. Vertex and edge betweenness can also
+be estimated from pivots (Brandes and Pich), given or drawn at random. The API description (`api.md`), the catalog and its generator are in
 `Tests/Catalogs/Centrality/`. The suite uses only the public API, and each test is self-contained. The shared material is the
 `ReferencePseudograph` and `ReferenceDirectedMultigraph` test conformers,
 `Collider`, the seeded generator and the tags in `GrafluentTestSupport`. Conformers private to a
@@ -21,17 +24,33 @@ extension Graph {                       // results are CentralityScores<Directed
     func harmonicCentrality() -> CentralityScores<…>, func harmonicCentrality(of: Vertex) -> Double   // and the weighted forms
     func betweennessCentrality(normalized: Bool = true, endpoints: Bool = false) -> CentralityScores<…>
     func betweennessCentrality<W: Comparable & AdditiveArithmetic>(weight:normalized:endpoints:)
+    func betweennessCentrality(pivots: some Sequence<Vertex>, normalized:endpoints:)   // and (weight:pivots:normalized:endpoints:)
+    func betweennessCentrality(pivotCount: Int, normalized:endpoints:using:)          // and (weight:pivotCount:normalized:endpoints:using:)
+    func edgeBetweennessCentrality(normalized: Bool = true) -> EdgeCentralityScores<Edges.Index>   // and (weight:normalized:)
+    func edgeBetweennessCentrality(pivots:normalized:), (pivotCount:normalized:using:)  // and their weight: forms
     func eigenvectorCentrality(tolerance: 1e-6, maxIterations: 100) throws(NoConvergence) -> CentralityScores<…>   // and (weight:…)
     func katzCentrality(alpha: 0.1, beta: 1, normalized: true, tolerance: 1e-6, maxIterations: 1000) throws(NoConvergence) -> CentralityScores<…>   // and (weight:…)
     func pageRank(dampingFactor: 0.85, tolerance: 1e-6, maxIterations: 100) throws(NoConvergence) -> CentralityScores<…>
     func pageRank(dampingFactor:personalization: (Vertex) -> Double, tolerance:maxIterations:) throws(NoConvergence) -> CentralityScores<…>   // both also with a leading weight:
+    func loadCentrality(normalized: true) -> CentralityScores<…>                     // and (weight:normalized:)
+    func percolationCentrality(state: (Vertex) -> Double) -> CentralityScores<…>    // and (state:weight:)
+    func groupBetweennessCentrality(of: some Sequence<Vertex>, normalized: true, endpoints: false) -> Double   // and (of:weight:…)
+    func groupClosenessCentrality(of:) -> Double, func groupDegreeCentrality(of:) -> Double   // closeness also (of:weight:)
+    func voteRank(count: Int? = nil) -> [Vertex]
+    func currentFlowBetweennessCentrality(normalized: true) -> CentralityScores<…>   // and (weight:normalized:), conductances
+    func currentFlowClosenessCentrality() -> CentralityScores<…>                     // and (weight:)
+    func subgraphCentrality() -> CentralityScores<…>, func communicability() -> Communicability<DirectedView<Self>>
 }
 extension DirectedGraph {               // the same members, returning CentralityScores<Self>; incoming distances
     func inDegreeCentrality() -> CentralityScores<Self>, func outDegreeCentrality() -> CentralityScores<Self>
     func hits(tolerance: 1e-8, maxIterations: 100) throws(NoConvergence) -> HubAndAuthorityScores<Self>   // and (weight:…)
+    // load, percolation, group betweenness and closeness (distances to the group), VoteRank (votes for predecessors)
+    func groupInDegreeCentrality(of:) -> Double, func groupOutDegreeCentrality(of:) -> Double
 }
+struct Communicability<G: DirectedGraph>        // communicability(of:and:), (checked:and:) throws VertexNotFound, (ofIndex:andIndex:)
 struct CentralityScores<G: DirectedGraph>      // score(of:) traps on a non-vertex, score(ofIndex:) out of range; scores: [Double]
 struct HubAndAuthorityScores<G: DirectedGraph> // hubs, authorities: CentralityScores<G>, each summing to 1
+struct EdgeCentralityScores<Edge: Comparable>   // score(ofEdgeAt:) traps off the graph, score(checkedEdgeAt:) throws EdgeNotFound; scores in edges order
 struct NoConvergence: Error, Hashable, Sendable // iterations, residual (GraphProtocols)
 // Sendable when G and G.Vertex are
 ```
@@ -43,6 +62,8 @@ struct NoConvergence: Error, Hashable, Sendable // iterations, residual (GraphPr
 | Degree | degree(of: v)/(n − 1): an undirected loop counts 2, parallel copies each count, so a score can exceed 1. Directed: in + out; a directed loop is one in-arc and one out-arc. One vertex scores 1; `graph.directedView` doubles the value (n > 1) | CE-009, CE-031 – CE-041 |
 | Closeness, harmonic | Incoming distances d(v, u) on directed graphs. Closeness (r − 1)/S · (r − 1)/(n − 1), without the second factor when `wfImproved: false`; 0 when S = 0. Harmonic Σ 1/d over 0 < d < ∞, not normalized: a zero distance to another vertex is skipped | CE-050 – CE-080 |
 | Betweenness | Paths are edge sequences: parallel copies are distinct shortest paths, loops lie on none. Rescaling: undirected unnormalized halves, normalized ÷ (n − 1)(n − 2) on ordered pairs (n(n − 1) with endpoints), no scaling when the divisor is 0. Ties by exact equality of weight sums | CE-090 – CE-121 |
+| Edge betweenness | Brandes' edge accumulation over ordered pairs: parallel copies share their pairs' paths equally, a loop scores 0. Normalized ÷ n(n − 1) ordered pairs (both kinds), unnormalized undirected halved, nothing scaled when n < 2; on `graph.directedView` an edge's two arcs add up to its value (twice it unnormalized) | CE-207 – CE-228 |
+| Pivots | Sums over the pivots' searches, scaled to n sources (NetworkX 3.7's `_rescale` with a sample): without endpoints N = n − 1, a pivot by N/(k − 1) (NaN when k = 1) and the rest by N/k; with endpoints, and for edges, N = n and every element by N/k; then ÷ (N − 1) normalized or halved undirected. Every vertex as a pivot is the exact measure bit for bit; `pivotCount:using:` is a partial Fisher–Yates draw, one `next(upperBound:)` per pivot | CE-229 – CE-248, `SampledBetweennessTests.swift` |
 | A for the iterative measures | A_vw is the sum of the weights of the slots v → w as the rows list them: an undirected loop is 2, parallel copies add. Eigenvector and Katz over in-arcs (Aᵀ), PageRank over out-arcs, HITS a = Aᵀh, h = Aa | CE-139, CE-140, CE-148, CE-168, CE-169, CE-182, CE-183, CE-202 |
 | Iterations | From the uniform start (Katz from 0); eigenvector on A + I; stop after the first step with ‖x_k − x_{k−1}‖₁ < n · tolerance; `NoConvergence` when that does not happen within `maxIterations` (a DAG for eigenvector, α ≥ 1/ρ for Katz, too few iterations), with `maxIterations` and the last change over n. Scales: Euclidean norm 1 (eigenvector, Katz normalized), sum 1 (PageRank, hubs, authorities) | CE-130 – CE-206 |
 | PageRank | Dangling vertices (no out-arcs or out-weight 0) send their mass along the personalization; each undirected edge two arcs, a loop two loop arcs | CE-175 – CE-191 |
@@ -83,21 +104,31 @@ Each of these fails tests. The property tests write their oracles inside each te
 | `KatzTests.swift` | 12 | §F: defaults, K₄, karate, NoConvergence above 1/ρ, unnormalized, α and β, directed, a loop, parallel copies, weights |
 | `PageRankTests.swift` | 14 | §G: dangling vertices, cycles, a small example digraph, personalization, damping 0.5, karate, a star, a loop as two arcs, parallel arcs, weights, a zero out-weight, NoConvergence with 3 iterations, no arcs, `graph.directedView` |
 | `HITSTests.swift` | 12 | §H: a dipath (σ₁ double), a small example digraph, a cycle, parallel arcs, weights, karate through `graph.directedView` (hubs = authorities), NoConvergence after one iteration; each also checks the other vector's size and both sums |
-| `CentralityRepresentationTests.swift` | 74 | Every §A – §H graph without parallel edges on `UndirectedAdjacencyList` (23) or `AdjacencyList` (17), and every directed graph on 0..<n on `CompressedSparseRow` (17) and `AdjacencyMatrix` (17) with the arcs in row-major order; one test per graph, every row of that graph |
+| `EdgeBetweennessTests.swift` | 37 | §I: edge betweenness on paths, a cycle, two triangles and a bridge, the kite, karate (also weighted), directed paths and cycles, parallel copies, a loop, a disconnected graph, the empty graph, a loop alone, `graph.directedView`, exact-equality ties; vertex and edge betweenness from pivots on P₅ (every rescaling, one pivot, every vertex), a directed cycle, karate (also weighted), parallel copies, no vertices |
+| `EdgeBetweennessLookupTests.swift` | 5 | Degenerate graphs on `CompressedSparseRow`; every representation against the reference conformers (positions mapped by edge, arcs of `graph.directedView` and both directions as arcs adding up); `score(checkedEdgeAt:)` for positions 0..<m, integer positions that are not (a slice from 3; steps of 2 from 0 and from −2), struct cells and view arcs |
+| `SampledBetweennessTests.swift` | 4 | Every vertex as a pivot equals the exact measure bit for bit (all forms); the random draw is the partial Fisher–Yates shuffle and consumes k values; small graphs are not scaled; pivots on `String` vertices and `AdjacencyMatrix` |
+| `EdgeBetweennessPropertyTests.swift` | 3 | PropertyBased: edge betweenness (exact and from pivots) against Σ σ_sa·σ_bt/σ_st over arcs on shortest paths (unweighted, `Int`, `Double`, both kinds, `graph.directedView`); Σ of the edge sums is Σ d(s, t); vertex betweenness from pivots against the definition's sums scaled per vertex |
+| `EdgeBetweennessPreconditionTests.swift` | 17 | Exit tests: zero, NaN and loop weights; a pivot off the graph, repeated, or none; pivot counts 0, −1, above n, and 1 on an empty graph; `score(ofEdgeAt:)` off the graph (integers and matrix cells) |
+| `CentralityRepresentationTests.swift` | 79 | Every §A – §I graph without parallel edges on `UndirectedAdjacencyList` (23) or `AdjacencyList` (17), and every directed graph on 0..<n on `CompressedSparseRow` (17) and `AdjacencyMatrix` (17) with the arcs in row-major order; one test per graph, every row of that graph |
 | `WeightReadingTests.swift` | 7 | The weight closure once per edge (position order for the searches) on a pseudograph, a disconnected graph, a digraph, `graph.directedView`, `UndirectedAdjacencyList` and `CompressedSparseRow`; the personalization once per vertex in `vertices` order; nothing read on edgeless graphs |
 | `CentralityConformanceTests.swift` | 7 | `Sendable` across a `Task`, the value holding a copy of the graph, generic code over `some Graph` / `some DirectedGraph`, conformers without indices (undirected and directed, vertices not in value order), bitwise determinism (twice, and across two representations with the same rows), `Collider` vertices |
 | `CentralityPropertyTests.swift` | 9 | PropertyBased, shrinking, multigraphs with loops, shuffled rows and vertex orders: degree against counts; closeness and harmonic against BFS and Floyd–Warshall (`Int` and `Double` weights, zeros); betweenness against Σ σ_sv·σ_vt/σ_st over edge sequences (every rescaling, `graph.directedView`); eigenvector, Katz (and α → 0), PageRank (personalized, dangling) and HITS against dense iterations run to convergence; HITS on symmetric graphs against eigenvector centrality |
-| `Performance/CentralityStressTests.swift` | 13 | Inside a `Task` with a one-minute limit: degree on 10⁵-leaf stars, one-vertex closeness and harmonic on a 10⁵-vertex path (also weighted), all-pairs closeness, harmonic and betweenness on P₂₀₀₀, Brandes on a 30 × 30 grid and a directed 1000-cycle, PageRank on a 10⁵-leaf star and a 10⁵-vertex dipath, Katz on a 10⁵-vertex path, HITS on a 10⁵-leaf out-star, eigenvector on a 10⁴-leaf star (NoConvergence with the defaults) and a 10⁵-cycle |
-| `CentralityPreconditionTests.swift` | 20 | Exit tests: the catalog's trap rows; non-vertices for `score(of:)` and the one-vertex forms; `score(ofIndex:)` out of range; negative, NaN, `-infinity` and `Int.min` closeness/harmonic weights (also out of the queried vertex's reach); zero, -0.0, negative and NaN betweenness weights; negative, NaN and infinite iterative weights; `tolerance` ≤ 0, NaN or infinite; `maxIterations` < 1; non-finite α and β; a damping factor outside [0, 1]; non-finite personalization values |
+| `Performance/CentralityStressTests.swift` | 16 | Inside a `Task` with a one-minute limit: degree on 10⁵-leaf stars, one-vertex closeness and harmonic on a 10⁵-vertex path (also weighted), all-pairs closeness, harmonic and betweenness on P₂₀₀₀, Brandes on a 30 × 30 grid and a directed 1000-cycle, PageRank on a 10⁵-leaf star and a 10⁵-vertex dipath, Katz on a 10⁵-vertex path, HITS on a 10⁵-leaf out-star, eigenvector on a 10⁴-leaf star (NoConvergence with the defaults) and a 10⁵-cycle |
+| `CentralityPreconditionTests.swift` | 25 | Exit tests: the catalog's trap rows; non-vertices for `score(of:)` and the one-vertex forms; `score(ofIndex:)` out of range; negative, NaN, `-infinity` and `Int.min` closeness/harmonic weights (also out of the queried vertex's reach); zero, -0.0, negative and NaN betweenness weights; negative, NaN and infinite iterative weights; `tolerance` ≤ 0, NaN or infinite; `maxIterations` < 1; non-finite α and β; a damping factor outside [0, 1]; non-finite personalization values |
 | `NoConvergenceTests.swift` | 5 | Every iterative entry point (18) throws `NoConvergence` after `maxIterations: 1` with iterations 1 and a residual not below the tolerance; the first step's residual worked by hand for each measure; the limit is exact (converging on step k answers with k and throws with k − 1); Katz past 1/ρ; nothing to iterate on the empty graph and an edgeless HITS |
-| `CentralityReviewTests.swift` | 3 | CE-1001 – CE-1003: weighted betweenness where a floating-point sum absorbs a weight |
+| `Performance/EdgeBetweennessRatioTests.swift` | 1 | Optimized builds: `edgeBetweennessCentrality()` and `(pivots:)` on G(1000, 5000) within 1.3× of a hand-written Brandes loop (alternating rounds, fastest of seven); every build checks the scores against it |
+| `PathAndFlowCentralityTests.swift` | 7 | NetworkX's load, percolation, current-flow betweenness and closeness (also weighted), subgraph centrality, communicability, VoteRank and group measures on a 5-vertex graph, a digraph and the karate club; hand cases: uneven load splits over parallel edges, equal states as betweenness, trees and parallel conductances, K₂ and K₂₀ in closed form, cuts as groups |
+| `PathAndFlowCentralityPropertyTests.swift` | 4 | PropertyBased: load, percolation and group betweenness over enumerated shortest paths; group closeness and degree by definition; current flow against potentials by Gaussian elimination; the exponential against Σ A^k/k! |
+| `PathAndFlowCentralityPreconditionTests.swift` | 20 | Exit tests: weights, states, disconnected and zero-conductance graphs for current flow, group members and full groups, a negative spreader count, communicability lookups |
+| `CentralityReviewTests.swift` | 5 | CE-1001 – CE-1005: weighted vertex and edge betweenness where a floating-point sum absorbs a weight; in-degree without vertex indices |
 
-236 tests from the catalog's 162 rows (152 value rows, 10 trap rows) and their 74 representation
-repeats, 46 more, and CE-1001 – CE-1003: 285 tests in all.
+278 tests from the catalog's 204 rows (189 value rows, 15 trap rows) and their 79 representation
+repeats, 75 more, CE-1001 – CE-1005, and the 31 path and flow tests above: 388 tests in
+`CentralityTests`.
 
 ## Case IDs
 
-Case IDs CE-001 … CE-206 refer to the catalog (`cases.md`); CE-1001 – CE-1003 appear only in
+Case IDs CE-001 … CE-248 refer to the catalog (`cases.md`); CE-1001 – CE-1005 appear only in
 this suite. Each test's name starts with its IDs; tests without an ID check laws, representations,
 properties or conformance that the catalog does not list.
 
@@ -115,7 +146,12 @@ properties or conformance that the catalog does not list.
 | CE-175 – CE-186, CE-189, CE-190 | G. PageRank | `PageRankTests.swift`; again in `CentralityRepresentationTests.swift` |
 | CE-187, CE-188, CE-191 | G. Personalization and weight preconditions | `CentralityPreconditionTests.swift` |
 | CE-195 – CE-206 | H. HITS | `HITSTests.swift`; again in `CentralityRepresentationTests.swift` |
-| CE-1001 – CE-1003 | Review cases | `CentralityReviewTests.swift` |
+| CE-207 – CE-226, CE-229 – CE-244, CE-248 | I. Edge betweenness and pivots | `EdgeBetweennessTests.swift`; again in `CentralityRepresentationTests.swift` |
+| CE-227, CE-228, CE-245 – CE-247 | I. Weight and pivot preconditions | `CentralityPreconditionTests.swift` |
+| CE-1001 – CE-1005 | Review cases | `PathAndFlowCentralityTests.swift` | 7 | NetworkX's load, percolation, current-flow betweenness and closeness (also weighted), subgraph centrality, communicability, VoteRank and group measures on a 5-vertex graph, a digraph and the karate club; hand cases: uneven load splits over parallel edges, equal states as betweenness, trees and parallel conductances, K₂ and K₂₀ in closed form, cuts as groups |
+| `PathAndFlowCentralityPropertyTests.swift` | 4 | PropertyBased: load, percolation and group betweenness over enumerated shortest paths; group closeness and degree by definition; current flow against potentials by Gaussian elimination; the exponential against Σ A^k/k! |
+| `PathAndFlowCentralityPreconditionTests.swift` | 20 | Exit tests: weights, states, disconnected and zero-conductance graphs for current flow, group members and full groups, a negative spreader count, communicability lookups |
+| `CentralityReviewTests.swift` |
 
 Rows with parallel edges (CE-032, CE-067, CE-108, CE-140, CE-148, CE-169, CE-183, CE-202) are not
 repeated on the representations, which cannot hold parallel edges.
@@ -130,5 +166,5 @@ repeated on the representations, which cannot hold parallel edges.
 | The iterate itself (bit for bit), iteration counts, O(n + m) per iteration, one search for the one-vertex forms | The catalog pins limits within Tol, never iterates; costs belong to the benchmarks, and the stress tests bound them loosely (each shape within the time limit) |
 | Closeness against ShortestPaths' `shortestPaths(from:)` (api.md, "Tests") | ShortestPaths is not a dependency of this target; the property tests use breadth-first search and Floyd–Warshall written in the test instead |
 | NetworkX and igraph on random graphs (`just diff`) | Not Swift tests; `ref.py` checks every catalog row against NetworkX 3.7 where it shares the semantics, and the property tests use definition oracles |
-| HITS on `Graph`, edge betweenness, sampling, `nstart`, `dangling=`, per-vertex β | Not part of the API; HITS on an undirected graph is tested through `graph.directedView` |
+| HITS on `Graph`, `nstart`, `dangling=`, per-vertex β | Not part of the API; HITS on an undirected graph is tested through `graph.directedView` |
 | "Not `Equatable`", the negative half of `Sendable` | A failure to build cannot be expressed as a test; the positive `Sendable` half is tested |

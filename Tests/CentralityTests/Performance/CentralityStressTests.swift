@@ -9,8 +9,10 @@
 // checks against exact rational arithmetic to 1.1e-16), a directed 1000-cycle, PageRank on a 10⁵-leaf
 // star and a 10⁵-vertex directed path, Katz on a 10⁵-vertex path, HITS on a 10⁵-leaf directed star,
 // and eigenvector centrality on a 10⁴-leaf star (slow to converge: nil with the defaults) and a
-// 10⁵-cycle. Iterative results are compared with the limit, within a bound ref.py's model meets
-// with the same parameters.
+// 10⁵-cycle; edge betweenness on the 2000-vertex path ((i + 1)(n − 1 − i)), on the grid (the total
+// Σ d(s, t), and 300 random pivots within 5% of it) and on the directed 1000-cycle (n(n − 1)/2 per
+// arc), closed forms, with every vertex as a pivot equal to the exact measures. Iterative results
+// are compared with the limit, within a bound ref.py's model meets with the same parameters.
 
 import AdjacencyListModule
 import Centrality
@@ -148,6 +150,52 @@ struct CentralityStressTests {
             let unnormalized = graph.betweennessCentrality(normalized: false)
             let total = unnormalized.scores.reduce(0, +)
             #expect(abs(total - 7_686_450) <= 1e-9 * 7_686_450)
+        }.value
+    }
+
+    @Test("U(P(0..1999)): edge betweenness (i + 1)(n − 1 − i) on edge i; every vertex as a pivot is the exact measure, vertex and edge", .timeLimit(.minutes(1)))
+    func pathEdgeBetweenness() async {
+        await Task {
+            let n = 2_000
+            let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) })
+            let edges = graph.edgeBetweennessCentrality(normalized: false)
+            // Edge i separates i + 1 vertices from n − 1 − i.
+            let worst = (0 ..< n - 1).map { abs(edges.score(ofEdgeAt: $0) - Double(($0 + 1) * (n - 1 - $0))) / Double(($0 + 1) * (n - 1 - $0)) }.max()!
+            #expect(worst <= 1e-12)
+            #expect(graph.edgeBetweennessCentrality(pivots: 0 ..< n, normalized: false).scores == edges.scores)
+            #expect(graph.betweennessCentrality(pivots: (0 ..< n).reversed()).scores == graph.betweennessCentrality().scores)
+        }.value
+    }
+
+    @Test("U(grid(30,30)).edgeBetweennessCentrality(): the unnormalized total is Σ d(s, t) over pairs, 8091000; 300 random pivots estimate the same total within 5%", .timeLimit(.minutes(1)))
+    func gridEdgeBetweenness() async {
+        await Task {
+            var pairs: [(Int, Int)] = []
+            for r in 0 ..< 30 {
+                for c in 0 ..< 30 {
+                    let v = 30 * r + c
+                    if c + 1 < 30 { pairs.append((v, v + 1)) }
+                    if r + 1 < 30 { pairs.append((v, v + 30)) }
+                }
+            }
+            let graph = UndirectedAdjacencyList(vertices: 0 ..< 900, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+            // Σ over unordered pairs of |Δr| + |Δc|: 2 · 900 · Σ_d d(30 − d) = 8091000.
+            let total = graph.edgeBetweennessCentrality(normalized: false).scores.reduce(0, +)
+            #expect(abs(total - 8_091_000) <= 1e-9 * 8_091_000)
+            var generator = SeededRandomNumberGenerator(seed: 3)
+            let estimate = graph.edgeBetweennessCentrality(pivotCount: 300, normalized: false, using: &generator).scores.reduce(0, +)
+            #expect(abs(estimate - 8_091_000) <= 0.05 * 8_091_000)
+        }.value
+    }
+
+    @Test("D(C(0..999)) on CompressedSparseRow: edge betweenness n(n − 1)/2 = 499500 on every arc", .timeLimit(.minutes(1)))
+    func directedCycleEdgeBetweenness() async {
+        await Task {
+            let n = 1_000
+            let graph = CompressedSparseRow(vertexCount: n, edges: (0 ..< n).map { DirectedEdge(from: $0, to: ($0 + 1) % n) })
+            let result = graph.edgeBetweennessCentrality(normalized: false)
+            let worst = result.scores.map { abs($0 - 499_500) }.max()!
+            #expect(worst <= 1e-12 * 499_500)
         }.value
     }
 

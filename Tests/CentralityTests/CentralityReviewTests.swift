@@ -2,7 +2,8 @@
 // weight (d + w == d), so two vertices at the same distance are joined by an edge. Brandes'
 // dependency must then use only the vertices settled later (the shortest-path DAG the forward pass
 // counted), never a dependency from another source; the values are the ones exact arithmetic gives
-// on the same tie structure, and they do not depend on the order of earlier sources. Also in-degree
+// on the same tie structure, and they do not depend on the order of earlier sources; edge
+// betweenness likewise counts only the arcs to vertices settled later. Also in-degree
 // on a directed multigraph without vertex indices, which counts targets by vertex number.
 // Case IDs (CE-nnn) refer to the catalog; see README.md.
 
@@ -49,6 +50,17 @@ struct CentralityReviewTests {
         let reversedWeights = [1.0, 1e16]
         let result = reversed.betweennessCentrality(weight: { reversedWeights[$0] }, normalized: false)
         #expect([0, 1, 2].map { result.score(of: $0) } == [0, 1, 0])
+    }
+
+    @Test("CE-1005 edge betweenness on the path 0-1-2-3 with weights 1, 1e-17, 1 and with 1e16, 1, 1e16: [3, 4, 3] unnormalized, each pair's one path; from the end pivots [4, 4, 4]")
+    func absorbedEdgeWeights() {
+        let graph = UndirectedAdjacencyList(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3)])
+        for weights in [[1.0, 1e-17, 1.0], [1e16, 1, 1e16]] {
+            #expect(graph.edgeBetweennessCentrality(weight: { weights[$0] }, normalized: false).scores == [3, 4, 3], "\(weights)")
+            let arcs = graph.directedView.edgeBetweennessCentrality(weight: { weights[$0.position] }, normalized: false)
+            #expect(arcs.scores == [3, 3, 4, 4, 3, 3], "\(weights)")
+            #expect(graph.edgeBetweennessCentrality(weight: { weights[$0] }, pivots: [3, 0], normalized: false).scores == [4, 4, 4], "\(weights)")
+        }
     }
 
     @Test("CE-1004 in-, out- and total degree on a directed multigraph without vertex indices: c ← a twice, c ← b, a ← c, a loop at b")

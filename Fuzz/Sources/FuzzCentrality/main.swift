@@ -1,9 +1,15 @@
 // Centrality against definitions, on multigraphs of at most 8 vertices with self-loops, directed
 // and undirected, unweighted and with weights 1 … 9: degree by counting; closeness and harmonic
 // over Floyd–Warshall distances (incoming when directed); betweenness from shortest-path counts
-// σ_st (each parallel copy a distinct path), with every normalization; PageRank, Katz,
+// σ_st (each parallel copy a distinct path), with every normalization; edge betweenness as
+// Σ σ_sa·σ_bt/σ_st over the arcs a → b on shortest paths, exact and from pivots (the even
+// vertices), and every vertex as a pivot equal to the exact measures bit for bit; PageRank, Katz,
 // eigenvector and HITS as fixed points of their equations at a tight tolerance. One-vertex forms
-// agree with the whole, and a conformer without vertex indices with UndirectedAdjacencyList.
+// agree with the whole, and a conformer without vertex indices with UndirectedAdjacencyList. Load
+// against its recursion over predecessor slots; percolation with equal states and the group
+// measures of one vertex against betweenness and neighbor counts; current flow on the graph joined
+// by a path (0 through a vertex of degree 1; closeness on a path the inverse summed distance);
+// subgraph centrality at least 1; VoteRank never repeating a vertex.
 
 import AdjacencyListModule
 import Centrality
@@ -86,6 +92,52 @@ enum FuzzCentrality {
         return p
     }
 
+    /// Ordered-pair edge betweenness by edge number from the searches of `sources`, over arcs
+    /// (edge, u, v, w); loops are on no path.
+    static func edgeSums(_ n: Int, _ m: Int, _ arcs: [(Int, Int, Int, Int)], sources: [Int]) -> [Double] {
+        var d = [[Int]](repeating: [Int](repeating: infinity, count: n), count: n)
+        for i in 0 ..< n { d[i][i] = 0 }
+        for (_, u, v, w) in arcs where u != v { d[u][v] = min(d[u][v], w) }
+        for k in 0 ..< n { for i in 0 ..< n where d[i][k] < infinity { for j in 0 ..< n where d[k][j] < infinity {
+            d[i][j] = min(d[i][j], d[i][k] + d[k][j])
+        } } }
+        var sigma = [[Double]](repeating: [Double](repeating: 0, count: n), count: n)
+        for s in 0 ..< n {
+            sigma[s][s] = 1
+            for v in (0 ..< n).filter({ d[s][$0] < infinity && $0 != s }).sorted(by: { d[s][$0] < d[s][$1] }) {
+                for (_, u, x, w) in arcs where x == v && u != v && d[s][u] < infinity && d[s][u] + w == d[s][v] { sigma[s][v] += sigma[s][u] }
+            }
+        }
+        var sums = [Double](repeating: 0, count: m)
+        for s in sources { for t in 0 ..< n where t != s && d[s][t] < infinity {
+            for (e, a, b, w) in arcs where a != b && d[s][a] < infinity && d[b][t] < infinity && d[s][a] + w + d[b][t] == d[s][t] {
+                sums[e] += sigma[s][a] * sigma[b][t] / sigma[s][t]
+            }
+        } }
+        return sums
+    }
+
+    /// Edge betweenness, exact and from the even vertices as pivots, normalized and not, against
+    /// `edgeSums`; and every vertex as a pivot equal to the exact vertex and edge measures.
+    static func checkEdges(_ name: String, _ n: Int, _ arcs: [(Int, Int, Int, Int)], directed: Bool,
+                           exact: (Bool) -> [Double], fromPivots: ([Int], Bool) -> [Double],
+                           vertexExact: [Double], vertexFromAll: [Double]) {
+        let m = arcs.reduce(0) { max($0, $1.0 + 1) }
+        let pivots = (0 ..< n).filter { $0 % 2 == 0 }
+        let N = Double(n)
+        for normalized in [false, true] {
+            let scale = { (k: Int) -> Double in n < 2 ? 1 : normalized ? 1 / (Double(k) * (N - 1)) : N / (Double(k) * (directed ? 1 : 2)) }
+            let all = edgeSums(n, m, arcs, sources: Array(0 ..< n)).map { $0 * scale(n) }
+            let got = exact(normalized)
+            check(near(Array(got.prefix(m)), all) && got.count >= m, "\(name): edge betweenness (normalized \(normalized)) \(got), expected \(all)")
+            let some = edgeSums(n, m, arcs, sources: pivots).map { $0 * scale(pivots.count) }
+            let estimate = fromPivots(pivots, normalized)
+            check(near(Array(estimate.prefix(m)), some), "\(name): edge betweenness from pivots \(pivots) \(estimate), expected \(some)")
+            check(fromPivots(Array(0 ..< n), normalized) == got, "\(name): edge betweenness from every vertex differs from the exact measure")
+        }
+        check(vertexFromAll == vertexExact, "\(name): betweenness from every vertex differs from the exact measure")
+    }
+
     /// Checks every measure on `scores`-producing calls of one graph (`directedView` picks the scaling).
     static func checkPaths(_ name: String, _ n: Int, _ arcs: [(Int, Int, Int)], directed: Bool,
                            closeness: [Double], plain: [Double], harmonic: [Double],
@@ -153,6 +205,15 @@ enum FuzzCentrality {
                 let oneHarmonic = weighted ? graph.harmonicCentrality(of: v, weight: { Double(weight($0)) }) : graph.harmonicCentrality(of: v)
                 check(one == closeness[v] && oneHarmonic == harmonic[v], "\(name): one-vertex closeness or harmonic of \(v)")
             }
+            let edgeArcs = ends.indices.flatMap { e in [(e, ends[e].0, ends[e].1, weight(e)), (e, ends[e].1, ends[e].0, weight(e))] }
+            checkEdges("\(name) \(weighted ? "weighted" : "unweighted")", n, edgeArcs, directed: false,
+                       exact: { normalized in
+                           (weighted ? graph.edgeBetweennessCentrality(weight: weight, normalized: normalized) : graph.edgeBetweennessCentrality(normalized: normalized)).scores },
+                       fromPivots: { pivots, normalized in
+                           (weighted ? graph.edgeBetweennessCentrality(weight: weight, pivots: pivots, normalized: normalized)
+                                     : graph.edgeBetweennessCentrality(pivots: pivots, normalized: normalized)).scores },
+                       vertexExact: weighted ? graph.betweennessCentrality(weight: weight).scores : graph.betweennessCentrality().scores,
+                       vertexFromAll: weighted ? graph.betweennessCentrality(weight: weight, pivots: 0 ..< n).scores : graph.betweennessCentrality(pivots: 0 ..< n).scores)
             // A loop is two loop arcs, as the rows list it.
             var a = [[Double]](repeating: [Double](repeating: 0, count: n), count: n)
             for e in ends.indices {
@@ -192,6 +253,15 @@ enum FuzzCentrality {
                 let oneHarmonic = weighted ? graph.harmonicCentrality(of: v, weight: { Double(weight($0)) }) : graph.harmonicCentrality(of: v)
                 check(one == closeness[v] && oneHarmonic == harmonic[v], "\(name): one-vertex closeness or harmonic of \(v)")
             }
+            let edgeArcs = ends.indices.map { e in (e, ends[e].0, ends[e].1, weight(e)) }
+            checkEdges("\(name) \(weighted ? "weighted" : "unweighted")", n, edgeArcs, directed: true,
+                       exact: { normalized in
+                           (weighted ? graph.edgeBetweennessCentrality(weight: weight, normalized: normalized) : graph.edgeBetweennessCentrality(normalized: normalized)).scores },
+                       fromPivots: { pivots, normalized in
+                           (weighted ? graph.edgeBetweennessCentrality(weight: weight, pivots: pivots, normalized: normalized)
+                                     : graph.edgeBetweennessCentrality(pivots: pivots, normalized: normalized)).scores },
+                       vertexExact: weighted ? graph.betweennessCentrality(weight: weight).scores : graph.betweennessCentrality().scores,
+                       vertexFromAll: weighted ? graph.betweennessCentrality(weight: weight, pivots: 0 ..< n).scores : graph.betweennessCentrality(pivots: 0 ..< n).scores)
             var a = [[Double]](repeating: [Double](repeating: 0, count: n), count: n)
             for e in ends.indices { a[ends[e].0][ends[e].1] += Double(weight(e)) }
             let columnSum = (0 ..< n).map { w in (0 ..< n).reduce(0.0) { $0 + a[$1][w] } }.max() ?? 0
@@ -225,5 +295,87 @@ enum FuzzCentrality {
         let undirectedWeights = undirectedEnds.map { e in w[edges.firstIndex(of: UndirectedEdge(e.0, e.1))!] }
         checkUndirected(undirected, "UndirectedAdjacencyList", n, undirectedWeights, undirectedEnds)
         checkUndirected(PlainGraph(vertices: Array(0 ..< n), edges: edges), "multigraph without indices", n, w, ends)
+        checkExtras(PlainGraph(vertices: Array(0 ..< n), edges: edges), PlainDigraph(vertices: Array(0 ..< n), edges: arcs), n, w, ends)
+    }
+
+    /// Load by recursion toward each source over predecessor slots (out-slots `out`, loops left out).
+    static func load(_ n: Int, _ out: [[Int]]) -> [Double] {
+        var result = [Double](repeating: 0, count: n)
+        for s in 0 ..< n {
+            var d = [Int](repeating: -1, count: n)
+            d[s] = 0
+            var queue = [s], head = 0
+            while head < queue.count {
+                let v = queue[head]
+                head += 1
+                for x in out[v] where d[x] < 0 {
+                    d[x] = d[v] + 1
+                    queue.append(x)
+                }
+            }
+            var share = [Double](repeating: 0, count: n)
+            func send(_ v: Int, _ amount: Double) {
+                guard v != s else { return }
+                share[v] += amount
+                var predecessors: [Int] = []
+                for u in 0 ..< n where d[u] >= 0 && d[u] == d[v] - 1 { for x in out[u] where x == v { predecessors.append(u) } }
+                for u in predecessors { send(u, amount / Double(predecessors.count)) }
+            }
+            for t in 0 ..< n where t != s && d[t] > 0 {
+                send(t, 1)
+                share[t] -= 1
+            }
+            for v in 0 ..< n where v != s { result[v] += share[v] }
+        }
+        guard n > 2 else { return result }
+        return result.map { $0 / Double((n - 1) * (n - 2)) }
+    }
+
+    /// Load against its recursion; percolation with equal states, and the group measures of one
+    /// vertex, against betweenness, closeness and the neighbor counts; current flow on a connected
+    /// graph against Kirchhoff's laws (the throughput of a vertex of degree 1 is 0, closeness is the
+    /// inverse summed resistance, which on a tree is the summed distance); the exponential's
+    /// diagonal at least 1.
+    static func checkExtras(_ graph: PlainGraph, _ digraph: PlainDigraph, _ n: Int, _ w: [Int], _ ends: [(Int, Int)]) {
+        var out = [[Int]](repeating: [], count: n), arcsOut = [[Int]](repeating: [], count: n)
+        for (u, v) in ends where u != v {
+            out[u].append(v)
+            out[v].append(u)
+            arcsOut[u].append(v)
+        }
+        check(near(graph.loadCentrality().scores, load(n, out)), "load")
+        check(near(digraph.loadCentrality().scores, load(n, arcsOut)), "directed load")
+        check(near(graph.percolationCentrality(state: { _ in 0.5 }).scores, graph.betweennessCentrality().scores), "percolation with equal states")
+        check(near(digraph.percolationCentrality(state: { _ in 1 }).scores, digraph.betweennessCentrality().scores), "directed percolation with equal states")
+        let between = graph.betweennessCentrality().scores, arcBetween = digraph.betweennessCentrality().scores
+        for v in 0 ..< n {
+            check(near(graph.groupBetweennessCentrality(of: [v]), between[v]), "group betweenness of one vertex")
+            check(near(digraph.groupBetweennessCentrality(of: [v]), arcBetween[v]), "directed group betweenness of one vertex")
+            guard n > 1 else { continue }
+            let neighbors = Set(out[v].filter { $0 != v })
+            check(graph.groupDegreeCentrality(of: [v]) == Double(neighbors.count) / Double(n - 1), "group degree of one vertex")
+            check(digraph.groupOutDegreeCentrality(of: [v]) == Double(Set(arcsOut[v]).count) / Double(n - 1), "group out-degree of one vertex")
+        }
+        // Current flow on the graph made connected by a path through every vertex.
+        let path = (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) }
+        let connected = PlainGraph(vertices: Array(0 ..< n), edges: graph.edges + path)
+        let flow = connected.currentFlowBetweennessCentrality().scores
+        let closeness = connected.currentFlowClosenessCentrality().scores
+        var degree = [Set<Int>](repeating: [], count: n)
+        for e in connected.edges where e.u != e.v {
+            degree[e.u].insert(e.v)
+            degree[e.v].insert(e.u)
+        }
+        for v in 0 ..< n where degree[v].count == 1 { check(abs(flow[v]) <= 1e-9, "current flow through a vertex of degree 1") }
+        check(closeness.allSatisfy { $0 >= 0 && $0.isFinite }, "current-flow closeness")
+        let tree = PlainGraph(vertices: Array(0 ..< n), edges: path)
+        let treeCloseness = tree.currentFlowClosenessCentrality().scores
+        for v in 0 ..< n where n > 1 {
+            let total = (0 ..< n).reduce(0) { $0 + abs($1 - v) }
+            check(near(treeCloseness[v], 1 / Double(total)), "current-flow closeness on a path")
+        }
+        check(graph.subgraphCentrality().scores.allSatisfy { $0 >= 1 - 1e-12 }, "subgraph centrality below 1")
+        let spreaders = graph.voteRank()
+        check(Set(spreaders).count == spreaders.count, "VoteRank repeats a vertex")
     }
 }
