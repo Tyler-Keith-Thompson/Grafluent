@@ -48,8 +48,8 @@ extension Graph {
 }
 ```
 
-`Circuit` compares up to rotation and `Cycle` up to rotation and reversal, so tests compare both the
-arrays and the values.
+`Circuit` and `Cycle` compare up to rotation and reversal, so tests compare both the arrays and the
+values.
 
 ## Semantics
 

@@ -50,6 +50,11 @@
 #   ch_check             Christofides' own finite-weight check before its bound: a NaN or infinite
 #                        weight fails the bound (NaN compares false, ∞ is past it) and traps there,
 #                        and the matrix checks again; the first check gives the clearer message.
+#   Not planted, being equivalent: relocate's `b - 1 < a` against `b < a` (the two positions
+#                        differ); the metaheuristics' `inner >= 0` check (a negative count traps
+#                        on the range `0 ..< inner` too; the check gives the message); the
+#                        directed postman's first vertex taken over heads too (the least tail is
+#                        the least end whenever a tour exists).
 
 TESTS = ["ToursTests"]
 
@@ -233,4 +238,70 @@ MUTANTS = [
     # reuse pass (B)
     Mutant("tn_indexed_u", "TourRows.swift", "numbering.isIndexed ? nil : numbering.numbers", "numbering.numbers"),
     Mutant("tn_indexed_d", "TourRows.swift", "rows.isIndexed ? nil : rows.numbers", "rows.numbers"),
+
+    # Chinese postman, undirected: Dijkstra between the odd vertices
+    Mutant("cp_dijkstra_rank", "ChinesePostman.swift", "rank[v] >= lowest", "rank[v] >= 0"),
+    Mutant("cp_dijkstra_relax", "ChinesePostman.swift", "candidate < distance[w]", "candidate <= distance[w]"),
+    Mutant("cp_dijkstra_parent", "ChinesePostman.swift", "                            parentEdge[w] = e", "", mode="stmt", nth=1),
+    Mutant("cp_dijkstra_weight", "ChinesePostman.swift", "d + weights[e]", "weights[e]"),
+    Mutant("cp_wanted", "ChinesePostman.swift", "k - a", "1"),
+    # Chinese postman, undirected: degrees, the matching, the duplicated paths
+    Mutant("cp_odd", "ChinesePostman.swift", "d & 1 != 0", "d & 1 == 0"),
+    Mutant("cp_connected", "ChinesePostman.swift", "    guard _undirectedReach(&flat, count: n, from: first) == withEdges else { return nil }", "", mode="stmt"),
+    Mutant("cp_no_edges", "ChinesePostman.swift", "    guard m > 0 else { return nil }", "", mode="stmt"),
+    Mutant("cp_pair_distance", "ChinesePostman.swift", "distance[odd[b]]", "distance[odd[a]]"),
+    Mutant("cp_matching_max", "ChinesePostman.swift", "_minimumWeightMatchingEdges(_MatchingGraph(count: k, from: pairFrom, to: pairTo), pairWeights, half: half)", "_maximumWeightMatchingEdges(_MatchingGraph(count: k, from: pairFrom, to: pairTo), pairWeights, maximumCardinality: true, half: half)"),
+    Mutant("cp_toggle", "ChinesePostman.swift", "                                    duplicate[e].toggle()", "                                    duplicate[e] = true", mode="stmt"),
+    Mutant("cp_path_step", "ChinesePostman.swift", "from[e] == v ? to[e] : from[e]", "from[e]"),
+    Mutant("cp_start", "ChinesePostman.swift", "_undirectedHierholzer(&multi, count: n, edgeCount: total, start: first, vertices: vertices, edges: edges)", "_undirectedHierholzer(&multi, count: n, edgeCount: total, start: 0, vertices: vertices, edges: edges)"),
+    Mutant("cp_map_copies", "ChinesePostman.swift", "walk.edges[i] >= m", "walk.edges[i] > m"),
+    Mutant("cp_total", "ChinesePostman.swift", "        for e in tour.duplicated { total += weights[e] }", "", mode="stmt"),
+    Mutant("cp_negative", "ChinesePostman.swift", "            precondition(w >= .zero, \"A weight is negative\")", "", mode="stmt"),
+    Mutant("cp_check", "ChinesePostman.swift", "            _checkTourWeight(w)", "", mode="stmt"),
+    Mutant("cp_check_call", "ChinesePostman.swift", "                                    check(k, d)", "", mode="stmt"),
+    Mutant("cp_int_bound", "ChinesePostman.swift", "d <= (quotient - 1) / 2", "d <= quotient"),
+    Mutant("cp_int_quotient", "ChinesePostman.swift", "quotient > 0", "true"),
+    Mutant("cp_float_bound", "ChinesePostman.swift", "d <= (W.greatestFiniteMagnitude / 8 / W(k) - 1) / 2", "true"),
+    # Chinese postman, directed: supplies, the flow, the rows
+    Mutant("cpd_supply_sign", "ChinesePostman.swift", "            supply[t] += 1", "            supply[t] -= 1", mode="stmt"),
+    Mutant("cpd_imbalance", "ChinesePostman.swift", "        for b in supply where b > 0 { imbalance += b }", "        for b in supply where b > 0 { imbalance += 1 }", mode="stmt"),
+    Mutant("cpd_flow_skip", "ChinesePostman.swift", "            for e in 0 ..< count { copies[e] = flow.flow(ofEdgeAt: positions[e]) }", "", mode="stmt"),
+    Mutant("cpd_rows_copies", "ChinesePostman.swift", "1 + copies[e]", "1 + 2 * copies[e]"),
+    Mutant("cpd_length_copies", "ChinesePostman.swift", "                length += weights[e]", "", mode="stmt", nth=0),
+    Mutant("cpd_negative", "ChinesePostman.swift", "            precondition(w >= 0, \"A weight is negative\")", "", mode="stmt"),
+    Mutant("cpd_cost", "ChinesePostman.swift", "Int(exactly: weights[e])", "Int(exactly: weights[0])"),
+    # Metaheuristics: the moves' changes and their application
+    Mutant("mh_swap_adjacent", "SimulatedAnnealing.swift", "j == i + 1", "j == i + 2"),
+    Mutant("mh_swap_removed", "SimulatedAnnealing.swift", "w(p, x) + w(x, xs) + w(yp, y) + w(y, s)", "w(p, x) + w(x, xs) + w(yp, y) + w(y, p)"),
+    Mutant("mh_swap_added", "SimulatedAnnealing.swift", "w(p, y) + w(y, xs) + w(yp, x) + w(x, s)", "w(p, y) + w(y, xs) + w(yp, x) + w(s, x)"),
+    Mutant("mh_swap_adjacent_added", "SimulatedAnnealing.swift", "w(p, y) + w(y, x) + w(x, s)", "w(p, y) + w(x, y) + w(x, s)"),
+    Mutant("mh_relocate_after", "SimulatedAnnealing.swift", "b < a ? at(b) : at(b + 1)", "at(b + 1)"),
+    Mutant("mh_relocate_added", "SimulatedAnnealing.swift", "w(p, s) + w(before, x) + w(x, after)", "w(s, p) + w(before, x) + w(x, after)"),
+    Mutant("mh_wrap", "SimulatedAnnealing.swift", "t[i == n ? 0 : i]", "t[i == n ? 1 : i]"),
+    Mutant("mh_apply_left", "SimulatedAnnealing.swift", "            for i in a ..< b { t[i] = t[i &+ 1] }", "            for i in a ..< b - 1 { t[i] = t[i &+ 1] }", mode="stmt"),
+    Mutant("mh_apply_right", "SimulatedAnnealing.swift", "i > b", "i > b + 1"),
+    # Metaheuristics: the search
+    Mutant("mh_draw_skip", "SimulatedAnnealing.swift", "b >= a", "b > a"),
+    Mutant("mh_take_equal", "SimulatedAnnealing.swift", "added <= removed", "added < removed"),
+    Mutant("mh_exp_sign", "SimulatedAnnealing.swift", "exp(-change / temperature)", "exp(change / temperature)"),
+    Mutant("mh_probability", "SimulatedAnnealing.swift", "Double.random(in: 0 ..< 1, using: &generator)", "0.5"),
+    Mutant("mh_threshold", "SimulatedAnnealing.swift", "change <= threshold", "change < threshold"),
+    Mutant("mh_cost_update", "SimulatedAnnealing.swift", "                    cost = (cost - removed) + added", "", mode="stmt"),
+    Mutant("mh_best_copy", "SimulatedAnnealing.swift", "                        best.withUnsafeMutableBufferPointer { $0.baseAddress!.update(from: tp, count: n) }", "", mode="stmt"),
+    Mutant("mh_count_reset", "SimulatedAnnealing.swift", "                        count = 0", "", mode="stmt"),
+    Mutant("mh_rounds", "SimulatedAnnealing.swift", "count <= rounds", "count < rounds"),
+    Mutant("mh_cooling", "SimulatedAnnealing.swift", "                    acceptance = .annealing(temperature: temperature - temperature * alpha, alpha: alpha)", "", mode="stmt"),
+    Mutant("mh_threshold_decay", "SimulatedAnnealing.swift", "                    if accepted { acceptance = .threshold(threshold: threshold - threshold * alpha, alpha: alpha) }", "                    acceptance = .threshold(threshold: threshold - threshold * alpha, alpha: alpha)", mode="stmt"),
+    Mutant("mh_cold", "SimulatedAnnealing.swift", "!(temperature > 0)", "!(temperature >= 0)"),
+    Mutant("mh_accepted", "SimulatedAnnealing.swift", "                    accepted = true", "", mode="stmt"),
+    # Metaheuristics: the entry points
+    Mutant("mh_small", "SimulatedAnnealing.swift", "        guard n >= 3 else { return nil }", "", mode="stmt", nth=0),
+    Mutant("mh_directed_complete", "SimulatedAnnealing.swift", "matrix.edges[u * n + v] < 0", "matrix.edges[u * n + v] < -1"),
+    Mutant("mh_start", "SimulatedAnnealing.swift", "order ?? _nearestNeighborOrder(matrix, from: 0)", "_nearestNeighborOrder(matrix, from: 0)", nth=0),
+    Mutant("mh_check_temperature", "SimulatedAnnealing.swift", "temperature >= 0 && temperature.isFinite", "temperature.isFinite"),
+    Mutant("mh_check_alpha", "SimulatedAnnealing.swift", "alpha > 0 && alpha <= 1", "alpha <= 1"),
+    Mutant("mh_check_alpha_high", "SimulatedAnnealing.swift", "alpha > 0 && alpha <= 1", "alpha > 0", nth=0),
+    Mutant("mh_check_threshold", "SimulatedAnnealing.swift", "threshold >= 0 && threshold.isFinite", "threshold >= 0"),
+    Mutant("mh_check_rounds", "SimulatedAnnealing.swift", "    precondition(rounds >= 0, \"maximumIterations is negative\")", "", mode="stmt"),
+    Mutant("mh_check_ta_alpha", "SimulatedAnnealing.swift", "alpha >= 0 && alpha <= 1", "alpha <= 1"),
 ]

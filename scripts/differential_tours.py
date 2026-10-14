@@ -21,7 +21,13 @@ Two parts:
   optimum, on the case's own graph and, directed, on a complete digraph less some arcs with
   asymmetric weights, against brute force and a bitmask DP for existence). Every returned walk
   is validated on its own: the right edges, each once, joining the right vertices; a tour's
-  edges are the lightest copies. With IGRAPH_C_LIB set, igraph's C
+  edges are the lightest copies. Chinese postman tours, on the case's graph (weights |w|) and on
+  the walk multigraph, have NetworkX's optimum (undirected: `min_weight_matching` on Dijkstra
+  distances between the odd vertices; directed: `network_simplex` on the imbalances) and exist
+  exactly when NetworkX finds the edges (strongly) connected; with unit weights they walk no more
+  edges than NetworkX's `eulerize` adds up to. Simulated annealing and threshold accepting
+  (seeded, both moves) give tours through the lightest copies between the brute-force optimum and
+  the nearest-neighbour tour they start from. With IGRAPH_C_LIB set, igraph's C
   `igraph_is_eulerian` is asked too, through ref.py's worker process.
 """
 
@@ -363,6 +369,80 @@ def hamiltonian_problems(tag, g, t, s, target, prefix=""):
     return problems
 
 
+def postman_optimum(n, ends, weights, directed):
+    """The Chinese postman optimum by NetworkX, or None when there is no tour: undirected, the
+    total weight plus `min_weight_matching` on the odd vertices' Dijkstra distances; directed, plus
+    `network_simplex` with each vertex's demand out − in (self-loops left out, never duplicated)."""
+    if not ends:
+        return None
+    G = nx.MultiDiGraph() if directed else nx.MultiGraph()
+    G.add_nodes_from(range(n))
+    for (u, v), w in zip(ends, weights):
+        G.add_edge(u, v, weight=w)
+    H = G.subgraph([v for v in G.nodes if G.degree(v) > 0])
+    if directed:
+        if not nx.is_strongly_connected(H):
+            return None
+        F = nx.MultiDiGraph()
+        for v in H.nodes:
+            F.add_node(v, demand=H.out_degree(v) - H.in_degree(v))
+        for u, v, w in H.edges(data="weight"):
+            if u != v:
+                F.add_edge(u, v, weight=w)
+        cost, _ = nx.network_simplex(F)
+        return sum(weights) + cost
+    if not nx.is_connected(H):
+        return None
+    odd = [v for v in H.nodes if H.degree(v) % 2]
+    K = nx.Graph()
+    for i, a in enumerate(odd):
+        lengths = nx.single_source_dijkstra_path_length(H, a)
+        for b in odd[i + 1:]:
+            K.add_edge(a, b, weight=lengths[b])
+    matching = nx.min_weight_matching(K)
+    return sum(weights) + sum(K[a][b]["weight"] for a, b in matching)
+
+
+def postman_problems(tag, n, ends, weights, directed, mine):
+    """The tour against NetworkX's optimum, and its walk on its own: closed, from the first vertex
+    with an edge, each edge once plus once per duplicate listing, each step along its edge, its
+    weight the sum along the walk."""
+    optimum = postman_optimum(n, ends, weights, directed)
+    if (optimum is None) != (mine is None):
+        return [f"{tag}: library {mine and mine['weight']}, NetworkX optimum {optimum}"]
+    if mine is None:
+        covered("postman tours, none")
+        return []
+    problems = []
+    weight = int(mine["weight"])
+    if weight != optimum:
+        problems.append(f"{tag}: weight {weight}, NetworkX optimum {optimum}")
+    vs = [int(x) for x in mine["walk"]["vertices"]]
+    es = mine["walk"]["edges"]
+    uses = [0] * len(ends)
+    for e in es:
+        uses[e] += 1
+    expected = [1] * len(ends)
+    for e in mine["duplicated"]:
+        expected[e] += 1
+    first = min(min(u, v) for u, v in ends)
+    steps = all((ends[e] == (vs[i], vs[i + 1])) if directed else (set(ends[e]) == {vs[i], vs[i + 1]}) for i, e in enumerate(es))
+    if vs[0] != first or vs[-1] != first or uses != expected or not steps or sum(weights[e] for e in es) != weight:
+        problems.append(f"{tag}: {mine} is not a closed walk through every edge from {first}")
+    if not directed and len(set(mine["duplicated"])) != len(mine["duplicated"]):
+        problems.append(f"{tag}: an undirected edge duplicated twice")
+    if not directed and all(w == 1 for w in weights):
+        # NetworkX's eulerize (an unweighted heuristic) adds at least as many edges.
+        G = nx.MultiGraph()
+        G.add_edges_from(ends)
+        G.remove_nodes_from([v for v in list(G.nodes) if G.degree(v) == 0])
+        if len(es) > nx.eulerize(G).number_of_edges():
+            problems.append(f"{tag}: {len(es)} edges walked, NetworkX eulerize {nx.eulerize(G).number_of_edges()}")
+        covered("postman tours against NetworkX eulerize")
+    covered("postman tours against NetworkX")
+    return problems
+
+
 def compare_tours(case, t):
     problems = []
     n, directed = case["n"], case["directed"]
@@ -380,6 +460,10 @@ def compare_tours(case, t):
         problems += eulerian_problems("csr", gc, t["csr"], start)
     gw = REF.G(range(n), [tuple(e) for e in tc["walk"]], directed)
     problems += eulerian_problems("walk", gw, t["walk"], start)
+    ends = [(u, v) for u, v, _ in case["edges"]]
+    problems += postman_problems("postman", n, ends, [abs(int(w)) for w in tc["caseWeights"]], directed, t.get("postman"))
+    walk_ends = [tuple(e) for e in tc["walk"]]
+    problems += postman_problems("postman walk", n, walk_ends, [k % 4 for k in range(len(walk_ends))], directed, t.get("postmanWalk"))
     if tc["hamiltonian"]:
         problems += hamiltonian_problems("graph", g, t, start, case["target"])
         if gc is not None:
@@ -419,6 +503,19 @@ def compare_tours(case, t):
             if REF.tour_weight(W, [int(x) for x in t["christofides"]["vertices"]]) > 1.5 * best[0] + 1e-9:
                 problems.append("tour christofides: above 3/2 of the optimum on a metric")
             covered("Christofides within 3/2 on metrics")
+    # The metaheuristics: tours through the lightest copies, between the optimum and the
+    # nearest-neighbour tour they start from.
+    for key in ("annealing", "thresholdAccepting"):
+        for mine in t.get(key, []):
+            if mine is None:
+                problems.append(f"tour {key}: library nil")
+                continue
+            problems += tour_problems(f"tour {key}", gt, mine)
+            got = [int(x) for x in mine["vertices"]]
+            weight = REF.tour_weight(W, got)
+            if got[0] != 0 or weight > REF.tour_weight(W, nn) + 1e-9 or (best is not None and weight < best[0] - 1e-9):
+                problems.append(f"tour {key}: {got} weighs {weight}, outside [optimum, nearest neighbour]")
+            covered(f"{key} tours")
     if not REF.nn_ties(gt, s):
         h = REF.nx_simple_weighted(gt)
         theirs = nxa.greedy_tsp(h, source=s)[:-1]

@@ -73,8 +73,39 @@ struct ToursAnswers: Encodable {
     var largeNearestNeighbor: WalkAnswer?
     var largeTwoOpt: WalkAnswer?
     var largeChristofides: WalkAnswer?
+    /// `chinesePostmanTour` on the case's graph (weights |w|) and on the walk multigraph (weight
+    /// position mod 4).
+    var postman: PostmanAnswer?
+    var postmanWalk: PostmanAnswer?
+    /// `simulatedAnnealingTour` and `thresholdAcceptingTour` on the complete multigraph, both moves,
+    /// from a SplitMix64 generator seeded with the case's start.
+    var annealing: [WalkAnswer?] = []
+    var thresholdAccepting: [WalkAnswer?] = []
     /// Whether `edges` lists the graphs' edges in input order (the models assume it).
     var positionsInOrder = true
+}
+
+/// A postman tour: its walk, duplicated edge positions and weight as text.
+struct PostmanAnswer: Encodable {
+    var walk: WalkAnswer
+    var duplicated: [Int]
+    var weight: String
+}
+
+/// SplitMix64, for the metaheuristics' draws.
+struct SplitMix64: RandomNumberGenerator {
+    var state: UInt64
+    mutating func next() -> UInt64 {
+        state &+= 0x9E37_79B9_7F4A_7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+        return z ^ (z >> 31)
+    }
+}
+
+func postmanAnswer<V, E, W>(_ tour: PostmanTour<V, E, W>?, _ position: (E) -> Int) -> PostmanAnswer? {
+    tour.map { PostmanAnswer(walk: walkAnswer($0.walk.vertices, $0.walk.edges, position), duplicated: $0.duplicatedEdges.map(position), weight: "\($0.weight)") }
 }
 
 func walkAnswer<V, E>(_ vertices: [V], _ edges: [E], _ position: (E) -> Int) -> WalkAnswer {
@@ -112,14 +143,29 @@ protocol TourWeight: Comparable & SignedNumeric & CustomStringConvertible {
     init?(_ text: String)
     /// `christofidesTour`, whose two overloads need the concrete kind of weight.
     static func christofides<G: Graph>(_ g: G, _ w: (G.Edges.Index) -> Self) -> Cycle<G.Vertex, G.Edges.Index>?
+    /// The metaheuristics, whose overloads need the concrete kind of weight too.
+    static func annealing<G: Graph>(_ g: G, _ move: TourMove, _ w: (G.Edges.Index) -> Self, _ generator: inout SplitMix64) -> Cycle<G.Vertex, G.Edges.Index>?
+    static func thresholdAccepting<G: Graph>(_ g: G, _ move: TourMove, _ w: (G.Edges.Index) -> Self, _ generator: inout SplitMix64) -> Cycle<G.Vertex, G.Edges.Index>?
 }
 
 extension Int: TourWeight {
     static func christofides<G: Graph>(_ g: G, _ w: (G.Edges.Index) -> Int) -> Cycle<G.Vertex, G.Edges.Index>? { g.christofidesTour(weight: w) }
+    static func annealing<G: Graph>(_ g: G, _ move: TourMove, _ w: (G.Edges.Index) -> Int, _ generator: inout SplitMix64) -> Cycle<G.Vertex, G.Edges.Index>? {
+        g.simulatedAnnealingTour(move: move, innerIterations: 30, weight: w, using: &generator)
+    }
+    static func thresholdAccepting<G: Graph>(_ g: G, _ move: TourMove, _ w: (G.Edges.Index) -> Int, _ generator: inout SplitMix64) -> Cycle<G.Vertex, G.Edges.Index>? {
+        g.thresholdAcceptingTour(move: move, innerIterations: 30, weight: w, using: &generator)
+    }
 }
 
 extension Double: TourWeight {
     static func christofides<G: Graph>(_ g: G, _ w: (G.Edges.Index) -> Double) -> Cycle<G.Vertex, G.Edges.Index>? { g.christofidesTour(weight: w) }
+    static func annealing<G: Graph>(_ g: G, _ move: TourMove, _ w: (G.Edges.Index) -> Double, _ generator: inout SplitMix64) -> Cycle<G.Vertex, G.Edges.Index>? {
+        g.simulatedAnnealingTour(move: move, innerIterations: 30, weight: w, using: &generator)
+    }
+    static func thresholdAccepting<G: Graph>(_ g: G, _ move: TourMove, _ w: (G.Edges.Index) -> Double, _ generator: inout SplitMix64) -> Cycle<G.Vertex, G.Edges.Index>? {
+        g.thresholdAcceptingTour(move: move, innerIterations: 30, weight: w, using: &generator)
+    }
 }
 
 func tourAnswers<W: TourWeight>(_ t: ToursCase, _: W.Type, _ a: inout ToursAnswers) {
@@ -134,6 +180,11 @@ func tourAnswers<W: TourWeight>(_ t: ToursCase, _: W.Type, _ a: inout ToursAnswe
     if let start = Cycle(t.improving, in: g) { a.twoOptImproving = answer(g.twoOptTour(improving: start, weight: w)) }
     a.christofides = answer(W.christofides(g, w))
     a.shortest = answer(g.shortestTour(weight: w))
+    for move in TourMove.allCases {
+        var generator = SplitMix64(state: UInt64(t.start))
+        a.annealing.append(answer(W.annealing(g, move, w, &generator)))
+        a.thresholdAccepting.append(answer(W.thresholdAccepting(g, move, w, &generator)))
+    }
 }
 
 func toursAnswers(directed: Bool, n: Int, edges: [[Int]], sources: [Int], target: Int, _ t: ToursCase) -> ToursAnswers {
@@ -150,6 +201,9 @@ func toursAnswers(directed: Bool, n: Int, edges: [[Int]], sources: [Int], target
         let walk = DirectedPseudograph(vertices: 0 ..< n, edges: t.walk.map { DirectedEdge(from: $0[0], to: $0[1]) })
         if Array(walk.edges) != t.walk.map({ DirectedEdge(from: $0[0], to: $0[1]) }) { a.positionsInOrder = false }
         a.walk = eulerianAnswers(walk, start: start, id)
+        let cw = t.caseWeights.map { abs(Int($0)!) }
+        a.postman = postmanAnswer(g.chinesePostmanTour { cw[$0] }, id)
+        a.postmanWalk = postmanAnswer(walk.chinesePostmanTour { $0 % 4 }, id)
         if t.hamiltonian {
             a.hamiltonianPath = g.hamiltonianPath().map { walkAnswer($0.vertices, $0.edges, id) }
             a.hamiltonianCycle = g.hamiltonianCycle().map { walkAnswer($0.vertices, $0.edges, id) }
@@ -171,6 +225,9 @@ func toursAnswers(directed: Bool, n: Int, edges: [[Int]], sources: [Int], target
         let walk = Pseudograph(vertices: 0 ..< n, edges: t.walk.map { UndirectedEdge($0[0], $0[1]) })
         if Array(walk.edges) != t.walk.map({ UndirectedEdge($0[0], $0[1]) }) { a.positionsInOrder = false }
         a.walk = eulerianAnswers(walk, start: start, id)
+        let cw = t.caseWeights.map { abs(Int($0)!) }
+        a.postman = postmanAnswer(g.chinesePostmanTour { cw[$0] }, id)
+        a.postmanWalk = postmanAnswer(walk.chinesePostmanTour { $0 % 4 }, id)
         if t.hamiltonian {
             a.hamiltonianPath = g.hamiltonianPath().map { walkAnswer($0.vertices, $0.edges, id) }
             a.hamiltonianCycle = g.hamiltonianCycle().map { walkAnswer($0.vertices, $0.edges, id) }

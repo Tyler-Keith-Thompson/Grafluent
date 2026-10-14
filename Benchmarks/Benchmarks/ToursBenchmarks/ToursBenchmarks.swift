@@ -1,3 +1,8 @@
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
@@ -155,6 +160,120 @@ func handWrittenIsEulerian(_ offsets: [Int], _ targets: [Int]) -> Bool {
     return reached == withEdges
 }
 
+/// The r × c grid (vertex i·c + j, edges right then down, row-major) with LCG weights 1 … 100.
+func grid(_ r: Int, _ c: Int, _ seed: UInt64) -> (graph: UndirectedAdjacencyList<Int>, weights: [Int]) {
+    var g = LCG(x: seed)
+    var edges: [UndirectedEdge<Int>] = [], weights: [Int] = []
+    for i in 0 ..< r {
+        for j in 0 ..< c {
+            if j + 1 < c { edges.append(UndirectedEdge(i * c + j, i * c + j + 1)); weights.append(1 + g.next() % 100) }
+            if i + 1 < r { edges.append(UndirectedEdge(i * c + j, (i + 1) * c + j)); weights.append(1 + g.next() % 100) }
+        }
+    }
+    return (UndirectedAdjacencyList(vertices: 0 ..< r * c, edges: edges), weights)
+}
+
+/// Dijkstra from every odd-degree vertex over flat rows with a binary heap of (distance, vertex),
+/// by hand: the baseline for the postman tour's searches (which also stop once every odd vertex is
+/// settled, and add the matching and the walk).
+func handWrittenOddDijkstra(_ offsets: [Int], _ targets: [Int], _ edgeWeights: [Int]) -> Int {
+    let n = offsets.count - 1
+    var odd: [Int] = []
+    for v in 0 ..< n where (offsets[v + 1] - offsets[v]) & 1 != 0 { odd.append(v) }
+    var distance = [Int](repeating: .max, count: n)
+    var heap: [(Int, Int)] = []
+    var total = 0
+    for s in odd {
+        for v in 0 ..< n { distance[v] = .max }
+        distance[s] = 0
+        heap.removeAll(keepingCapacity: true)
+        heap.append((0, s))
+        while let top = heap.first {
+            let last = heap.removeLast()
+            if !heap.isEmpty {
+                heap[0] = last
+                var i = 0
+                while true {
+                    let l = 2 * i + 1, r = l + 1
+                    var m = i
+                    if l < heap.count && heap[l].0 < heap[m].0 { m = l }
+                    if r < heap.count && heap[r].0 < heap[m].0 { m = r }
+                    if m == i { break }
+                    heap.swapAt(i, m)
+                    i = m
+                }
+            }
+            let (d, v) = top
+            if d > distance[v] { continue }
+            for k in offsets[v] ..< offsets[v + 1] {
+                let w = targets[k], c = d + edgeWeights[k]
+                if c < distance[w] {
+                    distance[w] = c
+                    heap.append((c, w))
+                    var i = heap.count - 1
+                    while i > 0 && heap[(i - 1) / 2].0 > heap[i].0 {
+                        heap.swapAt(i, (i - 1) / 2)
+                        i = (i - 1) / 2
+                    }
+                }
+            }
+        }
+        for t in odd { total &+= distance[t] }
+    }
+    return total
+}
+
+/// Simulated annealing with swap moves by hand over a flat matrix, NetworkX's procedure with O(1)
+/// move evaluation: the baseline for `simulatedAnnealingTour`.
+func handWrittenAnnealing(_ d: [Double], _ n: Int, _ start: [Int], seed: UInt64) -> Double {
+    var rng = SplitMix64(state: seed)
+    var t = start, best = start
+    var cost = 0.0
+    for i in 0 ..< n { cost += d[t[i] * n + t[(i + 1) % n]] }
+    var bestCost = cost, temperature = 100.0, count = 0
+    while count <= 10 && temperature > 0 {
+        count += 1
+        for _ in 0 ..< 100 {
+            let a = Int.random(in: 1 ..< n, using: &rng)
+            var b = Int.random(in: 1 ..< n - 1, using: &rng)
+            if b >= a { b += 1 }
+            let i = min(a, b), j = max(a, b)
+            let p = t[i - 1], x = t[i], y = t[j], s = t[(j + 1) % n]
+            let removed: Double, added: Double
+            if j == i + 1 {
+                removed = d[p * n + x] + d[x * n + y] + d[y * n + s]
+                added = d[p * n + y] + d[y * n + x] + d[x * n + s]
+            } else {
+                let xs = t[i + 1], yp = t[j - 1]
+                removed = d[p * n + x] + d[x * n + xs] + d[yp * n + y] + d[y * n + s]
+                added = d[p * n + y] + d[y * n + xs] + d[yp * n + x] + d[x * n + s]
+            }
+            if added <= removed || Double.random(in: 0 ..< 1, using: &rng) <= exp(-(added - removed) / temperature) {
+                t.swapAt(a, b)
+                cost = (cost - removed) + added
+                if cost < bestCost {
+                    bestCost = cost
+                    best = t
+                    count = 0
+                }
+            }
+        }
+        temperature -= temperature * 0.01
+    }
+    return bestCost + Double(best[0])
+}
+
+struct SplitMix64: RandomNumberGenerator {
+    var state: UInt64
+    mutating func next() -> UInt64 {
+        state &+= 0x9E37_79B9_7F4A_7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+        return z ^ (z >> 31)
+    }
+}
+
 let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
@@ -225,6 +344,57 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("Tours: shortestTour(weight:) (Held–Karp), 16 points") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(points16.shortestTour { weights16[$0] }) }
+    }
+
+
+    // Chinese postman tours: a weighted grid (392 odd boundary vertices), and the directed torus
+    // with LCG chords that unbalance it.
+    let (grid100, gridWeights) = grid(100, 100, 3)
+    var gridOffsets = [0], gridTargets: [Int] = [], gridRowWeights: [Int] = []
+    for v in 0 ..< 100 * 100 {
+        for (w, e) in zip(grid100.neighborIndices(ofIndex: v), grid100.incidentEdges(ofIndex: v)) {
+            gridTargets.append(w)
+            gridRowWeights.append(gridWeights[e])
+        }
+        gridOffsets.append(gridTargets.count)
+    }
+    precondition(grid100.chinesePostmanTour { gridWeights[$0] } != nil)
+    Benchmark("Tours: BASELINE hand-written Dijkstra from each odd vertex, grid 100 × 100") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenOddDijkstra(gridOffsets, gridTargets, gridRowWeights)) }
+    }
+    Benchmark("Tours: chinesePostmanTour(weight:), grid 100 × 100 (392 odd vertices)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(grid100.chinesePostmanTour { gridWeights[$0] }) }
+    }
+    var chords = LCG(x: 9)
+    let chorded = AdjacencyList(vertices: 0 ..< 100 * 100, edges: torus(100, 100).map { DirectedEdge(from: $0.0, to: $0.1) }
+        + (0 ..< 300).map { _ in DirectedEdge(from: chords.next() % 10_000, to: chords.next() % 10_000) })
+    let chordWeights = (0 ..< chorded.edgeCount).map { 1 + $0 % 7 }
+    precondition(chorded.chinesePostmanTour { chordWeights[$0] } != nil)
+    Benchmark("Tours: chinesePostmanTour(weight:), directed torus 100 × 100 with 300 chords") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(chorded.chinesePostmanTour { chordWeights[$0] }) }
+    }
+
+    // The metaheuristics with NetworkX's defaults on 200 points, from nearest neighbour.
+    var matrix200 = [Double](repeating: 0, count: 200 * 200)
+    for (k, e) in points200.edges.enumerated() {
+        matrix200[e.u * 200 + e.v] = weights200[k]
+        matrix200[e.v * 200 + e.u] = weights200[k]
+    }
+    let start200 = points200.nearestNeighborTour { weights200[$0] }!.vertices
+    Benchmark("Tours: BASELINE hand-written simulated annealing over a flat matrix, 200 points") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenAnnealing(matrix200, 200, start200, seed: 1)) }
+    }
+    Benchmark("Tours: simulatedAnnealingTour(weight:using:), 200 points") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = SplitMix64(state: 1)
+            blackHole(points200.simulatedAnnealingTour(weight: { weights200[$0] }, using: &generator))
+        }
+    }
+    Benchmark("Tours: thresholdAcceptingTour(move: .relocate, weight:using:), 200 points") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = SplitMix64(state: 1)
+            blackHole(points200.thresholdAcceptingTour(move: .relocate, weight: { weights200[$0] }, using: &generator))
+        }
     }
 
     let dodecahedron = lcf(20, [10, 7, 4, -4, -7, 10, -4, 7, -7, 4])

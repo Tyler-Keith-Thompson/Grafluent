@@ -5,8 +5,10 @@ Tests for `Tours`, which finds walks that cover a graph, on `DirectedGraph` and 
 (Hierholzer, determined by each vertex's row order), `hamiltonianPath()` / `(from:)` / `(from:to:)`
 and `hamiltonianCycle()` (the first path or cycle of a documented depth-first search), and, on
 `Graph`, tours of the simple graph: `nearestNeighborTour`, `christofidesTour`, `twoOptTour` (best
-improvement) and `shortestTour` (Held–Karp, also on `DirectedGraph`). Every result is a `Walks`
-value (`Circuit`, `Trail`, `Path`, `Cycle`). The API and its semantics are in `api.md` in
+improvement), `shortestTour` (Held–Karp, also on `DirectedGraph`) and the metaheuristics
+`simulatedAnnealingTour` and `thresholdAcceptingTour` (on both), and Chinese postman tours
+(`chinesePostmanTour`, on both, a `PostmanTour` holding a closed `Walk`). Every other result is a
+`Walks` value (`Circuit`, `Trail`, `Path`, `Cycle`). The API and its semantics are in `api.md` in
 [`Tests/Catalogs/Tours/`](../Catalogs/Tours/). The suite uses only the public API, and each test is
 self-contained: the procedures, brute-force searches and definitions it checks against are written
 out inside it. The shared material is `ReferenceDirectedMultigraph`, `ReferencePseudograph`,
@@ -32,7 +34,18 @@ extension Graph {
 extension DirectedGraph {
     func shortestTour<W>(weight:)   // the asymmetric problem, by the same Held–Karp program
 }
+extension Graph {   // and the same on DirectedGraph (integer weights only for the postman)
+    func chinesePostmanTour<W: SignedInteger>(weight:) -> PostmanTour<Vertex, Edges.Index, W>?
+    func chinesePostmanTour<W: FloatingPoint>(weight:) -> PostmanTour<Vertex, Edges.Index, W>?
+    func simulatedAnnealingTour<W>(improving:move:temperature:alpha:maximumIterations:innerIterations:weight:using:)
+    func thresholdAcceptingTour<W>(improving:move:threshold:alpha:maximumIterations:innerIterations:weight:using:)
+}   // W: BinaryInteger or BinaryFloatingPoint; TourMove .swap / .relocate
 ```
+
+`ChinesePostmanTourTests`, `ChinesePostmanPropertyTests`, `MetaheuristicTourTests` and
+`PostmanAndMetaheuristicPreconditionTests` are written by hand, not generated from the catalog:
+the postman tours against hand-computed walks and brute-force optima, the metaheuristics against
+NetworkX's procedure written out and driven by the same seeded generator.
 
 ## Conventions
 

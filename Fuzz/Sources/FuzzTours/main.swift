@@ -20,7 +20,14 @@
 // giving the `Int` optima scaled; Held–Karp on graphs that need not be complete nil exactly when
 // there is no Hamiltonian cycle, and on directed multigraphs (each ordered pair's lightest arc)
 // equal to brute force with its lexicographically least optimum. Representations agree on existence, and the tours, which read only
-// the simple graph, are the same on a conformer without indices.
+// the simple graph, are the same on a conformer without indices. Simulated annealing and
+// threshold accepting give a tour through the lightest copies from the first vertex, between
+// Held–Karp's weight and the nearest-neighbour tour they start from, the same on the conformer
+// for the same seed. Chinese postman tours: nil exactly when there are no edges or the vertices
+// with edges are not (strongly) connected; otherwise a closed walk from the first vertex with an
+// edge, each edge once plus once per duplicate listing, weighing the sum along it, never more
+// than walking every edge twice (undirected), equal to the least over every set of duplicated
+// edges (undirected, up to 12 non-loop edges) and the same on the conformer.
 
 import CompressedSparseRowModule
 import FuzzSupport
@@ -486,19 +493,32 @@ func bruteForceTour(_ n: Int, _ d: (Int, Int) -> Int?) -> (weight: Int, order: [
     return best
 }
 
+/// SplitMix64, for the metaheuristics' draws.
+struct SplitMix64: RandomNumberGenerator {
+    var state: UInt64
+    mutating func next() -> UInt64 {
+        state &+= 0x9E37_79B9_7F4A_7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+        return z ^ (z >> 31)
+    }
+}
+
 @main
 enum FuzzTours {
     static func main() { runFuzzer(fuzz) }
 
     static func fuzz(_ input: inout FuzzInput) {
-        switch input.int(below: 9) {
+        switch input.int(below: 11) {
         case 0, 1: undirectedEulerian(&input)
         case 2, 3: directedEulerian(&input)
         case 4: undirectedHamiltonian(&input)
         case 5: directedHamiltonian(&input)
         case 6: tours(&input)
         case 7: partialHeldKarp(&input)
-        default: directedHeldKarp(&input)
+        case 8: directedHeldKarp(&input)
+        default: postman(&input)
         }
     }
 
@@ -655,6 +675,24 @@ enum FuzzTours {
         check(chrq.weight >= hk.weight, "Double christofidesTour \(chrq.weight) is lighter than the optimum \(hk.weight): \(context)")
         if instance.metric { check(2 * chrq.weight <= 3 * hk.weight, "Double christofidesTour \(chrq.weight) is past 3/2 of \(hk.weight): \(context)") }
 
+        // The metaheuristics, from nearest neighbour, both moves, seeded from the input.
+        let seed = UInt64(input.int(below: 1 << 30))
+        for move in [TourMove.swap, .relocate] {
+            var g1 = SplitMix64(state: seed), g2 = SplitMix64(state: seed), g3 = SplitMix64(state: seed), g4 = SplitMix64(state: seed)
+            let rounds = input.int(below: 4), inner = input.int(below: 40)
+            let annealed = graph.simulatedAnnealingTour(move: move, maximumIterations: rounds, innerIterations: inner, weight: weight, using: &g1)
+            let accepted = graph.thresholdAcceptingTour(move: move, threshold: Double(input.int(below: 5)), maximumIterations: rounds, innerIterations: inner, weight: weight, using: &g2)
+            for (name, tour) in [("simulatedAnnealingTour", annealed), ("thresholdAcceptingTour", accepted)] {
+                guard let found = checkTour(tour, instance, light, "\(name) \(move)", context) else { return }
+                check(found.order[0] == 0, "\(name) starts at \(found.order[0]): \(context)")
+                check(found.weight <= nn.weight && found.weight >= hk.weight, "\(name) weighs \(found.weight), outside [\(hk.weight), \(nn.weight)]: \(context)")
+            }
+            let plainAnnealed = plain.simulatedAnnealingTour(move: move, maximumIterations: rounds, innerIterations: inner, weight: weight, using: &g3)
+            check(plainAnnealed?.vertices == annealed?.vertices && plainAnnealed?.edges == annealed?.edges, "simulatedAnnealingTour differs without indices: \(context)")
+            let doubled = graph.simulatedAnnealingTour(move: move, maximumIterations: rounds, innerIterations: inner, weight: { Double(weights[$0]) }, using: &g4)
+            check(doubled?.vertices == annealed?.vertices, "Double simulatedAnnealingTour differs from Int: \(context)")
+        }
+
         // A conformer without indices: the same simple graph, so the same tours.
         let same: [(String, Cycle<Int, Int>?, Cycle<Int, Int>?)] = [
             ("nearestNeighborTour", graph.nearestNeighborTour(weight: weight), plain.nearestNeighborTour(weight: weight)),
@@ -738,5 +776,71 @@ enum FuzzTours {
             total += weights[light[a][b]]
         }
         check(total == brute.weight, "directed shortestTour weighs \(total), brute force \(brute.weight): \(context)")
+    }
+
+    // MARK: Chinese postman tours
+
+    static func postman(_ input: inout FuzzInput) {
+        let net = Multi(&input, vertices: 0 ... 8, edges: 12)
+        let directed = input.int(below: 2) == 0
+        let palette = [[0, 1], [1], [1, 2, 3], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 10, 100, 1000]][input.int(below: 5)]
+        let weights = net.ends.map { _ in palette[input.int(below: palette.count)] }
+        let labelled = net.ends.map { (net.labels[$0.0], net.labels[$0.1]) }
+        let context = "\(directed ? "directed" : "undirected") \(net.labels), edges \(labelled), weights \(weights)"
+        let n = net.n, m = net.m
+        var index: [Int: Int] = [:]
+        for (i, v) in net.labels.enumerated() { index[v] = i }
+        let weight: (Int) -> Int = { weights[$0] }
+        // Whether a tour must exist: some edge, and the vertices with edges (strongly) connected.
+        var exists = m > 0 && edgedConnected(n, net.ends)
+        if directed && exists {
+            var reach = [[Bool]](repeating: [Bool](repeating: false, count: n), count: n)
+            for v in 0 ..< n { reach[v][v] = true }
+            for (u, v) in net.ends { reach[u][v] = true }
+            for k in 0 ..< n { for i in 0 ..< n where reach[i][k] { for j in 0 ..< n where reach[k][j] { reach[i][j] = true } } }
+            let touched = Set(net.ends.flatMap { [$0.0, $0.1] })
+            exists = touched.allSatisfy { a in touched.allSatisfy { reach[a][$0] } }
+        }
+        let tour = directed ? net.directed().chinesePostmanTour(weight: weight) : net.undirected().chinesePostmanTour(weight: weight)
+        let plain = directed ? net.plainDirected().chinesePostmanTour(weight: weight) : net.plain().chinesePostmanTour(weight: weight)
+        check((tour != nil) == exists, "chinesePostmanTour \(String(describing: tour)), a tour exists: \(exists): \(context)")
+        check(plain?.walk.vertices == tour?.walk.vertices && plain?.walk.edges == tour?.walk.edges && plain?.duplicatedEdges == tour?.duplicatedEdges,
+              "chinesePostmanTour differs without indices: \(context)")
+        guard let tour else { return }
+        let vs = tour.walk.vertices.map { index[$0]! }, es = tour.walk.edges
+        var uses = [Int](repeating: 0, count: m), expected = [Int](repeating: 1, count: m)
+        for e in es { uses[e] += 1 }
+        for e in tour.duplicatedEdges { expected[e] += 1 }
+        check(uses == expected, "chinesePostmanTour uses \(uses), duplicates \(tour.duplicatedEdges): \(context)")
+        let firstVertex = net.labels.indices.first { v in net.ends.contains { $0.0 == v || $0.1 == v } } ?? -1
+        check(vs.first == firstVertex && vs.last == firstVertex, "chinesePostmanTour from \(vs.first ?? -1), not \(firstVertex): \(context)")
+        for (i, e) in es.enumerated() {
+            let (a, b) = net.ends[e]
+            check(directed ? (a == vs[i] && b == vs[i + 1]) : ((a == vs[i] && b == vs[i + 1]) || (b == vs[i] && a == vs[i + 1])), "chinesePostmanTour step \(i): \(context)")
+        }
+        check(tour.duplicatedEdges == tour.duplicatedEdges.sorted(), "duplicatedEdges not in position order: \(context)")
+        check(es.reduce(0) { $0 + weights[$1] } == tour.weight, "chinesePostmanTour weight \(tour.weight) is not the walk's: \(context)")
+        guard !directed else { return }
+        check(Set(tour.duplicatedEdges).count == tour.duplicatedEdges.count, "an undirected edge duplicated twice: \(context)")
+        check(tour.weight <= 2 * weights.reduce(0, +), "chinesePostmanTour \(tour.weight) is past walking every edge twice: \(context)")
+        let candidates = (0 ..< m).filter { net.ends[$0].0 != net.ends[$0].1 }
+        guard candidates.count <= 12 else { return }
+        var degree = [Int](repeating: 0, count: n)
+        for (a, b) in net.ends {
+            degree[a] += 1
+            degree[b] += 1
+        }
+        var best = Int.max
+        for mask in 0 ..< (1 << candidates.count) {
+            var parity = degree.map { $0 & 1 }
+            var extra = 0
+            for (bit, e) in candidates.enumerated() where mask >> bit & 1 == 1 {
+                parity[net.ends[e].0] ^= 1
+                parity[net.ends[e].1] ^= 1
+                extra += weights[e]
+            }
+            if parity.allSatisfy({ $0 == 0 }) { best = Swift.min(best, extra) }
+        }
+        check(tour.weight == weights.reduce(0, +) + best, "chinesePostmanTour \(tour.weight), the least over duplicated sets \(weights.reduce(0, +) + best): \(context)")
     }
 }

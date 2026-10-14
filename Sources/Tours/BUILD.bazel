@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman tours (exact and heuristic).
+# Eulerian trails and circuits, Chinese postman tours, Hamiltonian paths and cycles, travelling salesman tours (exact, heuristic and metaheuristic).
 swift_library(
     name = "Tours",
     srcs = glob(["**/*.swift"]),
@@ -13,6 +13,8 @@ swift_library(
         "//Sources/Walks",
         "//Sources/MatchingModule",
         "//Sources/SpanningTrees",
+        "//Sources/PriorityQueueModule",
+        "//Sources/Flows",
     ],
     visibility = ["//visibility:public"],
 )
@@ -27,6 +29,8 @@ docc_archive(
         "//Sources/Walks:WalksDocumentation",
         "//Sources/MatchingModule:MatchingModuleDocumentation",
         "//Sources/SpanningTrees:SpanningTreesDocumentation",
+        "//Sources/PriorityQueueModule:PriorityQueueModuleDocumentation",
+        "//Sources/Flows:FlowsDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],
