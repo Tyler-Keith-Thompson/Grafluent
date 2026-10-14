@@ -118,7 +118,8 @@ struct _ForceEngine: Sendable {
 
 /// A Barnes–Hut quadtree over the positions of one step, in flat arrays reused from step to step.
 /// Cells are built by partitioning a permutation of the vertices in place, so a leaf is a range
-/// of it; each cell records its square (corner and side), its body count and its centre of mass.
+/// of it; each cell records its square (corner and side), its mass and its centre of mass. A body's
+/// mass is 1, or its entry of `masses` when the tree is built with them (ForceAtlas2).
 struct _QuadTree: Sendable {
     /// The vertices, permuted so that every cell's are contiguous.
     var order: [Int] = []
@@ -139,7 +140,11 @@ struct _QuadTree: Sendable {
     /// Below this depth a cell with several bodies is a leaf (they coincide, or nearly).
     static let maxDepth = 48
 
-    mutating func build(_ positions: [SIMD2<Double>]) {
+    /// Each body's mass, or empty when every body has mass 1.
+    var masses: [Double] = []
+
+    mutating func build(_ positions: [SIMD2<Double>], masses bodyMasses: [Double] = []) {
+        masses = bodyMasses
         let n = positions.count
         order.removeAll(keepingCapacity: true)
         order.append(contentsOf: 0 ..< n)
@@ -175,11 +180,22 @@ struct _QuadTree: Sendable {
 
     private mutating func appendCell(corner c: SIMD2<Double>, side s: Double, low l: Int, high h: Int, _ positions: [SIMD2<Double>]) {
         var sum = SIMD2<Double>.zero
-        for i in l ..< h { sum += positions[order[i]] }
+        var total: Double
+        if masses.isEmpty {
+            for i in l ..< h { sum += positions[order[i]] }
+            total = Double(h - l)
+        } else {
+            total = 0
+            for i in l ..< h {
+                let m = masses[order[i]]
+                sum += m * positions[order[i]]
+                total += m
+            }
+        }
         corner.append(c)
         side.append(s)
-        mass.append(Double(h - l))
-        centre.append(sum / Double(h - l))
+        mass.append(total)
+        centre.append(sum / total)
         firstChild.append(-1)
         childCount.append(0)
         low.append(l)
@@ -261,6 +277,44 @@ struct _QuadTree: Sendable {
             let inside = pv.x >= c.x && pv.x < c.x + s && pv.y >= c.y && pv.y < c.y + s
             if !inside && s * s < theta * theta * d2 {
                 sum += delta * (mass[cell] * k2 / Swift.max(d2, 1e-4))
+            } else {
+                for child in first ..< first + childCount[cell] { stack.append(child) }
+            }
+        }
+        return sum
+    }
+
+    /// The mass-weighted repulsion Σ m_u (x_v − x_u) / d² on vertex `v` over the bodies of a tree
+    /// built with masses, cells with s/D < θ that do not contain `v` taken as one body of their
+    /// mass at their centre of mass; d² is at least 10⁻⁴, and coincident bodies push apart along
+    /// `_coincidentOffset`.
+    mutating func massRepulsion(on v: Int, _ p: UnsafeBufferPointer<SIMD2<Double>>, theta: Double) -> SIMD2<Double> {
+        let pv = p[v]
+        var sum = SIMD2<Double>.zero
+        stack.removeAll(keepingCapacity: true)
+        stack.append(0)
+        while let cell = stack.popLast() {
+            let first = firstChild[cell]
+            if first < 0 {
+                for i in low[cell] ..< high[cell] {
+                    let u = order[i]
+                    let delta = pv - p[u]
+                    let d2 = (delta * delta).sum()
+                    if d2 == 0 {
+                        if u != v { sum += _coincidentOffset(v, u) * (masses[u] / 1e-4) }
+                        continue
+                    }
+                    sum += delta * (masses[u] / Swift.max(d2, 1e-4))
+                }
+                continue
+            }
+            let delta = pv - centre[cell]
+            let d2 = (delta * delta).sum()
+            let s = side[cell]
+            let c = corner[cell]
+            let inside = pv.x >= c.x && pv.x < c.x + s && pv.y >= c.y && pv.y < c.y + s
+            if !inside && s * s < theta * theta * d2 {
+                sum += delta * (mass[cell] / Swift.max(d2, 1e-4))
             } else {
                 for child in first ..< first + childCount[cell] { stack.append(child) }
             }

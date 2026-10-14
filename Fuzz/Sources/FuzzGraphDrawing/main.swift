@@ -18,12 +18,22 @@
 // - Reingold–Tilford: the root at (0, 0), y = depth, separation 1 per depth, parents centred over
 //   their first and last child, children left to right; the circular form at radius = depth.
 // - Drawing: `rescaled` finite with the mean at the centre.
+// - Shell, spiral, bipartite and random: one finite point per vertex in `vertices` order, each shell
+//   at its radius, spiral vertex i at distance i, the columns at x = ±ratio/2 within y ∈ [−½, ½],
+//   random points in [0, 1)² from 2n draws.
+// - Spectral: unit axes orthogonal to 1, each an eigenvector of the Laplacian (small residual).
+//   Classical scaling: finite and centred.
+// - Planar: nil exactly when `isPlanar` is false; otherwise grid points in [0, 2n − 4] × [0, n − 2],
+//   distinct, with no two edges crossing and no vertex on an edge.
+// - ForceAtlas2 (every mode, exact and Barnes–Hut): finite, 2n draws, deterministic, stepping equal
+//   to the function.
 
 import Cycles
 import FuzzSupport
 import GraphDrawing
 import GraphProtocols
 import Multigraphs
+import Planarity
 import Trees
 
 /// SplitMix64, counting its draws.
@@ -45,15 +55,152 @@ enum FuzzGraphDrawing {
     static func main() { runFuzzer(fuzz) }
 
     static func fuzz(_ input: inout FuzzInput) {
-        switch input.int(below: 4) {
+        switch input.int(below: 5) {
         case 0: undirected(&input)
         case 1: layered(&input)
         case 2: callerLayers(&input)
-        default: tree(&input)
+        case 3: tree(&input)
+        default: more(&input)
         }
     }
 
     static func finite(_ p: SIMD2<Double>) -> Bool { p.x.isFinite && p.y.isFinite }
+
+    // MARK: - Shell, spiral, bipartite, random, spectral, scaling, planar, ForceAtlas2
+
+    static func more(_ input: inout FuzzInput) {
+        let n = input.int(in: 0 ... 20)
+        let listed = labels(n, &input)
+        var pairs: [(Int, Int)] = []
+        let edgeCount = n == 0 ? 0 : input.int(in: 0 ... 40)
+        for _ in 0 ..< edgeCount { pairs.append((input.int(below: n), input.int(below: n))) }
+        let graph = Pseudograph<Int>(vertices: listed, edges: pairs.map { UndirectedEdge(listed[$0.0], listed[$0.1]) })
+        let context = "n = \(n), labels \(listed), edges \(pairs)"
+        let order = Array(graph.vertices)
+        var offset: [Int: Int] = [:]
+        for (i, v) in order.enumerated() { offset[v] = i }
+
+        // Shells: a random assignment.
+        let shellCount = input.int(in: 1 ... 4)
+        var shells = [[Int]](repeating: [], count: shellCount)
+        for v in order { shells[input.int(below: shellCount)].append(v) }
+        let radius = [1, 0, 3.5][input.int(below: 3)]
+        let shell = graph.shellLayout(shells: shells, rotation: [nil, 0, 1][input.int(below: 3)], radius: radius)
+        check(Array(shell.vertices) == order, "shell: vertices \(context)")
+        let bump = radius / Double(shellCount)
+        for (k, members) in shells.enumerated() {
+            for v in members {
+                let p = shell.position(of: v)
+                let expected = n == 1 ? 0 : (shells[0].count == 1 ? 0 : bump) + Double(k) * bump
+                check(finite(p) && abs((p * p).sum().squareRoot() - expected) <= 1e-9, "shell: \(v) at \(p), \(context)")
+            }
+        }
+        let spiral = graph.spiralLayout(resolution: [0.35, 1, 0.01][input.int(below: 3)])
+        for (i, p) in spiral.positions.enumerated() { check(abs((p * p).sum().squareRoot() - Double(i)) <= 1e-9 * Swift.max(1, Double(i)), "spiral: \(i) at \(p), \(context)") }
+        let equidistant = graph.spiralLayout(resolution: [0.35, 1, 0.01][input.int(below: 3)], equidistant: true)
+        for p in equidistant.positions { check(finite(p), "equidistant spiral: \(p), \(context)") }
+        let left = order.filter { _ in input.int(below: 2) == 1 }
+        let ratio = [4.0 / 3.0, 1, 0.1][input.int(below: 3)]
+        let columns = graph.bipartiteLayout(left: left, aspectRatio: ratio)
+        let leftSet = Set(left)
+        for (v, p) in columns { check(p.x == (leftSet.contains(v) ? -ratio / 2 : ratio / 2) && p.y >= -0.5 && p.y <= 0.5, "bipartite: \(v) at \(p), \(context)") }
+        var counting = Counting(state: UInt64(input.byte()))
+        let random = graph.randomLayout(using: &counting)
+        check(counting.draws == 2 * n, "random: \(counting.draws) draws, \(context)")
+        for p in random.positions { check(p.x >= 0 && p.x < 1 && p.y >= 0 && p.y < 1, "random: \(p), \(context)") }
+
+        // Spectral: eigenvectors of L.
+        let weightTable = [1.0, 0, 0.5, 3]
+        let weights = graph.edges.indices.map { _ in weightTable[input.int(below: 4)] }
+        if let spectral = try? graph.spectralLayout(weight: { weights[$0] }) {
+            check(Array(spectral.vertices) == order, "spectral: vertices \(context)")
+            if n >= 3 {
+                for axis in 0 ..< 2 {
+                    let x = spectral.positions.map { axis == 0 ? $0.x : $0.y }
+                    var lx = [Double](repeating: 0, count: n)
+                    var largest = 0.0
+                    for (k, e) in graph.edges.enumerated() where e.u != e.v {
+                        let u = offset[e.u]!, v = offset[e.v]!
+                        lx[u] += weights[k] * (x[u] - x[v])
+                        lx[v] += weights[k] * (x[v] - x[u])
+                        largest = Swift.max(largest, weights[k])
+                    }
+                    let lambda = zip(x, lx).reduce(0.0) { $0 + $1.0 * $1.1 }
+                    let residual = zip(lx, x).reduce(0.0) { $0 + ($1.0 - lambda * $1.1) * ($1.0 - lambda * $1.1) }.squareRoot()
+                    check(residual <= 1e-8 * Swift.max(1, largest * Double(n)), "spectral: axis \(axis) residual \(residual), \(context)")
+                    check(abs(x.reduce(0.0) { $0 + $1 * $1 } - 1) <= 1e-9, "spectral: axis \(axis) not unit, \(context)")
+                }
+            }
+        } else {
+            check(false, "spectral: NoConvergence, \(context)")
+        }
+        let lengths = graph.edges.indices.map { _ in [1.0, 0.5, 3][input.int(below: 3)] }
+        if let scaled = try? graph.multidimensionalScalingLayout(edgeLength: { lengths[$0] }) {
+            var mean = SIMD2<Double>.zero
+            for p in scaled.positions {
+                check(finite(p), "scaling: \(p), \(context)")
+                mean += p
+            }
+            check(n == 0 || (abs(mean.x) <= 1e-6 * Double(n * n) && abs(mean.y) <= 1e-6 * Double(n * n)), "scaling: mean \(mean), \(context)")
+        } else {
+            check(false, "scaling: NoConvergence, \(context)")
+        }
+
+        // Planar.
+        let planar = graph.planarLayout()
+        check((planar != nil) == graph.isPlanar, "planar: nil \(planar == nil) but isPlanar \(graph.isPlanar), \(context)")
+        if let planar {
+            let p = planar.positions
+            check(Array(planar.vertices) == order, "planar: vertices \(context)")
+            for q in p {
+                check(q.x == q.x.rounded() && q.y == q.y.rounded() && q.x >= 0 && q.y >= 0 && (n < 4 || (q.x <= Double(2 * n - 4) && q.y <= Double(n - 2))),
+                      "planar: \(q), \(context)")
+            }
+            check(Set(p.map { [$0.x, $0.y] }).count == n, "planar: two vertices share a point, \(context)")
+            func orientation(_ a: SIMD2<Double>, _ b: SIMD2<Double>, _ c: SIMD2<Double>) -> Double {
+                (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+            }
+            let segments = Array(Set(pairs.filter { $0.0 != $0.1 }.map { [Swift.min($0.0, $0.1), Swift.max($0.0, $0.1)] }))
+            // Pair indices are positions in `listed`; drawing offsets are positions in `order`.
+            let at = { (i: Int) in p[offset[listed[i]]!] }
+            if n >= 4 {
+                for s in segments {
+                    for w in 0 ..< n where w != s[0] && w != s[1] {
+                        let a = at(s[0]), b = at(s[1]), c = at(w)
+                        let on = orientation(a, b, c) == 0 && Swift.min(a.x, b.x) <= c.x && c.x <= Swift.max(a.x, b.x) && Swift.min(a.y, b.y) <= c.y && c.y <= Swift.max(a.y, b.y)
+                        check(!on, "planar: \(w) on \(s), \(context)")
+                    }
+                }
+                for i in 0 ..< segments.count {
+                    for j in i + 1 ..< segments.count {
+                        let s = segments[i], t = segments[j]
+                        guard Set(s + t).count == 4 else { continue }
+                        let crosses = orientation(at(s[0]), at(s[1]), at(t[0])) * orientation(at(s[0]), at(s[1]), at(t[1])) < 0
+                            && orientation(at(t[0]), at(t[1]), at(s[0])) * orientation(at(t[0]), at(t[1]), at(s[1])) < 0
+                        check(!crosses, "planar: \(s) crosses \(t), \(context)")
+                    }
+                }
+            }
+        }
+
+        // ForceAtlas2.
+        let iterations = input.int(in: 0 ... 20)
+        let theta: Double? = [nil, 0, 1.2][input.int(below: 3)]
+        let mode = input.int(below: 8)
+        let seed = UInt64(input.byte())
+        var g1 = Counting(state: seed), g2 = g1, g3 = g1
+        let fa = graph.forceAtlas2Layout(iterations: iterations, strongGravity: mode & 1 != 0, linLog: mode & 2 != 0, dissuadeHubs: mode & 4 != 0,
+                                         barnesHutTheta: theta, weight: { weights[$0] }, using: &g1)
+        check(g1.draws == 2 * n, "ForceAtlas2: \(g1.draws) draws, \(context)")
+        for p in fa.positions { check(finite(p), "ForceAtlas2: \(p), mode \(mode), \(context)") }
+        var stepper = ForceAtlas2Layout(graph, iterations: iterations, strongGravity: mode & 1 != 0, linLog: mode & 2 != 0, dissuadeHubs: mode & 4 != 0,
+                                        barnesHutTheta: theta, weight: { weights[$0] }, using: &g2)
+        while !stepper.isFinished { stepper.step() }
+        check(stepper.iteration == iterations && stepper.drawing == fa, "ForceAtlas2: stepping differs, \(context)")
+        let again = graph.forceAtlas2Layout(iterations: iterations, strongGravity: mode & 1 != 0, linLog: mode & 2 != 0, dissuadeHubs: mode & 4 != 0,
+                                            barnesHutTheta: theta, weight: { weights[$0] }, using: &g3)
+        check(again == fa, "ForceAtlas2: not deterministic, \(context)")
+    }
 
     /// `n` vertex labels in a random order: a permutation of `0..<n`, or labels far from it.
     static func labels(_ n: Int, _ input: inout FuzzInput) -> [Int] {

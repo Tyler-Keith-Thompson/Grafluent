@@ -1,4 +1,4 @@
-# GraphDrawing: case catalog (DR-001 – DR-214, 214 rows)
+# GraphDrawing: case catalog (DR-001 – DR-244, 244 rows)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 igraph==1.0.0 --with numpy==2.3.4 --with scipy==1.18.1 python3 Tests/Catalogs/GraphDrawing/ref.py`;
@@ -8,7 +8,10 @@ count or a bound. The model implements every layout from the definitions in api.
 positions and `rescaled` are compared with NetworkX 3.7; tree layouts with python-igraph 1.0.0's
 `layout_reingold_tilford` and `layout_reingold_tilford_circular`; Sugiyama layers with igraph's
 `layout_sugiyama`; stress majorization with NetworkX's `kamada_kawai_layout`; the spectral rows
-with NetworkX's `spectral_layout` up to the sign of each axis. api.md lists where the tools differ.
+with NetworkX's `spectral_layout` up to the sign of each axis; shell, spiral, bipartite,
+multipartite and BFS positions with NetworkX's layouts; classical scaling with igraph's `layout_mds`
+up to a rigid motion; planarity of the planar rows with NetworkX's `check_planarity`. api.md lists
+where the tools differ.
 
 ## Notation
 
@@ -39,8 +42,9 @@ is x >> 33 after the step.
 list is exact (multiples of 1/2ⁿ from separation-1 arithmetic). `≤ v` rows are quality bounds on a
 median over seeds 1…20 of `Xoshiro256StarStar(seed:)` (normalized stress or crossing count, as
 defined in api.md, computed in the test from `positions`); `≈ v (±1%)` rows are a converged value.
-`#N` is a count. `**trap**` rows are preconditions. Rows in the Phase 2 group have no tests;
-`swiftgen.py` writes them only with `--phase2`.
+`#N` is a count. `**trap**` rows are preconditions. The spectral and scaling rows print 9 decimals
+(compare within 1e-8); `#0 crossings` rows count crossings, shared points and vertices on edges of
+the straight-line drawing in the test, and check the grid bounds.
 
 | ID | Group | Case | Input | Op | Expected |
 |---|---|---|---|---|---|
@@ -250,13 +254,43 @@ defined in api.md, computed in the test from `positions`); `≈ v (±1%)` rows a
 | DR-204 | Stress | edge length 2 doubles the drawing | `U: C(0,1,2,3,4,5)` | `stressMajorizationLayout(edgeLength: { _ in 2 }) vs default` | positions × 2 (exact) |
 | DR-205 | Stress | edge length ≤ 0 | `U: 0-1` | `stressMajorizationLayout(edgeLength: { _ in 0 })` | **trap** |
 | DR-206 | Stress | tolerance < 0 | `U: 0-1` | `stressMajorizationLayout(tolerance: -1)` | **trap** |
-| DR-207 | Phase 2 | spectral: path of 5 (Fiedler vector, then the third) | `U: P(0,1,2,3,4)` | `spectralLayout()` | [(0.601500955, 0.511667274), (0.371748034, -0.195439508), (0.0, -0.632455532), (-0.371748034, -0.195439508), (-0.601500955, 0.511667274)] |
-| DR-208 | Phase 2 | spectral: grid 3 x 4 (Fiedler vector, then the third) | `U: grid(3,4)` | `spectralLayout()` | [(0.37717224, 0.353553391), (0.156229857, 0.353553391), (-0.156229857, 0.353553391), (-0.37717224, 0.353553391), (0.37717224, 0.0), (0.156229857, 0.0), (-0.156229857, 0.0), (-0.37717224, 0.0), (0.37717224, -0.353553391), (0.156229857, -0.353553391), (-0.156229857, -0.353553391), (-0.37717224, -0.353553391)] |
-| DR-209 | Phase 2 | spectral: random graph, 12 vertices, 20 edges (Fiedler vector, then the third) | `U: lcggraph(12,20,9)` | `spectralLayout()` | [(0.119991788, 0.208651719), (0.419905181, -0.207746264), (-0.206606006, -0.00394076), (0.560565123, -0.541758472), (-0.269412496, -0.157327642), (0.227769069, 0.300045203), (-0.149251974, 0.047165543), (-0.286239529, -0.121372597), (-0.320589267, -0.195278678), (-0.083030931, 0.074618896), (0.232126938, 0.663287182), (-0.245227896, -0.06634413)] |
-| DR-210 | Phase 2 | spectral: path of 5 has x = the Fiedler vector, y = the next eigenvector | `U: P(0,1,2,3,4)` | `spectralLayout() vs fiedlerVector()` | x equal |
-| DR-211 | Phase 2 | bfs layout (NetworkX bfs_layout, start 0) | `U: P(0,1,2), 1-3, 3-4` | `bfsLayout(start: 0)` | [(-1.0, 0.0), (-0.375, 0.0), (0.25, -0.3125), (0.25, 0.3125), (0.875, 0.0)] |
-| DR-212 | Phase 2 | multipartite layout (NetworkX multipartite_layout) | `U: n=5; 0-2, 1-3, 2-4` layers [0, 0, 1, 1, 2] | `multipartiteLayout(layer: { [0, 0, 1, 1, 2][$0] })` | [(-0.666666666667, -0.416666666667), (-0.666666666667, 0.416666666667), (0.166666666667, -0.416666666667), (0.166666666667, 0.416666666667), (1.0, 0.0)] |
-| DR-213 | Phase 2 | ForceAtlas2 quality, grid 5 x 5 (NetworkX median 0.0305) | `U: grid(5,5)` | `forceAtlas2Layout(using: &Xoshiro256StarStar(seed: s)), median over 1…20` | ≤ 0.034 |
-| DR-214 | Phase 2 | ForceAtlas2 quality, random graph, 40 vertices, 60 edges (NetworkX median 0.1101) | `U: lcggraph(40,60,5)` | `forceAtlas2Layout(using: &Xoshiro256StarStar(seed: s)), median over 1…20` | ≤ 0.122 |
+| DR-207 | Spectral | spectral: path of 5 (Fiedler vector, then the third) | `U: P(0,1,2,3,4)` | `spectralLayout()` | [(0.601500955, 0.511667274), (0.371748034, -0.195439508), (0.0, -0.632455532), (-0.371748034, -0.195439508), (-0.601500955, 0.511667274)] |
+| DR-208 | Spectral | spectral: grid 3 x 4 (Fiedler vector, then the third) | `U: grid(3,4)` | `spectralLayout()` | [(0.37717224, 0.353553391), (0.156229857, 0.353553391), (-0.156229857, 0.353553391), (-0.37717224, 0.353553391), (0.37717224, 0.0), (0.156229857, 0.0), (-0.156229857, 0.0), (-0.37717224, 0.0), (0.37717224, -0.353553391), (0.156229857, -0.353553391), (-0.156229857, -0.353553391), (-0.37717224, -0.353553391)] |
+| DR-209 | Spectral | spectral: random graph, 12 vertices, 20 edges (Fiedler vector, then the third) | `U: lcggraph(12,20,9)` | `spectralLayout()` | [(0.119991788, 0.208651719), (0.419905181, -0.207746264), (-0.206606006, -0.00394076), (0.560565123, -0.541758472), (-0.269412496, -0.157327642), (0.227769069, 0.300045203), (-0.149251974, 0.047165543), (-0.286239529, -0.121372597), (-0.320589267, -0.195278678), (-0.083030931, 0.074618896), (0.232126938, 0.663287182), (-0.245227896, -0.06634413)] |
+| DR-210 | Spectral | spectral: path of 5 has x = the Fiedler vector, y = the next eigenvector | `U: P(0,1,2,3,4)` | `spectralLayout() vs fiedlerVector()` | x equal |
+| DR-211 | BFS | bfs layout (NetworkX bfs_layout, start 0) | `U: P(0,1,2), 1-3, 3-4` | `bfsLayout(start: 0).rescaled()` | [(-1.0, 0.0), (-0.375, 0.0), (0.25, -0.3125), (0.25, 0.3125), (0.875, 0.0)] |
+| DR-212 | Multipartite | multipartite layout (NetworkX multipartite_layout) | `U: n=5; 0-2, 1-3, 2-4` layers [0, 0, 1, 1, 2] | `multipartiteLayout(layer: { [0, 0, 1, 1, 2][$0] }).rescaled()` | [(-0.666666666667, -0.416666666667), (-0.666666666667, 0.416666666667), (0.166666666667, -0.416666666667), (0.166666666667, 0.416666666667), (1.0, 0.0)] |
+| DR-213 | ForceAtlas2 | ForceAtlas2 quality, grid 5 x 5 (NetworkX median 0.0305) | `U: grid(5,5)` | `forceAtlas2Layout(using: &Xoshiro256StarStar(seed: s)), median over 1…20` | ≤ 0.034 |
+| DR-214 | ForceAtlas2 | ForceAtlas2 quality, random graph, 40 vertices, 60 edges (NetworkX median 0.1101) | `U: lcggraph(40,60,5)` | `forceAtlas2Layout(using: &Xoshiro256StarStar(seed: s)), median over 1…20` | ≤ 0.122 |
+| DR-215 | Shell | one shell by default, starting at angle pi | `U: n=4; 0-1` | `shellLayout()` | [(-1.0, 0.0), (0.0, -1.0), (1.0, 0.0), (0.0, 1.0)] |
+| DR-216 | Shell | a first shell of one vertex at the centre | `U: P(0,1,2,3)` | `shellLayout(shells: [[0], [1, 2, 3]])` | [(0.0, 0.0), (-0.5, 0.0), (0.25, -0.433012701892), (0.25, 0.433012701892)] |
+| DR-217 | Shell | radius 3, centre (10, -1), rotation 0, an empty shell keeps its radius | `U: n=3;` | `shellLayout(shells: [[2, 0], [], [1]], rotation: 0, radius: 3, center: (10, -1))` | [(9.0, -1.0), (13.0, -1.0), (11.0, -1.0)] |
+| DR-218 | Shell | one vertex at the centre | `U: n=1; 0-0` | `shellLayout(center: (2, 3))` | [(2.0, 3.0)] |
+| DR-219 | Shell | a vertex in two shells | `U: n=3;` | `shellLayout(shells: [[0, 1], [1, 2]])` | **trap** |
+| DR-220 | Shell | a vertex in no shell | `U: n=3;` | `shellLayout(shells: [[0, 1]])` | **trap** |
+| DR-221 | Spiral | 4 vertices | `U: P(0,1,2,3)` | `spiralLayout()` | [(0.0, 0.0), (0.939372712847, 0.342897807455), (1.529684374569, 1.288435374475), (1.492713143675, 2.602269676782)] |
+| DR-222 | Spiral | rescaled: NetworkX spiral_layout | `U: P(0,1,2,3)` | `spiralLayout().rescaled()` | [(-0.641532786839, -0.685550872942), (-0.03307913183, -0.46344795108), (0.349279524385, 0.148998824022), (0.325332394284, 1.0)] |
+| DR-223 | Spiral | equidistant: 6 vertices | `U: n=6;` | `spiralLayout(equidistant: true)` | [(3.013516027473, 0.335576307694), (2.914355125446, 1.314388253166), (2.516948064363, 2.21596795282), (1.870573838809, 2.961203483849), (1.039136799099, 3.49404434281), (0.093391837272, 3.781301743443)] |
+| DR-224 | Spiral | equidistant, rescaled: NetworkX spiral_layout | `U: n=6;` | `spiralLayout(equidistant: true).rescaled()` | [(0.548693950976, -1.0), (0.499478613123, -0.514198039693), (0.30223834628, -0.066727831048), (-0.018568798871, 0.303145956802), (-0.431225944741, 0.567604451625), (-0.900616166767, 0.710175462314)] |
+| DR-225 | Spiral | zero resolution with equidistant | `U: n=3;` | `spiralLayout(resolution: 0, equidistant: true)` | **trap** |
+| DR-226 | Bipartite | K3,3, the left column as given, the right in vertices order | `U: 0-3, 0-4, 0-5, 1-3, 1-4, 1-5, 2-3, 2-4, 2-5` | `bipartiteLayout(left: [5, 3, 4])` | [(0.6666666666666666, -0.5), (0.6666666666666666, 0.0), (0.6666666666666666, 0.5), (-0.6666666666666666, 0.0), (-0.6666666666666666, 0.5), (-0.6666666666666666, -0.5)] |
+| DR-227 | Bipartite | rescaled: NetworkX bipartite_layout | `U: 0-3, 0-4, 0-5, 1-3, 1-4, 1-5, 2-3, 2-4, 2-5` | `bipartiteLayout(left: [3, 4, 5]).rescaled()` | [(1.0, -0.75), (1.0, 0.0), (1.0, 0.75), (-1.0, -0.75), (-1.0, 0.0), (-1.0, 0.75)] |
+| DR-228 | Bipartite | a column of one vertex at y = -1/2, aspect ratio 2 | `U: n=3; 0-1` | `bipartiteLayout(left: [1], aspectRatio: 2)` | [(1.0, -0.5), (-1.0, -0.5), (1.0, 0.5)] |
+| DR-229 | Bipartite | a left vertex listed twice | `U: n=3;` | `bipartiteLayout(left: [0, 0])` | **trap** |
+| DR-230 | Multipartite | layers sorted, gaps make no empty column, vertices order within a column | `U: n=6;` layers [7, -3, 7, 100, 7, -3] | `multipartiteLayout(layer: { [7, -3, 7, 100, 7, -3][$0] })` | [(0.0, -1.0), (-1.0, -0.5), (0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.5)] |
+| DR-231 | BFS | discovery order within a column | `U: n=4; 0-3, 0-2, 0-2, 2-2, 1-2` | `bfsLayout(start: 0)` | [(-1.0, 0.0), (1.0, 0.0), (0.0, 0.5), (0.0, -0.5)] |
+| DR-232 | BFS | a vertex not reachable from the start | `U: n=3; 0-1` | `bfsLayout(start: 0)` | **trap** |
+| DR-233 | Random | x then y per vertex, the top 53 bits of each draw | `U: n=5; 0-1` | `randomLayout(using: &Xoshiro256StarStar(seed: 7))` | [(0.7005764821796896, 0.2787512294737843), (0.8396274618764198, 0.9810977250149351), (0.9908602788330683, 0.872773938745132), (0.060752079492816136, 0.1044357892428116), (0.40370652610252655, 0.15181610733412043)] |
+| DR-234 | Scaling | a 3-4-5 triangle by edge length | `U: C(0,1,2)` | `multidimensionalScalingLayout(edgeLength: { [3, 4, 5][$0] })` | [(2.15231099, 1.070203337), (0.65812881, -1.531223121), (-2.8104398, 0.461019785)] |
+| DR-235 | Scaling | random graph, 12 vertices, 20 edges | `U: lcggraph(12,20,9)` | `multidimensionalScalingLayout()` | [(0.687990279, 0.428326719), (1.713338953, 0.11303063), (-0.976712677, 0.088331646), (2.664205146, 0.160804465), (-1.025072356, -1.183316197), (0.864970241, -1.282301596), (-0.170454309, 1.615027754), (-1.229913615, 0.880772961), (-2.3399563, -0.084934221), (-0.198587828, -0.622868154), (1.211277766, -0.013995596), (-1.201085299, -0.098878411)] |
+| DR-236 | Scaling | an isolated vertex 1 + 3 sqrt 3 from both ends | `U: n=3; 0-1, 1-0` | `multidimensionalScalingLayout(edgeLength: { [2, 4][$0] })` | [(2.038308254, 1.0), (2.038308254, -1.0), (-4.076616508, 0.0)] |
+| DR-237 | Scaling | a zero edge length | `U: P(0,1,2)` | `multidimensionalScalingLayout(edgeLength: { _ in 0 })` | **trap** |
+| DR-238 | Planar | K4: integer points in [0, 2n - 4] x [0, n - 2], no crossing | `U: K(4)` | `planarLayout()` | #0 crossings |
+| DR-239 | Planar | grid 4 x 5: integer points in [0, 2n - 4] x [0, n - 2], no crossing | `U: grid(4,5)` | `planarLayout()` | #0 crossings |
+| DR-240 | Planar | Petersen: not planar | `U: petersen` | `planarLayout()` | nil |
+| DR-241 | Planar | K5: not planar | `U: K(5)` | `planarLayout()` | nil |
+| DR-242 | Planar | K3,3: not planar | `U: 0-3, 0-4, 0-5, 1-3, 1-4, 1-5, 2-3, 2-4, 2-5` | `planarLayout()` | nil |
+| DR-243 | Planar | two triangles and an isolated vertex, loops and parallel edges | `U: n=7; C(0,1,2), C(3,4,5), 0-1, 4-4` | `planarLayout()` | #0 crossings |
+| DR-244 | Planar | fewer than four vertices: (0, 0), (2, 0), (1, 1) | `U: P(0,1,2)` | `planarLayout()` | [(0.0, 0.0), (2.0, 0.0), (1.0, 1.0)] |
 
-214 rows.
+244 rows.

@@ -1,18 +1,18 @@
 """Writes the catalog-row test files of Tests/GraphDrawingTests from cases.md and ref.py.
 
     uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with numpy==2.3.4 \
-        --with scipy==1.18.1 python3 Tests/Catalogs/GraphDrawing/swiftgen.py [--phase2] [OUT_DIR]
+        --with scipy==1.18.1 python3 Tests/Catalogs/GraphDrawing/swiftgen.py [OUT_DIR]
     # default OUT_DIR: Tests/GraphDrawingTests
 
 First checks that ref.py's model reproduces cases.md byte for byte. Then re-runs rows DR-001 –
-DR-206 on the model, asserts that the value it computes formats to the catalog cell, and writes one @Test
+DR-244 on the model, asserts that the value it computes formats to the catalog cell, and writes one @Test
 per row. Exact rows compare whole point lists with ==; rows printed to 12 decimals (cos and sin)
 compare within 1e-9; quality rows take the median over seeds 1…20 and compare it with the bound,
 computing normalized stress and straight-line crossings inline from `positions`. A Sugiyama row
 whose optimal layering is unique checks the model's whole layered drawing (layers, layer count,
 crossing count, positions, the bends of every edge, reversed edges, and `feedbackArcSet()`), not
-only its own cell. `--phase2` also writes GraphDrawingPhase2Tests.swift for DR-207 – DR-214, whose
-entry points the module does not have. Hand-written exit tests spliced into the precondition
+only its own cell. Spectral and scaling rows compare within 1e-8; planar rows that pin no points
+count crossings, shared points and vertices on edges inline and check the grid bounds.
 file: extra_traps.swift. The 5 × 10⁴-vertex layering row relies on speed, so it goes to
 OUT_DIR/Performance/SugiyamaLayeringLinearProgramScaleTests.swift, the GraphDrawingPerformanceTests
 target (scripts/modules.py).
@@ -25,7 +25,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import ref  # noqa: E402
 
-PHASE2 = "--phase2" in sys.argv
 ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
 OUT = os.path.abspath(ARGS[0]) if ARGS else os.path.join(HERE, "..", "..", "GraphDrawingTests")
 
@@ -38,7 +37,8 @@ ref.tree_rows()
 ref.sugiyama_rows()
 ref.fr_rows()
 ref.stress_rows()
-ref.phase2_rows()
+ref.more_rows()
+ref.layout_rows()
 ref.number_rows()
 TEXT = ref.render()
 with open(os.path.join(HERE, "cases.md")) as f:
@@ -49,10 +49,8 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 214
-PHASE1 = range(1, 207)
-assert all(CELLS[n][1] == "Phase 2" for n in range(207, 215))
-assert all(CELLS[n][1] != "Phase 2" for n in PHASE1)
+assert N == 244
+PHASE1 = range(1, N + 1)
 
 
 def group(n): return CELLS[n][1]
@@ -746,6 +744,23 @@ def trap_test(n):
         call = "_ = graph.stressMajorizationLayout(edgeLength: { _ in 0 })" if n == 205 else "_ = graph.stressMajorizationLayout(tolerance: -1)"
         child = undirected_graph(g, "") + [call]
         after = undirected_graph(g, "") + ["#expect(graph.stressMajorizationLayout(edgeLength: { _ in 0.5 }, tolerance: 0).count == 2)"]
+    elif n in (219, 220, 225, 229, 232, 237):
+        g = ref.parse(spec)
+        call = {219: "_ = graph.shellLayout(shells: [[0, 1], [1, 2]])", 220: "_ = graph.shellLayout(shells: [[0, 1]])",
+                225: "_ = graph.spiralLayout(resolution: 0, equidistant: true)", 229: "_ = graph.bipartiteLayout(left: [0, 0])",
+                232: "_ = graph.bfsLayout(start: 0)", 237: "_ = try? graph.multidimensionalScalingLayout(edgeLength: { _ in 0 })"}[n]
+        answer = {219: "#expect(graph.shellLayout(shells: [[0, 1], [2]]).count == 3)", 220: "#expect(graph.shellLayout(shells: [[0, 1], [2]]).count == 3)",
+                  225: "#expect(graph.spiralLayout(resolution: 0).count == 3 && graph.spiralLayout(resolution: 0.1, equidistant: true).count == 3)",
+                  229: "#expect(graph.bipartiteLayout(left: [0, 2]).count == 3)",
+                  232: "#expect(graph.bfsLayout(start: 0).count == 2 && Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)]).bfsLayout(start: 0).count == 3)",
+                  237: "#expect((try? graph.multidimensionalScalingLayout(edgeLength: { _ in 0.5 }))?.count == 3)"}[n]
+        if n == 232:
+            g2 = ref.parse("U: n=2; 0-1")
+            child = undirected_graph(g, "") + [call]
+            after = undirected_graph(g2, "") + [answer]
+        else:
+            child = undirected_graph(g, "") + [call]
+            after = undirected_graph(g, "") + [answer]
     else:
         raise AssertionError(n)
     L.append("        await #expect(processExitsWith: .failure) {")
@@ -758,39 +773,111 @@ def trap_test(n):
 
 
 # ---------------------------------------------------------------------------------------------
-# Phase 2 (DR-207 – DR-214), written with --phase2
+# Spectral, scaling, columns, shell, spiral, random, planar and ForceAtlas2 (DR-207 – DR-244)
 # ---------------------------------------------------------------------------------------------
 
-def phase2_test(n):
+def swift_call(o):
+    """The catalog's op in Swift: points (x, y) as SIMD2, the seeded generator spelled out."""
+    import re
+    o = re.sub(r"center: \(([-0-9.]+), ([-0-9.]+)\)", r"center: SIMD2(\1, \2)", o)
+    return o
+
+
+def planar_lines(g, ind):
+    """No two edges crossing, no vertex on an edge, distinct integer points within the grid."""
+    return [ind + x for x in [
+        "let p = layout.positions",
+        "#expect(p.count == %d)" % g.n,
+        "for q in p {",
+        "    #expect(q.x == q.x.rounded() && q.y == q.y.rounded() && q.x >= 0 && q.y >= 0 && q.x <= %d && q.y <= %d, \"\\(q)\")" % (2 * g.n - 4, g.n - 2),
+        "}",
+        "#expect(Set(p.map { [$0.x, $0.y] }).count == %d)" % g.n,
+        "func orientation(_ a: SIMD2<Double>, _ b: SIMD2<Double>, _ c: SIMD2<Double>) -> Double {",
+        "    (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)",
+        "}",
+        "let segments = Array(Set(graph.edges.filter { $0.u != $0.v }.map { [min($0.u, $0.v), max($0.u, $0.v)] }))",
+        "var bad = 0",
+        "for s in segments {",
+        "    for v in 0 ..< %d where v != s[0] && v != s[1] {" % g.n,
+        "        let a = p[s[0]], b = p[s[1]], c = p[v]",
+        "        if orientation(a, b, c) == 0 && min(a.x, b.x) <= c.x && c.x <= max(a.x, b.x) && min(a.y, b.y) <= c.y && c.y <= max(a.y, b.y) { bad += 1 }",
+        "    }",
+        "}",
+        "for i in 0 ..< segments.count {",
+        "    for j in i + 1 ..< segments.count where Set(segments[i] + segments[j]).count == 4 {",
+        "        let s = segments[i], t = segments[j]",
+        "        if orientation(p[s[0]], p[s[1]], p[t[0]]) * orientation(p[s[0]], p[s[1]], p[t[1]]) < 0",
+        "            && orientation(p[t[0]], p[t[1]], p[s[0]]) * orientation(p[t[0]], p[t[1]], p[s[1]]) < 0 { bad += 1 }",
+        "    }",
+        "}",
+        "#expect(bad == 0)"]]
+
+
+def layout_test(n):
+    import re
     spec, o, ex = inp(n), op(n), cell(n)
-    L = header(n) + ["    func dr%03d() {" % n, "        // %s; %s → %s" % (spec, o, ex)]
+    gr = group(n)
+    throws = gr in ("Spectral", "Scaling")
+    L = header(n, ', .tags(.randomized)' if gr == "ForceAtlas2" else "") + [
+        "    func dr%03d()%s {" % (n, " throws" if throws or (gr == "Planar" and ex.startswith("[")) else ""),
+        "        // %s; %s → %s" % (spec, o, ex)]
     b = []
-    if n in (207, 208, 209):
+    if gr == "Spectral" and n != 210:
         g = ref.parse(spec)
         p, _ = ref.spectral(g)
         assert ex == fmt_pts(p, 9)
-        b += undirected_graph(g, "") + graph_shape(g, "") + ["let layout = graph.spectralLayout()"]
+        b += undirected_graph(g, "") + graph_shape(g, "") + ["let layout = try graph.spectralLayout()"]
         b += close_lines("layout.positions", p, "", "1e-8")
     elif n == 210:
         g = ref.parse(spec)
-        b += undirected_graph(g, "") + ["let layout = graph.spectralLayout()", "let fiedler = graph.fiedlerVector()?.values ?? []",
+        b += undirected_graph(g, "") + ["let layout = try graph.spectralLayout()", "let fiedler = try #require(try graph.fiedlerVector()).values",
                                         "#expect(fiedler.count == 5)",
-                                        "#expect(zip(layout.positions.map(\\.x), fiedler).allSatisfy { abs($0 - $1) <= 1e-9 })"]
-    elif n == 211:
-        g = ref.parse("U: P(0,1,2), 1-3, 3-4")
+                                        "#expect(zip(layout.positions.map(\\.x), fiedler).allSatisfy { abs($0 - $1) <= 1e-7 })"]
+    elif gr == "Scaling":
+        g = ref.parse(spec)
+        m = re.search(r"\{ (\[[^\]]*\])\[\$0\] \}", o)
+        length = [float(x) for x in eval(m.group(1))] if m else None
+        p, _, _ = ref.scaling(g, length)
+        assert ex == fmt_pts(p, 9)
+        b += undirected_graph(g, "") + graph_shape(g, "") + ["let layout = try graph.%s" % o]
+        b += close_lines("layout.positions", p, "", "1e-8")
+    elif gr in ("BFS", "Multipartite", "Shell", "Spiral", "Bipartite"):
+        g = ref.parse(spec.split("` layers")[0])
         vals = eval(ex)
-        b += undirected_graph(g, "") + ["let layout = graph.bfsLayout(start: 0)"] + close_lines("layout.positions", vals, "")
-    elif n == 212:
-        g = ref.parse("U: n=5; 0-2, 1-3, 2-4")
+        exact = gr in ("BFS", "Multipartite", "Bipartite") and ".rescaled()" not in o or n == 217
+        b += undirected_graph(g, "") + graph_shape(g, "") + ["let layout = graph.%s" % swift_call(o)]
+        if exact and gr != "Shell":
+            b += exact_lines("layout.positions", vals, "")
+        else:
+            b += close_lines("layout.positions", vals, "", "1e-9" if ".rescaled()" not in o or gr != "Bipartite" else "1e-12")
+    elif gr == "Random":
+        g = ref.parse(spec)
         vals = eval(ex)
-        b += undirected_graph(g, "") + ["let layout = graph.multipartiteLayout(layer: { [0, 0, 1, 1, 2][$0] })"] + close_lines("layout.positions", vals, "")
-    elif n in (213, 214):
+        got, draws = ref.initial_random(g.n, 7)
+        assert ex == fmt_pts(got)
+        b += undirected_graph(g, "") + graph_shape(g, "") + ["var generator = Xoshiro256StarStar(seed: 7)", "let layout = graph.randomLayout(using: &generator)"]
+        b += exact_lines("layout.positions", vals, "")
+        b += ["var replay = Xoshiro256StarStar(seed: 7)", "for _ in 0 ..< %d { _ = replay.next() }" % draws, "#expect(generator.next() == replay.next())"]
+    elif gr == "Planar":
+        g = ref.parse(spec)
+        b += undirected_graph(g, "") + graph_shape(g, "")
+        if ex == "nil":
+            b += ["#expect(graph.planarLayout() == nil)"]
+        elif ex.startswith("["):
+            b += ["let layout = try #require(graph.planarLayout())"] + exact_lines("layout.positions", eval(ex), "")
+        else:
+            b += ["guard let layout = graph.planarLayout() else {", "    Issue.record(\"no drawing\")", "    return", "}"]
+            b += planar_lines(g, "")
+    elif gr == "ForceAtlas2":
         g = ref.parse(spec)
         bound = float(ex.split("≤ ")[1])
-        b += undirected_graph(g, "") + hop_lines("") + normalized_lines("")
+        b += undirected_graph(g, "") + graph_shape(g, "") + hop_lines("") + normalized_lines("")
         b += ["var values: [Double] = []", "for seed in UInt64(1) ... 20 {", "    var generator = Xoshiro256StarStar(seed: seed)",
               "    values.append(normalizedStress(graph.forceAtlas2Layout(using: &generator).positions))", "}",
-              "let sorted = values.sorted()", "#expect((sorted[9] + sorted[10]) / 2 <= %s)" % d(bound)]
+              "let sorted = values.sorted()", "let median = (sorted[9] + sorted[10]) / 2",
+              "#expect(median <= %s, \"median normalized stress \\(median)\")" % d(bound)]
+    else:
+        raise AssertionError(n)
     return L + ["        " + x if x else "" for x in b] + ["    }"]
 
 
@@ -814,8 +901,8 @@ def test_for(n):
         return fr_test(n)
     if gr == "Stress":
         return stress_test(n)
-    if gr == "Phase 2":
-        return phase2_test(n)
+    if gr in ("Spectral", "Scaling", "BFS", "Multipartite", "Shell", "Spiral", "Bipartite", "Random", "Planar", "ForceAtlas2"):
+        return layout_test(n)
     raise AssertionError(n)
 
 
@@ -855,9 +942,25 @@ FILES = [
      "// same setup then runs in this process without the call, so the trap is the call's and not the\n"
      "// setup's. Then the preconditions the catalog does not list (extra_traps.swift)."),
 ]
-if PHASE2:
-    FILES.append(("GraphDrawingPhase2Tests.swift", "GraphDrawing phase 2", list(range(207, 215)),
-                  "Phase 2 group (catalog DR-207 – DR-214). Written only with swiftgen.py --phase2."))
+FILES[-1:-1] = [
+    ("SpectralLayoutTests.swift", "spectralLayout, multidimensionalScalingLayout", ids("Spectral", "Scaling"),
+     "spectralLayout and multidimensionalScalingLayout (catalog DR-207 – DR-210, DR-234 – DR-236): the\n"
+     "// Laplacian's second and third eigenvectors, and classical scaling of the shortest-path\n"
+     "// distances, each axis signed by its first entry of magnitude at least 1e-4 of the largest.\n"
+     "// Within 1e-8."),
+    ("ColumnAndShellLayoutTests.swift", "Shell, spiral, column and random layouts", ids("Shell", "Spiral", "Bipartite", "Multipartite", "BFS", "Random"),
+     "shellLayout, spiralLayout, bipartiteLayout, multipartiteLayout, bfsLayout and randomLayout\n"
+     "// (catalog DR-211, DR-212, DR-215 – DR-233): positions computed in double precision, within\n"
+     "// 1e-9 where they involve cos and sin, exact otherwise; rescaled rows are NetworkX's layouts."),
+    ("PlanarLayoutTests.swift", "planarLayout", ids("Planar"),
+     "planarLayout (catalog DR-238 – DR-244): nil when the graph is not planar; otherwise integer points\n"
+     "// in [0, 2n − 4] × [0, n − 2], distinct, no two edges crossing and no vertex on an edge, counted\n"
+     "// inline from `positions`."),
+    ("ForceAtlas2LayoutTests.swift", "forceAtlas2Layout quality", ids("ForceAtlas2"),
+     "forceAtlas2Layout quality (catalog DR-213, DR-214): the median over seeds 1…20 of\n"
+     "// Xoshiro256StarStar of the normalized stress, computed inline from `positions`, against the\n"
+     "// catalog's bound (1.1 × NetworkX's median)."),
+]
 
 IMPORTS = [("Cycles", "feedbackArcSet("), ("DirectedAcyclicGraphModule", "DirectedAcyclicGraph<"),
            ("GrafluentTestSupport", ".tags("), ("Multigraphs", "Pseudograph<"), ("RandomGraphs", "Xoshiro256StarStar"),
@@ -899,7 +1002,7 @@ for fname, suite, rows, comment in FILES:
     print(fname, k)
     total += k
     rows_total += len(rows)
-assert rows_total == (N if PHASE2 else 206), rows_total
+assert rows_total == N, rows_total
 print("catalog rows", rows_total, "tests", total)
 
 

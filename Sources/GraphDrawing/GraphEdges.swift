@@ -86,3 +86,47 @@ func _startPositions<Vertex: Hashable>(_ vertices: ContiguousArray<Vertex>, in d
     for p in positions { precondition(p.x.isFinite && p.y.isFinite, "Every initial position must be finite") }
     return positions
 }
+
+/// A graph's vertices in `vertices` order, with a lookup from a vertex to its offset: its vertex
+/// index when the graph has vertex indices, one hash otherwise.
+@frozen
+@usableFromInline
+struct _VertexOffsets<G: Graph> {
+    @usableFromInline let graph: G
+    @usableFromInline let vertices: ContiguousArray<G.Vertex>
+    /// Each vertex's offset when the graph has no vertex indices; nil when it has them.
+    @usableFromInline let offsets: [G.Vertex: Int]?
+
+    @inlinable
+    init(_ graph: G) {
+        self.graph = graph
+        vertices = ContiguousArray(graph.vertices)
+        if graph.vertexIndexBound != nil {
+            offsets = nil
+        } else {
+            var table: [G.Vertex: Int] = [:]
+            table.reserveCapacity(vertices.count)
+            for (i, v) in vertices.enumerated() { table[v] = i }
+            offsets = table
+        }
+    }
+
+    /// The offset of `vertex`.
+    ///
+    /// - Precondition: `vertex` is a vertex of the graph.
+    @inlinable
+    func offset(of vertex: G.Vertex) -> Int {
+        if let offsets {
+            guard let i = offsets[vertex] else { preconditionFailure("\(vertex) is not a vertex of the graph") }
+            return i
+        }
+        precondition(graph.contains(vertex), "\(vertex) is not a vertex of the graph")
+        return graph.vertexIndex(of: vertex)
+    }
+
+    /// A drawing of these vertices at `positions`.
+    @inlinable
+    func drawing(_ positions: [SIMD2<Double>]) -> Drawing<G.Vertex> {
+        Drawing(_vertices: vertices, positions: positions, offsets: offsets)
+    }
+}

@@ -1003,6 +1003,145 @@ def spectral(g):
     return [(float(cols[0][i]), float(cols[1][i])) for i in range(n)], w
 
 
+# ============================================================================ shell, spiral, columns, scaling
+
+def shell(n, shells=None, rotation=None, radius=1.0, center=(0.0, 0.0)):
+    """Shell k of s on radius (k + 1) r / s (k r / s when the first shell has one vertex); the j-th
+    of c vertices at angle 2 pi j / c + (k + 1) rotation, rotation pi / s by default; one vertex at
+    the centre."""
+    pos = [center] * n
+    if n <= 1:
+        return pos
+    if shells is None:
+        shells = [list(range(n))]
+    s = len(shells)
+    bump = radius / s
+    turn = math.pi / s if rotation is None else rotation
+    r = 0.0 if len(shells[0]) == 1 else bump
+    first = turn
+    for shell_ in shells:
+        step = TAU / max(len(shell_), 1)
+        for j, v in enumerate(shell_):
+            a = j * step + first
+            pos[v] = (center[0] + r * math.cos(a), center[1] + r * math.sin(a))
+        r += bump
+        first += turn
+    return pos
+
+
+def spiral(n, resolution=0.35, equidistant=False):
+    if n == 1:
+        return [(0.0, 0.0)]
+    out = []
+    if equidistant:
+        theta = resolution
+        theta += 1 / (0.5 * theta)
+        for _ in range(n):
+            rho = 0.5 * theta
+            theta += 1 / rho
+            out.append((math.cos(theta) * rho, math.sin(theta) * rho))
+    else:
+        for i in range(n):
+            out.append((i * math.cos(resolution * i), i * math.sin(resolution * i)))
+    return out
+
+
+def bipartite(n, left, aspect=4 / 3):
+    pos = [None] * n
+    right = [v for v in range(n) if v not in set(left)]
+    for column, x in ((list(left), -aspect / 2), (right, aspect / 2)):
+        k = len(column)
+        step = 1 / (k - 1) if k > 1 else 0
+        for j, v in enumerate(column):
+            pos[v] = (x, (1.0 if j == k - 1 and k > 1 else j * step) - 0.5)
+    return pos
+
+
+def columns(layer, sequence):
+    """multipartiteLayout's columns: `sequence` grouped by ascending layer."""
+    n = len(layer)
+    groups = []
+    for v in sequence:
+        if groups and layer[groups[-1][0]] == layer[v]:
+            groups[-1].append(v)
+        else:
+            groups.append([v])
+    pos = [None] * n
+    for c, grp in enumerate(groups):
+        for j, v in enumerate(grp):
+            pos[v] = (c - (len(groups) - 1) / 2, j - (len(grp) - 1) / 2)
+    return pos
+
+
+def bfs_hops(g, start):
+    adj = [[] for _ in range(g.n)]
+    for u, v in g.edges:
+        adj[u].append(v)
+        if u != v:
+            adj[v].append(u)
+    hops = [-1] * g.n
+    hops[start] = 0
+    q = deque([start])
+    while q:
+        v = q.popleft()
+        for w in adj[v]:
+            if hops[w] < 0:
+                hops[w] = hops[v] + 1
+                q.append(w)
+    return hops
+
+
+def bfs_order(g, start):
+    adj = [[] for _ in range(g.n)]
+    for u, v in g.edges:
+        adj[u].append(v)
+        if u != v:
+            adj[v].append(u)
+    seen, order, q = {start}, [start], deque([start])
+    while q:
+        v = q.popleft()
+        for w in adj[v]:
+            if w not in seen:
+                seen.add(w)
+                order.append(w)
+                q.append(w)
+    return order
+
+
+def signed(c):
+    big = max(abs(x) for x in c)
+    for x in c:
+        if abs(x) >= 1e-4 * big:
+            return -c if x < 0 else c
+    return c
+
+
+def scaling(g, length=None):
+    """Classical scaling of the shortest-path distances (hops, or Dijkstra over `length` per
+    position); 1 + mean length * sqrt(n) between components; axes signed as the spectral ones."""
+    n = g.n
+    if n <= 1:
+        return [(0.0, 0.0)] * n
+    lengths = [length[k] if length else 1.0 for k, (u, v) in enumerate(g.edges) if u != v]
+    mean = sum(lengths) / len(lengths) if lengths else 1.0
+    G = nx.Graph()
+    G.add_nodes_from(range(n))
+    for k, (u, v) in enumerate(g.edges):
+        if u != v:
+            w = length[k] if length else 1.0
+            if not G.has_edge(u, v) or G[u][v]["w"] > w:
+                G.add_edge(u, v, w=w)
+    D = np.full((n, n), 1 + mean * math.sqrt(n))
+    for s_, dist in nx.all_pairs_dijkstra_path_length(G, weight="w"):
+        for t, d_ in dist.items():
+            D[s_, t] = d_
+    J = np.eye(n) - np.ones((n, n)) / n
+    w, V = np.linalg.eigh(-0.5 * J @ (D * D) @ J)
+    x = signed(V[:, -1].copy()) * math.sqrt(max(w[-1], 0))
+    y = signed(V[:, -2].copy()) * math.sqrt(max(w[-2], 0))
+    return [(float(x[i]), float(y[i])) for i in range(n)], w, D
+
+
 # ============================================================================ formatting
 
 def num(x, digits=None):
@@ -1385,8 +1524,8 @@ def stress_rows():
 
 # ---------------------------------------------------------------------------- phase 2
 
-def phase2_rows():
-    G_ = "Phase 2"
+def more_rows():
+    G_ = "Spectral"
     for case, spec in [("path of 5", "U: P(0,1,2,3,4)"), ("grid 3 x 4", "U: grid(3,4)"),
                        ("random graph, 12 vertices, 20 edges", "U: lcggraph(12,20,9)")]:
         g = parse(spec)
@@ -1405,22 +1544,112 @@ def phase2_rows():
     row(G_, "spectral: path of 5 has x = the Fiedler vector, y = the next eigenvector", "`U: P(0,1,2,3,4)`", "spectralLayout() vs fiedlerVector()", "x equal")
     g = parse("U: P(0,1,2), 1-3, 3-4")
     ref = nx.bfs_layout(g.simple_nx(), 0)
-    row(G_, "bfs layout (NetworkX bfs_layout, start 0)", "`U: P(0,1,2), 1-3, 3-4`", "bfsLayout(start: 0)", pts([tuple(ref[i]) for i in range(g.n)], 12))
+    mine = rescaled(columns([bfs_hops(g, 0)[v] for v in range(g.n)], bfs_order(g, 0)))
+    assert close(mine, [tuple(ref[i]) for i in range(g.n)], 1e-12)
+    CHECKS["bfs and multipartite vs NetworkX (1e-12)"] += 1
+    row("BFS", "bfs layout (NetworkX bfs_layout, start 0)", "`U: P(0,1,2), 1-3, 3-4`", "bfsLayout(start: 0).rescaled()", pts([tuple(ref[i]) for i in range(g.n)], 12))
     gn = nx.Graph()
     gn.add_nodes_from(range(5))
     gn.add_edges_from([(0, 2), (1, 3), (2, 4)])
     for v, l in zip(range(5), [0, 0, 1, 1, 2]):
         gn.nodes[v]["subset"] = l
     ref = nx.multipartite_layout(gn)
-    row(G_, "multipartite layout (NetworkX multipartite_layout)", "`U: n=5; 0-2, 1-3, 2-4` layers [0, 0, 1, 1, 2]",
-        "multipartiteLayout(layer: { [0, 0, 1, 1, 2][$0] })", pts([tuple(ref[i]) for i in range(5)], 12))
+    mine = rescaled(columns([0, 0, 1, 1, 2], [0, 1, 2, 3, 4]))
+    assert close(mine, [tuple(ref[i]) for i in range(5)], 1e-12)
+    CHECKS["bfs and multipartite vs NetworkX (1e-12)"] += 1
+    row("Multipartite", "multipartite layout (NetworkX multipartite_layout)", "`U: n=5; 0-2, 1-3, 2-4` layers [0, 0, 1, 1, 2]",
+        "multipartiteLayout(layer: { [0, 0, 1, 1, 2][$0] }).rescaled()", pts([tuple(ref[i]) for i in range(5)], 12))
     for case, spec in QUALITY_GRAPHS[1:2] + QUALITY_GRAPHS[5:6]:
         g = parse(spec)
         D = hop_distances(g)
         gn = g.simple_nx()
         theirs = statistics.median(normalized_stress(g, [nx.forceatlas2_layout(gn, seed=s)[i] for i in range(g.n)], D) for s in SEEDS)
-        row(G_, f"ForceAtlas2 quality, {case} (NetworkX median {theirs:.4f})", f"`{spec}`",
+        row("ForceAtlas2", f"ForceAtlas2 quality, {case} (NetworkX median {theirs:.4f})", f"`{spec}`",
             "forceAtlas2Layout(using: &Xoshiro256StarStar(seed: s)), median over 1…20", f"≤ {math.ceil(1.10 * theirs * 1000) / 1000}")
+
+
+def layout_rows():
+    G_ = "Shell"
+    for spec, shells, label in [("U: n=4; 0-1", None, "one shell by default, starting at angle pi"),
+                                ("U: P(0,1,2,3)", [[0], [1, 2, 3]], "a first shell of one vertex at the centre")]:
+        g = parse(spec)
+        got = shell(g.n, shells)
+        ref = nx.shell_layout(g.simple_nx(), nlist=shells)
+        if not close(got, [tuple(ref[i]) for i in range(g.n)], 1e-12):
+            note("NetworkX shell_layout", "computes the angles in float32: positions off by up to 1e-7")
+            assert close(got, [tuple(ref[i]) for i in range(g.n)], 1e-6)
+        CHECKS["shell vs NetworkX (1e-6)"] += 1
+        op = "shellLayout()" if shells is None else f"shellLayout(shells: {shells})"
+        row(G_, label, f"`{spec}`", op, pts(got, 12))
+    g = parse("U: n=3;")
+    row(G_, "radius 3, centre (10, -1), rotation 0, an empty shell keeps its radius", "`U: n=3;`",
+        "shellLayout(shells: [[2, 0], [], [1]], rotation: 0, radius: 3, center: (10, -1))",
+        pts(shell(3, [[2, 0], [], [1]], 0.0, 3.0, (10.0, -1.0)), 12))
+    row(G_, "one vertex at the centre", "`U: n=1; 0-0`", "shellLayout(center: (2, 3))", pts([(2.0, 3.0)]))
+    row(G_, "a vertex in two shells", "`U: n=3;`", "shellLayout(shells: [[0, 1], [1, 2]])", "**trap**")
+    row(G_, "a vertex in no shell", "`U: n=3;`", "shellLayout(shells: [[0, 1]])", "**trap**")
+    G_ = "Spiral"
+    for spec, eq in [("U: P(0,1,2,3)", False), ("U: n=6;", True)]:
+        g = parse(spec)
+        got = spiral(g.n, equidistant=eq)
+        ref = nx.spiral_layout(g.simple_nx(), equidistant=eq)
+        assert close(rescaled(got), [tuple(ref[i]) for i in range(g.n)], 1e-12)
+        CHECKS["spiral rescaled vs NetworkX (1e-12)"] += 1
+        call = "spiralLayout(equidistant: true)" if eq else "spiralLayout()"
+        row(G_, ("equidistant: " if eq else "") + f"{g.n} vertices", f"`{spec}`", call, pts(got, 12))
+        row(G_, ("equidistant, " if eq else "") + "rescaled: NetworkX spiral_layout", f"`{spec}`", call + ".rescaled()", pts(rescaled(got), 12))
+    row(G_, "zero resolution with equidistant", "`U: n=3;`", "spiralLayout(resolution: 0, equidistant: true)", "**trap**")
+    G_ = "Bipartite"
+    g = parse("U: " + ", ".join(f"{u}-{v}" for u in range(3) for v in range(3, 6)))
+    got = bipartite(6, [3, 4, 5])
+    ref = nx.bipartite_layout(g.simple_nx(), nodes=[3, 4, 5])
+    assert close(rescaled(got), [tuple(ref[i]) for i in range(6)], 1e-12)
+    CHECKS["bipartite rescaled vs NetworkX (1e-12)"] += 1
+    spec = "U: " + ", ".join(f"{u}-{v}" for u in range(3) for v in range(3, 6))
+    row(G_, "K3,3, the left column as given, the right in vertices order", f"`{spec}`", "bipartiteLayout(left: [5, 3, 4])", pts(bipartite(6, [5, 3, 4])))
+    row(G_, "rescaled: NetworkX bipartite_layout", f"`{spec}`", "bipartiteLayout(left: [3, 4, 5]).rescaled()", pts(rescaled(got)))
+    row(G_, "a column of one vertex at y = -1/2, aspect ratio 2", "`U: n=3; 0-1`", "bipartiteLayout(left: [1], aspectRatio: 2)", pts(bipartite(3, [1], 2.0)))
+    row(G_, "a left vertex listed twice", "`U: n=3;`", "bipartiteLayout(left: [0, 0])", "**trap**")
+    G_ = "Multipartite"
+    row(G_, "layers sorted, gaps make no empty column, vertices order within a column", "`U: n=6;` layers [7, -3, 7, 100, 7, -3]",
+        "multipartiteLayout(layer: { [7, -3, 7, 100, 7, -3][$0] })", pts(columns([7, -3, 7, 100, 7, -3], [1, 5, 0, 2, 4, 3])))
+    G_ = "BFS"
+    g = parse("U: n=4; 0-3, 0-2, 0-2, 2-2, 1-2")
+    row(G_, "discovery order within a column", "`U: n=4; 0-3, 0-2, 0-2, 2-2, 1-2`", "bfsLayout(start: 0)",
+        pts(columns(bfs_hops(g, 0), bfs_order(g, 0))))
+    row(G_, "a vertex not reachable from the start", "`U: n=3; 0-1`", "bfsLayout(start: 0)", "**trap**")
+    G_ = "Random"
+    got, draws = initial_random(5, 7)
+    row(G_, "x then y per vertex, the top 53 bits of each draw", "`U: n=5; 0-1`", "randomLayout(using: &Xoshiro256StarStar(seed: 7))", pts(got))
+    G_ = "Scaling"
+    for spec, length, label in [("U: C(0,1,2)", [3.0, 4.0, 5.0], "a 3-4-5 triangle by edge length"),
+                                ("U: lcggraph(12,20,9)", None, "random graph, 12 vertices, 20 edges"),
+                                ("U: n=3; 0-1, 1-0", [2.0, 4.0], "an isolated vertex 1 + 3 sqrt 3 from both ends")]:
+        g = parse(spec)
+        got, w, D = scaling(g, length)
+        if g.n >= 3 and nx.is_connected(g.simple_nx()) and w[-1] - w[-2] > 1e-6 and w[-2] - w[-3] > 1e-6:
+            theirs = np.array(ig.Graph(n=g.n, edges=[e for e in g.edges if e[0] != e[1]]).layout_mds(dist=D.tolist(), dim=2).coords)
+            ours = np.array(got)
+            gap = np.abs(np.linalg.norm(ours[:, None] - ours[None], axis=-1) - np.linalg.norm(theirs[:, None] - theirs[None], axis=-1)).max()
+            assert gap <= 1e-9, gap
+            CHECKS["scaling vs igraph layout_mds (distances, 1e-9)"] += 1
+        op = "multidimensionalScalingLayout()" if length is None else f"multidimensionalScalingLayout(edgeLength: {{ {[int(x) for x in length]}[$0] }})"
+        row(G_, label, f"`{spec}`", op, pts(got, 9))
+    row(G_, "a zero edge length", "`U: P(0,1,2)`", "multidimensionalScalingLayout(edgeLength: { _ in 0 })", "**trap**")
+    G_ = "Planar"
+    for spec, label in [("U: K(4)", "K4"), ("U: grid(4,5)", "grid 4 x 5"), ("U: petersen", "Petersen")]:
+        g = parse(spec)
+        planar, _ = nx.check_planarity(g.simple_nx())
+        CHECKS["planarity vs NetworkX check_planarity"] += 1
+        if planar:
+            row(G_, f"{label}: integer points in [0, 2n - 4] x [0, n - 2], no crossing", f"`{spec}`", "planarLayout()", "#0 crossings")
+        else:
+            row(G_, f"{label}: not planar", f"`{spec}`", "planarLayout()", "nil")
+    for spec, label in [("U: K(5)", "K5"), ("U: " + ", ".join(f"{u}-{v}" for u in range(3) for v in range(3, 6)), "K3,3")]:
+        assert not nx.check_planarity(parse(spec).simple_nx())[0]
+        row(G_, f"{label}: not planar", f"`{spec}`", "planarLayout()", "nil")
+    row(G_, "two triangles and an isolated vertex, loops and parallel edges", "`U: n=7; C(0,1,2), C(3,4,5), 0-1, 4-4`", "planarLayout()", "#0 crossings")
+    row(G_, "fewer than four vertices: (0, 0), (2, 0), (1, 1)", "`U: P(0,1,2)`", "planarLayout()", pts([(0, 0), (2, 0), (1, 1)]))
 
 
 # ============================================================================ stress
@@ -1556,7 +1785,10 @@ count or a bound. The model implements every layout from the definitions in api.
 positions and `rescaled` are compared with NetworkX 3.7; tree layouts with python-igraph 1.0.0's
 `layout_reingold_tilford` and `layout_reingold_tilford_circular`; Sugiyama layers with igraph's
 `layout_sugiyama`; stress majorization with NetworkX's `kamada_kawai_layout`; the spectral rows
-with NetworkX's `spectral_layout` up to the sign of each axis. api.md lists where the tools differ.
+with NetworkX's `spectral_layout` up to the sign of each axis; shell, spiral, bipartite,
+multipartite and BFS positions with NetworkX's layouts; classical scaling with igraph's `layout_mds`
+up to a rigid motion; planarity of the planar rows with NetworkX's `check_planarity`. api.md lists
+where the tools differ.
 
 ## Notation
 
@@ -1587,8 +1819,9 @@ is x >> 33 after the step.
 list is exact (multiples of 1/2ⁿ from separation-1 arithmetic). `≤ v` rows are quality bounds on a
 median over seeds 1…20 of `Xoshiro256StarStar(seed:)` (normalized stress or crossing count, as
 defined in api.md, computed in the test from `positions`); `≈ v (±1%)` rows are a converged value.
-`#N` is a count. `**trap**` rows are preconditions. Rows in the Phase 2 group have no tests;
-`swiftgen.py` writes them only with `--phase2`.
+`#N` is a count. `**trap**` rows are preconditions. The spectral and scaling rows print 9 decimals
+(compare within 1e-8); `#0 crossings` rows count crossings, shared points and vertices on edges of
+the straight-line drawing in the test, and check the grid bounds.
 
 """
 
@@ -1624,7 +1857,8 @@ def main():
     sugiyama_rows()
     fr_rows()
     stress_rows()
-    phase2_rows()
+    more_rows()
+    layout_rows()
     number_rows()
     text = render()
     path = os.path.join(HERE, "cases.md")

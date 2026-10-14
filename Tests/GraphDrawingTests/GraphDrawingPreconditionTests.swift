@@ -185,6 +185,78 @@ struct GraphDrawingPreconditionTests {
         #expect(graph.stressMajorizationLayout(edgeLength: { _ in 0.5 }, tolerance: 0).count == 2)
     }
 
+    @Test("DR-219 a vertex in two shells")
+    func dr219() async {
+        // U: n=3;; shellLayout(shells: [[0, 1], [1, 2]]) → **trap**
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [] as [UndirectedEdge<Int>])
+            _ = graph.shellLayout(shells: [[0, 1], [1, 2]])
+        }
+        // Without the call: the same setup answers.
+        let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [] as [UndirectedEdge<Int>])
+        #expect(graph.shellLayout(shells: [[0, 1], [2]]).count == 3)
+    }
+
+    @Test("DR-220 a vertex in no shell")
+    func dr220() async {
+        // U: n=3;; shellLayout(shells: [[0, 1]]) → **trap**
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [] as [UndirectedEdge<Int>])
+            _ = graph.shellLayout(shells: [[0, 1]])
+        }
+        // Without the call: the same setup answers.
+        let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [] as [UndirectedEdge<Int>])
+        #expect(graph.shellLayout(shells: [[0, 1], [2]]).count == 3)
+    }
+
+    @Test("DR-225 zero resolution with equidistant")
+    func dr225() async {
+        // U: n=3;; spiralLayout(resolution: 0, equidistant: true) → **trap**
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [] as [UndirectedEdge<Int>])
+            _ = graph.spiralLayout(resolution: 0, equidistant: true)
+        }
+        // Without the call: the same setup answers.
+        let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [] as [UndirectedEdge<Int>])
+        #expect(graph.spiralLayout(resolution: 0).count == 3 && graph.spiralLayout(resolution: 0.1, equidistant: true).count == 3)
+    }
+
+    @Test("DR-229 a left vertex listed twice")
+    func dr229() async {
+        // U: n=3;; bipartiteLayout(left: [0, 0]) → **trap**
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [] as [UndirectedEdge<Int>])
+            _ = graph.bipartiteLayout(left: [0, 0])
+        }
+        // Without the call: the same setup answers.
+        let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [] as [UndirectedEdge<Int>])
+        #expect(graph.bipartiteLayout(left: [0, 2]).count == 3)
+    }
+
+    @Test("DR-232 a vertex not reachable from the start")
+    func dr232() async {
+        // U: n=3; 0-1; bfsLayout(start: 0) → **trap**
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1)])
+            _ = graph.bfsLayout(start: 0)
+        }
+        // Without the call: the same setup answers.
+        let graph = Pseudograph<Int>(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
+        #expect(graph.bfsLayout(start: 0).count == 2 && Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)]).bfsLayout(start: 0).count == 3)
+    }
+
+    @Test("DR-237 a zero edge length")
+    func dr237() async {
+        // U: P(0,1,2); multidimensionalScalingLayout(edgeLength: { _ in 0 }) → **trap**
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+            _ = try? graph.multidimensionalScalingLayout(edgeLength: { _ in 0 })
+        }
+        // Without the call: the same setup answers.
+        let graph = Pseudograph<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+        #expect((try? graph.multidimensionalScalingLayout(edgeLength: { _ in 0.5 }))?.count == 3)
+    }
+
     @Test("setPosition(_:of:) on a missing vertex traps")
     func setPositionOnMissingVertex() async {
         await #expect(processExitsWith: .failure) {

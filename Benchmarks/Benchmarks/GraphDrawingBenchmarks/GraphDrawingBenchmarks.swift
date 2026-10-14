@@ -3,6 +3,7 @@ import Benchmark
 import CompressedSparseRowModule
 import GraphDrawing
 import GraphProtocols
+import Planarity
 import RandomGraphs
 import Trees
 
@@ -126,5 +127,65 @@ let benchmarks: @Sendable () -> Void = {
     let empty = UndirectedAdjacencyList<Int>(vertices: 0 ..< 1_000_000, edges: [] as [UndirectedEdge<Int>])
     Benchmark("GraphDrawing: circularLayout, 10⁶ vertices (NetworkX 398 ms)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(empty.circularLayout()) }
+    }
+    Benchmark("GraphDrawing: shellLayout, 10⁶ vertices in 10 shells") { benchmark in
+        let shells = (0 ..< 10).map { k in Array(stride(from: k, to: 1_000_000, by: 10)) }
+        for _ in benchmark.scaledIterations { blackHole(empty.shellLayout(shells: shells)) }
+    }
+    Benchmark("GraphDrawing: spiralLayout, 10⁶ vertices") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(empty.spiralLayout()) }
+    }
+    Benchmark("GraphDrawing: bipartiteLayout, 10⁶ vertices, half on the left") { benchmark in
+        let left = Array(stride(from: 0, to: 1_000_000, by: 2))
+        for _ in benchmark.scaledIterations { blackHole(empty.bipartiteLayout(left: left)) }
+    }
+    Benchmark("GraphDrawing: randomLayout, 10⁶ vertices") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = Xoshiro256StarStar(seed: 1)
+            blackHole(empty.randomLayout(using: &generator))
+        }
+    }
+
+    Benchmark("GraphDrawing: forceAtlas2Layout exact, random 3-regular, 10³, 100 iterations") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = Xoshiro256StarStar(seed: 1)
+            blackHole(regular1k.forceAtlas2Layout(using: &generator))
+        }
+    }
+    Benchmark("GraphDrawing: forceAtlas2Layout Barnes–Hut θ = 1.2, random 3-regular, 10⁴, 100 iterations") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = Xoshiro256StarStar(seed: 1)
+            blackHole(regular10k.forceAtlas2Layout(barnesHutTheta: 1.2, using: &generator))
+        }
+    }
+    Benchmark("GraphDrawing: spectralLayout, random 3-regular, 10³ (dense)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try? regular1k.spectralLayout()) }
+    }
+    Benchmark("GraphDrawing: multidimensionalScalingLayout, random 3-regular, 10³ (dense)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try? regular1k.multidimensionalScalingLayout()) }
+    }
+
+    // A 300 × 300 grid, and the same grid with one diagonal per cell (maximal outerplanar inside).
+    var gridEdges: [UndirectedEdge<Int>] = []
+    var triangulatedEdges: [UndirectedEdge<Int>] = []
+    for i in 0 ..< 300 {
+        for j in 0 ..< 300 {
+            let v = i * 300 + j
+            if j + 1 < 300 { gridEdges.append(UndirectedEdge(v, v + 1)) }
+            if i + 1 < 300 { gridEdges.append(UndirectedEdge(v, v + 300)) }
+            if i + 1 < 300 && j + 1 < 300 { triangulatedEdges.append(UndirectedEdge(v, v + 301)) }
+        }
+    }
+    triangulatedEdges += gridEdges
+    let grid = UndirectedAdjacencyList<Int>(vertices: 0 ..< 90_000, edges: gridEdges)
+    let triangulated = UndirectedAdjacencyList<Int>(vertices: 0 ..< 90_000, edges: triangulatedEdges)
+    Benchmark("GraphDrawing: BASELINE planarEmbedding(), grid 300 × 300") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(grid.planarEmbedding()) }
+    }
+    Benchmark("GraphDrawing: planarLayout, grid 300 × 300") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(grid.planarLayout()) }
+    }
+    Benchmark("GraphDrawing: planarLayout, triangulated grid 300 × 300") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(triangulated.planarLayout()) }
     }
 }

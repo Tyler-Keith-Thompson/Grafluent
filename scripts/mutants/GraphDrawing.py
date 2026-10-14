@@ -31,6 +31,15 @@
 #                   them, and which optimal layering is chosen is not specified. They
 #                   give up Cunningham's strongly feasible tree, which is what rules out cycling;
 #                   no input that cycles was found.
+#   Removed as equivalent: a BFS layer of distance + 2 instead of + 1 (columns depend only on the
+#   order of the layers, and the queue lists them in order); bfsLayout's reachability check
+#   (without it an unreachable vertex still traps, on an index past the queue).
+#   Also removed as equivalent: not marking the far side of a face chord visited (the cut-off
+#   triangle is then walked again as a face of length 3, which triangulation leaves alone and which
+#   is never longer than the first longest face); the outer contour's first neighbour test
+#   (with no counterclockwise neighbour the general test reduces to the clockwise one).
+#   plready     the first vertex left ready: it is pushed first, so it lies at the bottom of the
+#               stack of candidates and the n − 2 picks end before reaching it.
 #   Under load (other runs at once) these can show as caught by the stress suite's wall-clock
 #   bounds; run alone (`--jobs 1`) they survive.
 
@@ -46,6 +55,13 @@ RT = "ReingoldTilfordLayout.swift"
 SG = "SugiyamaLayout.swift"
 L = "LayeredDrawingEngine.swift"
 NS = "NetworkSimplexLayering.swift"
+DR = "DistanceRows.swift"
+SH = "ShellLayout.swift"
+SP = "SpectralLayout.swift"
+EG = "SymmetricEigensolver.swift"  # SpectralGraphTheory's dense solver, which the spectral and MDS layouts call
+FA = "ForceAtlas2Layout.swift"
+PL = "PlanarLayout.swift"
+MP = "MultipartiteLayout.swift"
 
 MUTANTS = [
     # Drawing.
@@ -105,12 +121,12 @@ MUTANTS = [
     Mutant("qtpad", F, "extent > 0 ? extent * (1 + 1e-9) : 1", "extent > 0 ? extent : 1"),
     Mutant("qtquadrant", F, "(p.x >= mid.x ? 1 : 0) + (p.y >= mid.y ? 2 : 0)", "(p.y >= mid.y ? 1 : 0) + (p.x >= mid.x ? 2 : 0)"),
     Mutant("qtchildcorner", F, "SIMD2(q & 1 == 1 ? half : 0, q & 2 == 2 ? half : 0)", "SIMD2(q & 2 == 2 ? half : 0, q & 1 == 1 ? half : 0)"),
-    Mutant("qtmass", F, "mass.append(Double(h - l))", "mass.append(1)", mode="stmt"),
-    Mutant("qtcentre", F, "centre.append(sum / Double(h - l))", "centre.append(c + s / 2)", mode="stmt"),
-    Mutant("qtinside", F, "!inside && s * s < theta * theta * d2", "s * s < theta * theta * d2"),
+    Mutant("qtmass", F, "total = Double(h - l)", "total = 1", mode="stmt"),
+    Mutant("qtcentre", F, "centre.append(sum / total)", "centre.append(c + s / 2)", mode="stmt"),
+    Mutant("qtinside", F, "!inside && s * s < theta * theta * d2", "s * s < theta * theta * d2", nth=0),
     Mutant("qttheta", F, "s * s < theta * theta * d2", "s < theta * d2", nth=1),
     Mutant("qtcoincident", F, "if u != v { sum += _coincidentOffset(v, u) * (k2 / 1e-4) }", "", mode="stmt", nth=0),
-    Mutant("qtchildren", F, "for child in first ..< first + childCount[cell] { stack.append(child) }", "for child in first ..< first + childCount[cell] - 1 { stack.append(child) }", mode="stmt"),
+    Mutant("qtchildren", F, "for child in first ..< first + childCount[cell] { stack.append(child) }", "for child in first ..< first + childCount[cell] - 1 { stack.append(child) }", mode="stmt", nth=0),
     Mutant("qtsplitcount", F, "count > 1", "count > 2"),
     Mutant("qtoffsetsign", F, "    return v > u ? unit : -unit", "    return unit", mode="stmt"),
 
@@ -137,14 +153,14 @@ MUTANTS = [
     Mutant("smlengthcheck", S, "x.isFinite && x > 0", "x.isFinite && x >= 0"),
     Mutant("smmean", S, "lengths.reduce(0, +) / Double(lengths.count)", "lengths.reduce(0, +)"),
     Mutant("smapart", S, "1 + meanEdgeLength * Double(n).squareRoot()", "1 + meanEdgeLength * Double(n)"),
-    Mutant("smuniform", S, "lengths.allSatisfy { $0 == lengths[0] }", "true"),
-    Mutant("smbfs", S, "hops[v] + 1", "hops[v] + 2"),
-    Mutant("smunit", S, "Double(hops[v]) * unit", "Double(hops[v])"),
-    Mutant("smrelax", S, "d + length[slot]", "length[slot]"),
-    Mutant("smpush", S, "heap[i].0 < heap[(i - 1) / 2].0", "heap[i].0 > heap[(i - 1) / 2].0"),
-    Mutant("smpopleft", S, "if l < heap.count, heap[l].0 < heap[m].0 { m = l }", "", mode="stmt"),
-    Mutant("smpopright", S, "if r < heap.count, heap[r].0 < heap[m].0 { m = r }", "", mode="stmt"),
-    Mutant("smadjreverse", S, "neighbor[fill[vs[e]]] = us[e]", "neighbor[fill[vs[e]]] = vs[e]", mode="stmt"),
+    Mutant("smuniform", DR, "lengths.allSatisfy({ $0 == lengths[0] })", "true"),
+    Mutant("smbfs", DR, "hops[v] + 1", "hops[v] + 2"),
+    Mutant("smunit", DR, "Double(hops[v]) * unit", "Double(hops[v])"),
+    Mutant("smrelax", DR, "d + length[slot]", "length[slot]"),
+    Mutant("smpush", DR, "heap[i].0 < heap[(i - 1) / 2].0", "heap[i].0 > heap[(i - 1) / 2].0"),
+    Mutant("smpopleft", DR, "if l < heap.count, heap[l].0 < heap[m].0 { m = l }", "", mode="stmt"),
+    Mutant("smpopright", DR, "if r < heap.count, heap[r].0 < heap[m].0 { m = r }", "", mode="stmt"),
+    Mutant("smadjreverse", DR, "neighbor[fill[vs[e]]] = us[e]", "neighbor[fill[vs[e]]] = vs[e]", mode="stmt"),
     Mutant("smweightsum", S, "weightSums[j] += a * a", "", mode="stmt"),
     Mutant("smnx", S, "(tx[i] + sx.sum() + rx) / weights[i]", "(sx.sum() + rx) / weights[i]"),
     Mutant("smny", S, "(ty[i] + sy.sum() + ry) / weights[i]", "(ty[i] + sx.sum() + ry) / weights[i]"),
@@ -291,4 +307,144 @@ MUTANTS = [
     Mutant("bendscheckedmatch", "SugiyamaLayout.swift", "_positions[lo] == position", "true", nth=1),
     Mutant("bendscheckedsearch", "SugiyamaLayout.swift", "_positions[mid] < position", "_positions[mid] <= position", nth=1),
     Mutant("bendscheckedvalue", "SugiyamaLayout.swift", "        return _bends[_bendStart[lo] ..< _bendStart[lo + 1]]", "        return _bends[_bendStart[lo] ..< _bendStart[lo]]", mode="stmt", nth=1),
+
+    # Barnes–Hut with masses (ForceAtlas2).
+    Mutant("qtmasssum", F, "sum += m * positions[order[i]]", "sum += positions[order[i]]", mode="stmt"),
+    Mutant("qtmasstotal", F, "total += m", "total += 1", mode="stmt"),
+    Mutant("qtmassleaf", F, "sum += delta * (masses[u] / Swift.max(d2, 1e-4))", "sum += delta / Swift.max(d2, 1e-4)", mode="stmt"),
+    Mutant("qtmasscell", F, "sum += delta * (mass[cell] / Swift.max(d2, 1e-4))", "sum += delta / Swift.max(d2, 1e-4)", mode="stmt"),
+    Mutant("qtmassinside", F, "!inside && s * s < theta * theta * d2", "s * s < theta * theta * d2", nth=0),
+    Mutant("qtmasscoincident", F, "if u != v { sum += _coincidentOffset(v, u) * (masses[u] / 1e-4) }", "", mode="stmt"),
+
+    # The shell, spiral, bipartite and random layouts.
+    Mutant("shradius", SH, "radius.isFinite && radius >= 0", "radius.isFinite && radius > 0"),
+    Mutant("shcenter", SH, "center.x.isFinite && center.y.isFinite", "true"),
+    Mutant("shrotation", SH, "rotation.isFinite", "true"),
+    Mutant("shdefaultfirst", SH, "rotation ?? Double.pi", "rotation ?? 0", nth=0),
+    Mutant("shdefaultstep", SH, "2 * Double.pi / Double(n)", "2 * Double.pi / Double(n + 1)"),
+    Mutant("shdefaultangle", SH, "Double(i) * step + first", "Double(i) * step"),
+    Mutant("shdefaultone", SH, "n > 1", "n > 0", nth=0),
+    Mutant("shbump", SH, "radius / Double(Swift.max(shells.count, 1))", "radius / Double(Swift.max(shells.count, 2))"),
+    Mutant("shturn", SH, "rotation ?? Double.pi / Double(Swift.max(shells.count, 1))", "rotation ?? Double.pi"),
+    Mutant("shfirstsingle", SH, "shells.first?.count == 1 ? 0 : bump", "bump"),
+    Mutant("shrepeat", SH, "precondition(!placed[i], \"\\(v) is in more than one shell\")", "", mode="stmt"),
+    Mutant("shcount", SH, "count == n", "true"),
+    Mutant("shbumpstep", SH, "            r += bump", "", mode="stmt"),
+    Mutant("shturnstep", SH, "            first += turn", "", mode="stmt"),
+    Mutant("shangle", SH, "Double(j) * step + first", "Double(j) * step"),
+    Mutant("shshellone", SH, "if n > 1 { positions[i] = center + r * SIMD2(cos(angle), sin(angle)) }", "positions[i] = center + r * SIMD2(cos(angle), sin(angle))", mode="stmt"),
+    Mutant("spres", SH, "resolution.isFinite && (!equidistant || resolution > 0)", "resolution.isFinite"),
+    Mutant("spone", SH, "    if n == 1 { return [.zero] }", "", mode="stmt"),
+    Mutant("spstart", SH, "        theta += 1 / (0.5 * theta)", "", mode="stmt"),
+    Mutant("sprho", SH, "0.5 * theta", "theta", nth=1),
+    Mutant("spstep", SH, "            theta += 1 / rho", "", mode="stmt"),
+    Mutant("spangle", SH, "resolution * distance", "resolution"),
+    Mutant("spswap", SH, "SIMD2(distance * cos(angle), distance * sin(angle))", "SIMD2(distance * sin(angle), distance * cos(angle))"),
+    Mutant("bpaspect", MP, "aspectRatio.isFinite && aspectRatio > 0", "aspectRatio.isFinite"),
+    Mutant("bprepeat", MP, "precondition(!isLeft[i], \"\\(v) is listed twice in the left column\")", "", mode="stmt"),
+    Mutant("bpstep", MP, "k > 1 ? 1 / Double(k - 1) : 0", "1 / Double(k)"),
+    Mutant("bpoffset", MP, "                positions[i] = SIMD2(x, (j == k - 1 && k > 1 ? 1 : Double(j) * step) - 0.5)", "                positions[i] = SIMD2(x, j == k - 1 && k > 1 ? 1 : Double(j) * step)", mode="stmt"),
+    Mutant("bplast", MP, "j == k - 1 && k > 1 ? 1 : Double(j) * step", "Double(j) * step", nth=1),
+    Mutant("bpright", MP, "(rightOffsets, aspectRatio / 2)", "(rightOffsets, -aspectRatio / 2)"),
+    Mutant("mpshift", MP, "Double(columns - 1) / 2", "Double(columns) / 2"),
+    Mutant("mplift", MP, "Double(end - k - 1) / 2", "Double(end - k) / 2"),
+    Mutant("mpcolumn", MP, "        column += 1", "", mode="stmt"),
+    Mutant("mprank", MP, "for (r, l) in rank.keys.sorted().enumerated() { rank[l] = r }", "for (r, l) in rank.keys.enumerated() { rank[l] = r }", mode="stmt"),
+    Mutant("mpcount", MP, "for r in 0 ..< rank.count { start[r + 1] += start[r] }", "", mode="stmt"),
+    Mutant("mpsame", MP, "layer[sequence[end]] == layer[sequence[k]]", "false", nth=1),
+    Mutant("bfsqueue", MP, "_columnPositions(layer, sequence: queue)", "_columnPositions(layer, sequence: _byLayer(layer))"),
+    Mutant("rdbits", SH, "Double(generator.next() >> 11) * 0x1p-53", "Double(generator.next() >> 12) * 0x1p-53", nth=0),
+    Mutant("rdorder", SH, "positions.append(SIMD2(x, y))", "positions.append(SIMD2(y, x))", mode="stmt"),
+
+    # The spectral and scaling layouts, and their eigensystem.
+    Mutant("spweight", SP, "w.isFinite && w >= 0", "w.isFinite"),
+    Mutant("spsmall", SP, "    if n <= 1 { return [SIMD2<Double>](repeating: .zero, count: n) }", "", mode="stmt", nth=0),
+    Mutant("spscale", SP, "weights[e] * scale", "weights[e]"),
+    Mutant("spdiag", SP, "laplacian[v * n + v] += w", "", mode="stmt"),
+    Mutant("spoff", SP, "laplacian[u * n + v] -= w", "", mode="stmt"),
+    Mutant("spcolumns", SP, "n >= 3 ? 2 : 1", "1"),
+    Mutant("spsign", SP, "for c in 1 ... columns { _fixEigenvectorSign(UnsafeMutableBufferPointer(rebasing: vectors[c * n ..< c * n + n])) }", "", mode="stmt"),
+    Mutant("spx", SP, "vectors[n + i]", "vectors[i]"),
+    Mutant("mdlength", SP, "x.isFinite && x > 0", "x.isFinite && x >= 0"),
+    Mutant("mdsmall", SP, "    if n <= 1 { return [SIMD2<Double>](repeating: .zero, count: n) }", "", mode="stmt", nth=1),
+    Mutant("mdmean", SP, "lengths.reduce(0, +) / Double(lengths.count)", "lengths.reduce(0, +)"),
+    Mutant("mdapart", SP, "1 + mean * Double(n).squareRoot()", "1 + mean * Double(n)"),
+    Mutant("mdsquare", SP, "b[s * n + v] = d * d", "b[s * n + v] = d", mode="stmt"),
+    Mutant("mdhalf", SP, "        for v in 0 ..< n { b[s * n + v] = -0.5 * (b[s * n + v] - rowMeans[s] - rowMeans[v] + grandMean) }", "        for v in 0 ..< n { b[s * n + v] = -(b[s * n + v] - rowMeans[s] - rowMeans[v] + grandMean) }", mode="stmt"),
+    Mutant("mdcentre", SP, "b[s * n + v] - rowMeans[s] - rowMeans[v] + grandMean", "b[s * n + v] - rowMeans[s] - rowMeans[v]", nth=1),
+    Mutant("mdunscale", SP, "Swift.max(values[n - 1], 0).squareRoot() / scale", "Swift.max(values[n - 1], 0).squareRoot()"),
+    Mutant("mdaxis", SP, "Swift.max(values[n - 2], 0)", "Swift.max(values[n - 1], 0)"),
+    Mutant("mdsign", SP, "n - 2 ..< n", "n - 1 ..< n"),
+    Mutant("egsortswap", EG, "ck[r] = t", "", mode="stmt", module="SpectralGraphTheory"),
+    Mutant("egsort", EG, "d[j] < p", "d[j] > p", module="SpectralGraphTheory"),
+    Mutant("egscale", EG, "e[i] = scale * g", "e[i] = g", mode="stmt", module="SpectralGraphTheory"),
+    Mutant("eghh", EG, "f / (h + h)", "f / h", module="SpectralGraphTheory"),
+    Mutant("egshift", EG, "        d[l] += f", "", mode="stmt", module="SpectralGraphTheory"),
+    Mutant("eglimit", EG, "total < maxIterations", "true", module="SpectralGraphTheory"),
+    Mutant("egdeflate", EG, "abs(e[m]) <= eps * tst1", "false", module="SpectralGraphTheory"),
+    Mutant("egsign", SP, "if x < 0 { for k in column.indices { column[k] = -column[k] } }", "", mode="stmt"),
+    Mutant("egsignthreshold", SP, "Swift.abs(x) >= 1e-4 * largest", "Swift.abs(x) > 0"),
+    Mutant("eglimitcheck", SP, "maxIterations >= 1", "true"),
+    Mutant("egaccumulate", EG, "for k in 0 ... i { column[k] -= g * d[k] }", "", mode="stmt", module="SpectralGraphTheory"),
+
+    # ForceAtlas2.
+    Mutant("faiterations", FA, "iterations >= 0", "true"),
+    Mutant("fascaling", FA, "scalingRatio.isFinite && scalingRatio > 0", "scalingRatio.isFinite && scalingRatio >= 0"),
+    Mutant("fagravity", FA, "gravity.isFinite && gravity >= 0", "true"),
+    Mutant("fajittercheck", FA, "jitterTolerance.isFinite && jitterTolerance >= 0", "true"),
+    Mutant("fathetacheck", FA, "barnesHutTheta.isFinite && barnesHutTheta >= 0", "barnesHutTheta.isFinite"),
+    Mutant("faweight", FA, "w.isFinite && w >= 0", "w.isFinite"),
+    Mutant("fathetazero", FA, "barnesHutTheta.flatMap { $0 > 0 ? $0 : nil }", "barnesHutTheta"),
+    Mutant("fafinished", FA, "_iteration >= _iterations", "_iteration > _iterations"),
+    Mutant("fastartbits", FA, "Double(generator.next() >> 11) * 0x1p-53", "Double(generator.next() >> 12) * 0x1p-53", nth=0),
+    Mutant("famass", FA, "masses[vs[e]] += 1", "", mode="stmt"),
+    Mutant("facompensation", FA, "masses.reduce(0, +) / Double(n)", "1"),
+    Mutant("fabhmass", FA, "tree.massRepulsion(on: v, p, theta: theta) * (kr * masses[v])", "tree.massRepulsion(on: v, p, theta: theta) * kr"),
+    Mutant("farepcoincident", FA, "if u != v { sum += _coincidentOffset(v, u) * (m[u] / 1e-4) }", "", mode="stmt"),
+    Mutant("farepfloor", FA, "sum += delta * (m[u] / Swift.max(d2, 1e-4))", "sum += delta * (m[u] / Swift.max(d2, 1e-2))", mode="stmt"),
+    Mutant("farepmass", FA, "f[v] = sum * (kr * m[v])", "f[v] = sum * kr", mode="stmt"),
+    Mutant("fastrong", FA, "f[v] -= pv * (gravity * m[v])", "f[v] -= pv * gravity", mode="stmt"),
+    Mutant("faweak", FA, "if d > 0 { f[v] -= pv * (gravity * m[v] / d) }", "if d > 0 { f[v] -= pv * (gravity * m[v]) }", mode="stmt"),
+    Mutant("falinlog", FA, "factor * log1p(d) / d", "factor * log1p(d)"),
+    Mutant("fahubs", FA, "if let compensation { factor *= compensation / m[a] }", "if let compensation { factor *= compensation / m[b] }", mode="stmt"),
+    Mutant("faattract", FA, "f[b] += pull", "", mode="stmt"),
+    Mutant("faswing", FA, "totalSwing += masses[v] * (change * change).sum().squareRoot()", "totalSwing += (change * change).sum().squareRoot()", mode="stmt"),
+    Mutant("fatraction", FA, "totalTraction += 0.5 * masses[v] * (sum * sum).sum().squareRoot()", "totalTraction += masses[v] * (sum * sum).sum().squareRoot()", mode="stmt"),
+    Mutant("fajitteropt", FA, "0.05 * Double(n).squareRoot()", "0.05 * Double(n)"),
+    Mutant("fajittermin", FA, "Swift.max(minimumJitter, Swift.min(10, optimalJitter * totalTraction / Double(n * n)))", "Swift.min(10, optimalJitter * totalTraction / Double(n * n))"),
+    Mutant("faratio", FA, "totalSwing > 2 * totalTraction", "totalSwing >= 2 * totalTraction"),
+    Mutant("fahalf", FA, "if speedEfficiency > minimumEfficiency { speedEfficiency *= 0.5 }", "", mode="stmt"),
+    Mutant("fajitterfloor", FA, "jitter = Swift.max(jitter, jitterTolerance)", "", mode="stmt"),
+    Mutant("fatarget", FA, "jitter * speedEfficiency * totalTraction / totalSwing", "jitter * totalTraction / totalSwing"),
+    Mutant("faeffdown", FA, "if speedEfficiency > minimumEfficiency { speedEfficiency *= 0.7 }", "", mode="stmt"),
+    Mutant("faeffup", FA, "speedEfficiency *= 1.3", "", mode="stmt"),
+    Mutant("farise", FA, "Swift.min(target - speed, 0.5 * speed)", "target - speed"),
+    Mutant("famove", FA, "s / (1 + (s * swing).squareRoot())", "s"),
+    Mutant("faprevious", FA, "old[v] = f[v]", "", mode="stmt"),
+
+    # The planar straight-line layout.
+    Mutant("plloop", PL, "w != v && (rows.count == first || rows[rows.count - 1] != w)", "rows.count == first || rows[rows.count - 1] != w"),
+    Mutant("pldedupe", PL, "rows[rows.count - 1] != w", "true", nth=1),
+    Mutant("plwrap", PL, "if rows.count - first > 1 && rows[rows.count - 1] == rows[first] { rows.removeLast() }", "", mode="stmt"),
+    Mutant("plsmall", PL, "n < 4", "n < 3"),
+    Mutant("plconnect", PL, "if previousRoot >= 0 { _ = g.join(previousRoot, clockwiseOf: -1, root, counterclockwiseOf: -1) }", "", mode="stmt"),
+    Mutant("plouter", PL, "face.count > outerFace.count", "face.count < outerFace.count"),
+    Mutant("pltriangulate", PL, "for (k, start) in faceStarts.enumerated() where k != outer { _triangulateFace(&g, from: start) }", "", mode="stmt"),
+    Mutant("pljoined", PL, "g.isJoined(v1, v3)", "false"),
+    Mutant("plchord", PL, "stamp[v2] == mark", "false"),
+    Mutant("plchords", PL, "chords[v] += 1", "", mode="stmt", nth=0),
+    Mutant("plready", PL, "    ready[v1] = false", "", mode="stmt"),
+    Mutant("plcontourtwo", PL, "contourEnd[k] - contourStart[k] == 2", "contourEnd[k] - contourStart[k] == 3"),
+    Mutant("plchordsdown", PL, "chords[x] -= 1", "", mode="stmt"),
+    Mutant("plnewface", PL, "newOnFace[y] != k", "true"),
+    Mutant("plwp", PL, "outer.clockwise[w] == v", "outer.counterclockwise[w] == v"),
+    Mutant("plcontourcw", PL, "outer.clockwise[w] = following", "", mode="stmt"),
+    Mutant("plshiftp", PL, "deltaX[wp1] += 1", "", mode="stmt"),
+    Mutant("plshiftq", PL, "deltaX[wq] += 1", "", mode="stmt"),
+    Mutant("pldx", PL, "(-y[wp] + span + y[wq]) / 2", "(span + y[wq]) / 2"),
+    Mutant("ply", PL, "(y[wp] + span + y[wq]) / 2", "(span + y[wq]) / 2"),
+    Mutant("pldxq", PL, "deltaX[wq] = span - deltaX[vk]", "", mode="stmt"),
+    Mutant("pldxp", PL, "if addsTriangles { deltaX[wp1] -= deltaX[vk] }", "", mode="stmt"),
+    Mutant("plcut", PL, "rightChild[wq1] = -1", "", mode="stmt"),
+    Mutant("plx", PL, "x[right] = x[parent] + deltaX[right]", "x[right] = deltaX[right]", mode="stmt"),
 ]

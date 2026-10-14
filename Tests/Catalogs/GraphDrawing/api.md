@@ -2,12 +2,14 @@
 
 Graph drawing here means layout: a point in the plane for every vertex, and for a layered drawing,
 bend points on the edges that cross layers. The module works on any graph and is not a graph type.
-It has circular, Fruchterman–Reingold (exact repulsion, or Barnes–Hut), stress majorization,
+It has circular, shell, spiral, bipartite, multipartite, BFS, random, spectral, classical scaling,
+planar straight-line (de Fraysseix–Pach–Pollack), Fruchterman–Reingold and ForceAtlas2 (exact
+repulsion, or Barnes–Hut), stress majorization,
 Reingold–Tilford (Walker's algorithm in Buchheim–Jünger–Leipert's linear form) and its circular
 form, and the Sugiyama framework (Eades–Lin–Smyth cycle removal, minimum-span layering, barycenter
 crossing reduction, Brandes–Köpf coordinates).
 
-`cases.md` (DR-001 – DR-214) pins the values. `ref.py` implements every layout from the
+`cases.md` (DR-001 – DR-244) pins the values. `ref.py` implements every layout from the
 definitions below and checks `rescaled` and circular positions against NetworkX 3.7, tree layouts
 against python-igraph 1.0.0, Sugiyama total spans against igraph's `layout_sugiyama`, and stress
 against NetworkX's `kamada_kawai_layout`. It also runs Fruchterman–Reingold and stress
@@ -18,8 +20,12 @@ every one whose optimal layering is unique, spans against igraph) and 21 random 
 
 `uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with numpy==2.3.4 --with scipy==1.18.1 python3 Tests/Catalogs/GraphDrawing/ref.py [--write] [--stress] [--bench]`
 
-Rows DR-207 – DR-214 (group Phase 2) pin spectral, BFS, multipartite and ForceAtlas2 layouts that
-the module does not provide. They have no tests; `swiftgen.py --phase2` writes them.
+Rows DR-207 – DR-244 pin the spectral, BFS, multipartite, ForceAtlas2, shell, spiral, bipartite,
+random, scaling and planar layouts: spectral axes against NetworkX's `spectral_layout` up to sign;
+shell, spiral, bipartite, multipartite and BFS (rescaled) against NetworkX's layouts; classical
+scaling against igraph's `layout_mds` up to a rigid motion (igraph may rotate the axes); planarity
+against `check_planarity`. The planar rows pin invariants (grid bounds, no crossing), not points:
+the drawing depends on the embedding `Planarity` chooses.
 
 ## Coordinates only
 
@@ -65,7 +71,23 @@ extension Graph {   // DirectedGraph through `digraph.undirectedView`
         edgeLength: (Edges.Index) -> Double = { _ in 1 },
         tolerance: Double = 1e-4, maxIterations: Int = 1000
     ) -> Drawing<Vertex>
+
+    public func shellLayout(shells: [[Vertex]]? = nil, rotation: Double? = nil, radius: Double = 1, center: SIMD2<Double> = .zero) -> Drawing<Vertex>
+    public func spiralLayout(resolution: Double = 0.35, equidistant: Bool = false) -> Drawing<Vertex>   // not rescaled
+    public func bipartiteLayout(left: some Sequence<Vertex>, aspectRatio: Double = 4 / 3) -> Drawing<Vertex>
+    public func multipartiteLayout(layer: (Vertex) -> Int) -> Drawing<Vertex>  // unit spacing, columns centred
+    public func bfsLayout(start: Vertex) -> Drawing<Vertex>                   // layer = hop distance; traps if unreachable
+    public func randomLayout(using generator: inout some RandomNumberGenerator) -> Drawing<Vertex>  // and the system generator
+    public func spectralLayout(weight: (Edges.Index) -> Double = { _ in 1 }, maxIterations: Int? = nil) throws(NoConvergence) -> Drawing<Vertex>
+    public func multidimensionalScalingLayout(edgeLength: (Edges.Index) -> Double = { _ in 1 }, maxIterations: Int? = nil) throws(NoConvergence) -> Drawing<Vertex>
+    public func planarLayout() -> Drawing<Vertex>?                            // nil when not planar
+    public func forceAtlas2Layout(
+        iterations: Int = 100, scalingRatio: Double = 2, gravity: Double = 1, strongGravity: Bool = false, linLog: Bool = false,
+        dissuadeHubs: Bool = false, jitterTolerance: Double = 1, barnesHutTheta: Double? = nil,
+        weight: (Edges.Index) -> Double = { _ in 1 }, using generator: inout some RandomNumberGenerator
+    ) -> Drawing<Vertex>   // and initial: and system-generator overloads
 }
+// ForceAtlas2Layout<G>: the stepper (drawing, speed, iteration, isFinished, step(), run()).
 
 // The steppers, for animation: one `step()` is one iteration.
 @frozen public struct FruchtermanReingoldLayout<G: Graph> {
