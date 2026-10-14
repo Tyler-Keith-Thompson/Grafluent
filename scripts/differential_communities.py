@@ -7,7 +7,8 @@ Differential/Sources/GrafluentDifferential/CommunityExtras.swift).
   reported modularity and Potts value equal the definition; and, both being randomized heuristics,
   the best modularity of five library runs must not be below all five of igraph's (by more than
   LEIDEN_SLACK)
-  community_leiden (undirected, modularity, run to convergence) or NetworkX's leiden_communities
+  community_leiden (undirected, modularity with self-loops in the degrees, run to convergence) or
+  NetworkX's leiden_communities
   (directed).
 * Louvain's levels end with louvainCommunities() and coarsen one another (checked library-side).
 * Kernighan–Lin from the split {0 ..< n/2}, {n/2 ..< n}: equal to NetworkX's
@@ -174,6 +175,12 @@ def canonical(labels):
     return [seen.setdefault(x, len(seen)) for x in labels]
 
 
+def canonical_labels(labels):
+    """Labels renumbered by first appearance: equal exactly when the partitions are."""
+    seen = {}
+    return [seen.setdefault(x, len(seen)) for x in labels]
+
+
 def quality(n, directed, ends, w, labels, potts, gamma):
     """m · modularity or the constant Potts model, by the definition."""
     m = sum(w)
@@ -301,10 +308,22 @@ def compare_community_extras(case, mine, problems):
                 refs.append(nx.community.modularity(H, theirs, weight=None))
         else:
             G = igraph.Graph(n=n, edges=ends)
+            # community_leiden(objective_function="modularity") weighs vertices by their degrees
+            # without self-loops; modularity counts a loop twice in its vertex's degree, so the
+            # degrees and 1 / 2m are passed instead. Its n_iterations=-1 can loop forever (an
+            # iteration can report a change and leave the partition as it was), so iterations run
+            # one at a time until the partition stops changing.
+            degrees = [float(d) for d in G.degree()]
             for seed in range(5):
                 rng = random.Random(seed)
                 igraph.set_random_number_generator(rng)
-                refs.append(G.modularity(G.community_leiden(objective_function="modularity", n_iterations=-1).membership))
+                membership = None
+                for _ in range(100):
+                    last = membership
+                    membership, _ = igraph.GraphBase.community_leiden(G, node_weights=degrees, resolution=1 / (2 * m), normalize_resolution=False, beta=0.01, initial_membership=membership, n_iterations=1)
+                    if last is not None and canonical_labels(membership) == canonical_labels(last):
+                        break
+                refs.append(G.modularity(membership))
             igraph.set_random_number_generator(random)
         best = mine["leidenBestModularity"]
         if best < min(refs) - LEIDEN_SLACK:

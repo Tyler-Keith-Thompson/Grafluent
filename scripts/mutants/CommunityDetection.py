@@ -103,6 +103,7 @@ MUTANTS = [
     # Leiden.
     Mutant("ldemptychoice", "Leiden.swift", "-best > tolerance", "false"),
     Mutant("ldstaybias", "Leiden.swift", "gain - best > tolerance", "gain - best > -tolerance"),
+    Mutant("ldtiejoin", "Leiden.swift", "(alone && chosen == current && gain - best >= -tolerance)", "false"),
     Mutant("ldtotals", "Leiden.swift", "totalA[chosen] += av", "", mode="stmt"),
     Mutant("ldownpenalty", "Leiden.swift", "gamma * (av * ownB + bv * ownA)", "gamma * (av * totalB[current] + bv * totalA[current])"),
     Mutant("ldrequeue", "Leiden.swift", "community[w] != chosen", "false"),

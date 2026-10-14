@@ -105,15 +105,17 @@ struct LeidenTests {
         #expect(loops.leidenCommunities(using: &generator).map { Array($0) } == [[0], [1]])
         #expect(loops.leidenCommunities(quality: .constantPottsModel, using: &generator).map { Array($0) } == [[0], [1]])
         // K₂: together Q = 1 − 1 = 0, apart Q = −½; the constant Potts model at γ = 1: 1 − 2 = −1
-        // together, −1 apart, a tie, so the singletons stay.
+        // together, −1 apart, a tie, so a vertex alone joins the other.
         let k2 = ReferencePseudograph(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
         #expect(k2.leidenCommunities(using: &generator).map { Array($0) } == [[0, 1]])
-        #expect(k2.leidenCommunities(quality: .constantPottsModel, using: &generator).map { Array($0) } == [[0], [1]])
+        #expect(k2.leidenCommunities(quality: .constantPottsModel, using: &generator).map { Array($0) } == [[0, 1]])
         #expect(k2.leidenCommunities(quality: .constantPottsModel, resolution: 0.5, using: &generator).map { Array($0) } == [[0, 1]])
-        // Total weight zero: modularity is 0 for every partition, so the singletons.
+        // Total weight zero: modularity is 0 for every partition, so the singletons; the constant
+        // Potts model at γ = 0 is 0 for every partition too, and a vertex alone joins a neighbor's
+        // community on that tie.
         let path = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
         #expect(path.leidenCommunities(weight: { _ in 0.0 }, using: &generator).map { Array($0) } == [[0], [1], [2]])
-        #expect(path.leidenCommunities(weight: { _ in 0.0 }, quality: .constantPottsModel, resolution: 0, using: &generator).map { Array($0) } == [[0], [1], [2]])
+        #expect(path.leidenCommunities(weight: { _ in 0.0 }, quality: .constantPottsModel, resolution: 0, using: &generator).map { Array($0) } == [[0, 1, 2]])
     }
 
     @Test("Weights: a heavy bridge pulls its ends together; parallel copies are weight")
