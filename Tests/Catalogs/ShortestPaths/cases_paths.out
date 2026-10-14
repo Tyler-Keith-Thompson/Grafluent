@@ -1,0 +1,51 @@
+================ M. k shortest simple paths
+--- SP-160 NetworkX cycle_graph(7) 0->3: lengths [3, 4]
+  3: [[0, 1, 2, 3]]
+  4: [[0, 6, 5, 4, 3]]
+--- SP-161 Yen's example (Wikipedia) C->H: lengths [5, 7, 8, 8, 8, 11, 11]
+  5: [['C', 'E', 'F', 'H']]
+  7: [['C', 'E', 'G', 'H']]
+  8: [['C', 'D', 'F', 'H'], ['C', 'E', 'D', 'F', 'H'], ['C', 'E', 'F', 'G', 'H']]
+  11: [['C', 'D', 'F', 'G', 'H'], ['C', 'E', 'D', 'F', 'G', 'H']]
+--- SP-162 NetworkX XG s->v: lengths [9, 10, 11, 13, 17, 20]
+  9: [['s', 'x', 'u', 'v']]
+  10: [['s', 'x', 'v']]
+  11: [['s', 'u', 'v']]
+  13: [['s', 'x', 'y', 'v']]
+  17: [['s', 'u', 'x', 'v']]
+  20: [['s', 'u', 'x', 'y', 'v']]
+--- SP-163 3x3 grid, undirected, unit 0->8: lengths [4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 8, 8]
+  4: [[0, 1, 2, 5, 8], [0, 1, 4, 5, 8], [0, 1, 4, 7, 8], [0, 3, 4, 5, 8], [0, 3, 4, 7, 8], [0, 3, 6, 7, 8]]
+  6: [[0, 1, 2, 5, 4, 7, 8], [0, 1, 4, 3, 6, 7, 8], [0, 3, 4, 1, 2, 5, 8], [0, 3, 6, 7, 4, 5, 8]]
+  8: [[0, 1, 2, 5, 4, 3, 6, 7, 8], [0, 3, 6, 7, 4, 1, 2, 5, 8]]
+--- SP-163 3x3 grid, directed right/down, unit 0->8: lengths [4, 4, 4, 4, 4, 4]
+  4: [[0, 1, 2, 5, 8], [0, 1, 4, 5, 8], [0, 1, 4, 7, 8], [0, 3, 4, 5, 8], [0, 3, 4, 7, 8], [0, 3, 6, 7, 8]]
+================ M. all shortest paths
+--- all shortest SP-170 NetworkX two routes 0->3 (unweighted): 2 paths [[0, 1, 2, 3], [0, 10, 20, 3]]
+--- all shortest SP-171 3x3 grid, undirected 0->8 (unweighted): 6 paths [[0, 1, 2, 5, 8], [0, 1, 4, 5, 8], [0, 1, 4, 7, 8], [0, 3, 4, 5, 8], [0, 3, 4, 7, 8], [0, 3, 6, 7, 8]]
+--- all shortest SP-172 Yen's example C->H: 1 paths [['C', 'E', 'F', 'H']]
+--- all shortest SP-172 Yen's example, unweighted C->H (unweighted): 3 paths [['C', 'D', 'F', 'H'], ['C', 'E', 'F', 'H'], ['C', 'E', 'G', 'H']]
+================ M. bidirectional Dijkstra
+--- bidirectional SP-178 NetworkX XG s->v: 9 ['s', 'x', 'u', 'v'] (path tie-dependent)
+--- bidirectional SP-178 NetworkX XG v->s: 8 ['v', 'y', 's'] (path tie-dependent)
+--- bidirectional SP-179 Yen's example C->H: 5 ['C', 'E', 'F', 'H'] (path tie-dependent)
+--- bidirectional SP-179 cycle_graph(7) undirected 0->4: 3 [0, 6, 5, 4] (path tie-dependent)
+================ M. all pairs
+--- all pairs SP-183 CLRS figure 25.6 (Johnson) [1, 2, 3, 5, 4]:
+  1: [0, 1, -3, -4, 2]
+  2: [3, 0, -4, -1, 1]
+  3: [7, 4, 0, 3, 5]
+  5: [8, 5, 1, 0, 6]
+  4: [2, -1, -5, -2, 0]
+--- all pairs SP-184 NetworkX test_johnson ['0', '3', '1', '2']:
+  0: [0, 0, -5, -1]
+  3: [None, 0, None, None]
+  1: [None, 5, 0, 4]
+  2: [None, 1, None, 0]
+--- all pairs SP-185 NetworkX XG ['s', 'u', 'x', 'v', 'y']:
+  s: [0, 8, 5, 9, 7]
+  u: [9, 0, 2, 1, 2]
+  x: [9, 3, 0, 4, 2]
+  v: [8, 16, 13, 0, 1]
+  y: [7, 15, 12, 6, 0]
+--- all pairs SP-186 a negative cycle: negative cycle

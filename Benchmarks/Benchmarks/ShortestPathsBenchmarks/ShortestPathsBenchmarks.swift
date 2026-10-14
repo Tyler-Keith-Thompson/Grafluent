@@ -119,6 +119,42 @@ func handWrittenDijkstra(_ graph: CompressedSparseRow, _ weights: [Int]) -> ([In
     return (dist, parent)
 }
 
+/// The floor for SP-B08's all-pairs rows: Dijkstra from every vertex over CSR's raw arrays with
+/// the hand-written heap, into an n × n distance matrix and an n × n last-edge matrix, as
+/// `DistanceMatrix` keeps them.
+@inline(never)
+func handWrittenAllPairsDijkstra(_ graph: CompressedSparseRow, _ weights: [Int]) -> ([Int], [Int]) {
+    let n = graph.vertexCount
+    var dist = [Int](repeating: 0, count: n * n)
+    var last = [Int](repeating: -1, count: n * n)
+    var reachedFrom = [Int](repeating: -1, count: n)
+    var queue = HandWrittenIndexedHeap<Int>(indexBound: n)
+    graph.withUnsafeBufferPointers { offsets, targets in
+        weights.withUnsafeBufferPointer { w in
+            for s in 0 ..< n {
+                reachedFrom[s] = s
+                queue.insert(s, 0)
+                while let (du, u) = queue.popMin() {
+                    for k in offsets[u] ..< offsets[u + 1] {
+                        let v = targets[k], nd = du + w[k]
+                        if reachedFrom[v] != s {
+                            reachedFrom[v] = s
+                            queue.insert(v, nd)
+                        } else if nd < dist[s * n + v] {
+                            queue.decrease(v, nd)
+                        } else {
+                            continue
+                        }
+                        dist[s * n + v] = nd
+                        last[s * n + v] = k
+                    }
+                }
+            }
+        }
+    }
+    return (dist, last)
+}
+
 let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
@@ -246,6 +282,72 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations {
             blackHole(grid.aStarShortestPath(from: 0, to: target, weight: { gridWeights[$0] }, heuristic: { (target / side - $0 / side) + (target % side - $0 % side) }))
         }
+    }
+    // SP-B08: all pairs on a sparse graph (2000 vertices, 10 000 edges), against the hand-written
+    // loop.
+    let sparseN = 2000
+    let sparseEdges = Inputs.sortedUnique(Inputs.randomEdges(vertexCount: sparseN, edgeCount: 10_000))
+    let sparse = CompressedSparseRow(vertexCount: sparseN, edges: sparseEdges)
+    let sparseWeights = sparseEdges.map { _ in Int.random(in: 1 ... 1000, using: &generator) }
+    do {
+        let (expectedAll, _) = handWrittenAllPairsDijkstra(sparse, sparseWeights)
+        let matrix = sparse.allPairsDijkstraShortestPaths { sparseWeights[$0] }
+        let johnson = sparse.johnsonShortestPaths { sparseWeights[$0] }!
+        for (s, t) in [(0, 1), (17, 1999), (1500, 3)] {
+            let d = matrix.distance(fromIndex: s, toIndex: t)
+            precondition(d == johnson.distance(fromIndex: s, toIndex: t))
+            precondition(d == nil || d == expectedAll[s * sparseN + t])
+        }
+    }
+    Benchmark("ShortestPaths: BASELINE hand-written all-pairs Dijkstra, 2000 vertices, 10 000 edges") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenAllPairsDijkstra(sparse, sparseWeights)) }
+    }
+    Benchmark("ShortestPaths: allPairsDijkstraShortestPaths, 2000 vertices, 10 000 edges") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(sparse.allPairsDijkstraShortestPaths { sparseWeights[$0] }) }
+    }
+    Benchmark("ShortestPaths: johnsonShortestPaths, 2000 vertices, 10 000 edges") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(sparse.johnsonShortestPaths { sparseWeights[$0] }) }
+    }
+    // SP-B08: bidirectional against one-way Dijkstra on random pairs of the 10⁶-edge graph.
+    var pairGenerator = SeededRandomNumberGenerator(seed: 8)
+    let pairs = (0 ..< 20).map { _ in (Int.random(in: 0 ..< n, using: &pairGenerator), Int.random(in: 0 ..< n, using: &pairGenerator)) }
+    for (s, t) in pairs {
+        precondition(list.bidirectionalDijkstraShortestPath(from: s, to: t) { weights[$0] }?.distance == list.dijkstraShortestPath(from: s, to: t) { weights[$0] }?.distance)
+    }
+    Benchmark("ShortestPaths: dijkstraShortestPath on AdjacencyList<Int>, 20 random pairs") { benchmark in
+        for _ in benchmark.scaledIterations {
+            for (s, t) in pairs { blackHole(list.dijkstraShortestPath(from: s, to: t) { weights[$0] }) }
+        }
+    }
+    Benchmark("ShortestPaths: bidirectionalDijkstraShortestPath on AdjacencyList<Int>, 20 random pairs") { benchmark in
+        for _ in benchmark.scaledIterations {
+            for (s, t) in pairs { blackHole(list.bidirectionalDijkstraShortestPath(from: s, to: t) { weights[$0] }) }
+        }
+    }
+    // SP-B08: the 10 shortest simple paths across a 100 × 100 grid (each costs up to one search per
+    // vertex of the path before it), against one single-target Dijkstra; and every shortest path's
+    // first 1000 on the unit grid, against the same search.
+    let small = 100
+    let smallGrid = CompressedSparseRow(vertexCount: small * small, edges: (0 ..< small * small).flatMap { v -> [DirectedEdge<Int>] in
+        var out: [DirectedEdge<Int>] = []
+        if v % small + 1 < small { out.append(DirectedEdge(from: v, to: v + 1)) }
+        if v % small > 0 { out.append(DirectedEdge(from: v, to: v - 1)) }
+        if v + small < small * small { out.append(DirectedEdge(from: v, to: v + small)) }
+        if v >= small { out.append(DirectedEdge(from: v, to: v - small)) }
+        return out
+    })
+    let smallWeights = (0 ..< smallGrid.edgeCount).map { _ in Int.random(in: 1 ... 9, using: &generator) }
+    let corner = small * small - 1
+    precondition(smallGrid.shortestSimplePaths(from: 0, to: corner) { smallWeights[$0] }.first { _ in true }?.distance
+        == smallGrid.dijkstraShortestPath(from: 0, to: corner) { smallWeights[$0] }?.distance)
+    Benchmark("ShortestPaths: dijkstraShortestPath across a 100×100 grid, weights 1…9") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(smallGrid.dijkstraShortestPath(from: 0, to: corner) { smallWeights[$0] }) }
+    }
+    Benchmark("ShortestPaths: shortestSimplePaths prefix(10) across a 100×100 grid, weights 1…9") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(Array(smallGrid.shortestSimplePaths(from: 0, to: corner) { smallWeights[$0] }.prefix(10))) }
+    }
+    Benchmark("ShortestPaths: allShortestPaths prefix(1000) across a 100×100 unit grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(Array(smallGrid.allShortestPaths(from: 0, to: corner).prefix(1000))) }
     }
     Benchmark("ShortestPaths: aStarShortestPath on a 1000×1000 grid, weights 1…4 from values(of:)") { benchmark in
         let target = side * side - 1

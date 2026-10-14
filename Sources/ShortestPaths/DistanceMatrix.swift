@@ -1,8 +1,9 @@
 import GraphProtocols
 import Walks
 
-/// All-pairs distances, from Floyd–Warshall: for each ordered pair of vertices, the distance of a
-/// best path and the last edge on it, so `path(from:to:)` walks back from the target.
+/// All-pairs distances, from Floyd–Warshall, Johnson's algorithm or all-pairs Dijkstra: for each
+/// ordered pair of vertices, the distance of a best path and the last edge on it, so
+/// `path(from:to:)` walks back from the target.
 ///
 /// A matrix holds a copy of the graph, as `ShortestPathTree` does. O(n²) space: n² distances and
 /// n² edge positions.

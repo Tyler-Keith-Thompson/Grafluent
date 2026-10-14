@@ -3,7 +3,8 @@
 Cases for single-source shortest paths: Dijkstra (one or several sources, an optional inclusive
 cutoff, a single-target query that stops when the target is settled), Bellman–Ford with
 negative-cycle detection and a witness cycle, A*, unweighted (breadth-first) shortest paths, and
-the `ShortestPathTree` result. Undirected graphs go through `graph.directedView`. Case IDs `SP-nn`
+the `ShortestPathTree` result; k shortest simple paths (Yen), all shortest paths, bidirectional
+Dijkstra, and all pairs by Johnson's algorithm and by Dijkstra from every vertex (section N). Undirected graphs go through `graph.directedView`. Case IDs `SP-nn`
 are stable, so test names can refer to them.
 
 ## Sources
@@ -249,6 +250,48 @@ Witnesses after the witness rotation (ref). `bellmanFordShortestPaths` returns `
 | SP-129 | **No per-vertex hashing on an indexed `AdjacencyList`** | SP-04 in `AdjacencyList<HashCountingVertex>` with weights in an array by position (or a closure that does not hash): `dijkstraShortestPaths`, `bellmanFordShortestPaths`, `shortestPaths` → at most a handful of hash calls (the source lookup), not one per settled vertex | Connectivity CN-136; `GF:Tests/TraversalTests/SearchPropertyTests.swift:329-340` |
 | SP-130 | Weights are read only for examined edges | a closure that counts calls on SP-21's early exit → fewer calls than `edgeCount` | — |
 
+### N. Path enumeration, bidirectional Dijkstra, all pairs
+
+Values from `cases_paths.py` (NetworkX `shortest_simple_paths`, `all_shortest_paths`,
+`bidirectional_dijkstra`, `johnson`, `floyd_warshall`, each re-checked by brute force over
+`all_simple_paths` where it applies), kept in `cases_paths.out`. Paths of equal length come in an
+unspecified order, so ties are compared as sets.
+
+| ID | Asserts | Graph → expected | Source |
+|---|---|---|---|
+| SP-160 | `shortestSimplePaths`, undirected | cycle C₇, 0 → 3 → `[0,1,2,3]` (3), `[0,6,5,4,3]` (4), weighted and unweighted; arcs oriented | nx `shortest_simple_paths` docstring |
+| SP-161 | Yen's example | C→D 3, C→E 2, D→F 4, E→D 1, E→F 2, E→G 3, F→G 2, F→H 1, G→H 2; C → H → lengths `[5, 7, 8, 8, 8, 11, 11]`, the three 8s as a set; `prefix(3)` → `[5, 7, 8]`; AL, reference multigraph, stable graph with a hole | Yen 1971; Wikipedia "Yen's algorithm" |
+| SP-162 | XG s → v | the six simple paths in order, lengths `[9, 10, 11, 13, 17, 20]`; the first through edges `[1, 5, 2]` | nx-Tw XG |
+| SP-163 | 3 × 3 grid, unweighted | undirected: 6 of length 4, 4 of 6, 2 of 8; directed right/down: the 6 monotone paths, at 8 with weight 2 | (ref) brute force |
+| SP-164 | Trivial and empty | s = t → the trivial path alone, at 0; unreachable → empty; a self-loop is on no simple path; one vertex | — |
+| SP-165 | Parallel edges | 0⇉1 (3, 1), 1→2 (1), 0→2 (5) → edge sequences `[b,c]` (2), `[a,c]` (4), `[d]` (5); unweighted `[1, 2, 2]`; undirected parallel pair | — |
+| SP-166 | Laziness | a 60-rung ladder (2⁵⁹ paths): `prefix(5)` at 59; `weight` called once per edge when the sequence is made, never while listing; a new iterator starts over | — |
+| SP-167 | Preconditions | a negative weight anywhere traps when the sequence is made; a target that is not a vertex | — |
+| SP-168 | Property, directed | ≤ 12 edges on 5 vertices, weights 0…4, loops and parallel edges: the same edge sequences as brute force, each once, lengths nondecreasing, weighted and unweighted | (ref) brute force |
+| SP-169 | Property, undirected | ≤ 9 edges on 5 vertices: as SP-168 by edge position | (ref) brute force |
+| SP-170 | `allShortestPaths`, undirected | 0-1-2-3 and 0-10-20-3 → both, distance 3 (6 at weight 2); reversed from 3 | nx `test_all_shortest_paths` |
+| SP-171 | 3 × 3 grid | the 6 monotone paths, each once, arcs oriented; directed: 6, none back | (ref) |
+| SP-172 | Yen's example | weighted: `[C,E,F,H]` alone at 5; unweighted: 3 paths at 3; AL, reference multigraph, stable graph with a hole | (ref) |
+| SP-173 | Trivial and empty | s = t → `[s]`; unreachable → empty, `distance == nil`; a zero-weight self-loop is on no path; a new iterator starts over | — |
+| SP-174 | Zero weights | 0→1, 0→2 (1), 1⇄2 (0), 1→3, 2→3 (1) → `[0,1,3]`, `[0,2,3]`, `[0,1,2,3]`, `[0,2,1,3]`; an edge into the target from its own distance; a zero-weight cycle through the source | — |
+| SP-175 | Parallel edges | equal copies give distinct paths, a heavier copy none; unweighted all four | — |
+| SP-176 | Preconditions | a negative examined weight; a target that is not a vertex | — |
+| SP-177 | Property | ≤ 12 edges on 5 vertices, weights 0…3: the shortest simple paths of brute force, each once, weighted and unweighted, directed and undirected | (ref) brute force |
+| SP-178 | `bidirectionalDijkstraShortestPath` | XG s → v → 9 `[s,x,u,v]`; v → s → 8 `[v,y,s]`; AL, reference multigraph, stable graph with a hole, pseudograph | nx `bidirectional_dijkstra` |
+| SP-179 | Yen's example, C₇ | C → H → 5 `[C,E,F,H]`, H → C → nil; C₇ 0 → 4 → 3 `[0,6,5,4]`, arcs oriented | nx |
+| SP-180 | Edge cases | s = t → `[s]` at 0; unreachable; a zero-weight loop; the lighter of parallel edges; a zero-weight edge | — |
+| SP-181 | Preconditions | a negative examined weight; a target that is not a vertex | — |
+| SP-182 | Property | ≤ 24 edges on 8 vertices, weights 0…5: Dijkstra's distance, a valid path that weighs it; directed (reference multigraph, pseudograph) and undirected | (ref) Dijkstra |
+| SP-183 | `johnsonShortestPaths` | CLRS figure 25.6 → rows `[0,1,-3,2,-4]`, `[3,0,-4,1,-1]`, `[7,4,0,5,3]`, `[2,-1,-5,0,-2]`, `[8,5,1,6,0]`; every path valid and of that weight; 1 → 3 is `[1,5,4,3]`; AL, reference multigraph, stable graph with a hole | CLRS §25.3; nx `johnson` |
+| SP-184 | Unreachable pairs | NetworkX's test_johnson: from 0 `[0,-5,-1,0]`, from 1 `[nil,0,4,5]`, from 3 only itself | nx `test_johnson` |
+| SP-185 | `allPairsDijkstraShortestPaths` | XG → rows `[0,8,5,9,7]`, `[9,0,2,1,2]`, `[9,3,0,4,2]`, `[8,16,13,0,1]`, `[7,15,12,6,0]`, the same by Johnson | nx `all_pairs_dijkstra` |
+| SP-186 | Negative cycles | 0→1→2→0 at −1 → Johnson nil, `findNegativeCycle` `[0,1,2]`; a negative loop → nil; a zero-weight cycle → distances | — |
+| SP-187 | Undirected | both equal Floyd–Warshall; a negative edge → Johnson nil | — |
+| SP-188 | Edge cases | empty graph; one vertex with a loop; parallel edges (the lighter is the path), a loop | — |
+| SP-189 | Checked lookups | `distance(checkedFrom:to:)`, `path(checkedFrom:to:)`, `hasPath(checkedFrom:to:)` throw `VertexNotFound`; nil keeps its meaning | — |
+| SP-190 | Preconditions | a negative weight in all-pairs Dijkstra; a lookup of a non-vertex | — |
+| SP-191 | Property | ≤ 20 edges on 6 vertices, weights −2…6, loops and parallel edges: Johnson equals Floyd–Warshall and is nil exactly when it is; all-pairs Dijkstra on |w| equals it on two representations | (ref) Floyd–Warshall |
+
 ---
 
 ## Benchmarks (not tests)
@@ -262,3 +305,4 @@ Witnesses after the witness rotation (ref). `bellmanFordShortestPaths` returns `
 | SP-B05 | Single-target early exit vs the full tree on random targets; A* (Manhattan) vs Dijkstra on 1000 × 1000 grids with 0%, 20% and 40% blocked cells: time and expanded vertices (counted by a heuristic closure) |
 | SP-B06 | Bellman–Ford (active rounds) vs classical full-edge rounds vs a queue (SPFA) on random graphs with negative edges, on the 10⁶ path in reverse order, and on the lasso |
 | SP-B07 | Interleaved `(target, weight)` rows vs separate arrays, hand-written, on G(10⁶, 10⁷) |
+| SP-B08 | `shortestSimplePaths(...).prefix(k)` on a grid; `allShortestPaths` on a grid; `bidirectionalDijkstraShortestPath` vs `dijkstraShortestPath` on random s–t pairs; `johnsonShortestPaths` and `allPairsDijkstraShortestPaths` vs `floydWarshallShortestPaths` on a sparse graph |

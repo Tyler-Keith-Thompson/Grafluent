@@ -3,7 +3,9 @@
 Tests for single-source shortest paths: Dijkstra (one or several sources, an optional inclusive
 cutoff, a single-target query that stops when the target is settled), Bellman–Ford with
 negative-cycle detection and a witness, A* with reopening, shortest paths in an acyclic graph,
-unweighted (breadth-first) shortest paths, and the `ShortestPathTree` result. Everything is written once
+unweighted (breadth-first) shortest paths, and the `ShortestPathTree` result; the k shortest simple
+paths (Yen with Lawler's refinement), every shortest path between two vertices, bidirectional
+Dijkstra, and all pairs by Johnson's algorithm and by Dijkstra from every vertex. Everything is written once
 against `DirectedGraph`, with forwarding overloads on `Graph` that read an undirected graph
 through `directedView`. The suite uses only the public API and is self-contained per test; shared
 material is the fixtures, the `ReferenceDirectedMultigraph` and `ReferencePseudograph` test
@@ -42,6 +44,16 @@ extension DirectedGraph
     func findNegativeCycle(from: Vertex | some Sequence<Vertex>, weight:) -> Cycle<Vertex, Edges.Index>?
     func findNegativeCycle(weight:) -> Cycle<Vertex, Edges.Index>?   // every vertex a source
     func dagShortestPaths(from: Vertex | some Sequence<Vertex>, weight:) -> ShortestPathTree<Self, W>?  // nil on a reachable cycle
+    func shortestSimplePaths(from:to:weight:) -> ShortestSimplePaths<Self, W>   // lazy, shortest first
+    func shortestSimplePaths(from:to:) -> ShortestSimplePaths<Self, Int>         // fewest edges first
+    func allShortestPaths(from:to:weight:) -> AllShortestPaths<Self, W>         // lazy; .distance
+    func allShortestPaths(from:to:) -> AllShortestPaths<Self, Int>
+    func allPairsDijkstraShortestPaths(weight:) -> DistanceMatrix<Self, W>
+    func johnsonShortestPaths(weight:) -> DistanceMatrix<Self, W>?             // nil on a negative cycle
+extension BidirectionalDirectedGraph
+    func bidirectionalDijkstraShortestPath(from:to:weight:) -> (path: Path<Vertex, Edges.Index>, distance: W)?
+struct ShortestSimplePaths<G, Distance>: Sequence     // Element (path: Path<G.Vertex, G.Edges.Index>, distance: Distance)
+struct AllShortestPaths<G, Distance>: Sequence        // Element Path<G.Vertex, G.Edges.Index>; distance: Distance?
 extension DirectedAcyclicGraph
     func dagShortestPaths(from: Vertex | some Sequence<Vertex>, weight:) -> ShortestPathTree<Self, W>   // in the maintained order
 extension Graph                                        // weight over the base's positions
@@ -115,10 +127,14 @@ breadth-first search, Johnson's reweighting).
 | `ShortestPathWalkReviewTests.swift` | A source improved by another, undirected paths as arcs of the directed view, an undirected negative self-loop (WK-1220 – WK-1222) |
 | `DAGShortestPathTests.swift` | Shortest paths in an acyclic graph: negative weights, reachable and unreachable cycles, several sources, ties, every representation's index space, the `DirectedAcyclicGraph` overload, random DAGs against Bellman–Ford, preconditions |
 | `ShortestPathWalkTests.swift` | Paths and witnesses as `Path` and `Cycle`, their edges between parallel copies and over undirected arcs, the trivial path, and the path and witness laws on random graphs |
+| `ShortestSimplePathsTests.swift` | §N: Yen's k shortest simple paths: NetworkX's and Yen's examples, a grid, trivial and empty cases, parallel edges, laziness, preconditions, brute force directed and undirected |
+| `AllShortestPathsTests.swift` | §N: every shortest path: NetworkX's two routes, a grid, Yen's example, zero weights and zero-weight cycles, parallel edges, preconditions, brute force |
+| `BidirectionalDijkstraTests.swift` | §N: bidirectional Dijkstra on XG, Yen's example and a cycle, edge cases, preconditions, against Dijkstra |
+| `AllPairsShortestPathTests.swift` | §N: Johnson and all-pairs Dijkstra: CLRS 25.6, NetworkX's cases, negative cycles, undirected graphs, edge cases, checked lookups, against Floyd–Warshall |
 
 ## Case IDs
 
-Case IDs (SP-01 … SP-154) refer to the catalog of cases (`Tests/Catalogs/ShortestPaths/cases.md`,
+Case IDs (SP-01 … SP-191) refer to the catalog of cases (`Tests/Catalogs/ShortestPaths/cases.md`,
 with `ref.py` and the scripts that print each `.out`). Each test's name starts with its ID. WK-12nn
 cases are the Walks catalog's section 12 (`Tests/WalksTests/README.md`); WK-1202 – WK-1205 and WK-1213 – WK-1215 are in Traversal's suite.
 
@@ -142,7 +158,11 @@ cases are the Walks catalog's section 12 (`Tests/WalksTests/README.md`); WK-1202
 | SP-146 – SP-154 | `checked:` lookups on `ShortestPathTree`, `DistanceMatrix` and `ShortestDistances`; `Arborescence(checked:)` (`NotATree` from two sources); `Forest(_: ShortestPathTree)` from one source, two, and a source improved by another | `ShortestPathCheckedLookupTests.swift` |
 | WK-1201, WK-1206 – WK-1212 | Walks catalog §12: witnesses and paths as walks | `ShortestPathWalkTests.swift` |
 | WK-1220 – WK-1222 | Walks catalog: a source improved by another, undirected paths as arcs of the directed view, an undirected negative self-loop | `ShortestPathWalkReviewTests.swift` |
-| SP-B01 – SP-B07 | Benchmarks | not tests; SP-115 and SP-116 assert only answers (and SP-115 that Bellman–Ford reads each weight about once on a path) |
+| SP-160 – SP-169 | N. k shortest simple paths | `ShortestSimplePathsTests.swift` |
+| SP-170 – SP-177 | N. All shortest paths | `AllShortestPathsTests.swift` |
+| SP-178 – SP-182 | N. Bidirectional Dijkstra | `BidirectionalDijkstraTests.swift` |
+| SP-183 – SP-191 | N. Johnson and all-pairs Dijkstra | `AllPairsShortestPathTests.swift` |
+| SP-B01 – SP-B08 | Benchmarks | not tests; SP-115 and SP-116 assert only answers (and SP-115 that Bellman–Ford reads each weight about once on a path) |
 
 Not tested here: the successor-closure entry points (`dijkstraShortestPath(from:successors:success:)`
 and `aStarShortestPath(from:successors:heuristic:success:)`), tested with the implicit graphs in

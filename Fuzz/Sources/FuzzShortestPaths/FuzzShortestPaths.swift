@@ -9,6 +9,12 @@
 // one super-source; the reachable and whole-graph witnesses are negative cycles. Undirected:
 // Dijkstra on UndirectedAdjacencyList equals Floyd–Warshall over both directions, and with
 // negative weights Bellman–Ford returns nil exactly when a negative edge is reachable.
+//
+// Path enumeration and all pairs: Johnson's matrix is Floyd–Warshall's, nil exactly when a negative
+// cycle exists, and its paths weigh their distances. With nonnegative weights, all-pairs Dijkstra is
+// Floyd–Warshall's too; bidirectional Dijkstra gives the target's distance; Yen's sequence lists every
+// simple path to the target once, in nondecreasing length, as a brute-force enumeration does; and
+// every shortest path is listed once, as brute force finds them.
 
 import AdjacencyListModule
 import CompressedSparseRowModule
@@ -145,6 +151,57 @@ enum FuzzShortestPaths {
                 check(Set(cycle.edges.map(\.position)).count == 1, "undirected witness \(cycle) uses more than one edge")
             }
             check((graph.findNegativeCycle(weight: uw) != nil) == undirected.values.contains { $0 < 0 }, "undirected whole-graph witness")
+        }
+
+        // Johnson, against Floyd–Warshall; nil exactly when a negative cycle exists.
+        let johnson = list.johnsonShortestPaths(weight: w)
+        check((johnson == nil) == cycleAnywhere, "Johnson returned \(johnson == nil ? "nil" : "a matrix"), a negative cycle \(cycleAnywhere ? "exists" : "does not")")
+        func checkMatrix(_ matrix: DistanceMatrix<AdjacencyList<Int>, Int>, _ name: String) {
+            for i in 0 ..< n {
+                for j in 0 ..< n {
+                    check(matrix.distance(from: i, to: j) == d[i][j].nilIfInfinite, "\(name) \(i)→\(j): \(String(describing: matrix.distance(from: i, to: j))), expected \(d[i][j])")
+                    guard let path = matrix.path(from: i, to: j) else { continue }
+                    check(Path(vertices: path.vertices, edges: path.edges, in: list) != nil && path.source == i && path.target == j, "\(name) path \(i)→\(j)")
+                    check(path.weight(w) == d[i][j], "\(name) path \(i)→\(j) weighs \(path.weight(w))")
+                }
+            }
+        }
+        if let johnson { checkMatrix(johnson, "Johnson") }
+        if !negative {
+            checkMatrix(list.allPairsDijkstraShortestPaths(weight: w), "all-pairs Dijkstra")
+            let source = sources[0]
+            let both = list.bidirectionalDijkstraShortestPath(from: source, to: target, weight: w)
+            check(both?.distance == d[source][target].nilIfInfinite, "bidirectional Dijkstra \(source)→\(target)")
+            if let both {
+                check(Path(vertices: both.path.vertices, edges: both.path.edges, in: list) != nil && both.path.weight(w) == both.distance, "bidirectional Dijkstra path")
+            }
+            // Brute force: every simple path from the source to the target, with its length.
+            var lengths: [[Int]: Int] = [:]
+            var onPath = [source]
+            var steps: [Int] = []
+            func extend(_ x: Int) {
+                if x == target {
+                    lengths[steps] = steps.map(w).reduce(0, +)
+                    return
+                }
+                for e in list.outEdges(of: x) where !onPath.contains(list.target(ofEdgeAt: e)) {
+                    onPath.append(list.target(ofEdgeAt: e))
+                    steps.append(e)
+                    extend(list.target(ofEdgeAt: e))
+                    steps.removeLast()
+                    onPath.removeLast()
+                }
+            }
+            extend(source)
+            let simple = Array(list.shortestSimplePaths(from: source, to: target, weight: w))
+            check(simple.count == lengths.count && Set(simple.map(\.path.edges)) == Set(lengths.keys), "Yen \(source)→\(target): \(simple.count) paths, brute force \(lengths.count)")
+            check(simple.map(\.distance) == lengths.values.sorted(), "Yen \(source)→\(target) lengths")
+            check(simple.allSatisfy { lengths[$0.path.edges] == $0.distance }, "Yen \(source)→\(target) distances")
+            let best = lengths.values.min()
+            let shortest = list.allShortestPaths(from: source, to: target, weight: w)
+            check(shortest.distance == best, "allShortestPaths distance \(String(describing: shortest.distance)), expected \(String(describing: best))")
+            let listed = Array(shortest).map(\.edges)
+            check(listed.count == Set(listed).count && Set(listed) == Set(lengths.filter { $0.value == best }.keys), "allShortestPaths \(source)→\(target)")
         }
 
         // Unweighted search counts edges from the nearest source.
