@@ -27,7 +27,7 @@ MODULES = [
     ("Semirings", "Vocabulary", "The Semiring protocol and the tropical, max-plus, bottleneck, Viterbi, Boolean and counting semirings and the lexicographic product, for algebraic path problems.", []),
 
     # Data structures used by graph algorithms
-    ("PriorityQueueModule", "Data structures", "IndexedPriorityQueue: an indexed 4-ary min-heap over 0..<indexBound with decrease-key.", []),
+    ("PriorityQueueModule", "Data structures", "IndexedPriorityQueue: an indexed 4-ary min-heap over 0..<indexBound with decrease-key; RadixHeap: a monotone priority queue over integer keys.", []),
     ("DisjointSetModule", "Data structures", "DisjointSet: union–find over 0..<count, with union by size and path halving.", []),
 
     # Representations
@@ -93,7 +93,7 @@ TEST_TARGETS = [
     ("AdjacencyMatrixTests", ["GraphProtocols", "AdjacencyMatrixModule", "AdjacencyListModule", "GrafluentTestSupport", "swift-collections/BitCollections", "swift-property-based/PropertyBased"]),
     ("EdgeListTests", ["GraphProtocols", "EdgeListModule", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport"]),
     ("TraversalTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "GraphOperations", "Hypergraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Walks", "Trees"]),
-    ("PriorityQueueTests", ["PriorityQueueModule", "GrafluentTestSupport"]),
+    ("PriorityQueueTests", ["PriorityQueueModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("DisjointSetTests", ["DisjointSetModule", "GrafluentTestSupport"]),
     ("ShortestPathsTests", ["GraphProtocols", "ShortestPaths", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Walks", "Trees", "Semirings"]),
     ("SpanningTreesTests", ["GraphProtocols", "SpanningTrees", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Trees"]),

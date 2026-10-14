@@ -228,6 +228,30 @@ func dijkstraHeap<W: Comparable & AdditiveArithmetic>(_ graph: CompressedSparseR
     return dist
 }
 
+/// Dijkstra from 0 with a radix heap: no decrease-key, so an improved vertex is pushed again and
+/// the stale pair skipped when it comes out.
+@inline(never)
+func dijkstraRadix(_ graph: CompressedSparseRow, _ weights: [Int], _ infinity: Int) -> [Int] {
+    let n = graph.vertexCount
+    var dist = [Int](repeating: infinity, count: n)
+    var heap = RadixHeap<Int>()
+    dist[0] = 0
+    heap.insert(0, key: 0)
+    graph.withUnsafeBufferPointers { offsets, targets in
+        while let (key, u) = heap.popMin() {
+            let du = Int(bitPattern: key)
+            if dist[u] < du { continue }
+            for k in offsets[u] ..< offsets[u + 1] {
+                let v = targets[k], nd = du + weights[k]
+                guard nd < dist[v] else { continue }
+                dist[v] = nd
+                heap.insert(v, key: UInt(bitPattern: nd))
+            }
+        }
+    }
+    return dist
+}
+
 let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
@@ -240,14 +264,19 @@ let benchmarks: @Sendable () -> Void = {
     let ties = (0 ..< graph.edgeCount).map { _ in Int.random(in: 1 ... 4, using: &generator) }
     let real = (0 ..< graph.edgeCount).map { _ in Double.random(in: 0 ..< 1, using: &generator) }
     let bigWeights = (0 ..< big.edgeCount).map { _ in Int.random(in: 1 ... 1000, using: &generator) }
-    let inputs: [(String, CompressedSparseRow, [Int])] = [("G(10⁵, 10⁶), weights 1…1000", graph, weights), ("G(10⁵, 10⁶), weights 1…4", graph, ties), ("G(10⁶, 4·10⁶), weights 1…1000", big, bigWeights)]
+    let wide = (0 ..< graph.edgeCount).map { _ in Int.random(in: 1 ... 1_000_000_000, using: &generator) }
+    let bigWide = (0 ..< big.edgeCount).map { _ in Int.random(in: 1 ... 1_000_000_000, using: &generator) }
+    let inputs: [(String, CompressedSparseRow, [Int])] = [
+        ("G(10⁵, 10⁶), weights 1…1000", graph, weights), ("G(10⁵, 10⁶), weights 1…4", graph, ties), ("G(10⁵, 10⁶), weights 1…10⁹", graph, wide),
+        ("G(10⁶, 4·10⁶), weights 1…1000", big, bigWeights), ("G(10⁶, 4·10⁶), weights 1…10⁹", big, bigWide),
+    ]
     for (_, g, w) in inputs {
         let expected = dijkstraHandWritten(g, w, .max)
-        precondition(dijkstraLibrary(g, w, .max) == expected && dijkstraLazy(g, w, .max) == expected && dijkstraHeap(g, w, .max) == expected)
+        precondition(dijkstraLibrary(g, w, .max) == expected && dijkstraLazy(g, w, .max) == expected && dijkstraHeap(g, w, .max) == expected && dijkstraRadix(g, w, .max) == expected)
     }
     precondition(dijkstraLibrary(graph, real, .infinity) == dijkstraHandWritten(graph, real, .infinity))
 
-    // PQ-B01: Dijkstra, four ways, on each input.
+    // PQ-B01: Dijkstra, five ways, on each input.
     for (name, g, w) in inputs {
         Benchmark("PriorityQueue: BASELINE hand-written indexed 4-ary Dijkstra, \(name)") { benchmark in
             for _ in benchmark.scaledIterations { blackHole(dijkstraHandWritten(g, w, .max)) }
@@ -260,6 +289,9 @@ let benchmarks: @Sendable () -> Void = {
         }
         Benchmark("PriorityQueue: Dijkstra with swift-collections Heap and lazy deletion, \(name)") { benchmark in
             for _ in benchmark.scaledIterations { blackHole(dijkstraHeap(g, w, .max)) }
+        }
+        Benchmark("PriorityQueue: Dijkstra with RadixHeap and lazy deletion, \(name)") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(dijkstraRadix(g, w, .max)) }
         }
     }
     Benchmark("PriorityQueue: BASELINE hand-written indexed 4-ary Dijkstra, G(10⁵, 10⁶), Double weights") { benchmark in

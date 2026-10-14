@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# IndexedPriorityQueue: an indexed 4-ary min-heap over 0..<indexBound with decrease-key.
+# IndexedPriorityQueue: an indexed 4-ary min-heap over 0..<indexBound with decrease-key; RadixHeap: a monotone priority queue over integer keys.
 swift_library(
     name = "PriorityQueueModule",
     srcs = glob(["**/*.swift"]),

@@ -1,7 +1,8 @@
 // IndexedPriorityQueue against a dictionary from index to priority. Each input is a sequence of
 // operations on indices 0..<16 with priorities 0..<8, so ties are common; after each one the
 // queue's observable state must match the model, and a copy taken earlier must still match the
-// model as it was.
+// model as it was. An input whose first byte is odd drives a RadixHeap instead, against an array
+// of keys: inserts at the last removed key plus an offset of one, two or eight bytes, and pops.
 
 import FuzzSupport
 import PriorityQueueModule
@@ -11,6 +12,10 @@ enum FuzzPriorityQueue {
     static func main() { runFuzzer(fuzz) }
 
     static func fuzz(_ input: inout FuzzInput) {
+        if !input.isEmpty, input.byte() % 2 == 1 {
+            fuzzRadixHeap(&input)
+            return
+        }
         let bound = 16
         var queue = IndexedPriorityQueue<Int>(indexBound: bound)
         var model: [Int: Int] = [:]
@@ -77,5 +82,37 @@ enum FuzzPriorityQueue {
             }
             check(expected.isEmpty, "the snapshot lost \(expected)")
         }
+    }
+
+    static func fuzzRadixHeap(_ input: inout FuzzInput) {
+        var heap = RadixHeap<Int>()
+        var model: [UInt] = []
+        var last: UInt = 0
+        var step = 0
+        while !input.isEmpty {
+            step += 1
+            if input.int(below: 3) == 0 {
+                let popped = heap.popMin()
+                if let smallest = model.min() {
+                    check(popped?.key == smallest, "popMin gave \(String(describing: popped)), model \(model)")
+                    model.remove(at: model.firstIndex(of: smallest)!)
+                    last = smallest
+                } else {
+                    check(popped == nil, "popMin on an empty heap gave \(String(describing: popped))")
+                }
+            } else {
+                var offset: UInt = 0
+                for _ in 0 ..< [1, 2, 8][input.int(below: 3)] { offset = offset << 8 | UInt(input.byte()) }
+                let key = UInt.max - last < offset ? UInt.max : last + offset
+                heap.insert(step, key: key)
+                model.append(key)
+            }
+            check(heap.count == model.count, "count \(heap.count), model \(model)")
+            check(heap.lastRemovedKey == last, "lastRemovedKey \(heap.lastRemovedKey), expected \(last)")
+        }
+        model.sort()
+        var rest: [UInt] = []
+        while let (key, _) = heap.popMin() { rest.append(key) }
+        check(rest == model, "drained \(rest), model \(model)")
     }
 }

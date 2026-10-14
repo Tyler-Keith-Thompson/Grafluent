@@ -292,5 +292,6 @@ isomorphism, not insertion order), except `EdgeList`, whose order is part of its
 | `FunctionalGraph` | Out-degree exactly 1 on `0..<n` | `cycleDecomposition()` in O(n) |
 
 Data structures: `IndexedPriorityQueue` (4-ary min-heap over `0..<indexBound` with
-decrease-key; not a `Sequence`), `DisjointSet` (union by size, path halving). Bit sets come from
+decrease-key; not a `Sequence`), `RadixHeap` (monotone queue over `UInt` keys, no decrease-key),
+`DisjointSet` (union by size, path halving). Bit sets come from
 swift-collections' `BitCollections`.

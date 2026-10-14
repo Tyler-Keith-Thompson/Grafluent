@@ -27,6 +27,15 @@ struct IndexedPriorityQueue<Priority: Comparable>: CustomStringConvertible, Cust
     mutating func updatePriority(of: Int, to: Priority) -> Priority // @discardableResult; the old one
     mutating func remove(_ index: Int) -> Priority?            // @discardableResult; nil if absent
     mutating func removeAll(keepingCapacity: Bool = false)
+
+struct RadixHeap<Value>                                        // Sendable where Value: Sendable
+    init()
+    var count: Int
+    var isEmpty: Bool
+    var lastRemovedKey: UInt                                   // 0 before the first removal
+    mutating func insert(_ value: Value, key: UInt)            // traps if key < lastRemovedKey
+    mutating func popMin() -> (key: UInt, value: Value)?
+    mutating func removeMin() -> (key: UInt, value: Value)     // @discardableResult; traps if empty
 ```
 
 ## Conventions
