@@ -1,7 +1,9 @@
 # Cycles: case catalog (CY-001 – CY-879)
 
 Cases for the Cycles module: undirected `isAcyclic`, `findCycle()`, `findCycle(from:)`,
-`cycleBasis()`, `simpleCycles(maxLength:)` on `Graph` and `DirectedGraph`, and `girth()` on both.
+`cycleBasis()`, `simpleCycles(maxLength:)` on `Graph` and `DirectedGraph`, and `girth()` on both;
+`chordlessCycles(maxLength:)` on both and `minimumMeanCycle(weight:)` (sections M and N, hand-written
+in `ChordlessCycleTests.swift` and `MinimumMeanCycleTests.swift`).
 The Source column cites the test suites cases were taken from: NetworkX `test_cycles.py`, JGraphT
 (`DirectedSimpleCyclesTest`, `HawickJamesSimpleCyclesTest`, `PatonCycleBaseTest`,
 `GraphMetricsTest`), igraph (`igraph_simple_cycles.c`, `igraph_find_cycle.c`, `cycle_bases.c`,
@@ -469,3 +471,40 @@ debug build; the benchmarks take the big sizes.
 | CY-858 | `Graph.isAcyclic` and `DirectedGraph.isAcyclic` never meet: no type conforms to both; `g.directedView.isAcyclic` is false whenever g has an edge |
 | CY-859 | Every returned `Cycle` survives `Codable` round trip and `==`/`hash` up to rotation |
 | CY-860 | Rows that break the index laws trap (the unchecked buffers are checked once), as Connectivity's CN-404 |
+
+## M. Chordless cycles (CY-900 – CY-909)
+
+A chordless (induced) cycle is a simple cycle whose vertices induce no edge but its own, as
+NetworkX 3.7's `chordless_cycles` reads a multigraph: a self-loop is one when it is its vertex's
+only loop, and its vertex is on no longer one; two parallel (directed: opposite) edges are one when
+nothing else joins their ends; a third copy is a chord. Expected values are hand-computed and, where
+noted, NetworkX's; the property rows compare with `simpleCycles()` filtered by an induced-edge
+count written in the test.
+
+| ID | Case |
+|---|---|
+| CY-900 | K₄: the four triangles in order, canonical, with their positions; K₅ and K₆ have C(n, 3) triangles and nothing longer |
+| CY-901 | C₅ alone; C₅ with the chord 0–2 splits into a triangle and a square (leaving 0 through its lesser edge); the 3 × 3 grid's four faces and its ring of eight; the 5-wheel's five triangles and its rim |
+| CY-902 | Directed: `DiGraph([(0,1),(1,0),(1,2),(2,0)])` is `[[0, 1]]` (NetworkX); a triangle with the chord 0→2 leaves the 2-cycle 0→2→0; a directed square, and with a diagonal |
+| CY-903 | `MultiGraph([(0,1),(0,1),(1,2),(2,0),(2,2)])` is the 2-cycle and the loop (NetworkX); three parallel edges and two loops give none; a loop on a triangle's corner leaves the loop alone; `MultiDiGraph([(0,1),(0,1),(1,0)])` has none (NetworkX) |
+| CY-904 | `maxLength` keeps the shorter cycles in order; 0 keeps none; a directed 5-ring needs 5 |
+| CY-905 | Empty and acyclic graphs; `String` vertices start at the least in `vertices` order; a conformer without vertex indices; the sequence holds the graph and iterates again the same |
+| CY-906 | A negative `maxLength` traps, directed and undirected |
+| CY-907 | Undirected, 300 random multigraphs on 7 vertices with loops, rows shuffled or not, every bound: `simpleCycles(maxLength:)` filtered, in content and order; each a cycle of the graph |
+| CY-908 | Directed, the same on shuffled rows, `ReferenceDirectedMultigraph`, a conformer without vertex indices, `CompressedSparseRow`, `AdjacencyList` and `AdjacencyMatrix` |
+
+## N. Minimum mean cycle (CY-920 – CY-929)
+
+Karp (1978): D_k(v), the least weight of a walk of exactly k edges ending at v from anywhere; the
+least mean is min over v of max over k < n of (D_n(v) − D_k(v)) / (n − k), and every cycle on a
+least n-edge walk to a minimizing v has it. NetworkX has no counterpart; the property row and the
+differential compare with the least mean over every simple cycle, exactly as fractions.
+
+| ID | Case |
+|---|---|
+| CY-920 | Two rings joined by a heavy negative edge off both: the ring of mean 1, from its least vertex, with its positions; a long light ring beats a short heavier one (7/4 against 2) |
+| CY-921 | Negative weights: a triangle of mean −4/3 beats a loop of −1, and a loop of −1 beats zero cycles; of two copies of an edge the lighter is taken |
+| CY-922 | The empty graph and a DAG have none; `Double` weights; `String` vertices |
+| CY-923 | 300 random multigraphs on up to 12 vertices with loops and weights in −5 … 9, so the stored levels span several blocks: the mean equals the brute-force least, the cycle is the graph's and starts at its least vertex, on `ReferenceDirectedMultigraph` and `AdjacencyList` |
+| CY-924 | A 200-vertex ring with a chord: the walk back crosses every block; which of the two cycles wins follows the chord's weight |
+

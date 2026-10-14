@@ -2,7 +2,8 @@
 
 Finding, enumerating and measuring cycles. `DirectedGraph.findCycle()`, `findCycle(from:)`,
 `isAcyclic` and `topologicalSort()` are in Traversal; this module adds the undirected
-counterparts, enumeration, girth and a feedback arc set heuristic.
+counterparts, enumeration (simple and chordless cycles), girth, Karp's minimum mean cycle and a
+feedback arc set heuristic.
 
 ## Public API
 
@@ -28,12 +29,21 @@ extension Graph {
     /// Precondition: maxLength >= 0.
     func simpleCycles(maxLength: Int = .max) -> UndirectedSimpleCycles<Self>
 
+    /// Every chordless (induced) cycle once, lazily, canonical as simpleCycles lists it, in the
+    /// same order: simpleCycles(maxLength:) filtered to the cycles whose vertices induce no other
+    /// edge. Precondition: maxLength >= 0.
+    func chordlessCycles(maxLength: Int = .max) -> UndirectedChordlessCycles<Self>
+
     /// The length of a shortest cycle (1 with a self-loop, 2 with parallel edges); nil when acyclic.
     func girth() -> Int?
 }
 
 extension DirectedGraph {
     func simpleCycles(maxLength: Int = .max) -> DirectedSimpleCycles<Self>
+    func chordlessCycles(maxLength: Int = .max) -> DirectedChordlessCycles<Self>
+    /// Karp: a cycle of least mean weight, from its least vertex; nil when acyclic. O(n·m) time,
+    /// O(n·√n + m) memory; means compared by cross-multiplying.
+    func minimumMeanCycle<W: SignedNumeric & Comparable>(weight: (Edges.Index) -> W) -> Cycle<Vertex, Edges.Index>?
     func girth() -> Int?
     /// Eades–Lin–Smyth's greedy feedback arc set, ascending positions, every self-loop included.
     func feedbackArcSet() -> [Edges.Index]
@@ -47,6 +57,8 @@ extension DirectedGraph {
     @frozen public struct Iterator: IteratorProtocol { public mutating func next() -> Element? }
 }
 @frozen public struct UndirectedSimpleCycles<G: Graph>: Sequence { /* the same shape */ }
+@frozen public struct DirectedChordlessCycles<G: DirectedGraph>: Sequence { /* the same shape */ }
+@frozen public struct UndirectedChordlessCycles<G: Graph>: Sequence { /* the same shape */ }
 // Sendable when G is; the iterators when G, G.Vertex and G.Edges.Index are. Neither sequence is a
 // Collection.
 ```

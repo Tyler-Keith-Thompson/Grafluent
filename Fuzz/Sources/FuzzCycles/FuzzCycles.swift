@@ -3,7 +3,9 @@
 // undirected edges C(k, 2) 2-cycles, a lone undirected edge none), in canonical form and in the
 // documented order (least vertex, then each edge's offset in its vertex's row); the bounded
 // sequence is the unbounded one filtered; girth is the shortest; isAcyclic and findCycle agree
-// with it; the cycle basis has m − n + c independent cycles. Undirected graphs are checked on
+// with it; the cycle basis has m − n + c independent cycles; chordlessCycles is simpleCycles
+// filtered to the cycles whose vertices induce no other edge, in order; directed, the minimum mean
+// cycle's mean is the least over every simple cycle, exactly. Undirected graphs are checked on
 // UndirectedAdjacencyList after removals (rows out of position order) and on a conformer without
 // vertex indices; directed on AdjacencyList and the directed view of the undirected
 // graph.
@@ -118,6 +120,14 @@ enum FuzzCycles {
         check(Set(keys) == expected, "\(name): simpleCycles \(Set(keys).subtracting(expected).sorted { $0.lexicographicallyPrecedes($1) }.prefix(3)) extra, \(expected.subtracting(keys).sorted { $0.lexicographicallyPrecedes($1) }.prefix(3)) missing")
         let bounded = Array(graph.simpleCycles(maxLength: maxLength))
         check(bounded == all.filter { $0.length <= maxLength } && bounded.map(\.edges) == all.filter { $0.length <= maxLength }.map(\.edges), "\(name): simpleCycles(maxLength: \(maxLength)) is not the filter")
+        // Chordless: the edges with both ends on the cycle are its own.
+        func induced(_ c: Cycle<Int, G.Edges.Index>) -> Bool {
+            let members = Set(c.vertices)
+            return graph.edges.filter { members.contains($0.u) && members.contains($0.v) }.count == c.length
+        }
+        let chordless = Array(graph.chordlessCycles(maxLength: maxLength))
+        let filtered = bounded.filter(induced)
+        check(chordless.map(\.vertices) == filtered.map(\.vertices) && chordless.map(\.edges) == filtered.map(\.edges), "\(name): chordlessCycles(maxLength: \(maxLength)) is not simpleCycles filtered")
 
         let girth = all.map(\.length).min()
         check(graph.girth() == girth, "\(name): girth \(String(describing: graph.girth())), expected \(String(describing: girth))")
@@ -187,6 +197,28 @@ enum FuzzCycles {
         check(Set(keys) == expected, "\(name): simpleCycles \(Set(keys).subtracting(expected).count) extra, \(expected.subtracting(keys).count) missing")
         let bounded = Array(graph.simpleCycles(maxLength: maxLength))
         check(bounded.map(\.vertices) == all.filter { $0.length <= maxLength }.map(\.vertices) && bounded.map(\.edges) == all.filter { $0.length <= maxLength }.map(\.edges), "\(name): simpleCycles(maxLength: \(maxLength)) is not the filter")
+        func induced(_ c: Cycle<Int, G.Edges.Index>) -> Bool {
+            let members = Set(c.vertices)
+            return graph.edges.filter { members.contains($0.source) && members.contains($0.target) }.count == c.length
+        }
+        let chordless = Array(graph.chordlessCycles(maxLength: maxLength))
+        let filtered = bounded.filter(induced)
+        check(chordless.map(\.vertices) == filtered.map(\.vertices) && chordless.map(\.edges) == filtered.map(\.edges), "\(name): chordlessCycles(maxLength: \(maxLength)) is not simpleCycles filtered")
+        // Weights from each edge's number, some negative: the least mean over every simple cycle.
+        func weight(_ p: G.Edges.Index) -> Int { (edgeNumber[p]! * 7 + 3) % 11 - 4 }
+        var best: (sum: Int, length: Int)?
+        for c in all {
+            let sum = c.edges.reduce(0) { $0 + weight($1) }
+            if let b = best, b.sum * c.length <= sum * b.length { continue }
+            best = (sum, c.length)
+        }
+        let mean = graph.minimumMeanCycle(weight: weight)
+        check((mean == nil) == (best == nil), "\(name): minimumMeanCycle \(String(describing: mean)), cycles \(all.count)")
+        if let mean, let best {
+            check(Cycle(vertices: mean.vertices, edges: mean.edges, in: graph) != nil, "\(name): minimumMeanCycle \(mean) is not a cycle of the graph")
+            let sum = mean.edges.reduce(0) { $0 + weight($1) }
+            check(sum * best.length == best.sum * mean.length, "\(name): minimumMeanCycle mean \(sum)/\(mean.length), least \(best.sum)/\(best.length)")
+        }
         let girth = all.map(\.length).min()
         check(graph.girth() == girth, "\(name): girth \(String(describing: graph.girth())), expected \(String(describing: girth))")
     }

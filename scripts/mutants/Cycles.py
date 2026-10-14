@@ -3,7 +3,9 @@
 # Known equivalent mutants are left out rather than listed: widening a piece (bridges as pieces,
 # not skipping the parent edge in the block search) or what girth searches (single-vertex strong
 # components, leaving a component) only makes a search slower, and loosening a stopping rule
-# (girth's depth bound, the O(1) shortcut in isAcyclic) only makes it longer.
+# (girth's depth bound, the O(1) shortcut in isAcyclic) only makes it longer. Karp's block size
+# and keeping every level (minimumMeanCycle) only trade memory for time, and chordlessCycles'
+# bound on entering a vertex only prunes: the bound on closing a cycle decides what is emitted.
 
 TESTS = ["CyclesTests"]
 
@@ -71,4 +73,33 @@ MUTANTS = [
 
     # reuse pass (C)
     Mutant("girthsccsize", "Girth.swift", "size[components[v]] >= 2", "size[components[v]] >= 3"),
+
+    # chordlessCycles
+    Mutant("cc_joined", "ChordlessCycles.swift", "joined[w] == 1", "joined[w] >= 1"),
+    Mutant("cc_oneloop", "ChordlessCycles.swift", "                guard loops[s] == 1 else { continue }", "", mode="stmt"),
+    Mutant("cc_loopends", "ChordlessCycles.swift", "            if rows.undirected { loops[v] /= 2 }", "", mode="stmt"),
+    Mutant("cc_rootloops", "ChordlessCycles.swift", "loops[w] == 0", "true", nth=0),
+    Mutant("cc_pathloops", "ChordlessCycles.swift", "loops[w] == 0", "true", nth=1),
+    Mutant("cc_orientation", "ChordlessCycles.swift", "pathEdges[0] > backEdge", "pathEdges[0] < backEdge"),
+    Mutant("cc_digonorientation", "ChordlessCycles.swift", "e < rows.edges[other]", "e > rows.edges[other]"),
+    Mutant("cc_digon", "ChordlessCycles.swift", "fromRoot[w] == 2", "fromRoot[w] >= 2"),
+    Mutant("cc_rootchord", "ChordlessCycles.swift", "        if !rows.undirected && fromRoot[w] != 0 { return false }", "", mode="stmt"),
+    Mutant("cc_inrow", "ChordlessCycles.swift",
+           "            for k in inOffsets[w] ..< inOffsets[w + 1] { joined[sources[inSlots[k]]] += delta }",
+           "", mode="stmt"),
+    Mutant("cc_endroot", "ChordlessCycles.swift", "            fromRoot[w] = 0", "", mode="stmt"),
+    Mutant("cc_endrootin", "ChordlessCycles.swift", "                toRoot[u] = 0", "", mode="stmt"),
+
+    # minimumMeanCycle
+    Mutant("mm_compare", "MinimumMeanCycle.swift", "a * W(exactly: d)! < c * W(exactly: b)!", "a * W(exactly: b)! < c * W(exactly: d)!"),
+    Mutant("mm_greatest", "MinimumMeanCycle.swift",
+           "!Self._less(old.numerator, old.denominator, fraction.numerator, fraction.denominator)",
+           "Self._less(old.numerator, old.denominator, fraction.numerator, fraction.denominator)"),
+    Mutant("mm_least", "MinimumMeanCycle.swift",
+           "Self._less(f.numerator, f.denominator, best[end]!.numerator, best[end]!.denominator)",
+           "!Self._less(f.numerator, f.denominator, best[end]!.numerator, best[end]!.denominator)"),
+    Mutant("mm_checkpoint", "MinimumMeanCycle.swift", "checkpoints[start / b]", "checkpoints[0]"),
+    Mutant("mm_fulllevel", "MinimumMeanCycle.swift", "checkpoints[k + 1]", "checkpoints[k]"),
+    Mutant("mm_rotate", "MinimumMeanCycle.swift", "                slots = Array(slots[least...] + slots[..<least])", "", mode="stmt"),
+    Mutant("mm_relax", "MinimumMeanCycle.swift", "dw <= candidate", "dw >= candidate"),
 ]

@@ -236,4 +236,53 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Cycles: directed girth, G(2000, 3000)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(girthDigraph.girth()) }
     }
+
+    // CY-B07: chordless cycles of a 40 × 40 grid (its 1 521 faces and every chordless ring) and
+    // of G(40, 100) directed.
+    let small40 = UndirectedAdjacencyList(vertices: 0 ..< 1600, edges: (0 ..< 1600).flatMap { v -> [UndirectedEdge<Int>] in
+        var out: [UndirectedEdge<Int>] = []
+        if v % 40 + 1 < 40 { out.append(UndirectedEdge(v, v + 1)) }
+        if v + 40 < 1600 { out.append(UndirectedEdge(v, v + 40)) }
+        return out
+    })
+    Benchmark("Cycles: undirected chordlessCycles(maxLength: 8), 40 × 40 grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(small40.chordlessCycles(maxLength: 8).reduce(0) { n, _ in n + 1 }) }
+    }
+    Benchmark("Cycles: directed chordlessCycles count, G(40, 100)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(digraph.chordlessCycles().reduce(0) { n, _ in n + 1 }) }
+    }
+
+    // CY-B08: Karp's minimum mean cycle on G(500, 2000) against the textbook form: the whole
+    // (n + 1) × n table of walk weights, and the mean only.
+    let karpEdges = Inputs.randomEdges(vertexCount: 500, edgeCount: 2000, seed: 11)
+    let karpGraph = AdjacencyList(vertices: 0 ..< 500, edges: karpEdges)
+    let karpWeights = karpGraph.edges.map { ($0.source * 31 + $0.target * 17) % 97 - 20 }
+    let karpArcs = karpGraph.edges.indices.map { (karpGraph.edges[$0].source, karpGraph.edges[$0].target, karpWeights[$0]) }
+    func handWrittenKarpMean(_ n: Int, _ arcs: [(Int, Int, Int)]) -> (Int, Int)? {
+        let unreached = Int.max
+        var d = [[Int]](repeating: [Int](repeating: unreached, count: n), count: n + 1)
+        for v in 0 ..< n { d[0][v] = 0 }
+        for k in 1 ... n {
+            for (u, v, w) in arcs where d[k - 1][u] != unreached && d[k - 1][u] + w < d[k][v] { d[k][v] = d[k - 1][u] + w }
+        }
+        var best: (Int, Int)?
+        for v in 0 ..< n where d[n][v] != unreached {
+            var worst: (Int, Int)?
+            for k in 0 ..< n where d[k][v] != unreached {
+                let f = (d[n][v] - d[k][v], n - k)
+                if worst == nil || f.0 * worst!.1 > worst!.0 * f.1 { worst = f }
+            }
+            if let w = worst, best == nil || w.0 * best!.1 < best!.0 * w.1 { best = w }
+        }
+        return best
+    }
+    let karpMean = handWrittenKarpMean(500, karpArcs)!
+    let karpCycle = karpGraph.minimumMeanCycle { karpWeights[$0] }!
+    precondition(karpCycle.weight { karpWeights[$0] } * karpMean.1 == karpMean.0 * karpCycle.length)
+    Benchmark("Cycles: BASELINE hand-written Karp mean, full table, G(500, 2000)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenKarpMean(500, karpArcs)) }
+    }
+    Benchmark("Cycles: minimumMeanCycle, G(500, 2000)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(karpGraph.minimumMeanCycle { karpWeights[$0] }) }
+    }
 }
