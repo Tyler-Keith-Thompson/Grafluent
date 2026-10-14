@@ -4,7 +4,7 @@ The named families are static factories on the representation types, for example
 `CompressedSparseRow.complete(vertexCount: 5)`. This file fixes where those factories live, the
 vertex numbering of every family, the directed forms, the edge order, the traps and the complexity.
 
-`cases.md` (NG-001 – NG-135, 135 rows) pins the values. `ref.py` builds every family from its
+`cases.md` (NG-001 – NG-236, 236 rows) pins the values. `ref.py` builds every family from its
 definition and checks each row against NetworkX 3.7 (exact edge set under the numbering below),
 igraph 1.0 (exact where igraph numbers the same way, isomorphism for Petersen) and the count and
 degree laws. For grids it checks the mapping to NetworkX's `grid_2d_graph(r, c)` (node `(i, j)` is
@@ -83,11 +83,31 @@ extension _GraphConstruction {            // and the same names on _DirectedGrap
     public static func completeMultipartite(partSizes: [Int]) -> Self
     public static func turan(vertexCount n: Int, partCount r: Int) -> Self
     public static func balancedTree(branchingFactor r: Int, height h: Int) -> Self
+    public static func circulant(vertexCount n: Int, offsets: [Int]) -> Self
+    public static func generalizedPetersen(outerCycleLength n: Int, step k: Int) -> Self
+    public static func kneser(setSize n: Int, subsetSize k: Int) -> Self
+    public static func windmill(cliqueCount c: Int, cliqueVertexCount k: Int) -> Self
+    public static func binomialTree(order k: Int) -> Self
+    public static func fullRaryTree(branchingFactor r: Int, vertexCount n: Int) -> Self
+    public static func triangularLattice(rowCount m: Int, columnCount n: Int) -> Self
+    public static func hexagonalLattice(rowCount m: Int, columnCount n: Int) -> Self
+    public static func lcf(vertexCount n: Int, shifts: [Int], repeatCount r: Int) -> Self
+    public static func heawood() -> Self                      // and moebiusKantor(), pappus(), desargues(),
+    public static func icosahedral() -> Self                  // dodecahedral(), frucht(), tutte(), chvatal(),
+                                                              // hoffmanSingleton()
+}
+extension _DirectedGraphConstruction {
+    public static func kautz(alphabetSize s: Int, wordLength L: Int) -> Self   // directed only
+}
+extension AdjacencyList where Vertex == Int {                 // and DirectedPseudograph: self-loops
+    public static func deBruijn(alphabetSize m: Int, wordLength n: Int) -> AdjacencyList
 }
 extension Tree where Vertex == Int {
     public static func path(vertexCount n: Int) -> Tree      // n ≥ 1
     public static func star(vertexCount n: Int) -> Tree      // n ≥ 1
     public static func balancedTree(branchingFactor r: Int, height h: Int) -> Tree
+    public static func binomialTree(order k: Int) -> Tree
+    public static func fullRaryTree(branchingFactor r: Int, vertexCount n: Int) -> Tree   // n ≥ 1
 }
 extension BipartiteGraph where Vertex == Int {
     public static func completeBipartite(leftCount a: Int, rightCount b: Int) -> BipartiteGraph
@@ -115,9 +135,22 @@ extension BipartiteGraph where Vertex == Int {
 | `completeMultipartite(partSizes:)` | parts as consecutive ranges, in order | every pair in different parts | both arcs | Σsᵢ, Σᵢ<ⱼ sᵢsⱼ | NG-112 – NG-118 |
 | `turan(vertexCount:partCount:)` | r parts of ⌊n/r⌋ and ⌈n/r⌉, the smaller first | as `completeMultipartite` | both arcs | n, Σᵢ<ⱼ sᵢsⱼ | NG-119 – NG-125 |
 | `balancedTree(branchingFactor:height:)` | breadth-first: root 0, children of p are r·p+1 … r·p+r | parent – child | parent → child | 1+r+…+r^h, n−1 | NG-126 – NG-135 |
+| `circulant(vertexCount:offsets:)` | `0..<n`, n ≥ 1 | i – (i ± o) mod n for each offset, each edge once | both arcs | n, n·#{o mod n folded to 1…n/2} (n/2 counts once) | NG-136 – NG-144 |
+| `generalizedPetersen(outerCycleLength:step:)` | outer cycle `0..<n`, inner `n..<2n`, 1 ≤ k < n/2 | i – i+1 mod n, spokes i – n+i, inner n+i – n+(i+k) mod n | both arcs | 2n, 3n | NG-145 – NG-152 |
+| `kneser(setSize:subsetSize:)` | the k-subsets of `0..<n` in lexicographic order | disjoint subsets | both arcs | C(n, k), C(n, k)·C(n−k, k)/2 | NG-153 – NG-160, NG-236 |
+| `windmill(cliqueCount:cliqueVertexCount:)` | hub 0, clique j on 1+j(k−1) ..< 1+(j+1)(k−1) | c copies of K_k sharing 0; k = 3 is the friendship graph | both arcs | 1+c(k−1), c·k(k−1)/2 | NG-161 – NG-167 |
+| `binomialTree(order:)` | `0..<2^k` | v & (v − 1) – v | parent → child | 2^k, 2^k − 1 | NG-168 – NG-175 |
+| `fullRaryTree(branchingFactor:vertexCount:)` | breadth-first, as `balancedTree`, the last level filled from the left | (c−1)/r – c | parent → child | n, max(n−1, 0) | NG-176 – NG-185 |
+| `deBruijn(alphabetSize:wordLength:)` (`AdjacencyList`, `DirectedPseudograph`) | words of n letters as base-m numbers | — | u → (u·m mod mⁿ) + a, the constant words' self-loops included | mⁿ, mⁿ⁺¹ arcs | NG-186 – NG-192 |
+| `kautz(alphabetSize:wordLength:)` | words with no two equal neighbors, lexicographic | — | each word to its shifts by a letter ≠ its last | s(s−1)^(L−1), times s−1 arcs | NG-193 – NG-198 |
+| `triangularLattice(rowCount:columnCount:)` | m+1 rows of ⌈n/2⌉+1 nodes, row by row (odd rows one shorter for odd n) | row, column and one diagonal per square | both arcs | as NetworkX's `triangular_lattice_graph`, V + mn − 1 edges | NG-199 – NG-206 |
+| `hexagonalLattice(rowCount:columnCount:)` | n+1 columns of 2m+2 nodes, column by column, two corners left out | as NetworkX's `hexagonal_lattice_graph` | both arcs | (n+1)(2m+2)−2, V + mn − 1 | NG-207 – NG-214 |
+| `lcf(vertexCount:shifts:repeatCount:)` | `0..<n`, n ≥ 3 | the n-cycle and the chords (i mod n) – (i + s_{i mod k}) mod n, i < k·r | both arcs | n, n + distinct chords | NG-215 – NG-223 |
+| `heawood()`, `moebiusKantor()`, `pappus()`, `desargues()`, `dodecahedral()`, `frucht()` | their LCF notation | NetworkX's graphs, Frucht up to isomorphism | both arcs | 14, 16, 18, 20, 20, 12 vertices, cubic | NG-224 – NG-230 |
+| `icosahedral()`, `tutte()`, `chvatal()`, `hoffmanSingleton()` | their constructions (apices and pentagons; three Tutte fragments; NetworkX's numbering; Robertson's pentagons and pentagrams) | isomorphic to NetworkX's | both arcs | 12/30, 46/69, 12/24, 50/175 | NG-231 – NG-235 |
 
-**The directed form.** Families with a natural orientation (path, cycle, star, wheel, balanced
-tree) get one arc per edge along it. The others (complete, complete bipartite, complete
+**The directed form.** Families with a natural orientation (path, cycle, star, wheel, balanced,
+binomial and full r-ary tree) get one arc per edge along it. The others (complete, complete bipartite, complete
 multipartite, Turán, grid, hypercube, Petersen, the ladders, barbell and lollipop) get both arcs,
 which is `graph.directedView` materialized. With both arcs, `completeMultipartite(partSizes: [a, b])`
 equals `completeBipartite(leftCount: a, rightCount: b)` on every conformer, and n parts of size 1
@@ -144,6 +177,13 @@ predictable. Cycle's closing edge is `UndirectedEdge(0, n − 1)`, second in the
 | `barbell` / `lollipop` with a clique of fewer than 2 | NG-104, NG-110 | |
 | `turan` without 1 ≤ r ≤ n | NG-124, NG-125 | |
 | Multipartite edge count or balanced-tree vertex count overflows `Int` | NG-118, NG-135 | checked by division before allocating |
+| An offset or shift that is a multiple of n (a self-loop); a circulant on 0 vertices; an LCF cycle shorter than 3 or a negative repeat count | NG-143, NG-144, NG-221 – NG-223 | |
+| `generalizedPetersen` without n ≥ 3 and 1 ≤ k < n/2 | NG-150 – NG-152 | k = n/2 would repeat the inner edges |
+| `kneser` without 1 ≤ k ≤ n, or with C(n, k) past `Int` | NG-159, NG-160, NG-236 | the binomial table saturates, so only the needed coefficients must fit |
+| `windmill` with fewer than 2 cliques or cliques of fewer than 2 | NG-166, NG-167 | |
+| `binomialTree` order outside 0…62; `fullRaryTree` with r < 1 or n < 0 (`Tree`: n < 1) | NG-174, NG-175, NG-183 – NG-185 | |
+| `deBruijn` with m < 1 or n < 1; `kautz` with s < 2 or L < 1 | NG-191, NG-192, NG-197, NG-198 | |
+| Negative lattice counts | NG-206, NG-214 | |
 
 Behaviours that are not traps: `complete(0)`, `path(0)`, `empty(0)` and `completeBipartite(0, 0)` are
 the null graph; a dimension of 0 gives the null graph (NG-056); a periodic dimension of length 1 or
@@ -151,11 +191,17 @@ the null graph; a dimension of 0 gives the null graph (NG-056); a periodic dimen
 `hypercube(dimension: 0)` is K₁ (NG-069); `ladder(rungCount: 0)` and
 `completeMultipartite(partSizes: [])` are the null graph; an empty part adds no vertex (NG-113);
 `balancedTree` with r = 0 or h = 0 is the root alone (NG-129, NG-130); `star(vertexCount:)` counts
-the hub (NG-044).
+the hub (NG-044); a lattice with no rows or columns is the null graph (NG-204, NG-212); `kneser` with
+n < 2k has no edges (NG-155); `fullRaryTree(branchingFactor: r, vertexCount: 0)` is the null graph
+(NG-176). The tetrahedron, cube and octahedron are `complete(vertexCount: 4)`,
+`hypercube(dimension: 3)` and `turan(vertexCount: 6, partCount: 3)`, so they have no factory of their
+own.
 
 ### Complexity
 
-Every factory is O(n + m) time and builds no intermediate hash table. The Θ(n²) families
+Every factory is O(n + m) time and builds no intermediate hash table, except `kneser`
+(O(m·k), each neighbor's rank from prefix sums of binomial coefficients) and `deBruijn`, which
+builds through the representations' `_built` (rows by counting sort, one pair-table entry per arc). The Θ(n²) families
 (`complete`, `completeBipartite`, `completeMultipartite`, `turan`) pass a lazy collection that
 computes its edges, so no edge array is allocated (`_AscendingPairs`, `_DistinctPairs`,
 `_CrossPairs`, `_MultipartitePairs`, and `_CrossPartArcs` for both arcs). The others pass an

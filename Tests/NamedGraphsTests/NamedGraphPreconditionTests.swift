@@ -1130,4 +1130,880 @@ struct NamedGraphPreconditionTests {
         let graph = UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 1, height: 63)
         #expect(graph.vertexCount == 64 && graph.edgeCount == 63)
     }
+
+    @Test("NG-143 an offset that is a multiple of n is a self-loop")
+    func ng143() async {
+        // UndirectedAdjacencyList<Int>.circulant(vertexCount: 6, offsets: [1, 6]) → **trap**: offset 6 is a multiple of vertexCount 6: a self-loop
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.circulant(vertexCount: 6, offsets: [1, 6])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.circulant(vertexCount: 6, offsets: [1, 6])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.circulant(vertexCount: 6, offsets: [1, 6])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.circulant(vertexCount: 6, offsets: [1, 6])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.circulant(vertexCount: 6, offsets: [1, 6])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.circulant(vertexCount: 6, offsets: [1, 6])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.circulant(vertexCount: 6, offsets: [1, 6])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.circulant(vertexCount: 6, offsets: [1, 6])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.circulant(vertexCount: 6, offsets: [1, 6])
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.circulant(vertexCount: 6, offsets: [1, 5])
+        #expect(graph.vertexCount == 6 && graph.edgeCount == 6)
+    }
+
+    @Test("NG-144 no vertices")
+    func ng144() async {
+        // UndirectedAdjacencyList<Int>.circulant(vertexCount: 0, offsets: []) → **trap**: a circulant graph needs at least 1 vertex, not 0
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.circulant(vertexCount: 0, offsets: [])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.circulant(vertexCount: 0, offsets: [])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.circulant(vertexCount: 0, offsets: [])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.circulant(vertexCount: 0, offsets: [])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.circulant(vertexCount: 0, offsets: [])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.circulant(vertexCount: 0, offsets: [])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.circulant(vertexCount: 0, offsets: [])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.circulant(vertexCount: 0, offsets: [])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.circulant(vertexCount: 0, offsets: [])
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.circulant(vertexCount: 1, offsets: [])
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
+    }
+
+    @Test("NG-150 step 0")
+    func ng150() async {
+        // UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 5, step: 0) → **trap**: step 0 is not in 1 ..< 5/2
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 5, step: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.generalizedPetersen(outerCycleLength: 5, step: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.generalizedPetersen(outerCycleLength: 5, step: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.generalizedPetersen(outerCycleLength: 5, step: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.generalizedPetersen(outerCycleLength: 5, step: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.generalizedPetersen(outerCycleLength: 5, step: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.generalizedPetersen(outerCycleLength: 5, step: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.generalizedPetersen(outerCycleLength: 5, step: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.generalizedPetersen(outerCycleLength: 5, step: 0)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 5, step: 1)
+        #expect(graph.vertexCount == 10 && graph.edgeCount == 15)
+    }
+
+    @Test("NG-151 step n/2 repeats the inner edges")
+    func ng151() async {
+        // UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 6, step: 3) → **trap**: step 3 is not in 1 ..< 6/2
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 6, step: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.generalizedPetersen(outerCycleLength: 6, step: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.generalizedPetersen(outerCycleLength: 6, step: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.generalizedPetersen(outerCycleLength: 6, step: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.generalizedPetersen(outerCycleLength: 6, step: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.generalizedPetersen(outerCycleLength: 6, step: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.generalizedPetersen(outerCycleLength: 6, step: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.generalizedPetersen(outerCycleLength: 6, step: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.generalizedPetersen(outerCycleLength: 6, step: 3)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 6, step: 2)
+        #expect(graph.vertexCount == 12 && graph.edgeCount == 18)
+    }
+
+    @Test("NG-152 outer cycle of 2")
+    func ng152() async {
+        // UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 2, step: 1) → **trap**: a generalized Petersen graph needs an outer cycle of at least 3, not 2
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 2, step: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.generalizedPetersen(outerCycleLength: 2, step: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.generalizedPetersen(outerCycleLength: 2, step: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.generalizedPetersen(outerCycleLength: 2, step: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.generalizedPetersen(outerCycleLength: 2, step: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.generalizedPetersen(outerCycleLength: 2, step: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.generalizedPetersen(outerCycleLength: 2, step: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.generalizedPetersen(outerCycleLength: 2, step: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.generalizedPetersen(outerCycleLength: 2, step: 1)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 3, step: 1)
+        #expect(graph.vertexCount == 6 && graph.edgeCount == 9)
+    }
+
+    @Test("NG-159 subsets of 0")
+    func ng159() async {
+        // UndirectedAdjacencyList<Int>.kneser(setSize: 4, subsetSize: 0) → **trap**: subsetSize 0 is not in 1...4
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.kneser(setSize: 4, subsetSize: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.kneser(setSize: 4, subsetSize: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.kneser(setSize: 4, subsetSize: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.kneser(setSize: 4, subsetSize: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.kneser(setSize: 4, subsetSize: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.kneser(setSize: 4, subsetSize: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.kneser(setSize: 4, subsetSize: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.kneser(setSize: 4, subsetSize: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.kneser(setSize: 4, subsetSize: 0)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.kneser(setSize: 4, subsetSize: 1)
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 6)
+    }
+
+    @Test("NG-160 subsets larger than the set")
+    func ng160() async {
+        // UndirectedAdjacencyList<Int>.kneser(setSize: 3, subsetSize: 4) → **trap**: subsetSize 4 is not in 1...3
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.kneser(setSize: 3, subsetSize: 4)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.kneser(setSize: 3, subsetSize: 4)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.kneser(setSize: 3, subsetSize: 4)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.kneser(setSize: 3, subsetSize: 4)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.kneser(setSize: 3, subsetSize: 4)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.kneser(setSize: 3, subsetSize: 4)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.kneser(setSize: 3, subsetSize: 4)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.kneser(setSize: 3, subsetSize: 4)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.kneser(setSize: 3, subsetSize: 4)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.kneser(setSize: 3, subsetSize: 3)
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
+    }
+
+    @Test("NG-166 one clique")
+    func ng166() async {
+        // UndirectedAdjacencyList<Int>.windmill(cliqueCount: 1, cliqueVertexCount: 3) → **trap**: a windmill needs at least 2 cliques, not 1
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.windmill(cliqueCount: 1, cliqueVertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.windmill(cliqueCount: 1, cliqueVertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.windmill(cliqueCount: 1, cliqueVertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.windmill(cliqueCount: 1, cliqueVertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.windmill(cliqueCount: 1, cliqueVertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.windmill(cliqueCount: 1, cliqueVertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.windmill(cliqueCount: 1, cliqueVertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.windmill(cliqueCount: 1, cliqueVertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.windmill(cliqueCount: 1, cliqueVertexCount: 3)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.windmill(cliqueCount: 2, cliqueVertexCount: 3)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 6)
+    }
+
+    @Test("NG-167 cliques of 1")
+    func ng167() async {
+        // UndirectedAdjacencyList<Int>.windmill(cliqueCount: 3, cliqueVertexCount: 1) → **trap**: a windmill's cliques need at least 2 vertices, not 1
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.windmill(cliqueCount: 3, cliqueVertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.windmill(cliqueCount: 3, cliqueVertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.windmill(cliqueCount: 3, cliqueVertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.windmill(cliqueCount: 3, cliqueVertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.windmill(cliqueCount: 3, cliqueVertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.windmill(cliqueCount: 3, cliqueVertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.windmill(cliqueCount: 3, cliqueVertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.windmill(cliqueCount: 3, cliqueVertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.windmill(cliqueCount: 3, cliqueVertexCount: 1)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.windmill(cliqueCount: 3, cliqueVertexCount: 2)
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 3)
+    }
+
+    @Test("NG-174 negative order")
+    func ng174() async {
+        // UndirectedAdjacencyList<Int>.binomialTree(order: -1) → **trap**: order -1 is negative
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.binomialTree(order: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.binomialTree(order: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.binomialTree(order: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.binomialTree(order: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.binomialTree(order: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.binomialTree(order: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.binomialTree(order: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.binomialTree(order: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.binomialTree(order: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Tree<Int>.binomialTree(order: -1)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.binomialTree(order: 0)
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
+    }
+
+    @Test("NG-175 2^63 vertices overflow Int")
+    func ng175() async {
+        // UndirectedAdjacencyList<Int>.binomialTree(order: 63) → **trap**: 2^63 vertices overflow Int
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.binomialTree(order: 63)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.binomialTree(order: 63)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.binomialTree(order: 63)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.binomialTree(order: 63)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.binomialTree(order: 63)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.binomialTree(order: 63)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.binomialTree(order: 63)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.binomialTree(order: 63)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.binomialTree(order: 63)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Tree<Int>.binomialTree(order: 63)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.binomialTree(order: 4)
+        #expect(graph.vertexCount == 16 && graph.edgeCount == 15)
+    }
+
+    @Test("NG-183 branching factor 0")
+    func ng183() async {
+        // UndirectedAdjacencyList<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 3) → **trap**: branchingFactor 0 < 1
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.fullRaryTree(branchingFactor: 0, vertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.fullRaryTree(branchingFactor: 0, vertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.fullRaryTree(branchingFactor: 0, vertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.fullRaryTree(branchingFactor: 0, vertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Tree<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Tree<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 1)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.fullRaryTree(branchingFactor: 1, vertexCount: 3)
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 2)
+    }
+
+    @Test("NG-184 negative count")
+    func ng184() async {
+        // UndirectedAdjacencyList<Int>.fullRaryTree(branchingFactor: 2, vertexCount: -1) → **trap**: vertexCount -1 is negative
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.fullRaryTree(branchingFactor: 2, vertexCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.fullRaryTree(branchingFactor: 2, vertexCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.fullRaryTree(branchingFactor: 2, vertexCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.fullRaryTree(branchingFactor: 2, vertexCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.fullRaryTree(branchingFactor: 2, vertexCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.fullRaryTree(branchingFactor: 2, vertexCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.fullRaryTree(branchingFactor: 2, vertexCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.fullRaryTree(branchingFactor: 2, vertexCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.fullRaryTree(branchingFactor: 2, vertexCount: -1)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.fullRaryTree(branchingFactor: 2, vertexCount: 0)
+        #expect(graph.vertexCount == 0 && graph.edgeCount == 0)
+    }
+
+    @Test("NG-185 Tree.fullRaryTree(0): a tree is never empty")
+    func ng185() async {
+        // Tree<Int>.fullRaryTree(branchingFactor: 2, vertexCount: 0) → **trap**: a Tree has at least one vertex
+        await #expect(processExitsWith: .failure) {
+            _ = Tree<Int>.fullRaryTree(branchingFactor: 2, vertexCount: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Tree<Int>.fullRaryTree(branchingFactor: 2, vertexCount: -1)
+        }
+        // Without the fault: accepted.
+        let graph = Tree<Int>.fullRaryTree(branchingFactor: 2, vertexCount: 1)
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 0)
+    }
+
+    @Test("NG-191 empty alphabet")
+    func ng191() async {
+        // AdjacencyList<Int>.deBruijn(alphabetSize: 0, wordLength: 2) → **trap**: alphabetSize 0 < 1
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.deBruijn(alphabetSize: 0, wordLength: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.deBruijn(alphabetSize: 0, wordLength: 2)
+        }
+        // Without the fault: accepted.
+        let graph = AdjacencyList<Int>.deBruijn(alphabetSize: 1, wordLength: 2)
+        #expect(graph.vertexCount == 1 && graph.edgeCount == 1)
+    }
+
+    @Test("NG-192 empty words")
+    func ng192() async {
+        // AdjacencyList<Int>.deBruijn(alphabetSize: 2, wordLength: 0) → **trap**: wordLength 0 < 1
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.deBruijn(alphabetSize: 2, wordLength: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.deBruijn(alphabetSize: 2, wordLength: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.deBruijn(alphabetSize: 1, wordLength: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.deBruijn(alphabetSize: 1, wordLength: 0)
+        }
+        // Without the fault: accepted.
+        let graph = AdjacencyList<Int>.deBruijn(alphabetSize: 2, wordLength: 1)
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 4)
+    }
+
+    @Test("NG-197 one letter")
+    func ng197() async {
+        // CompressedSparseRow.kautz(alphabetSize: 1, wordLength: 2) → **trap**: alphabetSize 1 < 2
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.kautz(alphabetSize: 1, wordLength: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.kautz(alphabetSize: 1, wordLength: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.kautz(alphabetSize: 1, wordLength: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.kautz(alphabetSize: 1, wordLength: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.kautz(alphabetSize: 1, wordLength: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.kautz(alphabetSize: 1, wordLength: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.kautz(alphabetSize: 1, wordLength: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.kautz(alphabetSize: 1, wordLength: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.kautz(alphabetSize: 1, wordLength: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.kautz(alphabetSize: 1, wordLength: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.kautz(alphabetSize: 1, wordLength: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.kautz(alphabetSize: 1, wordLength: 1)
+        }
+        // Without the fault: accepted.
+        let graph = CompressedSparseRow.kautz(alphabetSize: 2, wordLength: 2)
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 2)
+    }
+
+    @Test("NG-198 empty words")
+    func ng198() async {
+        // CompressedSparseRow.kautz(alphabetSize: 3, wordLength: 0) → **trap**: wordLength 0 < 1
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.kautz(alphabetSize: 3, wordLength: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.kautz(alphabetSize: 3, wordLength: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.kautz(alphabetSize: 3, wordLength: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.kautz(alphabetSize: 3, wordLength: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.kautz(alphabetSize: 3, wordLength: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.kautz(alphabetSize: 3, wordLength: 0)
+        }
+        // Without the fault: accepted.
+        let graph = CompressedSparseRow.kautz(alphabetSize: 3, wordLength: 1)
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 6)
+    }
+
+    @Test("NG-206 negative rows")
+    func ng206() async {
+        // UndirectedAdjacencyList<Int>.triangularLattice(rowCount: -1, columnCount: 2) → **trap**: rowCount -1 is negative
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.triangularLattice(rowCount: -1, columnCount: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.triangularLattice(rowCount: -1, columnCount: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.triangularLattice(rowCount: -1, columnCount: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.triangularLattice(rowCount: -1, columnCount: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.triangularLattice(rowCount: -1, columnCount: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.triangularLattice(rowCount: -1, columnCount: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.triangularLattice(rowCount: -1, columnCount: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.triangularLattice(rowCount: -1, columnCount: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.triangularLattice(rowCount: -1, columnCount: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.triangularLattice(rowCount: 2, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.triangularLattice(rowCount: 2, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.triangularLattice(rowCount: 2, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.triangularLattice(rowCount: 2, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.triangularLattice(rowCount: 2, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.triangularLattice(rowCount: 2, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.triangularLattice(rowCount: 2, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.triangularLattice(rowCount: 2, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.triangularLattice(rowCount: 2, columnCount: -1)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.triangularLattice(rowCount: 0, columnCount: 2)
+        #expect(graph.vertexCount == 0 && graph.edgeCount == 0)
+    }
+
+    @Test("NG-214 negative columns")
+    func ng214() async {
+        // UndirectedAdjacencyList<Int>.hexagonalLattice(rowCount: 1, columnCount: -1) → **trap**: columnCount -1 is negative
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.hexagonalLattice(rowCount: 1, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.hexagonalLattice(rowCount: 1, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.hexagonalLattice(rowCount: 1, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.hexagonalLattice(rowCount: 1, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.hexagonalLattice(rowCount: 1, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.hexagonalLattice(rowCount: 1, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.hexagonalLattice(rowCount: 1, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.hexagonalLattice(rowCount: 1, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.hexagonalLattice(rowCount: 1, columnCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.hexagonalLattice(rowCount: -1, columnCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.hexagonalLattice(rowCount: -1, columnCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.hexagonalLattice(rowCount: -1, columnCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.hexagonalLattice(rowCount: -1, columnCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.hexagonalLattice(rowCount: -1, columnCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.hexagonalLattice(rowCount: -1, columnCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.hexagonalLattice(rowCount: -1, columnCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.hexagonalLattice(rowCount: -1, columnCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.hexagonalLattice(rowCount: -1, columnCount: 1)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.hexagonalLattice(rowCount: 1, columnCount: 0)
+        #expect(graph.vertexCount == 0 && graph.edgeCount == 0)
+    }
+
+    @Test("NG-221 a cycle of 2")
+    func ng221() async {
+        // UndirectedAdjacencyList<Int>.lcf(vertexCount: 2, shifts: [1], repeatCount: 1) → **trap**: an LCF graph needs a cycle of at least 3 vertices, not 2
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.lcf(vertexCount: 2, shifts: [1], repeatCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.lcf(vertexCount: 2, shifts: [1], repeatCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.lcf(vertexCount: 2, shifts: [1], repeatCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.lcf(vertexCount: 2, shifts: [1], repeatCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.lcf(vertexCount: 2, shifts: [1], repeatCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.lcf(vertexCount: 2, shifts: [1], repeatCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.lcf(vertexCount: 2, shifts: [1], repeatCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.lcf(vertexCount: 2, shifts: [1], repeatCount: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.lcf(vertexCount: 2, shifts: [1], repeatCount: 1)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.lcf(vertexCount: 3, shifts: [1], repeatCount: 1)
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 3)
+    }
+
+    @Test("NG-222 a shift that is a multiple of n is a self-loop")
+    func ng222() async {
+        // UndirectedAdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3, 6], repeatCount: 3) → **trap**: shift 6 is a multiple of vertexCount 6: a self-loop
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3, 6], repeatCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.lcf(vertexCount: 6, shifts: [3, 6], repeatCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.lcf(vertexCount: 6, shifts: [3, 6], repeatCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.lcf(vertexCount: 6, shifts: [3, 6], repeatCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.lcf(vertexCount: 6, shifts: [3, 6], repeatCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3, 6], repeatCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.lcf(vertexCount: 6, shifts: [3, 6], repeatCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.lcf(vertexCount: 6, shifts: [3, 6], repeatCount: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.lcf(vertexCount: 6, shifts: [3, 6], repeatCount: 3)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3, -3], repeatCount: 3)
+        #expect(graph.vertexCount == 6 && graph.edgeCount == 9)
+    }
+
+    @Test("NG-223 negative repeat count")
+    func ng223() async {
+        // UndirectedAdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3], repeatCount: -1) → **trap**: repeatCount -1 is negative
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3], repeatCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.lcf(vertexCount: 6, shifts: [3], repeatCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.lcf(vertexCount: 6, shifts: [3], repeatCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.lcf(vertexCount: 6, shifts: [3], repeatCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.lcf(vertexCount: 6, shifts: [3], repeatCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3], repeatCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.lcf(vertexCount: 6, shifts: [3], repeatCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.lcf(vertexCount: 6, shifts: [3], repeatCount: -1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.lcf(vertexCount: 6, shifts: [3], repeatCount: -1)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3], repeatCount: 0)
+        #expect(graph.vertexCount == 6 && graph.edgeCount == 6)
+    }
+
+    @Test("NG-236 C(70, 35) vertices overflow Int")
+    func ng236() async {
+        // UndirectedAdjacencyList<Int>.kneser(setSize: 70, subsetSize: 35) → **trap**: vertex count overflows Int
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.kneser(setSize: 70, subsetSize: 35)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.kneser(setSize: 70, subsetSize: 35)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.kneser(setSize: 70, subsetSize: 35)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.kneser(setSize: 70, subsetSize: 35)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.kneser(setSize: 70, subsetSize: 35)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.kneser(setSize: 70, subsetSize: 35)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.kneser(setSize: 70, subsetSize: 35)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.kneser(setSize: 70, subsetSize: 35)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.kneser(setSize: 70, subsetSize: 35)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.kneser(setSize: 70, subsetSize: 69)
+        #expect(graph.vertexCount == 70 && graph.edgeCount == 0)
+    }
 }

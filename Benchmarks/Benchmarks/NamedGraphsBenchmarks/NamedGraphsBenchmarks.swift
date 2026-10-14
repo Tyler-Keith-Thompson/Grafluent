@@ -2,6 +2,7 @@ import AdjacencyListModule
 import Benchmark
 import CompressedSparseRowModule
 import GraphProtocols
+import Multigraphs
 import NamedGraphs
 import Trees
 
@@ -121,5 +122,55 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("NamedGraphs: AdjacencyList.complete, n = 2000 (4·10⁶ arcs)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(AdjacencyList<Int>.complete(vertexCount: 2000)) }
+    }
+
+    // The lattice, word and LCF families, and the trees, at sizes of 10⁶ edges or so.
+    Benchmark("NamedGraphs: CompressedSparseRow.circulant, n = 10⁶, offsets [1, 2, 3] (6·10⁶ arcs)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.circulant(vertexCount: 1_000_000, offsets: [1, 2, 3])) }
+    }
+    Benchmark("NamedGraphs: UndirectedAdjacencyList.circulant, n = 10⁶, offsets [1, 2, 3]") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.circulant(vertexCount: 1_000_000, offsets: [1, 2, 3])) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.generalizedPetersen, n = 5·10⁵, k = 7") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.generalizedPetersen(outerCycleLength: 500_000, step: 7)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.kneser, n = 20, k = 4 (4845 vertices, 1820 neighbors each)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.kneser(setSize: 20, subsetSize: 4)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.windmill, 10⁵ triangles") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.windmill(cliqueCount: 100_000, cliqueVertexCount: 3)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.binomialTree, order 20") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.binomialTree(order: 20)) }
+    }
+    Benchmark("NamedGraphs: Tree.binomialTree, order 20") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(Tree<Int>.binomialTree(order: 20)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.fullRaryTree, r = 3, n = 10⁶") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.fullRaryTree(branchingFactor: 3, vertexCount: 1_000_000)) }
+    }
+    Benchmark("NamedGraphs: AdjacencyList.deBruijn, 2 letters, words of 19 (10⁶ arcs)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(AdjacencyList<Int>.deBruijn(alphabetSize: 2, wordLength: 19)) }
+    }
+    Benchmark("NamedGraphs: DirectedPseudograph.deBruijn, 2 letters, words of 19") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(DirectedPseudograph<Int>.deBruijn(alphabetSize: 2, wordLength: 19)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.kautz, 3 letters, words of 19 (≈ 7.9·10⁵ vertices)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.kautz(alphabetSize: 3, wordLength: 19)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.triangularLattice, 500 × 1000 triangles") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.triangularLattice(rowCount: 500, columnCount: 1000)) }
+    }
+    Benchmark("NamedGraphs: UndirectedAdjacencyList.triangularLattice, 500 × 1000 triangles") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.triangularLattice(rowCount: 500, columnCount: 1000)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.hexagonalLattice, 300 × 300 hexagons") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.hexagonalLattice(rowCount: 300, columnCount: 300)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.lcf, n = 10⁶, [5, −5]^(5·10⁵)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.lcf(vertexCount: 1_000_000, shifts: [5, -5], repeatCount: 500_000)) }
+    }
+    Benchmark("NamedGraphs: UndirectedAdjacencyList.hoffmanSingleton") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.hoffmanSingleton()) }
     }
 }

@@ -265,6 +265,241 @@ def bipartite_complete(a, b):
     return g
 
 
+
+# ---------------------------------------------------------------- the families added with the lattices
+
+def circulant(n, offsets, directed=False):
+    require(n >= 1, f"a circulant graph needs at least 1 vertex, not {n}")
+    for o in offsets:
+        require(o % n != 0, f"offset {o} is a multiple of vertexCount {n}: a self-loop")
+    g = _undirected(n, [(i, (i + o) % n) for i in range(n) for o in offsets])
+    return _both_arcs(g) if directed else g
+
+
+def generalized_petersen(n, k, directed=False):
+    require(n >= 3, f"a generalized Petersen graph needs an outer cycle of at least 3, not {n}")
+    require(k >= 1 and 2 * k < n, f"step {k} is not in 1 ..< {n}/2")
+    pairs = [(i, (i + 1) % n) for i in range(n)] + [(i, n + i) for i in range(n)]
+    pairs += [(n + i, n + (i + k) % n) for i in range(n)]
+    g = _undirected(2 * n, pairs)
+    return _both_arcs(g) if directed else g
+
+
+def kneser(n, k, directed=False):
+    require(1 <= k <= n, f"subsetSize {k} is not in 1...{n}")
+    import math
+    require(math.comb(n, k) < INT_MAX, "vertex count overflows Int")
+    subsets = list(itertools.combinations(range(n), k))  # lexicographic: vertex r is subsets[r]
+    pairs = [(a, b) for a in range(len(subsets)) for b in range(a + 1, len(subsets))
+             if not set(subsets[a]) & set(subsets[b])]
+    g = G(len(subsets), pairs, False)
+    return _both_arcs(g) if directed else g
+
+
+def windmill(c, k, directed=False):
+    require(c >= 2, f"a windmill needs at least 2 cliques, not {c}")
+    require(k >= 2, f"a windmill's cliques need at least 2 vertices, not {k}")
+    n = 1 + c * (k - 1)
+    pairs = [(0, v) for v in range(1, n)]
+    for j in range(c):
+        pairs += list(itertools.combinations(range(1 + j * (k - 1), 1 + (j + 1) * (k - 1)), 2))
+    g = _undirected(n, pairs)
+    return _both_arcs(g) if directed else g
+
+
+def binomial_tree(k, directed=False):
+    require(k >= 0, f"order {k} is negative")
+    require(k <= 62, f"2^{k} vertices overflow Int")
+    n = 1 << k
+    return G(n, sorted((c & (c - 1), c) for c in range(1, n)), directed)  # directed: parent -> child
+
+
+def full_rary_tree(r, n, directed=False):
+    require(r >= 1, f"branchingFactor {r} < 1")
+    _count(n)
+    return G(n, [((c - 1) // r, c) for c in range(1, n)], directed)  # directed: parent -> child
+
+
+def tree_binomial(k):
+    return binomial_tree(k)
+
+
+def tree_full_rary(r, n):
+    require(r >= 1, f"branchingFactor {r} < 1")
+    require(n >= 1, "a Tree has at least one vertex")
+    return full_rary_tree(r, n)
+
+
+def de_bruijn(m, n, directed=True):
+    require(m >= 1, f"alphabetSize {m} < 1")
+    require(n >= 1, f"wordLength {n} < 1")
+    words = list(itertools.product(range(m), repeat=n))  # lexicographic: vertex u is words[u]
+    index = {w: i for i, w in enumerate(words)}
+    return G(len(words), sorted((index[w], index[w[1:] + (a,)]) for w in words for a in range(m)), True)
+
+
+def kautz(s, L, directed=True):
+    require(s >= 2, f"alphabetSize {s} < 2")
+    require(L >= 1, f"wordLength {L} < 1")
+    words = [w for w in itertools.product(range(s), repeat=L) if all(x != y for x, y in zip(w, w[1:]))]
+    index = {w: i for i, w in enumerate(words)}
+    return G(len(words), sorted((index[w], index[w[1:] + (a,)]) for w in words for a in range(s) if a != w[-1]), True)
+
+
+def _numbered(nodes, edges):
+    """A graph on the given node keys, numbered in the order given."""
+    index = {v: i for i, v in enumerate(nodes)}
+    return _undirected(len(nodes), [(index[u], index[v]) for u, v in edges])
+
+
+def triangular_lattice(m, n, directed=False):
+    _count(m, "rowCount")
+    _count(n, "columnCount")
+    if m == 0 or n == 0:
+        g = G(0, [], False)
+        return _both_arcs(g) if directed else g
+    N = (n + 1) // 2
+    removed = {(N, j) for j in range(1, m + 1, 2)} if n % 2 else set()
+    nodes = [(i, j) for j in range(m + 1) for i in range(N + 1) if (i, j) not in removed]  # row by row
+    edges = [((i, j), (i + 1, j)) for j in range(m + 1) for i in range(N)]
+    edges += [((i, j), (i, j + 1)) for j in range(m) for i in range(N + 1)]
+    edges += [((i, j), (i + 1, j + 1)) for j in range(1, m, 2) for i in range(N)]
+    edges += [((i + 1, j), (i, j + 1)) for j in range(0, m, 2) for i in range(N)]
+    g = _numbered(nodes, [(u, v) for u, v in edges if u not in removed and v not in removed])
+    return _both_arcs(g) if directed else g
+
+
+def hexagonal_lattice(m, n, directed=False):
+    _count(m, "rowCount")
+    _count(n, "columnCount")
+    if m == 0 or n == 0:
+        g = G(0, [], False)
+        return _both_arcs(g) if directed else g
+    M = 2 * m
+    removed = {(0, M + 1), (n, (M + 1) * (n % 2))}
+    nodes = [(i, j) for i in range(n + 1) for j in range(M + 2) if (i, j) not in removed]  # column by column
+    edges = [((i, j), (i, j + 1)) for i in range(n + 1) for j in range(M + 1)]
+    edges += [((i, j), (i + 1, j)) for i in range(n) for j in range(M + 2) if i % 2 == j % 2]
+    g = _numbered(nodes, [(u, v) for u, v in edges if u not in removed and v not in removed])
+    return _both_arcs(g) if directed else g
+
+
+def lcf(n, shifts, r, directed=False):
+    require(n >= 3, f"an LCF graph needs a cycle of at least 3 vertices, not {n}")
+    _count(r, "repeatCount")
+    pairs = [(i, (i + 1) % n) for i in range(n)]
+    for i in range(len(shifts) * r):
+        s = shifts[i % len(shifts)]
+        u, v = i % n, (i + s) % n
+        require(u != v, f"shift {s} is a multiple of vertexCount {n}: a self-loop")
+        pairs.append((u, v))
+    g = _undirected(n, pairs)
+    return _both_arcs(g) if directed else g
+
+
+LCF_NAMED = {
+    "heawood": (14, [5, -5], 7), "moebiusKantor": (16, [5, -5], 8), "pappus": (18, [5, 7, -7, 7, -7, -5], 3),
+    "desargues": (20, [5, -5, 9, -9], 5), "dodecahedral": (20, [10, 7, 4, -4, -7, 10, -4, 7, -7, 4], 2),
+    "frucht": (12, [-5, -2, -4, 2, 5, -2, 2, 5, -2, -5, 4, 2], 1),
+}
+
+
+def lcf_named(name, directed=False):
+    return lcf(*LCF_NAMED[name], directed)
+
+
+def icosahedral(directed=False):
+    pairs = []
+    for t in range(5):
+        u = (t + 1) % 5
+        pairs += [(0, 1 + t), (1 + t, 1 + u), (1 + t, 6 + t), (1 + t, 6 + u), (6 + t, 6 + u), (6 + t, 11)]
+    g = _undirected(12, pairs)
+    return _both_arcs(g) if directed else g
+
+
+TUTTE_FRAGMENT = [(0, 1), (0, 2), (1, 3), (1, 4), (2, 4), (2, 5), (3, 6), (3, 7), (4, 8), (5, 9), (5, 10),
+                  (6, 11), (7, 8), (7, 12), (8, 10), (9, 13), (9, 14), (10, 14), (11, 12), (11, 13), (12, 14)]
+
+
+def tutte(directed=False):
+    pairs = []
+    for f in range(3):
+        base, nxt = 1 + 15 * f, 1 + 15 * ((f + 1) % 3)
+        pairs += [(0, base), (base + 13, nxt + 6)] + [(base + u, base + v) for u, v in TUTTE_FRAGMENT]
+    g = _undirected(46, pairs)
+    return _both_arcs(g) if directed else g
+
+
+CHVATAL = [(0, 1), (0, 4), (0, 6), (0, 9), (1, 2), (1, 5), (1, 7), (2, 3), (2, 6), (2, 8), (3, 4), (3, 7),
+           (3, 9), (4, 5), (4, 8), (5, 10), (5, 11), (6, 10), (6, 11), (7, 8), (7, 11), (8, 10), (9, 10), (9, 11)]
+
+
+def chvatal(directed=False):
+    g = _undirected(12, CHVATAL)
+    return _both_arcs(g) if directed else g
+
+
+def hoffman_singleton(directed=False):
+    pairs = []
+    for h in range(5):
+        for j in range(5):
+            pairs += [(5 * h + j, 5 * h + (j + 1) % 5), (25 + 5 * h + j, 25 + 5 * h + (j + 2) % 5)]
+            pairs += [(5 * h + j, 25 + 5 * i + (h * i + j) % 5) for i in range(5)]
+    g = _undirected(50, pairs)
+    return _both_arcs(g) if directed else g
+
+
+NEW_FAMILIES = {"circulant", "generalizedPetersen", "kneser", "windmill", "binomialTree", "fullRaryTree",
+                "deBruijn", "kautz", "triangularLattice", "hexagonalLattice", "lcf", "heawood", "moebiusKantor",
+                "pappus", "desargues", "dodecahedral", "frucht", "icosahedral", "tutte", "chvatal",
+                "hoffmanSingleton"}
+
+
+def new_oracle(family, args, directed, g):
+    """Checks a family added with the lattices against NetworkX (exact where it numbers the same
+    way, isomorphism otherwise) and igraph (de Bruijn and Kautz, exact)."""
+    mine = set(g.edges)
+    if family in ("deBruijn", "kautz"):
+        H = ig.Graph.De_Bruijn(*args) if family == "deBruijn" else ig.Graph.Kautz(args[0] - 1, args[1] - 1)
+        assert (H.vcount(), set(H.get_edgelist())) == (g.n, mine), f"igraph disagrees on {family}{args}"
+        return
+    if directed and family in ("binomialTree", "fullRaryTree"):
+        H = (nx.binomial_tree if family == "binomialTree" else nx.full_rary_tree)(*args, create_using=nx.DiGraph)
+        assert (H.number_of_nodes(), set(H.edges())) == (g.n, mine), f"NetworkX disagrees on {family}{args} directed"
+        return
+    if directed:
+        und = {(min(u, v), max(u, v)) for u, v in mine}
+        assert mine == und | {(v, u) for u, v in und}, f"{family} directed is not both arcs"
+        g = G(g.n, sorted(und), False)
+        mine = und
+    exact = {
+        "circulant": lambda: nx.circulant_graph(*args),
+        "generalizedPetersen": lambda: nx.generalized_petersen_graph(*args),
+        "kneser": lambda: nx.relabel_nodes(nx.kneser_graph(*args),
+                                           {s: i for i, s in enumerate(itertools.combinations(range(args[0]), args[1]))}),
+        "windmill": lambda: nx.windmill_graph(*args),
+        "binomialTree": lambda: nx.binomial_tree(*args),
+        "fullRaryTree": lambda: nx.full_rary_tree(*args),
+        "triangularLattice": lambda: nx.convert_node_labels_to_integers(nx.triangular_lattice_graph(*args, with_positions=False)),
+        "hexagonalLattice": lambda: nx.convert_node_labels_to_integers(nx.hexagonal_lattice_graph(*args, with_positions=False)),
+        "lcf": lambda: nx.LCF_graph(*args),
+        "heawood": nx.heawood_graph, "moebiusKantor": nx.moebius_kantor_graph, "pappus": nx.pappus_graph,
+        "desargues": nx.desargues_graph, "dodecahedral": nx.dodecahedral_graph, "chvatal": nx.chvatal_graph,
+    }
+    iso = {"frucht": nx.frucht_graph, "icosahedral": nx.icosahedral_graph, "tutte": nx.tutte_graph,
+           "hoffmanSingleton": nx.hoffman_singleton_graph}
+    if family == "kneser" and 2 * args[1] > args[0]:
+        H = nx.kneser_graph(*args)
+        assert H.number_of_edges() == 0 and len(mine) == 0 and H.number_of_nodes() == g.n
+        return
+    if family in exact:
+        H = exact[family]()
+        assert (H.number_of_nodes(), {(min(u, v), max(u, v)) for u, v in H.edges()}) == (g.n, mine), \
+            f"NetworkX disagrees on {family}{args}"
+    else:
+        H = iso[family]()
+        assert nx.is_isomorphic(nx.Graph(list(mine)), H) and H.number_of_nodes() == g.n, f"NetworkX: {family} not isomorphic"
+
 # ---------------------------------------------------------------- oracles
 
 def nx_relabeled(H, key):
@@ -390,6 +625,9 @@ def ig_oracle(family, args, directed):
 
 
 def check(family, args, directed, g):
+    if family in NEW_FAMILIES:
+        new_oracle(family, args, directed, g)
+        return
     o = nx_oracle(family, args, directed)
     if o is not None:
         assert o == (g.n, set(g.edges)), f"NetworkX disagrees on {family}{args} directed={directed}"
@@ -602,6 +840,7 @@ def build_rows():
     representation_rows(U, C)
     # the families added after the first catalog
     more_rows(U, C)
+    lattice_rows(U, C)
 
 
 def representation_rows(U, C):
@@ -681,6 +920,132 @@ def more_rows(U, C):
         lambda: balanced_tree(-1, 2))
     row("BalancedTree", "vertex count overflows Int", f"{U}.balancedTree(branchingFactor: 2, height: 63)",
         lambda: balanced_tree(2, 63))
+
+
+def lattice_rows(U, C):
+    A, P = "AdjacencyList<Int>", "DirectedPseudograph<Int>"
+    # circulant
+    for n, offs, what in ((6, [1, 2], ""), (5, [1], " is C5"), (8, [1, 4], ": offset n/2 gives each edge once"),
+                          (6, [2, -2, 4], ": 2, −2 and 4 are one offset"), (2, [1], " is K2"), (1, [], " is K1")):
+        row("Circulant", f"C{n}({', '.join(map(str, offs))}){what}", f"{U}.circulant(vertexCount: {n}, offsets: {offs})",
+            lambda n=n, offs=offs: circulant(n, offs), family="circulant", args=(n, offs))
+    row("Circulant", "directed: both arcs", f"{C}.circulant(vertexCount: 6, offsets: [1, 2])",
+        lambda: circulant(6, [1, 2], True), family="circulant", args=(6, [1, 2]), directed=True)
+    row("Circulant", "an offset that is a multiple of n is a self-loop", f"{U}.circulant(vertexCount: 6, offsets: [1, 6])",
+        lambda: circulant(6, [1, 6]))
+    row("Circulant", "no vertices", f"{U}.circulant(vertexCount: 0, offsets: [])", lambda: circulant(0, []))
+    # generalized Petersen
+    for n, k, what in ((5, 2, " is the Petersen graph"), (4, 1, " is the cube"), (7, 2, ""), (3, 1, " is the prism")):
+        row("GeneralizedPetersen", f"GP({n}, {k}){what}", f"{U}.generalizedPetersen(outerCycleLength: {n}, step: {k})",
+            lambda n=n, k=k: generalized_petersen(n, k), family="generalizedPetersen", args=(n, k))
+    row("GeneralizedPetersen", "directed: both arcs", f"{C}.generalizedPetersen(outerCycleLength: 5, step: 2)",
+        lambda: generalized_petersen(5, 2, True), family="generalizedPetersen", args=(5, 2), directed=True)
+    row("GeneralizedPetersen", "step 0", f"{U}.generalizedPetersen(outerCycleLength: 5, step: 0)",
+        lambda: generalized_petersen(5, 0))
+    row("GeneralizedPetersen", "step n/2 repeats the inner edges", f"{U}.generalizedPetersen(outerCycleLength: 6, step: 3)",
+        lambda: generalized_petersen(6, 3))
+    row("GeneralizedPetersen", "outer cycle of 2", f"{U}.generalizedPetersen(outerCycleLength: 2, step: 1)",
+        lambda: generalized_petersen(2, 1))
+    # Kneser
+    for n, k, what in ((5, 2, ": the Petersen graph, subsets in lexicographic order"), (4, 1, " is K4"),
+                       (5, 3, ": n < 2k, no edges"), (6, 2, ""), (1, 1, ": one vertex")):
+        row("Kneser", f"KG({n}, {k}){what}", f"{U}.kneser(setSize: {n}, subsetSize: {k})",
+            lambda n=n, k=k: kneser(n, k), family="kneser", args=(n, k))
+    row("Kneser", "directed: both arcs", f"{C}.kneser(setSize: 5, subsetSize: 2)", lambda: kneser(5, 2, True),
+        family="kneser", args=(5, 2), directed=True)
+    row("Kneser", "subsets of 0", f"{U}.kneser(setSize: 4, subsetSize: 0)", lambda: kneser(4, 0))
+    row("Kneser", "subsets larger than the set", f"{U}.kneser(setSize: 3, subsetSize: 4)", lambda: kneser(3, 4))
+    # windmill
+    for c, k, what in ((2, 3, ": the friendship graph F2 (butterfly)"), (3, 3, ": F3"), (3, 2, " is a star"), (2, 4, "")):
+        row("Windmill", f"Wd({k}, {c}){what}", f"{U}.windmill(cliqueCount: {c}, cliqueVertexCount: {k})",
+            lambda c=c, k=k: windmill(c, k), family="windmill", args=(c, k))
+    row("Windmill", "directed: both arcs", f"{C}.windmill(cliqueCount: 2, cliqueVertexCount: 3)",
+        lambda: windmill(2, 3, True), family="windmill", args=(2, 3), directed=True)
+    row("Windmill", "one clique", f"{U}.windmill(cliqueCount: 1, cliqueVertexCount: 3)", lambda: windmill(1, 3))
+    row("Windmill", "cliques of 1", f"{U}.windmill(cliqueCount: 3, cliqueVertexCount: 1)", lambda: windmill(3, 1))
+    # binomial tree
+    for k in (0, 1, 2, 3):
+        row("BinomialTree", f"B{k}: parent of v is v & (v − 1)", f"{U}.binomialTree(order: {k})",
+            lambda k=k: binomial_tree(k), family="binomialTree", args=(k,))
+    row("BinomialTree", "directed: parent → child", f"{C}.binomialTree(order: 3)", lambda: binomial_tree(3, True),
+        family="binomialTree", args=(3,), directed=True)
+    row("BinomialTree", "Tree.binomialTree", "Tree<Int>.binomialTree(order: 3)", lambda: tree_binomial(3),
+        family="binomialTree", args=(3,))
+    row("BinomialTree", "negative order", f"{U}.binomialTree(order: -1)", lambda: binomial_tree(-1))
+    row("BinomialTree", "2^63 vertices overflow Int", f"{U}.binomialTree(order: 63)", lambda: binomial_tree(63))
+    # full r-ary tree
+    for r, n, what in ((2, 0, " is the null graph"), (2, 1, " is one vertex"), (2, 6, ": the last level partly filled"),
+                       (3, 10, ""), (1, 4, " is the path P4")):
+        row("FullRaryTree", f"r = {r}, n = {n}{what}", f"{U}.fullRaryTree(branchingFactor: {r}, vertexCount: {n})",
+            lambda r=r, n=n: full_rary_tree(r, n), family="fullRaryTree", args=(r, n))
+    row("FullRaryTree", "directed: parent → child", f"{C}.fullRaryTree(branchingFactor: 2, vertexCount: 6)",
+        lambda: full_rary_tree(2, 6, True), family="fullRaryTree", args=(2, 6), directed=True)
+    row("FullRaryTree", "Tree.fullRaryTree", "Tree<Int>.fullRaryTree(branchingFactor: 3, vertexCount: 7)",
+        lambda: tree_full_rary(3, 7), family="fullRaryTree", args=(3, 7))
+    row("FullRaryTree", "branching factor 0", f"{U}.fullRaryTree(branchingFactor: 0, vertexCount: 3)",
+        lambda: full_rary_tree(0, 3))
+    row("FullRaryTree", "negative count", f"{U}.fullRaryTree(branchingFactor: 2, vertexCount: -1)",
+        lambda: full_rary_tree(2, -1))
+    row("FullRaryTree", "Tree.fullRaryTree(0): a tree is never empty", "Tree<Int>.fullRaryTree(branchingFactor: 2, vertexCount: 0)",
+        lambda: tree_full_rary(2, 0))
+    # de Bruijn
+    for m, n, what in ((2, 3, ": loops at 000 and 111"), (3, 1, ": every arc, loops included"), (1, 2, ": one word, one loop"),
+                       (2, 1, "")):
+        row("DeBruijn", f"B({m}, {n}){what}", f"{A}.deBruijn(alphabetSize: {m}, wordLength: {n})",
+            lambda m=m, n=n: de_bruijn(m, n), family="deBruijn", args=(m, n), directed=True)
+    row("DeBruijn", "DirectedPseudograph: the same arcs", f"{P}.deBruijn(alphabetSize: 2, wordLength: 2)",
+        lambda: de_bruijn(2, 2), family="deBruijn", args=(2, 2), directed=True)
+    row("DeBruijn", "empty alphabet", f"{A}.deBruijn(alphabetSize: 0, wordLength: 2)", lambda: de_bruijn(0, 2))
+    row("DeBruijn", "empty words", f"{A}.deBruijn(alphabetSize: 2, wordLength: 0)", lambda: de_bruijn(2, 0))
+    # Kautz
+    for s_, L, what in ((2, 3, ": 010 and 101"), (3, 2, ""), (3, 1, " is the complete digraph on 3"), (4, 2, "")):
+        row("Kautz", f"words of {L} over {s_} letters{what}", f"{C}.kautz(alphabetSize: {s_}, wordLength: {L})",
+            lambda s_=s_, L=L: kautz(s_, L), family="kautz", args=(s_, L), directed=True)
+    row("Kautz", "one letter", f"{C}.kautz(alphabetSize: 1, wordLength: 2)", lambda: kautz(1, 2))
+    row("Kautz", "empty words", f"{C}.kautz(alphabetSize: 3, wordLength: 0)", lambda: kautz(3, 0))
+    # triangular lattice
+    for m, n, what in ((1, 1, ": one triangle"), (1, 2, ": a rhombus"), (2, 3, ": odd n, odd rows one shorter"),
+                       (2, 4, ""), (3, 2, ""), (0, 3, ": no rows, the null graph")):
+        row("TriangularLattice", f"{m} × {n} triangles{what}", f"{U}.triangularLattice(rowCount: {m}, columnCount: {n})",
+            lambda m=m, n=n: triangular_lattice(m, n), family="triangularLattice", args=(m, n))
+    row("TriangularLattice", "directed: both arcs", f"{C}.triangularLattice(rowCount: 2, columnCount: 2)",
+        lambda: triangular_lattice(2, 2, True), family="triangularLattice", args=(2, 2), directed=True)
+    row("TriangularLattice", "negative rows", f"{U}.triangularLattice(rowCount: -1, columnCount: 2)",
+        lambda: triangular_lattice(-1, 2))
+    # hexagonal lattice
+    for m, n, what in ((1, 1, " is C6"), (1, 2, ""), (2, 1, ""), (2, 2, ""), (1, 3, ": odd n drops the top of the last column"),
+                       (3, 0, ": no columns, the null graph")):
+        row("HexagonalLattice", f"{m} × {n} hexagons{what}", f"{U}.hexagonalLattice(rowCount: {m}, columnCount: {n})",
+            lambda m=m, n=n: hexagonal_lattice(m, n), family="hexagonalLattice", args=(m, n))
+    row("HexagonalLattice", "directed: both arcs", f"{C}.hexagonalLattice(rowCount: 1, columnCount: 2)",
+        lambda: hexagonal_lattice(1, 2, True), family="hexagonalLattice", args=(1, 2), directed=True)
+    row("HexagonalLattice", "negative columns", f"{U}.hexagonalLattice(rowCount: 1, columnCount: -1)",
+        lambda: hexagonal_lattice(1, -1))
+    # LCF
+    for n, sh, r, what in ((6, [3, -3], 3, ": K3,3"), (8, [4], 8, ": the Wagner graph, chords repeated from both ends"),
+                           (4, [2], 4, ": K4"), (5, [], 0, ": no chords, C5"), (6, [2], 1, ": one chord")):
+        row("LCF", f"[{', '.join(map(str, sh))}]^{r} on {n}{what}", f"{U}.lcf(vertexCount: {n}, shifts: {sh}, repeatCount: {r})",
+            lambda n=n, sh=sh, r=r: lcf(n, sh, r), family="lcf", args=(n, sh, r))
+    row("LCF", "directed: both arcs", f"{C}.lcf(vertexCount: 6, shifts: [3, -3], repeatCount: 3)",
+        lambda: lcf(6, [3, -3], 3, True), family="lcf", args=(6, [3, -3], 3), directed=True)
+    row("LCF", "a cycle of 2", f"{U}.lcf(vertexCount: 2, shifts: [1], repeatCount: 1)", lambda: lcf(2, [1], 1))
+    row("LCF", "a shift that is a multiple of n is a self-loop", f"{U}.lcf(vertexCount: 6, shifts: [3, 6], repeatCount: 3)",
+        lambda: lcf(6, [3, 6], 3))
+    row("LCF", "negative repeat count", f"{U}.lcf(vertexCount: 6, shifts: [3], repeatCount: -1)", lambda: lcf(6, [3], -1))
+    # named graphs
+    for name in ("heawood", "moebiusKantor", "pappus", "desargues", "dodecahedral", "frucht"):
+        n, sh, r = LCF_NAMED[name]
+        row("NamedLCF", f"{name}: [{', '.join(map(str, sh))}]^{r} on {n}", f"{U}.{name}()",
+            lambda name=name: lcf_named(name), family=name, args=())
+    row("NamedLCF", "Heawood directed: both arcs", f"{C}.heawood()", lambda: lcf_named("heawood", True),
+        family="heawood", args=(), directed=True)
+    for name, fn in (("icosahedral", icosahedral), ("tutte", tutte), ("chvatal", chvatal),
+                     ("hoffmanSingleton", hoffman_singleton)):
+        row("NamedConstructions", f"{name}", f"{U}.{name}()", lambda fn=fn: fn(), family=name, args=(),
+            full=name != "hoffmanSingleton")
+    row("NamedConstructions", "icosahedral directed: both arcs", f"{C}.icosahedral()", lambda: icosahedral(True),
+        family="icosahedral", args=(), directed=True)
+    row("Kneser", "C(70, 35) vertices overflow Int", f"{U}.kneser(setSize: 70, subsetSize: 35)", lambda: kneser(70, 35))
 
 
 # ---------------------------------------------------------------- catalog

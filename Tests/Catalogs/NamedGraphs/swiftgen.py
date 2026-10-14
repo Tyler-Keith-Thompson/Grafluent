@@ -32,7 +32,7 @@ for line in TEXT.splitlines():
         parts = [p.strip() for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 135
+assert N == 236
 
 
 def group(n): return CELLS[n][1]
@@ -63,7 +63,26 @@ FAMILIES = {
     "completeMultipartite": lambda d, partSizes: ref.complete_multipartite(partSizes, d),
     "turan": lambda d, vertexCount, partCount: ref.turan(vertexCount, partCount, d),
     "balancedTree": lambda d, branchingFactor, height: ref.balanced_tree(branchingFactor, height, d),
+    "circulant": lambda d, vertexCount, offsets: ref.circulant(vertexCount, offsets, d),
+    "generalizedPetersen": lambda d, outerCycleLength, step: ref.generalized_petersen(outerCycleLength, step, d),
+    "kneser": lambda d, setSize, subsetSize: ref.kneser(setSize, subsetSize, d),
+    "windmill": lambda d, cliqueCount, cliqueVertexCount: ref.windmill(cliqueCount, cliqueVertexCount, d),
+    "binomialTree": lambda d, order: ref.binomial_tree(order, d),
+    "fullRaryTree": lambda d, branchingFactor, vertexCount: ref.full_rary_tree(branchingFactor, vertexCount, d),
+    "deBruijn": lambda d, alphabetSize, wordLength: ref.de_bruijn(alphabetSize, wordLength),
+    "kautz": lambda d, alphabetSize, wordLength: ref.kautz(alphabetSize, wordLength),
+    "triangularLattice": lambda d, rowCount, columnCount: ref.triangular_lattice(rowCount, columnCount, d),
+    "hexagonalLattice": lambda d, rowCount, columnCount: ref.hexagonal_lattice(rowCount, columnCount, d),
+    "lcf": lambda d, vertexCount, shifts, repeatCount: ref.lcf(vertexCount, shifts, repeatCount, d),
+    **{name: (lambda name: lambda d: ref.lcf_named(name, d))(name) for name in ref.LCF_NAMED},
+    "icosahedral": lambda d: ref.icosahedral(d),
+    "tutte": lambda d: ref.tutte(d),
+    "chvatal": lambda d: ref.chvatal(d),
+    "hoffmanSingleton": lambda d: ref.hoffman_singleton(d),
 }
+# The conformers of each kind a family is built on, when not every one: de Bruijn graphs have
+# self-loops, and Kautz graphs are directed only.
+KINDS = {"deBruijn": ([], ["AdjacencyList<Int>", "DirectedPseudograph<Int>"]), "kautz": ([], None)}
 ORIENTATION = {
     "complete": "both arcs", "completeBipartite": "both arcs", "path": "i → i + 1",
     "cycle": "i → (i + 1) mod n", "star": "hub → leaf", "wheel": "hub → rim, rim i → i + 1 and n − 1 → 1",
@@ -71,6 +90,11 @@ ORIENTATION = {
     "ladder": "both arcs", "circularLadder": "both arcs", "barbell": "both arcs", "lollipop": "both arcs",
     "completeMultipartite": "both arcs", "turan": "both arcs",
     "balancedTree": "parent → child",
+    "binomialTree": "parent → child", "fullRaryTree": "parent → child",
+    "deBruijn": "word → its shifts", "kautz": "word → its shifts",
+    **{name: "both arcs" for name in ("circulant", "generalizedPetersen", "kneser", "windmill", "triangularLattice",
+                                      "hexagonalLattice", "lcf", "heawood", "moebiusKantor", "pappus", "desargues",
+                                      "dodecahedral", "frucht", "icosahedral", "tutte", "chvatal", "hoffmanSingleton")},
 }
 
 
@@ -124,6 +148,8 @@ LITERAL_LIMIT = 200  # edges; above it, the edges are checked by the family's ru
 def big_rule(fam, kwargs, directed):
     """The family's adjacency rule for rows too large to write out (K60, 100×100, Q10)."""
     pair = "e.source, e.target" if directed else "e.u, e.v"
+    if fam in ref.NEW_FAMILIES:
+        return None  # the named graphs: sorted, in range, regular and m fixed; the properties check the rest
     if fam == "complete":
         return None  # sorted, no repeats, in range and m = n(n − 1)/2 (or n(n − 1)) leave only every pair
     if fam == "grid":
@@ -229,11 +255,14 @@ def family_row(n):
     if n == 48:
         text += "; equal true"
     assert text == cell(n), (n, text, cell(n))
-    gu, gd = model(fam, False, kwargs), model(fam, True, kwargs)
+    undirected_types, directed_types = KINDS.get(fam, (UNDIRECTED, DIRECTED))
+    directed_types = directed_types or DIRECTED
+    gu = model(fam, False, kwargs) if undirected_types else None
+    gd = model(fam, True, kwargs)
     L = header(n)
-    if not isinstance(gu, ref.Trap):
+    if gu is not None and not isinstance(gu, ref.Trap):
         L += undirected_check(gu, fam, kwargs, "        ")
-        for t in UNDIRECTED:
+        for t in undirected_types:
             L.append("        check(%s.%s(%s), %s)" % (t, fam, args, '"%s"' % t))
     if n == 48:
         L.append("        // W4 is K4 on every undirected conformer.")
@@ -242,7 +271,7 @@ def family_row(n):
     if not isinstance(gd, ref.Trap):
         L.append("        // The directed form: %s." % ORIENTATION[fam])
         L += directed_check(gd, fam, kwargs, "        ")
-        for t in DIRECTED:
+        for t in directed_types:
             L.append("        checkDirected(%s.%s(%s), %s)" % (t, fam, args, '"%s"' % t))
     L.append("    }")
     return L
@@ -270,11 +299,12 @@ def structure_row(n):
 
 # Trap rows: (calls run as exit tests, the valid neighbour run in this process, its expected n and m).
 def every(fam, args, kinds=("U", "D")):
+    undirected_types, directed_types = KINDS.get(fam, (UNDIRECTED, DIRECTED))
     out = []
     if "U" in kinds:
-        out += ["%s.%s(%s)" % (t, fam, args) for t in UNDIRECTED]
+        out += ["%s.%s(%s)" % (t, fam, args) for t in undirected_types]
     if "D" in kinds:
-        out += ["%s.%s(%s)" % (t, fam, args) for t in DIRECTED]
+        out += ["%s.%s(%s)" % (t, fam, args) for t in directed_types or DIRECTED]
     return out
 
 
@@ -325,8 +355,52 @@ TRAPS = {
     135: (every("balancedTree", "branchingFactor: 2, height: 63") + ["Tree<Int>.balancedTree(branchingFactor: 2, height: 63)"],
           "UndirectedAdjacencyList<Int>.balancedTree(branchingFactor: 1, height: 63)", (64, 63)),
 }
+TRAPS.update({
+    143: (every("circulant", "vertexCount: 6, offsets: [1, 6]"), "UndirectedAdjacencyList<Int>.circulant(vertexCount: 6, offsets: [1, 5])", (6, 6)),
+    144: (every("circulant", "vertexCount: 0, offsets: []"), "UndirectedAdjacencyList<Int>.circulant(vertexCount: 1, offsets: [])", (1, 0)),
+    150: (every("generalizedPetersen", "outerCycleLength: 5, step: 0"),
+          "UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 5, step: 1)", (10, 15)),
+    151: (every("generalizedPetersen", "outerCycleLength: 6, step: 3"),
+          "UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 6, step: 2)", (12, 18)),
+    152: (every("generalizedPetersen", "outerCycleLength: 2, step: 1"),
+          "UndirectedAdjacencyList<Int>.generalizedPetersen(outerCycleLength: 3, step: 1)", (6, 9)),
+    159: (every("kneser", "setSize: 4, subsetSize: 0"), "UndirectedAdjacencyList<Int>.kneser(setSize: 4, subsetSize: 1)", (4, 6)),
+    160: (every("kneser", "setSize: 3, subsetSize: 4"), "UndirectedAdjacencyList<Int>.kneser(setSize: 3, subsetSize: 3)", (1, 0)),
+    166: (every("windmill", "cliqueCount: 1, cliqueVertexCount: 3"),
+          "UndirectedAdjacencyList<Int>.windmill(cliqueCount: 2, cliqueVertexCount: 3)", (5, 6)),
+    167: (every("windmill", "cliqueCount: 3, cliqueVertexCount: 1"),
+          "UndirectedAdjacencyList<Int>.windmill(cliqueCount: 3, cliqueVertexCount: 2)", (4, 3)),
+    174: (every("binomialTree", "order: -1") + ["Tree<Int>.binomialTree(order: -1)"],
+          "UndirectedAdjacencyList<Int>.binomialTree(order: 0)", (1, 0)),
+    175: (every("binomialTree", "order: 63") + ["Tree<Int>.binomialTree(order: 63)"],
+          "UndirectedAdjacencyList<Int>.binomialTree(order: 4)", (16, 15)),
+    183: (every("fullRaryTree", "branchingFactor: 0, vertexCount: 3") + every("fullRaryTree", "branchingFactor: 0, vertexCount: 1")
+          + ["Tree<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 3)", "Tree<Int>.fullRaryTree(branchingFactor: 0, vertexCount: 1)"],
+          "UndirectedAdjacencyList<Int>.fullRaryTree(branchingFactor: 1, vertexCount: 3)", (3, 2)),
+    184: (every("fullRaryTree", "branchingFactor: 2, vertexCount: -1"),
+          "UndirectedAdjacencyList<Int>.fullRaryTree(branchingFactor: 2, vertexCount: 0)", (0, 0)),
+    185: (["Tree<Int>.fullRaryTree(branchingFactor: 2, vertexCount: 0)", "Tree<Int>.fullRaryTree(branchingFactor: 2, vertexCount: -1)"],
+          "Tree<Int>.fullRaryTree(branchingFactor: 2, vertexCount: 1)", (1, 0)),
+    191: (every("deBruijn", "alphabetSize: 0, wordLength: 2", "D"), "AdjacencyList<Int>.deBruijn(alphabetSize: 1, wordLength: 2)", (1, 1)),
+    192: (every("deBruijn", "alphabetSize: 2, wordLength: 0", "D") + every("deBruijn", "alphabetSize: 1, wordLength: 0", "D"), "AdjacencyList<Int>.deBruijn(alphabetSize: 2, wordLength: 1)", (2, 4)),
+    197: (every("kautz", "alphabetSize: 1, wordLength: 2", "D") + every("kautz", "alphabetSize: 1, wordLength: 1", "D"), "CompressedSparseRow.kautz(alphabetSize: 2, wordLength: 2)", (2, 2)),
+    198: (every("kautz", "alphabetSize: 3, wordLength: 0", "D"), "CompressedSparseRow.kautz(alphabetSize: 3, wordLength: 1)", (3, 6)),
+    206: (every("triangularLattice", "rowCount: -1, columnCount: 2") + every("triangularLattice", "rowCount: 2, columnCount: -1"),
+          "UndirectedAdjacencyList<Int>.triangularLattice(rowCount: 0, columnCount: 2)", (0, 0)),
+    214: (every("hexagonalLattice", "rowCount: 1, columnCount: -1") + every("hexagonalLattice", "rowCount: -1, columnCount: 1"),
+          "UndirectedAdjacencyList<Int>.hexagonalLattice(rowCount: 1, columnCount: 0)", (0, 0)),
+    221: (every("lcf", "vertexCount: 2, shifts: [1], repeatCount: 1"),
+          "UndirectedAdjacencyList<Int>.lcf(vertexCount: 3, shifts: [1], repeatCount: 1)", (3, 3)),
+    222: (every("lcf", "vertexCount: 6, shifts: [3, 6], repeatCount: 3"),
+          "UndirectedAdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3, -3], repeatCount: 3)", (6, 9)),
+    236: (every("kneser", "setSize: 70, subsetSize: 35"), "UndirectedAdjacencyList<Int>.kneser(setSize: 70, subsetSize: 69)", (70, 0)),
+    223: (every("lcf", "vertexCount: 6, shifts: [3], repeatCount: -1"),
+          "UndirectedAdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3], repeatCount: 0)", (6, 6)),
+})
 TREE = {"path": lambda vertexCount: ref.tree_path(vertexCount), "star": lambda vertexCount: ref.tree_star(vertexCount),
-        "balancedTree": lambda branchingFactor, height: ref.tree_balanced(branchingFactor, height)}
+        "balancedTree": lambda branchingFactor, height: ref.tree_balanced(branchingFactor, height),
+        "binomialTree": lambda order: ref.tree_binomial(order),
+        "fullRaryTree": lambda branchingFactor, vertexCount: ref.tree_full_rary(branchingFactor, vertexCount)}
 
 
 def trap_test(n):
@@ -402,6 +476,26 @@ FILES = [
      "Complete multipartite and Turán graphs and balanced trees (catalog NG-112 – NG-135): parts as\n"
      "// consecutive ranges, both arcs when directed; the balanced tree in breadth-first\n"
      "// order, parent → child when directed, and as a Tree."),
+    ("CirculantKneserWindmillTests.swift", "NamedGraphs circulant, generalized Petersen, Kneser and windmill graphs",
+     ids("Circulant", "GeneralizedPetersen", "Kneser", "Windmill"),
+     "Circulant, generalized Petersen, Kneser and windmill graphs (catalog NG-136 – NG-165): offsets mod n,\n"
+     "// each edge once; GP(n, k) as outer cycle, spokes and inner star polygon; k-subsets in lexicographic\n"
+     "// order, adjacent when disjoint; cliques sharing hub 0. Both arcs when directed."),
+    ("BinomialFullRaryTreeTests.swift", "NamedGraphs binomial and full r-ary trees", ids("BinomialTree", "FullRaryTree"),
+     "Binomial and full r-ary trees (catalog NG-168 – NG-182): the parent of v is v & (v − 1), or (v − 1)/r;\n"
+     "// parent → child when directed, and as a Tree."),
+    ("DeBruijnKautzTests.swift", "NamedGraphs de Bruijn and Kautz graphs", ids("DeBruijn", "Kautz"),
+     "De Bruijn and Kautz graphs (catalog NG-186 – NG-196): words in lexicographic order, each joined to the\n"
+     "// words it shifts into; de Bruijn on the representations that allow self-loops."),
+    ("TriangularHexagonalLatticeTests.swift", "NamedGraphs triangular and hexagonal lattices",
+     ids("TriangularLattice", "HexagonalLattice"),
+     "Triangular and hexagonal lattices (catalog NG-199 – NG-213): sized by triangles and hexagons, nodes\n"
+     "// numbered row by row (triangular) or column by column (hexagonal). Both arcs when directed."),
+    ("LCFNamedGraphTests.swift", "NamedGraphs LCF notation and the named cubic and other graphs",
+     ids("LCF", "NamedLCF", "NamedConstructions"),
+     "LCF notation and named graphs (catalog NG-215 – NG-235): the n-cycle and its chords; Heawood,\n"
+     "// Möbius–Kantor, Pappus, Desargues, dodecahedral and Frucht in LCF; icosahedral, Tutte, Chvátal and\n"
+     "// Hoffman–Singleton from their constructions. Both arcs when directed."),
     ("NamedGraphPreconditionTests.swift", "NamedGraphs preconditions", [n for n in range(1, N + 1) if is_trap(n)],
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test), on every\n"
      "// conformer the rule covers. A valid neighbour of the call then runs in this process."),

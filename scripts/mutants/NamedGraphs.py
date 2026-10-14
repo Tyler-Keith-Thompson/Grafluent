@@ -31,8 +31,17 @@
 #   − length is offsets[v]; gridwritten — a self-check that the count formula matches the loop.
 # The position subscript's corrections: the root estimate is exact for every n the suites reach, so
 #   the loops that correct it never run (ascendingroot, ascendingdown, ascendingup).
-# Layout and capacity only: stablepack (the rows packed after the build), stablereserve, treesingle
+# Layout and capacity only: stablereserve, treesingle
 #   (the one-vertex layout, which the general layout equals).
+# The later families.
+#   circloop, lcfloop — an offset or shift that is a multiple of n gives the pair (u, u), which the
+#   conformers' `_isSortedSimple` assertion traps on in the debug builds the tests run; gpcycle —
+#   n = 2 fails the next check, 2k < n; treeraryempty — reserving 2(n − 1) < 0 ends traps, as Tree's
+#   own check would; bruijnalphabet — m = 0 divides by m; kautzlength — `0 ..< length − 1` traps.
+#   kneserlarger — a subset's rank equals u only for the subset itself, which is not disjoint from
+#   itself (k ≥ 1), so `rank >= u` keeps the same neighbors.
+#   hexpresent — low(i + 1) is 1 only for the last column of an even n, and row 0 joins column i to
+#   i + 1 only for even i, while the last column's left neighbor n − 1 is odd.
 
 TESTS = ["NamedGraphsTests"]
 
@@ -229,8 +238,8 @@ MUTANTS = [
 
     # AdjacencyMatrix's build.
     Mutant("matrixbit", "AdjacencyMatrix+Construction.swift", "Self._mask(target)", "Self._mask(source)", module="AdjacencyMatrixModule"),
-    Mutant("matrixout", "AdjacencyMatrix+Construction.swift", "                        outDegrees[source] &+= 1", "", mode="stmt", module="AdjacencyMatrixModule"),
-    Mutant("matrixin", "AdjacencyMatrix+Construction.swift", "                        inDegrees[target] &+= 1", "", mode="stmt", module="AdjacencyMatrixModule"),
+    Mutant("matrixout", "AdjacencyMatrix+Construction.swift", "                    degrees[Self._outSlot(source)] &+= 1", "", mode="stmt", module="AdjacencyMatrixModule"),
+    Mutant("matrixin", "AdjacencyMatrix+Construction.swift", "                    degrees[inBase &+ target] &+= 1", "", mode="stmt", module="AdjacencyMatrixModule"),
     Mutant("matrixcount", "AdjacencyMatrix+Construction.swift", "_edgeCount = count", "_edgeCount = 0", mode="stmt", module="AdjacencyMatrixModule"),
 
     # The adjacency lists' sorted rows.
@@ -240,8 +249,8 @@ MUTANTS = [
     Mutant("arcindegree", "SortedConstruction.swift", "            inOffsets[edge.target &+ 1] &+= 1", "", mode="stmt", module="AdjacencyListModule"),
     Mutant("arcoutprefix", "SortedConstruction.swift", "            outOffsets[v &+ 1] &+= outOffsets[v]", "", mode="stmt", module="AdjacencyListModule"),
     Mutant("arcinprefix", "SortedConstruction.swift", "            inOffsets[v &+ 1] &+= inOffsets[v]", "", mode="stmt", module="AdjacencyListModule"),
-    Mutant("arcinsource", "SortedConstruction.swift", "inStorage[slot] = source", "inStorage[slot] = target", mode="stmt", module="AdjacencyListModule"),
-    Mutant("arcinedge", "SortedConstruction.swift", "inEdgeStorage[slot] = position", "inEdgeStorage[slot] = 0", mode="stmt", module="AdjacencyListModule"),
+    Mutant("arcinsource", "SortedConstruction.swift", "inStorage.initializeElement(at: slot, to: source)", "inStorage.initializeElement(at: slot, to: target)", mode="stmt", module="AdjacencyListModule"),
+    Mutant("arcinedge", "SortedConstruction.swift", "inEdgeStorage.initializeElement(at: slot, to: position)", "inEdgeStorage.initializeElement(at: slot, to: 0)", mode="stmt", module="AdjacencyListModule"),
     Mutant("arcrecordout", "SortedConstruction.swift", "position &- outOffsets[source]", "position", module="AdjacencyListModule"),
     Mutant("arcrecordin", "SortedConstruction.swift", "slot &- inOffsets[target]", "slot", module="AdjacencyListModule"),
     Mutant("arcoutedges", "SortedConstruction.swift", "ContiguousArray(0 ..< m)", "ContiguousArray((0 ..< m).reversed())", module="AdjacencyListModule"),
@@ -251,9 +260,9 @@ MUTANTS = [
     Mutant("edgevincident", "SortedConstruction.swift", "incidentStorage[vSlot] = position", "incidentStorage[vSlot] = 0", mode="stmt", module="AdjacencyListModule"),
     Mutant("edgerecord", "SortedConstruction.swift", "_EdgeRecord(u: u, v: v, uOffset: uSlot &- offsets[u], vOffset: vSlot &- offsets[v])", "_EdgeRecord(u: u, v: v, uOffset: vSlot &- offsets[v], vOffset: uSlot &- offsets[u])", module="AdjacencyListModule"),
     Mutant("listslots", "SortedConstruction.swift", "_VertexSlots(identityCount: n)", "_VertexSlots(identityCount: Swift.max(0, n - 1))", nth=0, module="AdjacencyListModule"),
-    Mutant("listpairs", "SortedConstruction.swift", "            _edges.insert(_SlotPair(record.source, record.target), position)", "", mode="stmt", nth=0, module="AdjacencyListModule"),
+    Mutant("listpairs", "SortedConstruction.swift", "        _deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)", "        _deferredEdges = nil", mode="stmt", nth=0, module="AdjacencyListModule"),
     Mutant("undirectedslots", "SortedConstruction.swift", "_VertexSlots(identityCount: n)", "_VertexSlots(identityCount: Swift.max(0, n - 1))", nth=1, module="AdjacencyListModule"),
-    Mutant("undirectedpairs", "SortedConstruction.swift", "            _positions.insert(_SlotPair(record.u, record.v), position)", "", mode="stmt", nth=0, module="AdjacencyListModule"),
+    Mutant("undirectedpairs", "SortedConstruction.swift", "        _positions._insertDistinct(count: records.count) { (_SlotPair(records[$0].u, records[$0].v), $0) }", "", mode="stmt", nth=0, module="AdjacencyListModule"),
 
     # The multigraphs' single-copy classes.
     Mutant("parallellinks", "SortedConstruction.swift", "ContiguousArray(repeating: _ParallelLinks(previous: -1, next: -1), count: count)", "ContiguousArray(repeating: _ParallelLinks(previous: -1, next: -1), count: 0)", module="Multigraphs"),
@@ -265,8 +274,7 @@ MUTANTS = [
 
     # StableDirectedGraph.
     Mutant("stableslots", "StableDirectedGraph+Construction.swift", "for v in 0 ..< n { _appendSlot(for: v) }", "for v in (0 ..< n).reversed() { _appendSlot(for: v) }", mode="stmt", module="StableGraphs"),
-    Mutant("stableedge", "StableDirectedGraph+Construction.swift", "_insertEdge(slots: edge.source, edge.target)", "_insertEdge(slots: edge.target, edge.source)", mode="stmt", module="StableGraphs"),
-    Mutant("stablepack", "StableDirectedGraph+Construction.swift", "        _packRows()", "", mode="stmt", module="StableGraphs"),
+    Mutant("stableedge", "StableDirectedGraph+Construction.swift", "            targets.append(edge.target)", "            targets.append(edge.source)", mode="stmt", module="StableGraphs"),
     Mutant("stablereserve", "StableDirectedGraph+Construction.swift", "        reserveCapacity(vertexCount: n, edgeCount: edges.count)", "", mode="stmt", module="StableGraphs"),
 
     # BipartiteGraph's known sides.
@@ -278,4 +286,92 @@ MUTANTS = [
     # Tree's dense layout.
     Mutant("treesingle", "Construction.swift", "        if n == 1 {\n            self.init(_layout: .single(0))\n            return\n        }", "", mode="stmt", module="Trees"),
     Mutant("treecheck", "Construction.swift", '        precondition(n >= 1, "A Tree has at least one vertex")', "", mode="stmt", module="Trees"),
+    # The counting sort of unordered pairs.
+    Mutant("sortedlarger", "SortedPairs.swift", "offsets[Swift.max(pair.source, pair.target) &+ 1] &+= 1", "offsets[Swift.min(pair.source, pair.target) &+ 1] &+= 1"),
+    Mutant("sortedorient", "SortedPairs.swift", "sorted.initializeElement(at: slot, to: DirectedEdge(from: u, to: v))", "sorted.initializeElement(at: slot, to: DirectedEdge(from: v, to: u))", mode="stmt"),
+    Mutant("sortedreset", "SortedPairs.swift", "    for v in 0 ... n { offsets[v] = 0 }", "", mode="stmt"),
+    Mutant("sorteddedupe", "SortedPairs.swift", "kept == 0 || sorted[i] != sorted[kept &- 1]", "true"),
+
+    # Circulant and generalized Petersen graphs.
+    Mutant("circresidue", "Circulant.swift", "((o % n) + n) % n", "o % n"),
+    Mutant("circloop", "Circulant.swift", "r != 0", "true", nth=0),
+    Mutant("circcount", "Circulant.swift", "n >= 1", "n >= 0", nth=0),
+    Mutant("gpouter", "Circulant.swift", "        pairs.append(DirectedEdge(from: i, to: (i + 1) % n))", "        pairs.append(DirectedEdge(from: i, to: (i + 2) % n))", mode="stmt"),
+    Mutant("gpinner", "Circulant.swift", "DirectedEdge(from: n + i, to: n + (i + k) % n)", "DirectedEdge(from: n + i, to: n + (i + 1) % n)"),
+    Mutant("gpstep", "Circulant.swift", "k >= 1 && 2 * k < n", "k >= 1 && 2 * k <= n"),
+    Mutant("gpcycle", "Circulant.swift", "n >= 3", "n >= 2", nth=0),
+
+    # Kneser graphs.
+    Mutant("binomialsum", "Kneser.swift", "x <= Int.max - y ? x + y : Int.max", "x <= Int.max - y ? x + y : 0"),
+    Mutant("binomialrow", "Kneser.swift", "        table[a * (k + 1)] = 1", "        table[a * (k + 1)] = a == 0 ? 1 : 0", mode="stmt"),
+    Mutant("kneserrange", "Kneser.swift", "k >= 1 && k <= n", "k >= 0 && k <= n"),
+    Mutant("kneserdegree", "Kneser.swift", "n - k >= k ? binomial[(n - k) * stride + k] : 0", "n - k > k ? binomial[(n - k) * stride + k] : 0"),
+    Mutant("kneserrank", "Kneser.swift", "binomial[(n - 1 - complement[pick[i]]) * stride + (k - i)]", "binomial[(n - 1 - complement[pick[i]]) * stride + (k - i - 1)]"),
+    Mutant("kneserfrom", "Kneser.swift", "            from = i", "            from = Swift.min(i + 1, k - 1)", mode="stmt"),
+    Mutant("kneserlarger", "Kneser.swift", "rank > u", "rank >= u"),
+    Mutant("knesercomplement", "Kneser.swift", "subset[j] == x", "subset[j] == x && j < k - 1"),
+    Mutant("kneserpickend", "Kneser.swift", "pick[i] == n - k - k + i", "pick[i] == n - k - k + i - 1"),
+    Mutant("knesernext", "Kneser.swift", "subset[i] == n - k + i", "subset[i] == n - k + i - 1"),
+
+    # Windmills.
+    Mutant("windhub", "Windmill.swift", "    for v in 1 ..< n { pairs.append(DirectedEdge(from: 0, to: v)) }", "    for v in 2 ..< n { pairs.append(DirectedEdge(from: 0, to: v)) }", mode="stmt"),
+    Mutant("windstart", "Windmill.swift", "1 + j * (k - 1)", "1 + j * k"),
+    Mutant("windcliques", "Windmill.swift", "cliques >= 2", "cliques >= 1"),
+    Mutant("windsize", "Windmill.swift", "k >= 2", "k >= 1"),
+
+    # Binomial and full r-ary trees.
+    Mutant("binomialroot", "BinomialAndRaryTrees.swift", "p == 0 ? k : p.trailingZeroBitCount", "p.trailingZeroBitCount"),
+    Mutant("binomiallow", "BinomialAndRaryTrees.swift", "p == 0 ? k : p.trailingZeroBitCount", "p == 0 ? k : p.trailingZeroBitCount + 1"),
+    Mutant("binomialnegative", "BinomialAndRaryTrees.swift", "k >= 0", "true", nth=0),
+    Mutant("raryparent", "BinomialAndRaryTrees.swift", "DirectedEdge(from: ($0 - 1) / r, to: $0)", "DirectedEdge(from: $0 / (r + 1), to: $0)"),
+    Mutant("rarysmall", "BinomialAndRaryTrees.swift", "    guard n >= 2 else { return [] }", "    guard n >= 3 else { return [] }", mode="stmt"),
+    Mutant("rarybranching", "BinomialAndRaryTrees.swift", "r >= 1", "r >= 0", nth=0),
+    Mutant("treeraryparent", "BinomialAndRaryTrees.swift", "            ends.append((c - 1) / r)", "            ends.append(c / (r + 1))", mode="stmt"),
+    Mutant("treeraryempty", "BinomialAndRaryTrees.swift", 'precondition(n >= 1, "a Tree has at least one vertex")', "", mode="stmt"),
+    Mutant("treebinomialorder", "BinomialAndRaryTrees.swift", "            ends.append(pair.source)", "            ends.append(0)", mode="stmt"),
+
+    # De Bruijn and Kautz graphs.
+    Mutant("bruijntail", "WordGraphs.swift", "(u % tail) * m", "(u / m) * m"),
+    Mutant("bruijnletters", "WordGraphs.swift", "        for a in 0 ..< m { arcs.append(DirectedEdge(from: u, to: base + a)) }", "        for a in 0 ..< m - 1 { arcs.append(DirectedEdge(from: u, to: base + a)) }", mode="stmt"),
+    Mutant("bruijnalphabet", "WordGraphs.swift", "m >= 1", "m >= 0"),
+    Mutant("bruijnlength", "WordGraphs.swift", "n >= 1", "n >= 0"),
+    Mutant("power", "WordGraphs.swift", "        p *= m", "        p *= m + 1", mode="stmt"),
+    Mutant("kautzsecond", "WordGraphs.swift", "d2 >= first ? d2 + 1 : d2", "d2 > first ? d2 + 1 : d2"),
+    Mutant("kautzbase", "WordGraphs.swift", "second * tailCount + (rest % inner) * q", "second * tailCount + (rest / inner) * q"),
+    Mutant("kautzsingle", "WordGraphs.swift", "v != u", "v != u + 1"),
+    Mutant("kautzalphabet", "WordGraphs.swift", "s >= 2", "s >= 1"),
+    Mutant("kautzlength", "WordGraphs.swift", "length >= 1", "length >= 0"),
+
+    # Triangular and hexagonal lattices.
+    Mutant("triwidth", "TriangularHexagonalLattices.swift", "short && !j.isMultiple(of: 2) ? columns : columns + 1", "short && j.isMultiple(of: 2) ? columns : columns + 1"),
+    Mutant("trirow", "TriangularHexagonalLattices.swift", "        for i in 0 ..< w - 1 { pairs.append(DirectedEdge(from: here + i, to: here + i + 1)) }", "        for i in 0 ..< w - 2 { pairs.append(DirectedEdge(from: here + i, to: here + i + 1)) }", mode="stmt"),
+    Mutant("trivertical", "TriangularHexagonalLattices.swift", "Swift.min(w, wa)", "Swift.max(w, wa) - 1"),
+    Mutant("tridiagonaleven", "TriangularHexagonalLattices.swift", "                pairs.append(DirectedEdge(from: here + i + 1, to: above + i))", "                pairs.append(DirectedEdge(from: here + i + 1, to: above + i + 1))", mode="stmt"),
+    Mutant("tridiagonalodd", "TriangularHexagonalLattices.swift", "                pairs.append(DirectedEdge(from: here + i, to: above + i + 1))", "                pairs.append(DirectedEdge(from: here + i, to: above + i))", mode="stmt"),
+    Mutant("tricolumns", "TriangularHexagonalLattices.swift", "(n + 1) / 2", "n / 2 + 1"),
+    Mutant("hexlow", "TriangularHexagonalLattices.swift", "i == n && n.isMultiple(of: 2) ? 1 : 0", "i == n && !n.isMultiple(of: 2) ? 1 : 0"),
+    Mutant("hexhigh", "TriangularHexagonalLattices.swift", "i == 0 || (i == n && !n.isMultiple(of: 2)) ? rows - 1 : rows", "i == 0 ? rows - 1 : rows"),
+    Mutant("hexcolumn", "TriangularHexagonalLattices.swift", "        for j in first ..< last - 1 { pairs.append(DirectedEdge(from: here + j, to: here + j + 1)) }", "        for j in first ..< last - 2 { pairs.append(DirectedEdge(from: here + j, to: here + j + 1)) }", mode="stmt"),
+    Mutant("hexparity", "TriangularHexagonalLattices.swift", "i.isMultiple(of: 2) ? 0 : 1", "i.isMultiple(of: 2) ? 1 : 0"),
+    Mutant("hexpresent", "TriangularHexagonalLattices.swift", "j >= low(i + 1)", "j >= 0"),
+
+    # LCF notation.
+    Mutant("lcfwrap", "LCF.swift", "((u + shift % n) % n + n) % n", "(u + shift + n) % n"),
+    Mutant("lcfnode", "LCF.swift", "i % n", "i % (n - 1)"),
+    Mutant("lcfshift", "LCF.swift", "shifts[i % shifts.count]", "shifts[(i + 1) % shifts.count]"),
+    Mutant("lcfloop", "LCF.swift", "v != u", "true"),
+    Mutant("lcfcycle", "LCF.swift", "    for i in 0 ..< n { pairs.append(DirectedEdge(from: i, to: (i + 1) % n)) }", "    for i in 0 ..< n - 1 { pairs.append(DirectedEdge(from: i, to: (i + 1) % n)) }", mode="stmt"),
+    Mutant("lcfrepeats", "LCF.swift", "shifts.count * r", "shifts.count * Swift.max(r - 1, 0)", nth=2),
+    Mutant("lcfsmall", "LCF.swift", "n >= 3", "n >= 2"),
+    Mutant("pappus", "LCF.swift", "_lcfPairs(18, [5, 7, -7, 7, -7, -5], 3)", "_lcfPairs(18, [5, 7, -7, 7, -7, -5], 2)"),
+    Mutant("desargues", "LCF.swift", "_lcfPairs(20, [5, -5, 9, -9], 5)", "_lcfPairs(20, [5, -5, 9, -9], 2)"),
+    Mutant("frucht", "LCF.swift", "_lcfPairs(12, [-5, -2, -4, 2, 5, -2, 2, 5, -2, -5, 4, 2], 1)", "_lcfPairs(12, [-5, -2, -4, 2, 5, -2, 2, 5, -2, -5, 4, -2], 1)"),
+
+    # The constructions.
+    Mutant("icosring", "NamedConstructions.swift", "        pairs.append(DirectedEdge(from: 1 + t, to: 6 + next))", "        pairs.append(DirectedEdge(from: 1 + t, to: 6 + (t + 2) % 5))", mode="stmt"),
+    Mutant("tuttecross", "NamedConstructions.swift", "DirectedEdge(from: base + 13, to: next + 6)", "DirectedEdge(from: base + 13, to: next + 7)"),
+    Mutant("tuttecentre", "NamedConstructions.swift", "        pairs.append(DirectedEdge(from: 0, to: base))", "        pairs.append(DirectedEdge(from: 0, to: base + 1))", mode="stmt"),
+    Mutant("chvatal", "NamedConstructions.swift", "(9, 11)", "(8, 11)"),
+    Mutant("hspentagram", "NamedConstructions.swift", "25 + 5 * h + (j + 2) % 5", "25 + 5 * h + (j + 1) % 5"),
+    Mutant("hscross", "NamedConstructions.swift", "25 + 5 * i + (h * i + j) % 5", "25 + 5 * i + (h + i + j) % 5"),
 ]

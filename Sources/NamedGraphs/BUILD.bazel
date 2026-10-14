@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Complete, complete bipartite and multipartite, Turán, path, cycle, star, wheel, ladder, circular ladder, barbell, lollipop, grid, hypercube, balanced tree and Petersen graphs.
+# Complete, complete bipartite and multipartite, Turán, path, cycle, star, wheel, ladder, circular ladder, barbell, lollipop, windmill, grid, triangular and hexagonal lattice, hypercube, circulant, generalized Petersen, Kneser, de Bruijn, Kautz, LCF, balanced, full r-ary and binomial tree graphs, and the Petersen, Heawood, Möbius–Kantor, Pappus, Desargues, dodecahedral, icosahedral, Frucht, Tutte, Chvátal and Hoffman–Singleton graphs.
 swift_library(
     name = "NamedGraphs",
     srcs = glob(["**/*.swift"]),
@@ -12,6 +12,8 @@ swift_library(
         "//Sources/GraphProtocols",
         "//Sources/Trees",
         "//Sources/BipartiteGraphs",
+        "//Sources/AdjacencyListModule",
+        "//Sources/Multigraphs",
     ],
     visibility = ["//visibility:public"],
 )
@@ -25,6 +27,8 @@ docc_archive(
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
         "//Sources/Trees:TreesDocumentation",
         "//Sources/BipartiteGraphs:BipartiteGraphsDocumentation",
+        "//Sources/AdjacencyListModule:AdjacencyListModuleDocumentation",
+        "//Sources/Multigraphs:MultigraphsDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],
