@@ -190,9 +190,9 @@ enum FuzzColoring {
                 down(0)
             }
         }
-        // Proper presets: a wanted colour that no neighbour already has.
+        // Proper presets: a wanted colour below the vertex count that no neighbour already has.
         var preset = [Int](repeating: -1, count: n)
-        for v in 0 ..< n where wanted[v] >= 0 && !rows[v].contains(where: { preset[$0] == wanted[v] }) { preset[v] = wanted[v] }
+        for v in 0 ..< n where wanted[v] >= 0 && wanted[v] < n && !rows[v].contains(where: { preset[$0] == wanted[v] }) { preset[v] = wanted[v] }
         func firstFitPreset(_ order: [Int]) -> [Int] {
             var colors = preset
             for v in order where colors[v] < 0 {
