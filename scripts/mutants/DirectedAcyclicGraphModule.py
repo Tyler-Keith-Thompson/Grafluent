@@ -325,7 +325,7 @@ MUTANTS = [
     Mutant("pmcheckededge", PM, "try base[map, checkedEdgeAt: position]", "base[map, ofEdgeAt: position]", nth=3, module="GraphProtocols"),
     Mutant("pmcheckedvertex", PM, "try base[map, checked: vertex]", "base[map, of: vertex]", nth=1, module="GraphProtocols"),
     Mutant("pmcheckedposition", PM, "try base[map, checkedVertexAt: position]", "base[map, ofVertexAt: position]", module="GraphProtocols"),
-    Mutant("stremovelookup", ST, "        _slots.removeValue(forKey: _vertex(atSlot: key))", "", mode="stmt", module="StableGraphs"),
+    Mutant("stremovelookup", ST, "        _slots.removeValue(forKey: _vertex(atKey: key))", "", mode="stmt", module="StableGraphs"),
 
     # d-separation and the moral graph
     Mutant("ds_bounce", "DirectedAcyclicGraph+DSeparation.swift", "inZ[p]", "false", nth=2),
