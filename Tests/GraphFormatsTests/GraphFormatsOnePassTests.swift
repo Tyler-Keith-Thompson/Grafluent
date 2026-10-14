@@ -476,6 +476,16 @@ struct GraphFormatsOnePassTests {
         #expect(render(document, shift: 0) == render(twoPass, shift: twoPass == document ? 0 : 13), "\(seed): \(document)")
     }
 
+    @Test("Cytoscape JSON in the common layout: text after the top object, and a raw control character in an id, are errors")
+    func cytoscapeOnePassRejects() throws {
+        let good = "{\"directed\": true, \"elements\": {\"nodes\": [{\"data\": {\"id\": \"a\"}}], \"edges\": []}} \n"
+        #expect(try Array(DirectedPseudograph<String>(cytoscapeJSON: good.utf8).vertices) == ["a"])
+        let trailing = "{\"directed\": true, \"elements\": {\"nodes\": [{\"data\": {\"id\": \"a\"}}], \"edges\": []}} x"
+        #expect(throws: ParseError.self) { try DirectedPseudograph<String>(cytoscapeJSON: trailing.utf8) }
+        let control = "{\"directed\": true, \"elements\": {\"nodes\": [{\"data\": {\"id\": \"x\ty\"}}], \"edges\": []}}"
+        #expect(throws: ParseError.self) { try DirectedPseudograph<String>(cytoscapeJSON: control.utf8) }
+    }
+
     @Test("GraphML: vertex and edge attributes are reported in document order, interleaved, after the build")
     func graphMLAttributeOrder() throws {
         let text = "<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"><key id=\"w\" for=\"all\" attr.name=\"w\" attr.type=\"double\"/><graph edgedefault=\"directed\"><data key=\"w\">9</data><node id=\"a\"><data key=\"w\">1</data></node><node id=\"b\"><data key=\"w\">2</data></node><edge source=\"a\" target=\"b\"><data key=\"w\">3</data></edge><node id=\"c\"><data key=\"w\">4</data></node><edge source=\"b\" target=\"c\"><data key=\"w\">5</data></edge><edge source=\"c\" target=\"a\"/><edge source=\"c\" target=\"b\"><data key=\"w\">6</data></edge></graph></graphml>"
