@@ -120,6 +120,8 @@ named fixtures and the vertex types used to stress `Hashable` (`Collider`, `Hash
 | `AdjacencyListMapPropertyTests.swift` | swift-property-based model of every map under random mutations, with shrinking (AM-12) |
 | `AdjacencyListGenerationTests.swift` | Which calls start a generation, copies, built and decoded graphs (AM-11); on both lists, two copies under every interleaving of three steps never share a generation in different states |
 | `AdjacencyListCheckedTests.swift` | The `checked:` lookups against their trapping spellings, throwing for a non-vertex and after a removal moved a slot; `source` / `target(checkedEdgeAt:)` in and out of range; `insert(checked:)` between existing vertices, and throwing with nothing changed for a missing endpoint |
+| `AdjacencyListPackedConstructionTests.swift` | The bulk initializers of both lists against inserting the same vertices and edges one at a time (slots, positions, orientations, rows), the packed row layout and the one row table both pools lend, decoding's rejections, and swift-property-based random mutations after a bulk build |
+| `Performance/AdjacencyListRowLayoutRatioTests.swift` | The lent rows of both lists, bulk-built and built by insertion, walked and searched against packed arrays holding the same rows (optimized builds bound the ratios) |
 
 Case IDs in test names (C-04, V-06, Q-14, ...) refer to the case catalog in
 `Tests/Catalogs/AdjacencyList/cases.md`, which cites each case's source. Fixtures cite their

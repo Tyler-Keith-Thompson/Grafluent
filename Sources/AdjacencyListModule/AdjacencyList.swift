@@ -14,10 +14,13 @@ import GraphProtocols
 /// Each slot has a row of the slots of its out-neighbors, a parallel row of those edges'
 /// positions, and a row of its in-neighbors. The rows of each kind share one array, so the graph
 /// makes an amortized constant number of allocations however many vertices it has, and copying it
-/// copies a constant number of buffers. A hash table from slot pair to position answers
-/// `contains(edge:)` in O(1) expected. A graph built in bulk from sorted edges (a condensation, a
-/// line graph, a named graph) builds that table in O(m) on its first lookup or mutation, so a
-/// result that is only traversed never pays for it.
+/// copies a constant number of buffers. The bulk initializers (`init(vertices:edges:)`,
+/// `init(edges:)`, `init(_:)`, `init(adjacency:)`, the builder and the dictionary literal) lay
+/// every row out once at its exact size, in slot order, so algorithms read the rows as they would
+/// compressed sparse rows. A row that later outgrows its block moves to the end of the array. A
+/// hash table from slot pair to position answers `contains(edge:)` in O(1) expected. A graph built
+/// in bulk builds that table in O(m) on its first lookup or mutation, so a result that is only
+/// traversed never pays for it.
 ///
 /// Removing an edge is O(1). The last edge moves into its position, and the last entry of each row
 /// into the hole. Removing a vertex costs O(degree) and moves the last slot into its place. Vertex
@@ -146,31 +149,40 @@ extension AdjacencyList {
 
     /// A graph with the given edges, whose vertices are exactly their endpoints.
     /// Repeated edges are inserted once.
+    ///
+    /// The result is the graph that inserting the edges one at a time builds, with the same
+    /// vertex slots and edge positions, but its rows are laid out once at their exact sizes, in
+    /// slot order. O(n + m) expected.
     @inlinable
     public init(edges: some Sequence<DirectedEdge<Vertex>>) {
-        self.init()
-        for edge in edges { insert(edge: edge) }
+        self.init(vertices: EmptyCollection(), edges: edges)
     }
 
     /// A graph with the given vertices and edges. Endpoints missing from `vertices` are inserted.
+    ///
+    /// The result is the graph that inserting the vertices and then the edges one at a time
+    /// builds, with the same vertex slots and edge positions, but its rows are laid out once at
+    /// their exact sizes, in slot order. O(n + m) expected.
     @inlinable
     public init(vertices: some Sequence<Vertex>, edges: some Sequence<DirectedEdge<Vertex>>) {
-        self.init()
-        for v in vertices { insert(v) }
-        for edge in edges { insert(edge: edge) }
+        var pairs = _SlotPairs<Vertex>(reservingPairs: edges.underestimatedCount)
+        for v in vertices { pairs.insert(v) }
+        for edge in edges { pairs.append(edge.source, edge.target) }
+        self.init(_pairs: pairs)
     }
 
     /// A graph from an adjacency mapping: each key is a vertex, and its value lists the vertex's
     /// out-neighbors. Neighbors that are not keys become vertices. The vertices' order follows the
-    /// dictionary's, which differs between processes; equality does not depend on it.
+    /// dictionary's, which differs between processes; equality does not depend on it. The rows
+    /// are laid out once, as for `init(vertices:edges:)`. O(n + m) expected.
     @inlinable
     public init<Neighbors: Sequence<Vertex>>(adjacency: [Vertex: Neighbors]) {
-        self.init()
-        reserveCapacity(vertexCount: adjacency.count, edgeCount: 0)
+        var pairs = _SlotPairs<Vertex>(reservingPairs: adjacency.count)
         for (source, targets) in adjacency {
-            insert(source)
-            for target in targets { insert(edge: DirectedEdge(from: source, to: target)) }
+            pairs.insert(source)
+            for target in targets { pairs.append(source, target) }
         }
+        self.init(_pairs: pairs)
     }
 
     /// A graph from a list of edges and vertices; see `DirectedGraphBuilder`.
@@ -186,13 +198,14 @@ extension AdjacencyList: ExpressibleByDictionaryLiteral {
     /// for `Dictionary`.
     @inlinable
     public init(dictionaryLiteral elements: (Vertex, [Vertex])...) {
-        self.init()
+        var pairs = _SlotPairs<Vertex>(reservingPairs: elements.count)
         var keys = Set<Vertex>(minimumCapacity: elements.count)
         for (source, targets) in elements {
             precondition(keys.insert(source).inserted, "Dictionary literal of AdjacencyList contains duplicate key \(source)")
-            insert(source)
-            for target in targets { insert(edge: DirectedEdge(from: source, to: target)) }
+            pairs.insert(source)
+            for target in targets { pairs.append(source, target) }
         }
+        self.init(_pairs: pairs)
     }
 }
 
@@ -818,10 +831,10 @@ extension AdjacencyList: Decodable where Vertex: Decodable {
         guard edges.count.isMultiple(of: 2) else {
             throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Edge list has odd length")
         }
-        self.init()
-        reserveCapacity(vertexCount: vertices.count, edgeCount: edges.count / 2)
+        var pairs = _SlotPairs<Vertex>(reservingPairs: edges.count / 2)
+        pairs.slots.reserveCapacity(vertices.count)
         for v in vertices {
-            guard insert(v).inserted else {
+            guard pairs.insert(v).inserted else {
                 throw DecodingError.dataCorruptedError(forKey: .vertices, in: container, debugDescription: "Repeated vertex")
             }
         }
@@ -829,10 +842,14 @@ extension AdjacencyList: Decodable where Vertex: Decodable {
             guard vertices.indices.contains(edges[i]), vertices.indices.contains(edges[i + 1]) else {
                 throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Edge endpoint out of range")
             }
-            guard insert(edge: DirectedEdge(from: vertices[edges[i]], to: vertices[edges[i + 1]])).inserted else {
-                throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Repeated edge")
-            }
+            pairs.firsts.append(edges[i])
+            pairs.seconds.append(edges[i + 1])
         }
+        let firstCopies = _firstCopies(pairs.firsts, pairs.seconds, vertexCount: vertices.count, undirected: false)
+        for (i, first) in firstCopies.enumerated() where first != i {
+            throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Repeated edge")
+        }
+        self.init(_vertices: pairs.vertices, slots: pairs.slots, distinctSources: pairs.firsts, targets: pairs.seconds)
     }
 }
 
@@ -957,6 +974,9 @@ extension AdjacencyList: BidirectionalDirectedGraph {
     public func edgeIndex(of position: Int) -> Int { position }
 
     /// The stored rows: `_out` and `_outEdges`, whose entries are slots and edge positions.
+    ///
+    /// The two pools grow, move and pack their rows together, so their row tables are equal, and
+    /// `_out`'s is lent as both: an algorithm then reads one table entry per vertex.
     @inlinable
     public func _withOutIndexRows<Result>(
         _ body: (
@@ -965,24 +985,26 @@ extension AdjacencyList: BidirectionalDirectedGraph {
         ) -> Result
     ) -> Result? {
         _out.withUnsafeRows { targets, targetRows in
-            _outEdges.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }
+            _outEdges.withUnsafeRows { edges, _ in body(targets, targetRows, edges, targetRows) }
         }
     }
 }
 
 extension AdjacencyList {
     /// A copy of any directed graph, with its vertices, including isolated ones, and its edges.
-    /// Parallel edges collapse. Converting an `AdjacencyList` returns it unchanged.
+    /// Parallel edges collapse. Converting an `AdjacencyList` returns it unchanged. The rows are
+    /// laid out once, as for `init(vertices:edges:)`. O(n + m) expected.
     @inlinable
     public init(_ graph: some DirectedGraph<Vertex>) {
         if let same = graph as? AdjacencyList {
             self = same
             return
         }
-        self.init()
-        reserveCapacity(vertexCount: graph.vertexCount, edgeCount: graph.edgeCount)
-        for v in graph.vertices { insert(v) }
-        for edge in graph.edges { insert(edge: edge) }
+        var pairs = _SlotPairs<Vertex>(reservingPairs: graph.edgeCount)
+        pairs.slots.reserveCapacity(graph.vertexCount)
+        for v in graph.vertices { pairs.insert(v) }
+        for edge in graph.edges { pairs.append(edge.source, edge.target) }
+        self.init(_pairs: pairs)
     }
 }
 

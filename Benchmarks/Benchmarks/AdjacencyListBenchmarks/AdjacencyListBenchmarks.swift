@@ -265,6 +265,97 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(sum)
         }
     }
+
+    // Row layout: the stored rows read as the library's algorithms read them, on a graph built by
+    // its bulk initializer (rows packed in slot order) and on the same graph built by inserting
+    // the edges one at a time (rows that outgrew their blocks moved to the end), against packed
+    // arrays holding the same rows.
+    let layoutCount = 100_000
+    let layoutEdges = Inputs.randomEdges(vertexCount: layoutCount, edgeCount: 1_000_000, seed: 7)
+    let layoutBulk = AdjacencyList(vertices: 0 ..< layoutCount, edges: layoutEdges)
+    var layoutInserted = AdjacencyList<Int>(vertices: 0 ..< layoutCount)
+    for edge in layoutEdges { layoutInserted.insert(edge: edge) }
+    var layoutOffsets = [0], layoutTargets: [Int] = [], layoutPositions: [Int] = []
+    for v in 0 ..< layoutCount {
+        layoutTargets.append(contentsOf: layoutBulk.successorIndices(ofIndex: v))
+        layoutPositions.append(contentsOf: layoutBulk.outEdges(ofIndex: v))
+        layoutOffsets.append(layoutTargets.count)
+    }
+
+    Benchmark("AdjacencyList layout: build 1M edges with init(vertices:edges:)", configuration: .init(metrics: [.wallClock, .mallocCountTotal, .peakMemoryResident])) { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(AdjacencyList(vertices: 0 ..< layoutCount, edges: layoutEdges)) }
+    }
+    Benchmark("AdjacencyList layout: build 1M edges by insert(edge:)", configuration: .init(metrics: [.wallClock, .mallocCountTotal, .peakMemoryResident])) { benchmark in
+        for _ in benchmark.scaledIterations {
+            var built = AdjacencyList<Int>(vertices: 0 ..< layoutCount)
+            for edge in layoutEdges { built.insert(edge: edge) }
+            blackHole(built)
+        }
+    }
+    Benchmark("AdjacencyList layout: BASELINE walk every target and position of packed arrays") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for v in 0 ..< layoutCount {
+                for k in layoutOffsets[v] ..< layoutOffsets[v + 1] { sum &+= layoutTargets[k] &* 31 &+ layoutPositions[k] }
+            }
+            blackHole(sum)
+        }
+    }
+    for (name, graph) in [("init(vertices:edges:)", layoutBulk), ("insert(edge:)", layoutInserted)] {
+        Benchmark("AdjacencyList layout: walk every target and position of the lent rows, built by \(name)") { benchmark in
+            for _ in benchmark.scaledIterations {
+                let sum = graph._withOutIndexRows { targets, targetRows, edges, edgeRows in
+                    var sum = 0
+                    for v in 0 ..< layoutCount {
+                        let start = targetRows[3 &* v], end = start &+ targetRows[3 &* v &+ 1], shift = edgeRows[3 &* v] &- start
+                        for k in start ..< end { sum &+= targets[k] &* 31 &+ edges[k &+ shift] }
+                    }
+                    return sum
+                }
+                blackHole(sum)
+            }
+        }
+        Benchmark("AdjacencyList layout: breadth-first search recording parent edges over the lent rows, built by \(name)") { benchmark in
+            for _ in benchmark.scaledIterations {
+                let reached = graph._withOutIndexRows { targets, targetRows, edges, edgeRows in
+                    var parent = [Int](repeating: -1, count: layoutCount)
+                    var queue = [0]
+                    queue.reserveCapacity(layoutCount)
+                    parent[0] = Int.max
+                    var head = 0
+                    while head < queue.count {
+                        let v = queue[head]
+                        head += 1
+                        let start = targetRows[3 &* v], end = start &+ targetRows[3 &* v &+ 1], shift = edgeRows[3 &* v] &- start
+                        for k in start ..< end where parent[targets[k]] < 0 {
+                            parent[targets[k]] = edges[k &+ shift]
+                            queue.append(targets[k])
+                        }
+                    }
+                    return queue.count
+                }
+                blackHole(reached)
+            }
+        }
+    }
+    Benchmark("AdjacencyList layout: BASELINE breadth-first search recording parent edges over packed arrays") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var parent = [Int](repeating: -1, count: layoutCount)
+            var queue = [0]
+            queue.reserveCapacity(layoutCount)
+            parent[0] = Int.max
+            var head = 0
+            while head < queue.count {
+                let v = queue[head]
+                head += 1
+                for k in layoutOffsets[v] ..< layoutOffsets[v + 1] where parent[layoutTargets[k]] < 0 {
+                    parent[layoutTargets[k]] = layoutPositions[k]
+                    queue.append(layoutTargets[k])
+                }
+            }
+            blackHole(queue.count)
+        }
+    }
 }
 
 /// The fair baseline of the attached-map rows: a caller's own graph type that holds the graph and

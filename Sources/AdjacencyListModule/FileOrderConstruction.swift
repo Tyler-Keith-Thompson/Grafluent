@@ -1,11 +1,12 @@
 import GraphProtocols
 
-// Bulk construction from edges in insertion order (`MutableDirectedGraph._built` and
-// `MutableGraph._built`, which the `GraphFormats` readers build through). Each row is laid out at
-// its exact size by a stable counting sort, so it lists its edges in position order, as inserting
-// the edges one at a time would leave it. O(n + m), with no row growing. Repeated pairs are found
-// by a counting sort and a stamp per row, without hashing. The simple lists drop them, and the
-// multigraphs link them into their parallel classes.
+// Bulk construction from edges in insertion order: `MutableDirectedGraph._built` and
+// `MutableGraph._built`, which the `GraphFormats` readers build through, and the public bulk
+// initializers, through `_SlotPairs`. Each row is laid out at its exact size by a stable counting
+// sort, so it lists its edges in position order, as inserting the edges one at a time would leave
+// it. O(n + m), with no row growing. Repeated pairs are found by a counting sort and a stamp per
+// row, without hashing. The simple lists drop them, and the multigraphs link them into their
+// parallel classes.
 
 /// The rows and records of a directed graph on `0..<n` whose edge at position `p` is
 /// `(sources[p], targets[p])`, for `AdjacencyList` and `DirectedPseudograph`.
@@ -207,9 +208,80 @@ package func _vertexSlots<Vertex: Hashable>(of vertices: ContiguousArray<Vertex>
     return slots
 }
 
+/// Vertices numbered into slots in order of first appearance, and edges as pairs of slots in
+/// order, as inserting them one at a time would number them: the input of the bulk initializers,
+/// which lay the rows out once at the end.
+@frozen
+@usableFromInline
+package struct _SlotPairs<Vertex: Hashable> {
+    @usableFromInline package var vertices: ContiguousArray<Vertex>
+    @usableFromInline package var slots: _VertexSlots<Vertex>
+    @usableFromInline package var firsts: [Int]
+    @usableFromInline package var seconds: [Int]
+
+    /// No vertices and no pairs, with room for `pairCount` pairs.
+    @inlinable
+    package init(reservingPairs pairCount: Int) {
+        vertices = []
+        slots = _VertexSlots()
+        firsts = []
+        seconds = []
+        firsts.reserveCapacity(pairCount)
+        seconds.reserveCapacity(pairCount)
+    }
+
+    /// The slot of `vertex`, numbering it next if it has none. Returns whether it was new.
+    @inlinable
+    @discardableResult
+    package mutating func insert(_ vertex: Vertex) -> (inserted: Bool, slot: Int) {
+        if let slot = slots[vertex] { return (false, slot) }
+        let slot = vertices.count
+        vertices.append(vertex)
+        slots[vertex] = slot
+        return (true, slot)
+    }
+
+    /// Appends the pair `(first, second)`, numbering `first` and then `second` if they are new.
+    @inlinable
+    package mutating func append(_ first: Vertex, _ second: Vertex) {
+        let a = insert(first).slot
+        let b = insert(second).slot
+        firsts.append(a)
+        seconds.append(b)
+    }
+}
+
 extension AdjacencyList {
-    /// See `MutableDirectedGraph._built`: repeated pairs dropped through the pair table, then the
-    /// rows by counting sort. O(n + m) expected.
+    /// The graph on `vertices` (slot `i` holds `vertices[i]`, and `slots` maps them back) with the
+    /// edges `sources[p] → targets[p]` at positions `p`, which must be distinct pairs of slots in
+    /// range: unchecked. Every row at its exact size, in slot order. O(n + m); the pair table is
+    /// built on the first lookup.
+    @inlinable
+    internal init(_vertices vertices: ContiguousArray<Vertex>, slots: _VertexSlots<Vertex>, distinctSources sources: [Int], targets: [Int]) {
+        let rows = _ArcRows(vertexCount: vertices.count, sources: sources, targets: targets)
+        self.init()
+        _slots = slots
+        _vertices = vertices
+        _out = rows.out
+        _outEdges = rows.outEdges
+        _in = rows.in
+        _inEdges = rows.inEdges
+        _records = rows.records
+        _deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)
+        _generation.stamp()
+    }
+
+    /// The graph `pairs` numbers, repeated pairs dropped (`_keptPairs`), each kept pair at the
+    /// position of its first appearance: the graph that inserting the pairs in order builds, with
+    /// its rows packed. O(n + m).
+    @inlinable
+    internal init(_pairs pairs: _SlotPairs<Vertex>) {
+        let kept = _keptPairs(pairs.firsts, pairs.seconds, vertexCount: pairs.vertices.count, undirected: false)
+        self.init(_vertices: pairs.vertices, slots: pairs.slots, distinctSources: kept.firsts, targets: kept.seconds)
+    }
+
+    /// See `MutableDirectedGraph._built`: repeated pairs dropped by counting sort, then the rows by
+    /// counting sort. O(n + m) expected.
     @inlinable
     public static func _built(
         vertices: ContiguousArray<Vertex>, sourceKeys: [Int], targetKeys: [Int], reportingPositions: Bool, _: _ConstructionToken
@@ -221,25 +293,40 @@ extension AdjacencyList {
         // Repeats found by counting sort, without hashing; the pair table is built on the first
         // lookup (`_DeferredSlotPairTable`), as for the sorted bulk builds.
         let kept = _keptPairs(sourceKeys, targetKeys, vertexCount: n, undirected: false)
-        let rows = _ArcRows(vertexCount: n, sources: kept.firsts, targets: kept.seconds)
-        var graph = Self()
-        graph._slots = _vertexSlots(of: vertices)
-        graph._vertices = vertices
-        graph._out = rows.out
-        graph._outEdges = rows.outEdges
-        graph._in = rows.in
-        graph._inEdges = rows.inEdges
-        graph._records = rows.records
-        graph._deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)
-        graph._generation.stamp()
+        let graph = Self(_vertices: vertices, slots: _vertexSlots(of: vertices), distinctSources: kept.firsts, targets: kept.seconds)
         return (graph, reportingPositions ? kept.positions : [])
     }
 }
 
 extension UndirectedAdjacencyList {
-    /// See `MutableGraph._built`: repeated pairs (in either orientation) dropped through the pair
-    /// table, each kept edge in its first orientation, then the rows by counting sort. O(n + m)
-    /// expected.
+    /// The graph on `vertices` (slot `i` holds `vertices[i]`, and `slots` maps them back) with the
+    /// edges `{us[p], vs[p]}` at positions `p`, stored in that orientation, which must be distinct
+    /// unordered pairs of slots in range: unchecked. Every row at its exact size, in slot order.
+    /// O(n + m) expected.
+    @inlinable
+    internal init(_vertices vertices: ContiguousArray<Vertex>, slots: _VertexSlots<Vertex>, distinctUs us: [Int], vs: [Int]) {
+        let rows = _EdgeRows(vertexCount: vertices.count, us: us, vs: vs)
+        self.init()
+        _slots = slots
+        _vertices = vertices
+        _neighbors = rows.neighbors
+        _incident = rows.incident
+        _records = rows.records
+        _positions._insertDistinct(count: us.count) { (us[$0] <= vs[$0] ? _SlotPair(us[$0], vs[$0]) : _SlotPair(vs[$0], us[$0]), $0) }
+        _generation.stamp()
+    }
+
+    /// The graph `pairs` numbers, repeated pairs (in either orientation) dropped, each kept edge at
+    /// the position and in the orientation of its first appearance: the graph that inserting the
+    /// pairs in order builds, with its rows packed. O(n + m) expected.
+    @inlinable
+    internal init(_pairs pairs: _SlotPairs<Vertex>) {
+        let kept = _keptPairs(pairs.firsts, pairs.seconds, vertexCount: pairs.vertices.count, undirected: true)
+        self.init(_vertices: pairs.vertices, slots: pairs.slots, distinctUs: kept.firsts, vs: kept.seconds)
+    }
+
+    /// See `MutableGraph._built`: repeated pairs (in either orientation) dropped by counting sort,
+    /// each kept edge in its first orientation, then the rows by counting sort. O(n + m) expected.
     @inlinable
     public static func _built(
         vertices: ContiguousArray<Vertex>, uKeys: [Int], vKeys: [Int], reportingPositions: Bool, _: _ConstructionToken
@@ -249,16 +336,7 @@ extension UndirectedAdjacencyList {
         precondition(uKeys.allSatisfy { UInt(bitPattern: $0) < UInt(n) } && vKeys.allSatisfy { UInt(bitPattern: $0) < UInt(n) },
                      "Key out of range")
         let kept = _keptPairs(uKeys, vKeys, vertexCount: n, undirected: true)
-        let rows = _EdgeRows(vertexCount: n, us: kept.firsts, vs: kept.seconds)
-        var graph = Self()
-        graph._slots = _vertexSlots(of: vertices)
-        graph._vertices = vertices
-        graph._neighbors = rows.neighbors
-        graph._incident = rows.incident
-        graph._records = rows.records
-        let us = kept.firsts, vs = kept.seconds
-        graph._positions._insertDistinct(count: us.count) { (us[$0] <= vs[$0] ? _SlotPair(us[$0], vs[$0]) : _SlotPair(vs[$0], us[$0]), $0) }
-        graph._generation.stamp()
+        let graph = Self(_vertices: vertices, slots: _vertexSlots(of: vertices), distinctUs: kept.firsts, vs: kept.seconds)
         return (graph, reportingPositions ? kept.positions : [])
     }
 }

@@ -141,8 +141,8 @@ MUTANTS = [
     Mutant("ugensorted", SC, "        _generation.stamp()", "", mode="stmt", nth=1),
     Mutant("genslotted", SC, "        _generation.stamp()", "", mode="stmt", nth=2),
     Mutant("ugenslotted", SC, "        _generation.stamp()", "", mode="stmt", nth=3),
-    Mutant("genbuilt", FO, "        graph._generation.stamp()", "", mode="stmt", nth=0),
-    Mutant("ugenbuilt", FO, "        graph._generation.stamp()", "", mode="stmt", nth=1),
+    Mutant("genbuilt", FO, "        _generation.stamp()", "", mode="stmt", nth=0),
+    Mutant("ugenbuilt", FO, "        _generation.stamp()", "", mode="stmt", nth=1),
     # Endpoint lookup: `edges(from:to:)`, `edges(between:and:)` and their result.
     Mutant("edgesfromdirection", AL, "_SlotPair(s, t)", "_SlotPair(t, s)"),
     Mutant("edgesfromsource", AL, "_slots[source]", "Optional(_slots[source] ?? 0)"),
@@ -170,8 +170,35 @@ MUTANTS = [
     )
 ] + [
     # reuse pass (C): the pooled out-rows lent to algorithms, and their copy into compressed rows.
-    Mutant("outrowsedges", AL, "            _outEdges.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", "            _out.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", mode="stmt"),
+    Mutant("outrowsedges", AL, "            _outEdges.withUnsafeRows { edges, _ in body(targets, targetRows, edges, targetRows) }", "            _out.withUnsafeRows { edges, _ in body(targets, targetRows, edges, targetRows) }", mode="stmt"),
     Mutant("pooledloops", "CompressedRows.swift", "k &+= w == v ? 0 : 1", "k &+= 1", module="GraphProtocols"),
     Mutant("pooledbulkedges", "CompressedRows.swift", "edges.append(edgeIndex(of: unsafeBitCast(pooledEdges[edgeStart + k], to: Edges.Index.self)))", "edges.append(k)", module="GraphProtocols"),
     Mutant("pooledloopedges", "CompressedRows.swift", "!dropsLoops || pooled[start + k] != v", "true", module="GraphProtocols"),
+]+ [
+    # Packed bulk construction (`_SlotPairs` and the bulk initializers) and the one row table both
+    # pools lend.
+    Mutant("pairsexisting", FO, "        if let slot = slots[vertex] { return (false, slot) }", "", mode="stmt"),
+    Mutant("pairsfirst", FO, "        firsts.append(a)", "        firsts.append(b)", mode="stmt"),
+    Mutant("pairsdedupe", FO, "_keptPairs(pairs.firsts, pairs.seconds, vertexCount: pairs.vertices.count, undirected: false)", "_keptPairs(pairs.firsts, pairs.seconds, vertexCount: pairs.vertices.count, undirected: true)"),
+    # nth=1: pairsdedupe's schema, earlier in the file, also spells this text.
+    Mutant("upairsdedupe", FO, "_keptPairs(pairs.firsts, pairs.seconds, vertexCount: pairs.vertices.count, undirected: true)", "_keptPairs(pairs.firsts, pairs.seconds, vertexCount: pairs.vertices.count, undirected: false)", nth=1),
+    Mutant("bulkdeferred", FO, "        _deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)", "", mode="stmt"),
+    Mutant("ubulkpositions", FO, "        _positions._insertDistinct(count: us.count) { (us[$0] <= vs[$0] ? _SlotPair(us[$0], vs[$0]) : _SlotPair(vs[$0], us[$0]), $0) }", "", mode="stmt"),
+    Mutant("bulkvertices", AL, "        for v in vertices { pairs.insert(v) }", "", mode="stmt"),
+    Mutant("ubulkvertices", UAL, "        for v in vertices { pairs.insert(v) }", "", mode="stmt"),
+    Mutant("bulkcopyvertices", AL, "        for v in graph.vertices { pairs.insert(v) }", "", mode="stmt"),
+    Mutant("ubulkcopyvertices", UAL, "        for v in graph.vertices { pairs.insert(v) }", "", mode="stmt"),
+    Mutant("bulkadjacencykey", AL, "            pairs.insert(source)", "", mode="stmt", nth=0),
+    Mutant("bulkliteralkey", AL, "            pairs.insert(source)", "", mode="stmt", nth=1),
+    Mutant("ubulkadjacencykey", UAL, "            pairs.insert(u)", "", mode="stmt", nth=0),
+    Mutant("ubulkliteralkey", UAL, "            pairs.insert(u)", "", mode="stmt", nth=1),
+    Mutant("decoderepeat", AL, "first != i", "false"),
+    Mutant("udecoderepeat", UAL, "first != i", "false"),
+    Mutant("udecodeorient", UAL, "_firstCopies(pairs.firsts, pairs.seconds, vertexCount: vertices.count, undirected: true)", "_firstCopies(pairs.firsts, pairs.seconds, vertexCount: vertices.count, undirected: false)"),
+    Mutant("sharedoutrows", AL, "            _outEdges.withUnsafeRows { edges, _ in body(targets, targetRows, edges, targetRows) }", "            _outEdges.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", mode="stmt"),
+    Mutant("usharedrows", UAL, "            _incident.withUnsafeRows { edges, _ in body(neighbors, neighborRows, edges, neighborRows) }", "            _incident.withUnsafeRows { edges, edgeRows in body(neighbors, neighborRows, edges, edgeRows) }", mode="stmt"),
+    Mutant("psharedrows", "Pseudograph.swift", "            _incident.withUnsafeRows { edges, _ in body(neighbors, neighborRows, edges, neighborRows) }", "            _incident.withUnsafeRows { edges, edgeRows in body(neighbors, neighborRows, edges, edgeRows) }", mode="stmt", module="Multigraphs"),
+    Mutant("dpsharedrows", "DirectedPseudograph.swift", "            _outEdges.withUnsafeRows { edges, _ in body(targets, targetRows, edges, targetRows) }", "            _outEdges.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", mode="stmt", module="Multigraphs"),
+    Mutant("pbulkvertices", "Pseudograph.swift", "        for v in vertices { pairs.insert(v) }", "", mode="stmt", module="Multigraphs"),
+    Mutant("dpbulkvertices", "DirectedPseudograph.swift", "        for v in vertices { pairs.insert(v) }", "", mode="stmt", module="Multigraphs"),
 ]

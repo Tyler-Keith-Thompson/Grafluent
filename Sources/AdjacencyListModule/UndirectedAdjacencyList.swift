@@ -12,7 +12,9 @@ import GraphProtocols
 /// of the slots of its neighbors and a parallel row of the positions of its incident edges. Each
 /// edge is in both its endpoints' rows, and a self-loop is in its vertex's row twice. The rows
 /// share one array per kind, so the graph makes a constant number of allocations however many
-/// vertices it has. A hash table from unordered slot pair to position answers `contains(edge:)` in
+/// vertices it has. The bulk initializers (`init(vertices:edges:)`, `init(edges:)`, `init(_:)`,
+/// `init(adjacency:)`, the builder and the dictionary literal) lay every row out once at its exact
+/// size, in slot order; a row that later outgrows its block moves to the end. A hash table from unordered slot pair to position answers `contains(edge:)` in
 /// O(1) expected.
 ///
 /// Removing an edge is O(1). The last edge moves into its position, and the last entry of each row
@@ -109,32 +111,41 @@ extension UndirectedAdjacencyList {
 
     /// A graph with the given edges, whose vertices are exactly their endpoints. Repeated edges,
     /// in either orientation, are inserted once.
+    ///
+    /// The result is the graph that inserting the edges one at a time builds, with the same
+    /// vertex slots, edge positions and orientations, but its rows are laid out once at their
+    /// exact sizes, in slot order. O(n + m) expected.
     @inlinable
     public init(edges: some Sequence<UndirectedEdge<Vertex>>) {
-        self.init()
-        for edge in edges { insert(edge: edge) }
+        self.init(vertices: EmptyCollection(), edges: edges)
     }
 
     /// A graph with the given vertices and edges. Endpoints missing from `vertices` are inserted.
+    ///
+    /// The result is the graph that inserting the vertices and then the edges one at a time
+    /// builds, with the same vertex slots, edge positions and orientations, but its rows are laid
+    /// out once at their exact sizes, in slot order. O(n + m) expected.
     @inlinable
     public init(vertices: some Sequence<Vertex>, edges: some Sequence<UndirectedEdge<Vertex>>) {
-        self.init()
-        for v in vertices { insert(v) }
-        for edge in edges { insert(edge: edge) }
+        var pairs = _SlotPairs<Vertex>(reservingPairs: edges.underestimatedCount)
+        for v in vertices { pairs.insert(v) }
+        for edge in edges { pairs.append(edge.u, edge.v) }
+        self.init(_pairs: pairs)
     }
 
     /// A graph from an adjacency mapping: each key is a vertex, and its value lists neighbors.
     /// Neighbors that are not keys become vertices, and an edge listed from both ends is inserted
     /// once. The vertices' order follows the dictionary's, which differs between processes.
-    /// Equality does not depend on it.
+    /// Equality does not depend on it. The rows are laid out once, as for
+    /// `init(vertices:edges:)`. O(n + m) expected.
     @inlinable
     public init<Neighbors: Sequence<Vertex>>(adjacency: [Vertex: Neighbors]) {
-        self.init()
-        reserveCapacity(vertexCount: adjacency.count, edgeCount: 0)
+        var pairs = _SlotPairs<Vertex>(reservingPairs: adjacency.count)
         for (u, neighbors) in adjacency {
-            insert(u)
-            for v in neighbors { insert(edge: UndirectedEdge(u, v)) }
+            pairs.insert(u)
+            for v in neighbors { pairs.append(u, v) }
         }
+        self.init(_pairs: pairs)
     }
 
     /// A graph from a list of edges and vertices; see `GraphBuilder`.
@@ -145,17 +156,19 @@ extension UndirectedAdjacencyList {
     }
 
     /// A copy of any undirected graph, with its vertices, including isolated ones, and its edges.
-    /// Parallel edges collapse. Converting an `UndirectedAdjacencyList` returns it unchanged.
+    /// Parallel edges collapse. Converting an `UndirectedAdjacencyList` returns it unchanged. The
+    /// rows are laid out once, as for `init(vertices:edges:)`. O(n + m) expected.
     @inlinable
     public init(_ graph: some Graph<Vertex>) {
         if let same = graph as? UndirectedAdjacencyList {
             self = same
             return
         }
-        self.init()
-        reserveCapacity(vertexCount: graph.vertexCount, edgeCount: graph.edgeCount)
-        for v in graph.vertices { insert(v) }
-        for edge in graph.edges { insert(edge: edge) }
+        var pairs = _SlotPairs<Vertex>(reservingPairs: graph.edgeCount)
+        pairs.slots.reserveCapacity(graph.vertexCount)
+        for v in graph.vertices { pairs.insert(v) }
+        for edge in graph.edges { pairs.append(edge.u, edge.v) }
+        self.init(_pairs: pairs)
     }
 }
 
@@ -164,13 +177,14 @@ extension UndirectedAdjacencyList: ExpressibleByDictionaryLiteral {
     /// for `Dictionary`. An edge listed from both ends is inserted once.
     @inlinable
     public init(dictionaryLiteral elements: (Vertex, [Vertex])...) {
-        self.init()
+        var pairs = _SlotPairs<Vertex>(reservingPairs: elements.count)
         var keys = Set<Vertex>(minimumCapacity: elements.count)
         for (u, neighbors) in elements {
             precondition(keys.insert(u).inserted, "Dictionary literal of UndirectedAdjacencyList contains duplicate key \(u)")
-            insert(u)
-            for v in neighbors { insert(edge: UndirectedEdge(u, v)) }
+            pairs.insert(u)
+            for v in neighbors { pairs.append(u, v) }
         }
+        self.init(_pairs: pairs)
     }
 }
 
@@ -652,10 +666,10 @@ extension UndirectedAdjacencyList: Decodable where Vertex: Decodable {
         guard edges.count.isMultiple(of: 2) else {
             throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Edge list has odd length")
         }
-        self.init()
-        reserveCapacity(vertexCount: vertices.count, edgeCount: edges.count / 2)
+        var pairs = _SlotPairs<Vertex>(reservingPairs: edges.count / 2)
+        pairs.slots.reserveCapacity(vertices.count)
         for v in vertices {
-            guard insert(v).inserted else {
+            guard pairs.insert(v).inserted else {
                 throw DecodingError.dataCorruptedError(forKey: .vertices, in: container, debugDescription: "Repeated vertex")
             }
         }
@@ -663,10 +677,14 @@ extension UndirectedAdjacencyList: Decodable where Vertex: Decodable {
             guard vertices.indices.contains(edges[i]), vertices.indices.contains(edges[i + 1]) else {
                 throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Edge endpoint out of range")
             }
-            guard insert(edge: UndirectedEdge(vertices[edges[i]], vertices[edges[i + 1]])).inserted else {
-                throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Repeated edge")
-            }
+            pairs.firsts.append(edges[i])
+            pairs.seconds.append(edges[i + 1])
         }
+        let firstCopies = _firstCopies(pairs.firsts, pairs.seconds, vertexCount: vertices.count, undirected: true)
+        for (i, first) in firstCopies.enumerated() where first != i {
+            throw DecodingError.dataCorruptedError(forKey: .edges, in: container, debugDescription: "Repeated edge")
+        }
+        self.init(_vertices: pairs.vertices, slots: pairs.slots, distinctUs: pairs.firsts, vs: pairs.seconds)
     }
 }
 
@@ -770,8 +788,10 @@ extension UndirectedAdjacencyList: Graph {
             _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
         ) -> Result
     ) -> Result? {
+        // The two pools grow, move and pack their rows together, so their row tables are equal,
+        // and `_neighbors`' is lent as both: an algorithm then reads one table entry per vertex.
         _neighbors.withUnsafeRows { neighbors, neighborRows in
-            _incident.withUnsafeRows { edges, edgeRows in body(neighbors, neighborRows, edges, edgeRows) }
+            _incident.withUnsafeRows { edges, _ in body(neighbors, neighborRows, edges, neighborRows) }
         }
     }
 }
