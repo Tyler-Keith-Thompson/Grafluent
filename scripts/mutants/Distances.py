@@ -63,4 +63,12 @@ MUTANTS = [
     # The checked: lookups.
     Mutant("eccentricitychecked", "Eccentricities.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt"),
     Mutant("eccentricitycheckedvalue", "Eccentricities.swift", "        return eccentricity(of: vertex)", "        return eccentricity(ofIndex: 0)", mode="stmt"),
+
+    # Global and local efficiency.
+    Mutant("effdepth", "Efficiency.swift", "            sum += Double(atDepth[d]) / Double(d)", "            sum += Double(atDepth[d])", mode="stmt"),
+    Mutant("effreset", "Efficiency.swift", "            atDepth[d] = 0", "", mode="stmt"),
+    Mutant("effglobalnorm", "Efficiency.swift", "(Double(n) * Double(n - 1))", "Double(n * n)"),
+    Mutant("efflocalnorm", "Efficiency.swift", "(Double(k) * Double(k - 1))", "Double(k * k)"),
+    Mutant("efflocalstamp", "Efficiency.swift", "stamp[rows.targets[inner]] == v", "true"),
+    Mutant("efflocalmean", "Efficiency.swift", "total / Double(n)", "total / Double(max(n - 1, 1))"),
 ]

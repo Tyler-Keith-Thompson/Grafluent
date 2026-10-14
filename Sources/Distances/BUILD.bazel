@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Eccentricity, radius, diameter, center, periphery, centroid, Wiener index, average shortest path length, density.
+# Eccentricity, radius, diameter, center, periphery, centroid, Wiener index, average shortest path length, density, global and local efficiency.
 swift_library(
     name = "Distances",
     srcs = glob(["**/*.swift"]),
