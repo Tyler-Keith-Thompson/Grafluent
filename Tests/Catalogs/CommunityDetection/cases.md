@@ -1,11 +1,14 @@
-# CommunityDetection: case catalog (CD-001 – CD-174, 174 cases)
+# CommunityDetection: case catalog (CD-001 – CD-248, 248 cases)
 
 Cases for the CommunityDetection module (api.md): `modularity(of:)`, `partitionQuality(of:)`,
-`louvainCommunities()`, `greedyModularityCommunities()`, `labelPropagationCommunities()` and
-`asynchronousLabelPropagationCommunities()`, on `Graph` and (modularity, quality, Louvain, greedy)
-`DirectedGraph`, unweighted and weighted. Every Expected cell is recomputed by `ref.py`'s model of
+`louvainCommunities()`, `greedyModularityCommunities()`, `labelPropagationCommunities()`,
+`asynchronousLabelPropagationCommunities()`, `girvanNewmanCommunities()`, `constantPottsModel(of:)`,
+`leidenCommunities()`, `louvainPartitions()`, `kernighanLinBisection(startingFrom:)`,
+`kCliqueCommunities(_:)`, `walktrapCommunities()`, `leadingEigenvectorCommunities()` and
+`spectralClustering(clusterCount:)`, on `Graph` and
+(modularity, quality, Louvain, greedy, the constant Potts model, Leiden) `DirectedGraph`, unweighted and weighted. Every Expected cell is recomputed by `ref.py`'s model of
 api.md and checked independently (its docstring lists how): `uv run --quiet --no-project --with
-networkx==3.7 --with scipy==1.18.1 python3 ref.py` prints "all values agree". `gen.py` writes the
+networkx==3.7 --with scipy==1.18.1 --with igraph==1.0.0 python3 ref.py` prints "all values agree". `gen.py` writes the
 rows with `?` cells, and `ref.py --fill` fills them.
 
 **Which reference decides.** Modularity, partition quality, greedy modularity and semi-synchronous
@@ -16,7 +19,12 @@ NetworkX (`seed`); Grafluent's overloads without `using:` are deterministic (api
 index order, ties to the greatest community label), so Expected is `ref.py`'s model, which equals
 NetworkX's own code run with the identity shuffle and that tie rule (patched in, see `ref.py`).
 `using:` rows have Expected only where every order gives the same partition (checked over 200
-random orders and 25 NetworkX seeds).
+random orders and 25 NetworkX seeds); for Leiden, every order and every refinement draw.
+Kernighan–Lin and k-clique communities are NetworkX's (deterministic from a given start), Walktrap
+is ref.py's exact model (igraph's merges read stale Δσ values and can differ), and leading-eigenvector
+communities are igraph's on graphs whose leading eigenvalues are simple. Spectral clustering is the
+labeling of least inertia of the Ng–Jordan–Weiss rows over every labeling (brute force), on graphs
+whose k smallest normalized-Laplacian eigenvalues stand apart from the next.
 
 ## Notation
 
@@ -42,7 +50,10 @@ for `D:`). `weight: [w0, …]` is `{ w[$0] }` by edge position (`weight: e%k+c`:
 e mod k + c); `nan`, `inf` are `.nan`, `.infinity`. The karate `weight: […]` list is NetworkX's
 `weight` attribute in edge order. `using: rng(s)` passes a seeded generator (any generator: the
 rows are order-independent). `directed > op` runs op on `graph.directedView`. `.count`,
-`.community(of: v)`, `.coverage`, `.performance` read members of the result.
+`.community(of: v)`, `.coverage`, `.performance` read members of the result; `[k]` is the k-th
+partition of a sequence of partitions (0 the first). `quality: constantPottsModel` is
+`.constantPottsModel`; `kCliqueCommunities(k: 3)` is `kCliqueCommunities(3)`, whose Expected lists the
+(overlapping) communities in lexicographic order.
 
 **Expected**: a partition in **canonical order** (communities by least vertex number, each in
 `vertices` order), so Swift compares `Array(result.map(Array.init))` to it; `#x` a scalar
@@ -259,3 +270,97 @@ Expected scalars are rounded to 12 digits.
 | CD-172 | `U: P(0,1,2)` | `asynchronousLabelPropagationCommunities(weight: [inf, 1])` | `trap` | exact |  |
 | CD-173 | `U: P(0,1,2)` | `greedyModularityCommunities(weight: [0, 0])` | `[[0], [1], [2]]` | exact | Not a trap: total weight 0 gives singletons (NetworkX divides by 0) |
 | CD-174 | `U: P(0,1,2)` | `louvainCommunities(weight: [0, 0])` | `[[0], [1], [2]]` | exact | Not a trap: no gain is positive |
+
+## H. Girvan–Newman
+
+| ID | Graph | Op | Expected | Tol | Notes |
+|---|---|---|---|---|---|
+| CD-175 | `U: []` | `girvanNewmanCommunities()[0]` | `[]` | exact | No vertices: one empty partition |
+| CD-176 | `U: [0..3]` | `girvanNewmanCommunities()[0]` | `[[0], [1], [2], [3]]` | exact | No edges: the components once (NetworkX) |
+| CD-177 | `U: 0-0, 1-1` | `girvanNewmanCommunities()[0]` | `[[0], [1]]` | exact | Self-loops only: the components once (NetworkX yields nothing here) |
+| CD-178 | `U: K(0..2), K(3..5), 2-3` | `girvanNewmanCommunities()[0]` | `[[0, 1, 2], [3, 4, 5]]` | exact | The bridge carries every crossing pair |
+| CD-179 | `U: K(0..2), K(3..5), 2-3` | `girvanNewmanCommunities()[1]` | `[[0], [1, 2], [3, 4, 5]]` | exact | Then every triangle edge ties: 0-1 goes (least position), then 0-2 of the path left |
+| CD-180 | `U: K(0..2), K(3..5), 2-3` | `girvanNewmanCommunities()[4]` | `[[0], [1], [2], [3], [4], [5]]` | exact | The last level: every vertex alone |
+| CD-181 | `U: K(0..4), K(5..9), 4-5` | `girvanNewmanCommunities()[0]` | `[[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]` | exact | Two K5 and their bridge |
+| CD-182 | `U: nx(barbell,5,0)` | `girvanNewmanCommunities()[0]` | `[[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]` | exact |  |
+| CD-183 | `U: nx(connected_caveman,4,5)` | `girvanNewmanCommunities()[0]` | `[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]]` | exact |  |
+| CD-184 | `U: nx(karate_club)` | `girvanNewmanCommunities()[0]` | `[[0, 1, 3, 4, 5, 6, 7, 10, 11, 12, 13, 16, 17, 19, 21], [2, 8, 9, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]]` | exact | NetworkX agrees (no tie decides it) |
+| CD-185 | `U: nx(karate_club)` | `girvanNewmanCommunities()[1]` | `[[0, 1, 3, 4, 5, 6, 7, 10, 11, 12, 13, 16, 17, 19, 21], [2, 8, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33], [9]]` | exact | Vertex 9 splits off |
+| CD-186 | `U: nx(karate_club)` | `girvanNewmanCommunities()[2]` | `[[0, 1, 3, 7, 11, 12, 13, 17, 19, 21], [2, 8, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33], [4, 5, 6, 10, 16], [9]]` | exact |  |
+| CD-187 | `U: nx(florentine_families)` | `girvanNewmanCommunities()[0]` | `[[Acciaiuoli, Medici, Castellani, Peruzzi, Strozzi, Barbadori, Ridolfi, Tornabuoni, Albizzi, Bischeri, Guadagni, Ginori, Lamberteschi], [Salviati, Pazzi]]` | exact | `String` vertices |
+| CD-188 | `U: P(0,1,2), 3-4, 2-2` | `girvanNewmanCommunities()[0]` | `[[0], [1, 2], [3, 4]]` | exact | Already disconnected: one more community than the components; the loop changes nothing |
+| CD-189 | `U: P(0,1,2), 3-4, 2-2` | `girvanNewmanCommunities()[1]` | `[[0], [1], [2], [3, 4]]` | exact | 1-2 and 3-4 tie: 1-2 has the lesser position |
+| CD-190 | `U: 0-1, 1-2, 0-1` | `girvanNewmanCommunities()[0]` | `[[0, 1], [2]]` | exact | Parallel copies share their pairs' paths, so the single edge goes first |
+| CD-191 | `U: 0-1, 1-2, 0-1` | `girvanNewmanCommunities()[1]` | `[[0], [1], [2]]` | exact | Then both copies, one at a time |
+
+## I. Leiden, the constant Potts model and Louvain's levels
+
+| ID | Graph | Op | Expected | Tol | Notes |
+|---|---|---|---|---|---|
+| CD-192 | `U: K(0..2), K(3..5), 2-3` | `constantPottsModel(of: [[0, 1, 2], [3, 4, 5]])` | `#-3` | exact | 2 (3 − 9/2) |
+| CD-193 | `U: K(0..2), K(3..5), 2-3` | `constantPottsModel(of: [[0, 1, 2], [3, 4, 5]], resolution: 0.5)` | `#1.5` | exact | 2 (3 − 9/4) |
+| CD-194 | `U: K(0..2), K(3..5), 2-3` | `constantPottsModel(of: [[0, 1, 2, 3, 4, 5]], weight: [1, 2, 3, 4, 5, 6, 7], resolution: 0.1)` | `#26.2` | exact | 28 − 0.05 · 36 |
+| CD-195 | `U: 0-0, 0-1, 1-0` | `constantPottsModel(of: [[0, 1]])` | `#1` | exact | A loop and both copies are inside: 3 − 2 |
+| CD-196 | `D: C(0,1,2), C(3,4,5), 2>3` | `constantPottsModel(of: [[0, 1, 2], [3, 4, 5]])` | `#-12` | exact | Directed: Σ [e_c − γ n_c²] |
+| CD-197 | `U: nx(karate_club)` | `constantPottsModel(of: [[0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 16, 17, 19, 21], [9, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]], resolution: 0.05)` | `#52.55` | exact | NetworkX `constant_potts_model` |
+| CD-198 | `U: []` | `constantPottsModel(of: [])` | `#0` | exact |  |
+| CD-199 | `U: P(0,1,2)` | `constantPottsModel(of: [[0, 1, 2]], resolution: -1)` | `trap` | exact |  |
+| CD-200 | `U: K(0..2), K(3..5), 2-3` | `leidenCommunities(using: rng(1))` | `[[0, 1, 2], [3, 4, 5]]` | exact | Every order gives the triangles |
+| CD-201 | `U: K(0..4), K(5..9), 4-5` | `leidenCommunities(using: rng(2))` | `[[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]` | exact |  |
+| CD-202 | `U: nx(ring_of_cliques,4,4)` | `leidenCommunities(using: rng(3))` | `[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]` | exact | One community per clique |
+| CD-203 | `U: nx(connected_caveman,4,5)` | `leidenCommunities(using: rng(4))` | `[[0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13, 14], [15, 16, 17, 18, 19]]` | exact |  |
+| CD-204 | `U: K(0..2), K(3..5), 2-3` | `leidenCommunities(quality: constantPottsModel, resolution: 0.5, using: rng(5))` | `[[0, 1, 2], [3, 4, 5]]` | exact | Each triangle 3 − 9/4 > 0 |
+| CD-205 | `U: K(0..2), K(3..5), 2-3` | `leidenCommunities(quality: constantPottsModel, resolution: 0.1, using: rng(6))` | `[[0, 1, 2, 3, 4, 5]]` | exact | 7 − 1.8 beats 2 (3 − 0.45) |
+| CD-206 | `U: K(0..2), K(3..5), 2-3` | `leidenCommunities(quality: constantPottsModel, resolution: 2, using: rng(7))` | `[[0], [1], [2], [3], [4], [5]]` | exact | Every community of two or more is below 0: singletons |
+| CD-207 | `U: [0..3]` | `leidenCommunities(using: rng(8))` | `[[0], [1], [2], [3]]` | exact | No edges: singletons |
+| CD-208 | `U: 0-0, 1-1` | `leidenCommunities(using: rng(9))` | `[[0], [1]]` | exact | Loops never join vertices |
+| CD-209 | `U: K(0..2), K(3..5), 2-3, 2-3, 2-3` | `leidenCommunities(using: rng(10))` | `[[0, 1], [2, 3], [4, 5]]` | exact | Parallel edges are weight |
+| CD-210 | `D: C(0,1,2), C(3,4,5), 2>3` | `leidenCommunities(using: rng(11))` | `[[0, 1, 2], [3, 4, 5]]` | exact | Directed modularity |
+| CD-211 | `U: P(0,1,2)` | `leidenCommunities(randomness: 0, using: rng(1))` | `trap` | exact |  |
+| CD-212 | `U: P(0,1,2)` | `leidenCommunities(iterations: 0, using: rng(1))` | `trap` | exact |  |
+| CD-213 | `U: K(0..2), K(3..5), 2-3` | `louvainPartitions()[0]` | `[[0, 1, 2], [3, 4, 5]]` | exact | The first level |
+| CD-214 | `U: nx(karate_club)` | `louvainPartitions()[0]` | `[[0, 1, 11, 17, 19, 21], [2, 3, 7, 9, 12, 13], [4, 10], [5, 6, 16], [8, 14, 15, 18, 20, 22, 26, 29, 30, 32, 33], [23, 24, 25, 27, 28, 31]]` | exact |  |
+| CD-215 | `U: nx(karate_club)` | `louvainPartitions()[1]` | `[[0, 1, 2, 3, 7, 9, 11, 12, 13, 17, 19, 21], [4, 5, 6, 10, 16], [8, 14, 15, 18, 20, 22, 26, 29, 30, 32, 33], [23, 24, 25, 27, 28, 31]]` | exact | The last level is louvainCommunities() (CD-088) |
+| CD-216 | `D: C(0,1,2), C(3,4,5), 2>3` | `louvainPartitions()[0]` | `[[0, 1, 2], [3, 4, 5]]` | exact |  |
+| CD-217 | `U: [0..2]` | `louvainPartitions()[0]` | `[[0], [1], [2]]` | exact | No edges: one level of singletons |
+
+## J. Kernighan–Lin, k-clique, Walktrap and leading-eigenvector communities
+
+| ID | Graph | Op | Expected | Tol | Notes |
+|---|---|---|---|---|---|
+| CD-218 | `U: K(0..2), K(3..5), 2-3` | `kernighanLinBisection(startingFrom: [[0, 3, 4], [1, 2, 5]])` | `[[0, 1, 2], [3, 4, 5]]` | exact | NetworkX `kernighan_lin_bisection` agrees |
+| CD-219 | `U: nx(karate_club)` | `kernighanLinBisection(startingFrom: [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]])` | `[[0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 16, 17, 19, 21], [8, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]]` | exact | NetworkX agrees |
+| CD-220 | `U: nx(karate_club)` | `kernighanLinBisection(startingFrom: [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]], weight: [4, 5, 3, 3, 3, 3, 2, 2, 2, 3, 1, 3, 2, 2, 2, 2, 6, 3, 4, 5, 1, 2, 2, 2, 3, 4, 5, 1, 3, 2, 2, 2, 3, 3, 3, 2, 3, 5, 3, 3, 3, 3, 3, 4, 2, 3, 3, 2, 3, 4, 1, 2, 1, 3, 1, 2, 3, 5, 4, 3, 5, 4, 2, 3, 2, 7, 4, 2, 4, 2, 2, 4, 2, 3, 3, 4, 4, 5])` | `[[0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 16, 17, 19, 21], [8, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]]` | exact | NetworkX agrees |
+| CD-221 | `U: K(0..2), K(3..5), 2-3` | `kernighanLinBisection(startingFrom: [[0, 3, 4], [1, 2, 5]], iterations: 0)` | `[[0, 3, 4], [1, 2, 5]]` | exact | No pass: the start |
+| CD-222 | `U: [0..3]` | `kernighanLinBisection(startingFrom: [[0, 1], [2, 3]])` | `[[0, 1], [2, 3]]` | exact | No edges: no pass lowers the cut |
+| CD-223 | `U: P(0,1,2)` | `kernighanLinBisection(startingFrom: [[0], [1], [2]])` | `trap` | exact |  |
+| CD-224 | `U: nx(karate_club)` | `kCliqueCommunities(k: 3)` | `[[0, 1, 2, 3, 7, 8, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30, 31, 32, 33], [0, 4, 5, 6, 10, 16], [24, 25, 31]]` | exact | NetworkX `k_clique_communities`; communities overlap |
+| CD-225 | `U: nx(karate_club)` | `kCliqueCommunities(k: 4)` | `[[0, 1, 2, 3, 7, 13], [8, 30, 32, 33], [23, 29, 32, 33]]` | exact |  |
+| CD-226 | `U: K(0..3), K(3..6)` | `kCliqueCommunities(k: 4)` | `[[0, 1, 2, 3], [3, 4, 5, 6]]` | exact | Two K4 sharing a vertex: separate, overlapping |
+| CD-227 | `U: K(0..2), 1-3, 2-3, 3-4` | `kCliqueCommunities(k: 3)` | `[[0, 1, 2, 3]]` | exact | Two triangles sharing an edge percolate |
+| CD-228 | `U: K(0..2), 1-3, 2-3, 3-4` | `kCliqueCommunities(k: 2)` | `[[0, 1, 2, 3, 4]]` | exact | k = 2: the components with an edge |
+| CD-229 | `U: P(0,1,2)` | `kCliqueCommunities(k: 1)` | `trap` | exact |  |
+| CD-230 | `U: K(0..2), K(3..5), 2-3` | `walktrapCommunities()` | `[[0, 1, 2], [3, 4, 5]]` | exact |  |
+| CD-231 | `U: nx(karate_club)` | `walktrapCommunities()` | `[[0, 1, 2, 3, 7, 11, 12, 13, 17, 19, 21], [4, 5, 6, 10, 16], [8, 9, 14, 15, 18, 20, 22, 26, 29, 30, 32, 33], [23, 24, 25, 27, 28, 31]]` | exact | Exact Ward merges; igraph's `community_walktrap` reads stale Δσ and cuts at Q = 0.3532 |
+| CD-232 | `U: K(0..4), K(5..9), 4-5` | `walktrapCommunities(steps: 2)` | `[[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]` | exact |  |
+| CD-233 | `U: nx(connected_caveman,4,5)` | `walktrapCommunities()` | `[[0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13, 14], [15, 16, 17, 18, 19]]` | exact |  |
+| CD-234 | `U: [0..2]` | `walktrapCommunities()` | `[[0], [1], [2]]` | exact | No edges: singletons |
+| CD-235 | `U: P(0,1,2)` | `walktrapCommunities(steps: 0)` | `trap` | exact |  |
+| CD-236 | `U: K(0..2), K(3..5), 2-3` | `leadingEigenvectorCommunities()` | `[[0, 1, 2], [3, 4, 5]]` | exact | igraph `community_leading_eigenvector` agrees |
+| CD-237 | `U: nx(karate_club)` | `leadingEigenvectorCommunities()` | `[[0, 4, 5, 6, 10, 11, 16], [1, 2, 3, 7, 12, 13, 17, 19, 21], [8, 9, 14, 15, 18, 20, 22, 26, 29, 30, 32, 33], [23, 24, 25, 27, 28, 31]]` | exact | igraph agrees: Q = 0.3934 |
+| CD-238 | `U: nx(barbell,5,0)` | `leadingEigenvectorCommunities()` | `[[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]` | exact | The two K5 (a symmetric ring of cliques has a repeated leading eigenvalue, so no row) |
+| CD-239 | `U: [0..3]` | `leadingEigenvectorCommunities()` | `[[0], [1], [2], [3]]` | exact | Total weight 0: singletons (igraph agrees) |
+| CD-240 | `U: K(0..3)` | `leadingEigenvectorCommunities()` | `[[0, 1, 2, 3]]` | exact | λ ≤ 0: indivisible |
+
+## K. Spectral clustering
+
+| ID | Graph | Op | Expected | Tol | Notes |
+|---|---|---|---|---|---|
+| CD-241 | `U: K(0..2), K(3..5), 2-3` | `spectralClustering(clusterCount: 2, using: rng(1))` | `[[0, 1, 2], [3, 4, 5]]` | exact | The two triangles |
+| CD-242 | `U: P(0,1,2), P(3,4,5)` | `spectralClustering(clusterCount: 2, using: rng(1))` | `[[0, 1, 2], [3, 4, 5]]` | exact | Two components |
+| CD-243 | `U: P(0..3)` | `spectralClustering(clusterCount: 1, using: rng(1))` | `[[0, 1, 2, 3]]` | exact | One cluster |
+| CD-244 | `U: 0-1, 0-2, 0-5, 1-6, 2-3, 3-4, 4-7` | `spectralClustering(clusterCount: 2, using: rng(1))` | `[[0, 1, 5, 6], [2, 3, 4, 7]]` | exact | A tree where the unit rows decide: without the row scaling, 2 goes with 0 |
+| CD-245 | `U: K(0..2), K(3..5), K(6..8), 2-3, 5-6` | `spectralClustering(clusterCount: 3, using: rng(1))` | `[[0, 1, 2], [3, 4, 5], [6, 7, 8]]` | exact | Three triangles in a chain |
+| CD-246 | `U: P(0..5)` | `spectralClustering(clusterCount: 2, weight: [3, 3, 0, 3, 3], using: rng(1))` | `[[0, 1, 2], [3, 4, 5]]` | exact | A weight-0 edge separates |
+| CD-247 | `U: P(0,1,2)` | `spectralClustering(clusterCount: 4, using: rng(1))` | `trap` | exact | clusterCount > vertexCount |
+| CD-248 | `U: P(0,1,2)` | `spectralClustering(clusterCount: 0, using: rng(1))` | `trap` | exact | clusterCount < 1 |

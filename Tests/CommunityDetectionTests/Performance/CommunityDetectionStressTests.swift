@@ -8,8 +8,10 @@
 // greedy modularity (50 communities of 8), a 10⁵-vertex path for Louvain (blocks of 256, then 384
 // and 288), semi-synchronous propagation (pairs, with a triple at each end) and asynchronous
 // propagation (pairs), 20,000 disjoint K₅ for both propagations, modularity and partition quality
-// of a ring of 25,000 K₄ (6/7 − 1/k, 6/7, 1 − k/C(n, 2)), and 10,000 disjoint directed 3-cycles on
-// `CompressedSparseRow`.
+// of a ring of 25,000 K₄ (6/7 − 1/k, 6/7, 1 − k/C(n, 2)), 10,000 disjoint directed 3-cycles on
+// `CompressedSparseRow`, and Girvan–Newman on a ring of 400 K₅ (the ring's edges go first, so the
+// 399th level is the cliques), which recomputing the whole graph after every removal would not
+// finish in time.
 
 import AdjacencyListModule
 import CommunityDetection
@@ -191,6 +193,30 @@ struct CommunityDetectionStressTests {
             let small = CompressedSparseRow(vertexCount: 3000, edges: arcs.prefix(3000))
             let greedy = small.greedyModularityCommunities()
             #expect(greedy.map { Array($0) } == (0 ..< 1000).map { Array(3 * $0 ..< 3 * $0 + 3) })
+        }.value
+    }
+
+    @Test("Girvan–Newman on a ring of 400 K₅ joined at their first vertices (2000 vertices): every level a union of cliques, the 399th the cliques", .timeLimit(.minutes(1)))
+    func girvanNewmanRingOfCliques() async {
+        await Task {
+            // Clique c is 5c ..< 5c + 5 (its edges first), and 5c is joined to 5(c + 1) mod 2000: the
+            // ring's edges carry every path between cliques.
+            let k = 400
+            var edges: [UndirectedEdge<Int>] = []
+            for c in 0 ..< k {
+                for i in 0 ..< 5 {
+                    for j in i + 1 ..< 5 { edges.append(UndirectedEdge(5 * c + i, 5 * c + j)) }
+                }
+            }
+            for c in 0 ..< k { edges.append(UndirectedEdge(5 * c, 5 * ((c + 1) % k))) }
+            let graph = UndirectedAdjacencyList(vertices: 0 ..< 5 * k, edges: edges)
+            let levels = Array(graph.girvanNewmanCommunities().prefix(k - 1))
+            #expect(levels.count == k - 1)
+            for (i, level) in levels.enumerated() {
+                #expect(level.count == i + 2)
+                #expect(level.allSatisfy { $0.count % 5 == 0 && $0.allSatisfy { v in level.community(of: v) == level.community(of: 5 * (v / 5)) } })
+            }
+            #expect(levels.last.map { $0.map { Array($0) } } == (0 ..< k).map { Array(5 * $0 ..< 5 * $0 + 5) })
         }.value
     }
 }

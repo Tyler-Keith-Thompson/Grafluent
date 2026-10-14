@@ -2,11 +2,12 @@
 
 Partitions of a graph's vertices into communities, and the measures that score them: modularity
 (Newman–Girvan, with a resolution γ; Leicht–Newman for directed graphs), coverage and performance,
-and four detection algorithms: Louvain, greedy modularity (Clauset–Newman–Moore), and label
-propagation, semi-synchronous and asynchronous. Every algorithm returns one value type, `Partition`:
-communities as vertex slices in a canonical order, with an O(1) `community(of:)`. Every entry point
+and five detection algorithms: Louvain, greedy modularity (Clauset–Newman–Moore), label
+propagation, semi-synchronous and asynchronous, and Girvan–Newman. Every algorithm returns one value
+type, `Partition`: communities as vertex slices in a canonical order, with an O(1) `community(of:)`;
+Girvan–Newman returns a lazy sequence of them. Every entry point
 is **deterministic**; Louvain and asynchronous label propagation also take a caller's
-`RandomNumberGenerator`. `cases.md` (CD-001 – CD-174, 174 cases) pins the values. `ref.py`
+`RandomNumberGenerator`. `cases.md` (CD-001 – CD-191, 191 cases) pins the values. `ref.py`
 recomputes every one with the model below and checks it against the matrix definition of
 modularity, a pair count for performance, and NetworkX 3.7, including NetworkX's own Louvain and
 asynchronous label propagation code run with the identity order and this API's tie rule
@@ -23,6 +24,8 @@ writes the catalog's rows; `ref.py --fill` computes Expected.
 | `greedyModularityCommunities(resolution:)`, also `(weight:resolution:)` | both | Clauset–Newman–Moore 2004 |
 | `labelPropagationCommunities()`, also `(weight:)` | `Graph` | Semi-synchronous (Cordasco–Gargano 2010): deterministic, and always terminates |
 | `asynchronousLabelPropagationCommunities()`, also `(weight:)`, each also `(using:)` | `Graph` | Raghavan–Albert–Kumara 2007 |
+| `girvanNewmanCommunities()` → `GirvanNewmanSequence` | `Graph` | Girvan–Newman 2002: the divisive hierarchy, coarsest first |
+| `spectralClustering(clusterCount:tolerance:maxIterations:)`, also `(…, weight:, …)`, each also `(…, using:)` | `Graph` | Ng–Jordan–Weiss 2001: N's eigenvectors, unit rows, k-means++ (Arthur–Vassilvitskii 2007) |
 | `Partition<G>` | | Communities in canonical order, `community(of:)`, `community(ofIndex:)`, `count` |
 
 Label propagation on a directed graph: `digraph.undirectedView.labelPropagationCommunities()`.
@@ -77,6 +80,10 @@ extension Graph {
         using generator: inout some RandomNumberGenerator) -> Partition<DirectedView<Self>>
     func asynchronousLabelPropagationCommunities<W: BinaryFloatingPoint>(
         weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator) -> Partition<DirectedView<Self>>
+
+    /// Girvan–Newman: remove an edge of greatest betweenness again and again; a partition each
+    /// time the number of components grows. Lazy; ties to the least edge position.
+    func girvanNewmanCommunities() -> GirvanNewmanSequence<Self>   // Sequence of Partition<DirectedView<Self>>
 }
 
 extension DirectedGraph {
@@ -241,6 +248,32 @@ label if it is among the most voted, else take the greatest**.
 * Weights finite and ≥ 0 (CD-171, CD-172). `Graph` only; for a directed graph use
   `digraph.undirectedView`.
 
+### Girvan–Newman
+
+Repeatedly remove the edge of greatest edge betweenness (`Centrality`'s
+`edgeBetweennessCentrality()`: ordered-pair sums, parallel copies sharing their pairs' paths),
+recomputed after every removal, and list the components each time their number grows (NetworkX's
+`girvan_newman`): the first partition has one more community than the graph has components, each
+later one splits one community in two, and the last is every vertex alone, n − c partitions in all.
+A tie goes to the least edge position, by exact equality of the computed scores (CD-179, CD-189).
+Self-loops are never removed and never matter; a graph with no other edges lists its components
+once (CD-176, CD-177; NetworkX yields nothing for a graph of loops alone). Removing an edge changes
+only the shortest paths inside its component, so only that component (both parts after a split) is
+recomputed. The sequence is lazy, and each iterator starts from the whole graph.
+
+### Spectral clustering (Ng–Jordan–Weiss)
+
+`spectralClustering(clusterCount: k)`: N's k smallest eigenvectors (SpectralGraphTheory's
+`normalizedLaplacianEigenpairs(smallest: k)`, with its accuracy and limits; it throws
+`NoConvergence` as that does) as columns, rows scaled to unit length (a zero row stays zero),
+k-means on the rows: the least inertia of 10 runs (the first on ties), each seeded by k-means++
+from `generator` and refined by Lloyd's iteration until no assignment changes or 300 iterations,
+ties to the lower center, a cluster left empty taking the row farthest from its center among
+clusters of two or more. Exactly k communities, in canonical order. A weight of 0 is no edge;
+weights are finite and at least 0. Traps when k is not in `1...vertexCount`, `tolerance ≤ 0` or
+`maxIterations < 1`. Catalog rows pin the labeling of least inertia over all labelings where the k
+smallest eigenvalues stand apart from the next (CD-241 – CD-246; traps CD-247, CD-248).
+
 ### Determinism
 
 **Every entry point without `using:` is a deterministic function of the graph value: its vertex
@@ -269,6 +302,8 @@ n vertices, m edges, k communities, s sweeps or rounds, L Louvain levels.
 | `greedyModularityCommunities` | O(m d log n) (CNM; d the depth of the merge tree, log n on sparse hierarchical graphs) | O(n + m) |
 | `labelPropagationCommunities` | O(n + m) for the coloring, O(n + m) per round | O(n + m) |
 | `asynchronousLabelPropagationCommunities` | O(n + m) per sweep | O(n) |
+| `girvanNewmanCommunities` | O(m) to start; O(n_C · m_C) per removal from a component C, O(n) per partition; O(m² n) for the whole sequence | O(n + m) |
+| `spectralClustering` | the eigenpairs, then 10 k-means runs of at most 300 Lloyd iterations, O(n k²) each | n k |
 
 Sweeps and rounds are not polynomially bounded in theory for Louvain and asynchronous LPA (each
 move strictly increases a bounded objective, so they terminate); in practice s is small.

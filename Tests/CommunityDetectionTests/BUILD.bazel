@@ -20,6 +20,7 @@ swift_library(
     deps = [
         "//Sources/GraphProtocols",
         "//Sources/CommunityDetection",
+        "//Sources/Centrality",
         "//Sources/AdjacencyListModule",
         "//Sources/AdjacencyMatrixModule",
         "//Sources/CompressedSparseRowModule",
@@ -66,6 +67,7 @@ swift_library(
     deps = [
         "//Sources/GraphProtocols",
         "//Sources/CommunityDetection",
+        "//Sources/Centrality",
         "//Sources/AdjacencyListModule",
         "//Sources/AdjacencyMatrixModule",
         "//Sources/CompressedSparseRowModule",

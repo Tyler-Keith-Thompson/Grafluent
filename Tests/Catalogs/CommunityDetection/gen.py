@@ -216,6 +216,95 @@ S["G. Preconditions"] = [
     ("`U: P(0,1,2)`", "louvainCommunities(weight: [0, 0])", "exact", "Not a trap: no gain is positive"),
 ]
 
+S["H. Girvan–Newman"] = [
+    ("`U: []`", "girvanNewmanCommunities()[0]", "exact", "No vertices: one empty partition"),
+    ("`U: [0..3]`", "girvanNewmanCommunities()[0]", "exact", "No edges: the components once (NetworkX)"),
+    ("`U: 0-0, 1-1`", "girvanNewmanCommunities()[0]", "exact", "Self-loops only: the components once (NetworkX yields nothing here)"),
+    (TRI, "girvanNewmanCommunities()[0]", "exact", "The bridge carries every crossing pair"),
+    (TRI, "girvanNewmanCommunities()[1]", "exact", "Then every triangle edge ties: 0-1 goes (least position), then 0-2 of the path left"),
+    (TRI, "girvanNewmanCommunities()[4]", "exact", "The last level: every vertex alone"),
+    (TWO, "girvanNewmanCommunities()[0]", "exact", "Two K5 and their bridge"),
+    (BAR, "girvanNewmanCommunities()[0]", "exact", ""),
+    (CAVE, "girvanNewmanCommunities()[0]", "exact", ""),
+    (KAR, "girvanNewmanCommunities()[0]", "exact", "NetworkX agrees (no tie decides it)"),
+    (KAR, "girvanNewmanCommunities()[1]", "exact", "Vertex 9 splits off"),
+    (KAR, "girvanNewmanCommunities()[2]", "exact", ""),
+    (FLO, "girvanNewmanCommunities()[0]", "exact", "`String` vertices"),
+    ("`U: P(0,1,2), 3-4, 2-2`", "girvanNewmanCommunities()[0]", "exact", "Already disconnected: one more community than the components; the loop changes nothing"),
+    ("`U: P(0,1,2), 3-4, 2-2`", "girvanNewmanCommunities()[1]", "exact", "1-2 and 3-4 tie: 1-2 has the lesser position"),
+    ("`U: 0-1, 1-2, 0-1`", "girvanNewmanCommunities()[0]", "exact", "Parallel copies share their pairs' paths, so the single edge goes first"),
+    ("`U: 0-1, 1-2, 0-1`", "girvanNewmanCommunities()[1]", "exact", "Then both copies, one at a time"),
+]
+
+HALVES = L([list(range(17)), list(range(17, 34))])
+DTRI = "`D: C(0,1,2), C(3,4,5), 2>3`"
+
+S["I. Leiden, the constant Potts model and Louvain's levels"] = [
+    (TRI, "constantPottsModel(of: [[0, 1, 2], [3, 4, 5]])", "exact", "2 (3 − 9/2)"),
+    (TRI, "constantPottsModel(of: [[0, 1, 2], [3, 4, 5]], resolution: 0.5)", "exact", "2 (3 − 9/4)"),
+    (TRI, "constantPottsModel(of: [[0, 1, 2, 3, 4, 5]], weight: [1, 2, 3, 4, 5, 6, 7], resolution: 0.1)", "exact", "28 − 0.05 · 36"),
+    ("`U: 0-0, 0-1, 1-0`", "constantPottsModel(of: [[0, 1]])", "exact", "A loop and both copies are inside: 3 − 2"),
+    (DTRI, "constantPottsModel(of: [[0, 1, 2], [3, 4, 5]])", "exact", "Directed: Σ [e_c − γ n_c²]"),
+    (KAR, f"constantPottsModel(of: {CLUB}, resolution: 0.05)", "exact", "NetworkX `constant_potts_model`"),
+    ("`U: []`", "constantPottsModel(of: [])", "exact", ""),
+    ("`U: P(0,1,2)`", "constantPottsModel(of: [[0, 1, 2]], resolution: -1)", "exact", ""),
+    (TRI, "leidenCommunities(using: rng(1))", "exact", "Every order gives the triangles"),
+    (TWO, "leidenCommunities(using: rng(2))", "exact", ""),
+    (RING, "leidenCommunities(using: rng(3))", "exact", "One community per clique"),
+    (CAVE, "leidenCommunities(using: rng(4))", "exact", ""),
+    (TRI, "leidenCommunities(quality: constantPottsModel, resolution: 0.5, using: rng(5))", "exact", "Each triangle 3 − 9/4 > 0"),
+    (TRI, "leidenCommunities(quality: constantPottsModel, resolution: 0.1, using: rng(6))", "exact", "7 − 1.8 beats 2 (3 − 0.45)"),
+    (TRI, "leidenCommunities(quality: constantPottsModel, resolution: 2, using: rng(7))", "exact", "Every community of two or more is below 0: singletons"),
+    ("`U: [0..3]`", "leidenCommunities(using: rng(8))", "exact", "No edges: singletons"),
+    ("`U: 0-0, 1-1`", "leidenCommunities(using: rng(9))", "exact", "Loops never join vertices"),
+    ("`U: K(0..2), K(3..5), 2-3, 2-3, 2-3`", "leidenCommunities(using: rng(10))", "exact", "Parallel edges are weight"),
+    (DTRI, "leidenCommunities(using: rng(11))", "exact", "Directed modularity"),
+    ("`U: P(0,1,2)`", "leidenCommunities(randomness: 0, using: rng(1))", "exact", ""),
+    ("`U: P(0,1,2)`", "leidenCommunities(iterations: 0, using: rng(1))", "exact", ""),
+    (TRI, "louvainPartitions()[0]", "exact", "The first level"),
+    (KAR, "louvainPartitions()[0]", "exact", ""),
+    (KAR, "louvainPartitions()[1]", "exact", "The last level is louvainCommunities() (CD-088)"),
+    (DTRI, "louvainPartitions()[0]", "exact", ""),
+    ("`U: [0..2]`", "louvainPartitions()[0]", "exact", "No edges: one level of singletons"),
+]
+
+S["J. Kernighan–Lin, k-clique, Walktrap and leading-eigenvector communities"] = [
+    (TRI, "kernighanLinBisection(startingFrom: [[0, 3, 4], [1, 2, 5]])", "exact", "NetworkX `kernighan_lin_bisection` agrees"),
+    (KAR, f"kernighanLinBisection(startingFrom: {HALVES})", "exact", "NetworkX agrees"),
+    (KAR, f"kernighanLinBisection(startingFrom: {HALVES}, weight: {KW})", "exact", "NetworkX agrees"),
+    (TRI, "kernighanLinBisection(startingFrom: [[0, 3, 4], [1, 2, 5]], iterations: 0)", "exact", "No pass: the start"),
+    ("`U: [0..3]`", "kernighanLinBisection(startingFrom: [[0, 1], [2, 3]])", "exact", "No edges: no pass lowers the cut"),
+    ("`U: P(0,1,2)`", "kernighanLinBisection(startingFrom: [[0], [1], [2]])", "exact", ""),
+    (KAR, "kCliqueCommunities(k: 3)", "exact", "NetworkX `k_clique_communities`; communities overlap"),
+    (KAR, "kCliqueCommunities(k: 4)", "exact", ""),
+    ("`U: K(0..3), K(3..6)`", "kCliqueCommunities(k: 4)", "exact", "Two K4 sharing a vertex: separate, overlapping"),
+    ("`U: K(0..2), 1-3, 2-3, 3-4`", "kCliqueCommunities(k: 3)", "exact", "Two triangles sharing an edge percolate"),
+    ("`U: K(0..2), 1-3, 2-3, 3-4`", "kCliqueCommunities(k: 2)", "exact", "k = 2: the components with an edge"),
+    ("`U: P(0,1,2)`", "kCliqueCommunities(k: 1)", "exact", ""),
+    (TRI, "walktrapCommunities()", "exact", ""),
+    (KAR, "walktrapCommunities()", "exact", "Exact Ward merges; igraph's `community_walktrap` reads stale Δσ and cuts at Q = 0.3532"),
+    (TWO, "walktrapCommunities(steps: 2)", "exact", ""),
+    (CAVE, "walktrapCommunities()", "exact", ""),
+    ("`U: [0..2]`", "walktrapCommunities()", "exact", "No edges: singletons"),
+    ("`U: P(0,1,2)`", "walktrapCommunities(steps: 0)", "exact", ""),
+    (TRI, "leadingEigenvectorCommunities()", "exact", "igraph `community_leading_eigenvector` agrees"),
+    (KAR, "leadingEigenvectorCommunities()", "exact", "igraph agrees: Q = 0.3934"),
+    (BAR, "leadingEigenvectorCommunities()", "exact", "The two K5 (a symmetric ring of cliques has a repeated leading eigenvalue, so no row)"),
+    ("`U: [0..3]`", "leadingEigenvectorCommunities()", "exact", "Total weight 0: singletons (igraph agrees)"),
+    ("`U: K(0..3)`", "leadingEigenvectorCommunities()", "exact", "λ ≤ 0: indivisible"),
+]
+
+S["K. Spectral clustering"] = [
+    (TRI, "spectralClustering(clusterCount: 2, using: rng(1))", "exact", "The two triangles"),
+    ("`U: P(0,1,2), P(3,4,5)`", "spectralClustering(clusterCount: 2, using: rng(1))", "exact", "Two components"),
+    ("`U: P(0..3)`", "spectralClustering(clusterCount: 1, using: rng(1))", "exact", "One cluster"),
+    ("`U: 0-1, 0-2, 0-5, 1-6, 2-3, 3-4, 4-7`", "spectralClustering(clusterCount: 2, using: rng(1))", "exact", "A tree where the unit rows decide: without the row scaling, 2 goes with 0"),
+    ("`U: K(0..2), K(3..5), K(6..8), 2-3, 5-6`", "spectralClustering(clusterCount: 3, using: rng(1))", "exact", "Three triangles in a chain"),
+    ("`U: P(0..5)`", "spectralClustering(clusterCount: 2, weight: [3, 3, 0, 3, 3], using: rng(1))", "exact", "A weight-0 edge separates"),
+    ("`U: P(0,1,2)`", "spectralClustering(clusterCount: 4, using: rng(1))", "exact", "clusterCount > vertexCount"),
+    ("`U: P(0,1,2)`", "spectralClustering(clusterCount: 0, using: rng(1))", "exact", "clusterCount < 1"),
+]
+
 out = [Path(__file__).with_name("cases.head.md").read_text().rstrip("\n"), ""]
 i = 0
 for sec, rows in S.items():

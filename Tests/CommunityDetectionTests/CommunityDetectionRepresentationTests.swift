@@ -1,4 +1,4 @@
-// The catalog rows on the package's representations (not a catalog section). Every row of §A – §F
+// The catalog rows on the package's representations (not a catalog section). Every row of §A – §H
 // whose graph has no parallel edges is repeated on `UndirectedAdjacencyList` or `AdjacencyList`
 // built in written order, so vertex order, rows and positions are the catalog's (the vertex order
 // is asserted first) and the values are the same as on the reference conformers. The modularity,
@@ -24,7 +24,7 @@ import Testing
 
 @Suite("Community detection on every representation")
 struct CommunityDetectionRepresentationTests {
-    @Test("CD-001, CD-002, CD-003, CD-004, CD-005, CD-006, CD-007, CD-008 on UndirectedAdjacencyList: U: []")
+    @Test("CD-001, CD-002, CD-003, CD-004, CD-005, CD-006, CD-007, CD-008, CD-175 on UndirectedAdjacencyList: U: []")
     func undirectedAdjacencyList001() {
         // U: []
         let graph = UndirectedAdjacencyList<Int>(vertices: [], edges: [])
@@ -117,6 +117,24 @@ struct CommunityDetectionRepresentationTests {
         do {
             // CD-008: asynchronousLabelPropagationCommunities()
             let result = graph.asynchronousLabelPropagationCommunities()
+            let expected: [[Int]] = []
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q) <= 1e-12)
+        }
+        do {
+            // CD-175: girvanNewmanCommunities()[0]
+            let result = Array(graph.girvanNewmanCommunities())[0]
             let expected: [[Int]] = []
             #expect(result.map { Array($0) } == expected)
             #expect(result.count == expected.count)
@@ -252,7 +270,7 @@ struct CommunityDetectionRepresentationTests {
         }
     }
 
-    @Test("CD-016, CD-017, CD-018, CD-019, CD-020, CD-021, CD-022 on UndirectedAdjacencyList: U: [0..3]")
+    @Test("CD-016, CD-017, CD-018, CD-019, CD-020, CD-021, CD-022, CD-176 on UndirectedAdjacencyList: U: [0..3]")
     func undirectedAdjacencyList016() {
         // U: [0..3]
         let pairs: [(Int, Int)] = []
@@ -350,6 +368,24 @@ struct CommunityDetectionRepresentationTests {
             #expect(quality.coverage.isNaN)
             #expect(abs(quality.performance - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
         }
+        do {
+            // CD-176: girvanNewmanCommunities()[0]
+            let result = Array(graph.girvanNewmanCommunities())[0]
+            let expected: [[Int]] = [[0], [1], [2], [3]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q) <= 1e-12)
+        }
     }
 
     @Test("CD-023 on UndirectedAdjacencyList: U: 0-0")
@@ -366,7 +402,7 @@ struct CommunityDetectionRepresentationTests {
         }
     }
 
-    @Test("CD-024, CD-025, CD-026, CD-027, CD-028 on UndirectedAdjacencyList: U: 0-0, 1-1")
+    @Test("CD-024, CD-025, CD-026, CD-027, CD-028, CD-177 on UndirectedAdjacencyList: U: 0-0, 1-1")
     func undirectedAdjacencyList024() {
         // U: 0-0, 1-1
         let pairs: [(Int, Int)] = [(0, 0), (1, 1)]
@@ -435,6 +471,24 @@ struct CommunityDetectionRepresentationTests {
         do {
             // CD-028: asynchronousLabelPropagationCommunities()
             let result = graph.asynchronousLabelPropagationCommunities()
+            let expected: [[Int]] = [[0], [1]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.5) <= 1e-12 * max(1, abs(0.5)))
+        }
+        do {
+            // CD-177: girvanNewmanCommunities()[0]
+            let result = Array(graph.girvanNewmanCommunities())[0]
             let expected: [[Int]] = [[0], [1]]
             #expect(result.map { Array($0) } == expected)
             #expect(result.count == expected.count)
@@ -660,7 +714,7 @@ struct CommunityDetectionRepresentationTests {
         }
     }
 
-    @Test("CD-042, CD-043, CD-044, CD-045, CD-046, CD-047, CD-048, CD-049, CD-050, CD-069, CD-070, CD-071, CD-072, CD-073, CD-083, CD-100, CD-111, CD-115, CD-133, CD-143 on UndirectedAdjacencyList: U: K(0..2), K(3..5), 2-3")
+    @Test("CD-042, CD-043, CD-044, CD-045, CD-046, CD-047, CD-048, CD-049, CD-050, CD-069, CD-070, CD-071, CD-072, CD-073, CD-083, CD-100, CD-111, CD-115, CD-133, CD-143, CD-178, CD-179, CD-180 on UndirectedAdjacencyList: U: K(0..2), K(3..5), 2-3")
     func undirectedAdjacencyList042() {
         // U: K(0..2), K(3..5), 2-3
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
@@ -867,6 +921,60 @@ struct CommunityDetectionRepresentationTests {
             let q = graph.modularity(of: result)
             #expect(abs(q - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
         }
+        do {
+            // CD-178: girvanNewmanCommunities()[0]
+            let result = Array(graph.girvanNewmanCommunities())[0]
+            let expected: [[Int]] = [[0, 1, 2], [3, 4, 5]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
+        }
+        do {
+            // CD-179: girvanNewmanCommunities()[1]
+            let result = Array(graph.girvanNewmanCommunities())[1]
+            let expected: [[Int]] = [[0], [1, 2], [3, 4, 5]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.17346938775510204) <= 1e-12 * max(1, abs(0.17346938775510204)))
+        }
+        do {
+            // CD-180: girvanNewmanCommunities()[4]
+            let result = Array(graph.girvanNewmanCommunities())[4]
+            let expected: [[Int]] = [[0], [1], [2], [3], [4], [5]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - -0.173469387755102) <= 1e-12 * max(1, abs(-0.173469387755102)))
+        }
     }
 
     @Test("CD-051, CD-097, CD-128 on UndirectedAdjacencyList: U: K(0..2), K(3..5)")
@@ -919,7 +1027,7 @@ struct CommunityDetectionRepresentationTests {
         }
     }
 
-    @Test("CD-052, CD-084, CD-114, CD-116, CD-134, CD-144 on UndirectedAdjacencyList: U: K(0..4), K(5..9), 4-5")
+    @Test("CD-052, CD-084, CD-114, CD-116, CD-134, CD-144, CD-181 on UndirectedAdjacencyList: U: K(0..4), K(5..9), 4-5")
     func undirectedAdjacencyList052() {
         // U: K(0..4), K(5..9), 4-5
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4),
@@ -1025,9 +1133,27 @@ struct CommunityDetectionRepresentationTests {
             let q = graph.modularity(of: result)
             #expect(abs(q - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)))
         }
+        do {
+            // CD-181: girvanNewmanCommunities()[0]
+            let result = Array(graph.girvanNewmanCommunities())[0]
+            let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)))
+        }
     }
 
-    @Test("CD-053, CD-085 on UndirectedAdjacencyList: U: nx(barbell,5,0)")
+    @Test("CD-053, CD-085, CD-182 on UndirectedAdjacencyList: U: nx(barbell,5,0)")
     func undirectedAdjacencyList053() {
         // U: nx(barbell,5,0)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4),
@@ -1043,6 +1169,24 @@ struct CommunityDetectionRepresentationTests {
         do {
             // CD-085: louvainCommunities()
             let result = graph.louvainCommunities()
+            let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)))
+        }
+        do {
+            // CD-182: girvanNewmanCommunities()[0]
+            let result = Array(graph.girvanNewmanCommunities())[0]
             let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
             #expect(result.map { Array($0) } == expected)
             #expect(result.count == expected.count)
@@ -1169,7 +1313,7 @@ struct CommunityDetectionRepresentationTests {
         }
     }
 
-    @Test("CD-055, CD-056, CD-057, CD-074, CD-075, CD-088, CD-089, CD-090, CD-091, CD-092, CD-093, CD-094, CD-095, CD-119, CD-120, CD-121, CD-122, CD-123, CD-136, CD-137, CD-138, CD-146, CD-147 on UndirectedAdjacencyList: U: nx(karate_club)")
+    @Test("CD-055, CD-056, CD-057, CD-074, CD-075, CD-088, CD-089, CD-090, CD-091, CD-092, CD-093, CD-094, CD-095, CD-119, CD-120, CD-121, CD-122, CD-123, CD-136, CD-137, CD-138, CD-146, CD-147, CD-184, CD-185, CD-186 on UndirectedAdjacencyList: U: nx(karate_club)")
     func undirectedAdjacencyList055() {
         // U: nx(karate_club)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), (0, 10),
@@ -1539,6 +1683,64 @@ struct CommunityDetectionRepresentationTests {
             let q = graph.modularity(of: result, weight: { w[$0] })
             #expect(abs(q - 0.35829538426941027) <= 1e-12 * max(1, abs(0.35829538426941027)))
         }
+        do {
+            // CD-184: girvanNewmanCommunities()[0]
+            let result = Array(graph.girvanNewmanCommunities())[0]
+            let expected: [[Int]] = [[0, 1, 3, 4, 5, 6, 7, 10, 11, 12, 13, 16, 17, 19, 21],
+                [2, 8, 9, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.3599605522682445) <= 1e-12 * max(1, abs(0.3599605522682445)))
+        }
+        do {
+            // CD-185: girvanNewmanCommunities()[1]
+            let result = Array(graph.girvanNewmanCommunities())[1]
+            let expected: [[Int]] = [[0, 1, 3, 4, 5, 6, 7, 10, 11, 12, 13, 16, 17, 19, 21],
+                [2, 8, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33], [9]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.3487836949375411) <= 1e-12 * max(1, abs(0.3487836949375411)))
+        }
+        do {
+            // CD-186: girvanNewmanCommunities()[2]
+            let result = Array(graph.girvanNewmanCommunities())[2]
+            let expected: [[Int]] = [[0, 1, 3, 7, 11, 12, 13, 17, 19, 21],
+                [2, 8, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33], [4, 5, 6, 10, 16],
+                [9]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.36324786324786323) <= 1e-12 * max(1, abs(0.36324786324786323)))
+        }
     }
 
     @Test("CD-059 on UndirectedAdjacencyList: U: 0-1, 1-2, 2-3")
@@ -1731,7 +1933,7 @@ struct CommunityDetectionRepresentationTests {
         }
     }
 
-    @Test("CD-087, CD-118 on UndirectedAdjacencyList: U: nx(connected_caveman,4,5)")
+    @Test("CD-087, CD-118, CD-183 on UndirectedAdjacencyList: U: nx(connected_caveman,4,5)")
     func undirectedAdjacencyList087() {
         // U: nx(connected_caveman,4,5)
         let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (0, 19), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4),
@@ -1779,9 +1981,27 @@ struct CommunityDetectionRepresentationTests {
             let q = graph.modularity(of: result)
             #expect(abs(q - 0.65) <= 1e-12 * max(1, abs(0.65)))
         }
+        do {
+            // CD-183: girvanNewmanCommunities()[0]
+            let result = Array(graph.girvanNewmanCommunities())[0]
+            let expected: [[Int]] = [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.44999999999999996) <= 1e-12 * max(1, abs(0.44999999999999996)))
+        }
     }
 
-    @Test("CD-096, CD-124 on UndirectedAdjacencyList: U: nx(florentine_families)")
+    @Test("CD-096, CD-124, CD-187 on UndirectedAdjacencyList: U: nx(florentine_families)")
     func undirectedAdjacencyList096() {
         // U: nx(florentine_families)
         let pairs: [(String, String)] = [("Acciaiuoli", "Medici"), ("Medici", "Barbadori"),
@@ -1835,6 +2055,25 @@ struct CommunityDetectionRepresentationTests {
             // The modularity of the result (ref.py's model).
             let q = graph.modularity(of: result)
             #expect(abs(q - 0.39874999999999994) <= 1e-12 * max(1, abs(0.39874999999999994)))
+        }
+        do {
+            // CD-187: girvanNewmanCommunities()[0]
+            let result = Array(graph.girvanNewmanCommunities())[0]
+            let expected: [[String]] = [["Acciaiuoli", "Medici", "Castellani", "Peruzzi", "Strozzi", "Barbadori", "Ridolfi", "Tornabuoni", "Albizzi", "Bischeri", "Guadagni", "Ginori", "Lamberteschi"],
+                ["Salviati", "Pazzi"]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.08875000000000005) <= 1e-12 * max(1, abs(0.08875000000000005)))
         }
     }
 
@@ -2190,6 +2429,50 @@ struct CommunityDetectionRepresentationTests {
             #expect(abs(q - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
             var again = SeededRandomNumberGenerator(seed: 9)
             #expect(graph.asynchronousLabelPropagationCommunities(using: &again) == result, "the same seed again")
+        }
+    }
+
+    @Test("CD-188, CD-189 on UndirectedAdjacencyList: U: P(0,1,2), 3-4, 2-2")
+    func undirectedAdjacencyList188() {
+        // U: P(0,1,2), 3-4, 2-2
+        let pairs: [(Int, Int)] = [(0, 1), (1, 2), (3, 4), (2, 2)]
+        let graph = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
+        #expect(Array(graph.vertices) == [0, 1, 2, 3, 4] as [Int])
+        do {
+            // CD-188: girvanNewmanCommunities()[0]
+            let result = Array(graph.girvanNewmanCommunities())[0]
+            let expected: [[Int]] = [[0], [1, 2], [3, 4]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.28125) <= 1e-12 * max(1, abs(0.28125)))
+        }
+        do {
+            // CD-189: girvanNewmanCommunities()[1]
+            let result = Array(graph.girvanNewmanCommunities())[1]
+            let expected: [[Int]] = [[0], [1], [2], [3, 4]]
+            #expect(result.map { Array($0) } == expected)
+            #expect(result.count == expected.count)
+            for (c, community) in expected.enumerated() {
+                for v in community {
+                    #expect(result.community(of: v) == c, "vertex \(v)")
+                }
+            }
+            for (i, v) in graph.vertices.enumerated() {
+                #expect(result.community(ofIndex: i) == result.community(of: v), "index \(i)")
+            }
+            // The modularity of the result (ref.py's model).
+            let q = graph.modularity(of: result)
+            #expect(abs(q - 0.21875) <= 1e-12 * max(1, abs(0.21875)))
         }
     }
 

@@ -269,15 +269,21 @@ func _louvainLevel(_ rows: _LouvainRows, directed: Bool, m: Double, resolution: 
 /// graph, which equals the level graph's in exact arithmetic.
 @inlinable
 func _louvain(_ graph: _CommunityGraph, _ weights: [Double]?, resolution: Double, threshold: Double, order: (Int) -> [Int]) -> [Int] {
+    _louvainLevels(graph, weights, resolution: resolution, threshold: threshold, order: order).last!
+}
+
+/// Every level's partition, finest first: the last is `_louvain`'s.
+@inlinable
+func _louvainLevels(_ graph: _CommunityGraph, _ weights: [Double]?, resolution: Double, threshold: Double, order: (Int) -> [Int]) -> [[Int]] {
     let n = graph.count
-    guard graph.edgeCount > 0 else { return Array(0 ..< n) }
+    guard graph.edgeCount > 0 else { return [Array(0 ..< n)] }
     var m = 0.0
     if let weights { for w in weights { m += w } } else { m = Double(graph.edgeCount) }
     var level = _LouvainLevel(count: n, directed: graph.directed, from: graph.from, to: graph.to) { weights?[$0] ?? 1 }
     var node = Array(0 ..< n)
     var modularity = _modularity(graph, weights, labels: Array(0 ..< n), count: n, resolution: resolution)
     var (community, moved) = _louvainLevel(_LouvainRows(level), directed: graph.directed, m: m, resolution: resolution, order: order(level.count))
-    var final: [Int] = []
+    var levels: [[Int]] = []
     var first = true
     while first || moved {
         first = false
@@ -290,7 +296,7 @@ func _louvain(_ graph: _CommunityGraph, _ weights: [Double]?, resolution: Double
             count += 1
         }
         let labels = (0 ..< n).map { rank[community[node[$0]]] }
-        final = labels
+        levels.append(labels)
         let next = _modularity(graph, weights, labels: labels, count: count, resolution: resolution)
         if next - modularity <= threshold { break }
         modularity = next
@@ -301,7 +307,7 @@ func _louvain(_ graph: _CommunityGraph, _ weights: [Double]?, resolution: Double
         level = aggregate
         (community, moved) = _louvainLevel(_LouvainRows(level), directed: graph.directed, m: m, resolution: resolution, order: order(level.count))
     }
-    return final
+    return levels
 }
 
 /// 0 ..< k, shuffled by Fisher–Yates from the last position down, each swap drawn with
@@ -420,5 +426,135 @@ extension DirectedGraph {
     @inlinable
     public func louvainCommunities<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, resolution: Double = 1, threshold: Double = 1e-7, using generator: inout some RandomNumberGenerator) -> Partition<Self> {
         _louvainCommunities(_communityWeights(weight), resolution: resolution, threshold: threshold) { _shuffledOrder($0, &generator) }
+    }
+}
+
+extension Graph {
+    @inlinable
+    func _louvainPartitions(_ weights: [Double]?, resolution: Double, threshold: Double, order: (Int) -> [Int]) -> [Partition<DirectedView<Self>>] {
+        _checkLouvain(resolution: resolution, threshold: threshold)
+        let listed = _listedVertices()
+        let numbers = listed.map(_vertexNumbers)
+        let view = directedView
+        return _louvainLevels(_communityGraph(), weights, resolution: resolution, threshold: threshold, order: order).map {
+            Partition(view, numbers: numbers, listed: listed, labels: $0)
+        }
+    }
+
+    /// The partition after each Louvain level, finest first: the dendrogram whose last partition
+    /// is `louvainCommunities(resolution:threshold:)`. Each level's communities are unions of the
+    /// last level's. A graph without edges has one level, every vertex alone.
+    ///
+    /// - Precondition: `resolution` and `threshold` are finite and at least zero.
+    @inlinable
+    public func louvainPartitions(resolution: Double = 1, threshold: Double = 1e-7) -> [Partition<DirectedView<Self>>] {
+        _louvainPartitions(nil, resolution: resolution, threshold: threshold) { Array(0 ..< $0) }
+    }
+
+    /// The weighted Louvain levels, finest first; `weight` is called once per edge, in position
+    /// order.
+    ///
+    /// - Precondition: every weight is finite and at least zero; `resolution` and `threshold` are
+    ///   finite and at least zero.
+    @inlinable
+    public func louvainPartitions<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, resolution: Double = 1, threshold: Double = 1e-7) -> [Partition<DirectedView<Self>>] {
+        _louvainPartitions(_communityWeights(weight), resolution: resolution, threshold: threshold) { Array(0 ..< $0) }
+    }
+
+    /// The Louvain levels with each level's visit order shuffled by `generator`, as
+    /// `louvainCommunities(resolution:threshold:using:)` draws.
+    ///
+    /// - Precondition: `resolution` and `threshold` are finite and at least zero.
+    @inlinable
+    public func louvainPartitions(resolution: Double = 1, threshold: Double = 1e-7, using generator: inout some RandomNumberGenerator) -> [Partition<DirectedView<Self>>] {
+        _louvainPartitions(nil, resolution: resolution, threshold: threshold) { _shuffledOrder($0, &generator) }
+    }
+
+    /// The weighted Louvain levels with shuffled visit orders.
+    ///
+    /// - Precondition: every weight is finite and at least zero; `resolution` and `threshold` are
+    ///   finite and at least zero.
+    @inlinable
+    public func louvainPartitions<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, resolution: Double = 1, threshold: Double = 1e-7, using generator: inout some RandomNumberGenerator) -> [Partition<DirectedView<Self>>] {
+        _louvainPartitions(_communityWeights(weight), resolution: resolution, threshold: threshold) { _shuffledOrder($0, &generator) }
+    }
+
+    /// Each community split into its connected components: the partition whose communities are
+    /// the components of the subgraphs the communities induce. Louvain can leave a community
+    /// disconnected; splitting it never lowers modularity (at any γ ≥ 0) or the constant Potts
+    /// model. Empty communities disappear. O(n + m) after looking the vertices up.
+    ///
+    /// - Precondition: `communities` lists every vertex exactly once.
+    @inlinable
+    public func connectedComponents<C: Collection>(within communities: C) -> Partition<DirectedView<Self>> where C.Element: Collection, C.Element.Element == Vertex {
+        let listed = _listedVertices()
+        let numbers = listed.map(_vertexNumbers)
+        let (labels, _) = _membership(communities, count: vertexCount) { _communityNumber(of: $0, numbers) }
+        let graph = _communityGraph()
+        let rows = _LouvainRows(_LouvainLevel(count: graph.count, directed: false, from: graph.from, to: graph.to) { _ in 0 })
+        return Partition(directedView, numbers: numbers, listed: listed, labels: _connectedParts(rows, labels))
+    }
+}
+
+extension DirectedGraph {
+    @inlinable
+    func _louvainPartitions(_ weights: [Double]?, resolution: Double, threshold: Double, order: (Int) -> [Int]) -> [Partition<Self>] {
+        _checkLouvain(resolution: resolution, threshold: threshold)
+        let listed = _listedVertices()
+        let numbers = listed.map(_vertexNumbers)
+        return _louvainLevels(_communityGraph(numbers), weights, resolution: resolution, threshold: threshold, order: order).map {
+            Partition(self, numbers: numbers, listed: listed, labels: $0)
+        }
+    }
+
+    /// The partition after each directed Louvain level, finest first; the last is
+    /// `louvainCommunities(resolution:threshold:)`.
+    ///
+    /// - Precondition: `resolution` and `threshold` are finite and at least zero.
+    @inlinable
+    public func louvainPartitions(resolution: Double = 1, threshold: Double = 1e-7) -> [Partition<Self>] {
+        _louvainPartitions(nil, resolution: resolution, threshold: threshold) { Array(0 ..< $0) }
+    }
+
+    /// The weighted directed Louvain levels, finest first; `weight` is called once per edge, in
+    /// position order.
+    ///
+    /// - Precondition: every weight is finite and at least zero; `resolution` and `threshold` are
+    ///   finite and at least zero.
+    @inlinable
+    public func louvainPartitions<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, resolution: Double = 1, threshold: Double = 1e-7) -> [Partition<Self>] {
+        _louvainPartitions(_communityWeights(weight), resolution: resolution, threshold: threshold) { Array(0 ..< $0) }
+    }
+
+    /// The directed Louvain levels with shuffled visit orders.
+    ///
+    /// - Precondition: `resolution` and `threshold` are finite and at least zero.
+    @inlinable
+    public func louvainPartitions(resolution: Double = 1, threshold: Double = 1e-7, using generator: inout some RandomNumberGenerator) -> [Partition<Self>] {
+        _louvainPartitions(nil, resolution: resolution, threshold: threshold) { _shuffledOrder($0, &generator) }
+    }
+
+    /// The weighted directed Louvain levels with shuffled visit orders.
+    ///
+    /// - Precondition: every weight is finite and at least zero; `resolution` and `threshold` are
+    ///   finite and at least zero.
+    @inlinable
+    public func louvainPartitions<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, resolution: Double = 1, threshold: Double = 1e-7, using generator: inout some RandomNumberGenerator) -> [Partition<Self>] {
+        _louvainPartitions(_communityWeights(weight), resolution: resolution, threshold: threshold) { _shuffledOrder($0, &generator) }
+    }
+
+    /// Each community split into its weakly connected components. Splitting never lowers directed
+    /// modularity or the constant Potts model. Empty communities disappear. O(n + m) after
+    /// looking the vertices up.
+    ///
+    /// - Precondition: `communities` lists every vertex exactly once.
+    @inlinable
+    public func weaklyConnectedComponents<C: Collection>(within communities: C) -> Partition<Self> where C.Element: Collection, C.Element.Element == Vertex {
+        let listed = _listedVertices()
+        let numbers = listed.map(_vertexNumbers)
+        let (labels, _) = _membership(communities, count: vertexCount) { _communityNumber(of: $0, numbers) }
+        let graph = _communityGraph(numbers)
+        let rows = _LouvainRows(_LouvainLevel(count: graph.count, directed: true, from: graph.from, to: graph.to) { _ in 0 })
+        return Partition(self, numbers: numbers, listed: listed, labels: _connectedParts(rows, labels))
     }
 }

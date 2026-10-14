@@ -28,6 +28,10 @@ SECTIONS = {
     "E": ("GreedyModularityTests.swift", "Greedy modularity (Clauset–Newman–Moore)", "GreedyModularityTests"),
     "F": ("LabelPropagationTests.swift", "Label propagation", "LabelPropagationTests"),
     "G": ("CommunityDetectionPreconditionTests.swift", "Community detection preconditions", "CommunityDetectionPreconditionTests"),
+    "H": ("GirvanNewmanTests.swift", "Girvan–Newman", "GirvanNewmanTests"),
+    "I": ("LeidenCatalogTests.swift", "Leiden, the constant Potts model and Louvain's levels", "LeidenCatalogTests"),
+    "J": ("CommunityMethodsCatalogTests.swift", "Kernighan–Lin, k-clique, Walktrap and leading-eigenvector communities", "CommunityMethodsCatalogTests"),
+    "K": ("SpectralClusteringCatalogTests.swift", "Spectral clustering (Ng–Jordan–Weiss)", "SpectralClusteringCatalogTests"),
 }
 
 HEADERS = {
@@ -61,6 +65,23 @@ HEADERS = {
 // negative or NaN, a threshold that is negative or NaN, and weights that are negative, NaN or
 // infinite, on every entry point that takes them; then api.md's other preconditions (see the second
 // half of this file). Each exit test builds its inputs inside the closure.""",
+    "H": """// §H: Girvan–Newman (2002): the partitions found by removing an edge of greatest betweenness again
+// and again, coarsest first; `[k]` is the k-th. Ties go to the least edge position; parallel copies
+// share their pairs' paths; self-loops never matter; a graph without non-loop edges lists its
+// components once.""",
+    "I": """// §I: the constant Potts model (Σ_c [e_c − γ n_c²/2], directed Σ_c [e_c − γ n_c²]); Leiden with
+// modularity and the constant Potts model on graphs where every order and every refinement draw gives
+// the same partition (ref.py: 200 seeded runs of its model, and NetworkX's leiden_communities with 25
+// seeds), so `using:` rows pin a partition; Louvain's levels (`louvainPartitions()[k]`, NetworkX's
+// louvain_partitions with the identity shuffle). Trap rows are exit tests.""",
+    "J": """// §J: Kernighan–Lin bisection from a given start (NetworkX's kernighan_lin_bisection, its heap ties
+// included); k-clique communities (overlapping, NetworkX's k_clique_communities); Walktrap with exact
+// Ward merges (ref.py's dense model, rechecked with Lance–Williams updates); leading-eigenvector
+// communities (igraph's community_leading_eigenvector). Trap rows are exit tests.""",
+    "K": """// §K: spectral clustering (Ng–Jordan–Weiss): the unit rows of the normalized Laplacian's k smallest
+// eigenvectors, clustered by k-means (10 k-means++ runs from the seeded generator, the least inertia
+// kept). Expected is the labeling of least inertia over every labeling (ref.py, by brute force),
+// on graphs whose k smallest eigenvalues stand apart from the next. Trap rows are exit tests.""",
 }
 
 COMMON = """// Expected values are ref.py's model at full precision (the catalog cells are the same values
@@ -171,7 +192,7 @@ def graph_lines(cell, g, indent, kind=None):
 def parse_rows():
     rows, sec = [], None
     for line in ref.CASES.read_text().splitlines():
-        m = re.match(r"## ([A-G])\. ", line)
+        m = re.match(r"## ([A-K])\. ", line)
         if m:
             sec = m.group(1)
         m = re.match(r"\| (CD-\d+) \| (.*?) \| `(.*?)` \| `(.*?)` \| (.*?) \|(.*)\|$", line)
@@ -194,14 +215,29 @@ def weight_expr(spec, g, view):
 def call_args(a, g, view, skip=()):
     """(setup, argument text) in signature order: weight, resolution, threshold, using."""
     setup, args = [], []
+    if "clusterCount" in a:
+        args.append(f"clusterCount: {a['clusterCount']}")
+    if "k" in a:
+        args.append(a["k"])
+    if "startingFrom" in a:
+        setup.append(("start", ref.parse_partition(a["startingFrom"]), vtype(g)))
+        args.append("startingFrom: start")
     if "weight" in a and "weight" not in skip:
         s, clo = weight_expr(a["weight"], g, view)
         setup += s
         args.append(f"weight: {clo}")
+    if "quality" in a:
+        args.append(f"quality: .{a['quality']}")
     if "resolution" in a:
         args.append(f"resolution: {fnum(float(a['resolution']))}")
     if "threshold" in a:
         args.append(f"threshold: {fnum(float(a['threshold']))}")
+    if "randomness" in a:
+        args.append(f"randomness: {fnum(float(a['randomness']))}")
+    if "iterations" in a:
+        args.append(f"iterations: {a['iterations']}")
+    if "steps" in a:
+        args.append(f"steps: {a['steps']}")
     if "using" in a and "using" not in skip:
         args.append("using: &generator")
     return setup, ", ".join(args)
@@ -209,8 +245,13 @@ def call_args(a, g, view, skip=()):
 
 def setup_lines(setup, indent):
     out = []
-    for name, vals in setup:
-        out += wrap_list(vals, indent, f"let {name}: [Double] = [", "]")
+    for item in setup:
+        if len(item) == 3:
+            name, groups, vt = item
+            out += partition_lines(name, groups, vt, indent)
+        else:
+            name, vals = item
+            out += wrap_list(vals, indent, f"let {name}: [Double] = [", "]")
     return out
 
 
@@ -225,7 +266,20 @@ FUNC = {
     "greedyModularityCommunities": "greedy",
     "labelPropagationCommunities": "labelPropagation",
     "asynchronousLabelPropagationCommunities": "asynchronousLabelPropagation",
+    "girvanNewmanCommunities": "girvanNewman",
+    "constantPottsModel": "constantPottsModel",
+    "leidenCommunities": "leiden",
+    "louvainPartitions": "louvainLevels",
+    "kernighanLinBisection": "kernighanLin",
+    "kCliqueCommunities": "kClique",
+    "walktrapCommunities": "walktrap",
+    "leadingEigenvectorCommunities": "leadingEigenvector",
+    "spectralClustering": "spectralClustering",
 }
+
+
+# The entry points that throw `NoConvergence`: their calls are written with `try`.
+THROWING = ("leadingEigenvectorCommunities", "spectralClustering")
 
 
 def close(indent, name, value, label=None):
@@ -259,6 +313,28 @@ def body_lines(row, indent, gname="graph", for_rep=False, rep_g=None, rep_eval=N
     uses_conn = False
     target = f"{gname}.directedView" if view == "directed" else gname
     in_view = view == "directed"
+    if name == "constantPottsModel":
+        comms = ref.parse_partition(a["of"])
+        if comms:
+            lines += partition_lines("communities", comms, vt, indent)
+        else:
+            lines.append(f"{indent}let communities: [[{vt}]] = []")
+        setup, args = call_args(a, g, in_view)
+        lines += setup_lines(setup, indent)
+        args = ", " + args if args else ""
+        lines.append(f"{indent}let value = {target}.constantPottsModel(of: communities{args})")
+        lines += close(indent, "value", val)
+        return lines, uses_conn
+    if name == "kCliqueCommunities":
+        setup, args = call_args(a, g, in_view)
+        groups = [[g.vertices[v] for v in c] for c in val]
+        lines.append(f"{indent}let result = {target}.kCliqueCommunities({args})")
+        if groups:
+            lines += partition_lines("expected", groups, vt, indent)
+        else:
+            lines.append(f"{indent}let expected: [[{vt}]] = []")
+        lines.append(f"{indent}#expect(result == expected)")
+        return lines, uses_conn
     if name in ("modularity", "partitionQuality"):
         of = a["of"]
         if of == "components":
@@ -299,7 +375,11 @@ def body_lines(row, indent, gname="graph", for_rep=False, rep_g=None, rep_eval=N
     lines += setup_lines(setup, indent)
     if "using" in a:
         lines.append(f"{indent}var generator = SeededRandomNumberGenerator(seed: {seed_of(a)})")
-    lines.append(f"{indent}let result = {target}.{name}({args})")
+    call = "try " if name in THROWING else ""
+    if "level" in a:
+        lines.append(f"{indent}let result = Array({target}.{name}({args}))[{a['level']}]")
+    else:
+        lines.append(f"{indent}let result = {call}{target}.{name}({args})")
     groups = ref.canonical(val)
     vgroups = [[g.vertices[v] for v in c] for c in groups]
     q = model_q(g, a, val)
@@ -340,7 +420,7 @@ def body_lines(row, indent, gname="graph", for_rep=False, rep_g=None, rep_eval=N
     lines += close(indent, "q", q)
     if "using" in a:
         lines.append(f"{indent}var again = SeededRandomNumberGenerator(seed: {seed_of(a)})")
-        lines.append(f"{indent}#expect({target}.{name}({args.replace('&generator', '&again')}) == result, \"the same seed again\")")
+        lines.append(f"{indent}#expect({call}{target}.{name}({args.replace('&generator', '&again')}) == result, \"the same seed again\")")
     elif not g.directed and view is None and name in ("louvainCommunities", "greedyModularityCommunities") and not for_rep:
         dval = directed_eval(row)[7]
         _, dargs = call_args(a, g, True)
@@ -387,7 +467,7 @@ def trap_test(row, indent):
              f"{indent}    await #expect(processExitsWith: .failure) {{"]
     inner = indent + "        "
     lines += graph_lines(row["graph"], ref.parse_graph(row["graph"]), inner)
-    if name in ("modularity", "partitionQuality"):
+    if name in ("modularity", "partitionQuality", "constantPottsModel"):
         comms = ref.parse_partition(a["of"])
         lines += partition_lines("communities", comms, vtype(g), inner)
         setup, args = call_args(a, g, False)
@@ -395,12 +475,16 @@ def trap_test(row, indent):
         args = ", " + args if args else ""
         if name == "modularity":
             lines.append(f"{inner}_ = graph.modularity(of: communities{args})")
+        elif name == "constantPottsModel":
+            lines.append(f"{inner}_ = graph.constantPottsModel(of: communities{args})")
         else:
             lines.append(f"{inner}_ = graph.partitionQuality(of: communities)")
     else:
         setup, args = call_args(a, g, False)
         lines += setup_lines(setup, inner)
-        lines.append(f"{inner}_ = graph.{name}({args})")
+        if "using" in a:
+            lines.append(f"{inner}var generator = SeededRandomNumberGenerator(seed: {seed_of(a)})")
+        lines.append(f"{inner}_ = {'try ' if name in THROWING else ''}graph.{name}({args})")
     lines += [f"{indent}    }}", f"{indent}}}"]
     return lines
 
@@ -411,7 +495,8 @@ def value_test(row, indent):
     assert ref.close_text(got, exp, 1e-12), (row["id"], got, exp)
     num = row["id"][3:]
     body, conn = body_lines(row, indent + "    ")
-    head = [f'{indent}@Test("{row_title(row, g)}")', f"{indent}func {FUNC[name]}{num}() {{"]
+    throws = " throws" if name in THROWING else ""
+    head = [f'{indent}@Test("{row_title(row, g)}")', f"{indent}func {FUNC[name]}{num}(){throws} {{"]
     return head + graph_lines(row["graph"], ref.parse_graph(row["graph"]), indent + "    ") + body + [f"{indent}}}"], conn
 
 
@@ -566,7 +651,7 @@ def rep_body(row, indent, gname, ng, ev, by_arc):
 
 
 def write_representations(rows):
-    value_rows = [r for r in rows if r["exp"] != "trap" and r["sec"] in "ABCDEFG"]
+    value_rows = [r for r in rows if r["exp"] != "trap" and r["sec"] in "ABCDEFGH"]
     by_graph = {}
     for r in value_rows:
         by_graph.setdefault(r["graph"], []).append(r)
@@ -643,7 +728,7 @@ def write_representations(rows):
             tests.append(lines)
             counts[kind] += 1
             covered[kind] |= set(ids)
-    header = """// The catalog rows on the package's representations (not a catalog section). Every row of §A – §F
+    header = """// The catalog rows on the package's representations (not a catalog section). Every row of §A – §H
 // whose graph has no parallel edges is repeated on `UndirectedAdjacencyList` or `AdjacencyList`
 // built in written order, so vertex order, rows and positions are the catalog's (the vertex order
 // is asserted first) and the values are the same as on the reference conformers. The modularity,
@@ -671,7 +756,7 @@ def write_representations(rows):
 
 def main():
     rows = parse_rows()
-    assert len(rows) == 174
+    assert len(rows) == 248
     counts = write_sections(rows)
     rc, covered = write_representations(rows)
     for k, v in counts.items():

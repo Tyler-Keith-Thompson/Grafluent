@@ -7,6 +7,18 @@
 #                      different cost.
 #   uniquebest         a unique most-voted label is also the greatest of the most voted, so the
 #                      general tie branch gives the same label.
+#   klupdate           pushing an unchanged value adds an entry with a later stamp; the older entry
+#                      with the same value is popped first, and the newer is then stale.
+#   klcount            without the two-community check, a third community's side is −1 and
+#                      indexes out of range a line later: the same trap with a worse message.
+#   sccount            spectral clustering without the upper bound on the cluster count still traps:
+#                      the eigenpairs' count precondition (at most vertexCount) fires next.
+#
+# Planted and surviving, not equivalent (open):
+#   kmempty            k-means' empty-cluster relocation. k-means++ seeds are distinct rows and a
+#                      seed's own row is at distance 0, so the first assignment never empties a
+#                      cluster; no later Lloyd step emptied one in 15,000 seeded clusterings of random
+#                      graphs of 10 to 40 vertices (k = 3 … 8) nor in 12,000 of 4 to 11 vertices.
 #
 # Order matters where patterns overlap: onelevel wraps the whole stop test before threshold edits
 # its condition.
@@ -67,9 +79,113 @@ MUTANTS = [
     Mutant("coloring", "LabelPropagation.swift", "return a != b ? a > b : $0 < $1", "return $0 < $1", mode="stmt"),
     Mutant("greatest", "LabelPropagation.swift", "$0.max()!", "$0.min()!", nth=0),
 
+    # Girvan–Newman
+    Mutant("gntie", "GirvanNewman.swift", "lhs.score == rhs.score && lhs.edge < rhs.edge", "lhs.score == rhs.score && lhs.edge > rhs.edge"),
+    Mutant("gnleast", "GirvanNewman.swift", "lhs.score > rhs.score", "lhs.score < rhs.score"),
+    Mutant("gnconnected", "GirvanNewman.swift", "_seen[v] == _round", "false"),
+    Mutant("gnstale", "GirvanNewman.swift", "_recompute(listed, component: c)", "", nth=0, mode="stmt"),
+    Mutant("gnsplitside", "GirvanNewman.swift", "_recompute(listed, component: c)", "", nth=1, mode="stmt"),
+    Mutant("gnsplitnew", "GirvanNewman.swift", "_recompute(listed, component: split)", "", mode="stmt"),
+    Mutant("gnzero", "GirvanNewman.swift", "for slot in _starts[v] ..< _ends[v] { _scores[_edges[slot]] = 0 }", "", mode="stmt"),
+    Mutant("gnotherend", "GirvanNewman.swift", "_removeEnd(2 * e + 1)", "", mode="stmt"),
+    Mutant("gnmoved", "GirvanNewman.swift", "_slotOfEnd[moved] = slot", "", mode="stmt"),
+    Mutant("gnedgeless", "GirvanNewman.swift", "if _central.isEmpty { return _partition() }", "", mode="stmt"),
+    Mutant("gnlabel", "GirvanNewman.swift", "for w in listed { _component[w] = split }", "", mode="stmt"),
+    Mutant("gncount", "GirvanNewman.swift", "                _componentCount += 1", "", nth=1, mode="stmt"),
+    Mutant("gnbest", "GirvanNewman.swift", "best.map({ candidate < $0 }) ?? true", "best == nil"),
+
     # community(checked:).
     Mutant("ckcommunitylookup", "Partition.swift", "_numbers[vertex]", "Optional(_numbers[vertex] ?? 0)", nth=1),
     Mutant("ckcommunityvalue", "Partition.swift", "return _labels[v]", "return 0", mode="stmt", nth=1),
     Mutant("ckcommunityguard", "Partition.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
     Mutant("ckcommunitythrow", "Partition.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "throw VertexNotFound()", mode="stmt"),
+
+    # Leiden.
+    Mutant("ldemptychoice", "Leiden.swift", "-best > tolerance", "false"),
+    Mutant("ldstaybias", "Leiden.swift", "gain - best > tolerance", "gain - best > -tolerance"),
+    Mutant("ldtotals", "Leiden.swift", "totalA[chosen] += av", "", mode="stmt"),
+    Mutant("ldownpenalty", "Leiden.swift", "gamma * (av * ownB + bv * ownA)", "gamma * (av * totalB[current] + bv * totalA[current])"),
+    Mutant("ldrequeue", "Leiden.swift", "community[w] != chosen", "false"),
+    Mutant("ldwellconnected", "Leiden.swift", "guard external[v] >= gamma * (av * (totalB - bv) + bv * (totalA - av)) else { continue }", "", mode="stmt"),
+    Mutant("ldrefinedwell", "Leiden.swift", "guard refinedExternal[r] >= gamma * (ra * (totalB - rb) + rb * (totalA - ra)) else { continue }", "", mode="stmt"),
+    Mutant("ldnegativegain", "Leiden.swift", "guard gain >= 0 else { continue }", "", mode="stmt"),
+    Mutant("ldsingleton", "Leiden.swift", "guard refined[v] == v, refinedSize[v] == 1 else { continue }", "", mode="stmt"),
+    Mutant("ldexternal", "Leiden.swift", "refinedExternal[r] += external[v] - 2 * weightTo[r]", "", mode="stmt"),
+    Mutant("ldsamecommunity", "Leiden.swift", "                                        guard community[w] == c else { continue }", "", mode="stmt"),
+    Mutant("ldnorefine", "Leiden.swift", "            if count == k { break }", "            break", mode="stmt"),
+    Mutant("ldonelevel", "Leiden.swift", "            if communities == k { break }", "            break", mode="stmt"),
+    Mutant("ldmovedflag", "Leiden.swift", "if _leidenMove(rows, &community, a: a, b: b, scale: gamma, using: &generator) { moved = true }", "_ = _leidenMove(rows, &community, a: a, b: b, scale: gamma, using: &generator)", mode="stmt"),
+    Mutant("ldmovereport", "Leiden.swift", "moved = true", "", nth=0, mode="stmt"),
+    Mutant("ldgammapotts", "Leiden.swift", "(directed ? resolution : resolution / 2)", "resolution"),
+    Mutant("ldgammamod", "Leiden.swift", "(directed ? resolution / m : resolution / (4 * m))", "resolution / (4 * m)"),
+    Mutant("ldsizes", "Leiden.swift", "modularity ? baseRows.out : [Double](repeating: 1, count: n)", "baseRows.out"),
+    Mutant("ldpottsscale", "Leiden.swift", "graph.directed ? gamma : gamma / 2", "gamma / 2"),
+    Mutant("ldpottsinside", "Leiden.swift", "if c == labels[graph.to[e]] { inside[c] += weights?[e] ?? 1 }", "inside[c] += weights?[e] ?? 1", mode="stmt"),
+    Mutant("ldrandomness", "Leiden.swift", "randomness.isFinite && randomness > 0", "randomness.isFinite"),
+    Mutant("lditerations", "Leiden.swift", "iterations.map { $0 >= 1 } ?? true", "true"),
+    Mutant("lditerationlimit", "Leiden.swift", "iterations.map({ iteration < $0 }) ?? true", "true"),
+    Mutant("ldpick", "Leiden.swift", "guard x >= stay else { continue }", "", mode="stmt"),
+
+    # Louvain's levels and the component split.
+    Mutant("lvlevels", "Louvain.swift", "levels.append(labels)", "levels = [labels]", mode="stmt"),
+    Mutant("partsweight", "Leiden.swift", "labels[w] == labels[s]", "true"),
+
+    # Kernighan–Lin.
+    Mutant("klstamp", "KernighanLin.swift", "values[i] < values[j] || (values[i] == values[j] && stamps[i] < stamps[j])", "values[i] < values[j] || (values[i] == values[j] && stamps[i] > stamps[j])"),
+    Mutant("klstale", "KernighanLin.swift", "current[v] == value", "true"),
+    Mutant("klupdate", "KernighanLin.swift", "if value != current[v] { push(v, value) }", "push(v, value)", mode="stmt"),
+    Mutant("klsign", "KernighanLin.swift", "t == side[u] ? -rows.weights[slot] : rows.weights[slot]", "rows.weights[slot]"),
+    Mutant("klprefix", "KernighanLin.swift", "cost < best", "cost <= best"),
+    Mutant("klstop", "KernighanLin.swift", "best >= 0", "best > 0"),
+    Mutant("klswap", "KernighanLin.swift", "side[v] = 0", "", mode="stmt"),
+    Mutant("klinitial", "KernighanLin.swift", "cost += side[rows.neighbors[slot]] == side[u] ? rows.weights[slot] : -rows.weights[slot]", "cost += rows.weights[slot]", mode="stmt"),
+    Mutant("klmerge", "KernighanLin.swift", "weights[slotOf[w]] += x", "", mode="stmt"),
+    Mutant("klsides", "KernighanLin.swift", "return labels.map { 1 - $0 }", "return labels", mode="stmt"),
+    Mutant("klcount", "KernighanLin.swift", "communities.count == 2", "true"),
+
+    # k-clique percolation.
+    Mutant("kcshared", "CliquePercolation.swift", "shared[j] == k - 1", "shared[j] == k"),
+    Mutant("kcsize", "CliquePercolation.swift", "cliques.filter { $0.count >= k }", "cliques.filter { $0.count > k }"),
+    Mutant("kcstamp", "CliquePercolation.swift", "shared[j] = 0", "", mode="stmt"),
+    Mutant("kcorder", "CliquePercolation.swift", "groups.sort { $0.lexicographicallyPrecedes($1) }", "", mode="stmt"),
+
+    # Fluid communities.
+    Mutant("flkeep", "FluidCommunities.swift", "guard !keeps else { continue }", "", mode="stmt"),
+    Mutant("fltie", "FluidCommunities.swift", "most - total[c] < 1e-4", "most == total[c]"),
+    Mutant("fldensity", "FluidCommunities.swift", "density[chosen] = 1 / Double(size[chosen])", "", mode="stmt"),
+    Mutant("flconnected", "FluidCommunities.swift", "reached == rows.count", "true"),
+    Mutant("flsweeps", "FluidCommunities.swift", "sweep < iterations", "sweep < 1"),
+
+    # Walktrap.
+    Mutant("wtloop", "Walktrap.swift", "next[u] += p * added[u]", "", mode="stmt"),
+    Mutant("wtscale", "Walktrap.swift", "values.append(current[u] / degree[u].squareRoot())", "values.append(current[u])", mode="stmt"),
+    Mutant("wtlance", "Walktrap.swift", "((sa + sd) * x.sigma + (sb + sd) * y.sigma - sd * ab) / (sa + sb + sd)", "x.sigma + y.sigma"),
+    Mutant("wtmean", "Walktrap.swift", "vectors.append(_WalkVector.mean(vectors[a]!, sa, vectors[b]!, sb))", "vectors.append(_WalkVector.mean(vectors[a]!, 1, vectors[b]!, 1))", mode="stmt"),
+    Mutant("wtbest", "Walktrap.swift", "q > bestQ", "q >= bestQ"),
+    Mutant("wtinside", "Walktrap.swift", "inside.append(inside[a] + inside[b] + entry.weight)", "inside.append(inside[a] + inside[b])", mode="stmt"),
+    Mutant("wtzero", "Walktrap.swift", "if count > 0, sum > 0 { added[v] = sum / Double(count) }", "if count > 0 { added[v] = sum / Double(count) }", mode="stmt"),
+
+    # Leading eigenvector.
+    Mutant("lediagonal", "LeadingEigenvector.swift", "y[i] = sum - degrees[i] * factor - diagonal[i] * x[i]", "y[i] = sum - degrees[i] * factor", mode="stmt"),
+    Mutant("legain", "LeadingEigenvector.swift", "guard gain > 1e-10 * scale * Double(s) else { continue }", "", mode="stmt"),
+    Mutant("leloops", "LeadingEigenvector.swift", "for v in 0 ..< rows.count { degree[v] += 2 * loops[v] }", "", mode="stmt"),
+    Mutant("leempty", "LeadingEigenvector.swift", "guard m2 > 0 else { return Array(0 ..< n) }", "guard m2 > 0 else { return label }", mode="stmt"),
+    Mutant("lerecurse", "LeadingEigenvector.swift", "        pending.append(first)", "", mode="stmt"),
+
+    # Spectral clustering (k-means here, the Ng–Jordan–Weiss rows in SpectralGraphTheory).
+    Mutant("njwnormalize", "SpectralEmbedding.swift", "for j in 0 ..< k { rows[v * k + j] *= inverse }", "", mode="stmt", module="SpectralGraphTheory"),
+    Mutant("kmnearest", "SpectralClustering.swift",
+           "                        if s < least {\n                            least = s\n                            nearest = center\n                        }",
+           "                        if s < least { least = s }", mode="stmt"),
+    Mutant("kmmeans", "SpectralClustering.swift", "for j in 0 ..< k { centers[center * k + j] *= inverse }", "", mode="stmt"),
+    Mutant("kmbest", "SpectralClustering.swift", "inertia < bestInertia || best.isEmpty", "best.isEmpty"),
+    Mutant("kmseed", "SpectralClustering.swift", "if s < distance[i] { distance[i] = s }", "", mode="stmt"),
+    Mutant("kmempty", "SpectralClustering.swift", "sizes[center] == 0", "false"),
+    Mutant("kmruns", "SpectralClustering.swift", "_kMeansRuns", "1", nth=1),
+    Mutant("sccount", "SpectralClustering.swift", "clusterCount >= 1 && clusterCount <= vertexCount", "clusterCount >= 1"),
+    Mutant("sctolerance", "SpectralClustering.swift", "precondition(tolerance > 0, \"The tolerance is not positive\")", "", mode="stmt"),
+    Mutant("scweights", "SpectralClustering.swift", "_communityWeights(weight)", "nil", nth=0),
+
+    # Leiden's final split into connected parts.
+    Mutant("ldsplit", "Leiden.swift", "return _connectedParts(baseRows, membership)", "return membership", mode="stmt"),
 ]
