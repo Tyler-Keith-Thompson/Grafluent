@@ -80,17 +80,21 @@ extension Pseudograph {
     /// vertices are the endpoints, in order of first appearance.
     @inlinable
     public init(edges: some Sequence<UndirectedEdge<Vertex>>) {
-        self.init()
-        for edge in edges { insert(edge: edge) }
+        self.init(vertices: EmptyCollection(), edges: edges)
     }
 
     /// A graph with `vertices` first (a repeat once), then every edge in order. Endpoints missing
     /// from `vertices` are inserted.
+    ///
+    /// The result is the graph that inserting the vertices and then the edges one at a time
+    /// builds, but its rows are laid out once at their exact sizes, in slot order (`_built`).
+    /// O(n + m) expected.
     @inlinable
     public init(vertices: some Sequence<Vertex>, edges: some Sequence<UndirectedEdge<Vertex>>) {
-        self.init()
-        for v in vertices { insert(v) }
-        for edge in edges { insert(edge: edge) }
+        var pairs = _SlotPairs<Vertex>(reservingPairs: edges.underestimatedCount)
+        for v in vertices { pairs.insert(v) }
+        for edge in edges { pairs.append(edge.u, edge.v) }
+        self = Self._built(vertices: pairs.vertices, uKeys: pairs.firsts, vKeys: pairs.seconds, reportingPositions: false, _ConstructionToken()).graph
     }
 
     /// A graph from a list of edges and vertices; see `GraphBuilder`. Every edge is kept.
@@ -863,8 +867,10 @@ extension Pseudograph: Graph {
             _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
         ) -> Result
     ) -> Result? {
+        // The two pools grow, move and pack their rows together, so their row tables are equal,
+        // and `_neighbors`' is lent as both: an algorithm then reads one table entry per vertex.
         _neighbors.withUnsafeRows { neighbors, neighborRows in
-            _incident.withUnsafeRows { edges, edgeRows in body(neighbors, neighborRows, edges, edgeRows) }
+            _incident.withUnsafeRows { edges, _ in body(neighbors, neighborRows, edges, neighborRows) }
         }
     }
 }

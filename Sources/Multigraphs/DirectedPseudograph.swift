@@ -91,17 +91,21 @@ extension DirectedPseudograph {
     /// vertices are the endpoints, in order of first appearance.
     @inlinable
     public init(edges: some Sequence<DirectedEdge<Vertex>>) {
-        self.init()
-        for edge in edges { insert(edge: edge) }
+        self.init(vertices: EmptyCollection(), edges: edges)
     }
 
     /// A graph with `vertices` first (a repeat once), then every edge in order. Endpoints missing
     /// from `vertices` are inserted.
+    ///
+    /// The result is the graph that inserting the vertices and then the edges one at a time
+    /// builds, but its rows are laid out once at their exact sizes, in slot order (`_built`).
+    /// O(n + m) expected.
     @inlinable
     public init(vertices: some Sequence<Vertex>, edges: some Sequence<DirectedEdge<Vertex>>) {
-        self.init()
-        for v in vertices { insert(v) }
-        for edge in edges { insert(edge: edge) }
+        var pairs = _SlotPairs<Vertex>(reservingPairs: edges.underestimatedCount)
+        for v in vertices { pairs.insert(v) }
+        for edge in edges { pairs.append(edge.source, edge.target) }
+        self = Self._built(vertices: pairs.vertices, sourceKeys: pairs.firsts, targetKeys: pairs.seconds, reportingPositions: false, _ConstructionToken()).graph
     }
 
     /// A graph from a list of edges and vertices; see `DirectedGraphBuilder`. Every edge is kept.
@@ -888,8 +892,10 @@ extension DirectedPseudograph: BidirectionalDirectedGraph {
             _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
         ) -> Result
     ) -> Result? {
+        // The two pools grow, move and pack their rows together, so their row tables are equal,
+        // and `_out`'s is lent as both: an algorithm then reads one table entry per vertex.
         _out.withUnsafeRows { targets, targetRows in
-            _outEdges.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }
+            _outEdges.withUnsafeRows { edges, _ in body(targets, targetRows, edges, targetRows) }
         }
     }
 }
