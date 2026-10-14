@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Maximum flow (push–relabel, Dinic, Edmonds–Karp), minimum cuts (s–t, Nagamochi–Ibaraki, Hao–Orlin), Gomory–Hu trees, minimum-cost flow (network simplex), edge and vertex connectivity, disjoint paths.
+# Maximum flow (push–relabel, Dinic, Edmonds–Karp, Boykov–Kolmogorov), minimum cuts (s–t, Nagamochi–Ibaraki, Hao–Orlin), Gomory–Hu trees, minimum-cost flow (network simplex), feasible flows with lower bounds, cut metrics (conductance, expansions), edge and vertex connectivity, disjoint paths.
 swift_library(
     name = "Flows",
     srcs = glob(["**/*.swift"]),

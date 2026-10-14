@@ -261,6 +261,52 @@ struct FlowsPreconditionTests {
         }
     }
 
+    @Test("FL-552 Boykov–Kolmogorov: source is the sink traps (source == sink)")
+    func fl552() async {
+        // V [0, 1]; E [0→1 5]; boykovKolmogorovMaximumFlow(from: 0, to: 0, capacity:)
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            _ = graph.boykovKolmogorovMaximumFlow(from: 0, to: 0, capacity: { _ in 5 })
+        }
+    }
+
+    @Test("FL-569 cut metrics: a vertex not in the graph traps (not a vertex)")
+    func fl569() async {
+        // P(3); cutSize(of: [0, 7])
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+            _ = graph.cutSize(of: [0, 7])
+        }
+    }
+
+    @Test("FL-588 circulation: a lower bound past its capacity traps (lower bound > capacity)")
+    func fl588() async {
+        // V [0, 1]; E [0→1 3..2]; feasibleCirculation(lowerBound:capacity:)
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            _ = graph.feasibleCirculation(lowerBound: { _ in 3 }, capacity: { _ in 2 })
+        }
+    }
+
+    @Test("FL-589 circulation: supplies not summing to zero traps (supplies sum to 1)")
+    func fl589() async {
+        // V [0, 1]; E [0→1 0..2]; supply [0: 1]; feasibleCirculation(supply:lowerBound:capacity:)
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            let supplies = [1, 0]
+            _ = graph.feasibleCirculation(supply: { supplies[$0] }, lowerBound: { _ in 0 }, capacity: { _ in 2 })
+        }
+    }
+
+    @Test("FL-590 circulation: a NaN lower bound traps (a lower bound is NaN)")
+    func fl590() async {
+        // Double V [0, 1]; E [0→1 nan..2.0]; feasibleCirculation(lowerBound:capacity:)
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            _ = graph.feasibleCirculation(lowerBound: { _ in Double.nan }, capacity: { _ in 2.0 })
+        }
+    }
+
     @Test("The source as the sink traps on an undirected graph too, in every s–t entry point")
     func undirectedSourceIsSink() async {
         await #expect(processExitsWith: .failure) {

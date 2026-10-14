@@ -15,6 +15,17 @@ What decides Expected, per entry point (api.md, Determinism), and what each row 
       push-relabel's phase-1 preflow is the same; NetworkX maximum_flow_value with every flow_func;
       NetworkX minimum_cut's partition; igraph maxflow's partition; brute force over every
       s-t cut when n <= 12.
+* boykovKolmogorovMaximumFlow  the value and the canonical cut, as for Dinic (NetworkX
+      boykov_kolmogorov among the flow_funcs).
+* cut metrics  cut_metrics() below, the library's definitions; checked against NetworkX's cuts
+      module (cut_size, volume, conductance, normalized_cut_size, edge_expansion, mixing_expansion,
+      node_expansion, boundary_expansion), weighted too except mixing (NetworkX divides by 2|E|).
+      NetworkX 3.7's directed cut_size with T=None raises TypeError, so T is passed.
+* feasibleCirculation / findCirculationBarrier  circulation() below: the reduction to a maximum
+      flow (Edmonds-Karp model); the barrier is the source side of the least-sink-side cut less the
+      super source. Checked: the flow's bounds and supplies, the barrier's violated inequality,
+      brute force over every vertex set (Hoffman-Gale) when n <= 10, and NetworkX network_simplex
+      feasibility with the lower bounds shifted into the demands.
 * edmondsKarpMaximumFlow  the flow of every edge, pinned by the procedure (api.md): residual rows
       in edge-position order, breadth-first search from the source that stops when the sink is
       discovered, augment by the bottleneck.
@@ -608,6 +619,8 @@ def flow_rows(name, net, s, t, note=None, rows="MEDVC", cap=None):
         add("MaximumFlowValue", nm, inp, f"maximumFlowValue({st}, capacity:)", fmtv(value), checks[:1])
     if "C" in rows:
         add("MinimumCut", nm, inp, f"minimumCut({st}, capacity:)", f"value {fmtv(value)}; {cut}", checks)
+    if "B" in rows:
+        add("BoykovKolmogorov", nm, inp, f"boykovKolmogorovMaximumFlow({st}, capacity:)", f"value {fmtv(value)}; {cut}", checks[:1])
 
 
 def trap(group, name, inp, call, reason, checks=""):
@@ -1359,6 +1372,243 @@ def paths_rows(name, net, s, t, note=None):
     add("VertexDisjointPaths", nm, net.text(), f"vertexDisjointPaths({st})", paths_word(kv), cv)
 
 
+
+# ---------------------------------------------------------------------------------------------
+# Cut metrics (networkx.algorithms.cuts) of S against its complement
+
+
+def ratio(a, b):
+    """a / b in IEEE double: infinity or NaN for a zero b, as the library divides."""
+    if b == 0:
+        return float("nan") if a == 0 else float("inf")
+    return a / b
+
+
+def cut_metrics(net, S, w=None):
+    """The library's definitions, one pass over the edges: a directed edge counts in the cut either
+    way and in its tail's volume; an undirected edge in the volume of both ends' sides."""
+    w = [1] * net.m if w is None else w
+    inS = [v in S for v in range(net.n)]
+    cut = vol = cvol = tot = 0
+    reached = set()
+    for e, (u, v) in enumerate(net.E):
+        a, b = inS[u], inS[v]
+        tot += w[e]
+        if a != b:
+            cut += w[e]
+        if a:
+            vol += w[e]
+        else:
+            cvol += w[e]
+        if not net.directed:
+            if b:
+                vol += w[e]
+            else:
+                cvol += w[e]
+        if a:
+            reached.add(v)
+        if not net.directed and b:
+            reached.add(u)
+    size = sum(inS)
+    csize = net.n - size
+    return {"cut": cut, "volume": vol, "conductance": ratio(cut, min(vol, cvol)),
+            "normalized": cut * (ratio(1, vol) + ratio(1, cvol)),
+            "edge": ratio(cut, min(size, csize)), "mixing": ratio(cut, tot + tot),
+            "node": ratio(len(reached), size), "boundary": ratio(len(reached - set(S)), size)}
+
+
+def fmtd(x):
+    return repr(float(x))
+
+
+def metrics_text(d, weighted=False):
+    out = f"cut {fmtv(d['cut'])}; volume {fmtv(d['volume'])}; conductance {fmtd(d['conductance'])}; normalized {fmtd(d['normalized'])}; " \
+          f"edge expansion {fmtd(d['edge'])}; mixing {fmtd(d['mixing'])}"
+    if not weighted:
+        out += f"; node expansion {fmtd(d['node'])}; boundary expansion {fmtd(d['boundary'])}"
+    return out
+
+
+def same_float(a, b):
+    return (a != a and b != b) or a == b
+
+
+def nx_cut_checks(net, S, d, wd):
+    G = nx.MultiDiGraph() if net.directed else nx.MultiGraph()
+    G.add_nodes_from(range(net.n))
+    for e, (u, v) in enumerate(net.E):
+        G.add_edge(u, v, weight=(net.cap[e] if net.cap is not None else 1))
+
+    def call(fn, *args, **kwargs):
+        try:
+            return fn(G, *args, **kwargs)
+        except ZeroDivisionError:
+            return None
+    tag = f"{net.text()} S {sorted(S)}"
+    # T passed explicitly: NetworkX 3.7's directed cut_size with T=None hands None to edge_boundary
+    # and raises TypeError.
+    T = set(range(net.n)) - set(S)
+    theirs = {"cut": call(nx.cut_size, S, T), "volume": call(nx.volume, S), "conductance": call(nx.conductance, S, T),
+              "normalized": call(nx.normalized_cut_size, S, T), "edge": call(nx.edge_expansion, S, T),
+              "mixing": call(nx.mixing_expansion, S, T), "node": call(nx.node_expansion, S), "boundary": call(nx.boundary_expansion, S)}
+    for k, x in theirs.items():
+        if x is None:
+            if d[k] == d[k] and abs(d[k]) != float("inf"):
+                fail(f"{tag}: {k} NetworkX divides by zero, library {d[k]}")
+        elif not same_float(float(x), float(d[k])):
+            fail(f"{tag}: {k} NetworkX {x}, library {d[k]}")
+    if wd is not None:
+        for k, fn in [("cut", nx.cut_size), ("volume", nx.volume), ("conductance", nx.conductance),
+                      ("normalized", nx.normalized_cut_size), ("edge", nx.edge_expansion)]:
+            x = call(fn, S, weight="weight") if fn is nx.volume else call(fn, S, T, weight="weight")
+            if x is None:
+                if wd[k] == wd[k] and abs(wd[k]) != float("inf"):
+                    fail(f"{tag}: weighted {k} NetworkX divides by zero, library {wd[k]}")
+            elif not same_float(float(x), float(wd[k])):
+                fail(f"{tag}: weighted {k} NetworkX {x}, library {wd[k]}")
+        m = net.m
+        x = call(nx.mixing_expansion, S, T, weight="weight")
+        if x is not None and not same_float(float(x) * 2 * m, float(wd["cut"])):
+            fail(f"{tag}: NetworkX weighted mixing {x}")
+    checks = ["= NetworkX cuts (cut_size, volume, conductance, normalized_cut_size, edge, mixing, node, boundary expansion); "
+              "a zero denominator where NetworkX raises ZeroDivisionError"]
+    if wd is not None:
+        checks.append("weighted: = NetworkX with weight=, except mixing, which NetworkX divides by 2·|E|, not 2·total weight")
+    return checks
+
+
+def cut_rows(name, net, S, note=None):
+    Si = {net.index[x] for x in S}
+    d = cut_metrics(net, Si)
+    wd = cut_metrics(net, Si, net.cap) if net.cap is not None else None
+    # The brute check: the definitions again, from the degree sums and the neighborhood.
+    deg = [0] * net.n
+    for u, v in net.E:
+        deg[u] += 1
+        if not net.directed:
+            deg[v] += 1
+    if sum(deg[v] for v in Si) != d["volume"]:
+        fail(f"{name}: volume")
+    checks = nx_cut_checks(net, Si, d, wd)
+    exp = metrics_text(d)
+    if wd is not None:
+        exp += "; weighted: " + metrics_text(wd, weighted=True)
+    nm = name + (f": {note}" if note else "")
+    add("CutMetrics", nm, net.text(), f"cut metrics of {lab_list(net, Si)}", exp, checks)
+
+
+# ---------------------------------------------------------------------------------------------
+# Feasible flows with lower bounds (Hoffman, Gale) by the reduction to a maximum flow
+
+
+def circulation(net, lower, upper, supply):
+    """("feasible", flows) or ("barrier", S as vertex numbers): the source side of the least-sink-
+    side minimum cut of the reduction, less the super source."""
+    n = net.n
+    send = [max(b, 0) for b in supply]
+    receive = [max(-b, 0) for b in supply]
+    E2, cap2 = [], []
+    for e, (u, v) in enumerate(net.E):
+        E2.append((u, v))
+        if u == v:
+            cap2.append(0)
+            continue
+        cap2.append(upper[e] - lower[e])
+        if lower[e] >= 0:
+            receive[u] += lower[e]
+            send[v] += lower[e]
+        else:
+            send[u] -= lower[e]
+            receive[v] -= lower[e]
+    need = 0
+    for v in range(n):
+        if send[v] > receive[v]:
+            E2.append((n, v))
+            cap2.append(send[v] - receive[v])
+            need += send[v] - receive[v]
+        elif receive[v] > send[v]:
+            E2.append((v, n + 1))
+            cap2.append(receive[v] - send[v])
+    aux = Net(range(n + 2), E2, cap2)
+    value, r = edmonds_karp(aux, n, n + 1)
+    if value == need:
+        return "feasible", [lower[e] + (0 if u == v else r[2 * e + 1]) for e, (u, v) in enumerate(net.E)]
+    T = sink_side(aux, r, n + 1)
+    return "barrier", [v for v in range(n) if v not in T]
+
+
+def violates(net, lower, upper, supply, S):
+    """Whether S supplies more than the capacity out of S less the lower bounds into S."""
+    out = sum(upper[e] for e, (u, v) in enumerate(net.E) if u in S and v not in S)
+    into = sum(lower[e] for e, (u, v) in enumerate(net.E) if u not in S and v in S)
+    return sum(supply[v] for v in S) > out - into
+
+
+def circulation_text(net, lower, upper, supply):
+    parts = [f"{net.lab(u)}→{net.lab(v)} {fmtv(lower[e])}..{fmtv(upper[e])}" for e, (u, v) in enumerate(net.E)]
+    out = ("Double " if net.ctype == "Double" else "") + f"V [{', '.join(str(x) for x in net.labels)}]; E [{', '.join(parts)}]"
+    nz = [f"{net.lab(i)}: {fmtv(b)}" for i, b in enumerate(supply) if b != 0]
+    if nz:
+        out += f"; supply [{', '.join(nz)}]"
+    return out
+
+
+def circulation_rows(name, labels, edges, note=None, supply=None, ctype="Int"):
+    """`edges` as (u, v, lower, upper)."""
+    net = Net(labels, [(u, v) for u, v, _, _ in edges], [c for _, _, _, c in edges], ctype=ctype)
+    lower = [l for _, _, l, _ in edges]
+    upper = [c for _, _, _, c in edges]
+    sup = [0] * net.n
+    for k, b in (supply or {}).items():
+        sup[net.index[k]] = b
+    net.token = circulation_text(net, lower, upper, sup)
+    kind, res = circulation(net, lower, upper, sup)
+    tag = net.token
+    checks = []
+    if kind == "feasible":
+        bal = [0] * net.n
+        for e, (u, v) in enumerate(net.E):
+            if not (lower[e] <= res[e] <= upper[e]):
+                fail(f"{tag}: flow {res[e]} out of bounds on {e}")
+            bal[u] += res[e]
+            bal[v] -= res[e]
+        if bal != sup:
+            fail(f"{tag}: conservation {bal}")
+        exp = "feasible"
+        checks.append("the reduction's flow keeps the bounds and the supplies")
+    else:
+        if not violates(net, lower, upper, sup, set(res)):
+            fail(f"{tag}: barrier {res} does not violate")
+        exp = f"barrier {lab_list(net, res)}"
+        checks.append("the barrier violates Gale's condition")
+    if net.n <= 10:
+        some = any(violates(net, lower, upper, sup, {v for v in range(net.n) if mask >> v & 1}) for mask in range(1 << net.n))
+        if some != (kind == "barrier"):
+            fail(f"{tag}: brute force Hoffman/Gale {some} vs {kind}")
+        checks.append("brute force over every vertex set (Hoffman–Gale)")
+    G = nx.MultiDiGraph()
+    for v in range(net.n):
+        out_l = sum(lower[e] for e, (a, b) in enumerate(net.E) if a == v and a != b)
+        in_l = sum(lower[e] for e, (a, b) in enumerate(net.E) if b == v and a != b)
+        G.add_node(v, demand=-sup[v] - in_l + out_l)
+    for e, (u, v) in enumerate(net.E):
+        if u != v:
+            G.add_edge(u, v, capacity=upper[e] - lower[e], weight=0)
+    if net.n > 0:
+        try:
+            nx.network_simplex(G)
+            feasible = True
+        except nx.NetworkXUnfeasible:
+            feasible = False
+        if feasible != (kind == "feasible"):
+            fail(f"{tag}: NetworkX network_simplex feasible {feasible}")
+        checks.append("= NetworkX network_simplex feasibility (lower bounds shifted into demands)")
+    nm = name + (f": {note}" if note else "")
+    call = "feasibleCirculation(supply:lowerBound:capacity:)" if supply else "feasibleCirculation(lowerBound:capacity:)"
+    add("Circulation", nm, net.token, call, exp, checks)
+    return net, lower, upper, sup
+
+
 # ---------------------------------------------------------------------------------------------
 # The catalog
 
@@ -1674,6 +1924,89 @@ def build():
                 note="on the heap rather than the bucket queue")
     paths_rows("directed: a flow cycle the decomposition drops", Net(range(9), [(3, 6), (5, 8), (0, 7), (7, 0), (7, 3), (8, 4), (0, 6), (5, 7), (4, 0)]), 5, 6)
 
+    # --- Boykov–Kolmogorov
+    flow_rows("one edge", Net([0, 1], [(0, 1)], [5]), 0, 1, rows="B")
+    flow_rows("no edge", Net([0, 1], [], []), 0, 1, rows="B")
+    flow_rows("no path: disconnected", Net([0, 1, 2, 3], [(0, 1), (2, 3)], [4, 4]), 0, 3, rows="B")
+    flow_rows("zero capacities on the only path", Net([0, 1, 2], [(0, 1), (1, 2)], [3, 0]), 0, 2, rows="B")
+    flow_rows("self-loop ignored", Net([0, 1], [(0, 0), (0, 1), (1, 1)], [9, 4, 9]), 0, 1, rows="B")
+    flow_rows("parallel edges add", Net([0, 1, 2], [(0, 1), (0, 1), (1, 2), (1, 2)], [2, 3, 1, 9]), 0, 2, rows="B")
+    flow_rows("antiparallel pair on the path", Net([0, 1, 2, 3], [(0, 1), (0, 2), (1, 2), (2, 1), (1, 3), (2, 3)], [3, 3, 2, 2, 1, 5]), 0, 3, rows="B")
+    flow_rows("CLRS figure 26.1", CLRS, "s", "t", rows="B")
+    flow_rows("Ford–Fulkerson's slow case", FF, "s", "t", rows="B")
+    flow_rows("NetworkX docs example", NXDOC, "x", "y", rows="B")
+    flow_rows("trees meet in the middle, then orphans re-adopt", Net(range(8), [(0, 1), (0, 2), (1, 3), (2, 3), (3, 4), (4, 5), (4, 6), (5, 7), (6, 7), (1, 4), (2, 5)],
+              [4, 4, 2, 2, 3, 2, 2, 4, 4, 1, 1]), 0, 7, rows="B")
+    flow_rows("lcgnet(10,30,10,20)", lcgnet(10, 30, 10, 20), 0, 9, rows="B")
+    flow_rows("lcgnet(16,60,4,100)", lcgnet(16, 60, 4, 100), 0, 15, rows="B")
+    flow_rows("lcgnet(30,150,5,50)", lcgnet(30, 150, 5, 50), 0, 29, rows="B")
+    flow_rows("Double, dyadic", Net([0, 1, 2, 3], [(0, 1), (0, 2), (1, 3), (2, 3), (1, 2)], [0.5, 0.75, 0.25, 1.0, 0.125], ctype="Double"), 0, 3, rows="B")
+    flow_rows("UInt8", Net([0, 1, 2], [(0, 1), (1, 2), (0, 2)], [200, 50, 5], ctype="UInt8"), 0, 2, rows="B")
+    flow_rows("undirected: an edge used against its order", Net([0, 1, 2, 3], [(0, 1), (2, 1), (2, 3), (0, 2)], [4, 4, 4, 1], directed=False), 0, 3, rows="B")
+    flow_rows("undirected: parallel edges and a loop", Net([0, 1, 2], [(0, 1), (1, 0), (1, 1), (1, 2)], [2, 2, 7, 9], directed=False), 0, 2, rows="B")
+    flow_rows("undirected grid(4,4), unit", grid(4, 4), 0, 15, rows="B")
+    flow_rows("undirected lcgund(10,25,6,9)", lcgund(10, 25, 6, 9), 0, 9, rows="B")
+    trap("Preconditions", "Boykov–Kolmogorov: source is the sink", one.text(), "boykovKolmogorovMaximumFlow(from: 0, to: 0, capacity:)", "source == sink")
+
+    # --- cut metrics
+    cut_rows("empty set", Net(range(4), [(0, 1), (1, 2), (2, 3)], directed=False), [], note="every ratio over |S| is NaN")
+    cut_rows("whole vertex set", Net(range(3), [(0, 1), (1, 2)], directed=False), [0, 1, 2], note="T empty")
+    cut_rows("path P(4), first half", P(4), [0, 1])
+    cut_rows("NetworkX doc: C(4), S = {0, 1}", C(4), [0, 1])
+    cut_rows("NetworkX doc: C(6), S = {0, 2, 4}", C(6), [0, 2, 4])
+    cut_rows("K(5), S = {0, 1}", K(5), [0, 1])
+    cut_rows("Petersen, the outer cycle", named("petersen_graph"), [0, 1, 2, 3, 4])
+    cut_rows("self-loops count twice in the volume", Net(range(3), [(0, 0), (0, 1), (1, 2), (2, 2)], directed=False), [0])
+    cut_rows("parallel edges each cross", Net(range(3), [(0, 1), (1, 0), (0, 1), (1, 2)], [2, 3, 5, 7], directed=False), [0])
+    cut_rows("weighted, isolated vertex", Net(range(4), [(0, 1), (1, 2), (0, 2)], [1, 2, 4], directed=False), [3], note="vol(S) = 0")
+    cut_rows("weighted lcgund(10,25,6,9)", lcgund(10, 25, 6, 9), [0, 2, 3, 7])
+    cut_rows("directed: both directions cross, out-degree volume", Net(range(4), [(0, 1), (1, 0), (2, 0), (1, 3), (3, 3)]), [0, 1])
+    cut_rows("directed: successors, not predecessors", Net(range(4), [(0, 1), (2, 0), (3, 0)]), [0])
+    cut_rows("directed: self-loop counts once", Net(range(2), [(0, 0), (0, 1), (1, 0)], [3, 2, 5]), [0])
+    cut_rows("directed: CLRS figure 26.1", CLRS, ["s", "v1", "v2"])
+    cut_rows("directed: lcgnet(12,40,3,5)", lcgnet(12, 40, 3, 5), [1, 4, 5, 6, 11])
+    trap("Preconditions", "cut metrics: a vertex not in the graph", P(3).text(), "cutSize(of: [0, 7])", "not a vertex")
+
+    # --- feasible flows with lower bounds
+    circulation_rows("no vertices", [], [])
+    circulation_rows("no edges", [0, 1], [])
+    circulation_rows("cycle within its bounds", [0, 1, 2], [(0, 1, 1, 3), (1, 2, 2, 4), (2, 0, 0, 5)], note="2 on every edge")
+    circulation_rows("cycle, one lower bound past another's capacity", [0, 1, 2], [(0, 1, 4, 6), (1, 2, 0, 3), (2, 0, 0, 9)])
+    circulation_rows("a lower bound on an edge no cycle carries", [0, 1], [(0, 1, 1, 2)])
+    circulation_rows("zero lower bounds: the zero flow", [0, 1, 2], [(0, 1, 0, 3), (1, 2, 0, 3)])
+    circulation_rows("self-loop carries its lower bound", [0, 1], [(0, 0, 2, 5), (0, 1, 0, 1), (1, 0, 0, 1)])
+    circulation_rows("parallel edges share the demand", [0, 1], [(0, 1, 1, 1), (0, 1, 0, 2), (1, 0, 3, 3)])
+    circulation_rows("two cycles through a bottleneck", ["a", "b", "c", "d"],
+                     [("a", "b", 2, 4), ("b", "a", 0, 1), ("b", "c", 0, 1), ("c", "d", 1, 3), ("d", "c", 1, 3), ("c", "b", 0, 5)])
+    circulation_rows("supplies: a feasible transport", ["s", "a", "b", "t"],
+                     [("s", "a", 1, 3), ("s", "b", 0, 2), ("a", "t", 0, 3), ("b", "t", 1, 2), ("a", "b", 0, 1)], supply={"s": 4, "t": -4})
+    circulation_rows("supplies: the source cannot send its supply", ["s", "a", "t"],
+                     [("s", "a", 0, 2), ("a", "t", 0, 5)], supply={"s": 3, "t": -3}, note="barrier {s}")
+    circulation_rows("supplies: a lower bound above the supply, returned on a back edge", ["s", "a", "t"],
+                     [("s", "a", 0, 4), ("a", "t", 3, 4), ("t", "a", 0, 1)], supply={"s": 2, "t": -2})
+    circulation_rows("supplies with zero lower bounds: a transportation problem", [0, 1, 2, 3, 4],
+                     [(0, 2, 0, 2), (0, 3, 0, 2), (1, 3, 0, 1), (1, 4, 0, 3), (2, 4, 0, 1)], supply={0: 3, 1: 2, 2: -1, 3: -2, 4: -2})
+    circulation_rows("negative lower bound: flow against the edge", [0, 1], [(0, 1, -3, -1), (0, 1, 0, 2)], supply={0: -1, 1: 1})
+    circulation_rows("Double bounds", [0, 1, 2], [(0, 1, 0.5, 1.5), (1, 2, 0.25, 1.0), (2, 0, 0.75, 2.0)], ctype="Double")
+    circulation_rows("Double, infeasible", [0, 1, 2], [(0, 1, 1.25, 1.5), (1, 2, 0.25, 1.0), (2, 0, 0.0, 2.0)], ctype="Double")
+    rnd = LCG(77)
+    lcg_edges = []
+    while len(lcg_edges) < 20:
+        u, v = rnd.next() % 8, rnd.next() % 8
+        lo = rnd.next() % 3
+        lcg_edges.append((u, v, lo, lo + rnd.next() % 4))
+    circulation_rows("lcg(8 vertices, 20 edges, seed 77)", range(8), lcg_edges)
+    rnd = LCG(5)
+    lcg_edges = []
+    while len(lcg_edges) < 24:
+        u, v = rnd.next() % 9, rnd.next() % 9
+        lo = rnd.next() % 2
+        lcg_edges.append((u, v, lo, lo + 1 + rnd.next() % 5))
+    circulation_rows("lcg(9 vertices, 24 edges, seed 5), with supplies", range(9), lcg_edges, supply={0: 4, 3: -2, 8: -2})
+    trap("Preconditions", "circulation: a lower bound past its capacity", "V [0, 1]; E [0→1 3..2]", "feasibleCirculation(lowerBound:capacity:)", "lower bound > capacity")
+    trap("Preconditions", "circulation: supplies not summing to zero", "V [0, 1]; E [0→1 0..2]; supply [0: 1]", "feasibleCirculation(supply:lowerBound:capacity:)", "supplies sum to 1")
+    trap("Preconditions", "circulation: a NaN lower bound", "Double V [0, 1]; E [0→1 nan..2.0]", "feasibleCirculation(lowerBound:capacity:)", "a lower bound is NaN")
+
 
 def lcg_with_supply(net, supply):
     sup = [0] * net.n
@@ -1818,6 +2151,18 @@ column says what each row was checked against.
 * **Minimum cost.** `cost c; flow [..]`: the least cost and each edge's flow. "(one of several
   optima)" means other flows have the same cost: tests then check the cost, feasibility and
   optimality, not the flow.
+* **Boykov–Kolmogorov.** `boykovKolmogorovMaximumFlow` rows give the value and the canonical cut,
+  like Dinic's; the flow is any maximum flow.
+* **Cut metrics.** `cut metrics of [..]` evaluates every metric of the set S (vertices by label)
+  against its complement: `cutSize`, `volume`, `conductance`, `normalizedCutSize`,
+  `edgeExpansion`, `mixingExpansion`, `nodeExpansion`, `boundaryExpansion`, unweighted, and where
+  the edges carry a number, weighted by it (`Double`). `nan` and `inf` are a zero denominator.
+* **Feasible flows.** `E [u→v l..c]` gives each edge's lower bound and capacity. `feasible`: a flow
+  within the bounds meeting the supplies exists (`feasibleCirculation` returns one, any one;
+  `findCirculationBarrier` nil). `barrier [..]`: none exists (`feasibleCirculation` nil), and
+  `findCirculationBarrier` returns these vertices, the source side of the reduction's canonical
+  cut less its super source; their supply exceeds the capacity out of them less the lower bounds
+  into them.
 * **trap** rows are preconditions: tests run them as exit tests (`#expect(processExitsWith:)`).
 
 | ID | Group | Case | Input | Call | Expected | Checked |

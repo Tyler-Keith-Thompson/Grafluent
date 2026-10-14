@@ -19,7 +19,12 @@
 // λ(s, t) and λ(G) by unit flows, κ(s, t) and κ(G) by deleting every vertex set, and the vertex
 // cuts separating at that size. Small types: `Int8` and `UInt8` capacities near the maximum, and
 // `Int8` costs, run only where the documented preconditions hold (computed here in `Int`), and
-// then give the `Int` results: no trap from an overflow the documentation does not name.
+// then give the `Int` results: no trap from an overflow the documentation does not name. Boykov–
+// Kolmogorov alongside the other maximum flows. Cut metrics on both kinds of graph, and on one
+// without indices: the cut size, volume and neighborhood counted here, every ratio from them, a
+// repeated vertex counted once. Feasible flows with lower bounds and supplies: a returned flow
+// within its bounds and meeting the supplies, otherwise a barrier violating Gale's condition, and
+// brute force over every vertex set agreeing on which.
 
 import FuzzSupport
 import Flows
@@ -100,11 +105,13 @@ enum FuzzFlows {
     static func main() { runFuzzer(fuzz) }
 
     static func fuzz(_ input: inout FuzzInput) {
-        switch input.int(below: 8) {
+        switch input.int(below: 10) {
         case 0, 1: directedFlows(&input)
         case 2, 3: undirectedFlows(&input)
         case 4: costFlows(&input)
         case 5: connectivity(&input)
+        case 6: cutMetrics(&input)
+        case 7: circulations(&input)
         default: smallTypes(&input)
         }
     }
@@ -116,6 +123,115 @@ enum FuzzFlows {
     static func terminals(_ input: inout FuzzInput, _ n: Int) -> (Int, Int) {
         let s = input.int(below: n)
         return (s, (s + 1 + input.int(below: n - 1)) % n)
+    }
+
+    // MARK: Cut metrics
+
+    static func cutMetrics(_ input: inout FuzzInput) {
+        let net = Network(&input, vertices: 1 ... 8, edges: 18, palette: [0, 1, 2, 5])
+        let n = net.n, labels = net.labels, ends = net.ends, caps = net.capacities
+        var picked: [Int] = []
+        for _ in 0 ..< input.int(below: n + 3) { picked.append(input.int(below: n)) }
+        let s = picked.map { labels[$0] }
+        let inS = (0 ..< n).map { picked.contains($0) }
+        let size = inS.filter { $0 }.count
+        let context = "\(n) vertices \(labels), edges \(ends), weights \(caps), S \(picked)"
+        let same: (Double, Double) -> Bool = { $0 == $1 || ($0.isNaN && $1.isNaN) }
+        for directed in [true, false] {
+            var cut = 0, volume = 0, other = 0, weightedCut = 0, weightedVolume = 0, weightedOther = 0, total = 0
+            var reached = Set<Int>()
+            for (k, (a, b)) in ends.enumerated() {
+                total += caps[k]
+                if inS[a] != inS[b] {
+                    cut += 1
+                    weightedCut += caps[k]
+                }
+                for end in directed ? [a] : [a, b] {
+                    if inS[end] {
+                        volume += 1
+                        weightedVolume += caps[k]
+                    } else {
+                        other += 1
+                        weightedOther += caps[k]
+                    }
+                }
+                if inS[a] { reached.insert(b) }
+                if !directed && inS[b] { reached.insert(a) }
+            }
+            let expected = [Double(cut) / Double(min(volume, other)), Double(cut) * (1 / Double(volume) + 1 / Double(other)),
+                            Double(cut) / Double(min(size, n - size)), Double(cut) / Double(2 * ends.count),
+                            Double(reached.count) / Double(size), Double(reached.filter { !inS[$0] }.count) / Double(size)]
+            let weighted = [Double(weightedCut) / Double(min(weightedVolume, weightedOther)),
+                            Double(weightedCut) * (1 / Double(weightedVolume) + 1 / Double(weightedOther)),
+                            Double(weightedCut) / Double(min(size, n - size)), Double(weightedCut) / Double(2 * total)]
+            let w: (Int) -> Double = { Double(caps[$0]) }
+            let got: [Double], gotWeighted: [Double], counts: [Int]
+            if directed {
+                let graph = net.directed()
+                got = [graph.conductance(of: s), graph.normalizedCutSize(of: s), graph.edgeExpansion(of: s), graph.mixingExpansion(of: s),
+                       graph.nodeExpansion(of: s), graph.boundaryExpansion(of: s)]
+                gotWeighted = [graph.conductance(of: s, weight: w), graph.normalizedCutSize(of: s, weight: w),
+                               graph.edgeExpansion(of: s, weight: w), graph.mixingExpansion(of: s, weight: w)]
+                counts = [graph.cutSize(of: s), graph.volume(of: s), graph.cutSize(of: s) { caps[$0] }, graph.volume(of: s) { caps[$0] },
+                          graph.cutSize(of: s + s), graph.volume(of: s + s)]
+            } else {
+                let graph = net.undirected(), plain = net.plain()
+                got = [graph.conductance(of: s), graph.normalizedCutSize(of: s), graph.edgeExpansion(of: s), graph.mixingExpansion(of: s),
+                       graph.nodeExpansion(of: s), graph.boundaryExpansion(of: s)]
+                gotWeighted = [graph.conductance(of: s, weight: w), graph.normalizedCutSize(of: s, weight: w),
+                               graph.edgeExpansion(of: s, weight: w), graph.mixingExpansion(of: s, weight: w)]
+                counts = [graph.cutSize(of: s), graph.volume(of: s), graph.cutSize(of: s) { caps[$0] }, graph.volume(of: s) { caps[$0] },
+                          plain.cutSize(of: s + s), plain.volume(of: s + s)]
+                check(same(plain.conductance(of: s), got[0]) && same(plain.nodeExpansion(of: s), got[4]), "no indices: \(context)")
+            }
+            check(counts == [cut, volume, weightedCut, weightedVolume, cut, volume], "\(directed ? "directed" : "undirected") counts \(counts): \(context)")
+            for (x, y) in zip(got, expected) { check(same(x, y), "\(directed ? "directed" : "undirected") metrics \(got), expected \(expected): \(context)") }
+            for (x, y) in zip(gotWeighted, weighted) { check(same(x, y), "\(directed ? "directed" : "undirected") weighted \(gotWeighted), expected \(weighted): \(context)") }
+        }
+    }
+
+    // MARK: Feasible flows with lower bounds
+
+    static func circulations(_ input: inout FuzzInput) {
+        let net = Network(&input, vertices: 1 ... 7, edges: 14, palette: [0, 1, 2, 3, 4])
+        let n = net.n, labels = net.labels, ends = net.ends, caps = net.capacities
+        let lower = caps.map { input.int(below: $0 + 1) - (input.int(below: 4) == 0 ? 1 : 0) }
+        var supply = [Int](repeating: 0, count: n)
+        for _ in 0 ..< input.int(below: 3) {
+            let a = input.int(below: n), b = input.int(below: n), q = 1 + input.int(below: 3)
+            supply[a] += q
+            supply[b] -= q
+        }
+        let graph = net.directed()
+        let index = Dictionary(uniqueKeysWithValues: labels.enumerated().map { ($1, $0) })
+        let context = "\(n) vertices \(labels), edges \(ends), bounds \(lower) \(caps), supply \(supply)"
+        func violated(_ inS: [Bool]) -> Bool {
+            var out = 0, into = 0, supplied = 0
+            for k in ends.indices {
+                if inS[ends[k].0] && !inS[ends[k].1] { out += caps[k] }
+                if !inS[ends[k].0] && inS[ends[k].1] { into += lower[k] }
+            }
+            for v in 0 ..< n where inS[v] { supplied += supply[v] }
+            return supplied > out - into
+        }
+        var someViolated = false
+        for mask in 0 ..< (1 << n) where violated((0 ..< n).map { mask & (1 << $0) != 0 }) { someViolated = true }
+        let result = graph.feasibleCirculation(supply: { supply[index[$0]!] }, lowerBound: { lower[$0] }, capacity: { caps[$0] })
+        let barrier = graph.findCirculationBarrier(supply: { supply[index[$0]!] }, lowerBound: { lower[$0] }, capacity: { caps[$0] })
+        check((result == nil) == someViolated && (barrier == nil) != someViolated, "feasibility \(result as Any) \(barrier as Any), brute force \(someViolated): \(context)")
+        if let result {
+            var balance = [Int](repeating: 0, count: n)
+            for k in ends.indices {
+                let f = result.flow(ofEdgeAt: k)
+                check(lower[k] <= f && f <= caps[k] && (ends[k].0 != ends[k].1 || f == lower[k]), "edge \(k) carries \(f): \(context)")
+                balance[ends[k].0] += f
+                balance[ends[k].1] -= f
+            }
+            check(balance == supply, "balance \(balance): \(context)")
+        }
+        if let barrier {
+            check(violated((0 ..< n).map { barrier.contains(labels[$0]) }), "barrier \(barrier) holds Gale's condition: \(context)")
+        }
     }
 
     // MARK: Directed maximum flows and cuts
@@ -134,7 +250,8 @@ enum FuzzFlows {
         checkDirectedCut(net, cut, s, t, value, context)
         let flows = [("push–relabel", graph.maximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
                      ("Edmonds–Karp", graph.edmondsKarpMaximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
-                     ("Dinic", graph.dinicMaximumFlow(from: labels[s], to: labels[t], capacity: capacity))]
+                     ("Dinic", graph.dinicMaximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
+                     ("Boykov–Kolmogorov", graph.boykovKolmogorovMaximumFlow(from: labels[s], to: labels[t], capacity: capacity))]
         for (name, flow) in flows {
             check(flow.value == value, "\(name) value \(flow.value), maximumFlowValue \(value): \(context)")
             check(flow.source == labels[s] && flow.sink == labels[t], "\(name) terminals: \(context)")
@@ -239,7 +356,8 @@ enum FuzzFlows {
         checkUndirectedCut(net, cut, s, t, value, context)
         let flows = [("push–relabel", graph.maximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
                      ("Edmonds–Karp", graph.edmondsKarpMaximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
-                     ("Dinic", graph.dinicMaximumFlow(from: labels[s], to: labels[t], capacity: capacity))]
+                     ("Dinic", graph.dinicMaximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
+                     ("Boykov–Kolmogorov", graph.boykovKolmogorovMaximumFlow(from: labels[s], to: labels[t], capacity: capacity))]
         typealias Arc = DirectedView<Pseudograph<Int>>.Edges.Index
         for (name, flow) in flows {
             check(flow.value == value, "\(name) value \(flow.value), maximumFlowValue \(value): \(context)")

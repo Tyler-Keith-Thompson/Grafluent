@@ -463,4 +463,136 @@ struct FlowsStressTests {
             }
         }.value
     }
+
+    @Test("Boykov–Kolmogorov on a 200 × 200 segmentation grid (4-neighbor links both ways, a source and a sink link at every pixel, seeded capacities): push–relabel's value and cut; and grid(150, 150) unit corner to corner, value 2", .timeLimit(.minutes(1)))
+    func boykovKolmogorovGrids() async {
+        await Task {
+            var rng = SeededRandomNumberGenerator(seed: 2026)
+            let side = 200
+            var edges: [DirectedEdge<Int>] = []
+            for r in 0 ..< side {
+                for c in 0 ..< side {
+                    let v = r * side + c
+                    if c + 1 < side {
+                        edges.append(DirectedEdge(from: v, to: v + 1))
+                        edges.append(DirectedEdge(from: v + 1, to: v))
+                    }
+                    if r + 1 < side {
+                        edges.append(DirectedEdge(from: v, to: v + side))
+                        edges.append(DirectedEdge(from: v + side, to: v))
+                    }
+                }
+            }
+            let source = side * side, sink = source + 1
+            for v in 0 ..< side * side {
+                edges.append(DirectedEdge(from: source, to: v))
+                edges.append(DirectedEdge(from: v, to: sink))
+            }
+            let capacities = edges.map { _ in Int.random(in: 0 ... 30, using: &rng) }
+            let graph = AdjacencyList(vertices: 0 ... sink, edges: edges)
+            let flow = graph.boykovKolmogorovMaximumFlow(from: source, to: sink, capacity: { capacities[$0] })
+            let reference = graph.maximumFlow(from: source, to: sink, capacity: { capacities[$0] })
+            #expect(flow.value == reference.value)
+            #expect(flow.minimumCut == reference.minimumCut)
+            var excess = [Int](repeating: 0, count: sink + 1)
+            var withinCapacity = true
+            for (k, edge) in edges.enumerated() {
+                let f = flow.flow(ofEdgeAt: k)
+                if f < 0 || f > capacities[k] { withinCapacity = false }
+                excess[edge.source] -= f
+                excess[edge.target] += f
+            }
+            #expect(withinCapacity)
+            let conserved = excess[0 ..< source].allSatisfy { $0 == 0 }
+            #expect(conserved)
+
+            let unit = 150
+            var gridEdges: [UndirectedEdge<Int>] = []
+            for r in 0 ..< unit {
+                for c in 0 ..< unit {
+                    let v = r * unit + c
+                    if c + 1 < unit { gridEdges.append(UndirectedEdge(v, v + 1)) }
+                    if r + 1 < unit { gridEdges.append(UndirectedEdge(v, v + unit)) }
+                }
+            }
+            let grid = UndirectedAdjacencyList(vertices: 0 ..< unit * unit, edges: gridEdges)
+            let corner = grid.boykovKolmogorovMaximumFlow(from: 0, to: unit * unit - 1, capacity: { _ in 1 })
+            #expect(corner.value == 2)
+            #expect(Array(corner.minimumCut.sinkSide) == [unit * unit - 1])
+        }.value
+    }
+
+    @Test("Cut metrics on a seeded random multigraph of 10⁵ vertices and 5 · 10⁵ edges, directed and undirected: the cut size and volume of the even vertices as counted here", .timeLimit(.minutes(1)))
+    func cutMetricsLarge() async {
+        await Task {
+            var rng = SeededRandomNumberGenerator(seed: 11)
+            let n = 100_000
+            let ends = (0 ..< 500_000).map { _ in (Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
+            let s = stride(from: 0, to: n, by: 2)
+            let crossing = ends.filter { ($0.0 % 2 == 0) != ($0.1 % 2 == 0) }.count
+            let directed = DirectedPseudograph(vertices: 0 ..< n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) })
+            #expect(directed.cutSize(of: s) == crossing)
+            let tails = ends.filter { $0.0 % 2 == 0 }.count
+            #expect(directed.volume(of: s) == tails)
+            let undirected = Pseudograph(vertices: 0 ..< n, edges: ends.map { UndirectedEdge($0.0, $0.1) })
+            #expect(undirected.cutSize(of: s) == crossing)
+            let endsInS = ends.reduce(0) { $0 + ($1.0 % 2 == 0 ? 1 : 0) + ($1.1 % 2 == 0 ? 1 : 0) }
+            #expect(undirected.volume(of: s) == endsInS)
+            let conductance = undirected.conductance(of: s, weight: { _ in 1.0 })
+            #expect(conductance == Double(crossing) / Double(min(endsInS, 2 * ends.count - endsInS)))
+        }.value
+    }
+
+    @Test("A feasible circulation on a seeded random network of 3,000 vertices and 15,000 edges with lower bounds on a planted circulation: within the bounds and conserved; raising one lower bound past every capacity around it gives a barrier that violates Gale's condition", .timeLimit(.minutes(1)))
+    func circulationLarge() async {
+        await Task {
+            var rng = SeededRandomNumberGenerator(seed: 5)
+            let n = 3_000
+            // A planted circulation: random cycles, each carrying 1 … 5, so lower bounds below it are feasible.
+            var ends: [(Int, Int)] = []
+            var planted: [Int] = []
+            while ends.count < 15_000 {
+                let length = Int.random(in: 2 ... 8, using: &rng)
+                let cycle = (0 ..< length).map { _ in Int.random(in: 0 ..< n, using: &rng) }
+                let amount = Int.random(in: 1 ... 5, using: &rng)
+                for i in 0 ..< length {
+                    ends.append((cycle[i], cycle[(i + 1) % length]))
+                    planted.append(amount)
+                }
+            }
+            let lower = planted.map { Int.random(in: 0 ... $0, using: &rng) }
+            let upper = planted.map { $0 + Int.random(in: 0 ... 3, using: &rng) }
+            let graph = DirectedPseudograph(vertices: 0 ..< n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) })
+            let circulation = graph.feasibleCirculation(lowerBound: { lower[$0] }, capacity: { upper[$0] })
+            #expect(circulation != nil)
+            if let circulation {
+                var balance = [Int](repeating: 0, count: n)
+                var within = true
+                for k in ends.indices {
+                    let f = circulation.flow(ofEdgeAt: k)
+                    if f < lower[k] || f > upper[k] { within = false }
+                    balance[ends[k].0] += f
+                    balance[ends[k].1] -= f
+                }
+                #expect(within)
+                let conserved = balance.allSatisfy { $0 == 0 }
+                #expect(conserved)
+            }
+            var raised = lower, wide = upper
+            let k = ends.indices.first { ends[$0].0 != ends[$0].1 }!
+            raised[k] = 1_000_000
+            wide[k] = 1_000_000
+            let barrier = graph.findCirculationBarrier(lowerBound: { raised[$0] }, capacity: { wide[$0] })
+            #expect(barrier != nil)
+            if let barrier {
+                let inBarrier = Set(barrier)
+                var out = 0, into = 0
+                for j in ends.indices {
+                    if inBarrier.contains(ends[j].0) && !inBarrier.contains(ends[j].1) { out += wide[j] }
+                    if !inBarrier.contains(ends[j].0) && inBarrier.contains(ends[j].1) { into += raised[j] }
+                }
+                #expect(0 > out - into)
+            }
+        }.value
+    }
 }

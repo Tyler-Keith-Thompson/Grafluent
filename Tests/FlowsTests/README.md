@@ -23,6 +23,10 @@ extension DirectedGraph {   // and the same on Graph, results over `DirectedView
     func maximumFlowValue<C>(from:to:capacity:) -> C
     func edmondsKarpMaximumFlow<C>(from:to:capacity:) -> Flow<Self, C>   // per-edge flow pinned
     func dinicMaximumFlow<C>(from:to:capacity:) -> Flow<Self, C>
+    func boykovKolmogorovMaximumFlow<C>(from:to:capacity:) -> Flow<Self, C>
+    func cutSize(of:) -> Int; func cutSize<W>(of:weight:) -> W; volume(of:) / volume(of:weight:)
+    func conductance(of:) -> Double; normalizedCutSize, edgeExpansion, mixingExpansion (and weight:, W: FloatingPoint)
+    func nodeExpansion(of:) -> Double; func boundaryExpansion(of:) -> Double
     func minimumCut<C>(from:to:capacity:) -> Cut<Self, C>                // the least sink side
     func minimumCut<C>(capacity:) -> Cut<Self, C>?                       // Hao–Orlin; Nagamochi–Ibaraki on Graph
     func minimumCostFlow<S: SignedInteger, C: BinaryInteger, W: SignedInteger>(supply:capacity:cost:) -> MinimumCostFlow<Self, C, W>?
@@ -33,6 +37,11 @@ extension DirectedGraph {   // and the same on Graph, results over `DirectedView
     func edgeDisjointPaths(from:to:) -> [Path<Vertex, Edges.Index>]; func vertexDisjointPaths(from:to:) -> [Path<…>]
 }
 extension Graph { func gomoryHuTree<C>(capacity:) -> GomoryHuTree<Self, C>? }
+extension DirectedGraph {
+    func feasibleCirculation<C>(supply:lowerBound:capacity:) -> Circulation<Self, C>?;  func feasibleCirculation<C>(lowerBound:capacity:)
+    func findCirculationBarrier<C>(supply:lowerBound:capacity:) -> [Vertex]?;          func findCirculationBarrier<C>(lowerBound:capacity:)
+}
+struct Circulation<G, C>     { flow(ofEdgeAt:); flow(checkedEdgeAt:); flowMap; == }
 struct Flow<G, C>            { source; sink; value; flow(ofEdgeAt:); flowMap; minimumCut; == }   // + signed flow(ofEdgeAt:) over directed
 struct Cut<G, C>             { value; sourceSide; sinkSide: [G.Vertex]; edges: [G.Edges.Index]; == }
 struct FlowMap<G, Value>     { Collection by edge position }

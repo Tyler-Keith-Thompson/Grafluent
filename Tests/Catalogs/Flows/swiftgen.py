@@ -39,12 +39,13 @@ def instrument(kind, fn):
 
 
 for kind, name in [("flow", "flow_rows"), ("global", "global_rows"), ("gh", "gh_rows"), ("mcf", "mcf_rows"),
-                   ("mcmf", "mcmf_rows"), ("conn", "conn_rows"), ("paths", "paths_rows"), ("trap", "trap")]:
+                   ("mcmf", "mcmf_rows"), ("conn", "conn_rows"), ("paths", "paths_rows"), ("trap", "trap"),
+                   ("cuts", "cut_rows"), ("circ", "circulation_rows")]:
     setattr(ref, name, instrument(kind, getattr(ref, name)))
 ref.build()
 assert not ref.FAILS, ref.FAILS
 TOTAL = len(ref.CASES)
-assert TOTAL == 531
+assert TOTAL == 590
 
 text = ref.render()
 with open(os.path.join(HERE, "cases.md")) as f:
@@ -562,7 +563,8 @@ def brute_st_lines(net, value_expr, sink_expr, sv="s", tv="t"):
 # ---------------------------------------------------------------------------------------------
 
 FLOW_FN = {"MaximumFlow": "maximumFlow", "EdmondsKarp": "edmondsKarpMaximumFlow", "Dinic": "dinicMaximumFlow",
-           "MaximumFlowValue": "maximumFlowValue", "MinimumCut": "minimumCut"}
+           "MaximumFlowValue": "maximumFlowValue", "MinimumCut": "minimumCut",
+           "BoykovKolmogorov": "boykovKolmogorovMaximumFlow"}
 
 
 def canonical(net, si, ti):
@@ -577,10 +579,200 @@ def verify_flow(cid, group, net, si, ti):
     exp = {"MaximumFlow": f"value {ref.fmtv(value)}; {cut}",
            "EdmondsKarp": f"value {ref.fmtv(value)}; flow {ref.fmtl(ref.fmtv(x) for x in flows)}; {cut}",
            "Dinic": f"value {ref.fmtv(value)}; {cut}",
+           "BoykovKolmogorov": f"value {ref.fmtv(value)}; {cut}",
            "MaximumFlowValue": ref.fmtv(value),
            "MinimumCut": f"value {ref.fmtv(value)}; {cut}"}[group]
     assert CELLS[cid][5] == exp, (cid, CELLS[cid][5], exp)
     return value, flows, T
+
+
+# ---------------------------------------------------------------------------------------------
+# Cut metrics and feasible flows
+# ---------------------------------------------------------------------------------------------
+
+
+def dexp(expr, x):
+    """An exact expectation on a Double: NaN and infinity by property."""
+    x = float(x)
+    if x != x:
+        return f"#expect(({expr}).isNaN)"
+    if x == float("inf"):
+        return f"#expect({expr} == .infinity)"
+    return f"#expect({expr} == {repr(x)})"
+
+
+def cut_set(net, args):
+    return {net.index[x] for x in args[2]}
+
+
+def verify_cuts(cid, net, S):
+    d = ref.cut_metrics(net, S)
+    wd = ref.cut_metrics(net, S, net.cap) if net.cap is not None else None
+    exp = ref.metrics_text(d) + ("; weighted: " + ref.metrics_text(wd, weighted=True) if wd is not None else "")
+    assert CELLS[cid][5] == exp, (cid, CELLS[cid][5], exp)
+    return d, wd
+
+
+def set_line(net, rep, S):
+    if index_form(rep):
+        return f"let s = {arr(sorted(S))} as [Int]"
+    return f"let s = {side_lit(net, S)}"
+
+
+def cut_value_lines(net, d, wd, rep):
+    L = [f"#expect(graph.cutSize(of: s) == {d['cut']})",
+         f"#expect(graph.volume(of: s) == {d['volume']})",
+         dexp("graph.conductance(of: s)", d["conductance"]),
+         dexp("graph.normalizedCutSize(of: s)", d["normalized"]),
+         dexp("graph.edgeExpansion(of: s)", d["edge"]),
+         dexp("graph.mixingExpansion(of: s)", d["mixing"]),
+         dexp("graph.nodeExpansion(of: s)", d["node"]),
+         dexp("graph.boundaryExpansion(of: s)", d["boundary"])]
+    if wd is not None:
+        w = capacity_closure(rep, "weights")
+        dw = "{ Double(weights[edgeOf[$0]!]) }" if index_form(rep) else "{ Double(weights[$0]) }"
+        L += [f"#expect(graph.cutSize(of: s, weight: {w}) == {wd['cut']})",
+              f"#expect(graph.volume(of: s, weight: {w}) == {wd['volume']})",
+              dexp(f"graph.conductance(of: s, weight: {dw})", wd["conductance"]),
+              dexp(f"graph.normalizedCutSize(of: s, weight: {dw})", wd["normalized"]),
+              dexp(f"graph.edgeExpansion(of: s, weight: {dw})", wd["edge"]),
+              dexp(f"graph.mixingExpansion(of: s, weight: {dw})", wd["mixing"])]
+    return L
+
+
+def cut_pairs_lines(net):
+    L = [pairs_line(net)]
+    if net.cap is not None:
+        L.append(f"let weights: [Int] = {arr(net.cap)}")
+    return L
+
+
+def body_cuts(cid, net, S):
+    d, wd = verify_cuts(cid, net, S)
+    rep = primary(net)
+    L = [comment_input(cid)] + cut_pairs_lines(net) + [graph_line(net, rep), "let vertexList = Array(graph.vertices)",
+         f"#expect(vertexList == {vlist(net)})", set_line(net, rep, S)]
+    L += cut_value_lines(net, d, wd, rep)
+    L += ["// The definitions written out: the edges with one end in S, the (out-)degree sums, the neighborhood.",
+          "let inS = vertexList.map { s.contains($0) }",
+          "let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }",
+          "#expect(graph.cutSize(of: s) == ends.filter { inS[$0.0] != inS[$0.1] }.count)"]
+    if net.directed:
+        L += ["#expect(graph.volume(of: s) == ends.filter { inS[$0.0] }.count)",
+              "let reached = Set(ends.filter { inS[$0.0] }.map(\\.1))"]
+    else:
+        L += ["#expect(graph.volume(of: s) == ends.reduce(0) { $0 + (inS[$1.0] ? 1 : 0) + (inS[$1.1] ? 1 : 0) })",
+              "let reached = Set(ends.filter { inS[$0.0] }.map(\\.1) + ends.filter { inS[$0.1] }.map(\\.0))"]
+    if S:
+        L += ["#expect(graph.nodeExpansion(of: s) == Double(reached.count) / Double(s.count))",
+              "#expect(graph.boundaryExpansion(of: s) == Double(reached.filter { !inS[$0] }.count) / Double(s.count))",
+              "// A vertex listed twice counts once.",
+              "#expect(graph.cutSize(of: s + s) == graph.cutSize(of: s))",
+              "#expect(graph.volume(of: s + s) == graph.volume(of: s))",
+              "#expect(graph.nodeExpansion(of: s + s) == graph.nodeExpansion(of: s))"]
+    else:
+        L += ["#expect(reached.isEmpty)"]
+    if wd is not None:
+        L += ["// `weight` is called once per edge, self-loops included, in position order.",
+              "var asked: [Int] = []",
+              "_ = graph.cutSize(of: s) { position in",
+              "    asked.append(position)",
+              "    return weights[position]",
+              "}",
+              "#expect(asked == Array(pairs.indices))"]
+    return L
+
+
+def circ_parts(args, kwargs):
+    labels_, edges = args[1], args[2]
+    supply = kwargs.get("supply")
+    ctype_ = kwargs.get("ctype", "Int")
+    net = ref.Net(labels_, [(u, v) for u, v, _, _ in edges], [c for _, _, _, c in edges], ctype=ctype_)
+    lower = [lo for _, _, lo, _ in edges]
+    upper = [c for _, _, _, c in edges]
+    sup = [0] * net.n
+    for k, b in (supply or {}).items():
+        sup[net.index[k]] = b
+    if ctype_ == "Double":
+        sup = [float(b) for b in sup]
+    return net, lower, upper, sup, supply is not None
+
+
+def verify_circ(cid, net, lower, upper, sup):
+    kind, res = ref.circulation(net, lower, upper, sup)
+    exp = "feasible" if kind == "feasible" else f"barrier {ref.lab_list(net, res)}"
+    assert CELLS[cid][5] == exp, (cid, CELLS[cid][5], exp)
+    return kind, res
+
+
+def circ_closures(net, rep, with_supply):
+    lo, cp = capacity_closure(rep, "lowerBounds"), capacity_closure(rep, "capacities")
+    if not with_supply:
+        return f"lowerBound: {lo}, capacity: {cp}"
+    sc = "{ supplies[$0] }" if index_form(rep) else "{ supplies[vertexList.firstIndex(of: $0)!] }"
+    return f"supply: {sc}, lowerBound: {lo}, capacity: {cp}"
+
+
+def circ_data_lines(net, lower, upper, sup, with_supply):
+    CT = ctype(net)
+    L = [pairs_line(net), f"let lowerBounds: [{CT}] = {arr(lower)}", f"let capacities: [{CT}] = {arr(upper)}"]
+    if with_supply:
+        L.append(f"let supplies: [{CT}] = {arr(sup)}")
+    return L
+
+
+def body_circ(cid, net, lower, upper, sup, with_supply):
+    kind, res = verify_circ(cid, net, lower, upper, sup)
+    CT = ctype(net)
+    rep = primary(net)
+    L = [comment_input(cid)] + circ_data_lines(net, lower, upper, sup, with_supply)
+    L += [graph_line(net, rep), "let vertexList = Array(graph.vertices)", f"#expect(vertexList == {vlist(net)})",
+          "let n = vertexList.count",
+          "let ends = pairs.map { (vertexList.firstIndex(of: $0.0)!, vertexList.firstIndex(of: $0.1)!) }"]
+    sup_term = "supplies" if with_supply else f"[{CT}](repeating: 0, count: n)"
+    # The closures' calls: each supply in vertex order, then each edge's lower bound and capacity.
+    L += ["var asked: [String] = []"]
+    sc = ("supply: { vertex in\n    asked.append(\"supply \\(vertex)\")\n    return supplies[vertexList.firstIndex(of: vertex)!]\n}, "
+          if with_supply else "")
+    call = (f"let result = graph.feasibleCirculation({sc}lowerBound: {{ position in\n"
+            "    asked.append(\"lower \\(position)\")\n    return lowerBounds[position]\n"
+            "}, capacity: { position in\n    asked.append(\"capacity \\(position)\")\n    return capacities[position]\n})")
+    L += call.split("\n")
+    order = 'vertexList.map { "supply \\($0)" } + ' if with_supply else ""
+    L += ["// The supplies in vertex order, then each edge's lower bound and capacity in position order." if with_supply
+          else "// Each edge's lower bound and then its capacity, in position order.",
+          f'#expect(asked == {order}pairs.indices.flatMap {{ ["lower \\($0)", "capacity \\($0)"] }})']
+    barrier_call = f"graph.findCirculationBarrier({circ_closures(net, rep, with_supply)})"
+    if kind == "feasible":
+        L += ["let circulation = try #require(result)",
+              "let flows = pairs.indices.map { circulation.flow(ofEdgeAt: $0) }",
+              "#expect(pairs.indices.map { try? circulation.flow(checkedEdgeAt: $0) } == flows.map(Optional.some))",
+              "#expect(Array(circulation.flowMap) == flows)",
+              "// Within the bounds, a self-loop at its lower bound, and out − in = supply at every vertex.",
+              f"var balance = [{CT}](repeating: 0, count: n)",
+              "for k in pairs.indices {",
+              "    #expect(lowerBounds[k] <= flows[k] && flows[k] <= capacities[k], \"edge \\(k)\")",
+              "    if ends[k].0 == ends[k].1 { #expect(flows[k] == lowerBounds[k], \"self-loop \\(k)\") }",
+              "    balance[ends[k].0] += flows[k]",
+              "    balance[ends[k].1] -= flows[k]",
+              "}",
+              f"#expect(balance == {sup_term})",
+              f"#expect({barrier_call} == nil)"]
+    else:
+        L += ["#expect(result == nil)",
+              f"let barrier = try #require({barrier_call})",
+              f"#expect(barrier == {side_lit(net, res)})",
+              "// Gale's condition fails for it: its supply exceeds the capacity out of it less the lower bounds",
+              "// into it.",
+              "let inBarrier = vertexList.map { barrier.contains($0) }",
+              f"var out: {CT} = 0, into: {CT} = 0" + (f", supplied: {CT} = 0" if with_supply else ""),
+              "for k in pairs.indices {",
+              "    if inBarrier[ends[k].0] && !inBarrier[ends[k].1] { out += capacities[k] }",
+              "    if !inBarrier[ends[k].0] && inBarrier[ends[k].1] { into += lowerBounds[k] }",
+              "}",
+              ] + ([f"for v in 0 ..< n where inBarrier[v] {{ supplied += supplies[v] }}", "#expect(supplied > out - into)"]
+                   if with_supply else ["// Every supply is zero.", "#expect(0 > out - into)"])
+    return L
 
 
 def body_flow(cid, group, net, si, ti):
@@ -1189,10 +1381,44 @@ def body_paths(cid, net, group, si, ti):
 # ---------------------------------------------------------------------------------------------
 
 
-def rep_block(cid, kind, group, net, rep, si=None, ti=None, call=None):
+def rep_block(cid, kind, group, net, rep, si=None, ti=None, call=None, extra=None):
     """Lines inside `do { … }` for one representation."""
     n = net.n
     L = []
+    if kind == "cuts":
+        S = extra
+        d, wd = verify_cuts(cid, net, S)
+        if index_form(rep):
+            L.append(pairs_line(net, index_form=True))
+        L.append(graph_line(net, rep))
+        if rep in ("unidx", "unidxu"):
+            L.append("#expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)")
+        if wd is not None:
+            L += position_lines(net, rep)
+        L.append(set_line(net, rep, S))
+        return L + cut_value_lines(net, d, wd, rep)
+    if kind == "circ":
+        net_, lower, upper, sup, with_supply = extra
+        kind_, res = verify_circ(cid, net_, lower, upper, sup)
+        if index_form(rep):
+            L.append(pairs_line(net_, index_form=True))
+        L.append(graph_line(net_, rep))
+        if rep in ("unidx", "unidxu"):
+            L.append("#expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)")
+        L += position_lines(net_, rep)
+        if with_supply and not index_form(rep):
+            L.append(f"let vertexList = {vlist(net_)}")
+        closures = circ_closures(net_, rep, with_supply)
+        if kind_ == "feasible":
+            pos = "positionOfEdge[$0]" if index_form(rep) else "$0"
+            L += [f"let circulation = try #require(graph.feasibleCirculation({closures}))",
+                  f"let flows = pairs.indices.map {{ circulation.flow(ofEdgeAt: {pos}) }}",
+                  "#expect(pairs.indices.allSatisfy { lowerBounds[$0] <= flows[$0] && flows[$0] <= capacities[$0] })",
+                  f"#expect(graph.findCirculationBarrier({closures}) == nil)"]
+        else:
+            L += [f"#expect(graph.feasibleCirculation({closures}) == nil)",
+                  f"#expect(graph.findCirculationBarrier({closures}) == {rep_side(net_, rep, res)})"]
+        return L
     if index_form(rep):
         L.append(pairs_line(net, index_form=True))
     L.append(graph_line(net, rep))
@@ -1357,18 +1583,22 @@ def rep_block(cid, kind, group, net, rep, si=None, ti=None, call=None):
     raise ValueError(kind)
 
 
-def rep_test(cid, kind, group, net, si=None, ti=None, call=None):
+def rep_test(cid, kind, group, net, si=None, ti=None, call=None, extra=None):
     rs = reps(net)
     names = ", ".join(REP_NAMES[r] for r in rs)
     t = esc(f"{cid} {CELLS[cid][2]}, on {names}")
     body = [comment_input(cid)]
-    if kind not in ("conn", "paths"):
+    if kind == "cuts":
+        body += cut_pairs_lines(net)
+    elif kind == "circ":
+        body += circ_data_lines(net, *extra[1:])
+    elif kind not in ("conn", "paths"):
         body += [pairs_line(net), caps_line(net)]
     else:
         body += [pairs_line(net)]
     needs_throw = False
     for r in rs:
-        block = unused_cleanup(rep_block(cid, kind, group, net, r, si, ti, call))
+        block = unused_cleanup(rep_block(cid, kind, group, net, r, si, ti, call, extra))
         if any("try #require" in l for l in block):
             needs_throw = True
         body += [f"do {{ // {REP_NAMES[r]}"] + indent(block, 4) + ["}"]
@@ -1419,6 +1649,12 @@ TRAPS = {
                "_ = graph.edgeDisjointPaths(from: 0, to: 0)"),
     "FL-525": ("UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])",
                "_ = graph.vertexDisjointPaths(from: 0, to: 0)"),
+    "FL-552": (ONE, "_ = graph.boykovKolmogorovMaximumFlow(from: 0, to: 0, capacity: { _ in 5 })"),
+    "FL-569": ("UndirectedAdjacencyList<Int>(vertices: [0, 1, 2], edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])",
+               "_ = graph.cutSize(of: [0, 7])"),
+    "FL-588": (ONE, "_ = graph.feasibleCirculation(lowerBound: { _ in 3 }, capacity: { _ in 2 })"),
+    "FL-589": (ONE, "let supplies = [1, 0]\n_ = graph.feasibleCirculation(supply: { supplies[$0] }, lowerBound: { _ in 0 }, capacity: { _ in 2 })"),
+    "FL-590": (ONE, "_ = graph.feasibleCirculation(lowerBound: { _ in Double.nan }, capacity: { _ in 2.0 })"),
 }
 
 
@@ -1545,13 +1781,17 @@ def row_net_terms(kind, args, call):
     if kind == "paths":
         net = args[1]
         return net, net.index[args[2]], net.index[args[3]]
-    if kind in ("global", "gh", "mcf", "conn"):
+    if kind in ("global", "gh", "mcf", "conn", "cuts"):
         return args[1], None, None
     raise ValueError(kind)
 
 
-def row_body(cid, kind, group, args, call):
+def row_body(cid, kind, group, args, call, kwargs=None):
+    if kind == "circ":
+        return body_circ(cid, *circ_parts(args, kwargs or {}))
     net, si, ti = row_net_terms(kind, args, call)
+    if kind == "cuts":
+        return body_cuts(cid, net, cut_set(net, args))
     if kind == "flow":
         return body_flow(cid, group, net, si, ti)
     if kind == "global":
@@ -1625,6 +1865,19 @@ FILES = [
      "§VertexDisjointPaths): as many paths as λ(s, t) and κ(s, t) (an edge from s to t one path); each a path "
      "from s to t along its edges, repeating no vertex, checked here; no edge, or no inner vertex, in two of "
      "them. Which paths is not pinned."),
+    ("BoykovKolmogorovTests.swift", lambda k, g: g == "BoykovKolmogorov", "boykovKolmogorovMaximumFlow(from:to:capacity:)", "BoykovKolmogorovTests",
+     "`boykovKolmogorovMaximumFlow(from:to:capacity:)` (catalog §BoykovKolmogorov): the value and the canonical cut "
+     "exactly; the flow checked here for capacity and conservation, and its residual network for the cut."),
+    ("CutMetricsTests.swift", lambda k, g: g == "CutMetrics", "Cut metrics", "CutMetricsTests",
+     "The cut metrics of a vertex set against its complement (catalog §CutMetrics): `cutSize`, `volume`, "
+     "`conductance`, `normalizedCutSize`, `edgeExpansion`, `mixingExpansion`, `nodeExpansion` and "
+     "`boundaryExpansion`, unweighted and weighted, exactly (NaN and infinity for a zero denominator); the cut "
+     "size, volume and neighborhood written out here from the edges; a repeated vertex counted once."),
+    ("CirculationTests.swift", lambda k, g: g == "Circulation", "Feasible flows with lower bounds", "CirculationTests",
+     "`feasibleCirculation(supply:lowerBound:capacity:)`, `feasibleCirculation(lowerBound:capacity:)` and "
+     "`findCirculationBarrier` (catalog §Circulation): whether a flow exists exactly; a returned flow checked here "
+     "for its bounds and the supplies (any one); the barrier exactly, and checked here to violate Gale's "
+     "condition; the closures' calls in order."),
     ("MinimumVertexCutTests.swift", lambda k, g: g == "MinimumVertexCut", "minimumVertexCut", "MinimumVertexCutTests",
      "`minimumVertexCut()` and `minimumVertexCut(from:to:)` (catalog §MinimumVertexCut): the documented cut "
      "exactly (Even's pairs for the global one, the cut nearest the target for the local one); its size the "
@@ -1638,7 +1891,7 @@ for fname_, pred, suite, struct, intro in FILES:
     count = 0
     for cid, kind, group, args, kwargs, call in ROWS:
         if kind != "trap" and pred(kind, group):
-            lines = unused_cleanup(row_body(cid, kind, group, args, call))
+            lines = unused_cleanup(row_body(cid, kind, group, args, call, kwargs))
             throws = any("try #require" in l for l in lines)
             body += emit_test(cid, title(cid), lines, throws=throws)
             count += 1
@@ -1672,6 +1925,9 @@ REP_FILES = [
     ("MaximumFlowRepresentationTests.swift", ("MaximumFlow",), "maximumFlow on every representation", "MaximumFlowRepresentationTests"),
     ("EdmondsKarpRepresentationTests.swift", ("EdmondsKarp",), "edmondsKarpMaximumFlow on every representation", "EdmondsKarpRepresentationTests"),
     ("DinicRepresentationTests.swift", ("Dinic",), "dinicMaximumFlow on every representation", "DinicRepresentationTests"),
+    ("BoykovKolmogorovRepresentationTests.swift", ("BoykovKolmogorov",), "boykovKolmogorovMaximumFlow on every representation", "BoykovKolmogorovRepresentationTests"),
+    ("CutMetricsRepresentationTests.swift", ("CutMetrics",), "Cut metrics on every representation", "CutMetricsRepresentationTests"),
+    ("CirculationRepresentationTests.swift", ("Circulation",), "Feasible flows on every representation", "CirculationRepresentationTests"),
     ("MaximumFlowValueRepresentationTests.swift", ("MaximumFlowValue",), "maximumFlowValue on every representation", "MaximumFlowValueRepresentationTests"),
     ("MinimumCutRepresentationTests.swift", ("MinimumCut",), "minimumCut(from:to:capacity:) on every representation", "MinimumCutRepresentationTests"),
     ("GlobalMinimumCutRepresentationTests.swift", ("GlobalMinimumCut", "DirectedGlobalMinimumCut"), "minimumCut(capacity:) on every representation", "GlobalMinimumCutRepresentationTests"),
@@ -1696,8 +1952,15 @@ for fname_, groups, suite, struct in REP_FILES:
     count = 0
     for cid, kind, group, args, kwargs, call in ROWS:
         if kind != "trap" and group in groups:
-            net, si, ti = row_net_terms(kind, args, call)
-            body += rep_test(cid, kind, group, net, si, ti, call)
+            if kind == "circ":
+                parts = circ_parts(args, kwargs)
+                body += rep_test(cid, kind, group, parts[0], extra=parts)
+            elif kind == "cuts":
+                net = args[1]
+                body += rep_test(cid, kind, group, net, extra=cut_set(net, args))
+            else:
+                net, si, ti = row_net_terms(kind, args, call)
+                body += rep_test(cid, kind, group, net, si, ti, call)
             count += 1
     L = header(wrap(REP_INTRO), used_imports(body), suite, struct, conformers=True, lines=body) + body
     write(fname_, L)

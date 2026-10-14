@@ -9,6 +9,7 @@ enum _MaximumFlowAlgorithm {
     case pushRelabel
     case edmondsKarp
     case dinic
+    case boykovKolmogorov
 }
 
 /// A maximum flow in index space: its value, the sink side of the canonical cut by vertex
@@ -102,8 +103,9 @@ func _runMaximumFlow<C: Comparable & AdditiveArithmetic>(_ edges: _FlowEdges, _ 
         preflow.markSinkSide(t)
         inSink = Array(UnsafeBufferPointer(start: preflow.marks, count: n))
         if algorithm == .pushRelabel { preflow.secondPhase(from: s, to: t) }
-    case .edmondsKarp, .dinic:
-        value = algorithm == .edmondsKarp ? _edmondsKarp(network, from: s, to: t) : _dinic(network, from: s, to: t)
+    case .edmondsKarp, .dinic, .boykovKolmogorov:
+        value = algorithm == .edmondsKarp ? _edmondsKarp(network, from: s, to: t)
+            : algorithm == .dinic ? _dinic(network, from: s, to: t) : _boykovKolmogorov(network, from: s, to: t)
         inSink = [Bool](repeating: false, count: n)
         let queue = UnsafeMutablePointer<Int>.allocate(capacity: max(n, 1))
         defer { queue.deallocate() }
@@ -181,6 +183,24 @@ extension DirectedGraph {
         from source: Vertex, to sink: Vertex, capacity: (Edges.Index) -> C
     ) -> Flow<Self, C> {
         _maximumFlow(from: source, to: sink, capacity: capacity, .dinic)
+    }
+
+    /// A maximum flow by Boykov and Kolmogorov's algorithm: two search trees, grown from the
+    /// source and from the sink and reused between augmentations, with orphans re-adopted after
+    /// each augmentation.
+    ///
+    /// Built for the grid-like networks of image segmentation, where it is usually the fastest;
+    /// on other networks prefer `maximumFlow(from:to:capacity:)`. Which maximum flow is returned
+    /// is unspecified. `value` and `minimumCut` are determined.
+    ///
+    /// - Complexity: O(n² m |f|), |f| the flow value, for integer capacities.
+    ///
+    /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
+    @inlinable
+    public func boykovKolmogorovMaximumFlow<C: Comparable & AdditiveArithmetic>(
+        from source: Vertex, to sink: Vertex, capacity: (Edges.Index) -> C
+    ) -> Flow<Self, C> {
+        _maximumFlow(from: source, to: sink, capacity: capacity, .boykovKolmogorov)
     }
 
     /// The maximum flow value from `source` to `sink`, from push–relabel's first phase (a maximum
@@ -273,6 +293,17 @@ extension Graph {
         from source: Vertex, to sink: Vertex, capacity: (Edges.Index) -> C
     ) -> Flow<DirectedView<Self>, C> {
         _maximumFlow(from: source, to: sink, capacity: capacity, .dinic)
+    }
+
+    /// A maximum flow over `directedView` by Boykov and Kolmogorov's algorithm (see
+    /// `DirectedGraph.boykovKolmogorovMaximumFlow(from:to:capacity:)`).
+    ///
+    /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
+    @inlinable
+    public func boykovKolmogorovMaximumFlow<C: Comparable & AdditiveArithmetic>(
+        from source: Vertex, to sink: Vertex, capacity: (Edges.Index) -> C
+    ) -> Flow<DirectedView<Self>, C> {
+        _maximumFlow(from: source, to: sink, capacity: capacity, .boykovKolmogorov)
     }
 
     /// The maximum flow value, from push–relabel's first phase alone.

@@ -6,8 +6,21 @@ is stored in the graph.
 
 * **Maximum flow.** `maximumFlow(from:to:capacity:)` (highest-label push–relabel with the gap and
   global-relabelling heuristics), `maximumFlowValue(from:to:capacity:)` (its first phase only), and
-  `edmondsKarpMaximumFlow` and `dinicMaximumFlow`. All return the same value and the same canonical
-  minimum cut. Only Edmonds–Karp's per-edge flow is specified.
+  `edmondsKarpMaximumFlow`, `dinicMaximumFlow` and `boykovKolmogorovMaximumFlow`. All return the
+  same value and the same canonical minimum cut. Only Edmonds–Karp's per-edge flow is specified.
+* **Feasible flows.** `feasibleCirculation(supply:lowerBound:capacity:)` and
+  `feasibleCirculation(lowerBound:capacity:)` on `DirectedGraph` return a `Circulation` (each edge
+  between its lower bound and capacity, out − in = supply at every vertex; which one unspecified)
+  or nil; `findCirculationBarrier` returns, when there is none, the barrier S (supply of S >
+  capacity out of S − lower bounds into S): the source side of the reduction's canonical cut, less
+  its super source, in `vertices` order. Supplies must sum to zero; lower bounds may be negative.
+* **Cut metrics.** On both kinds of graph, of a vertex set S against its complement (NetworkX's
+  `cuts` module): `cutSize(of:)`, `volume(of:)`, `conductance(of:)`, `normalizedCutSize(of:)`,
+  `edgeExpansion(of:)`, `mixingExpansion(of:)` with weighted forms (`weight:`; the ratios
+  `W: FloatingPoint`), and `nodeExpansion(of:)` and `boundaryExpansion(of:)`. A directed edge crosses
+  either way and counts in its tail's volume; an undirected one in the volume of each end (a
+  self-loop twice). The weighted mixing expansion divides by twice the total weight. A zero
+  denominator gives infinity or NaN.
 * **Minimum cut.** `minimumCut(from:to:capacity:)` (s–t), and `minimumCut(capacity:)` without
   terminals: Nagamochi–Ibaraki on `Graph`, Hao–Orlin on `DirectedGraph`.
 * **Gomory–Hu tree.** `gomoryHuTree(capacity:)` on `Graph`, by Gusfield's algorithm.
@@ -17,13 +30,13 @@ is stored in the graph.
 * **Connectivity.** `edgeConnectivity()`, `vertexConnectivity()`, `minimumVertexCut()` and their
   s–t forms, on both kinds of graph, and `edgeDisjointPaths(from:to:)` and
   `vertexDisjointPaths(from:to:)`, Menger's witnesses.
-* **Results.** `Flow`, `Cut`, `GomoryHuTree`, `MinimumCostFlow`, and `FlowMap`, every edge's flow
+* **Results.** `Flow`, `Cut`, `GomoryHuTree`, `MinimumCostFlow`, `Circulation`, and `FlowMap`, every edge's flow
   by position.
 
 `Flows` depends on `GraphProtocols`, `Trees` (`GomoryHuTree.tree`) and `Walks` (the disjoint
 paths).
 
-`cases.md` (FL-001 – FL-531) holds the expected values. `ref.py` recomputes every row from small
+`cases.md` (FL-001 – FL-590) holds the expected values. `ref.py` recomputes every row from small
 models of this API, checks it independently, renders the catalog and compares it with `cases.md`
 byte for byte. Each maximum-flow row runs Edmonds–Karp, Dinic and a FIFO push–relabel model, which
 agree on the value and on the canonical cut, computed from each one's residual network and from

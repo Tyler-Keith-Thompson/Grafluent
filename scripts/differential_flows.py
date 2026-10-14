@@ -92,18 +92,24 @@ def parse_network(text):
         vpart, epart = text.split("]; E [", 1)
         labels = [parse_label(x) for x in split_items(vpart[len("V ["):])]
         epart = epart[: epart.rindex("]")]
-        edges, caps, costs = [], [], []
+        edges, caps, costs, lower = [], [], [], []
         for item in split_items(epart):
             parts = item.split(" ")
             arrow = "→" if "→" in parts[0] else "–"
             u, v = parts[0].split(arrow)
             edges.append((parse_label(u), parse_label(v)))
+            if len(parts) > 1 and ".." in parts[1]:
+                # A feasible-flow row: lower..capacity.
+                lo, hi = parts[1].split("..")
+                lower.append(lo)
+                parts = [parts[0], hi]
             cap = [p for p in parts[1:] if not p.startswith("@")]
             cost = [p for p in parts[1:] if p.startswith("@")]
             caps.append(parse_value(cap[0], ctype) if cap else 1)
             if cost:
                 costs.append(int(cost[0][1:]))
         net = REF.Net(labels, edges, caps, costs or None, directed=directed, ctype=ctype)
+        net.lower = lower or None
     else:
         net = generator(text)
         net.ctype = ctype
@@ -111,14 +117,19 @@ def parse_network(text):
         sup = [0] * net.n
         for item in split_items(supply):
             k, b = item.split(": ")
-            sup[net.index[parse_label(k)]] = int(b)
+            sup[net.index[parse_label(k)]] = int(float(b))
         net.supply = sup
     return net
 
 
 def parse_call(text):
-    """(name, from label, to label) of the Call column."""
+    """(name, from label, to label) of the Call column; for a cut-metric row, (name, the set's
+    labels, None)."""
     text = text.strip("`")
+    if text.startswith("cut metrics of ["):
+        return "cutMetrics", [parse_label(x) for x in split_items(text[len("cut metrics of ["):-1])], None
+    if text.startswith("cutSize(of: ["):
+        return "cutSize", [parse_label(x) for x in split_items(text[len("cutSize(of: ["):text.index("]")])], None
     name, args = text.split("(", 1)
     frm = to = None
     if args.startswith("from: "):
@@ -144,19 +155,43 @@ def request(net, name, frm, to):
         return net.index[label] if label in net.index else label
 
     caps = net.caps()
-    return {
+    req = {
         "ctype": net.ctype, "directed": net.directed, "n": net.n, "edges": [[u, v] for u, v in net.E],
         "capacities": [REF.fmtv(c) if not isinstance(c, float) else repr(c) for c in caps],
-        "costs": net.cost, "supply": net.supply, "call": name, "from": number(frm), "to": number(to),
+        "costs": net.cost, "supply": net.supply, "call": name, "from": None, "to": None,
+        "lower": getattr(net, "lower", None),
     }
+    if name in ("cutMetrics", "cutSize"):
+        req["set"] = [number(x) for x in frm]
+    else:
+        req["from"], req["to"] = number(frm), number(to)
+    return req
 
 
-def render(group, net, ans):
+def render_metrics(ans, weighted):
+    """The cut-metric texts in the catalog's notation (ref.metrics_text)."""
+    m = ans["metrics"]
+    d = {"cut": int(m[0]), "volume": int(m[1]), "conductance": float(m[2]), "normalized": float(m[3]),
+         "edge": float(m[4]), "mixing": float(m[5]), "node": float(m[6]), "boundary": float(m[7])}
+    out = REF.metrics_text(d)
+    if weighted:
+        w = ans["weightedMetrics"]
+        wd = {"cut": int(float(w[0])), "volume": int(float(w[1])), "conductance": float(w[2]), "normalized": float(w[3]),
+              "edge": float(w[4]), "mixing": float(w[5])}
+        out += "; weighted: " + REF.metrics_text(wd, weighted=True)
+    return out
+
+
+def render(group, net, ans, expected_text=""):
     """The library's answer in the catalog's notation."""
     if ans["isNil"]:
         return "nil"
     lab = net.lab
-    if group in ("MaximumFlow", "Dinic", "MinimumCut", "GlobalMinimumCut", "DirectedGlobalMinimumCut", "EdmondsKarp"):
+    if group == "CutMetrics":
+        return render_metrics(ans, "; weighted: " in expected_text)
+    if group == "Circulation":
+        return "feasible" if ans.get("value") == "feasible" else f"barrier {REF.lab_list(net, ans['vertices'])}"
+    if group in ("MaximumFlow", "Dinic", "MinimumCut", "GlobalMinimumCut", "DirectedGlobalMinimumCut", "EdmondsKarp", "BoykovKolmogorov"):
         T = set(ans["sink"])
         S = set(range(net.n)) - T
         flow = f"flow {REF.fmtl(ans['flows'])}; " if group == "EdmondsKarp" else ""
@@ -282,7 +317,9 @@ def replay_catalog(executable):
                 supply[net.index[frm]] += int(ans["value"])
                 supply[net.index[to]] -= int(ans["value"])
             problems += cost_problems(ident, arcs, supply, [int(x) for x in ans["flows"]], ans["cost"])
-        mine = render(group, net, ans)
+        if group == "Circulation" and ans.get("value") == "feasible" and ans.get("integer") != 1:
+            problems.append(f"{ident}: the feasible flow breaks its bounds or the supplies")
+        mine = render(group, net, ans, exp)
         if several:
             head = exp.split("; flow ")[0]
             if mine.split("; flow ")[0] != head:
@@ -318,6 +355,10 @@ def flow_case(case):
             edges.append([a, b, (abs(w) * 7 + 3) % 13, abs(w) % 7 - 2])
     s = case["sources"][0]
     t = case["target"] if case["target"] != s else (s + 1) % n
+    # The cut metrics' set: every third vertex and the sources (case-derived, so seeds stay
+    # reproducible); the feasible flow's lower bounds: part of each capacity.
+    cut_set = sorted(set(range(0, n, 3)) | set(case["sources"]))
+    lower = [min(e[2], abs(e[3]) % 3) for e in edges]
     supply = [0] * n
     if n >= 2:
         b = (n + len(edges)) % 4 + 1
@@ -326,7 +367,7 @@ def flow_case(case):
         if len(case["sources"]) > 1 and n > 2:
             supply[case["sources"][1]] += 2
             supply[(t + 1) % n] -= 2
-    return {"edges": edges, "supply": supply, "source": s, "sink": t}
+    return {"edges": edges, "supply": supply, "source": s, "sink": t, "cutSet": cut_set, "lower": lower}
 
 
 def flow_net(case):
@@ -429,7 +470,7 @@ def compare_flows(case, mine):
             problems.append(f"references disagree: NetworkX {value}, igraph {iv}")
         covered("flows compared")
         covered("flow value 0", value == 0)
-        for name in ("maximum", "edmondsKarp", "dinic"):
+        for name in ("maximum", "edmondsKarp", "dinic", "boykovKolmogorov"):
             answer = mine[name]
             if int(answer["value"]) != value:
                 problems.append(f"{name}: value {answer['value']}, NetworkX {value}")
@@ -551,6 +592,14 @@ def compare_flows(case, mine):
         if answer["value"] != sum(b for b in f["supply"] if b > 0):
             problems.append(f"minimumCostFlow value {answer['value']} is not the positive supplies' sum")
 
+    # Cut metrics, exactly, against NetworkX (T passed: its directed cut_size with T=None raises).
+    problems += cut_metric_problems(net, f["cutSet"], mine["cutMetrics"], mine["weightedCutMetrics"])
+    # A feasible flow with lower bounds, directed only: feasibility against NetworkX network_simplex
+    # with the lower bounds shifted into the demands; the flow's bounds and supplies, or the
+    # barrier's violated inequality.
+    if directed:
+        problems += circulation_problems(net, f["lower"], f["supply"], mine.get("circulationFlows"), mine.get("circulationBarrier"))
+
     # Global connectivity.
     lam = ig_multigraph(net).edge_connectivity() if n >= 2 else 0
     if mine["edgeConnectivity"] != lam:
@@ -568,4 +617,83 @@ def compare_flows(case, mine):
         problems.append(f"minimumVertexCut() has {len(cut)} vertices, κ = {kappa}")
     elif n >= 2 and kappa < n - 1 and REF.connected_without(net, set(cut)):
         problems.append(f"minimumVertexCut() {cut[:12]} does not disconnect the graph")
+    return problems
+
+
+def cut_metric_problems(net, S, metrics, weighted):
+    G = nx.MultiDiGraph() if net.directed else nx.MultiGraph()
+    G.add_nodes_from(range(net.n))
+    for (u, v), c in zip(net.E, net.caps()):
+        G.add_edge(u, v, weight=c)
+    T = set(range(net.n)) - set(S)
+
+    def call(fn, *args, **kwargs):
+        try:
+            return float(fn(G, *args, **kwargs))
+        except ZeroDivisionError:
+            return None
+
+    def same(mine, theirs):
+        x = float(mine)
+        if theirs is None:
+            return x != x or abs(x) == float("inf")
+        return x == theirs or (x != x and theirs != theirs)
+    problems = []
+    names = ["cutSize", "volume", "conductance", "normalizedCutSize", "edgeExpansion", "mixingExpansion", "nodeExpansion", "boundaryExpansion"]
+    theirs = [call(nx.cut_size, S, T), call(nx.volume, S), call(nx.conductance, S, T), call(nx.normalized_cut_size, S, T),
+              call(nx.edge_expansion, S, T), call(nx.mixing_expansion, S, T), call(nx.node_expansion, S) if S else None,
+              call(nx.boundary_expansion, S) if S else None]
+    for name, x, y in zip(names, metrics, theirs):
+        if not same(x, y):
+            problems.append(f"{name}: library {x}, NetworkX {y}")
+    weighted_theirs = [call(nx.cut_size, S, T, weight="weight"), call(nx.volume, S, weight="weight"),
+                       call(nx.conductance, S, T, weight="weight"), call(nx.normalized_cut_size, S, T, weight="weight"),
+                       call(nx.edge_expansion, S, T, weight="weight")]
+    for name, x, y in zip(names, weighted, weighted_theirs):
+        if not same(x, y):
+            problems.append(f"weighted {name}: library {x}, NetworkX {y}")
+    # NetworkX divides the weighted mixing expansion by 2·|E|; the library by twice the total weight.
+    total = sum(net.caps())
+    expected = REF.ratio(weighted_theirs[0], 2 * total) if weighted_theirs[0] is not None else None
+    if expected is not None and not same(weighted[5], expected):
+        problems.append(f"weighted mixingExpansion: library {weighted[5]}, cut / (2 · total weight) {expected}")
+    covered("cut metrics compared")
+    return problems
+
+
+def circulation_problems(net, lower, supply, flows, barrier):
+    upper = net.caps()
+    G = nx.MultiDiGraph()
+    for v in range(net.n):
+        out_l = sum(lower[e] for e, (a, b) in enumerate(net.E) if a == v and a != b)
+        in_l = sum(lower[e] for e, (a, b) in enumerate(net.E) if b == v and a != b)
+        G.add_node(v, demand=-supply[v] - in_l + out_l)
+    for e, (u, v) in enumerate(net.E):
+        if u != v:
+            G.add_edge(u, v, capacity=upper[e] - lower[e], weight=0)
+    try:
+        nx.network_simplex(G)
+        feasible = True
+    except nx.NetworkXUnfeasible:
+        feasible = False
+    problems = []
+    covered("feasible flows with lower bounds", feasible)
+    covered("infeasible flows with lower bounds", not feasible)
+    if feasible != (flows is not None):
+        return [f"feasibleCirculation: library {'a flow' if flows is not None else 'nil'}, NetworkX feasible {feasible}"]
+    if flows is not None:
+        balance = [0] * net.n
+        for e, (u, v) in enumerate(net.E):
+            if not lower[e] <= flows[e] <= upper[e]:
+                problems.append(f"feasibleCirculation: flow {flows[e]} on edge {e} outside [{lower[e]}, {upper[e]}]")
+            balance[u] += flows[e]
+            balance[v] -= flows[e]
+        if balance != supply:
+            problems.append("feasibleCirculation: the supplies are not met")
+    else:
+        if not barrier or not REF.violates(net, lower, upper, supply, set(barrier)):
+            problems.append(f"findCirculationBarrier {barrier} does not violate Gale's condition")
+        kind, model = REF.circulation(net, lower, upper, supply)
+        if kind != "barrier" or model != barrier:
+            problems.append(f"findCirculationBarrier {barrier}, the reduction's canonical cut {model}")
     return problems

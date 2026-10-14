@@ -1,7 +1,8 @@
 import GraphProtocols
 
 /// A maximum flow from `source` to `sink`, returned by `maximumFlow(from:to:capacity:)`,
-/// `edmondsKarpMaximumFlow(from:to:capacity:)` and `dinicMaximumFlow(from:to:capacity:)`.
+/// `edmondsKarpMaximumFlow(from:to:capacity:)`, `dinicMaximumFlow(from:to:capacity:)` and
+/// `boykovKolmogorovMaximumFlow(from:to:capacity:)`.
 ///
 /// It holds a copy-on-write copy of the graph to look positions up. On an undirected graph the
 /// flow is over `directedView`. An edge's flow is on the arc of its direction, and the other arc

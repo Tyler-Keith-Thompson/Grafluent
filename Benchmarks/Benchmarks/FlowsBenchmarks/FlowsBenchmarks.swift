@@ -149,6 +149,10 @@ let benchmarks: @Sendable () -> Void = {
         Benchmark("Flows: dinicMaximumFlow, \(name)") { benchmark in
             for _ in benchmark.scaledIterations { blackHole(graph.dinicMaximumFlow(from: s, to: t) { capacities[$0] }) }
         }
+        precondition(graph.boykovKolmogorovMaximumFlow(from: s, to: t) { capacities[$0] }.value == value)
+        Benchmark("Flows: boykovKolmogorovMaximumFlow, \(name)") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(graph.boykovKolmogorovMaximumFlow(from: s, to: t) { capacities[$0] }) }
+        }
         Benchmark("Flows: edmondsKarpMaximumFlow, \(name)", configuration: .init(maxDuration: .seconds(5), maxIterations: 3)) { benchmark in
             for _ in benchmark.scaledIterations { blackHole(graph.edmondsKarpMaximumFlow(from: s, to: t) { capacities[$0] }) }
         }
@@ -196,6 +200,46 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("Flows: vertexConnectivity(), lcgund(1000, 8000)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(connGraph.vertexConnectivity()) }
+    }
+
+    // Cut metrics of every third vertex: the library against the loop over the edge arrays.
+    let metricNet = lcgnet(100_000, 1_000_000, 51, 100)
+    let metricGraph = DirectedPseudograph(vertices: 0 ..< metricNet.n, edges: metricNet.edges)
+    let metricCapacities = metricNet.capacities
+    let third = Array(stride(from: 0, to: metricNet.n, by: 3))
+    Benchmark("Flows: cutSize(of:weight:), lcgnet(100000, 1000000)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(metricGraph.cutSize(of: third) { metricCapacities[$0] }) }
+    }
+    Benchmark("Flows: conductance(of:), lcgnet(100000, 1000000)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(metricGraph.conductance(of: third)) }
+    }
+    Benchmark("Flows: cut size by hand over the edge arrays, lcgnet(100000, 1000000)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var inS = [Bool](repeating: false, count: metricNet.n)
+            for v in third { inS[v] = true }
+            var cut = 0
+            for (k, e) in metricNet.edges.enumerated() where inS[e.source] != inS[e.target] { cut += metricCapacities[k] }
+            blackHole(cut)
+        }
+    }
+
+    // A feasible circulation: lower bounds of a planted circulation on random cycles.
+    var cycles = LCG(x: 61)
+    var circulationEdges: [DirectedEdge<Int>] = [], lower: [Int] = [], upper: [Int] = []
+    while circulationEdges.count < 100_000 {
+        let length = 2 + cycles.next() % 7
+        let cycle = (0 ..< length).map { _ in cycles.next() % 20_000 }
+        let amount = 1 + cycles.next() % 5
+        for i in 0 ..< length {
+            circulationEdges.append(DirectedEdge(from: cycle[i], to: cycle[(i + 1) % length]))
+            lower.append(cycles.next() % (amount + 1))
+            upper.append(amount + cycles.next() % 4)
+        }
+    }
+    let circulationGraph = DirectedPseudograph(vertices: 0 ..< 20_000, edges: circulationEdges)
+    precondition(circulationGraph.feasibleCirculation(lowerBound: { lower[$0] }, capacity: { upper[$0] }) != nil)
+    Benchmark("Flows: feasibleCirculation, 20000 vertices, 100000 edges on random cycles") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(circulationGraph.feasibleCirculation(lowerBound: { lower[$0] }, capacity: { upper[$0] })) }
     }
 
     // Minimum-cost flow: random networks with ten (a hundred) supplies of 20 and as many demands.

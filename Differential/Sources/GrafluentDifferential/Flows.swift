@@ -15,6 +15,31 @@ struct FlowCase: Decodable {
     let supply: [Int]
     let source: Int
     let sink: Int
+    /// The vertex set the cut metrics are asked of.
+    let cutSet: [Int]
+    /// Per edge, the lower bound of the feasible-flow query (its upper bound is the capacity).
+    let lower: [Int]
+}
+
+/// Every cut metric of `s`, unweighted, as text.
+func cutMetricTexts<G: DirectedGraph<Int>>(_ graph: G, _ s: [Int]) -> [String] {
+    ["\(graph.cutSize(of: s))", "\(graph.volume(of: s))", "\(graph.conductance(of: s))", "\(graph.normalizedCutSize(of: s))",
+     "\(graph.edgeExpansion(of: s))", "\(graph.mixingExpansion(of: s))", "\(graph.nodeExpansion(of: s))", "\(graph.boundaryExpansion(of: s))"]
+}
+
+func weightedCutMetricTexts<G: DirectedGraph<Int>>(_ graph: G, _ s: [Int], _ w: @escaping (G.Edges.Index) -> Double) -> [String] {
+    ["\(graph.cutSize(of: s, weight: w))", "\(graph.volume(of: s, weight: w))", "\(graph.conductance(of: s, weight: w))",
+     "\(graph.normalizedCutSize(of: s, weight: w))", "\(graph.edgeExpansion(of: s, weight: w))", "\(graph.mixingExpansion(of: s, weight: w))"]
+}
+
+func cutMetricTexts<G: Graph<Int>>(_ graph: G, _ s: [Int]) -> [String] {
+    ["\(graph.cutSize(of: s))", "\(graph.volume(of: s))", "\(graph.conductance(of: s))", "\(graph.normalizedCutSize(of: s))",
+     "\(graph.edgeExpansion(of: s))", "\(graph.mixingExpansion(of: s))", "\(graph.nodeExpansion(of: s))", "\(graph.boundaryExpansion(of: s))"]
+}
+
+func weightedCutMetricTexts<G: Graph<Int>>(_ graph: G, _ s: [Int], _ w: @escaping (G.Edges.Index) -> Double) -> [String] {
+    ["\(graph.cutSize(of: s, weight: w))", "\(graph.volume(of: s, weight: w))", "\(graph.conductance(of: s, weight: w))",
+     "\(graph.normalizedCutSize(of: s, weight: w))", "\(graph.edgeExpansion(of: s, weight: w))", "\(graph.mixingExpansion(of: s, weight: w))"]
 }
 
 struct CutAnswer: Encodable {
@@ -41,6 +66,16 @@ struct FlowAnswers: Encodable {
     var maximum: FlowAnswer?
     var edmondsKarp: FlowAnswer?
     var dinic: FlowAnswer?
+    var boykovKolmogorov: FlowAnswer?
+    /// The cut metrics of `cutMetricsSet` (scripts/differential_flows.py's cut_set), as text in
+    /// the order cutSize, volume, conductance, normalizedCutSize, edgeExpansion, mixingExpansion,
+    /// nodeExpansion, boundaryExpansion; then the weighted ones (capacities as Double weights)
+    /// through mixingExpansion.
+    var cutMetrics: [String]?
+    var weightedCutMetrics: [String]?
+    /// A feasible flow with lower bounds (circulation_bounds): its flows, or the barrier.
+    var circulationFlows: [Int]?
+    var circulationBarrier: [Int]?
     var value: String?
     var cut: CutAnswer?
     /// The same queries on `directedView` of an undirected case (each edge two independent arcs).
@@ -120,6 +155,7 @@ func flowAnswers(directed: Bool, n: Int, _ f: FlowCase) -> FlowAnswers {
             a.maximum = directedFlowAnswer(maximum, graph)
             a.edmondsKarp = directedFlowAnswer(graph.edmondsKarpMaximumFlow(from: s, to: t, capacity: capacity), graph)
             a.dinic = directedFlowAnswer(graph.dinicMaximumFlow(from: s, to: t, capacity: capacity), graph)
+            a.boykovKolmogorov = directedFlowAnswer(graph.boykovKolmogorovMaximumFlow(from: s, to: t, capacity: capacity), graph)
             a.value = "\(graph.maximumFlowValue(from: s, to: t, capacity: capacity))"
             let cut = graph.minimumCut(from: s, to: t, capacity: capacity)
             a.cut = cutAnswer(cut) { "\($0)" }
@@ -141,6 +177,15 @@ func flowAnswers(directed: Bool, n: Int, _ f: FlowCase) -> FlowAnswers {
         a.edgeConnectivity = graph.edgeConnectivity()
         a.vertexConnectivity = graph.vertexConnectivity()
         a.vertexCut = graph.minimumVertexCut()
+        a.cutMetrics = cutMetricTexts(graph, f.cutSet)
+        a.weightedCutMetrics = weightedCutMetricTexts(graph, f.cutSet) { Double(capacities[$0]) }
+        let lower = f.lower
+        if let circulation = graph.feasibleCirculation(supply: { f.supply[$0] }, lowerBound: { lower[$0] }, capacity: capacity) {
+            a.circulationFlows = graph.edges.indices.map { circulation.flow(ofEdgeAt: $0) }
+            a.consistent = a.consistent && graph.findCirculationBarrier(supply: { f.supply[$0] }, lowerBound: { lower[$0] }, capacity: capacity) == nil
+        } else {
+            a.circulationBarrier = graph.findCirculationBarrier(supply: { f.supply[$0] }, lowerBound: { lower[$0] }, capacity: capacity)
+        }
     } else {
         let graph = Pseudograph(vertices: 0 ..< n, edges: f.edges.map { UndirectedEdge($0[0], $0[1]) })
         let capacity: (Int) -> Int = { capacities[$0] }
@@ -151,6 +196,7 @@ func flowAnswers(directed: Bool, n: Int, _ f: FlowCase) -> FlowAnswers {
             a.maximum = undirectedFlowAnswer(maximum, graph)
             a.edmondsKarp = undirectedFlowAnswer(graph.edmondsKarpMaximumFlow(from: s, to: t, capacity: capacity), graph)
             a.dinic = undirectedFlowAnswer(graph.dinicMaximumFlow(from: s, to: t, capacity: capacity), graph)
+            a.boykovKolmogorov = undirectedFlowAnswer(graph.boykovKolmogorovMaximumFlow(from: s, to: t, capacity: capacity), graph)
             a.value = "\(graph.maximumFlowValue(from: s, to: t, capacity: capacity))"
             let cut = graph.minimumCut(from: s, to: t, capacity: capacity)
             a.cut = cutAnswer(cut, name)
@@ -189,6 +235,8 @@ func flowAnswers(directed: Bool, n: Int, _ f: FlowCase) -> FlowAnswers {
         a.edgeConnectivity = graph.edgeConnectivity()
         a.vertexConnectivity = graph.vertexConnectivity()
         a.vertexCut = graph.minimumVertexCut()
+        a.cutMetrics = cutMetricTexts(graph, f.cutSet)
+        a.weightedCutMetrics = weightedCutMetricTexts(graph, f.cutSet) { Double(capacities[$0]) }
     }
     return a
 }
@@ -208,6 +256,10 @@ struct CatalogRequest: Decodable {
     let call: String
     let from: Int?
     let to: Int?
+    /// Feasible-flow rows: each edge's lower bound, as text in `ctype`.
+    let lower: [String]?
+    /// Cut-metric rows: the vertex set.
+    let set: [Int]?
 }
 
 struct CatalogAnswer: Encodable {
@@ -221,6 +273,9 @@ struct CatalogAnswer: Encodable {
     var integer: Int?
     var vertices: [Int]?
     var paths: [PathAnswer]?
+    /// Cut-metric rows: the metrics as text (cutMetricTexts), then the weighted ones.
+    var metrics: [String]?
+    var weightedMetrics: [String]?
 }
 
 protocol CatalogCapacity: Comparable & AdditiveArithmetic & CustomStringConvertible {
@@ -231,6 +286,33 @@ extension Int: CatalogCapacity {}
 extension Int8: CatalogCapacity {}
 extension UInt8: CatalogCapacity {}
 extension Double: CatalogCapacity {}
+
+/// A feasible-flow row: "feasible" as the value, after checking the flow's bounds and supplies
+/// (`integer` 1 when they hold), or the barrier as `vertices`.
+func circulationCatalog<C: CatalogCapacity>(_ r: CatalogRequest, _ graph: DirectedPseudograph<Int>, _ capacities: [C], _ a: inout CatalogAnswer) {
+    let lower = (r.lower ?? []).map { C($0)! }
+    let supply: [C] = (r.supply ?? [Int](repeating: 0, count: r.n)).map { b in b >= 0 ? C("\(b)")! : C.zero - C("\(-b)")! }
+    let result = r.supply == nil
+        ? graph.feasibleCirculation(lowerBound: { lower[$0] }, capacity: { capacities[$0] })
+        : graph.feasibleCirculation(supply: { supply[$0] }, lowerBound: { lower[$0] }, capacity: { capacities[$0] })
+    let barrier = r.supply == nil
+        ? graph.findCirculationBarrier(lowerBound: { lower[$0] }, capacity: { capacities[$0] })
+        : graph.findCirculationBarrier(supply: { supply[$0] }, lowerBound: { lower[$0] }, capacity: { capacities[$0] })
+    guard let result else {
+        a.vertices = barrier
+        return
+    }
+    var balance = [C](repeating: .zero, count: r.n)
+    var valid = barrier == nil
+    for e in graph.edges.indices {
+        let f = result.flow(ofEdgeAt: e)
+        if f < lower[e] || f > capacities[e] { valid = false }
+        balance[graph.source(ofEdgeAt: e)] += f
+        balance[graph.target(ofEdgeAt: e)] -= f
+    }
+    a.value = "feasible"
+    a.integer = valid && balance == supply ? 1 : 0
+}
 
 func answerCatalog(_ r: CatalogRequest) -> CatalogAnswer {
     switch r.ctype {
@@ -255,13 +337,20 @@ func answerCatalog<C: CatalogCapacity>(_ r: CatalogRequest, _: C.Type) -> Catalo
         let capacity: (Int) -> C = { capacities[$0] }
         let name: (Int) -> String = { "\($0)" }
         switch r.call {
-        case "maximumFlow", "dinicMaximumFlow", "edmondsKarpMaximumFlow":
+        case "maximumFlow", "dinicMaximumFlow", "edmondsKarpMaximumFlow", "boykovKolmogorovMaximumFlow":
             let flow = r.call == "maximumFlow" ? graph.maximumFlow(from: s, to: t, capacity: capacity)
                 : r.call == "dinicMaximumFlow" ? graph.dinicMaximumFlow(from: s, to: t, capacity: capacity)
+                : r.call == "boykovKolmogorovMaximumFlow" ? graph.boykovKolmogorovMaximumFlow(from: s, to: t, capacity: capacity)
                 : graph.edmondsKarpMaximumFlow(from: s, to: t, capacity: capacity)
             cut(flow.minimumCut, name)
             a.value = "\(flow.value)"
             a.flows = graph.edges.indices.map { "\(flow.flow(ofEdgeAt: $0))" }
+        case "cutMetrics", "cutSize":
+            a.metrics = cutMetricTexts(graph, r.set ?? [])
+            let weights = r.capacities.map { Double($0) ?? 0 }
+            a.weightedMetrics = weightedCutMetricTexts(graph, r.set ?? []) { weights[$0] }
+        case "feasibleCirculation":
+            circulationCatalog(r, graph, capacities, &a)
         case "maximumFlowValue":
             a.value = "\(graph.maximumFlowValue(from: s, to: t, capacity: capacity))"
         case "minimumCut" where r.from != nil:
@@ -292,9 +381,10 @@ func answerCatalog<C: CatalogCapacity>(_ r: CatalogRequest, _: C.Type) -> Catalo
         let capacity: (Int) -> C = { capacities[$0] }
         let name: (DirectedView<Pseudograph<Int>>.Edges.Index) -> String = { "\($0.position)\($0.reversed ? "r" : "")" }
         switch r.call {
-        case "maximumFlow", "dinicMaximumFlow", "edmondsKarpMaximumFlow":
+        case "maximumFlow", "dinicMaximumFlow", "edmondsKarpMaximumFlow", "boykovKolmogorovMaximumFlow":
             let flow = r.call == "maximumFlow" ? graph.maximumFlow(from: s, to: t, capacity: capacity)
                 : r.call == "dinicMaximumFlow" ? graph.dinicMaximumFlow(from: s, to: t, capacity: capacity)
+                : r.call == "boykovKolmogorovMaximumFlow" ? graph.boykovKolmogorovMaximumFlow(from: s, to: t, capacity: capacity)
                 : graph.edmondsKarpMaximumFlow(from: s, to: t, capacity: capacity)
             cut(flow.minimumCut, name)
             a.value = "\(flow.value)"
@@ -309,6 +399,10 @@ func answerCatalog<C: CatalogCapacity>(_ r: CatalogRequest, _: C.Type) -> Catalo
             cut(graph.minimumCut(from: s, to: t, capacity: capacity), name)
         case "minimumCut":
             if let c = graph.minimumCut(capacity: capacity) { cut(c, name) } else { a.isNil = true }
+        case "cutMetrics", "cutSize":
+            a.metrics = cutMetricTexts(graph, r.set ?? [])
+            let weights = r.capacities.map { Double($0) ?? 0 }
+            a.weightedMetrics = weightedCutMetricTexts(graph, r.set ?? []) { weights[$0] }
         case "gomoryHuTree":
             if let tree = graph.gomoryHuTree(capacity: capacity) {
                 a.tree = tree.tree.edges.indices.map { k in

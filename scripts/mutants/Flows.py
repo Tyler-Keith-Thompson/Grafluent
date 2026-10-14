@@ -62,6 +62,18 @@
 #                       flow reaches the cutoff and never beats the best; without the cutoff a pair's
 #                       value is its true flow, compared the same way.
 #   fe_nan              a NaN capacity fails `c >= 0` next, the same trap with another message.
+#   ci_nan, ci_supply_nan
+#                       a NaN lower bound or supply fails the infinity check next (NaN − NaN is not
+#                       zero), the same trap with another message.
+#   ci_source_cmp       a vertex whose lower bounds balance gets a super-source arc of capacity zero,
+#                       which carries nothing.
+#   ci_negative_lower   adding a negative lower bound to the tail's receiving and the head's sending
+#                       changes each vertex's net imbalance exactly as moving its magnitude to the
+#                       other side does; only the overflow checks see the difference.
+#   ci_loop_room        a self-loop's lower bound lands on both sides of its vertex and cancels, and
+#                       its room is on an arc the residual network drops.
+#   bk_adopt_closest    adopting an orphan by any neighbor that still reaches the terminal, not the
+#                       closest, keeps both trees valid; only the paths grow longer.
 
 TESTS = ["FlowsTests"]
 
@@ -317,4 +329,90 @@ MUTANTS = [
     Mutant("ck_tree_high", "GomoryHuTree.swift", "position >= 0 && position < _capacity.count - 1", "position >= 0 && position < _capacity.count", nth=1),
     Mutant("ck_cutvalue_v", "GomoryHuTree.swift", "_graph.contains(u) && _graph.contains(v)", "_graph.contains(u)", nth=0),
     Mutant("ck_cut_u", "GomoryHuTree.swift", "_graph.contains(u) && _graph.contains(v)", "_graph.contains(v)", nth=1),
+
+    # Cut metrics.
+    # The gathered edges (graphs without vertex indices), then the indexed paths: compressed rows,
+    # the directed walk of `edges`, the undirected walk.
+    Mutant("cm_cross", "CutMetrics.swift", "if a != b { tally.cut += w }", "if a && !b { tally.cut += w }", mode="stmt", nth=0),
+    Mutant("cm_cross_edges", "CutMetrics.swift", "if a != b { tally.cut += w }", "if a && !b { tally.cut += w }", mode="stmt", nth=1),
+    Mutant("cm_ucross", "CutMetrics.swift", "if a != b { tally.cut += w }", "if a && !b { tally.cut += w }", mode="stmt", nth=2),
+    Mutant("cm_cross_rows", "CutMetrics.swift", "if a != inSet[targets[slot]] { tally.cut += w }", "if a && !inSet[targets[slot]] { tally.cut += w }", mode="stmt"),
+    Mutant("cm_total", "CutMetrics.swift", "tally.total += w", "", mode="stmt", nth=0),
+    Mutant("cm_total_rows", "CutMetrics.swift", "tally.total += w", "", mode="stmt", nth=1),
+    Mutant("cm_total_edges", "CutMetrics.swift", "tally.total += w", "", mode="stmt", nth=2),
+    Mutant("cm_utotal", "CutMetrics.swift", "tally.total += w", "", mode="stmt", nth=3),
+    Mutant("cm_tail_volume", "CutMetrics.swift", "if a { tally.volume += w } else { tally.complementVolume += w }", "if !a { tally.volume += w } else { tally.complementVolume += w }", mode="stmt", nth=0),
+    Mutant("cm_volume_rows", "CutMetrics.swift", "if a { tally.volume += w } else { tally.complementVolume += w }", "if !a { tally.volume += w } else { tally.complementVolume += w }", mode="stmt", nth=1),
+    Mutant("cm_volume_edges", "CutMetrics.swift", "if a { tally.volume += w } else { tally.complementVolume += w }", "if !a { tally.volume += w } else { tally.complementVolume += w }", mode="stmt", nth=2),
+    Mutant("cm_uvolume_tail", "CutMetrics.swift", "if a { tally.volume += w } else { tally.complementVolume += w }", "if !a { tally.volume += w } else { tally.complementVolume += w }", mode="stmt", nth=3),
+    Mutant("cm_uvolume_head", "CutMetrics.swift", "if b { tally.volume += w } else { tally.complementVolume += w }", "", mode="stmt", nth=1),
+    Mutant("cm_head_volume", "CutMetrics.swift", "!directed", "true"),
+    Mutant("cm_size", "CutMetrics.swift", "for x in inSet where x { tally.size &+= 1 }", "for _ in inSet { tally.size &+= 1 }", mode="stmt"),
+    Mutant("cm_marks", "CutMetrics.swift", "    for v in s { marks[number(v)] = true }", "    for v in s.dropFirst() { marks[number(v)] = true }", mode="stmt"),
+    Mutant("cm_reach_head", "CutMetrics.swift", "        if inSet[u] { reached[v] = true }", "", mode="stmt"),
+    Mutant("cm_reach_tail", "CutMetrics.swift", "!edges.directed && inSet[v]", "inSet[v]"),
+    Mutant("cm_reach_rows", "CutMetrics.swift", "if marks[u] { _forEachSuccessorIndex(ofIndex: u) { reached[$0] = true } }", "_forEachSuccessorIndex(ofIndex: u) { reached[$0] = true }", mode="stmt"),
+    Mutant("cm_ureach_rows", "CutMetrics.swift", "if marks[u] { _forEachNeighborIndex(ofIndex: u) { reached[$0] = true } }", "_forEachNeighborIndex(ofIndex: u) { reached[$0] = true }", mode="stmt"),
+    Mutant("cm_boundary", "CutMetrics.swift", "        if !inSet[v] { boundary += 1 }", "        boundary += 1", mode="stmt"),
+    Mutant("cm_boundary_rows", "CutMetrics.swift", "if !inSet[v] { boundary &+= 1 }", "boundary &+= 1", mode="stmt"),
+    Mutant("cm_size_rows", "CutMetrics.swift", "        if inSet[v] { size &+= 1 }", "", mode="stmt"),
+    Mutant("cm_conductance_min", "CutMetrics.swift", "Double(t.cut) / Double(Swift.min(t.volume, t.complementVolume))", "Double(t.cut) / Double(Swift.max(t.volume, t.complementVolume))", nth=0),
+    Mutant("cm_uconductance_min", "CutMetrics.swift", "Double(t.cut) / Double(Swift.min(t.volume, t.complementVolume))", "Double(t.cut) / Double(t.volume)", nth=1),
+    Mutant("cm_wconductance", "CutMetrics.swift", "t.cut / Swift.min(t.volume, t.complementVolume)", "t.cut / t.volume", nth=0),
+    Mutant("cm_uwconductance", "CutMetrics.swift", "t.cut / Swift.min(t.volume, t.complementVolume)", "t.cut / t.complementVolume", nth=1),
+    Mutant("cm_normalized", "CutMetrics.swift", "Double(t.cut) * (1 / Double(t.volume) + 1 / Double(t.complementVolume))", "Double(t.cut) * (1 / Double(t.volume))", nth=0),
+    Mutant("cm_unormalized", "CutMetrics.swift", "Double(t.cut) * (1 / Double(t.volume) + 1 / Double(t.complementVolume))", "Double(t.cut) * (1 / Double(t.complementVolume))", nth=1),
+    Mutant("cm_wnormalized", "CutMetrics.swift", "t.cut * (1 / t.volume + 1 / t.complementVolume)", "t.cut * (1 / t.volume)", nth=0),
+    Mutant("cm_uwnormalized", "CutMetrics.swift", "t.cut * (1 / t.volume + 1 / t.complementVolume)", "t.cut * (1 / t.complementVolume)", nth=1),
+    Mutant("cm_edge", "CutMetrics.swift", "Double(t.cut) / Double(Swift.min(t.size, t.complementSize))", "Double(t.cut) / Double(t.size)", nth=0),
+    Mutant("cm_uedge", "CutMetrics.swift", "Double(t.cut) / Double(Swift.min(t.size, t.complementSize))", "Double(t.cut) / Double(t.complementSize)", nth=1),
+    Mutant("cm_wedge", "CutMetrics.swift", "t.cut / W(Swift.min(t.size, t.complementSize))", "t.cut / W(t.size)", nth=0),
+    Mutant("cm_uwedge", "CutMetrics.swift", "t.cut / W(Swift.min(t.size, t.complementSize))", "t.cut / W(t.complementSize)", nth=1),
+    Mutant("cm_mixing", "CutMetrics.swift", "Double(t.cut) / Double(2 * t.total)", "Double(t.cut) / Double(t.total)", nth=0),
+    Mutant("cm_umixing", "CutMetrics.swift", "Double(t.cut) / Double(2 * t.total)", "Double(t.cut) / Double(t.total)", nth=1),
+    Mutant("cm_wmixing", "CutMetrics.swift", "t.cut / (t.total + t.total)", "t.cut / t.total", nth=0),
+    Mutant("cm_uwmixing", "CutMetrics.swift", "t.cut / (t.total + t.total)", "t.cut / t.total", nth=1),
+    Mutant("cm_node", "CutMetrics.swift", "Double(c.neighborhood) / Double(c.size)", "Double(c.boundary) / Double(c.size + 0)", nth=0),
+    Mutant("cm_unode", "CutMetrics.swift", "Double(c.neighborhood) / Double(c.size)", "Double(c.boundary) / Double(c.size + 0)", nth=1),
+    Mutant("cm_bexp", "CutMetrics.swift", "Double(c.boundary) / Double(c.size)", "Double(c.neighborhood) / Double(c.size + 0)", nth=0),
+    Mutant("cm_ubexp", "CutMetrics.swift", "Double(c.boundary) / Double(c.size)", "Double(c.neighborhood) / Double(c.size + 0)", nth=1),
+
+    # Feasible flows with lower bounds.
+    Mutant("ci_loop_room", "Circulation.swift", "        if u == v { continue }\n        room[e] = upper[e] - lower[e]", "        room[e] = upper[e] + .zero - lower[e]", mode="stmt"),
+    Mutant("ci_room", "Circulation.swift", "upper[e] - lower[e]", "upper[e]"),
+    Mutant("ci_lower_tail", "Circulation.swift", '            receive[u] = _checkedSum(receive[u], lower[e], "The lower bounds at a vertex sum past the capacity type\'s range")', "", mode="stmt"),
+    Mutant("ci_lower_head", "Circulation.swift", '            send[v] = _checkedSum(send[v], lower[e], "The lower bounds at a vertex sum past the capacity type\'s range")', "", mode="stmt"),
+    Mutant("ci_negative_lower", "Circulation.swift", "lower[e] >= .zero", "true"),
+    Mutant("ci_negative_tail", "Circulation.swift", '            send[u] = _checkedSum(send[u], back, "The lower bounds at a vertex sum past the capacity type\'s range")', "", mode="stmt"),
+    Mutant("ci_source_cmp", "Circulation.swift", "send[v] > receive[v]", "send[v] >= receive[v]"),
+    Mutant("ci_demanded", "Circulation.swift", '            demanded = _checkedSum(demanded, c, "The supplies sum past the capacity type\'s range")', "", mode="stmt"),
+    Mutant("ci_feasible", "Circulation.swift", "run.value == demanded", "run.value >= .zero"),
+    Mutant("ci_barrier_side", "Circulation.swift", "!run.inSink[v]", "run.inSink[v]"),
+    Mutant("ci_flow_lower", "Circulation.swift", "lower[e] + run.along[e]", "run.along[e]"),
+    Mutant("ci_surplus", "Circulation.swift", "                surplus[v] = b", "", mode="stmt"),
+    Mutant("ci_deficit", "Circulation.swift", "                deficit[v] = .zero - b", "", mode="stmt"),
+    Mutant("ci_balanced", "Circulation.swift", 'precondition(supplied == demanded, "The supplies do not sum to zero")', "", mode="stmt"),
+    Mutant("ci_bounds_order", "Circulation.swift", 'precondition(l <= u, "A lower bound exceeds its capacity")', "", mode="stmt"),
+    Mutant("ci_nan", "Circulation.swift", "l == l && u == u", "u == u"),
+    Mutant("ci_supply_nan", "Circulation.swift", 'precondition(b == b, "A supply is NaN")', "", mode="stmt"),
+    Mutant("ci_barrier_nil", "Circulation.swift", "        guard run.flows == nil else { return nil }", "", mode="stmt"),
+    Mutant("ci_checked", "Circulation.swift", "        return _flows[e]", "        return _flows[0]", mode="stmt"),
+
+    # Boykov–Kolmogorov.
+    Mutant("bk_grow_free", "BoykovKolmogorov.swift", "t == free", "t != sinkTree", nth=0),
+    Mutant("bk_grow_sink_residual", "BoykovKolmogorov.swift", "residual[back] > .zero", "residual[a] > .zero"),
+    Mutant("bk_connect_sink", "BoykovKolmogorov.swift", "                            connect = back", "                            connect = a", mode="stmt"),
+    Mutant("bk_bottleneck_source", "BoykovKolmogorov.swift", "            let r = residual[Int(mate[up])]\n            if r < delta { delta = r }", "            if residual[up] < delta { delta = residual[up] }", mode="stmt"),
+    Mutant("bk_bottleneck_sink", "BoykovKolmogorov.swift", "            let r = residual[up]\n            if r < delta { delta = r }", "            _ = residual[up]", mode="stmt"),
+    Mutant("bk_orphan_source", "BoykovKolmogorov.swift", "residual[along] == .zero", "residual[along] < .zero"),
+    Mutant("bk_orphan_sink", "BoykovKolmogorov.swift", "residual[up] == .zero", "residual[up] < .zero"),
+    Mutant("bk_adopt_open", "BoykovKolmogorov.swift", "side == sourceTree ? residual[Int(mate[a])] > .zero : residual[a] > .zero", "side == sourceTree ? residual[a] > .zero : residual[Int(mate[a])] > .zero", nth=0),
+    Mutant("bk_adopt_tree", "BoykovKolmogorov.swift", "open && tree[q] == side && parent[q] != none", "open && tree[q] != free"),
+    Mutant("bk_origin_orphan", "BoykovKolmogorov.swift", "                        if up == orphan {\n                            d = Int.max\n                            break\n                        }", "", mode="stmt"),
+    Mutant("bk_adopt_closest", "BoykovKolmogorov.swift", "d < bestDistance", "best < 0"),
+    Mutant("bk_free_children", "BoykovKolmogorov.swift", "up >= 0 && Int(head[up]) == o", "false"),
+    Mutant("bk_free_activate", "BoykovKolmogorov.swift", "                    if open { activate(q) }", "", mode="stmt"),
+    Mutant("bk_free_tree", "BoykovKolmogorov.swift", "            tree[o] = free\n            parent[o] = none", "            parent[o] = none", mode="stmt"),
+    Mutant("bk_current", "BoykovKolmogorov.swift", "        current = p", "        current = -1", mode="stmt"),
+    Mutant("bk_skip_free", "BoykovKolmogorov.swift", "tree[v] != free", "true"),
 ]
