@@ -90,7 +90,7 @@ def rotate(vs, es, k):
 
 
 def rot_equal(a, b):
-    """Circuit ==: equal up to rotation of the (vertex, edge) steps."""
+    """Equal up to rotation of the (vertex, edge) steps."""
     (va, ea), (vb, eb) = a, b
     if len(va) != len(vb):
         return False
@@ -107,7 +107,7 @@ def rot_equal_bruteforce(a, b):
 
 
 def cycle_equal(a, b):
-    """Cycle ==: a is a rotation of b or of b reversed."""
+    """Circuit and Cycle ==: a is a rotation of b or of b reversed."""
     return rot_equal(a, b) or rot_equal(a, reverse_cycle(*b))
 
 
@@ -372,7 +372,12 @@ for k in range(6):
 F8b = ([0, 3, 4, 0, 1, 2], [3, 4, 5, 0, 1, 2])
 check("WK-709", rot_equal(F8, F8b), "rotation starting at the second visit of 0")
 F8c = ([0, 3, 4, 0, 1, 2], [0, 1, 2, 3, 4, 5])
-check("WK-710", not rot_equal(F8, F8c), "lobes swapped against their edges")
+check("WK-710", not cycle_equal(F8, F8c), "lobes swapped against their edges")
+F8r = reverse_cycle(*F8)
+for k in range(6):
+    R = rotate(*F8r, k)
+    check(f"WK-717 k={k}", cycle_equal(F8, R) and cycle_equal_bruteforce(F8, R) and not rot_equal(F8, R)
+          and comm_hash(*F8) == comm_hash(*R), "the figure-eight equals every rotation of its reversal")
 # Linear-time equality agrees with brute force on random storages.
 for trial in range(2000):
     n = rng.randint(1, 6)
@@ -389,15 +394,15 @@ for trial in range(2000):
     assert rot_equal((va, ea), (vb, eb)) == rot_equal_bruteforce((va, ea), (vb, eb))
     if rot_equal((va, ea), (vb, eb)):
         assert comm_hash(va, ea) == comm_hash(vb, eb)
-    # Cycles: the same, sometimes against the reversal, up to rotation and reversal.
+    # Circuits and cycles: the same, sometimes against the reversal, up to rotation and reversal.
     if rng.random() < 0.5:
         vb, eb = reverse_cycle(vb, eb)
     assert cycle_equal((va, ea), (vb, eb)) == cycle_equal_bruteforce((va, ea), (vb, eb))
     assert cycle_equal((va, ea), (vb, eb)) == cycle_equal((vb, eb), (va, ea))
     if cycle_equal((va, ea), (vb, eb)):
         assert comm_hash(va, ea) == comm_hash(vb, eb)
-check("WK-711", True, "2000 random circuits: linear equality == brute-force rotation equality (cycles: rotation and "
-      "reversal); equal ⇒ equal hash")
+check("WK-711", True, "2000 random circuits: linear equality == brute-force equality up to rotation and "
+      "reversal; equal ⇒ equal hash")
 # Walk equality is exact: rotation of a closed walk is a different Walk.
 check("WK-712", ([0, 1, 2, 0], [10, 11, 12]) != ([1, 2, 0, 1], [11, 12, 10]))
 
@@ -448,7 +453,7 @@ check("WK-1003", cat == ([0, 1, 2, 3, 1], [0, 1, 2, 3]) and is_walk(C, *cat, Tru
 check("WK-1004", ([0, 1] + [1][1:], [0] + []) == ([0, 1], [0]), "appending a trivial walk changes nothing")
 check("WK-1005", reverse_walk([7], []) == ([7], []))
 check("WK-1006", reverse_cycle([0, 1], [0, 1]) == ([0, 1], [1, 0]) and not rot_equal(([0, 1], [0, 1]), ([0, 1], [1, 0]))
-      and cycle_equal(([0, 1], [0, 1]), ([0, 1], [1, 0])), "a digon reversed is a different rotation class but an equal cycle")
+      and cycle_equal(([0, 1], [0, 1]), ([0, 1], [1, 0])), "a digon reversed is a different rotation class but an equal cycle and circuit")
 # In one digraph, cycle equality (rotation or reversal) is rotation equality: a reversal walks each
 # arc backward, so it is never a cycle of the same digraph.
 BT = [(0, 1), (1, 2), (2, 0), (0, 2), (2, 1), (1, 0)]

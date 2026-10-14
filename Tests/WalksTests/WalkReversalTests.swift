@@ -66,7 +66,7 @@ struct WalkReversalTests {
         #expect(Path<Int, Int>(vertex: 7).reversed() == Path<Int, Int>(vertex: 7))
     }
 
-    @Test("WK-1006 a digon reversed is a different circuit but an equal cycle")
+    @Test("WK-1006 a digon reversed is an equal cycle and an equal circuit")
     func digonReversed() throws {
         let c = try #require(Cycle(vertices: [0, 1], edges: [0, 1]))
         let r = c.reversed()
@@ -75,7 +75,7 @@ struct WalkReversalTests {
         #expect(r.edges == [0, 1])
         #expect(r == c)
         #expect(r.hashValue == c.hashValue)
-        #expect(Circuit(r) != Circuit(c))
+        #expect(Circuit(r) == Circuit(c))
     }
 
     @Test("WK-1007 a walk of g.directedView reversed names the original arcs, so it is not a walk of g.directedView")

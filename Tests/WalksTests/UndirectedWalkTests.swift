@@ -23,7 +23,7 @@ struct UndirectedWalkTests {
         #expect(Cycle(vertices: b.vertices, edges: b.edges, in: u) != nil)
     }
 
-    @Test("WK-602 the two directions are one cycle, with one hash, and two circuits")
+    @Test("WK-602 the two directions are one cycle and one circuit, with one hash")
     func reflectionEqual() throws {
         let u = ReferencePseudograph(edges: [(0, 1), (1, 2), (2, 0)].map { UndirectedEdge($0.0, $0.1) })
         let a = try #require(Cycle([0, 1, 2], in: u))
@@ -34,7 +34,8 @@ struct UndirectedWalkTests {
         #expect(a.hashValue == b.hashValue)
         #expect(a == b.reversed())
         #expect(b == a.reversed())
-        #expect(Circuit(a) != Circuit(b))
+        #expect(Circuit(a) == Circuit(b))
+        #expect(Circuit(a).hashValue == Circuit(b).hashValue)
         #expect(Circuit(a) == Circuit(b.reversed()))
     }
 
@@ -76,14 +77,14 @@ struct UndirectedWalkTests {
         #expect(Cycle([0, 0], in: ul) == nil)
     }
 
-    @Test("WK-607 one undirected triangle is one cycle value and two circuit values; the bidirected triangle has 5 directed cycles (NetworkX)")
+    @Test("WK-607 one undirected triangle is one cycle value and one circuit value; the bidirected triangle has 5 directed cycles (NetworkX)")
     func reflectionCounts() {
         let u = ReferencePseudograph(edges: [(0, 1), (1, 2), (2, 0)].map { UndirectedEdge($0.0, $0.1) })
         let orders = [[0, 1, 2], [1, 2, 0], [2, 0, 1], [0, 2, 1], [2, 1, 0], [1, 0, 2]]
         let cycles = orders.compactMap { Cycle($0, in: u) }
         #expect(cycles.count == 6)
         #expect(Set(cycles).count == 1)
-        #expect(Set(cycles.map { Circuit($0) }).count == 2)
+        #expect(Set(cycles.map { Circuit($0) }).count == 1)
         // The bidirected triangle as a digraph: 2 triangles and 3 digons.
         let d = ReferenceDirectedMultigraph(edges: [(0, 1), (1, 2), (2, 0), (0, 2), (2, 1), (1, 0)].map { DirectedEdge(from: $0.0, to: $0.1) })
         var sequences: [[Int]] = []

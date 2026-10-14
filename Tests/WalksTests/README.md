@@ -50,7 +50,7 @@ Cycle?(_: Walk), Cycle?(_: Trail), Cycle?(_: Circuit)                           
 | Self-loops and parallel edges | The positions are part of the value: walks over the same vertices through different parallel copies are unequal (WK-502, WK-507, WK-514); a loop is a 1-cycle, a parallel pair a 2-cycle, a single undirected edge is no 2-cycle (WK-215, WK-513, WK-605) |
 | Vertices-only initializers | Walk and Path take the first edge in `outEdges(of:)` / `incidentEdges(of:)` order; Trail, Circuit and Cycle the first unused one, which finds a trail exactly when one exists (WK-510) |
 | Undirected orientation | The vertex sequence orients each edge; in `g.directedView` the arc's `reversed` flag must match the step (WK-405, WK-604) |
-| Equality | Exact for open walks (WK-712); up to rotation for circuits, and rotation and reversal for cycles, with a hash invariant under both (WK-701 – WK-716) |
+| Equality | Exact for open walks (WK-712); up to rotation and reversal for circuits and cycles, with a hash invariant under both (WK-701 – WK-717) |
 | `reversed()` | Open walks: both sequences reversed. Circuits and cycles keep the start, `[v0] + v[1...].reversed()`, with edges reversed. Over a digraph the result is a walk of the converse (WK-1002, WK-1010) |
 | Weight | Sums the closure over the edges taken, in stored order, from `.zero`; typed throws rethrown (WK-906) |
 | Codable | `{"vertices": [...], "edges": [...]}` in the stored rotation; decoding re-validates and throws `DecodingError.dataCorrupted` (WK-1104) |
@@ -100,7 +100,7 @@ Case IDs (WK-101 … WK-1306) refer to the catalog (`cases.md`, with `ref.py` an
 | WK-401 – WK-405 | 4. Edges and orientation | `WalkEdgeTests.swift` |
 | WK-501 – WK-515 | 5. Multigraphs and self-loops | `WalkMultigraphTests.swift`; WK-510 also in `WalkPropertyTests.swift` |
 | WK-601 – WK-607 | 6. Undirected graphs | `UndirectedWalkTests.swift` |
-| WK-701 – WK-716 | 7. Equality and hashing | `WalkEqualityTests.swift`; WK-701 and WK-711 also in `WalkPropertyTests.swift` |
+| WK-701 – WK-717 | 7. Equality and hashing | `WalkEqualityTests.swift`; WK-701 and WK-711 also in `WalkPropertyTests.swift` |
 | WK-801 – WK-810 | 8. Conversions | `WalkConversionTests.swift` |
 | WK-901 – WK-907 | 9. Weight | `WalkWeightTests.swift` |
 | WK-1001 – WK-1011 | 10. Reversal and concatenation | `WalkReversalTests.swift` |

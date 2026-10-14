@@ -145,7 +145,7 @@ func _equalUpToRotation<Vertex: Equatable, Edge: Equatable>(_ lv: [Vertex], _ le
     return true
 }
 
-/// Whether `(lv, le)` is a rotation of `(rv, re)` traversed backward, as `Cycle.reversed()`
+/// Whether `(lv, le)` is a rotation of `(rv, re)` traversed backward, as `reversed()`
 /// lists it: step i of the reversal leaves `rv[n − 1 − i]` through `re[(n − 2 − i) mod n]`. As
 /// for rotation, only the offset that lines up the first edge can match. O(n).
 @inlinable

@@ -35,9 +35,13 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Walks: Cycle(_:in:) picking the edges of a 10⁵ ring") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(Cycle(vertices, in: ring)) }
     }
-    // WK-B02: equality up to rotation and the rotation-invariant hash.
+    // WK-B02: equality up to rotation and reversal, and the invariant hash.
     Benchmark("Walks: == of a 10⁵ cycle and its half rotation") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(cycle == rotated) }
+    }
+    let circuit = Circuit(cycle), reversedCircuit = Circuit(rotated.reversed())
+    Benchmark("Walks: == of a 10⁵ circuit and the reversal of its half rotation") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(circuit == reversedCircuit) }
     }
     Benchmark("Walks: hashValue of a 10⁵ cycle") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(cycle.hashValue) }

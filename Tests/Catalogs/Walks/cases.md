@@ -136,12 +136,13 @@ whose out- and incident orders are position order). ✓ marks a case whose expec
 | WK-708 ✓ | figure-eight `Circuit(vertices: [0,1,2,0,3,4], edges: [0,1,2,3,4,5])` vs all 6 rotations | `==`, equal hashes |
 | WK-709 ✓ | vs `[0,3,4,0,1,2]` with edges `[3,4,5,0,1,2]` | `==` (rotation from the second visit of 0) |
 | WK-710 ✓ | vs `[0,3,4,0,1,2]` with edges `[0,1,2,3,4,5]` | `!=` |
-| WK-711 ✓ | randomized circuits and perturbed rotations, sometimes reversed | linear equality equals brute-force rotation equality for circuits, rotation-or-reversal equality for cycles; equal values have equal hashes |
+| WK-711 ✓ | randomized circuits and perturbed rotations, sometimes reversed | linear equality equals brute-force rotation-or-reversal equality for circuits and cycles; equal values have equal hashes |
 | WK-712 ✓ | `Walk(vertices: [0,1,2,0], edges: [10,11,12])` vs `Walk(vertices: [1,2,0,1], edges: [11,12,10])` | `!=` (open types are exact) |
 | WK-713 | `Set` of 3 rotations of one cycle plus its reversal | `count == 1` |
 | WK-714 | `Path` with the same vertices and different edges | `!=`, and the hashes usually differ (not required) |
 | WK-715 | `Walk(vertex: 1) == Walk(vertex: 1)`; `!= Walk(vertex: 2)` | true; true (JGraphT testFirstEmptyWalkEquality analogue: no empty walk exists) |
 | WK-716 | equal cycles with different rotations as `Dictionary` keys | one entry |
+| WK-717 ✓ | figure-eight `Circuit(vertices: [0,1,2,0,3,4], edges: [0,1,2,3,4,5])` vs all 6 rotations of its `reversed()` | `==`, equal hashes |
 
 ## 8. Conversions (WK-8xx)
 
@@ -179,7 +180,7 @@ whose out- and incident orders are position order). ✓ marks a case whose expec
 | WK-1003 ✓ | `Walk([0,1,2], in: C)!.appending(Walk(vertices: [2,3,1], edges: [2,3], in: C)!)` | vertices `[0,1,2,3,1]`, edges `[0,1,2,3]` |
 | WK-1004 ✓ | `w.appending(Walk(vertex: w.target)) == w` and `Walk(vertex: w.source).appending(w) == w` | true (JGraphT testConcatPathWithSingleton) |
 | WK-1005 ✓ | `Walk(vertex: 7).reversed()` | `== Walk(vertex: 7)` |
-| WK-1006 ✓ | `Cycle(vertices: [0,1], edges: [0,1]).reversed()` | vertices `[1,0]`, edges `[0,1]`; `==` the original (as a `Circuit`, `!=`) |
+| WK-1006 ✓ | `Cycle(vertices: [0,1], edges: [0,1]).reversed()` | vertices `[1,0]`, edges `[0,1]`; `==` the original, as a `Cycle` and as a `Circuit` |
 | WK-1007 ✓ | a walk of `U.directedView` with arcs `(0,false),(1,false)` over `[0,1,2]`, reversed | arcs `(1,false),(0,false)` over `[2,1,0]`: not a walk of `U.directedView` (documented) |
 | WK-1008 | `var w; w.append(x)` vs `w.appending(x)` | equal results; `append` does not copy a uniquely referenced buffer (benchmark, not a test) |
 | WK-1009 | `Path.reversed()`, `Trail.reversed()`, `Circuit.reversed()` | keep their type (`Self`) |

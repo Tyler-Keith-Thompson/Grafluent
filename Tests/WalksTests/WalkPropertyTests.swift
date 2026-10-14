@@ -1,7 +1,7 @@
 // Property checks with shrinking (swift-property-based): on a failure, PropertyBased shrinks the
 // generated input and prints the smallest one that still fails. The oracles are brute force,
-// written in each test: every rotation for Circuit and Cycle equality and hashing, and every
-// rotation of the reversal for Cycle (WK-701, WK-711), every choice of parallel edges for Trail(_:in:) (WK-510), and the step law and the
+// written in each test: every rotation, and every rotation of the reversal, for Circuit and Cycle
+// equality and hashing (WK-701, WK-711), every choice of parallel edges for Trail(_:in:) (WK-510), and the step law and the
 // invariant of each type for the checked initializers (WK-101, WK-202). Case IDs (WK-nnn) refer
 // to the catalog; see README.md.
 
@@ -13,7 +13,7 @@ import Walks
 
 @Suite("Walk properties with shrinking", .tags(.randomized))
 struct WalkPropertyTests {
-    @Test("WK-701 WK-711 a circuit equals and hashes like every rotation, a cycle also like every rotation of its reversal, and each differs from every perturbation that brute force says differs")
+    @Test("WK-701 WK-711 a circuit or cycle equals and hashes like every rotation and every rotation of its reversal, and differs from every perturbation that brute force says differs")
     func rotationInvariance() async {
         // Up to 7 steps over vertices 0...2 (so vertices repeat), a perturbed step and a perturbed
         // vertex. Edges are the step indices, so they are distinct.
@@ -45,7 +45,11 @@ struct WalkPropertyTests {
                 // Perturb one vertex of the rotation; brute force decides equality.
                 var pv = rv
                 pv[step % n] = replacement
-                let bruteForce = (0 ..< n).contains { r in Array(vs[r...] + vs[..<r]) == pv && Array(es[r...] + es[..<r]) == re }
+                let bruteForce = (0 ..< n).contains { r in
+                    let rotated = (Array(vs[r...] + vs[..<r]), Array(es[r...] + es[..<r]))
+                    let back = ((0 ..< n).map { rotated.0[(n - $0) % n] }, (0 ..< n).map { rotated.1[(2 * n - 1 - $0) % n] })
+                    return (rotated.0 == pv && rotated.1 == re) || (back.0 == pv && back.1 == re)
+                }
                 if let perturbed = Circuit(vertices: pv, edges: re) {
                     #expect((perturbed == circuit) == bruteForce, "\(vs) vs \(pv) \(re)")
                     if bruteForce { #expect(perturbed.hashValue == circuit.hashValue) }
@@ -55,14 +59,15 @@ struct WalkPropertyTests {
                 pe[step % n] = n
                 #expect(Circuit(vertices: rv, edges: pe) != circuit)
             }
-            // Reversal is no rotation unless it gives the same steps.
+            // A circuit equals every rotation of its reversal, and hashes alike; so does a cycle.
             let reversed = circuit.reversed()
-            let reversalIsRotation = (0 ..< n).contains { r in
-                Array(vs[r...] + vs[..<r]) == reversed.vertices && Array(es[r...] + es[..<r]) == reversed.edges
+            #expect(reversed.reversed().vertices == vs && reversed.reversed().edges == es)
+            for k in 0 ..< n {
+                let rotated = Circuit(vertices: Array(reversed.vertices[k...] + reversed.vertices[..<k]), edges: Array(reversed.edges[k...] + reversed.edges[..<k]))
+                #expect(rotated == circuit, "k = \(k)")
+                #expect(circuit == rotated, "k = \(k)")
+                #expect(rotated?.hashValue == circuit.hashValue, "k = \(k)")
             }
-            #expect((reversed == circuit) == reversalIsRotation)
-            #expect(reversed.reversed() == circuit)
-            // A cycle equals every rotation of its reversal, and hashes alike.
             if let cycle {
                 let back = cycle.reversed()
                 for k in 0 ..< n {

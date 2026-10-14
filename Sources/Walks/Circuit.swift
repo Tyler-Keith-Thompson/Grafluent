@@ -4,10 +4,12 @@ import GraphProtocols
 ///
 /// Vertex i goes to vertex (i + 1) mod `count` through edge i, and no edge position appears twice.
 ///
-/// Circuits are equal up to rotation. The same steps from any start are the same circuit, so
-/// `first` can differ between equal circuits. The reversed circuit is a different circuit. For an
-/// undirected circuit, compare with `reversed()` too. `init?(vertices:edges:in:)` checks that a
-/// circuit belongs to a particular graph.
+/// Two circuits are equal when one is a rotation of the other or of its `reversed()`. The same
+/// steps from any start are the same circuit, so `first` can differ between equal circuits, and
+/// the two directions around an undirected circuit are one value. In a directed graph a circuit's
+/// reversal is a circuit of the converse graph, never of the graph itself, so two circuits of one
+/// directed graph are equal only up to rotation. `init?(vertices:edges:in:)` checks that a circuit
+/// belongs to a particular graph.
 @frozen
 public struct Circuit<Vertex: Hashable, Edge: Hashable> {
     @usableFromInline let _vertices: [Vertex]
@@ -138,16 +140,19 @@ extension Circuit: RandomAccessCollection {
 }
 
 extension Circuit: Equatable {
-    /// Whether both are the same steps up to rotation, not reversal. O(n), because edges are
-    /// distinct and only the rotation that lines up the first edge can match.
+    /// Whether both are the same steps up to rotation and reversal: `lhs` is a rotation of `rhs`
+    /// or of `rhs.reversed()`. O(n), because edges are distinct and only the rotation that lines
+    /// up the first edge can match.
     @inlinable
     public static func == (lhs: Self, rhs: Self) -> Bool {
         _equalUpToRotation(lhs._vertices, lhs._edges, rhs._vertices, rhs._edges)
+            || _equalUpToReversal(lhs._vertices, lhs._edges, rhs._vertices, rhs._edges)
     }
 }
 
 extension Circuit: Hashable {
-    /// Invariant under rotation, as `==` is.
+    /// Invariant under rotation and reversal, as `==` is: it hashes the length and the set of edge
+    /// positions.
     @inlinable
     public func hash(into hasher: inout Hasher) {
         _hashUpToRotation(_vertices, _edges, into: &hasher)
