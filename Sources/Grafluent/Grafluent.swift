@@ -7,6 +7,7 @@
 @_exported import Semirings
 @_exported import PriorityQueueModule
 @_exported import DisjointSetModule
+@_exported import LinkCutTreeModule
 @_exported import AdjacencyListModule
 @_exported import AdjacencyMatrixModule
 @_exported import IncidenceMatrixModule

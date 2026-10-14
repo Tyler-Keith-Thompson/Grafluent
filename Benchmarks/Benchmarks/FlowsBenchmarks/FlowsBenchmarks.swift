@@ -149,12 +149,38 @@ let benchmarks: @Sendable () -> Void = {
         Benchmark("Flows: dinicMaximumFlow, \(name)") { benchmark in
             for _ in benchmark.scaledIterations { blackHole(graph.dinicMaximumFlow(from: s, to: t) { capacities[$0] }) }
         }
+        precondition(graph.dinicMaximumFlow(from: s, to: t, dynamicTrees: true) { capacities[$0] }.value == value)
+        Benchmark("Flows: dinicMaximumFlow(dynamicTrees: true), \(name)") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(graph.dinicMaximumFlow(from: s, to: t, dynamicTrees: true) { capacities[$0] }) }
+        }
         precondition(graph.boykovKolmogorovMaximumFlow(from: s, to: t) { capacities[$0] }.value == value)
         Benchmark("Flows: boykovKolmogorovMaximumFlow, \(name)") { benchmark in
             for _ in benchmark.scaledIterations { blackHole(graph.boykovKolmogorovMaximumFlow(from: s, to: t) { capacities[$0] }) }
         }
         Benchmark("Flows: edmondsKarpMaximumFlow, \(name)", configuration: .init(maxDuration: .seconds(5), maxIterations: 3)) { benchmark in
             for _ in benchmark.scaledIterations { blackHole(graph.edmondsKarpMaximumFlow(from: s, to: t) { capacities[$0] }) }
+        }
+    }
+    // A chain of 10⁴ arcs fanning out to 10⁴ unit paths into the sink: every augmenting path runs
+    // the whole chain, which the dynamic trees push along in O(log n).
+    do {
+        let length = 10_000, width = 10_000, sink = length + width + 1
+        var edges = (0 ..< length).map { DirectedEdge(from: $0, to: $0 + 1) }
+        for j in 0 ..< width {
+            edges.append(DirectedEdge(from: length, to: length + 1 + j))
+            edges.append(DirectedEdge(from: length + 1 + j, to: sink))
+        }
+        let graph = DirectedPseudograph(vertices: 0 ... sink, edges: edges)
+        let capacities = (0 ..< edges.count).map { $0 < length ? width : 1 }
+        precondition(graph.dinicMaximumFlow(from: 0, to: sink, dynamicTrees: true) { capacities[$0] }.value == width)
+        Benchmark("Flows: maximumFlow, chain 10⁴ fanning out to 10⁴") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(graph.maximumFlow(from: 0, to: sink) { capacities[$0] }) }
+        }
+        Benchmark("Flows: dinicMaximumFlow, chain 10⁴ fanning out to 10⁴") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(graph.dinicMaximumFlow(from: 0, to: sink) { capacities[$0] }) }
+        }
+        Benchmark("Flows: dinicMaximumFlow(dynamicTrees: true), chain 10⁴ fanning out to 10⁴") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(graph.dinicMaximumFlow(from: 0, to: sink, dynamicTrees: true) { capacities[$0] }) }
         }
     }
     // The random network as a compressed sparse row graph (its own rows, parallel edges merged).

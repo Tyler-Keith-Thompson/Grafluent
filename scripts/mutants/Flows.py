@@ -74,6 +74,9 @@
 #                       its room is on an arc the residual network drops.
 #   bk_adopt_closest    adopting an orphan by any neighbor that still reaches the terminal, not the
 #                       closest, keeps both trees valid; only the paths grow longer.
+#   dt_wire_undirected  the undirected dinicMaximumFlow ignoring dynamicTrees: the plain Dinic gives
+#                       the same value and canonical cut, and which maximum flow is unspecified; the
+#                       ratio test that tells them apart times only optimized builds.
 
 TESTS = ["FlowsTests"]
 
@@ -415,4 +418,21 @@ MUTANTS = [
     Mutant("bk_free_tree", "BoykovKolmogorov.swift", "            tree[o] = free\n            parent[o] = none", "            parent[o] = none", mode="stmt"),
     Mutant("bk_current", "BoykovKolmogorov.swift", "        current = p", "        current = -1", mode="stmt"),
     Mutant("bk_skip_free", "BoykovKolmogorov.swift", "tree[v] != free", "true"),
+    # Dinic with dynamic trees
+    Mutant("dt_bound", "DinicDynamicTrees.swift", "bound += residual[a]", "bound = residual[a]", mode="stmt"),
+    Mutant("dt_nobound", "DinicDynamicTrees.swift", "guard bound > .zero else { return value }", "", mode="stmt"),
+    Mutant("dt_level", "DinicDynamicTrees.swift", "if d > sinkLevel { break }", "", mode="stmt"),
+    Mutant("dt_root", "DinicDynamicTrees.swift", "v == sink", "false"),
+    Mutant("dt_reset_sink", "DinicDynamicTrees.swift", "forest.setCost(of: sink, to: bound)", "", mode="stmt"),
+    Mutant("dt_cut_saturated", "DinicDynamicTrees.swift", "if left > .zero { break }", "break", mode="stmt"),
+    Mutant("dt_advance_residual", "DinicDynamicTrees.swift", "if residual[a] > .zero && level[Int(head[a])] == target { break }", "if level[Int(head[a])] == target { break }", mode="stmt"),
+    Mutant("dt_advance_level", "DinicDynamicTrees.swift", "level[Int(head[a])] == target", "level[Int(head[a])] >= target", nth=1),
+    Mutant("dt_current", "DinicDynamicTrees.swift", "current[v] = a", "()", mode="stmt"),
+    Mutant("dt_dead", "DinicDynamicTrees.swift", "level[v] = -1", "()", mode="stmt"),
+    Mutant("dt_children", "DinicDynamicTrees.swift", "if treeArc[u] == Int(mate[b]) { _detach(&forest, u, treeArc, mate, residual, bound) }", "", mode="stmt"),
+    Mutant("dt_phase_end", "DinicDynamicTrees.swift", "for u in 0 ..< n where treeArc[u] >= 0 { _detach(&forest, u, treeArc, mate, residual, bound) }", "", mode="stmt"),
+    Mutant("dt_writeback", "DinicDynamicTrees.swift", "residual[Int(mate[a])] += pushed", "", mode="stmt"),
+    Mutant("dt_detach_cost", "DinicDynamicTrees.swift", "forest.setCost(of: u, to: bound)", "", mode="stmt"),
+    Mutant("dt_detach_arc", "DinicDynamicTrees.swift", "treeArc[u] = -1", "", mode="stmt"),
+    Mutant("dt_wire", "MaximumFlow.swift", "dynamicTrees ? .dinicDynamicTrees : .dinic", ".dinic", nth=0),
 ]

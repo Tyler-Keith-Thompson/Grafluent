@@ -1966,6 +1966,34 @@ for fname_, groups, suite, struct in REP_FILES:
     write(fname_, L)
     COUNTS[fname_] = count
 
+# The §Dinic rows again through `dinicMaximumFlow(from:to:dynamicTrees: true, capacity:)`: the same
+# value, cut and checks, every call of the plain spelling rewritten to the dynamic-tree one.
+def dynamic_trees(lines):
+    return [re.sub(r"dinicMaximumFlow\(from: ([^,]+), to: ([^,)]+)", r"dinicMaximumFlow(from: \1, to: \2, dynamicTrees: true", l) for l in lines]
+
+
+DYNAMIC_INTRO = ("`dinicMaximumFlow(from:to:dynamicTrees: true, capacity:)` (catalog §Dinic, each row again with "
+                 "Sleator and Tarjan's dynamic trees): the value and the canonical cut exactly; the flow checked "
+                 "here for capacity and conservation, and its residual network for the cut. " + COMMON)
+body = []
+count = 0
+for cid, kind, group, args, kwargs, call in ROWS:
+    if kind != "trap" and group == "Dinic":
+        lines = unused_cleanup(row_body(cid, kind, group, args, call, kwargs))
+        body += emit_test(cid, title(cid), dynamic_trees(lines), throws=any("try #require" in l for l in lines))
+        count += 1
+write("DinicDynamicTreesTests.swift", header(wrap(DYNAMIC_INTRO), used_imports(body), "dinicMaximumFlow(from:to:dynamicTrees:capacity:)", "DinicDynamicTreesTests") + body)
+COUNTS["DinicDynamicTreesTests.swift"] = count
+body = []
+count = 0
+for cid, kind, group, args, kwargs, call in ROWS:
+    if kind != "trap" and group == "Dinic":
+        net, si, ti = row_net_terms(kind, args, call)
+        body += dynamic_trees(rep_test(cid, kind, group, net, si, ti, call))
+        count += 1
+write("DinicDynamicTreesRepresentationTests.swift", header(wrap(REP_INTRO), used_imports(body), "dinicMaximumFlow(from:to:dynamicTrees: true, capacity:) on every representation", "DinicDynamicTreesRepresentationTests", conformers=True, lines=body) + body)
+COUNTS["DinicDynamicTreesRepresentationTests.swift"] = count
+
 for k, v in COUNTS.items():
     print(f"{k}: {v}")
 print("total", sum(COUNTS.values()))

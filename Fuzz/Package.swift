@@ -22,6 +22,7 @@ let package = Package(
         .target(name: "FuzzSupport", dependencies: ["CLibFuzzer"]),
         target("FuzzPriorityQueue", ["PriorityQueueModule"]),
         target("FuzzDisjointSet", ["DisjointSetModule"]),
+        target("FuzzLinkCutTree", ["LinkCutTreeModule"]),
         target("FuzzAdjacencyList", ["GraphProtocols", "AdjacencyListModule"]),
         target("FuzzUndirectedAdjacencyList", ["GraphProtocols", "AdjacencyListModule"]),
         target("FuzzSpanningTrees", ["GraphProtocols", "AdjacencyListModule", "SpanningTrees", "Trees"]),

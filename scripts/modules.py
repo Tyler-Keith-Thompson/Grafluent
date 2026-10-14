@@ -29,6 +29,7 @@ MODULES = [
     # Data structures used by graph algorithms
     ("PriorityQueueModule", "Data structures", "IndexedPriorityQueue: an indexed 4-ary min-heap over 0..<indexBound with decrease-key; RadixHeap: a monotone priority queue over integer keys.", []),
     ("DisjointSetModule", "Data structures", "DisjointSet: union–find over 0..<count, with union by size and path halving.", []),
+    ("LinkCutTreeModule", "Data structures", "LinkCutTree: Sleator–Tarjan dynamic trees over 0..<count, with link, cut, rerooting, and minimum and addition along root paths.", []),
 
     # Representations
     ("AdjacencyListModule", "Representations", "AdjacencyList: a directed graph stored as out- and in-adjacency per vertex.", ["GraphProtocols", "swift-atomics/Atomics"]),
@@ -59,7 +60,7 @@ MODULES = [
     ("Connectivity", "Algorithms", "Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected, bi-edge-connected and k-edge-connected components, k-edge-connected subgraphs, k-components and the block–cut tree of undirected graphs.", ["GraphProtocols", "CompressedSparseRowModule", "Trees"]),
     ("Cycles", "Algorithms", "Cycle detection, cycle bases, elementary circuits, chordless cycles, minimum mean cycles (Karp), girth, feedback arc sets.", ["GraphProtocols", "Walks", "DisjointSetModule", "Connectivity"]),
     ("Tours", "Algorithms", "Eulerian trails and circuits, Chinese postman tours, Hamiltonian paths and cycles, travelling salesman tours (exact, heuristic and metaheuristic).", ["GraphProtocols", "Walks", "MatchingModule", "SpanningTrees", "PriorityQueueModule", "Flows"]),
-    ("Flows", "Algorithms", "Maximum flow (push–relabel, Dinic, Edmonds–Karp, Boykov–Kolmogorov), minimum cuts (s–t, Nagamochi–Ibaraki, Hao–Orlin), Gomory–Hu trees, minimum-cost flow (network simplex), feasible flows with lower bounds, cut metrics (conductance, expansions), edge and vertex connectivity, disjoint paths.", ["GraphProtocols", "Trees", "Walks"]),
+    ("Flows", "Algorithms", "Maximum flow (push–relabel, Dinic, Edmonds–Karp, Boykov–Kolmogorov), minimum cuts (s–t, Nagamochi–Ibaraki, Hao–Orlin), Gomory–Hu trees, minimum-cost flow (network simplex), feasible flows with lower bounds, cut metrics (conductance, expansions), edge and vertex connectivity, disjoint paths.", ["GraphProtocols", "Trees", "Walks", "LinkCutTreeModule"]),
     ("MatchingModule", "Algorithms", "Matching: Hopcroft–Karp, Hungarian, Edmonds' blossom, Gale–Shapley.", ["GraphProtocols", "BipartiteGraphs"]),
     ("ColoringModule", "Algorithms", "Vertex coloring (greedy strategies, exact chromatic number), edge coloring (Misra–Gries, König, greedy).", ["GraphProtocols", "BipartiteGraphs", "Cliques"]),
     ("Cliques", "Algorithms", "Bron–Kerbosch, every clique by size, maximum and maximum-weight cliques, k-cores, crusts and coronas, onion layers, k-trusses, triangle counting, clustering coefficient, chordal graphs (recognition, perfect elimination orderings, holes, cliques, treewidth).", ["GraphProtocols", "Walks", "Traversal"]),
@@ -95,6 +96,7 @@ TEST_TARGETS = [
     ("TraversalTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "GraphOperations", "Hypergraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Walks", "Trees"]),
     ("PriorityQueueTests", ["PriorityQueueModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("DisjointSetTests", ["DisjointSetModule", "GrafluentTestSupport"]),
+    ("LinkCutTreeTests", ["LinkCutTreeModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("ShortestPathsTests", ["GraphProtocols", "ShortestPaths", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Walks", "Trees", "Semirings"]),
     ("SpanningTreesTests", ["GraphProtocols", "SpanningTrees", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Trees"]),
     ("WalksTests", ["GraphProtocols", "Walks", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),

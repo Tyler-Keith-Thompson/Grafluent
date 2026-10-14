@@ -35,7 +35,7 @@ files by hand; `//:package_swift_test` fails when `Package.swift` disagrees with
   (`AdjacencyListModule` holds `AdjacencyList`). No catch-all modules ("Core", "Utilities").
 
 Module groups: Vocabulary (`GraphProtocols`, `Walks`, `Semirings`), Data structures
-(`PriorityQueueModule`, `DisjointSetModule`), Representations, Structures, Operations
+(`PriorityQueueModule`, `DisjointSetModule`, `LinkCutTreeModule`), Representations, Structures, Operations
 (`GraphOperations`, `GraphProducts`), Algorithms, Generators (`NamedGraphs`, `RandomGraphs`),
 Drawing and formats (`GraphDrawing`, `GraphFormats`). The README's module table lists them all.
 
@@ -296,5 +296,6 @@ isomorphism, not insertion order), except `EdgeList`, whose order is part of its
 
 Data structures: `IndexedPriorityQueue` (4-ary min-heap over `0..<indexBound` with
 decrease-key; not a `Sequence`), `RadixHeap` (monotone queue over `UInt` keys, no decrease-key),
-`DisjointSet` (union by size, path halving). Bit sets come from
+`DisjointSet` (union by size, path halving), `LinkCutTree` (Sleator–Tarjan dynamic trees over
+`0..<count`: link, cut, `makeRoot`, path minimum, addition and subtraction). Bit sets come from
 swift-collections' `BitCollections`.

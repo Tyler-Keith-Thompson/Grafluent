@@ -132,7 +132,7 @@ The full API reference is the [DocC documentation](https://tyler-keith-thompson.
 | Group | Modules |
 |---|---|
 | Vocabulary | `GraphProtocols` (protocols, edges, builders, errors), `Walks`, `Semirings` |
-| Data structures | `PriorityQueueModule`, `DisjointSetModule` |
+| Data structures | `PriorityQueueModule`, `DisjointSetModule`, `LinkCutTreeModule` |
 | Representations | `AdjacencyListModule`, `AdjacencyMatrixModule`, `IncidenceMatrixModule`, `CompressedSparseRowModule`, `EdgeListModule`, `ImplicitGraphs`, `LabeledGraphs` |
 | Structures | `DirectedAcyclicGraphModule`, `Trees`, `BipartiteGraphs`, `Multigraphs`, `StableGraphs`, `Hypergraphs`, `FunctionalGraphs` |
 | Operations | `GraphOperations` (views, subgraphs, ego graphs, condensation, line graphs, set operations, powers, contraction, relabeling, transitive closure), `GraphProducts` |

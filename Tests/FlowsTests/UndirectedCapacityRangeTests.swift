@@ -36,7 +36,7 @@ struct UndirectedCapacityRangeTests {
         #expect(along == [60, 60, 0, 115, 5])
         #expect(against == [0, 0, 55, 0, 0])
 
-        for flow in [graph.maximumFlow(from: 0, to: 3) { capacities[$0] }, graph.dinicMaximumFlow(from: 0, to: 3) { capacities[$0] }] {
+        for flow in [graph.maximumFlow(from: 0, to: 3) { capacities[$0] }, graph.dinicMaximumFlow(from: 0, to: 3) { capacities[$0] }, graph.dinicMaximumFlow(from: 0, to: 3, dynamicTrees: true) { capacities[$0] }] {
             #expect(flow.value == 120)
             #expect(flow.minimumCut == cut)
             // Capacity (at most one direction used, within c) and conservation, in Int.
@@ -81,6 +81,7 @@ struct UndirectedCapacityRangeTests {
         #expect(graph.edges.indices.map { flow.flow(ofEdgeAt: .init(position: $0, reversed: true)) } == [200, 200])
         #expect(graph.maximumFlow(from: 0, to: 2) { capacities[$0] }.value == 200)
         #expect(graph.dinicMaximumFlow(from: 0, to: 2) { capacities[$0] }.value == 200)
+        #expect(graph.dinicMaximumFlow(from: 0, to: 2, dynamicTrees: true) { capacities[$0] }.value == 200)
         let cut = graph.minimumCut(from: 0, to: 2) { capacities[$0] }
         #expect(cut.value == 200)
         #expect(Array(cut.sinkSide) == [2])

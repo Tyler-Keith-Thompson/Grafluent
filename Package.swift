@@ -18,6 +18,7 @@ let products: [Product] = [
     .library(name: "Semirings", targets: ["Semirings"]),
     .library(name: "PriorityQueueModule", targets: ["PriorityQueueModule"]),
     .library(name: "DisjointSetModule", targets: ["DisjointSetModule"]),
+    .library(name: "LinkCutTreeModule", targets: ["LinkCutTreeModule"]),
     .library(name: "AdjacencyListModule", targets: ["AdjacencyListModule"]),
     .library(name: "AdjacencyMatrixModule", targets: ["AdjacencyMatrixModule"]),
     .library(name: "IncidenceMatrixModule", targets: ["IncidenceMatrixModule"]),
@@ -75,6 +76,7 @@ let targets: [Target] = [
     // Data structures
     .target(name: "PriorityQueueModule", exclude: bazelFiles),
     .target(name: "DisjointSetModule", exclude: bazelFiles),
+    .target(name: "LinkCutTreeModule", exclude: bazelFiles),
     // Representations
     .target(name: "AdjacencyListModule", dependencies: ["GraphProtocols", .product(name: "Atomics", package: "swift-atomics")], exclude: bazelFiles),
     .target(name: "AdjacencyMatrixModule", dependencies: ["GraphProtocols", .product(name: "BitCollections", package: "swift-collections")], exclude: bazelFiles),
@@ -101,7 +103,7 @@ let targets: [Target] = [
     .target(name: "Connectivity", dependencies: ["GraphProtocols", "CompressedSparseRowModule", "Trees"], exclude: bazelFiles),
     .target(name: "Cycles", dependencies: ["GraphProtocols", "Walks", "DisjointSetModule", "Connectivity"], exclude: bazelFiles),
     .target(name: "Tours", dependencies: ["GraphProtocols", "Walks", "MatchingModule", "SpanningTrees", "PriorityQueueModule", "Flows"], exclude: bazelFiles),
-    .target(name: "Flows", dependencies: ["GraphProtocols", "Trees", "Walks"], exclude: bazelFiles),
+    .target(name: "Flows", dependencies: ["GraphProtocols", "Trees", "Walks", "LinkCutTreeModule"], exclude: bazelFiles),
     .target(name: "MatchingModule", dependencies: ["GraphProtocols", "BipartiteGraphs"], exclude: bazelFiles),
     .target(name: "ColoringModule", dependencies: ["GraphProtocols", "BipartiteGraphs", "Cliques"], exclude: bazelFiles),
     .target(name: "Cliques", dependencies: ["GraphProtocols", "Walks", "Traversal"], exclude: bazelFiles),
@@ -124,7 +126,7 @@ let targets: [Target] = [
     .target(name: "GraphFormats", dependencies: ["GraphProtocols"], exclude: bazelFiles),
 
     // Umbrella: `import Grafluent` imports every module.
-    .target(name: "Grafluent", dependencies: ["GraphProtocols", "Walks", "Semirings", "PriorityQueueModule", "DisjointSetModule", "AdjacencyListModule", "AdjacencyMatrixModule", "IncidenceMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "ImplicitGraphs", "LabeledGraphs", "DirectedAcyclicGraphModule", "Trees", "BipartiteGraphs", "Multigraphs", "StableGraphs", "Hypergraphs", "FunctionalGraphs", "GraphOperations", "GraphProducts", "Traversal", "ShortestPaths", "SpanningTrees", "Connectivity", "Cycles", "Tours", "Flows", "MatchingModule", "ColoringModule", "Cliques", "Covering", "Centrality", "CommunityDetection", "IsomorphismModule", "Planarity", "TreeAlgorithms", "Distances", "Assortativity", "SpectralGraphTheory", "Similarity", "NamedGraphs", "RandomGraphs", "GraphDrawing", "GraphFormats"], exclude: bazelFiles),
+    .target(name: "Grafluent", dependencies: ["GraphProtocols", "Walks", "Semirings", "PriorityQueueModule", "DisjointSetModule", "LinkCutTreeModule", "AdjacencyListModule", "AdjacencyMatrixModule", "IncidenceMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "ImplicitGraphs", "LabeledGraphs", "DirectedAcyclicGraphModule", "Trees", "BipartiteGraphs", "Multigraphs", "StableGraphs", "Hypergraphs", "FunctionalGraphs", "GraphOperations", "GraphProducts", "Traversal", "ShortestPaths", "SpanningTrees", "Connectivity", "Cycles", "Tours", "Flows", "MatchingModule", "ColoringModule", "Cliques", "Covering", "Centrality", "CommunityDetection", "IsomorphismModule", "Planarity", "TreeAlgorithms", "Distances", "Assortativity", "SpectralGraphTheory", "Similarity", "NamedGraphs", "RandomGraphs", "GraphDrawing", "GraphFormats"], exclude: bazelFiles),
 
     // Shared fixtures, conformance checkers and instrumentation for every test target.
     .target(name: "GrafluentTestSupport", dependencies: ["GraphProtocols"], path: "Tests/GrafluentTestSupport", exclude: bazelFiles),
@@ -138,6 +140,7 @@ let targets: [Target] = [
     .testTarget(name: "TraversalTests", dependencies: ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "GraphOperations", "Hypergraphs", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), "Walks", "Trees"], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "PriorityQueueTests", dependencies: ["PriorityQueueModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "DisjointSetTests", dependencies: ["DisjointSetModule", "GrafluentTestSupport"], exclude: ["BUILD.bazel", "README.md"]),
+    .testTarget(name: "LinkCutTreeTests", dependencies: ["LinkCutTreeModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "ShortestPathsTests", dependencies: ["GraphProtocols", "ShortestPaths", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), "Walks", "Trees", "Semirings"], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "SpanningTreesTests", dependencies: ["GraphProtocols", "SpanningTrees", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), "Trees"], exclude: ["BUILD.bazel", "README.md"]),
     .testTarget(name: "WalksTests", dependencies: ["GraphProtocols", "Walks", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "README.md"]),

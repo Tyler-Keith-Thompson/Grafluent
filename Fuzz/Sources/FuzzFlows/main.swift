@@ -251,6 +251,7 @@ enum FuzzFlows {
         let flows = [("push–relabel", graph.maximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
                      ("Edmonds–Karp", graph.edmondsKarpMaximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
                      ("Dinic", graph.dinicMaximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
+                     ("Dinic with dynamic trees", graph.dinicMaximumFlow(from: labels[s], to: labels[t], dynamicTrees: true, capacity: capacity)),
                      ("Boykov–Kolmogorov", graph.boykovKolmogorovMaximumFlow(from: labels[s], to: labels[t], capacity: capacity))]
         for (name, flow) in flows {
             check(flow.value == value, "\(name) value \(flow.value), maximumFlowValue \(value): \(context)")
@@ -357,6 +358,7 @@ enum FuzzFlows {
         let flows = [("push–relabel", graph.maximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
                      ("Edmonds–Karp", graph.edmondsKarpMaximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
                      ("Dinic", graph.dinicMaximumFlow(from: labels[s], to: labels[t], capacity: capacity)),
+                     ("Dinic with dynamic trees", graph.dinicMaximumFlow(from: labels[s], to: labels[t], dynamicTrees: true, capacity: capacity)),
                      ("Boykov–Kolmogorov", graph.boykovKolmogorovMaximumFlow(from: labels[s], to: labels[t], capacity: capacity))]
         typealias Arc = DirectedView<Pseudograph<Int>>.Edges.Index
         for (name, flow) in flows {
@@ -725,6 +727,7 @@ enum FuzzFlows {
                     check(Int(graph.maximumFlow(from: labels[s], to: labels[t], capacity: small).value) == value, "push–relabel: \(context)")
                     check(Int(graph.edmondsKarpMaximumFlow(from: labels[s], to: labels[t], capacity: small).value) == value, "Edmonds–Karp: \(context)")
                     check(Int(graph.dinicMaximumFlow(from: labels[s], to: labels[t], capacity: small).value) == value, "Dinic: \(context)")
+                    check(Int(graph.dinicMaximumFlow(from: labels[s], to: labels[t], dynamicTrees: true, capacity: small).value) == value, "Dinic with dynamic trees: \(context)")
                     check(Array(graph.minimumCut(from: labels[s], to: labels[t], capacity: small).sinkSide) == Array(graph.minimumCut(from: labels[s], to: labels[t], capacity: capacity).sinkSide), "cut: \(context)")
                 } else {
                     let small: (Int) -> UInt8 = { UInt8(caps[$0]) }
@@ -732,6 +735,7 @@ enum FuzzFlows {
                     check(Int(graph.maximumFlow(from: labels[s], to: labels[t], capacity: small).value) == value, "push–relabel: \(context)")
                     check(Int(graph.edmondsKarpMaximumFlow(from: labels[s], to: labels[t], capacity: small).value) == value, "Edmonds–Karp: \(context)")
                     check(Int(graph.dinicMaximumFlow(from: labels[s], to: labels[t], capacity: small).value) == value, "Dinic: \(context)")
+                    check(Int(graph.dinicMaximumFlow(from: labels[s], to: labels[t], dynamicTrees: true, capacity: small).value) == value, "Dinic with dynamic trees: \(context)")
                     check(Array(graph.minimumCut(from: labels[s], to: labels[t], capacity: small).sinkSide) == Array(graph.minimumCut(from: labels[s], to: labels[t], capacity: capacity).sinkSide), "cut: \(context)")
                 }
             }

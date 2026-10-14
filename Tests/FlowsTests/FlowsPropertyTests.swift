@@ -108,7 +108,8 @@ struct FlowsPropertyTests {
 
             let flows = [graph.maximumFlow(from: listed[s], to: listed[t], capacity: { capacities[$0] }),
                          graph.edmondsKarpMaximumFlow(from: listed[s], to: listed[t], capacity: { capacities[$0] }),
-                         graph.dinicMaximumFlow(from: listed[s], to: listed[t], capacity: { capacities[$0] })]
+                         graph.dinicMaximumFlow(from: listed[s], to: listed[t], capacity: { capacities[$0] }),
+                         graph.dinicMaximumFlow(from: listed[s], to: listed[t], dynamicTrees: true, capacity: { capacities[$0] })]
             let edmondsKarpWrittenOut = (0 ..< m).map { flows[1].flow(ofEdgeAt: $0) } == writtenFlows
             #expect(edmondsKarpWrittenOut, "\(context)")
             for (which, flow) in flows.enumerated() {
@@ -209,7 +210,8 @@ struct FlowsPropertyTests {
             }
             let flows = [graph.maximumFlow(from: listed[s], to: listed[t], capacity: { capacities[$0] }),
                          graph.edmondsKarpMaximumFlow(from: listed[s], to: listed[t], capacity: { capacities[$0] }),
-                         graph.dinicMaximumFlow(from: listed[s], to: listed[t], capacity: { capacities[$0] })]
+                         graph.dinicMaximumFlow(from: listed[s], to: listed[t], capacity: { capacities[$0] }),
+                         graph.dinicMaximumFlow(from: listed[s], to: listed[t], dynamicTrees: true, capacity: { capacities[$0] })]
             let cut = graph.minimumCut(from: listed[s], to: listed[t], capacity: { capacities[$0] })
             #expect(cut.value == best, "\(context)")
             let sinkSideIndices = Set(cut.sinkSide.map { listed.firstIndex(of: $0)! }) == leastSink
@@ -274,7 +276,8 @@ struct FlowsPropertyTests {
             #expect(valueScaled, "\(context)")
             // Integrality: integer-valued capacities give integer flows from every algorithm.
             for flow in [graph.maximumFlow(from: s, to: t, capacity: { Double(capacities[$0]) }),
-                         graph.dinicMaximumFlow(from: s, to: t, capacity: { Double(capacities[$0]) })] {
+                         graph.dinicMaximumFlow(from: s, to: t, capacity: { Double(capacities[$0]) }),
+                         graph.dinicMaximumFlow(from: s, to: t, dynamicTrees: true, capacity: { Double(capacities[$0]) })] {
                 #expect(flow.value == Double(integer.value), "\(context)")
                 let integral = (0 ..< m).allSatisfy { flow.flow(ofEdgeAt: $0) == flow.flow(ofEdgeAt: $0).rounded() }
                 #expect(integral, "\(context)")
@@ -357,6 +360,7 @@ struct FlowsPropertyTests {
             }
             let flows = [graph.maximumFlow(from: 0, to: n - 1, capacity: { capacities[$0] }),
                          graph.dinicMaximumFlow(from: 0, to: n - 1, capacity: { capacities[$0] }),
+                         graph.dinicMaximumFlow(from: 0, to: n - 1, dynamicTrees: true, capacity: { capacities[$0] }),
                          graph.edmondsKarpMaximumFlow(from: 0, to: n - 1, capacity: { capacities[$0] })]
             for flow in flows {
                 #expect(flow.value == value, "\(context)")

@@ -9,6 +9,8 @@ enum _MaximumFlowAlgorithm {
     case pushRelabel
     case edmondsKarp
     case dinic
+    /// Dinic with Sleator and Tarjan's dynamic trees.
+    case dinicDynamicTrees
     case boykovKolmogorov
 }
 
@@ -103,9 +105,13 @@ func _runMaximumFlow<C: Comparable & AdditiveArithmetic>(_ edges: _FlowEdges, _ 
         preflow.markSinkSide(t)
         inSink = Array(UnsafeBufferPointer(start: preflow.marks, count: n))
         if algorithm == .pushRelabel { preflow.secondPhase(from: s, to: t) }
-    case .edmondsKarp, .dinic, .boykovKolmogorov:
-        value = algorithm == .edmondsKarp ? _edmondsKarp(network, from: s, to: t)
-            : algorithm == .dinic ? _dinic(network, from: s, to: t) : _boykovKolmogorov(network, from: s, to: t)
+    case .edmondsKarp, .dinic, .dinicDynamicTrees, .boykovKolmogorov:
+        switch algorithm {
+        case .edmondsKarp: value = _edmondsKarp(network, from: s, to: t)
+        case .dinic: value = _dinic(network, from: s, to: t)
+        case .dinicDynamicTrees: value = _dinicDynamicTrees(network, from: s, to: t)
+        default: value = _boykovKolmogorov(network, from: s, to: t)
+        }
         inSink = [Bool](repeating: false, count: n)
         let queue = UnsafeMutablePointer<Int>.allocate(capacity: max(n, 1))
         defer { queue.deallocate() }
@@ -174,15 +180,21 @@ extension DirectedGraph {
     /// Dinic needs many phases on long, thin networks. Prefer `maximumFlow(from:to:capacity:)`
     /// unless the network has unit capacities.
     ///
-    /// - Complexity: O(n² m); O(m √n) on unit networks (one in- or out-arc of capacity 1 per inner
-    ///   vertex); O(m min(√m, n^(2/3))) with unit capacities.
+    /// - Parameter dynamicTrees: Whether each blocking flow keeps its partial augmenting paths in
+    ///   Sleator and Tarjan's dynamic trees (link–cut trees), so pushing flow along a path costs
+    ///   O(log n) instead of its length. That pays when augmenting paths are long and many share
+    ///   their arcs, as along a long chain that fans out near the sink; on short paths it is
+    ///   slower by a constant factor.
+    /// - Complexity: O(n² m), or O(n m log n) with `dynamicTrees`; O(m √n) on unit networks (one
+    ///   in- or out-arc of capacity 1 per inner vertex); O(m min(√m, n^(2/3))) with unit
+    ///   capacities.
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
     @inlinable
     public func dinicMaximumFlow<C: Comparable & AdditiveArithmetic>(
-        from source: Vertex, to sink: Vertex, capacity: (Edges.Index) -> C
+        from source: Vertex, to sink: Vertex, dynamicTrees: Bool = false, capacity: (Edges.Index) -> C
     ) -> Flow<Self, C> {
-        _maximumFlow(from: source, to: sink, capacity: capacity, .dinic)
+        _maximumFlow(from: source, to: sink, capacity: capacity, dynamicTrees ? .dinicDynamicTrees : .dinic)
     }
 
     /// A maximum flow by Boykov and Kolmogorov's algorithm: two search trees, grown from the
@@ -285,14 +297,15 @@ extension Graph {
         _maximumFlow(from: source, to: sink, capacity: capacity, .edmondsKarp)
     }
 
-    /// A maximum flow over `directedView` by Dinic's blocking flows.
+    /// A maximum flow over `directedView` by Dinic's blocking flows, with dynamic trees when
+    /// `dynamicTrees` is true (see `DirectedGraph.dinicMaximumFlow(from:to:dynamicTrees:capacity:)`).
     ///
     /// - Precondition: as for `maximumFlow(from:to:capacity:)`.
     @inlinable
     public func dinicMaximumFlow<C: Comparable & AdditiveArithmetic>(
-        from source: Vertex, to sink: Vertex, capacity: (Edges.Index) -> C
+        from source: Vertex, to sink: Vertex, dynamicTrees: Bool = false, capacity: (Edges.Index) -> C
     ) -> Flow<DirectedView<Self>, C> {
-        _maximumFlow(from: source, to: sink, capacity: capacity, .dinic)
+        _maximumFlow(from: source, to: sink, capacity: capacity, dynamicTrees ? .dinicDynamicTrees : .dinic)
     }
 
     /// A maximum flow over `directedView` by Boykov and Kolmogorov's algorithm (see

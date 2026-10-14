@@ -52,6 +52,16 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "LinkCutTreeBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "LinkCutTreeModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/LinkCutTreeBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "UndirectedAdjacencyListBenchmarks",
             dependencies: [
                 "BenchmarkSupport",
