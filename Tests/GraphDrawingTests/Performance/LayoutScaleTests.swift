@@ -12,9 +12,18 @@ import Planarity
 import RandomGraphs
 import Testing
 
+// The time limits only stop a hang. An unoptimized build (the one mutation testing runs, several
+// suites at once) takes some times longer, so its limit is longer; the elapsed-time bounds inside
+// the tests are what an optimized build is held to.
+#if DEBUG
+private let hangLimit: TimeLimitTrait.Duration = .minutes(4)
+#else
+private let hangLimit: TimeLimitTrait.Duration = .minutes(1)
+#endif
+
 @Suite("GraphDrawing layouts at scale")
 struct LayoutScaleTests {
-    @Test("planarLayout on a triangulated 300 × 300 grid: at most 10 × planarEmbedding()", .timeLimit(.minutes(1)))
+    @Test("planarLayout on a triangulated 300 × 300 grid: at most 10 × planarEmbedding()", .timeLimit(hangLimit))
     func planar() async throws {
         try await Task {
             let side = 300
@@ -47,7 +56,7 @@ struct LayoutScaleTests {
         }.value
     }
 
-    @Test("ForceAtlas2 with Barnes–Hut on 2 × 10⁴ vertices, 20 iterations", .timeLimit(.minutes(1)))
+    @Test("ForceAtlas2 with Barnes–Hut on 2 × 10⁴ vertices, 20 iterations", .timeLimit(hangLimit))
     func forceAtlas2() async {
         await Task {
             var generator = Xoshiro256StarStar(seed: 1)
@@ -63,7 +72,7 @@ struct LayoutScaleTests {
         }.value
     }
 
-    @Test("spectralLayout and multidimensionalScalingLayout on 400 vertices", .timeLimit(.minutes(1)))
+    @Test("spectralLayout and multidimensionalScalingLayout on 400 vertices", .timeLimit(hangLimit))
     func dense() async throws {
         try await Task {
             var generator = Xoshiro256StarStar(seed: 2)
@@ -83,7 +92,7 @@ struct LayoutScaleTests {
         }.value
     }
 
-    @Test("shell, spiral, bipartite and multipartite layouts of 10⁶ vertices", .timeLimit(.minutes(1)))
+    @Test("shell, spiral, bipartite and multipartite layouts of 10⁶ vertices", .timeLimit(hangLimit))
     func large() async {
         await Task {
             let n = 1_000_000

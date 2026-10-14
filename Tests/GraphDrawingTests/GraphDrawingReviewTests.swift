@@ -3,8 +3,8 @@
 // reduction keeps the best order it has seen, not the last one (a DAG whose last sweep is worse,
 // values from ref.py's model). Fruchterman–Reingold's `weight:` scales attraction (weight 0 is no
 // edge, and parallel edges add their weights). Walker's even spacing divides by 3 (positions are
-// not dyadic), coincident vertices separate under Fruchterman–Reingold, and caller layers with huge
-// numbers skip the empty layers. See README.md.
+// not dyadic), a left contour threaded twice keeps its mod sums, coincident vertices separate under
+// Fruchterman–Reingold, and caller layers with huge numbers skip the empty layers. See README.md.
 
 import GraphDrawing
 import GraphProtocols
@@ -96,6 +96,28 @@ struct GraphDrawingReviewTests {
         #expect(abs(p[2].x + 5.0 / 6) <= 1e-12 && abs(p[3].x - 5.0 / 6) <= 1e-12 && p[2].y == 1 && p[3].y == 1)
         for (a, b) in [(1, 2), (2, 3), (3, 4)] { #expect(abs(p[b].x - p[a].x - 5.0 / 3) <= 1e-12) }
         #expect((7 ... 16).map { p[$0] } == (0 ..< 10).map { SIMD2(Double($0) - 4.5, 3) })
+    }
+
+    @Test("Reingold–Tilford: a left contour threaded twice keeps its mod sums, so depth 5 stays 1 apart (ref.py's model)")
+    func leftContourThreadedTwice() throws {
+        // The left contour of the root's children runs through two threads before the deepest
+        // subtree is placed; the thread it gains then must carry the mods summed along it. The
+        // smallest such tree found among 200 000 random ones.
+        let parents: [Int?] = [nil, 0, 0, 2, 3, 2, 1, 6, 3, 7, 5, 8, 10, 7, 13, 13, 12, 12, 16, 16, 19, 17, 21, 21, 21]
+        let tree = try #require(RootedTree(parents: parents))
+        let p = tree.reingoldTilfordLayout().positions
+        let expected: [SIMD2<Double>] = [
+            SIMD2(0, 0), SIMD2(-1.25, 1), SIMD2(1.25, 1), SIMD2(0.5, 2), SIMD2(0, 3), SIMD2(2, 2), SIMD2(-1.25, 2),
+            SIMD2(-1.25, 3), SIMD2(1, 3), SIMD2(-1.75, 4), SIMD2(2, 3), SIMD2(1, 4), SIMD2(2, 4), SIMD2(-0.75, 4),
+            SIMD2(-1.25, 5), SIMD2(-0.25, 5), SIMD2(0.75, 5), SIMD2(3.25, 5), SIMD2(0.25, 6), SIMD2(1.25, 6),
+            SIMD2(1.25, 7), SIMD2(3.25, 6), SIMD2(2.25, 7), SIMD2(3.25, 7), SIMD2(4.25, 7),
+        ]
+        #expect(p == expected)
+        // Every depth's vertices at least the separation, 1, apart.
+        for depth in 0 ... 7 {
+            let xs = p.filter { $0.y == Double(depth) }.map(\.x).sorted()
+            for (a, b) in zip(xs, xs.dropFirst()) { #expect(b - a >= 1, "depth \(depth): \(a), \(b)") }
+        }
     }
 
     @Test("Fruchterman–Reingold from coincident vertices: they separate, deterministically", arguments: [nil, 1.2] as [Double?])
