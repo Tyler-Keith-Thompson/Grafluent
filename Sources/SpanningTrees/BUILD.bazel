@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Minimum and maximum spanning forests by Kruskal, Prim and Borůvka.
+# Minimum and maximum spanning forests by Kruskal, Prim and Borůvka; minimum and maximum spanning arborescences and branchings (Edmonds); Steiner trees (Mehlhorn; Kou, Markowsky and Berman); random spanning trees (Wilson).
 swift_library(
     name = "SpanningTrees",
     srcs = glob(["**/*.swift"]),

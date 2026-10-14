@@ -262,4 +262,6 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(stableView.primMinimumSpanningTree { w[$0] })
         }
     }
+
+    arborescenceBenchmarks()
 }

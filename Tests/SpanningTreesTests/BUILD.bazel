@@ -23,6 +23,8 @@ swift_library(
         "//Sources/AdjacencyListModule",
         "//Sources/AdjacencyMatrixModule",
         "//Sources/CompressedSparseRowModule",
+        "//Sources/Multigraphs",
+        "//Sources/StableGraphs",
         "//Tests/GrafluentTestSupport",
         "@swiftpkg_swift_property_based//:PropertyBased",
         "//Sources/Trees",

@@ -72,3 +72,51 @@ extension Forest {
 - Borůvka: O(m log n) over at most ⌈log₂ n⌉ rounds, each a scan of the edges still between
   components.
 - Unweighted: O(m α(n)), with no sort.
+
+## Arborescences, branchings, Steiner trees and random spanning trees
+
+```swift
+/// Edges with at most one into each vertex and no cycle: a forest of arborescences.
+@frozen
+public struct Branching<G: DirectedGraph, Weight: Comparable & AdditiveArithmetic> {
+    public let edges: [G.Edges.Index]   // position order
+    public let weight: Weight           // added up in `edges` order
+}
+
+/// A tree among the graph's edges connecting every terminal.
+@frozen
+public struct SteinerTree<G: Graph, Weight: Comparable & AdditiveArithmetic> {
+    public let edges: [G.Edges.Index]   // position order
+    public let weight: Weight
+}
+// Both: Equatable; Hashable when Weight is; Sendable when G.Edges.Index and Weight are.
+
+extension DirectedGraph {
+    // Edmonds (Tarjan's contraction over skew heaps); O(m log m). Self-loops never weighed; from a
+    // root, the edges into it never weighed. Weights finite; the maximum never negates.
+    func minimumSpanningArborescence<W>(from root: Vertex, weight: (Edges.Index) -> W) -> Branching<Self, W>?
+    func minimumSpanningArborescence<W>(checkedFrom root: Vertex, weight: (Edges.Index) -> W) throws(VertexNotFound) -> Branching<Self, W>?
+    func maximumSpanningArborescence<W>(from root: Vertex, weight: (Edges.Index) -> W) -> Branching<Self, W>?
+    func maximumSpanningArborescence<W>(checkedFrom root: Vertex, weight: (Edges.Index) -> W) throws(VertexNotFound) -> Branching<Self, W>?
+    func minimumSpanningArborescence<W>(weight: (Edges.Index) -> W) -> Branching<Self, W>?   // over every root
+    func maximumSpanningArborescence<W>(weight: (Edges.Index) -> W) -> Branching<Self, W>?
+    func minimumBranching<W>(weight: (Edges.Index) -> W) -> Branching<Self, W>
+    func maximumBranching<W>(weight: (Edges.Index) -> W) -> Branching<Self, W>
+}
+
+extension Arborescence {
+    init?<G: DirectedGraph, W>(_ branching: Branching<G, W>, in graph: G)   // nil unless it spans
+}
+
+extension Graph {
+    // Mehlhorn; O(m log m). Nonnegative weights; nil when terminals are in different components.
+    func steinerTree<W>(terminals: some Sequence<Vertex>, weight: (Edges.Index) -> W) -> SteinerTree<Self, W>?
+    func steinerTree<W>(checkedTerminals: some Sequence<Vertex>, weight: (Edges.Index) -> W) throws(VertexNotFound) -> SteinerTree<Self, W>?
+    // Kou, Markowsky and Berman; O(t (m + n) log n + t²).
+    func kouSteinerTree<W>(terminals: some Sequence<Vertex>, weight: (Edges.Index) -> W) -> SteinerTree<Self, W>?
+    func kouSteinerTree<W>(checkedTerminals: some Sequence<Vertex>, weight: (Edges.Index) -> W) throws(VertexNotFound) -> SteinerTree<Self, W>?
+    // Wilson: uniform, or ∝ the product of positive finite weights; one tree per component.
+    func randomSpanningTree(using generator: inout some RandomNumberGenerator) -> SpanningForest<Self, Int>
+    func randomSpanningTree<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator) -> SpanningForest<Self, W>
+}
+```

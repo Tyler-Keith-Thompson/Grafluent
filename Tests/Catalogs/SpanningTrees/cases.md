@@ -166,7 +166,65 @@ Oracles are written inside each test (no shared helpers).
 | ST-126 | Through `any Graph<Int>` existentials, and generic code | the same answers |
 | ST-127 | Weight-call counts (ST-63) for every entry point, including `from:` | exactly once per non-loop edge read |
 | ST-128 | No hashing on an indexed graph: a counting-hash vertex type on `UndirectedAdjacencyList` sees 0 hash calls during Kruskal and Borůvka (and only the root's for `from:`) | 0 |
-| ST-129 | Not on `DirectedGraph` (compile-time: documented, not a test); `digraph.undirectedView` works (ST-92) | — |
+| ST-129 | Spanning forests are not on `DirectedGraph` (compile-time: documented, not a test; its counterpart is the spanning arborescence, section M); `digraph.undirectedView` works (ST-92) | — |
+
+## M. Spanning arborescences and branchings (ST-200 – ST-218)
+
+`NXB` (NetworkX `test_branchings.py` `G_array`, 9 vertices `0…8`, edges in row-major order):
+`(0,2,12) (0,4,12) (1,0,4) (1,5,13) (2,1,17) (2,3,21) (2,5,12) (3,0,5) (3,4,17) (3,6,18) (4,7,12) (5,6,14) (5,8,12) (6,2,21) (6,8,15) (7,3,19) (7,6,15) (8,7,18)`.
+Every optimum below is unique (brute force over every choice of entering edge, in ref.py).
+Edges are positions in position order.
+
+| ID | Graph | Expected |
+|---|---|---|
+| ST-200 | `NXB` | maximum branching = maximum spanning arborescence = from 0: `[0,3,4,5,8,9,14,17]`, 131 (NetworkX `maximum_branching`, `maximum_spanning_arborescence`). Minimum spanning arborescence `[0,1,4,6,7,10,11,12]`, 96, root 3 (NetworkX `minimum_spanning_arborescence`). Minimum branching empty. Negated weights: the minimum branching is the maximum one, −131 |
+| ST-201 | `NXB`, from each root r | max / min: r=0 131 / 110, 1 124 / 97, 2 124 / 102, 3 124 / 96, 4 120 / 103, 5 128 / 109, 6 127 / 109, 7 125 / 103, 8 128 / 109, edge sets as in ref.py `NXB_ROOTED` |
+| ST-202 | no vertices | branchings empty; no spanning arborescence (nil); no weight read |
+| ST-203 | one vertex, with and without a self-loop | the empty arborescence from it, unrooted too; the loop never weighed |
+| ST-204 | 0, 1; `(0,1,5) (0,1,2) (1,0,1) (0,1,9) (1,1,−7)` | from 0: min `[1]`, max `[3]`; unrooted min `[2]` (root 1, weight 1), max `[3]`; maximum branching `[3]`; minimum branching empty |
+| ST-205 | `0→1, 2→1` | nil from every root and unrooted; a maximum branching of one edge |
+| ST-206 | `(0,1,1) (1,2,1) (2,0,1) (3,0,50) (3,2,60)` | root forced to 3: min `[0,1,3]` 52; max `[0,3,4]` 111, which is also the maximum branching |
+| ST-207 | `(0,1,3) (1,0,4) (1,2,1) (2,2,9) (2,0,2) (0,2,5)` | weighed: from 0, positions 0, 2, 5 (not the edges into the root, not the loop); unrooted and branchings, every non-loop |
+| ST-208 | `a→b 1.5, b→c 0.25, a→c 2` | checked spellings: `z` throws `VertexNotFound`; from a: min 1.75, max 3.5; from b nil |
+| ST-209 | `NXB` in a `StableDirectedGraph` with a removed vertex (no vertex indices) | ST-200 and ST-201's weights, positions shifted by one |
+| ST-210 | `AdjacencyMatrix` 0→1 0.5, 1→2 0.25, 0→2 1, 2→1 0.125 | from 0: min 0.75 (0→1, 1→2), max 1.5; maximum branching 1.5; unrooted min 0.75 |
+| ST-211 | `(0,1,2) (2,3,2)` on 4 vertices | maximum branching `[0,1]`; `Arborescence(_:in:)` nil (does not span) |
+| ST-212 | NaN, +∞, −∞ weights; a root not in the graph | trap |
+| ST-215 | seeded random multigraphs, n ≤ 6 | every entry point equals brute force; results are branchings (one edge in per vertex, no cycle, no loop, sorted, weight = sum) |
+| ST-216 | unsigned weights | the same optima as their `Int` copies; the minimum branching is empty |
+| ST-217 | random `CompressedSparseRow`, n ≤ 40 | unrooted = best rooted; branchings bound the arborescences and the empty set; `Double` weights agree |
+| ST-218 | PropertyBased with shrinking | the minimum arborescence from 0 survives every single-edge exchange; nil exactly when 0 does not reach every vertex |
+
+## N. Steiner trees (ST-220 – ST-230)
+
+Both `steinerTree` (Mehlhorn) and `kouSteinerTree` (Kou–Markowsky–Berman) on each row.
+
+| ID | Graph | Expected |
+|---|---|---|
+| ST-220 | NetworkX `test_steinertree.py` G1, terminals 1, 3, 5 | `[0,1,5,6]`, 22 |
+| ST-221 | NetworkX G1 terminals 1…5; G2 terminals 0, 2, 3; G3 terminals 1, 3, 5, 6, 8, 10, 11, 12, 13 | 32, 16, 14 (NetworkX `steiner_tree`, both methods) |
+| ST-222 | no terminals, one, or one repeated | the empty tree, weight 0; repeats count once |
+| ST-223 | two components, terminals across them | nil |
+| ST-224 | `(0,1,4) (1,1,0) (1,0,2) (1,2,3) (2,1,3) (0,0,0)`, terminals 0, 2 | weight 5 through position 2; positions 0, 2, 3, 4 weighed |
+| ST-225 | zero-weight star `0–1, 0–2, 0–3` with a ring of 5s and a spur `0–4` | `[0,1,2]`, 0 |
+| ST-226 | checked spellings | `VertexNotFound` for a missing terminal |
+| ST-227 | a missing terminal, a negative or NaN weight | trap |
+| ST-228 | seeded random multigraphs, n ≤ 7, ≤ 11 edges | a tree over the terminals, leaves terminals, within 2(1 − 1/t) of the brute-force optimum |
+| ST-228b | seeded 4×4, 6×6 and 8×8 grids with weights 1…3 and diagonals | both methods: trees, terminal leaves, no heavier than the terminals' distance-graph minimum spanning tree |
+| ST-229 | PropertyBased | two terminals: the shortest-path distance; every vertex a terminal: the minimum spanning tree's weight (nil when disconnected) |
+| ST-230 | squares whose two routes tie, searched first from opposite sides (Kou only) | the union holds a cycle; the minimum spanning tree of the union and pruning give `[1,2,4,5,6,7]`, 25, and `[3,4,5,6,7,8]`, 52 (one pruned leaf; two pruned in turn) |
+
+## O. Random spanning trees (ST-240 – ST-246)
+
+| ID | Graph | Expected |
+|---|---|---|
+| ST-240 | no vertices; one vertex with a self-loop; one edge | empty; empty, the loop never weighed; that edge |
+| ST-241 | K₄ | its 16 spanning trees (Cayley), uniform: χ² over 32,000 draws below 44.3 (15 d.f.) |
+| ST-242 | triangle with 0–1 doubled | 5 spanning trees (matrix-tree theorem), uniform: χ² over 25,000 draws below 23.5 |
+| ST-243 | 4-cycle with chord, weights 1, 2, 3, 4, 0.5 | 8 spanning trees, each in proportion to its product (sum of products = the weighted matrix-tree determinant, 60.5): χ² over 40,000 draws below 29.9 |
+| ST-244 | two triangles and an isolated vertex | the same seed gives the same forest; 4 edges, one tree per component |
+| ST-245 | a zero, negative, infinite or NaN weight | trap |
+| ST-246 | PropertyBased | every draw is a spanning forest |
 
 ## Counts
 
@@ -182,6 +240,9 @@ Oracles are written inside each test (no shared helpers).
 | H. Properties | ST-100 – ST-107 | 8 |
 | I. Stress | ST-110 – ST-116 | 7 |
 | J. Preconditions and conformance | ST-120 – ST-129 | 10 |
-| **Total** | | **101** |
+| M. Arborescences and branchings | ST-200 – ST-218 | 17 |
+| N. Steiner trees | ST-220 – ST-230 | 12 |
+| O. Random spanning trees | ST-240 – ST-246 | 7 |
+| **Total** | | **137** |
 
-Benchmarks (not tests): ST-B01 – ST-B04.
+Benchmarks (not tests): ST-B01 – ST-B04; ST-B05 Edmonds against a hand-written Edmonds on flat arrays, ST-B06 Steiner trees against a hand-written multi-source Dijkstra, ST-B07 Wilson against a hand-written Wilson.

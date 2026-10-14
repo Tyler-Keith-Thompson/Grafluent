@@ -2,8 +2,10 @@
 
 Tests for minimum and maximum spanning forests of undirected graphs (`Graph`), by Kruskal, Prim
 (over every component, or from one root) and Borůvka, the unweighted spanning forest, and the
-`SpanningForest` result. Nothing is offered on `DirectedGraph`; a bidirectional digraph is spanned
-through `.undirectedView`. The tests use only the public API. Each test is self-contained; shared
+`SpanningForest` result; spanning arborescences and branchings of directed graphs by Edmonds'
+algorithm (`Branching`); Steiner trees by Mehlhorn's algorithm and by Kou, Markowsky and Berman's
+(`SteinerTree`); and random spanning trees by Wilson's algorithm. Spanning forests are not offered
+on `DirectedGraph`; a bidirectional digraph is spanned through `.undirectedView`. The tests use only the public API. Each test is self-contained; shared
 material is the fixtures, the `ReferencePseudograph` test conformer and the seeded generator in
 `GrafluentTestSupport`.
 
@@ -24,8 +26,30 @@ extension Graph
     func primMinimumSpanningTree(from root: Vertex, weight:) -> SpanningForest<Self, W>      // root's component only
     func boruvkaMinimumSpanningTree(weight:) -> SpanningForest<Self, W>                      // canonical edge set, by round
 
+    func randomSpanningTree(using:) -> SpanningForest<Self, Int>                             // uniform (Wilson); edges in joining order
+    func randomSpanningTree(weight:using:) -> SpanningForest<Self, W>                        // W: BinaryFloatingPoint; ∝ the product of the weights
+    func steinerTree(terminals:weight:) -> SteinerTree<Self, W>?                             // Mehlhorn; nil when terminals are disconnected
+    func steinerTree(checkedTerminals:weight:) throws(VertexNotFound) -> SteinerTree<Self, W>?
+    func kouSteinerTree(terminals:weight:) -> SteinerTree<Self, W>?                          // Kou–Markowsky–Berman
+    func kouSteinerTree(checkedTerminals:weight:) throws(VertexNotFound) -> SteinerTree<Self, W>?
+
+extension DirectedGraph
+    func minimumSpanningArborescence(from root: Vertex, weight:) -> Branching<Self, W>?     // nil unless root reaches every vertex
+    func minimumSpanningArborescence(checkedFrom:weight:) throws(VertexNotFound) -> Branching<Self, W>?
+    func minimumSpanningArborescence(weight:) -> Branching<Self, W>?                        // best root; nil when none reaches all
+    func maximumSpanningArborescence(from:weight:), (checkedFrom:weight:), (weight:)        // likewise; never negates
+    func minimumBranching(weight:) -> Branching<Self, W>                                     // negative edges only
+    func maximumBranching(weight:) -> Branching<Self, W>                                     // positive edges only
+
+struct Branching<G: DirectedGraph, Weight>, struct SteinerTree<G: Graph, Weight>
+    let edges: [G.Edges.Index]                         // position order
+    let weight: Weight
+
 extension Forest
     init(_ forest: SpanningForest<G, W>, in graph: G)                                        // graph's vertices in order, forest's edges in order
+
+extension Arborescence
+    init?(_ branching: Branching<G, W>, in graph: G)                                         // nil unless it spans
 ```
 
 `W` is `Comparable & AdditiveArithmetic` throughout.
@@ -76,11 +100,15 @@ optimality.
 | `SpanningTreeStressTests.swift` | §I: a long path, a grid, a star, a complete graph, equal weights on a sparse random graph, the real-world fixtures, inside a `Task` |
 | `SpanningTreeReviewTests.swift` | §K: NaN weights off the forest, the default's summation order, the dense path's tie rule and Double total, Prim from a root on a disconnected graph; file-private conformers with vertex indices only and with none |
 | `DensePrimAndForestTests.swift` | §L: the dense path (vertex indices, m ≥ n²/4): complete graphs with ties, all ties, a hidden lightest path, a decreasing key, a doubled K₉ with self-loops, disconnected dense graphs, vertex indices without edge indices, ±∞, NaN, a property test against a reference Kruskal; the heap path between the two thresholds; `Forest(_:in:)` |
+| `ArborescenceTests.swift` | §M: NetworkX's branching graph from every root, the trivial graphs, parallel edges, unreachable vertices, a forced root, weight calls, checked spellings, a graph without vertex indices, `AdjacencyMatrix`, `Arborescence(_:in:)`, traps |
+| `ArborescencePropertyTests.swift` | §M: brute force over every choice of entering edge, unsigned weights, unrooted = best rooted, single-edge exchanges with shrinking |
+| `SteinerTreeTests.swift` | §N: NetworkX's Steiner graphs, trivial and disconnected terminals, multigraphs, zero weights, checked spellings, traps; brute force and exact cases |
+| `RandomSpanningTreeTests.swift` | §O: uniformity (K₄, a multigraph) and weighted proportions by χ², reproducibility, forests, traps |
 | `SpanningTreeConformanceTests.swift` | §J: preconditions (exit tests), value semantics, Equatable / Hashable / Sendable, existentials and generic code, weight-call counts per representation, no vertex hashing, digraphs through `.undirectedView` |
 
 ## Case IDs
 
-Case IDs (ST-01 … ST-149) refer to the catalog of cases (`Tests/Catalogs/SpanningTrees/cases.md`,
+Case IDs (ST-01 … ST-246) refer to the catalog of cases (`Tests/Catalogs/SpanningTrees/cases.md`,
 with `ref.py` and `api.md`). Each test's name starts with its ID; ST-56 and ST-58 each have a
 trapping test and a filtered one.
 
@@ -98,7 +126,10 @@ trapping test and a filtered one.
 | ST-120 – ST-129 | J. Preconditions and conformance | `SpanningTreeConformanceTests.swift` |
 | ST-130 – ST-134 | K. A NaN weight on an edge never taken traps on every path that reads weights; the default's total is added up in the listed order (no overflow Kruskal would not have); the dense path's tie rule on conformers with both indices, vertex indices only, and none; its Double total bit for bit; Prim from a root on a disconnected graph | `SpanningTreeReviewTests.swift` |
 | ST-135 – ST-149 | L. Dense Prim (ST-135 – ST-144), `Forest(_:in:)` (ST-145 – ST-148), and the heap's canonical Prim between 4n and n²/4 edges (ST-149) | `DensePrimAndForestTests.swift` |
-| ST-B01 – ST-B04 | Benchmarks | not tests |
+| ST-200 – ST-218 | M. Spanning arborescences and branchings | `ArborescenceTests.swift`, `ArborescencePropertyTests.swift` |
+| ST-220 – ST-230 | N. Steiner trees | `SteinerTreeTests.swift` |
+| ST-240 – ST-246 | O. Random spanning trees | `RandomSpanningTreeTests.swift` |
+| ST-B01 – ST-B07 | Benchmarks | not tests |
 
 Where the tests differ from the catalog:
 

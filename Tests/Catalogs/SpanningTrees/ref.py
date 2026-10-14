@@ -606,6 +606,147 @@ for N in (5, 10, 15, 20):
 check(brute(V(5), [(u, v, 0) for u, v, _ in DOUBLED])[1] == 128, "ST-36: 128 spanning trees")
 
 # ---------------------------------------------------------------------------------------------
+# M. Spanning arborescences and branchings (brute force over every choice of entering edge)
+# ---------------------------------------------------------------------------------------------
+
+NXB = [(0, 2, 12), (0, 4, 12), (1, 0, 4), (1, 5, 13), (2, 1, 17), (2, 3, 21), (2, 5, 12), (3, 0, 5), (3, 4, 17),
+       (3, 6, 18), (4, 7, 12), (5, 6, 14), (5, 8, 12), (6, 2, 21), (6, 8, 15), (7, 3, 19), (7, 6, 15), (8, 7, 18)]
+# Per root: (maximum weight, edges, minimum weight, edges).
+NXB_ROOTED = {
+    0: (131, [0, 3, 4, 5, 8, 9, 14, 17], 110, [0, 1, 4, 6, 10, 11, 12, 15]),
+    1: (124, [3, 5, 7, 8, 11, 13, 14, 17], 97, [0, 1, 2, 6, 10, 11, 12, 15]),
+    2: (124, [3, 4, 5, 7, 8, 9, 14, 17], 102, [1, 2, 4, 6, 10, 11, 12, 15]),
+    3: (124, [3, 4, 7, 8, 9, 13, 14, 17], 96, [0, 1, 4, 6, 7, 10, 11, 12]),
+    4: (120, [3, 4, 7, 9, 10, 13, 14, 15], 103, [0, 4, 6, 7, 10, 11, 12, 15]),
+    5: (128, [4, 5, 7, 8, 11, 13, 14, 17], 109, [0, 1, 4, 7, 11, 12, 15, 17]),
+    6: (127, [3, 4, 5, 7, 8, 13, 14, 17], 109, [1, 2, 4, 6, 10, 12, 13, 15]),
+    7: (125, [3, 4, 7, 8, 9, 13, 14, 15], 103, [0, 1, 4, 6, 7, 11, 12, 15]),
+    8: (128, [3, 4, 7, 8, 9, 13, 15, 17], 109, [0, 1, 4, 6, 7, 11, 15, 17]),
+}
+
+
+def branchings(n, edges):
+    """Every branching as (weight, sorted positions, roots): each vertex takes one entering
+    non-loop edge or none, and following entering edges never cycles."""
+    entering = [[k for k, (u, v, _) in enumerate(edges) if v == x and u != x] for x in range(n)]
+    for choice in itertools.product(*[[-1] + entering[x] for x in range(n)]):
+        parent = [edges[c][0] if c >= 0 else -1 for c in choice]
+        acyclic = True
+        for start in range(n):
+            x, steps = start, 0
+            while parent[x] >= 0 and steps <= n:
+                x, steps = parent[x], steps + 1
+            if steps > n:
+                acyclic = False
+                break
+        if acyclic:
+            yield (sum(edges[c][2] for c in choice if c >= 0), sorted(c for c in choice if c >= 0),
+                   [x for x in range(n) if choice[x] < 0])
+
+
+def optimum(candidates, maximum):
+    """The best weight and every edge list attaining it."""
+    best = None
+    for w, es, _ in candidates:
+        if best is None or (w > best[0] if maximum else w < best[0]):
+            best = (w, [es])
+        elif w == best[0]:
+            best[1].append(es)
+    return best
+
+
+every = list(branchings(9, NXB))
+spanning = [b for b in every if len(b[2]) == 1]
+for maximum, expected in ((True, (131, [0, 3, 4, 5, 8, 9, 14, 17])), (False, (96, [0, 1, 4, 6, 7, 10, 11, 12]))):
+    best = optimum(spanning, maximum)
+    check(best == (expected[0], [expected[1]]), f"ST-200 {'max' if maximum else 'min'} spanning: {best}")
+check(optimum(every, True) == (131, [[0, 3, 4, 5, 8, 9, 14, 17]]), "ST-200 maximum branching")
+check(optimum(every, False) == (0, [[]]), "ST-200 minimum branching")
+for r, (mw, me, nw, ne) in NXB_ROOTED.items():
+    rooted = [b for b in spanning if b[2] == [r]]
+    check(optimum(rooted, True) == (mw, [me]), f"ST-201 max from {r}")
+    check(optimum(rooted, False) == (nw, [ne]), f"ST-201 min from {r}")
+D = nx.DiGraph()
+D.add_nodes_from(range(9))
+D.add_weighted_edges_from(NXB)
+check(nx.maximum_branching(D).size(weight="weight") == 131, "ST-200 NetworkX maximum_branching")
+check(nx.maximum_spanning_arborescence(D).size(weight="weight") == 131, "ST-200 NetworkX maximum_spanning_arborescence")
+check(nx.minimum_spanning_arborescence(D).size(weight="weight") == 96, "ST-200 NetworkX minimum_spanning_arborescence")
+check(nx.minimum_branching(D).size() == 0, "ST-200 NetworkX minimum_branching")
+
+SMALL_DIRECTED = {
+    "ST-204": (2, [(0, 1, 5), (0, 1, 2), (1, 0, 1), (0, 1, 9), (1, 1, -7)],
+               {"min0": [1], "max0": [3], "min": [2], "max": [3], "maxB": [3], "minB": []}),
+    "ST-206": (4, [(0, 1, 1), (1, 2, 1), (2, 0, 1), (3, 0, 50), (3, 2, 60)],
+               {"min": [0, 1, 3], "max": [0, 3, 4], "maxB": [0, 3, 4]}),
+    "ST-211": (4, [(0, 1, 2), (2, 3, 2)], {"maxB": [0, 1]}),
+}
+for cid, (n, es, expected) in SMALL_DIRECTED.items():
+    every = list(branchings(n, es))
+    span = [b for b in every if len(b[2]) == 1]
+    found = {"minB": optimum(every, False), "maxB": optimum(every, True), "min": optimum(span, False),
+             "max": optimum(span, True), "min0": optimum([b for b in span if b[2] == [0]], False),
+             "max0": optimum([b for b in span if b[2] == [0]], True)}
+    for key, edges in expected.items():
+        check(found[key] is not None and found[key][1] == [edges], f"{cid} {key}: {found[key]}")
+
+# ---------------------------------------------------------------------------------------------
+# N. Steiner trees (NetworkX's weights; brute force over edge subsets for the small graph)
+# ---------------------------------------------------------------------------------------------
+
+from networkx.algorithms.approximation import steiner_tree  # noqa: E402
+
+STEINER_G1 = [(1, 2, 10), (2, 3, 10), (3, 4, 10), (4, 5, 10), (5, 6, 10), (2, 7, 1), (7, 5, 1)]
+STEINER_G2 = [(0, 5, 6), (1, 2, 2), (1, 5, 3), (2, 4, 4), (3, 5, 5), (4, 5, 1)]
+STEINER_G3 = [(1, 2, 8), (1, 9, 3), (1, 8, 6), (1, 10, 2), (1, 14, 3), (2, 3, 6), (3, 4, 3), (3, 10, 2), (3, 11, 1),
+              (4, 5, 1), (4, 11, 1), (5, 6, 4), (5, 11, 2), (5, 12, 1), (5, 13, 3), (6, 7, 2), (6, 12, 3), (6, 13, 1),
+              (7, 8, 3), (7, 9, 3), (7, 11, 5), (7, 13, 2), (7, 14, 4), (8, 9, 2), (9, 14, 1), (10, 11, 2), (10, 14, 1),
+              (11, 12, 1), (11, 14, 7), (12, 14, 3), (12, 15, 1), (13, 14, 4), (13, 15, 1), (14, 15, 2)]
+for cid, es, terminals, expected in (("ST-220", STEINER_G1, [1, 3, 5], 22), ("ST-221", STEINER_G1, [1, 2, 3, 4, 5], 32),
+                                     ("ST-221", STEINER_G2, [0, 2, 3], 16), ("ST-221", STEINER_G3, [1, 3, 5, 6, 8, 10, 11, 12, 13], 14)):
+    G = nx.Graph()
+    G.add_weighted_edges_from(es)
+    for method in ("kou", "mehlhorn"):
+        got = steiner_tree(G, terminals, method=method).size(weight="weight")
+        check(got == expected, f"{cid} NetworkX {method}: {got} != {expected}")
+    if len(es) <= 16:
+        # The exact optimum, and the 2(1 − 1/t) bound on the expected weight.
+        best = None
+        for mask in range(1 << len(es)):
+            chosen = [es[k] for k in range(len(es)) if mask >> k & 1]
+            H = nx.Graph()
+            H.add_nodes_from(terminals)
+            H.add_weighted_edges_from(chosen)
+            if nx.is_connected(H.subgraph(nx.node_connected_component(H, terminals[0]))) and \
+                    all(t in nx.node_connected_component(H, terminals[0]) for t in terminals):
+                w = sum(e[2] for e in chosen)
+                best = w if best is None else min(best, w)
+        t = len(terminals)
+        check(best <= expected <= 2 * (1 - 1 / t) * best, f"{cid}: {expected} vs optimum {best}")
+check([k for k, e in enumerate(STEINER_G1) if (e[0], e[1]) in {(1, 2), (2, 3), (2, 7), (7, 5)}] == [0, 1, 5, 6], "ST-220 edges")
+
+# ---------------------------------------------------------------------------------------------
+# O. Random spanning trees: tree counts by the (weighted) matrix-tree theorem
+# ---------------------------------------------------------------------------------------------
+
+
+def tree_weight_sum(n, edges):
+    """The sum over spanning trees of the product of weights: any cofactor of the Laplacian."""
+    L = np.zeros((n, n))
+    for u, v, w in edges:
+        if u != v:
+            L[u][u] += w
+            L[v][v] += w
+            L[u][v] -= w
+            L[v][u] -= w
+    return float(np.linalg.det(L[1:, 1:]))
+
+
+check(round(tree_weight_sum(4, [(u, v, 1) for u, v in itertools.combinations(range(4), 2)])) == 16, "ST-241 K4 has 16 trees")
+check(round(tree_weight_sum(3, [(0, 1, 1), (0, 1, 1), (1, 2, 1), (2, 0, 1)])) == 5, "ST-242 five trees")
+check(abs(tree_weight_sum(4, [(0, 1, 1), (1, 2, 2), (2, 3, 3), (3, 0, 4), (0, 2, 0.5)]) - 60.5) < 1e-9, "ST-243 products sum to 60.5")
+
+# ---------------------------------------------------------------------------------------------
 # Library behaviours, printed for reference
 # ---------------------------------------------------------------------------------------------
 
