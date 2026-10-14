@@ -1,8 +1,11 @@
 # StableGraphs test suite
 
-`StableGraphs` has one graph type, `StableDirectedGraph<Vertex>`, and maps attached to it,
-`EdgeMap` and `VertexMap`. The graph is a directed pseudograph whose vertex and edge positions do
-not change while the vertex or edge exists. A removal leaves a hole and moves nothing. The suite
+`StableGraphs` has two graph types, `StableDirectedGraph<Vertex>` and its undirected counterpart
+`StableUndirectedGraph<Vertex>`, and maps attached to them, `EdgeMap` and `VertexMap`. Each is a
+pseudograph whose vertex and edge positions do not change while the vertex or edge exists. A
+removal leaves a hole and moves nothing. The undirected graph keeps the same pages with one
+incidence row per vertex; its tests check what differs: either orientation in the edge queries, a
+vertex's edges in position order with a self-loop twice, and its own conformances. The suite
 also covers `SparselyIndexedDirectedGraph`, the GraphProtocols refinement for positions with
 holes, through its public members. It uses only the public API, and each test is self-contained.
 The shared material is the seeded generator and the tags in `GrafluentTestSupport`. The API is
@@ -33,6 +36,17 @@ struct StableDirectedGraph<Vertex: Hashable>: BidirectionalDirectedGraph, Sparse
     subscript(map:checkedEdgeAt:), subscript(map:checkedVertexAt:), subscript(map:checked:) -> Value { get throws }
     values(of:) -> EdgeValues<Self, Value> / VertexValues<Self, Value>, generation: GraphGeneration
 struct EdgeMap<Value>, VertexMap<Value>: Hashable, Sendable  // handles
+
+struct StableUndirectedGraph<Vertex: Hashable>: Graph, MutableGraph, PropertyGraph, SparselyIndexedGraph, Hashable, Codable (Vertex: Codable),
+                                                Sendable (Vertex: Sendable), CustomStringConvertible, …
+    init(), init(vertices:), init(edges:), init(vertices:edges:), init(@GraphBuilder _:), init(_ graph: some Graph<Vertex>)
+    contains(_:), contains(edge:), edges(between:and:) -> EdgesConnecting, edgeCount(between:and:)   // either orientation
+    neighbors(of:), incidentEdges(of:)                       // position order; a loop twice in a row
+    degree(of:), oppositeVertex(to:acrossEdgeAt:), and the checked: spellings
+    insert(_:), insert(edge:) -> Int, insert(checked:) -> Int
+    remove(_:), remove(edge:) -> UndirectedEdge?             // the newest copy in either orientation
+    remove(edgeAt:), removeAllEdges(between:and:), removeAllEdges(where:), removeAll, removeAllEdges, reserveCapacity
+    var vertices: Vertices, edges: Edges                     // position order; each edge in its stored orientation
 ```
 
 ## Conventions
@@ -121,12 +135,19 @@ and that every position removed since the last reset stays dead.
 | `StableGraphSparseConformerTests.swift` | 2 | A test-local `SparselyIndexedDirectedGraph` outside the library, on the default `_numberedRows`: components, depth- and breadth-first search, descendants, ancestors, dominator and post-dominator trees against the wrapped graph and the compacted copy; post-dominators and `component(of:)` with one vertex hole against the hole-free graph |
 | `StableGraphCheckedDispatchTests.swift` | 3 | The graph's own `checked:` lookups are the ones called on the concrete type, not GraphProtocols' defaults: its `vertexIndex(checked:)` traps on vertex holes (an exit test) where generic code's default throws |
 | `StableGraphIndexHookTests.swift` | 1 | `outDegree(ofIndex:)`, `inDegree(ofIndex:)`, `sourceIndex(ofEdgeAt:)` and `targetIndex(ofEdgeAt:)` around edge holes, against the vertex-space members |
+| `StableUndirectedGraphTests.swift` | 7 | `StableUndirectedGraph` by hand: construction and orientations, `init(_:)` both ways, a vertex's edges in position order with a self-loop twice and the index-space rows, either orientation in `contains(edge:)` / `edges(between:and:)` / `edgeCount(between:and:)`, holes and the newest copy, the bulk removals and resets, `insert(checked:)`, the `checked:` lookups |
+| `StableUndirectedGraphConformanceTests.swift` | 8 | `Graph`'s laws on random graphs with and without holes; components, bridges, cut vertices, BFS and Dijkstra with holes against the compacted `Pseudograph`; equality and hashing ignoring positions and orientations; Codable in `StableDirectedGraph`'s format, malformed payloads; descriptions and `Sendable`; generations; attached maps; building through `MutableGraph` |
+| `StableUndirectedGraphStorageTests.swift` | 6 | The bulk initializers against one insertion per edge, then the same removals on both (both stable graphs; PropertyBased); a decoded graph's rebuilt rows under removals; `_numberedIncidenceRows()` against a model of the numbering with vertex holes, edge holes, both and none, and through a test-local `SparselyIndexedGraph` on GraphProtocols' default; components, bridges, cut vertices and blocks on the numbered rows against the compacted copy; the `SparselyIndexedGraph` laws |
+| `StableUndirectedGraphPropertyTests.swift` | 1 | PropertyBased, shrinking: random sequences against a model of positions and orientations, the whole state and the attached maps after every step |
+| `StableUndirectedGraphPreconditionTests.swift` | 4 | Exit tests: lookups of a non-vertex, a removed edge's position (in `edges`, `remove(edgeAt:)`, `oppositeVertex`, the maps), a vertex that is not an end, the index-space members with holes and out of range |
+| `Performance/StableUndirectedGraphStressTests.swift` | 3 | Inside a `Task` with a one-minute limit: a 10⁵-vertex cycle with every other vertex removed and joined again; 10⁵ copies of one pair in both orientations churned from both ends; 10⁵ steps of vertex churn with an edge map |
 | `StableGraphCycleGroupingTests.swift` | 2 | `nontrivialStronglyConnectedComponents()` and the self-loop queries with vertex holes against the compacted copy and a model; the documented sort by vertex position giving insertion order |
 
 141 catalog rows (120 value rows, 21 trap rows), 9 more exit tests (map handle misuse and reads
 and writes of dead elements among them) and 45 more tests (14 conformance, 4 property, 6 stress, 8
-churn, 2 sparse conformer, 5 generation, 3 checked dispatch, 2 cycle grouping, 1 index hook): 195
-tests in all. The property tests also re-point edges and fill
+churn, 2 sparse conformer, 5 generation, 3 checked dispatch, 2 cycle grouping, 1 index hook) for
+`StableDirectedGraph`, and 29 for `StableUndirectedGraph` (7 by hand, 8 conformance, 6 storage,
+1 property, 4 exit, 3 stress): 224 tests in all. The property tests also re-point edges and fill
 attached maps, checking after every step that a map has values at exactly the live positions it
 was given them for, and that every dead position's checked read throws.
 

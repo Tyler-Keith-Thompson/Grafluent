@@ -195,8 +195,7 @@ extension StableDirectedGraph {
     public init(edges: some Sequence<DirectedEdge<Vertex>>) {
         self.init()
         reserveCapacity(vertexCount: 0, edgeCount: edges.underestimatedCount)
-        for edge in edges { insert(edge: edge) }
-        _packRows()
+        _bulkInsert(edges: edges)
     }
 
     /// A graph with `vertices` first (a repeat once), then every edge in order at positions 0, 1, ….
@@ -207,8 +206,7 @@ extension StableDirectedGraph {
         let n = vertices.underestimatedCount
         reserveCapacity(vertexCount: n, edgeCount: edges.underestimatedCount)
         for v in vertices { insert(v) }
-        for edge in edges { insert(edge: edge) }
-        _packRows()
+        _bulkInsert(edges: edges)
     }
 
     /// A graph from a list of edges and vertices; see `DirectedGraphBuilder`. Every edge is kept.
@@ -230,8 +228,7 @@ extension StableDirectedGraph {
         self.init()
         reserveCapacity(vertexCount: graph.vertexCount, edgeCount: graph.edgeCount)
         for v in graph.vertices { insert(v) }
-        for edge in graph.edges { insert(edge: edge) }
-        _packRows()
+        _bulkInsert(edges: graph.edges)
     }
 }
 

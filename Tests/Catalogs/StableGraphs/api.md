@@ -384,3 +384,25 @@ per page from there to the end, so a far end with nothing after the gap decodes 
 (SG-108 – SG-112, SG-116). The bound allows at most about 2 KB of vertex table or 256 bytes of edge
 table per listed element, plus 8 KB. An edge end of `Int.max` decodes, and the next
 `insert(edge:)` traps (`extra_traps.swift`).
+
+## `StableUndirectedGraph<Vertex>`
+
+The undirected counterpart: a `Graph`, `MutableGraph`, `PropertyGraph` and `SparselyIndexedGraph`
+with the same positions, holes, pages, maps, resets, dense bounds and Codable format. It keeps the
+same pages of vertex slots and edge records, but one incidence row per slot instead of an out-row
+and an in-row: every edge end at the slot, in position order, a self-loop's two entries adjacent.
+A record holds the first and second ends' slots (`edges[p].u`, `edges[p].v`, the orientation the
+edge was inserted with) and each end's offset in its row. Its tests are hand-written, not
+generated from `cases.md`, and check:
+
+- `incidentEdges(of: v)`, `neighbors(of:)` and `neighborIndices(ofIndex:)` in position order; a
+  self-loop is listed twice in a row and counts 2 in `degree(of:)`.
+- `contains(edge:)`, `edges(between:and:)` (oldest first, a self-loop once),
+  `edgeCount(between:and:)`, `remove(edge:)` (the newest copy in either orientation, returned in
+  its stored one) and `removeAllEdges(between:and:)` take either orientation;
+  `removeAllEdges(where:)` calls its predicate in position order.
+- `==` compares vertex sets and edge multisets with orientations ignored; `hash(into:)` agrees.
+- `init(_:)` copies any `Graph` in `edges` order and orientation, and returns a
+  `StableUndirectedGraph` unchanged; `Pseudograph(g)` compacts.
+- With holes, the algorithms that read incidence rows (components, bridges, cut vertices, …) take
+  `_numberedIncidenceRows()`, which numbers vertices and edges page by page without hashing.

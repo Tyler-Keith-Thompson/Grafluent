@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# StableDirectedGraph: a directed pseudograph whose vertex and edge positions survive removals, stored in pages freed once dead.
+# StableDirectedGraph and StableUndirectedGraph: pseudographs whose vertex and edge positions survive removals, stored in pages freed once dead.
 swift_library(
     name = "StableGraphs",
     srcs = glob(["**/*.swift"]),

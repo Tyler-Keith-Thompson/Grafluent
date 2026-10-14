@@ -233,6 +233,49 @@ internal struct _RowPage {
         }
     }
 
+    /// `kill(_:inRow:_:edgeBase:outward:)` for an undirected incidence row, slot `slot`'s, which
+    /// holds an entry for each edge end at the slot (a self-loop's two, first end first). On
+    /// compaction each moved entry updates its end's offset in the record: the first end's
+    /// (`out`) when the slot is the edge's first end and `out` still names this entry, otherwise
+    /// the second end's (`in`).
+    @inlinable
+    mutating func killEnd(_ offset: Int, inRow row: Int, slot: Int, _ table: UnsafeMutableBufferPointer<_EdgePage>, edgeBase: Int) {
+        rows.withUnsafeMutableBufferPointer { rows in
+            let block = rows[row]
+            let start = block.start
+            var count = block.count
+            var deadCount = block.dead &+ 1
+            let compact: Bool = ends.withUnsafeMutableBufferPointer { ends in
+                ends[start &+ offset] = -1
+                while count > 0, ends[start &+ count &- 1] < 0 {
+                    count &-= 1
+                    deadCount &-= 1
+                }
+                return deadCount &* 2 > count
+            }
+            if compact {
+                ends.withUnsafeMutableBufferPointer { ends in
+                    positions.withUnsafeMutableBufferPointer { positions in
+                        var kept = 0
+                        for k in 0 ..< count where ends[start &+ k] >= 0 {
+                            let position = positions[start &+ k]
+                            ends[start &+ kept] = ends[start &+ k]
+                            positions[start &+ kept] = position
+                            let page = (position &>> _PositionPage.shift) &- edgeBase, at = position & _PositionPage.mask
+                            let record = table[page].records[at]
+                            if record.source == slot && record.out == k { table[page].records[at].out = kept } else { table[page].records[at].in = kept }
+                            kept &+= 1
+                        }
+                        count = kept
+                    }
+                }
+                deadCount = 0
+            }
+            rows[row].count = count
+            rows[row].dead = deadCount
+        }
+    }
+
     /// Inserts a live entry (`end`, `position`) into `row` at its place in position order (the
     /// row's positions, dead entries included, increase), moving the later entries up one and
     /// updating their live records' offsets; a dead entry left by the same position (an edge that

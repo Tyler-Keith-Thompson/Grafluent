@@ -25,6 +25,12 @@
 #   iddense           a numbered graph reported not dense: the searches then hand out the same
 #                     numbers lazily (through `_number`), in the same order; presizing only.
 #
+# Not planted, being equivalent: StableUndirectedGraph scanning the first end's row rather than the
+# shorter of the two in `_newestEdge` and `edges(between:and:)`: either row lists every copy, in
+# position order; time only. Nor GraphProtocols routing a holed `SparselyIndexedGraph` through its
+# numbered rows (`_sparselyIndexedGraph()`): without it the lazy rows hash every vertex and give the
+# same answers; `_numberedIncidenceRows()` itself is checked against a model.
+#
 # Not planted, being equivalent: `removeEdgeMap` keeping a stale `_edgeMapsRelease` (true after the
 # last map whose values hold references goes): a removal then calls `release(at:)`, which tests the
 # table's own flag and does nothing.
@@ -67,15 +73,15 @@ MUTANTS = [
     # Edge rows: lazy deletion and compaction.
     Mutant("swapoffsets", S, "_EdgeRecord(source: source, target: target, out: out, in: into)", "_EdgeRecord(source: source, target: target, out: into, in: out)"),
     Mutant("unlinkin", S, "                pages[targetPage].kill(r.in, inRow: r.target & _PositionPage.mask, table, edgeBase: base, outward: false)", "", mode="stmt"),
-    Mutant("trailingdrop", P, "ends[start &+ count &- 1] < 0", "false"),
-    Mutant("trailingdead", P, "                deadCount &-= 1", "", mode="stmt"),
-    Mutant("nevercompact", P, "deadCount &* 2 > count", "false"),
-    Mutant("compactthreshold", P, "deadCount &* 2 > count", "deadCount &* 2 >= count &* 2 &+ 1"),
+    Mutant("trailingdrop", P, "ends[start &+ count &- 1] < 0", "false", nth=0),
+    Mutant("trailingdead", P, "                deadCount &-= 1", "", mode="stmt", nth=0),
+    Mutant("nevercompact", P, "deadCount &* 2 > count", "false", nth=0),
+    Mutant("compactthreshold", P, "deadCount &* 2 > count", "deadCount &* 2 >= count &* 2 &+ 1", nth=0),
     Mutant("compactin", P, "if outward { table[page].records[slot].out = kept } else { table[page].records[slot].in = kept }", "if outward { table[page].records[slot].out = kept }", mode="stmt"),
     Mutant("compactout", P, "if outward { table[page].records[slot].out = kept } else { table[page].records[slot].in = kept }", "if !outward { table[page].records[slot].in = kept }", mode="stmt"),
-    Mutant("compactcount", P, "                    count = kept", "", mode="stmt"),
-    Mutant("compactdead", P, "            deadCount = 0", "", mode="stmt"),
-    Mutant("deadstore", P, "            rows[row].dead = deadCount", "", mode="stmt"),
+    Mutant("compactcount", P, "                    count = kept", "", mode="stmt", nth=0),
+    Mutant("compactdead", P, "            deadCount = 0", "", mode="stmt", nth=0),
+    Mutant("deadstore", P, "            rows[row].dead = deadCount", "", mode="stmt", nth=0),
     Mutant("growcopy", P, "            positions[start &+ k] = positions[block.start &+ k]", "", mode="stmt"),
     Mutant("packstart", P, "            rows[row].start = packedEnds.count", "", mode="stmt"),
 
@@ -279,6 +285,30 @@ MUTANTS = [
     Mutant("idpredecessors", "VertexIdentifiers.swift", "rows.offsets[id + 1]", "rows.offsets[id + 1] - 1", nth=1, module="GraphProtocols"),
     Mutant("idpredoutward", "VertexIdentifiers.swift", "false", "true", module="GraphProtocols"),
     Mutant("iddense", "VertexIdentifiers.swift", "isIndexed || rows != nil", "isIndexed", module="GraphProtocols"),
+
+    # StableUndirectedGraph: one incidence row per slot, both ends, the newest copy.
+    Mutant("utrailingdead", P, "                deadCount &-= 1", "", mode="stmt", nth=1),
+    Mutant("ucompactcount", P, "                    count = kept", "", mode="stmt", nth=1),
+    Mutant("ucompactdead", P, "            deadCount = 0", "", mode="stmt", nth=1),
+    Mutant("udeadstore", P, "            rows[row].dead = deadCount", "", mode="stmt", nth=1),
+    Mutant("uinsertsecond", "StableUndirectedGraph.swift", "_rowPages[vk].append(end: u, position: position, toRow: v & _PositionPage.mask)", "uOffset"),
+    Mutant("ukilledend", "Pages.swift", "if record.source == slot && record.out == k { table[page].records[at].out = kept } else { table[page].records[at].in = kept }", "if record.source == slot { table[page].records[at].out = kept } else { table[page].records[at].in = kept }", mode="stmt"),
+    Mutant("uunlinkreread", "StableUndirectedGraph.swift", "_kill(_record(position).in, slot: r.target)", "_kill(r.in, slot: r.target)", mode="stmt"),
+    Mutant("uremoveslotloop", "StableUndirectedGraph.swift", "                j &+= 1", "", mode="stmt"),
+    Mutant("uremoveslotfar", "StableUndirectedGraph.swift", "_kill(record.source == slot ? record.in : record.out, slot: far)", "_kill(record.out, slot: far)", mode="stmt"),
+    Mutant("ubetweenloop", "StableUndirectedGraph+Views.swift", "if position == _last { continue }", "", mode="stmt"),
+    Mutant("uedgeorient", "StableUndirectedGraph+Views.swift", "                return UndirectedEdge(arc.source, arc.target)", "                return UndirectedEdge(arc.target, arc.source)", mode="stmt"),
+    Mutant("uopposite", "StableUndirectedGraph.swift", "if vertex == u { return v }", "", mode="stmt"),
+    Mutant("ubulksecond", "StableUndirectedGraph.swift", "                                    ends[b] = u", "", mode="stmt"),
+    Mutant("ubulkoffset", "StableUndirectedGraph.swift", "b &- starts[v]", "b &- starts[u]"),
+    Mutant("uwherepredicate", "StableUndirectedGraph.swift", "if try shouldBeRemoved(position) { chosen.append(position) }", "chosen.append(position)", mode="stmt"),
+    Mutant("uconvertrows", "StableUndirectedGraph+Conformances.swift", "                _edgePages[k].records[l].in = into", "", mode="stmt"),
+    Mutant("uequalsort", "StableUndirectedGraph+Conformances.swift", "degree > 1", "degree > 2"),
+    Mutant("uendpoints", "StableUndirectedGraph+Conformances.swift", "return (record.source, record.target)", "return (record.target, record.source)", mode="stmt"),
+    Mutant("uindexcheck", "StableUndirectedGraph+Conformances.swift", "        precondition(_vertexCount == _vertexEnd, \"The graph has vertex holes, so no vertex indices; check vertexIndexBound first\")\n        precondition(UInt(bitPattern: index) < UInt(bitPattern: _vertexEnd), \"Vertex index out of range\")", "", mode="stmt"),
+    Mutant("unumberededges", "StableUndirectedGraph+Conformances.swift", "edges[i] = denseEdges ? positions[j] : edgeNumberOf[positions[j]]", "edges[i] = positions[j]", mode="stmt"),
+    Mutant("dbulkoffset", "StableDirectedGraph+Construction.swift", "i &- inStart[t]", "i &- inStart[s]"),
+    Mutant("dbulklayout", "StableDirectedGraph+Construction.swift", "rows[l] = _RowEntry(start: starts[first &+ l] &- base, count: length, capacity: length, dead: 0)", "rows[l] = _RowEntry(start: starts[first &+ l] &- base, count: length, capacity: 0, dead: 0)", mode="stmt"),
 
     # Traversal and Connectivity on numbered rows.
     Mutant("bfsnumbered", "BreadthFirstSearch.swift", "rows.offsets[u] ..< rows.offsets[u + 1]", "rows.offsets[u] ..< rows.offsets[u]", module="Traversal"),

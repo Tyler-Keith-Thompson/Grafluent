@@ -54,6 +54,71 @@ let benchmarks: @Sendable () -> Void = {
     }
     let churnedCopy = DirectedPseudograph(churned)
 
+    // The same pairs as undirected edges.
+    let undirectedRaw = raw.map { UndirectedEdge($0.source, $0.target) }
+    let pseudograph = Pseudograph(vertices: 0 ..< 100_000, edges: undirectedRaw)
+    let stableUndirected = StableUndirectedGraph(vertices: 0 ..< 100_000, edges: undirectedRaw)
+    var holedUndirected = stableUndirected
+    for v in victims { holedUndirected.remove(v) }
+    let holedPseudograph = Pseudograph(holedUndirected)
+    precondition(stableUndirected.connectedComponents().count == pseudograph.connectedComponents().count)
+    precondition(holedUndirected.connectedComponents().count == holedPseudograph.connectedComponents().count)
+
+    Benchmark("StableGraphs: BASELINE Pseudograph(vertices:edges:)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(Pseudograph(vertices: 0 ..< 100_000, edges: undirectedRaw)) }
+    }
+    Benchmark("StableGraphs: StableUndirectedGraph(vertices:edges:)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(StableUndirectedGraph(vertices: 0 ..< 100_000, edges: undirectedRaw)) }
+    }
+    Benchmark("StableGraphs: BASELINE Pseudograph neighbor walk, every vertex") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var total = 0
+            for v in 0 ..< 100_000 { for w in pseudograph.neighborIndices(ofIndex: v) { total &+= w } }
+            blackHole(total)
+        }
+    }
+    Benchmark("StableGraphs: StableUndirectedGraph neighbor walk, every vertex") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var total = 0
+            for v in 0 ..< 100_000 { for w in stableUndirected.neighborIndices(ofIndex: v) { total &+= w } }
+            blackHole(total)
+        }
+    }
+    Benchmark("StableGraphs: BASELINE Pseudograph directedView.breadthFirstLayers") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(pseudograph.directedView.breadthFirstLayers(from: 0)) }
+    }
+    Benchmark("StableGraphs: StableUndirectedGraph directedView.breadthFirstLayers") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(stableUndirected.directedView.breadthFirstLayers(from: 0)) }
+    }
+    Benchmark("StableGraphs: StableUndirectedGraph _forEachNeighborIndex, every vertex") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var total = 0
+            for v in 0 ..< 100_000 { stableUndirected._forEachNeighborIndex(ofIndex: v) { total &+= $0 } }
+            blackHole(total)
+        }
+    }
+    Benchmark("StableGraphs: BASELINE Pseudograph connectedComponents()") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(pseudograph.connectedComponents()) }
+    }
+    Benchmark("StableGraphs: StableUndirectedGraph connectedComponents()") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(stableUndirected.connectedComponents()) }
+    }
+    Benchmark("StableGraphs: BASELINE Pseudograph connectedComponents(), compacted copy of 10% removed") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(holedPseudograph.connectedComponents()) }
+    }
+    Benchmark("StableGraphs: StableUndirectedGraph connectedComponents(), 10% of vertices removed") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(holedUndirected.connectedComponents()) }
+    }
+    Benchmark("StableGraphs: StableUndirectedGraph remove every other edge by position") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var g = StableUndirectedGraph(vertices: 0 ..< 100_000, edges: undirectedRaw)
+            g.remove(edgeAt: 1)
+            benchmark.startMeasurement()
+            for p in stride(from: 2, to: 500_000, by: 2) { g.remove(edgeAt: p) }
+            benchmark.stopMeasurement()
+            blackHole(g)
+        }
+    }
     Benchmark("StableGraphs: BASELINE DirectedPseudograph(vertices:edges:)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(DirectedPseudograph(vertices: 0 ..< 100_000, edges: raw)) }
     }

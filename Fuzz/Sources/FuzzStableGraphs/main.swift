@@ -19,7 +19,11 @@
 // attached edge maps and a vertex map, added, filled and removed at random, must never hold a
 // value at a dead position (every removal clears it) and keep the live ones' values, through
 // re-pointing too; a copy taken at a snapshot step, maps included, must not change while the
-// graph does.
+// graph does. One input in four drives StableUndirectedGraph instead, against the same kind of
+// model with each edge in its stored orientation: every vertex's incident edges (in position order,
+// a self-loop twice), neighbours and degrees, both orientations of every pair query, weighted insertion
+// and map values, the bulk removals and resets, and every 16th step equality with its compacted
+// `Pseudograph` copy and the components.
 
 import Connectivity
 import FuzzSupport
@@ -86,7 +90,8 @@ enum FuzzStableGraphs {
         var vertices: [Int?] = []
         var edges: [(source: Int, target: Int)?] = []
 
-        func position(of v: Int) -> Int? { vertices.firstIndex(where: { $0 == v }) }
+        // The live copy is the last one listed, and churn keeps it near the end.
+        func position(of v: Int) -> Int? { vertices.lastIndex(where: { $0 == v }) }
         var liveVertices: [Int] { vertices.indices.filter { vertices[$0] != nil } }
         var liveEdges: [Int] { edges.indices.filter { edges[$0] != nil } }
         func copies(_ a: Int, _ b: Int) -> [Int] { liveEdges.filter { edges[$0]!.source == a && edges[$0]!.target == b } }
@@ -136,8 +141,10 @@ enum FuzzStableGraphs {
             let into = le.filter { model.edges[$0]!.target == v }
             check(Array(graph.outEdges(of: v)) == out, "outEdges(of: \(v)) \(Array(graph.outEdges(of: v))), expected \(out) \(context)")
             check(Array(graph.inEdges(of: v)) == into, "inEdges(of: \(v)) \(Array(graph.inEdges(of: v))), expected \(into) \(context)")
-            check(Array(graph.outEdges(of: v).reversed()) == out.reversed(), "outEdges(of: \(v)) reversed \(context)")
-            check(Array(graph.inEdges(of: v).reversed()) == into.reversed(), "inEdges(of: \(v)) reversed \(context)")
+            // Stepping backwards is a binary search per step, O(d log d) a row: checked on short rows
+            // only, so heavy churn's long rows do not dominate the run.
+            if out.count <= 64 { check(Array(graph.outEdges(of: v).reversed()) == out.reversed(), "outEdges(of: \(v)) reversed \(context)") }
+            if into.count <= 64 { check(Array(graph.inEdges(of: v).reversed()) == into.reversed(), "inEdges(of: \(v)) reversed \(context)") }
             check(Array(graph.successors(of: v)) == out.map { model.edges[$0]!.target }, "successors(of: \(v)) \(context)")
             check(Array(graph.predecessors(of: v)) == into.map { model.edges[$0]!.source }, "predecessors(of: \(v)) \(context)")
             check(graph.outDegree(of: v) == out.count && graph.inDegree(of: v) == into.count, "degrees of \(v) \(context)")
@@ -262,6 +269,13 @@ enum FuzzStableGraphs {
     }
 
     static func fuzz(_ input: inout FuzzInput) {
+        // The first byte picks the undirected graph one time in four; the directed run reads the
+        // input from its start, so its corpus keeps its meaning.
+        var choice = input
+        if choice.int(below: 4) == 0 {
+            fuzzUndirected(&choice)
+            return
+        }
         var graph = StableDirectedGraph<Int>()
         var model = Model()
         var steps = 0
@@ -362,7 +376,10 @@ enum FuzzStableGraphs {
                 }
                 log.append("change\(target ? "Target" : "Source")(ofEdgeAt: \(p), \(checked ? "checked" : "to"): \(b))")
             case 20:
-                // Heavy edge churn: hundreds of edges in, the oldest out, so whole pages die.
+                // Heavy edge churn: hundreds of edges in, the oldest out, so whole pages die. The
+                // oldest live position only moves forward, so a cursor finds it (a search from 0
+                // each round made the model quadratic).
+                var cursor = 0
                 for round in 0 ..< 300 * (1 + a) {
                     let u = (b + round) % 8, w = (round / 8 + b) % 8
                     let p = graph.insert(edge: DirectedEdge(from: u, to: w))
@@ -370,7 +387,9 @@ enum FuzzStableGraphs {
                     model.insert(u)
                     model.insert(w)
                     model.edges.append((u, w))
-                    if let oldest = model.edges.firstIndex(where: { $0 != nil }), round % 4 != 0 {
+                    while cursor < model.edges.count, model.edges[cursor] == nil { cursor += 1 }
+                    if cursor < model.edges.count, round % 4 != 0 {
+                        let oldest = cursor
                         check(graph.remove(edgeAt: oldest) == DirectedEdge(from: model.edges[oldest]!.source, to: model.edges[oldest]!.target), "heavy churn remove(edgeAt: \(oldest))")
                         model.edges[oldest] = nil
                     }
@@ -383,7 +402,7 @@ enum FuzzStableGraphs {
                     if let at = model.position(of: v) {
                         check(graph.remove(v) == v, "heavy vertex churn remove(\(v))")
                         model.vertices[at] = nil
-                        for e in model.liveEdges where model.edges[e]!.source == v || model.edges[e]!.target == v { model.edges[e] = nil }
+                        for e in model.edges.indices where model.edges[e].map({ $0.source == v || $0.target == v }) ?? false { model.edges[e] = nil }
                     }
                     graph.insert(v)
                     model.vertices.append(v)
@@ -446,5 +465,152 @@ enum FuzzStableGraphs {
             if steps % 16 == 0 { checkAlgorithms(graph, context) }
         }
         checkAlgorithms(graph, "at the end")
+    }
+
+    /// StableUndirectedGraph against the same kind of model: vertex positions and edges `(u, v)` in
+    /// their stored orientation, nil at a hole, only ever appended to until a reset.
+    static func fuzzUndirected(_ input: inout FuzzInput) {
+        var graph = StableUndirectedGraph<Int>()
+        var vertices: [Int?] = []
+        var edges: [(u: Int, v: Int)?] = []
+        let weights = graph.addEdgeMap(default: -1)
+        var values: [Int: Int] = [:]
+        var steps = 0
+        var log: [String] = []
+        func copies(_ a: Int, _ b: Int) -> [Int] {
+            edges.indices.filter { edges[$0].map { ($0.u == a && $0.v == b) || ($0.u == b && $0.v == a) } ?? false }
+        }
+        func insertModel(_ x: Int) { if !vertices.contains(where: { $0 == x }) { vertices.append(x) } }
+        while !input.isEmpty, steps < 96 {
+            steps += 1
+            let a = input.int(below: 8), b = input.int(below: 8)
+            switch input.int(below: 16) {
+            case 0:
+                let result = graph.insert(a)
+                check(result.inserted == !vertices.contains(where: { $0 == a }), "undirected insert(\(a))")
+                insertModel(a)
+                log.append("insert(\(a))")
+            case 1 ..< 5:
+                let p = graph.insert(edge: UndirectedEdge(a, b))
+                check(p == edges.count, "undirected insert(edge:) position \(p), expected \(edges.count)")
+                insertModel(a)
+                insertModel(b)
+                edges.append((a, b))
+                log.append("insert(edge: \(a)–\(b))")
+            case 5:
+                // Two copies, each inserted and then given its own value.
+                let first = graph.insert(edge: UndirectedEdge(a, b))
+                graph[weights, ofEdgeAt: first] = a * 10 + b
+                let second = graph.insert(edge: UndirectedEdge(b, a))
+                graph[weights, ofEdgeAt: second] = b * 10 + a
+                check(first == edges.count && second == first + 1, "undirected insert(edge:) positions \(first), \(second)")
+                insertModel(a)
+                insertModel(b)
+                values[edges.count] = a * 10 + b
+                edges.append((a, b))
+                values[edges.count] = b * 10 + a
+                edges.append((b, a))
+                log.append("insert(edge: \(a)–\(b)), insert(edge: \(b)–\(a)), with values")
+            case 6, 7:
+                let found = copies(a, b)
+                let removed = graph.remove(edge: UndirectedEdge(a, b))
+                check((removed != nil) == !found.isEmpty, "undirected remove(edge: \(a)–\(b)) result")
+                if let newest = found.last {
+                    check(removed?.u == edges[newest]!.u && removed?.v == edges[newest]!.v, "undirected remove(edge:) orientation")
+                    edges[newest] = nil
+                    values[newest] = nil
+                }
+                log.append("remove(edge: \(a)–\(b))")
+            case 8:
+                let live = edges.indices.filter { edges[$0] != nil }
+                guard !live.isEmpty else { continue }
+                let p = live[(a * 8 + b) % live.count]
+                let removed = graph.remove(edgeAt: p)
+                check(removed.u == edges[p]!.u && removed.v == edges[p]!.v, "undirected remove(edgeAt: \(p))")
+                edges[p] = nil
+                values[p] = nil
+                log.append("remove(edgeAt: \(p))")
+            case 9, 10:
+                let present = vertices.contains(where: { $0 == a })
+                check(graph.remove(a) == (present ? a : nil), "undirected remove(\(a))")
+                if let k = vertices.firstIndex(where: { $0 == a }) { vertices[k] = nil }
+                for p in edges.indices where edges[p].map({ $0.u == a || $0.v == a }) ?? false {
+                    edges[p] = nil
+                    values[p] = nil
+                }
+                log.append("remove(\(a))")
+            case 11:
+                let found = copies(a, b)
+                check(graph.removeAllEdges(between: a, and: b) == found.count, "undirected removeAllEdges(between: \(a), and: \(b))")
+                for p in found {
+                    edges[p] = nil
+                    values[p] = nil
+                }
+                log.append("removeAllEdges(between: \(a), and: \(b))")
+            case 12:
+                let chosen = edges.indices.filter { edges[$0] != nil && $0 % (b + 2) == a % (b + 2) }
+                check(graph.removeAllEdges { $0 % (b + 2) == a % (b + 2) } == chosen.count, "undirected removeAllEdges(where:)")
+                for p in chosen {
+                    edges[p] = nil
+                    values[p] = nil
+                }
+                log.append("removeAllEdges(where: ≡ \(a) mod \(b + 2))")
+            case 13:
+                let live = edges.indices.filter { edges[$0] != nil }
+                guard !live.isEmpty else { continue }
+                let p = live[(a * 8 + b) % live.count]
+                graph[weights, ofEdgeAt: p] = a - b
+                values[p] = a - b
+                log.append("weights[\(p)] = \(a - b)")
+            case 14:
+                guard a == 0 else { continue }
+                graph.removeAllEdges(keepingCapacity: b % 2 == 0)
+                edges = []
+                values = [:]
+                log.append("removeAllEdges")
+            default:
+                guard a == 0, b < 2 else { continue }
+                graph.removeAll(keepingCapacity: b == 0)
+                vertices = []
+                edges = []
+                values = [:]
+                log.append("removeAll")
+            }
+            let context = "undirected, after \(log.suffix(6).joined(separator: "; "))"
+            let liveVertices = vertices.indices.filter { vertices[$0] != nil }
+            let liveEdges = edges.indices.filter { edges[$0] != nil }
+            check(Array(graph.vertices.indices) == liveVertices && Array(graph.vertices) == liveVertices.map { vertices[$0]! }, "vertices \(context)")
+            check(Array(graph.edges.indices) == liveEdges, "edge positions \(context)")
+            check(graph.edges.map { [$0.u, $0.v] } == liveEdges.map { [edges[$0]!.u, edges[$0]!.v] }, "edges \(context)")
+            check(Array(graph.edges.reversed()).map { [$0.u, $0.v] } == liveEdges.reversed().map { [edges[$0]!.u, edges[$0]!.v] }, "edges backwards \(context)")
+            check(graph.vertices.endIndex == vertices.count && graph.edges.endIndex == edges.count, "ends \(context)")
+            check(graph.vertexIndexBound == (liveVertices.count == vertices.count ? vertices.count : nil), "vertex bound \(context)")
+            check(graph.edgeIndexBound == (liveEdges.count == edges.count ? edges.count : nil), "edge bound \(context)")
+            for k in liveVertices {
+                let x = vertices[k]!
+                // Each edge end at x in position order, a self-loop twice.
+                var incident: [Int] = [], neighbors: [Int] = []
+                for p in liveEdges {
+                    if edges[p]!.u == x { incident.append(p); neighbors.append(edges[p]!.v) }
+                    if edges[p]!.v == x { incident.append(p); neighbors.append(edges[p]!.u) }
+                }
+                check(Array(graph.incidentEdges(of: x)) == incident, "incidentEdges(of: \(x)) \(context)")
+                check(Array(graph.neighbors(of: x)) == neighbors, "neighbors(of: \(x)) \(context)")
+                check(graph.degree(of: x) == incident.count, "degree(of: \(x)) \(context)")
+                if graph.vertexIndexBound != nil {
+                    check(Array(graph.incidentEdges(ofIndex: k)) == incident && graph.degree(ofIndex: k) == incident.count, "index rows \(context)")
+                    check(Array(graph.neighborIndices(ofIndex: k)) == neighbors.map { n in vertices.firstIndex { $0 == n }! }, "neighborIndices \(context)")
+                }
+            }
+            for p in liveEdges { check(graph[weights, ofEdgeAt: p] == (values[p] ?? -1), "weight at \(p) \(context)") }
+            let found = copies(a, b)
+            check(Array(graph.edges(between: a, and: b)) == found && Array(graph.edges(between: b, and: a)) == found, "edges(between: \(a), and: \(b)) \(context)")
+            check(graph.contains(edge: UndirectedEdge(b, a)) == !found.isEmpty, "contains(edge: \(b)–\(a)) \(context)")
+            if steps % 16 == 0 {
+                let compacted = Pseudograph(graph)
+                check(StableUndirectedGraph(compacted) == graph && StableUndirectedGraph(compacted).hashValue == graph.hashValue, "equals its compacted copy \(context)")
+                check(graph.connectedComponents().count == compacted.connectedComponents().count, "components \(context)")
+            }
+        }
     }
 }
