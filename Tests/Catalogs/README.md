@@ -44,10 +44,10 @@ for f in /tmp/co/*; do cmp "$f" Tests/ColoringModuleTests/"$(basename "$f")"; do
 | Catalog | Extra pins | Regenerate the tests | Self-check |
 |---|---|---|---|
 | BipartiteGraphs | — | `swiftgen.py` | `ref.py` |
-| Centrality | scipy | `gen.py` (all 10 files, including the precondition file) | `ref.py` |
+| Centrality | scipy | `gen.py` (all 11 files, including the precondition file) | `ref.py` |
 | Cliques | — | `gen.py` | `ref.py`; `conf_vals.py` prints the conformance literals |
 | ColoringModule | rustworkx | `swiftgen.py` | `ref.py --stress` |
-| CommunityDetection | scipy | `swiftgen.py` | `ref.py`; `gen.py && ref.py --fill` rebuilds `cases.md` from `cases.head.md` (overwrites it) |
+| CommunityDetection | scipy, igraph | `swiftgen.py` | `ref.py`; `gen.py && ref.py --fill` rebuilds `cases.md` from `cases.head.md` (overwrites it); `draws.py` writes `LeidenDrawTests.swift` |
 | Connectivity/undirected | — | `gen_tests.py` (§A – §G) | `ref.py`; `gen_collapsed.py` prints CN-341's rows |
 | Connectivity/directed | — | none: tests written by hand from the printed values | `check.py`; `doms.py` needs `BOOST_GRAPH=<boostorg/graph checkout>` |
 | Covering | igraph | `swiftgen.py` | `ref.py --stress`; `PYTHONHASHSEED=0 ref.py --write` reproduces `cases.md` exactly (CV-124's note follows the hash seed) |
@@ -63,7 +63,7 @@ for f in /tmp/co/*; do cmp "$f" Tests/ColoringModuleTests/"$(basename "$f")"; do
 | Hypergraphs | xgi, hypernetx, halp | `swiftgen.py` | `ref.py --stress` |
 | ImplicitGraphs | — | `swiftgen.py` | `ref.py --stress` |
 | IncidenceMatrix | xgi | `swiftgen.py` | `ref.py --stress` |
-| Isomorphism | igraph, rustworkx | `swiftgen.py --phase2` (the flag also writes `AutomorphismGroupTests.swift`) | `ref.py --stress` |
+| Isomorphism | igraph, rustworkx, scipy | `swiftgen.py --phase2` (the flag also writes `AutomorphismGroupTests.swift`) | `ref.py --stress` |
 | LabeledGraphs | — | `swiftgen.py` | `ref.py --stress` |
 | MatchingModule | scipy | `swiftgen.py` | `ref.py --stress` |
 | Multigraphs | — | `swiftgen.py` | `ref.py` |
@@ -79,7 +79,7 @@ for f in /tmp/co/*; do cmp "$f" Tests/ColoringModuleTests/"$(basename "$f")"; do
 | TreeAlgorithms | — | none | `ref.py`; `extra.py`, `extra2.py`, `extra3.py` |
 | Walks | — | none | `ref.py` |
 | SpanningTrees | scipy | none | `ref.py` |
-| ShortestPaths | — | none | `cases.py`, `cases_astar.py`, `cases_bf.py`, `bfcheck.py` reproduce their `.out` files; `check.py` |
+| ShortestPaths | — | none | `cases.py`, `cases_astar.py`, `cases_bf.py`, `cases_paths.py`, `bfcheck.py` reproduce their `.out` files; `check.py` |
 | DisjointSet | scipy | none | `cases.py` reproduces `cases.out`; `check.py`, `rules.py` |
 | PriorityQueue | none (stdlib) | none | `ref.py` reproduces `cases.out` |
 | CompressedSparseRow | none (stdlib) | none | `fixtures.py` prints the fixture arrays |

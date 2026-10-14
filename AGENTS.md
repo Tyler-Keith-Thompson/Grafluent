@@ -149,8 +149,9 @@ lists each catalog's scripts and Python pins (run through `uv`).
 
 - `Graph` (undirected) and `DirectedGraph` are separate protocols; no type conforms to both.
   `graph.directedView` and `digraph.undirectedView` convert. Refinements:
-  `BidirectionalDirectedGraph` (predecessors), `SparselyIndexedDirectedGraph` (positions with
-  holes), `MutableDirectedGraph` (mutation hooks for wrappers). `Hypergraph` and
+  `BidirectionalDirectedGraph` (predecessors), `SparselyIndexedDirectedGraph` and its undirected
+  counterpart `SparselyIndexedGraph` (positions with holes), `MutableDirectedGraph` (mutation hooks
+  for wrappers). `Hypergraph` and
   `DirectedHypergraph` are separate again.
 - A graph exposes collections (`vertices`, `edges`); it is not itself a `Sequence`. An edge is
   identified by its position (`Edges.Index`), which tells parallel edges apart.
@@ -213,18 +214,35 @@ lists each catalog's scripts and Python pins (run through `uv`).
 | `descendants(of:)`, `ancestors(of:)` | Reachable from / reaching v |
 | `parent`, `children`, `root`, `depth(of:)`, `height` | Rooted-tree relations; depth counts edges to the root |
 | `Arborescence` | Directed rooted tree, edges away from the root (out-tree) |
+| `Branching`, `minimumSpanningArborescence` | Forest of arborescences; optimum branching / arborescence (Edmonds) |
+| `SteinerTree`, `terminals:` | Tree connecting a vertex subset (Steiner tree), its required vertices |
 | `bridges()`, `articulationPoints()` | Cut edges, cut vertices |
 | `biconnectedComponents()` | Blocks |
 | `biEdgeConnectedComponents()` | 2-edge-connected components |
 | `nontrivialStronglyConnectedComponents()` | Strong components containing a cycle |
 | `simpleCycles()` | Elementary circuits |
+| `chordlessCycles()` | Induced cycles (no chord) |
+| `minimumMeanCycle(weight:)` | Cycle of least mean weight (Karp) |
+| `allSimplePaths(from:to:)` | Every path with no repeated vertex |
+| `randomWalk(…returnParameter:inOutParameter:)` | node2vec's p and q |
+| `lexicographicBreadthFirstSearch()`, `maximumCardinalitySearch()` | LexBFS, MCS vertex orderings |
+| `isChordal`, `findHole()` | Chordal (triangulated) graph; a chordless cycle of length ≥ 4 |
+| `perfectEliminationOrdering()` | Perfect elimination ordering (PEO) |
 | `girth()` | Length of a shortest cycle |
+| `shortestSimplePaths(from:to:)` | Simple paths in nondecreasing length; `prefix(k)` is the k shortest paths (Yen) |
+| `MaxPlusSemiring`, `ViterbiSemiring` | (max, +), the arctic semiring; (max, ×) over probabilities |
 | `isAcyclic` | Forest (undirected) or DAG (directed) |
 | `maximalCliques()`, `maximumClique()` | Maximal / maximum cliques; clique number ω(G) |
 | `coreNumbers()` | Core numbers; the greatest is the degeneracy |
+| `trussNumbers()`, `kTruss(_:)` | Truss numbers (trussness); the k-truss, every edge in k − 2 triangles |
+| `onionLayers()` | Onion decomposition (Hébert-Dufresne et al.) |
+| `cliqueNumber(of:)` | Largest clique through a vertex (node clique number) |
+| `kEdgeConnectedComponents(_:)`, `kEdgeConnectedSubgraphs(_:)` | Classes with local edge connectivity λ(u, v) ≥ k; maximal k-edge-connected induced subgraphs |
+| `isDSeparator(_:between:and:)`, `moralGraph(of:)` | d-separation; the moral graph (parents married) |
 | `transitivity()` | Global clustering coefficient |
 | `effectiveGraphResistance()` | Kirchhoff index |
 | `modularity(of:resolution:)` | Q, with resolution γ |
+| `cosineSimilarity(of:and:)`, `diceCoefficient(of:and:)` | Salton index; Sørensen index (vertex-pair similarity over neighbor sets) |
 | `left`, `right`, `side(of:)` | The two classes of a bipartite graph (V = L ∪ R) |
 | `Matching`: maximal / maximum / perfect | Independent edge set |
 | `linearSumAssignment` | Assignment problem |
@@ -232,9 +250,12 @@ lists each catalog's scripts and Python pins (run through `uv`).
 | `EdgeColoring` | Proper edge colouring; fewest colours is χ′(G) |
 | `subgraphIsomorphism(to:)` / `monomorphism(to:)` | Induced subgraph isomorphism / subgraph isomorphism |
 | `vertexColor:`, `edgeColor:` | Classes an isomorphism must preserve |
+| `optimalEditPath(to:)`, `graphEditDistance(to:)` | Least-cost edit path; graph edit distance (GED) |
 | `Pseudograph` / `Multigraph` | Parallel edges with / without self-loops (directed: `Directed…`) |
 | `edgeCount(between:and:)` | Multiplicity |
 | `cycleBasis()` | Fundamental cycles (basis of the cycle space) |
+| `chinesePostmanTour(weight:)`, `PostmanTour` | Chinese postman problem (route inspection); `duplicatedEdges` eulerize the graph |
+| `dualGraph()` | Planar dual of an embedding (a vertex per face) |
 | `capacity:`, `supply:` | c : E → ℝ≥0; b(v), positive sends |
 | `Flow`, `Cut` | s–t flow; s–t cut (S, T) |
 | `incidenceGraphView` | Bipartite incidence graph of a hypergraph (Levi graph) |
@@ -251,7 +272,7 @@ isomorphism, not insertion order), except `EdgeList`, whose order is part of its
 
 | Type | What it is | Notes |
 |---|---|---|
-| `AdjacencyList<V>` | Directed, simple (self-loops allowed); out- and in-rows per vertex | O(1) expected `contains(edge:)`, `edges(from:to:)` (`edges(between:and:)` undirected) and edge removal; O(degree) vertex removal. Removals swap-remove, so positions may change. `MutableDirectedGraph`, `PropertyGraph` |
+| `AdjacencyList<V>` | Directed, simple (self-loops allowed); out- and in-rows per vertex | O(1) expected `contains(edge:)`, `edges(from:to:)` (`edges(between:and:)` undirected) and edge removal; O(degree) vertex removal. Removals swap-remove, so positions may change. Bulk initializers lay rows out packed in slot order. `MutableDirectedGraph`, `PropertyGraph` |
 | `UndirectedAdjacencyList<V>` | Undirected counterpart of `AdjacencyList` | `Graph`, `PropertyGraph` |
 | `AdjacencyMatrix` | Directed on `0..<n`, n×n bit matrix | O(1) adjacency; rows are `BitSet`s; vertices appended (`appendVertex()`), never removed; edge positions are cells; edge maps are dense, n² values each |
 | `CompressedSparseRow` | Directed on `0..<n`, offsets plus targets | Immutable (initializers only); edge positions `0..<m`; binary-search `contains(edge:)`; not bidirectional (use `transposed()`) |
@@ -267,6 +288,7 @@ isomorphism, not insertion order), except `EdgeList`, whose order is part of its
 | `Pseudograph<V>` / `DirectedPseudograph<V>` | Parallel edges and self-loops | `insert(edge:)` returns the new edge's position |
 | `Multigraph<V>` / `DirectedMultigraph<V>` | Parallel edges, no self-loops | Throw `LooplessEdgeError`; `GraphDelegator`s of the pseudographs |
 | `StableDirectedGraph<V>` | Directed pseudograph whose positions survive removals | Positions never reused; dense index bounds are `nil` while holes exist; paged storage (1024 positions a page) |
+| `StableUndirectedGraph<V>` | Undirected counterpart of `StableDirectedGraph` | The same pages and positions, one incidence row per vertex in position order (a self-loop twice); `SparselyIndexedGraph` |
 | `FunctionalGraph` | Out-degree exactly 1 on `0..<n` | `cycleDecomposition()` in O(n) |
 
 Data structures: `IndexedPriorityQueue` (4-ary min-heap over `0..<indexBound` with

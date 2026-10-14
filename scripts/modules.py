@@ -24,7 +24,7 @@ MODULES = [
     # Vocabulary
     ("GraphProtocols", "Vocabulary", "DirectedGraph, Graph and their refinements; DirectedEdge and UndirectedEdge; the result builders that construct graphs; NoConvergence, the error of iterative methods.", ["swift-algorithms/Algorithms"]),
     ("Walks", "Vocabulary", "Walk, Trail, Path, Circuit and Cycle: vertex sequences with the edge positions between them, their invariants enforced by construction.", ["GraphProtocols"]),
-    ("Semirings", "Vocabulary", "The Semiring protocol and the tropical, bottleneck, Boolean and counting semirings, for algebraic path problems.", []),
+    ("Semirings", "Vocabulary", "The Semiring protocol and the tropical, max-plus, bottleneck, Viterbi, Boolean and counting semirings and the lexicographic product, for algebraic path problems.", []),
 
     # Data structures used by graph algorithms
     ("PriorityQueueModule", "Data structures", "IndexedPriorityQueue: an indexed 4-ary min-heap over 0..<indexBound with decrease-key.", []),
@@ -40,45 +40,47 @@ MODULES = [
     ("LabeledGraphs", "Representations", "LabeledGraph: Hashable vertex labels over CompressedSparseRow or AdjacencyMatrix, kept in an OrderedSet whose element i names base vertex i, with every index-space member forwarded to the base.", ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyMatrixModule", "swift-collections/OrderedCollections"]),
 
     # Graph classes with invariants
-    ("DirectedAcyclicGraphModule", "Structures", "DirectedAcyclicGraph: a wrapper over any MutableDirectedGraph that rejects an edge closing a cycle and keeps a topological order by Pearce–Kelly, with every read member forwarded to the base; transitive closure and reduction, longest paths (unit and weighted).", ["GraphProtocols", "Walks", "StableGraphs"]),
+    ("DirectedAcyclicGraphModule", "Structures", "DirectedAcyclicGraph: a wrapper over any MutableDirectedGraph that rejects an edge closing a cycle and keeps a topological order by Pearce–Kelly, with every read member forwarded to the base; transitive closure and reduction, longest paths (unit and weighted), d-separation, minimal d-separators and the moral graph.", ["GraphProtocols", "Walks", "StableGraphs"]),
     ("Trees", "Structures", "Tree, RootedTree, Forest and Arborescence.", ["GraphProtocols", "Walks"]),
-    ("BipartiteGraphs", "Structures", "BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses.", ["GraphProtocols", "Walks", "AdjacencyListModule"]),
+    ("BipartiteGraphs", "Structures", "BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses, one-mode projections (plain, shared-neighbour, overlap and collaboration weighted).", ["GraphProtocols", "Walks", "AdjacencyListModule"]),
     ("Multigraphs", "Structures", "Pseudograph, Multigraph, DirectedPseudograph and DirectedMultigraph: parallel edges, with and without self-loops.", ["GraphProtocols", "AdjacencyListModule"]),
-    ("StableGraphs", "Structures", "StableDirectedGraph: a directed pseudograph whose vertex and edge positions survive removals, stored in pages freed once dead.", ["GraphProtocols"]),
+    ("StableGraphs", "Structures", "StableDirectedGraph and StableUndirectedGraph: pseudographs whose vertex and edge positions survive removals, stored in pages freed once dead.", ["GraphProtocols"]),
     ("Hypergraphs", "Structures", "UndirectedIncidenceList and IncidenceList, the hypergraph algorithms, and the incidence-graph views through which graph algorithms reach a hypergraph.", ["GraphProtocols", "AdjacencyListModule", "DisjointSetModule", "swift-collections/OrderedCollections", "Connectivity"]),
     ("FunctionalGraphs", "Structures", "FunctionalGraph: every vertex has outdegree 1; Floyd's and Brent's cycle detection.", ["GraphProtocols", "Walks"]),
 
     # Operations
-    ("GraphOperations", "Operations", "Subgraph, induced subgraph, transposed and complement views, line graph, condensation, quotient graph, disjoint union and join.", ["GraphProtocols", "DirectedAcyclicGraphModule", "Connectivity", "CompressedSparseRowModule", "swift-atomics/Atomics"]),
+    ("GraphOperations", "Operations", "Subgraph, induced subgraph, ego graph, transposed and complement views, line graph, condensation, quotient graph and contraction, disjoint union and join, union, intersection, difference and symmetric difference, power, relabeling, transitive closure and reduction.", ["GraphProtocols", "DirectedAcyclicGraphModule", "Connectivity", "CompressedSparseRowModule", "swift-atomics/Atomics"]),
     ("GraphProducts", "Operations", "Cartesian, tensor, strong and lexicographic products.", ["GraphProtocols"]),
 
     # Algorithms
-    ("Traversal", "Algorithms", "Breadth-first and depth-first search as event sequences, reachability, topological ordering, cycle finding.", ["GraphProtocols", "Walks", "Trees"]),
-    ("ShortestPaths", "Algorithms", "Dijkstra, Bellman–Ford, A*, DAG, unweighted and Floyd–Warshall shortest paths, over numeric weights or a selective semiring, and Mohri's DAG shortest distances over any semiring.", ["GraphProtocols", "Walks", "Semirings", "PriorityQueueModule", "DirectedAcyclicGraphModule", "Trees", "Connectivity"]),
-    ("SpanningTrees", "Algorithms", "Minimum and maximum spanning forests by Kruskal, Prim and Borůvka.", ["GraphProtocols", "DisjointSetModule", "PriorityQueueModule", "Trees"]),
-    ("Connectivity", "Algorithms", "Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected and bi-edge-connected components and the block–cut tree of undirected graphs.", ["GraphProtocols", "CompressedSparseRowModule", "Trees"]),
-    ("Cycles", "Algorithms", "Cycle detection, cycle bases, elementary circuits, girth, feedback arc sets.", ["GraphProtocols", "Walks", "DisjointSetModule", "Connectivity"]),
-    ("Tours", "Algorithms", "Eulerian trails and circuits, Hamiltonian paths and cycles, travelling salesman tours (exact and heuristic).", ["GraphProtocols", "Walks", "MatchingModule", "SpanningTrees"]),
-    ("Flows", "Algorithms", "Maximum flow (push–relabel, Dinic, Edmonds–Karp), minimum cuts (s–t, Nagamochi–Ibaraki, Hao–Orlin), Gomory–Hu trees, minimum-cost flow (network simplex), edge and vertex connectivity, disjoint paths.", ["GraphProtocols", "Trees", "Walks"]),
+    ("Traversal", "Algorithms", "Breadth-first and depth-first search as event sequences, lexicographic breadth-first and maximum cardinality search, reachability, topological ordering (every order too), cycle finding, all simple paths, random walks (uniform, weighted, node2vec).", ["GraphProtocols", "Walks", "Trees"]),
+    ("ShortestPaths", "Algorithms", "Dijkstra, bidirectional Dijkstra, Bellman–Ford, A*, DAG, unweighted, Floyd–Warshall and Johnson shortest paths, over numeric weights or a selective semiring; k shortest simple paths (Yen) and all shortest paths; and Mohri's DAG shortest distances over any semiring.", ["GraphProtocols", "Walks", "Semirings", "PriorityQueueModule", "DirectedAcyclicGraphModule", "Trees", "Connectivity"]),
+    ("SpanningTrees", "Algorithms", "Minimum and maximum spanning forests by Kruskal, Prim and Borůvka; minimum and maximum spanning arborescences and branchings (Edmonds); Steiner trees (Mehlhorn; Kou, Markowsky and Berman); random spanning trees (Wilson).", ["GraphProtocols", "DisjointSetModule", "PriorityQueueModule", "Trees"]),
+    ("Connectivity", "Algorithms", "Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected, bi-edge-connected and k-edge-connected components, k-edge-connected subgraphs and the block–cut tree of undirected graphs.", ["GraphProtocols", "CompressedSparseRowModule", "Trees"]),
+    ("Cycles", "Algorithms", "Cycle detection, cycle bases, elementary circuits, chordless cycles, minimum mean cycles (Karp), girth, feedback arc sets.", ["GraphProtocols", "Walks", "DisjointSetModule", "Connectivity"]),
+    ("Tours", "Algorithms", "Eulerian trails and circuits, Chinese postman tours, Hamiltonian paths and cycles, travelling salesman tours (exact, heuristic and metaheuristic).", ["GraphProtocols", "Walks", "MatchingModule", "SpanningTrees", "PriorityQueueModule", "Flows"]),
+    ("Flows", "Algorithms", "Maximum flow (push–relabel, Dinic, Edmonds–Karp, Boykov–Kolmogorov), minimum cuts (s–t, Nagamochi–Ibaraki, Hao–Orlin), Gomory–Hu trees, minimum-cost flow (network simplex), feasible flows with lower bounds, cut metrics (conductance, expansions), edge and vertex connectivity, disjoint paths.", ["GraphProtocols", "Trees", "Walks"]),
     ("MatchingModule", "Algorithms", "Matching: Hopcroft–Karp, Hungarian, Edmonds' blossom, Gale–Shapley.", ["GraphProtocols", "BipartiteGraphs"]),
     ("ColoringModule", "Algorithms", "Vertex coloring (greedy strategies, exact chromatic number), edge coloring (Misra–Gries, König, greedy).", ["GraphProtocols", "BipartiteGraphs", "Cliques"]),
-    ("Cliques", "Algorithms", "Bron–Kerbosch, k-cores, triangle counting, clustering coefficient.", ["GraphProtocols"]),
+    ("Cliques", "Algorithms", "Bron–Kerbosch, every clique by size, maximum and maximum-weight cliques, k-cores, crusts and coronas, onion layers, k-trusses, triangle counting, clustering coefficient, chordal graphs (recognition, perfect elimination orderings, holes, cliques, treewidth).", ["GraphProtocols", "Walks", "Traversal"]),
     ("Covering", "Algorithms", "Vertex cover, independent set, dominating set, edge cover.", ["GraphProtocols", "MatchingModule", "BipartiteGraphs", "Cliques"]),
-    ("Centrality", "Algorithms", "Degree, closeness, harmonic, betweenness, eigenvector, Katz, PageRank, HITS.", ["GraphProtocols", "PriorityQueueModule"]),
-    ("CommunityDetection", "Algorithms", "Modularity, Louvain, label propagation and greedy modularity communities.", ["GraphProtocols", "PriorityQueueModule"]),
-    ("IsomorphismModule", "Algorithms", "Isomorphism and subgraph isomorphism (VF2++), canonical labeling, automorphism groups, Weisfeiler–Leman hashing.", ["GraphProtocols"]),
-    ("Planarity", "Algorithms", "Planarity testing and planar embeddings by the left-right test, Kuratowski subgraphs by Boyer–Myrvold, outerplanarity.", ["GraphProtocols", "Walks"]),
+    ("Centrality", "Algorithms", "Degree, closeness, harmonic, betweenness (vertex and edge, exact or from pivots), load, percolation, current-flow betweenness and closeness, subgraph centrality and communicability, group centralities, VoteRank, eigenvector, Katz, PageRank, HITS.", ["GraphProtocols", "PriorityQueueModule"]),
+    ("CommunityDetection", "Algorithms", "Modularity and the constant Potts model; Louvain, Leiden, label propagation, greedy modularity, Girvan–Newman, Kernighan–Lin bisection, k-clique percolation, asynchronous fluid, Walktrap and leading-eigenvector communities; spectral clustering (Ng–Jordan–Weiss).", ["GraphProtocols", "PriorityQueueModule", "Centrality", "Cliques", "SpectralGraphTheory"]),
+    ("IsomorphismModule", "Algorithms", "Isomorphism and subgraph isomorphism (VF2++), canonical labeling, automorphism groups, Weisfeiler–Leman hashing, graph edit distance.", ["GraphProtocols"]),
+    ("Planarity", "Algorithms", "Planarity testing and planar embeddings by the left-right test, Kuratowski subgraphs by Boyer–Myrvold, outerplanarity, dual graphs.", ["GraphProtocols", "Walks", "Multigraphs"]),
     ("TreeAlgorithms", "Algorithms", "Lowest common ancestor, Euler tour, heavy–light decomposition, center, centroid, diameter.", ["GraphProtocols", "Trees", "Walks"]),
-    ("Distances", "Algorithms", "Eccentricity, radius, diameter, center, periphery, centroid, Wiener index, average shortest path length, density.", ["GraphProtocols", "Walks", "PriorityQueueModule"]),
-    ("SpectralGraphTheory", "Algorithms", "Adjacency, Laplacian, normalized, random-walk and signless Laplacian matrices as a SparseMatrix; dense spectra; algebraic connectivity, Fiedler vector, spectral ordering and spectral radius by thick-restart Lanczos; spanning-tree counts, resistance distance, effective graph resistance and the Kemeny constant.", ["GraphProtocols", "CompressedSparseRowModule"]),
+    ("Distances", "Algorithms", "Eccentricity, radius, diameter, center, periphery, centroid, Wiener index, average shortest path length, density, global and local efficiency.", ["GraphProtocols", "Walks", "PriorityQueueModule"]),
+    ("Assortativity", "Algorithms", "Degree, attribute and numeric assortativity, average neighbor degree and degree connectivity, reciprocity, degree histograms and regularity, rich-club coefficients, the s-metric and the triadic census.", ["GraphProtocols"]),
+    ("SpectralGraphTheory", "Algorithms", "Adjacency, Laplacian, normalized, random-walk and signless Laplacian matrices and incidence matrices as a SparseMatrix, modularity matrices; dense spectra; algebraic connectivity, Fiedler vector, spectral ordering, spectral radius and the k extreme eigenpairs by thick-restart Lanczos; spectral embedding (Laplacian eigenmaps); spanning-tree counts, resistance distance, effective graph resistance, the Kemeny constant, hitting and commute times, and stationary distributions.", ["GraphProtocols", "CompressedSparseRowModule"]),
+    ("Similarity", "Algorithms", "Vertex-pair similarity for link prediction (common neighbors, Jaccard, Sørensen–Dice, cosine, Adamic–Adar, resource allocation, preferential attachment) and SimRank.", ["GraphProtocols"]),
 
     # Generators
-    ("NamedGraphs", "Generators", "Complete, complete bipartite and multipartite, Turán, path, cycle, star, wheel, ladder, circular ladder, barbell, lollipop, grid, hypercube, balanced tree and Petersen graphs.", ["GraphProtocols", "Trees", "BipartiteGraphs"]),
-    ("RandomGraphs", "Generators", "Erdős–Rényi, Barabási–Albert, Watts–Strogatz, random geometric, random regular, random bipartite, stochastic block model, random trees and DAGs.", ["GraphProtocols", "AdjacencyListModule", "BipartiteGraphs", "NamedGraphs", "Trees", "DirectedAcyclicGraphModule"]),
+    ("NamedGraphs", "Generators", "Complete, complete bipartite and multipartite, Turán, path, cycle, star, wheel, ladder, circular ladder, barbell, lollipop, windmill, grid, triangular and hexagonal lattice, hypercube, circulant, generalized Petersen, Kneser, de Bruijn, Kautz, LCF, balanced, full r-ary and binomial tree graphs, and the Petersen, Heawood, Möbius–Kantor, Pappus, Desargues, dodecahedral, icosahedral, Frucht, Tutte, Chvátal and Hoffman–Singleton graphs.", ["GraphProtocols", "Trees", "BipartiteGraphs", "AdjacencyListModule", "Multigraphs"]),
+    ("RandomGraphs", "Generators", "Erdős–Rényi, Barabási–Albert, Holme–Kim, Watts–Strogatz and Newman–Watts–Strogatz, random geometric, random regular, random k-out, random bipartite, stochastic block model, Chung–Lu, configuration model, directed scale-free, random trees and DAGs; graphical degree sequences and Havel–Hakimi.", ["GraphProtocols", "AdjacencyListModule", "BipartiteGraphs", "NamedGraphs", "Trees", "DirectedAcyclicGraphModule", "Multigraphs"]),
 
     # Drawing and formats
-    ("GraphDrawing", "Drawing", "Coordinates for drawing graphs: circular, Fruchterman–Reingold (exact or Barnes–Hut), stress majorization, Reingold–Tilford and layered (Sugiyama) layouts.", ["GraphProtocols", "Trees", "Cycles"]),
-    ("GraphFormats", "Formats", "Readers and writers for DOT, GraphML, node-link JSON, Matrix Market, edge lists, adjacency lists and Mermaid flowcharts, with their own UTF-8, XML and JSON scanners (no Foundation).", ["GraphProtocols"]),
+    ("GraphDrawing", "Drawing", "Coordinates for drawing graphs: circular, shell, spiral, bipartite, multipartite, BFS, random, spectral, multidimensional scaling, planar straight-line (de Fraysseix–Pach–Pollack), Fruchterman–Reingold and ForceAtlas2 (exact or Barnes–Hut), stress majorization, Reingold–Tilford and layered (Sugiyama) layouts.", ["GraphProtocols", "Trees", "Cycles", "Planarity", "SpectralGraphTheory"]),
+    ("GraphFormats", "Formats", "Readers and writers for DOT, GraphML, GML, node-link and Cytoscape JSON, Pajek, graph6, sparse6, digraph6, DIMACS, METIS, Matrix Market, edge lists, adjacency lists and Mermaid flowcharts, with their own UTF-8, XML and JSON scanners (no Foundation).", ["GraphProtocols"]),
 ]
 
 # Test targets. SwiftPM rejects a target with no sources, so list a target only once its directory
@@ -94,14 +96,14 @@ TEST_TARGETS = [
     ("PriorityQueueTests", ["PriorityQueueModule", "GrafluentTestSupport"]),
     ("DisjointSetTests", ["DisjointSetModule", "GrafluentTestSupport"]),
     ("ShortestPathsTests", ["GraphProtocols", "ShortestPaths", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Walks", "Trees", "Semirings"]),
-    ("SpanningTreesTests", ["GraphProtocols", "SpanningTrees", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Trees"]),
+    ("SpanningTreesTests", ["GraphProtocols", "SpanningTrees", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Trees"]),
     ("WalksTests", ["GraphProtocols", "Walks", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("CyclesTests", ["GraphProtocols", "Cycles", "Walks", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("TreesTests", ["GraphProtocols", "Trees", "Walks", "Cycles", "AdjacencyListModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("TreeAlgorithmsTests", ["GraphProtocols", "Trees", "TreeAlgorithms", "Walks", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("DistancesTests", ["GraphProtocols", "Distances", "Walks", "Trees", "TreeAlgorithms", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
-    ("CliquesTests", ["GraphProtocols", "Cliques", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
-    ("CommunityDetectionTests", ["GraphProtocols", "CommunityDetection", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Connectivity", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("CliquesTests", ["GraphProtocols", "Cliques", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Walks", "Traversal", "Multigraphs"]),
+    ("CommunityDetectionTests", ["GraphProtocols", "CommunityDetection", "Centrality", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Connectivity", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("BipartiteGraphsTests", ["GraphProtocols", "BipartiteGraphs", "Walks", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("MatchingModuleTests", ["GraphProtocols", "MatchingModule", "BipartiteGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("CoveringTests", ["GraphProtocols", "Covering", "MatchingModule", "BipartiteGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
@@ -127,8 +129,10 @@ TEST_TARGETS = [
     ("PlanarityTests", ["GraphProtocols", "Planarity", "Walks", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphFormatsTests", ["GraphProtocols", "GraphFormats", "AdjacencyListModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("SemiringsTests", ["Semirings", "ShortestPaths", "GraphProtocols", "Multigraphs", "AdjacencyListModule", "DirectedAcyclicGraphModule", "StableGraphs", "Traversal", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
-    ("GraphDrawingTests", ["GraphProtocols", "GraphDrawing", "Cycles", "Trees", "RandomGraphs", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "StableGraphs", "DirectedAcyclicGraphModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("GraphDrawingTests", ["GraphProtocols", "GraphDrawing", "Cycles", "Trees", "Planarity", "SpectralGraphTheory", "RandomGraphs", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "StableGraphs", "DirectedAcyclicGraphModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("SpectralGraphTheoryTests", ["GraphProtocols", "SpectralGraphTheory", "CompressedSparseRowModule", "AdjacencyListModule", "AdjacencyMatrixModule", "Multigraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("SimilarityTests", ["GraphProtocols", "Similarity", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("AssortativityTests", ["GraphProtocols", "Assortativity", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GrafluentTests", ["Grafluent"]),
 ]
 
@@ -151,11 +155,11 @@ TEST_SIZES = {name: "medium" for name in [
 # out under release. Debug runs both. A `.timeLimit` that only guards a small input against a hang
 # does not make a test speed-reliant.
 PERFORMANCE_TESTS = [
-    "BipartiteGraphsTests", "CentralityTests", "CliquesTests", "ColoringModuleTests", "CommunityDetectionTests",
+    "AdjacencyListTests", "AssortativityTests", "BipartiteGraphsTests", "CentralityTests", "CliquesTests", "ColoringModuleTests", "CommunityDetectionTests",
     "CoveringTests", "CyclesTests", "DistancesTests", "FlowsTests", "FunctionalGraphsTests", "GraphDrawingTests",
     "GraphFormatsTests", "GraphOperationsTests", "HypergraphsTests", "ImplicitGraphsTests", "IncidenceMatrixTests",
     "IsomorphismTests", "LabeledGraphsTests", "MatchingModuleTests", "MultigraphsTests", "PlanarityTests",
-    "RandomGraphsTests", "SpectralGraphTheoryTests", "StableGraphsTests", "ToursTests", "TreeAlgorithmsTests",
+    "RandomGraphsTests", "SimilarityTests", "SpectralGraphTheoryTests", "StableGraphsTests", "ToursTests", "TreeAlgorithmsTests",
     "TreesTests",
 ]
 
@@ -172,7 +176,7 @@ def performance_target(name):
 
 # The library modules the differential harness (Differential/, scripts/differential.py) links.
 # Both its Package.swift and its BUILD.bazel are written from this list.
-DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Planarity"]
+DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Planarity", "Similarity", "Assortativity", "Traversal", "GraphOperations", "NamedGraphs", "RandomGraphs", "IsomorphismModule", "GraphDrawing", "SpectralGraphTheory", "GraphFormats"]
 
 PLATFORMS = '[.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)]'
 

@@ -4,10 +4,12 @@
 //
 // The arguments, if any, name the sections to answer (scripts/differential.py's --module):
 // shortestpaths, spanningtrees, connectivity, cycles, trees, distances, cliques, centrality,
-// communities, bipartite, matching, covering, coloring, flows, tours, dag, planarity. With none,
+// communities, bipartite, matching, covering, coloring, flows, tours, dag, planarity, traversal, operations,
+// similarity, assortativity, isomorphism, drawing, generators, spectral. With none,
 // every section is answered. A section not asked for is left at its default and not computed.
 // `flows-catalog` or `tours-catalog` as the only argument answers catalog requests instead
-// (Flows.swift, Tours.swift).
+// (Flows.swift, Tours.swift); `formats` answers GraphFormats read and write requests
+// (GraphFormats.swift).
 
 import AdjacencyListModule
 import BipartiteGraphs
@@ -22,10 +24,14 @@ import Distances
 import Foundation
 import MatchingModule
 import GraphProtocols
+import IsomorphismModule
 import ShortestPaths
+import Similarity
+import SpectralGraphTheory
 import Walks
 import SpanningTrees
 import TreeAlgorithms
+import Traversal
 import Trees
 
 struct Case: Decodable {
@@ -39,6 +45,10 @@ struct Case: Decodable {
     let flow: FlowCase?
     /// The Tours inputs, when the tours section is asked for.
     let tours: ToursCase?
+    /// The generator inputs, when the generators section is asked for.
+    let generators: GeneratorCase?
+    /// The planted partition, when the communities section is asked for.
+    let plantedPartition: PlantedPartitionCase?
 }
 
 struct Result: Encodable {
@@ -51,8 +61,14 @@ struct Result: Encodable {
     var witness: [Int]?
     var wholeGraphWitness: [Int]?
     var unweighted: [Int?]?
+    /// Yen, all shortest paths, bidirectional Dijkstra, all pairs (ShortestPathEnumeration.swift).
+    var paths: PathAnswers?
     /// Undirected only: spanning forests as offsets in the case's edge list, and their weights.
     var spanning: Spanning?
+    /// Directed only: spanning arborescences and branchings (SpanningTrees.swift).
+    var arborescences: ArborescenceAnswers?
+    /// Undirected only: Steiner trees over the sources and the target (SpanningTrees.swift).
+    var steiner: SteinerAnswers?
     var connectivity: UndirectedConnectivity?
     /// Directed only: nontrivial strong components, with the full partition for their order.
     var directedConnectivity: DirectedConnectivity?
@@ -62,6 +78,12 @@ struct Result: Encodable {
     var trees = TreeAnswers()
     var distances: DistanceAnswers?
     var cliques: CliqueAnswers?
+    /// Trusses, onion layers, crusts, coronas, clique listings and weights (Cohesion.swift).
+    var cliqueExtras: CliqueExtraAnswers?
+    /// k-edge-connected components and subgraphs (Cohesion.swift).
+    var edgeConnectivity: EdgeConnectivityAnswers?
+    /// d-separation and the moral graph (Cohesion.swift).
+    var dSeparation: DSeparationAnswers?
     var centrality = CentralityAnswers()
     var communities = CommunityAnswers()
     var bipartite = BipartiteAnswers()
@@ -72,6 +94,14 @@ struct Result: Encodable {
     var tours: ToursAnswers?
     var dag: DirectedAcyclicGraphAnswers?
     var planarity: PlanarityAnswers?
+    var assortativity: AssortativityAnswers?
+    var similarity: SimilarityAnswers?
+    var isomorphism: IsomorphismAnswers?
+    var drawing: DrawingAnswers?
+    var operations: OperationsAnswers?
+    var traversal: TraversalAnswers?
+    var generators: GeneratorAnswers?
+    var spectral: SpectralAnswers?
 }
 
 /// Cliques on the simple graph: maximal cliques (each sorted), the clique number and the
@@ -87,6 +117,15 @@ struct CliqueAnswers: Encodable {
     var transitivity = 0.0
     var average = 0.0
     var oneShotsAgree = true
+    /// Chordal graphs: isChordal, the perfect elimination ordering (the reverse of
+    /// maximumCardinalitySearch(), checked here), the cliques and treewidth, or the hole.
+    var isChordal = false
+    var eliminationOrder: [Int]?
+    var eliminationIsReversedSearch = true
+    var chordalCliques: [[Int]]?
+    var treewidth: Int?
+    var hole: [Int]?
+    var holeValid = true
 }
 
 /// Distances, unweighted and (with nonnegative weights) weighted, by eccentricities() and by
@@ -164,9 +203,30 @@ struct Cycles: Encodable {
     var findCycleEdges: [Int]?
     var basis: [[Int]]?
     var basisEdges: [[Int]]?
+    /// chordlessCycles(), and (directed) the minimum mean cycle's vertices, weight and length.
+    var chordless: [[Int]]?
+    var chordlessEdges: [[Int]]?
+    var meanCycle: [Int]?
+    var meanWeight: Int?
+    var meanLength: Int?
+}
+
+/// Traversal: allSimplePaths from the first source to the target, unbounded and with maxLength 3
+/// (nil past `cycleLimit` paths, and on cases above `enumerationLimit` vertices), and (directed) the number of topological orders (nil past
+/// `cycleLimit`), with whether every path and order is valid and the orders are in
+/// lexicographic order.
+struct TraversalAnswers: Encodable {
+    var paths: [[Int]]?
+    var boundedPaths: [[Int]]?
+    var pathsValid = true
+    var topologicalSorts: Int?
+    var sortsValid = true
 }
 
 let cycleLimit = 3000
+/// The most vertices a case has for the enumerations whose time between answers is not bounded
+/// (all simple paths, chordless cycles); the larger cases skip them.
+let enumerationLimit = 30
 
 func listed<S: Sequence<Cycle<Int, Int>>>(_ cycles: S, _ isValid: (Cycle<Int, Int>) -> Bool, _ valid: inout Bool) -> (vertices: [[Int]], edges: [[Int]])? {
     var vertices: [[Int]] = [], edges: [[Int]] = []
@@ -238,6 +298,16 @@ struct CentralityAnswers: Encodable {
     var betweennessRaw: [Double] = []
     var betweennessEndpoints: [Double] = []
     var weightedBetweenness: [Double] = []
+    /// Edge betweenness as [u, v, score] per edge; normalized, unnormalized, weighted (|w| + 1).
+    var edgeBetweenness: [[Double]] = []
+    var edgeBetweennessRaw: [[Double]] = []
+    var weightedEdgeBetweenness: [[Double]] = []
+    /// From the case's sources as pivots: vertex betweenness (NaN as nil), with endpoints, and
+    /// unweighted and weighted edge betweenness.
+    var pivotBetweenness: [Double?] = []
+    var pivotBetweennessEndpoints: [Double] = []
+    var pivotEdgeBetweenness: [[Double]] = []
+    var weightedPivotEdgeBetweenness: [[Double]] = []
     var eigenvector: [Double]?
     var katz: [Double]?
     var pageRank: [Double]?
@@ -246,9 +316,20 @@ struct CentralityAnswers: Encodable {
     var authorities: [Double]?
     /// One-vertex forms, floating-point weights and the directed view agree with the rest.
     var consistent = true
+    /// Load, percolation, group, VoteRank, current-flow and subgraph centrality (CentralityExtras.swift).
+    var extras = CentralityExtras()
 }
 
-func directedCentrality<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Index) -> Int) -> CentralityAnswers {
+/// Each edge's [u, v, score].
+func edgeRows<G: DirectedGraph<Int>>(_ graph: G, _ scores: EdgeCentralityScores<G.Edges.Index>) -> [[Double]] {
+    graph.edges.indices.map { [Double(graph.source(ofEdgeAt: $0)), Double(graph.target(ofEdgeAt: $0)), scores.score(ofEdgeAt: $0)] }
+}
+
+func edgeRows<G: Graph<Int>>(_ graph: G, _ scores: EdgeCentralityScores<G.Edges.Index>) -> [[Double]] {
+    graph.edges.indices.map { [Double(graph.edges[$0].u), Double(graph.edges[$0].v), scores.score(ofEdgeAt: $0)] }
+}
+
+func directedCentrality<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Index) -> Int, pivots: [Int]) -> CentralityAnswers {
     var a = CentralityAnswers()
     a.degree = graph.degreeCentrality().scores
     a.inDegree = graph.inDegreeCentrality().scores
@@ -262,6 +343,13 @@ func directedCentrality<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edg
     a.betweennessRaw = graph.betweennessCentrality(normalized: false).scores
     a.betweennessEndpoints = graph.betweennessCentrality(endpoints: true).scores
     a.weightedBetweenness = graph.betweennessCentrality(weight: { abs(w($0)) + 1 }).scores
+    a.edgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality())
+    a.edgeBetweennessRaw = edgeRows(graph, graph.edgeBetweennessCentrality(normalized: false))
+    a.weightedEdgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality(weight: { abs(w($0)) + 1 }))
+    a.pivotBetweenness = graph.betweennessCentrality(pivots: pivots).scores.map { $0.isNaN ? nil : $0 }
+    a.pivotBetweennessEndpoints = graph.betweennessCentrality(pivots: pivots, endpoints: true).scores
+    a.pivotEdgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality(pivots: pivots))
+    a.weightedPivotEdgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality(weight: { abs(w($0)) + 1 }, pivots: pivots, normalized: false))
     a.eigenvector = (try? graph.eigenvectorCentrality())?.scores
     a.katz = (try? graph.katzCentrality())?.scores
     a.pageRank = (try? graph.pageRank())?.scores
@@ -274,10 +362,11 @@ func directedCentrality<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edg
             && graph.closenessCentrality(of: v, weight: { Double(abs(w($0))) }) == a.weightedCloseness[v]
             && graph.harmonicCentrality(of: v, weight: { abs(w($0)) }) == a.weightedHarmonic[v]
     }
+    a.extras = directedCentralityExtras(graph, n, w)
     return a
 }
 
-func undirectedCentrality<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Index) -> Int) -> CentralityAnswers {
+func undirectedCentrality<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Index) -> Int, pivots: [Int]) -> CentralityAnswers {
     var a = CentralityAnswers()
     a.degree = graph.degreeCentrality().scores
     a.closeness = graph.closenessCentrality().scores
@@ -289,6 +378,13 @@ func undirectedCentrality<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Ind
     a.betweennessRaw = graph.betweennessCentrality(normalized: false).scores
     a.betweennessEndpoints = graph.betweennessCentrality(endpoints: true).scores
     a.weightedBetweenness = graph.betweennessCentrality(weight: { abs(w($0)) + 1 }).scores
+    a.edgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality())
+    a.edgeBetweennessRaw = edgeRows(graph, graph.edgeBetweennessCentrality(normalized: false))
+    a.weightedEdgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality(weight: { abs(w($0)) + 1 }))
+    a.pivotBetweenness = graph.betweennessCentrality(pivots: pivots).scores.map { $0.isNaN ? nil : $0 }
+    a.pivotBetweennessEndpoints = graph.betweennessCentrality(pivots: pivots, endpoints: true).scores
+    a.pivotEdgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality(pivots: pivots))
+    a.weightedPivotEdgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality(weight: { abs(w($0)) + 1 }, pivots: pivots, normalized: false))
     a.eigenvector = (try? graph.eigenvectorCentrality())?.scores
     a.katz = (try? graph.katzCentrality())?.scores
     a.pageRank = (try? graph.pageRank())?.scores
@@ -299,13 +395,20 @@ func undirectedCentrality<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Ind
             && graph.closenessCentrality(of: v, weight: { Double(abs(w($0))) }) == a.weightedCloseness[v]
             && graph.harmonicCentrality(of: v, weight: { abs(w($0)) }) == a.weightedHarmonic[v]
     }
-    // The directed view: equal closeness and normalized betweenness, twice the degree.
+    // The directed view: equal closeness and normalized betweenness, twice the degree; an edge's
+    // two arcs add up to its normalized edge betweenness.
     let viewBetweenness = view.betweennessCentrality().scores
     let viewDegree = view.degreeCentrality().scores
+    let viewEdges = view.edgeBetweennessCentrality()
+    let edges = graph.edgeBetweennessCentrality()
     if view.closenessCentrality().scores != a.closeness
-        || (0 ..< n).contains(where: { abs(viewBetweenness[$0] - a.betweenness[$0]) > 1e-9 || abs(viewDegree[$0] - (n == 1 ? 1 : 2 * a.degree[$0])) > 1e-12 }) {
+        || (0 ..< n).contains(where: { abs(viewBetweenness[$0] - a.betweenness[$0]) > 1e-9 || abs(viewDegree[$0] - (n == 1 ? 1 : 2 * a.degree[$0])) > 1e-12 })
+        || graph.edges.indices.contains(where: { p in
+            abs(viewEdges.score(ofEdgeAt: .init(position: p, reversed: false)) + viewEdges.score(ofEdgeAt: .init(position: p, reversed: true)) - edges.score(ofEdgeAt: p)) > 1e-9
+        }) {
         a.consistent = false
     }
+    a.extras = undirectedCentralityExtras(graph, n, w)
     return a
 }
 
@@ -326,6 +429,11 @@ struct CommunityAnswers: Encodable {
     var weightedAsynchronous: [Int]?
     var louvainModularity = 0.0
     var singletonModularity = 0.0
+    /// Undirected cases with at most 30 vertices: Girvan–Newman's first five levels.
+    var girvanNewman: [[Int]]?
+    /// Leiden, Louvain's levels, Kernighan–Lin, k-clique, fluid, Walktrap and spectral clustering
+    /// (CommunityExtras.swift).
+    var extras = CommunityExtras()
 }
 
 func labels<G: DirectedGraph<Int>>(_ p: Partition<G>, _ n: Int) -> [Int] { (0 ..< n).map { p.community(of: $0) } }
@@ -347,6 +455,7 @@ func directedCommunities<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: @esca
     a.weightedGreedy = labels(graph.greedyModularityCommunities(weight: dw), n)
     a.louvainModularity = graph.modularity(of: louvain)
     a.singletonModularity = graph.modularity(of: (0 ..< n).map { [$0] })
+    a.extras = directedCommunityExtras(graph, n, dw)
     return a
 }
 
@@ -368,8 +477,10 @@ func undirectedCommunities<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: @escaping (
     a.labelPropagation = labels(graph.labelPropagationCommunities(), n)
     a.asynchronous = labels(graph.asynchronousLabelPropagationCommunities(), n)
     a.weightedAsynchronous = labels(graph.asynchronousLabelPropagationCommunities(weight: dw), n)
+    if n <= 30 { a.girvanNewman = graph.girvanNewmanCommunities().prefix(5).map { labels($0, n) } }
     a.louvainModularity = graph.modularity(of: louvain)
     a.singletonModularity = graph.modularity(of: (0 ..< n).map { [$0] })
+    a.extras = undirectedCommunityExtras(graph, n, dw)
     return a
 }
 
@@ -382,6 +493,12 @@ struct BipartiteAnswers: Encodable {
     var oddCycle: [Int]?
     var oddCycleEdges: [[Int]]?
     var projectionEdges: [[Int]]?
+    /// The weighted projections onto the left side, by position of `projectionEdges`, and whether
+    /// each one's graph is the plain projection's.
+    var sharedWeights: [Int]?
+    var jaccardWeights: [Double]?
+    var lesserOverlapWeights: [Double]?
+    var collaborationWeights: [Double]?
     var consistent = true
 }
 
@@ -399,6 +516,14 @@ func bipartiteAnswers<G: Graph<Int>>(_ graph: G, _ n: Int) -> BipartiteAnswers {
         a.consistent = a.consistent && Array(built.left) == Array(partition.left) && Array(built.right) == Array(partition.right)
             && BipartiteGraph(graph, left: partition.left) == built && built.edgeCount == Set(graph.edges).count
         a.projectionEdges = built.projectedGraph(onto: .left).edges.map { [$0.u, $0.v] }
+        func weights<W>(_ p: WeightedProjection<Int, W>) -> [W] {
+            if p.graph.edges.map({ [$0.u, $0.v] }) != a.projectionEdges { a.consistent = false }
+            return p.graph.edges.indices.map { p.graph[p.weights, ofEdgeAt: $0] }
+        }
+        a.sharedWeights = weights(built.weightedProjectedGraph(onto: .left))
+        a.jaccardWeights = weights(built.overlapWeightedProjectedGraph(onto: .left))
+        a.lesserOverlapWeights = weights(built.overlapWeightedProjectedGraph(onto: .left, jaccard: false))
+        a.collaborationWeights = weights(built.collaborationWeightedProjectedGraph(onto: .left))
     }
     return a
 }
@@ -458,6 +583,7 @@ struct CoveringAnswers: Encodable {
     var maximumIndependentSet: [Int]?
     var independenceNumber: Int?
     var minimumVertexCover: [Int]?
+    var leastMinimumVertexCover: [Int]?
     var minimumDominatingSet: [Int]?
     var consistent = true
 }
@@ -488,8 +614,11 @@ func coveringAnswers<G: Graph<Int>>(_ graph: G) -> CoveringAnswers {
         a.maximumIndependentSet = mis
         a.independenceNumber = graph.independenceNumber()
         a.minimumVertexCover = cover
+        let leastCover = graph.lexicographicallyFirstMinimumVertexCover()
+        a.leastMinimumVertexCover = leastCover
         a.consistent = a.consistent && graph.isIndependentSet(mis) && graph.isVertexCover(cover) && mis.count + cover.count == graph.vertexCount
             && a.independenceNumber == mis.count && fast.count == mis.count && graph.isIndependentSet(fast)
+            && graph.isVertexCover(leastCover) && leastCover.count == cover.count
     }
     if graph.vertexCount <= 16 {
         let dominating = graph.lexicographicallyFirstMinimumDominatingSet()
@@ -652,6 +781,12 @@ if CommandLine.arguments.dropFirst().first == "flows-catalog" {
     exit(0)
 }
 
+if CommandLine.arguments.dropFirst().first == "formats" {
+    let requests = try JSONDecoder().decode([FormatRequest].self, from: FileHandle.standardInput.readDataToEndOfFile())
+    FileHandle.standardOutput.write(try JSONEncoder().encode(requests.map(answerFormat)))
+    exit(0)
+}
+
 if CommandLine.arguments.dropFirst().first == "tours-catalog" {
     let requests = try JSONDecoder().decode([ToursRequest].self, from: FileHandle.standardInput.readDataToEndOfFile())
     FileHandle.standardOutput.write(try JSONEncoder().encode(requests.map(answerToursCatalog)))
@@ -675,6 +810,7 @@ for c in cases {
             { graph.findNegativeCycle(from: c.sources, weight: w)?.vertices },
             { graph.findNegativeCycle(weight: w)?.vertices },
             { graph.shortestPaths(from: c.sources) }))
+        if wants("shortestpaths") { results[results.count - 1].paths = pathAnswers(graph, c, w) }
         if wants("cycles") {
             var cycles = Cycles()
             let isValid = { (cycle: Cycle<Int, Int>) in Cycle(vertices: cycle.vertices, edges: cycle.edges, in: graph) != nil }
@@ -683,7 +819,46 @@ for c in cases {
             cycles.simpleEdges = all?.edges
             cycles.bounded = listed(graph.simpleCycles(maxLength: 3), isValid, &cycles.valid)?.vertices
             cycles.girth = graph.girth()
+            let chordless = c.n <= enumerationLimit ? listed(graph.chordlessCycles(), isValid, &cycles.valid) : nil
+            cycles.chordless = chordless?.vertices
+            cycles.chordlessEdges = chordless?.edges
+            if let mean = graph.minimumMeanCycle(weight: w) {
+                if !isValid(mean) { cycles.valid = false }
+                cycles.meanCycle = mean.vertices
+                cycles.meanWeight = mean.weight(w)
+                cycles.meanLength = mean.length
+            }
             results[results.count - 1].cycles = cycles
+        }
+        if wants("traversal") {
+            var traversal = TraversalAnswers()
+            func paths(_ maxLength: Int) -> [[Int]]? {
+                var found: [[Int]] = []
+                for path in graph.allSimplePaths(from: c.sources[0], to: c.target, maxLength: maxLength) {
+                    if found.count == cycleLimit { return nil }
+                    if Path(vertices: path.vertices, edges: path.edges, in: graph) == nil || path.target != c.target { traversal.pathsValid = false }
+                    found.append(path.vertices)
+                }
+                return found
+            }
+            // Exponential: only on the small cases, as `enumerationLimit` says.
+            if c.n <= enumerationLimit {
+                traversal.paths = paths(.max)
+                traversal.boundedPaths = paths(3)
+            }
+            var count = 0
+            var previous: [Int]?
+            var position = [Int](repeating: 0, count: c.n)
+            for order in graph.allTopologicalSorts() {
+                if count == cycleLimit { count = -1; break }
+                count += 1
+                for (i, v) in order.enumerated() { position[v] = i }
+                if order.count != c.n || !graph.edges.allSatisfy({ position[$0.source] < position[$0.target] }) { traversal.sortsValid = false }
+                if let previous, !previous.lexicographicallyPrecedes(order) { traversal.sortsValid = false }
+                previous = order
+            }
+            traversal.topologicalSorts = count < 0 ? nil : count
+            results[results.count - 1].traversal = traversal
         }
         if wants("connectivity") {
             results[results.count - 1].directedConnectivity = DirectedConnectivity(
@@ -727,8 +902,9 @@ for c in cases {
             }
             results[results.count - 1].distances = answers
         }
-        if wants("centrality") { results[results.count - 1].centrality = directedCentrality(graph, c.n, w) }
+        if wants("centrality") { results[results.count - 1].centrality = directedCentrality(graph, c.n, w, pivots: c.sources) }
         if wants("communities") { results[results.count - 1].communities = directedCommunities(graph, c.n, w) }
+        if wants("communities"), let p = c.plantedPartition { results[results.count - 1].communities.extras.spectralClusters = plantedSpectralClusters(p) }
         if wants("bipartite") { results[results.count - 1].bipartite = bipartiteAnswers(graph.undirectedView, c.n) }
         if wants("matching") { results[results.count - 1].matching = matchingAnswers(graph.undirectedView, { weights[$0] }) }
         if wants("covering") { results[results.count - 1].covering = coveringAnswers(graph.undirectedView) }
@@ -736,7 +912,16 @@ for c in cases {
         if wants("flows"), let f = c.flow { results[results.count - 1].flows = flowAnswers(directed: true, n: c.n, f) }
         if wants("tours"), let t = c.tours { results[results.count - 1].tours = toursAnswers(directed: true, n: c.n, edges: c.edges, sources: c.sources, target: c.target, t) }
         if wants("dag") { results[results.count - 1].dag = directedAcyclicGraphAnswers(n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
+        if wants("dag") { results[results.count - 1].dSeparation = dSeparationAnswers(n: c.n, edges: c.edges, sources: c.sources, target: c.target) }
         if wants("planarity") { results[results.count - 1].planarity = planarityAnswers(n: c.n, edges: c.edges) }
+        if wants("spanningtrees") { results[results.count - 1].arborescences = arborescenceAnswers(n: c.n, edges: c.edges, root: c.sources[0]) }
+        if wants("assortativity") { results[results.count - 1].assortativity = assortativityAnswers(directed: true, n: c.n, edges: c.edges) }
+        if wants("similarity") { results[results.count - 1].similarity = directedSimilarityAnswers(n: c.n, edges: c.edges) }
+        if wants("isomorphism") { results[results.count - 1].isomorphism = isomorphismAnswers(directed: true, n: c.n, edges: c.edges) }
+        if wants("drawing") { results[results.count - 1].drawing = drawingAnswers(n: c.n, edges: c.edges) }
+        if wants("operations") { results[results.count - 1].operations = directedOperationsAnswers(n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
+        if wants("generators"), let g = c.generators { results[results.count - 1].generators = generatorAnswers(g) }
+        if wants("spectral") { results[results.count - 1].spectral = spectralAnswers(directed: true, n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
     } else {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< c.n, edges: c.edges.map { UndirectedEdge($0[0], $0[1]) })
         var byEdge: [UndirectedEdge<Int>: Int] = [:]
@@ -751,6 +936,7 @@ for c in cases {
             { graph.findNegativeCycle(from: c.sources, weight: w)?.vertices },
             { graph.findNegativeCycle(weight: w)?.vertices },
             { graph.shortestPaths(from: c.sources) })
+        if wants("shortestpaths") { result.paths = pathAnswers(view, c, { weights[$0.position] }) }
         if wants("spanningtrees") {
             // Positions are insertion order, which is the case's edge order.
             let minimum = graph.minimumSpanningTree(weight: w)
@@ -765,6 +951,9 @@ for c in cases {
                 maximum: maximum.edges, maximumWeight: maximum.weight,
                 unweighted: graph.minimumSpanningTree().edges)
             result.spanning = spanning
+            var terminals: [Int] = []
+            for v in c.sources + [c.target] where !terminals.contains(v) { terminals.append(v) }
+            result.steiner = steinerAnswers(n: c.n, edges: c.edges, terminals: terminals)
         }
         if wants("connectivity") {
             let blocks = graph.biconnectedComponents()
@@ -802,7 +991,28 @@ for c in cases {
             if !basis.allSatisfy(isValid) { cycles.valid = false }
             cycles.basis = basis.map(\.vertices)
             cycles.basisEdges = basis.map(\.edges)
+            let chordless = c.n <= enumerationLimit ? listed(graph.chordlessCycles(), isValid, &cycles.valid) : nil
+            cycles.chordless = chordless?.vertices
+            cycles.chordlessEdges = chordless?.edges
             result.cycles = cycles
+        }
+        if wants("traversal") {
+            var traversal = TraversalAnswers()
+            func paths(_ maxLength: Int) -> [[Int]]? {
+                var found: [[Int]] = []
+                for path in graph.allSimplePaths(from: c.sources[0], to: c.target, maxLength: maxLength) {
+                    if found.count == cycleLimit { return nil }
+                    if Path(vertices: path.vertices, edges: path.edges, in: graph) == nil || path.target != c.target { traversal.pathsValid = false }
+                    found.append(path.vertices)
+                }
+                return found
+            }
+            // Exponential: only on the small cases, as `enumerationLimit` says.
+            if c.n <= enumerationLimit {
+                traversal.paths = paths(.max)
+                traversal.boundedPaths = paths(3)
+            }
+            result.traversal = traversal
         }
         if wants("trees") {
             var trees = TreeAnswers()
@@ -899,10 +1109,22 @@ for c in cases {
             cliques.average = clustering.averageClustering
             cliques.oneShotsAgree = graph.triangleCount() == clustering.triangleCount && graph.transitivity() == clustering.transitivity
                 && (0 ..< c.n).allSatisfy { graph.triangleCount(of: $0) == clustering.triangleCount(of: $0) && graph.clusteringCoefficient(of: $0) == clustering.clusteringCoefficient(of: $0) }
+            cliques.isChordal = graph.isChordal
+            cliques.eliminationOrder = graph.perfectEliminationOrdering()
+            if let order = cliques.eliminationOrder { cliques.eliminationIsReversedSearch = order == graph.maximumCardinalitySearch().reversed() }
+            cliques.chordalCliques = graph.chordalGraphCliques()
+            cliques.treewidth = graph.chordalGraphTreewidth()
+            if let hole = graph.findHole() {
+                cliques.hole = hole.vertices
+                cliques.holeValid = Cycle(vertices: hole.vertices, edges: hole.edges, in: graph) != nil
+            }
             result.cliques = cliques
         }
-        if wants("centrality") { result.centrality = undirectedCentrality(graph, c.n, w) }
+        if wants("cliques") { result.cliqueExtras = cliqueExtraAnswers(n: c.n, edges: c.edges, target: c.target) }
+        if wants("connectivity") { result.edgeConnectivity = edgeConnectivityAnswers(n: c.n, edges: c.edges) }
+        if wants("centrality") { result.centrality = undirectedCentrality(graph, c.n, w, pivots: c.sources) }
         if wants("communities") { result.communities = undirectedCommunities(graph, c.n, w) }
+        if wants("communities"), let p = c.plantedPartition { result.communities.extras.spectralClusters = plantedSpectralClusters(p) }
         if wants("bipartite") { result.bipartite = bipartiteAnswers(graph, c.n) }
         if wants("matching") { result.matching = matchingAnswers(graph, w) }
         if wants("covering") { result.covering = coveringAnswers(graph) }
@@ -910,6 +1132,13 @@ for c in cases {
         if wants("flows"), let f = c.flow { result.flows = flowAnswers(directed: false, n: c.n, f) }
         if wants("tours"), let t = c.tours { result.tours = toursAnswers(directed: false, n: c.n, edges: c.edges, sources: c.sources, target: c.target, t) }
         if wants("planarity") { result.planarity = planarityAnswers(n: c.n, edges: c.edges) }
+        if wants("assortativity") { result.assortativity = assortativityAnswers(directed: false, n: c.n, edges: c.edges) }
+        if wants("similarity") { result.similarity = undirectedSimilarityAnswers(graph, n: c.n) }
+        if wants("isomorphism") { result.isomorphism = isomorphismAnswers(directed: false, n: c.n, edges: c.edges) }
+        if wants("drawing") { result.drawing = drawingAnswers(n: c.n, edges: c.edges) }
+        if wants("operations") { result.operations = undirectedOperationsAnswers(n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
+        if wants("generators"), let g = c.generators { result.generators = generatorAnswers(g) }
+        if wants("spectral") { result.spectral = spectralAnswers(directed: false, n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
         results.append(result)
     }
 }

@@ -40,7 +40,9 @@
 @_exported import Planarity
 @_exported import TreeAlgorithms
 @_exported import Distances
+@_exported import Assortativity
 @_exported import SpectralGraphTheory
+@_exported import Similarity
 @_exported import NamedGraphs
 @_exported import RandomGraphs
 @_exported import GraphDrawing

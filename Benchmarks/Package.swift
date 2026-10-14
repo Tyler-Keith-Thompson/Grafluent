@@ -147,6 +147,7 @@ let package = Package(
                 .product(name: "GraphProtocols", package: "Grafluent"),
                 .product(name: "Planarity", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Multigraphs", package: "Grafluent"),
             ],
             path: "Benchmarks/PlanarityBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -380,6 +381,19 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "AssortativityBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Assortativity", package: "Grafluent"),
+                .product(name: "Distances", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/AssortativityBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "DistancesBenchmarks",
             dependencies: [
                 "BenchmarkSupport",
@@ -452,6 +466,7 @@ let package = Package(
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
                 .product(name: "AdjacencyMatrixModule", package: "Grafluent"),
                 .product(name: "StableGraphs", package: "Grafluent"),
+                .product(name: "PriorityQueueModule", package: "Grafluent"),
             ],
             path: "Benchmarks/SpanningTreesBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -501,6 +516,7 @@ let package = Package(
                 .product(name: "NamedGraphs", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "Multigraphs", package: "Grafluent"),
                 .product(name: "Trees", package: "Grafluent"),
             ],
             path: "Benchmarks/NamedGraphsBenchmarks",
@@ -512,6 +528,7 @@ let package = Package(
                 .product(name: "Benchmark", package: "benchmark"),
                 .product(name: "GraphProtocols", package: "Grafluent"),
                 .product(name: "GraphDrawing", package: "Grafluent"),
+                .product(name: "Planarity", package: "Grafluent"),
                 .product(name: "RandomGraphs", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
@@ -530,6 +547,7 @@ let package = Package(
                 .product(name: "BipartiteGraphs", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
                 .product(name: "DirectedAcyclicGraphModule", package: "Grafluent"),
+                .product(name: "Multigraphs", package: "Grafluent"),
                 .product(name: "Trees", package: "Grafluent"),
             ],
             path: "Benchmarks/RandomGraphsBenchmarks",
@@ -545,6 +563,18 @@ let package = Package(
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
             ],
             path: "Benchmarks/SpectralGraphTheoryBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
+            name: "SimilarityBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Similarity", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/SimilarityBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
     ] + representation.map { name in

@@ -3,6 +3,8 @@
 # The test packages that also hold a speed-reliant target, `<Name>PerformanceTests` built from
 # Performance/, which the root BUILD.bazel cannot find from the directory layout alone.
 PERFORMANCE_TEST_PACKAGES = [
+    "Tests/AdjacencyListTests",
+    "Tests/AssortativityTests",
     "Tests/BipartiteGraphsTests",
     "Tests/CentralityTests",
     "Tests/CliquesTests",
@@ -25,6 +27,7 @@ PERFORMANCE_TEST_PACKAGES = [
     "Tests/MultigraphsTests",
     "Tests/PlanarityTests",
     "Tests/RandomGraphsTests",
+    "Tests/SimilarityTests",
     "Tests/SpectralGraphTheoryTests",
     "Tests/StableGraphsTests",
     "Tests/ToursTests",

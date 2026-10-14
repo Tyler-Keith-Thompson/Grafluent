@@ -28,6 +28,7 @@ A failing case is written to Differential/Failures/ as JSON for a regression tes
 """
 
 import argparse
+from fractions import Fraction
 from collections import defaultdict
 import math
 import itertools
@@ -56,13 +57,27 @@ except ImportError:
     os.execvp("uv", ["uv", "run", "--quiet", "--no-project", "--with", NETWORKX, "--with", SCIPY, "--with", RUSTWORKX, "--with", IGRAPH, "python3", *sys.argv])
 
 import differential_flows  # noqa: E402  (after the uv re-exec: it imports NetworkX and igraph)
+import differential_spanning_trees  # noqa: E402  (likewise: it imports NetworkX)
+import differential_generators  # noqa: E402  (likewise: it imports NetworkX and igraph)
 import differential_tours  # noqa: E402  (likewise: it imports NetworkX)
+import differential_assortativity  # noqa: E402  (likewise: it imports NetworkX)
+import differential_similarity  # noqa: E402  (likewise: it imports NetworkX and igraph)
+import differential_formats  # noqa: E402  (likewise: it imports NetworkX)
+import differential_communities  # noqa: E402  (likewise: it imports NetworkX and igraph)
+import differential_centrality  # noqa: E402  (likewise: it imports NetworkX)
+import differential_spectral  # noqa: E402  (likewise: it imports NetworkX and scipy)
+import differential_isomorphism  # noqa: E402  (likewise: it imports NetworkX)
+import differential_drawing  # noqa: E402  (likewise: it imports NetworkX and igraph)
+import differential_cohesion  # noqa: E402  (likewise: it imports NetworkX)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACKAGE = os.path.join(ROOT, "Differential")
 FAILURES = os.path.join(PACKAGE, "Failures")
 # The library lists at most this many cycles of a kind (Differential/main.swift: cycleLimit).
 CYCLE_LIMIT = 3000
+# The library enumerates simple paths and chordless cycles only on cases of at most this many
+# vertices (Differential/main.swift: enumerationLimit).
+ENUMERATION_LIMIT = 30
 # Seconds for one batch of cases, and for one case when a batch fails.
 BATCH_TIMEOUT = 120
 CASE_TIMEOUT = 5
@@ -80,7 +95,14 @@ SECTIONS = {
     "Cliques": "cliques", "Centrality": "centrality", "CommunityDetection": "communities",
     "BipartiteGraphs": "bipartite", "MatchingModule": "matching", "Covering": "covering",
     "ColoringModule": "coloring", "Flows": "flows", "Tours": "tours",
-    "DirectedAcyclicGraphModule": "dag", "Planarity": "planarity",
+    "DirectedAcyclicGraphModule": "dag", "Planarity": "planarity", "GraphOperations": "operations", "Traversal": "traversal",
+    "Similarity": "similarity",
+    "IsomorphismModule": "isomorphism",
+    "GraphDrawing": "drawing",
+    "Assortativity": "assortativity",
+    "NamedGraphs": "generators", "RandomGraphs": "generators",
+    "SpectralGraphTheory": "spectral",
+    "GraphFormats": "formats",
 }
 ALL_SECTIONS = sorted(set(SECTIONS.values()))
 
@@ -215,7 +237,71 @@ def reference(case, sections):
         for v, d in nx.single_source_shortest_path_length(G, s).items():
             hops[v] = min(hops.get(v, d), d)
     out["unweighted"] = [hops.get(v) for v in range(n)]
+    out["paths"] = reference_paths(case, G, nonnegative)
     return out
+
+
+# Differential/Sources/GrafluentDifferential/ShortestPathEnumeration.swift: simpleLimit,
+# shortestLimit, allPairsLimit.
+SIMPLE_LIMIT, SHORTEST_LIMIT, ALL_PAIRS_LIMIT = 8, 5000, 40
+
+
+def reference_paths(case, G, nonnegative):
+    """Yen's lengths, the number of shortest paths and the bidirectional distance from the first
+    source to the target (nonnegative weights), and the all-pairs matrices for small graphs."""
+    n, s, t = case["n"], case["sources"][0], case["target"]
+    out = {}
+    if nonnegative:
+        if s == t:
+            out["simpleLengths"] = [0]
+        else:
+            paths = itertools.islice(nx.shortest_simple_paths(G, s, t, weight="weight"), SIMPLE_LIMIT)
+            out["simpleLengths"] = [nx.path_weight(G, p, "weight") for p in paths] if nx.has_path(G, s, t) else []
+        try:
+            out["shortestDistance"] = nx.dijkstra_path_length(G, s, t)
+            # Only without zero weights: NetworkX lists a path twice when a zero-weight cycle runs
+            # through the source (its predecessor walk goes on past the source; noted locally, not
+            # reported), and zero-weight cycles can make either side search dead ends at length.
+            if all(w > 0 for _, _, w in case["edges"]):
+                count = sum(1 for _ in itertools.islice(nx.all_shortest_paths(G, s, t, weight="weight"), SHORTEST_LIMIT + 1))
+                out["shortestCount"] = count if count <= SHORTEST_LIMIT else None
+            out["bidirectional"] = nx.bidirectional_dijkstra(G, s, t)[0]
+        except nx.NetworkXNoPath:
+            out["shortestDistance"] = out["bidirectional"] = None
+            out["shortestCount"] = 0
+        if n <= ALL_PAIRS_LIMIT:
+            lengths = dict(nx.all_pairs_dijkstra_path_length(G))
+            out["allPairs"] = [[lengths[u].get(v) for v in range(n)] for u in range(n)]
+    if n <= ALL_PAIRS_LIMIT:
+        if nx.negative_edge_cycle(G) or (not case["directed"] and any(w < 0 for _, _, w in case["edges"])):
+            out["johnson"] = None
+        else:
+            fw = nx.floyd_warshall(G)
+            out["johnson"] = [[None if fw[u][v] == float("inf") else int(fw[u][v]) for v in range(n)] for u in range(n)]
+    return out
+
+
+def compare_paths(case, mine, ref):
+    problems = []
+    if mine is None:
+        return ["paths: no answer"]
+    if not mine.get("valid", False):
+        problems.append("paths: the library says a returned path is not a path of its length, or a shortest path repeats")
+    w = weight_of(case)
+    s, t = case["sources"][0], case["target"]
+    for p in mine.get("simple") or []:
+        if p[0] != s or p[-1] != t or len(set(p)) != len(p) or any(step not in w for step in zip(p, p[1:])):
+            problems.append(f"Yen: {p} is not a simple {s}→{t} path")
+    for key in ["simpleLengths", "shortestDistance", "shortestCount", "allPairs"]:
+        if key in ref and mine.get(key) != ref[key]:
+            problems.append(f"{key}: library {mine.get(key)}, NetworkX {ref[key]}")
+    if "bidirectional" in ref and (mine.get("bidirectional") or {}).get("distance") != ref["bidirectional"]:
+        problems.append(f"bidirectional Dijkstra: library {mine.get('bidirectional')}, NetworkX {ref['bidirectional']}")
+    if "johnson" in ref:
+        theirs = ref["johnson"]
+        if (theirs is None) != mine.get("johnsonNil", False) or (theirs is not None and mine.get("johnson") != theirs):
+            problems.append(f"Johnson: library {'nil' if mine.get('johnsonNil') else mine.get('johnson')}, Floyd–Warshall {theirs}")
+    return problems
 
 
 def weight_of(case):
@@ -241,6 +327,7 @@ def compare(case, mine, ref, sections):
         problems += compare_distances(case, mine["distances"], G)
     if "cliques" in sections and not case["directed"]:
         problems += compare_cliques(case, mine["cliques"], G)
+        problems += differential_cohesion.compare_cliques(case, mine.get("cliqueExtras"))
     if "centrality" in sections:
         problems += compare_centrality(case, mine["centrality"], G)
     if "communities" in sections:
@@ -255,8 +342,12 @@ def compare(case, mine, ref, sections):
         problems += compare_coloring(case, mine["coloring"])
     if "spanningtrees" in sections and not case["directed"]:
         problems += compare_spanning(case, mine["spanning"], G)
+        problems += differential_spanning_trees.compare_steiner(case, mine["steiner"])
+    if "spanningtrees" in sections and case["directed"]:
+        problems += differential_spanning_trees.compare_arborescences(case, mine["arborescences"])
     if "connectivity" in sections and not case["directed"]:
         problems += compare_connectivity(case, mine["connectivity"], G)
+        problems += differential_cohesion.compare_edge_connectivity(case, mine.get("edgeConnectivity"))
     if "connectivity" in sections:
         problems += compare_self_loops_and_cycles(case, mine, G)
     if "flows" in sections:
@@ -265,8 +356,25 @@ def compare(case, mine, ref, sections):
         problems += differential_tours.compare_tours(case, mine["tours"])
     if "dag" in sections and case["directed"]:
         problems += compare_dag(case, mine["dag"])
+        problems += differential_cohesion.compare_d_separation(case, mine.get("dSeparation"))
     if "planarity" in sections:
         problems += compare_planarity(case, mine["planarity"])
+    if "assortativity" in sections:
+        problems += differential_assortativity.compare_assortativity(case, mine["assortativity"])
+    if "similarity" in sections:
+        problems += differential_similarity.compare_similarity(case, mine.get("similarity"))
+    if "spectral" in sections:
+        problems += differential_spectral.compare_spectral(case, mine.get("spectral"))
+    if "isomorphism" in sections:
+        problems += differential_isomorphism.compare_isomorphism(case, mine.get("isomorphism"))
+    if "drawing" in sections:
+        problems += differential_drawing.compare_drawing(case, mine.get("drawing"))
+    if "operations" in sections:
+        problems += compare_operations(case, mine["operations"])
+    if "traversal" in sections:
+        problems += compare_traversal(case, mine["traversal"], G)
+    if "generators" in sections:
+        problems += differential_generators.compare_generators(case, mine["generators"])
     return problems
 
 
@@ -287,6 +395,89 @@ def is_kuratowski_subdivision(pairs, kind):
         return False
     target = nx.complete_graph(5) if kind == "K5" else nx.complete_bipartite_graph(3, 3)
     return nx.is_isomorphic(nx.Graph(H), target)
+
+
+def compare_operations(case, mine):
+    """GraphOperations against NetworkX on the case's simple graph (loops kept): the powers against
+    power (undirected) or shortest-path lengths with a cutoff (directed), loops dropped; the ego graph
+    of the first source at radius 2 against ego_graph, vertices and edges (also undirected=True on a
+    directed case); the contraction of the first source with the target against contracted_nodes
+    without loops, renumbered as documented (the merged vertex at the smaller index, later ones down
+    by one); the closure against transitive_closure without loops; the reduction with the closure's
+    reachability and the fewest arcs (each nontrivial component's size plus the condensation's
+    reduction); relabel_nodes by v mod 3; compose, intersection, difference and symmetric_difference
+    with the shifted graph. Edge orders are as documented: row-major in the result's vertex order."""
+    problems = []
+    n = case["n"]
+    if n == 0:
+        return problems
+    directed = case["directed"]
+    G = nx.DiGraph() if directed else nx.Graph()
+    G.add_nodes_from(range(n))
+    G.add_edges_from((u, v) for u, v, _ in case["edges"])
+    key = (lambda e: tuple(e)) if directed else (lambda e: (min(e), max(e)))
+
+    def rows(pairs):
+        return sorted({key(e) for e in pairs})
+
+    def mine_rows(name):
+        return [tuple(e) for e in mine[name]]
+
+    loopless = G.copy()
+    loopless.remove_edges_from(list(nx.selfloop_edges(loopless)))
+    for k, name in [(2, "square"), (3, "cube")]:
+        if directed:
+            want = rows((s, t) for s, lengths in nx.all_pairs_shortest_path_length(loopless, cutoff=k) for t in lengths if s != t)
+        else:
+            want = rows(nx.power(loopless, k).edges())
+        if mine_rows(name) != want:
+            problems.append(f"operations: power(of:_: {k}) {mine[name]}, NetworkX {want}")
+    s, t = case["sources"][0], case["target"]
+    E = nx.ego_graph(G, s, radius=2)
+    if mine["ego"] != sorted(E.nodes()):
+        problems.append(f"operations: egoGraphView vertices {mine['ego']}, NetworkX {sorted(E.nodes())}")
+    if sorted(key(e) for e in mine["egoEdges"]) != sorted(key(e) for e in E.edges()):
+        problems.append(f"operations: egoGraphView edges {mine['egoEdges']}, NetworkX {sorted(E.edges())}")
+    if directed:
+        U = nx.ego_graph(G, s, radius=2, undirected=True)
+        if mine["egoUndirected"] != sorted(U.nodes()):
+            problems.append(f"operations: egoGraphView(undirected: true) {mine['egoUndirected']}, NetworkX {sorted(U.nodes())}")
+    a, b = min(s, t), max(s, t)
+    new = {x: (x if a == b or x < b else (a if x == b else x - 1)) for x in range(n)}
+    C = loopless.copy() if a == b else nx.contracted_nodes(G, s, t, self_loops=False)
+    C.remove_edges_from(list(nx.selfloop_edges(C)))
+    want = rows((new[u], new[v]) for u, v in C.edges())
+    if mine_rows("contraction") != want or mine["contractionCount"] != (n if a == b else n - 1):
+        problems.append(f"operations: contraction(of:_:_:) {mine['contraction']}, NetworkX {want}")
+    if directed:
+        want = rows((u, v) for u, v in nx.transitive_closure(G, reflexive=False).edges() if u != v)
+        if mine_rows("closure") != want:
+            problems.append(f"operations: transitiveClosure {mine['closure']}, NetworkX {want}")
+        R = nx.DiGraph()
+        R.add_nodes_from(range(n))
+        R.add_edges_from(mine_rows("reduction"))
+        if rows((u, v) for u, v in nx.transitive_closure(R, reflexive=False).edges() if u != v) != want:
+            problems.append("operations: transitiveReduction does not keep the reachability")
+        D = nx.condensation(loopless)
+        fewest = sum(len(D.nodes[c]["members"]) for c in D if len(D.nodes[c]["members"]) > 1) + nx.transitive_reduction(D).number_of_edges()
+        if len(mine["reduction"]) != fewest or mine_rows("reduction") != sorted(mine_rows("reduction")):
+            problems.append(f"operations: transitiveReduction has {len(mine['reduction'])} arcs, the fewest is {fewest}")
+        if nx.is_directed_acyclic_graph(loopless) and mine_rows("reduction") != rows(nx.transitive_reduction(loopless).edges()):
+            problems.append("operations: transitiveReduction differs from NetworkX's on an acyclic graph")
+    # relabel_nodes merges; the vertices are the distinct names in vertex order.
+    L = nx.relabel_nodes(G, {v: v % 3 for v in range(n)}, copy=True)
+    names = list(dict.fromkeys(v % 3 for v in range(n)))
+    if mine["relabeledVertices"] != names or sorted(key(e) for e in mine["relabeledEdges"]) != rows(L.edges()):
+        problems.append(f"operations: relabeled(_:by:) {mine['relabeledVertices']} {mine['relabeledEdges']}, NetworkX {names} {sorted(L.edges())}")
+    H = nx.DiGraph() if directed else nx.Graph()
+    H.add_nodes_from(range(n))
+    H.add_edges_from(((u + 1) % n, (v + 1) % n) for u, v, _ in case["edges"])
+    for name, op in [("union", nx.compose), ("intersection", nx.intersection), ("difference", nx.difference),
+                     ("symmetricDifference", nx.symmetric_difference)]:
+        want = rows(op(G, H).edges())
+        if mine_rows(name) != want:
+            problems.append(f"operations: {name} {mine[name]}, NetworkX {want}")
+    return problems
 
 
 def compare_planarity(case, mine):
@@ -427,6 +618,7 @@ def compare_shortest_paths(case, mine, ref):
                 problems.append(f"witness {cycle} is not reachable from {sources}")
     if mine.get("unweighted") != ref["unweighted"]:
         problems.append(f"unweighted: library {mine.get('unweighted')}, NetworkX {ref['unweighted']}")
+    problems += compare_paths(case, mine.get("paths"), ref["paths"])
     return problems
 
 
@@ -565,6 +757,38 @@ def compare_self_loops_and_cycles(case, mine, G):
     return problems
 
 
+def compare_traversal(case, mine, G):
+    """Traversal against NetworkX: allSimplePaths from the first source to the target, unbounded
+    and with maxLength 3, as sets of vertex paths (a simple graph has one path per vertex
+    sequence), when there are few enough to list; the number of topological orders (directed);
+    and the library's own promises: every path and order valid, orders in lexicographic order."""
+    problems = []
+    source, target = case["sources"][0], case["target"]
+    if not mine["pathsValid"]:
+        problems.append("allSimplePaths returned a path that is not one of the graph's to the target")
+    for key, cutoff in (("paths", None), ("boundedPaths", 3)) if case["n"] <= ENUMERATION_LIMIT else ():
+        theirs = sorted(tuple(p) for p in itertools.islice(nx.all_simple_paths(G, source, target, cutoff=cutoff), CYCLE_LIMIT + 1))
+        ours = mine.get(key)
+        if ours is None:
+            if len(theirs) <= CYCLE_LIMIT:
+                problems.append(f"allSimplePaths ({key}) stopped past the limit, NetworkX has {len(theirs)}")
+            continue
+        ours = sorted(tuple(p) for p in ours)
+        if ours != theirs:
+            problems.append(f"allSimplePaths ({key}) {source}→{target}: {len(ours)} paths, NetworkX {len(theirs)}; only ours {sorted(set(ours) - set(theirs))[:3]}, only theirs {sorted(set(theirs) - set(ours))[:3]}")
+    if case["directed"]:
+        if not mine["sortsValid"]:
+            problems.append("allTopologicalSorts returned an invalid order, or out of lexicographic order")
+        if nx.is_directed_acyclic_graph(G):
+            count = sum(1 for _ in itertools.islice(nx.all_topological_sorts(G), CYCLE_LIMIT + 1))
+        else:
+            count = 0
+        ours = mine.get("topologicalSorts")
+        if ours is None and count <= CYCLE_LIMIT or ours is not None and ours != count:
+            problems.append(f"allTopologicalSorts: {ours} orders, NetworkX {count}")
+    return problems
+
+
 def normal_cycle(vs, directed):
     """A vertex cycle up to rotation (and, undirected, reversal)."""
     i = vs.index(min(vs))
@@ -607,6 +831,31 @@ def compare_cycles(case, mine, G):
         ours = sorted(normal_cycle(c, directed) for c in bounded)
         if ours != theirs:
             problems.append(f"simpleCycles(maxLength: 3): {len(ours)} cycles, NetworkX {len(theirs)}")
+
+    chordless = mine.get("chordless")
+    if chordless is not None:
+        theirs = sorted(normal_cycle(c, directed) for c in itertools.islice(nx.chordless_cycles(G), CYCLE_LIMIT + 1))
+        ours = sorted(normal_cycle(c, directed) for c in chordless)
+        if ours != theirs:
+            problems.append(f"chordlessCycles: {len(ours)} cycles, NetworkX {len(theirs)}; only ours {sorted(set(ours) - set(theirs))[:3]}, only theirs {sorted(set(theirs) - set(ours))[:3]}")
+        if not all(canonical(vs, es) for vs, es in zip(chordless, mine["chordlessEdges"])):
+            problems.append("chordlessCycles are not in canonical form")
+        if simple is not None and chordless != [c for c in simple if normal_cycle(c, directed) in set(theirs)]:
+            problems.append("chordlessCycles is not simpleCycles() filtered, in order")
+    elif n <= ENUMERATION_LIMIT and len(list(itertools.islice(nx.chordless_cycles(G), CYCLE_LIMIT + 1))) <= CYCLE_LIMIT:
+        problems.append("chordlessCycles stopped listing, NetworkX has at most the limit")
+    if directed and simple is not None:
+        # The least mean over every simple cycle, exactly.
+        weight = weight_of(case)
+        best = None
+        for c in simple:
+            total = sum(weight[(c[i], c[(i + 1) % len(c)])] for i in range(len(c)))
+            mean = Fraction(total, len(c))
+            best = mean if best is None or mean < best else best
+        if (mine.get("meanCycle") is None) != (best is None):
+            problems.append(f"minimumMeanCycle {mine.get('meanCycle')}, brute force least mean {best}")
+        elif best is not None and Fraction(mine["meanWeight"], mine["meanLength"]) != best:
+            problems.append(f"minimumMeanCycle {mine['meanCycle']} has mean {Fraction(mine['meanWeight'], mine['meanLength'])}, least {best}")
 
     if directed:
         best = None
@@ -932,6 +1181,44 @@ def compare_cliques(case, mine, G):
         problems.append(f"averageClustering {mine.get('average')}, NetworkX {nx.average_clustering(S)}")
     if not mine.get("oneShotsAgree", False):
         problems.append("triangleCount / transitivity / per-vertex one-shots disagree with clusteringCoefficients()")
+    problems += compare_chordal(case, mine, S)
+    return problems
+
+
+def compare_chordal(case, mine, S):
+    """Chordal graphs against NetworkX on the simple graph: is_chordal; for a chordal graph the
+    order is a perfect elimination ordering (and the reverse of the library's MCS), the cliques
+    equal chordal_graph_cliques and the treewidth chordal_graph_treewidth; otherwise the hole is a
+    chordless cycle of four or more vertices of the graph, in canonical form."""
+    problems = []
+    n = case["n"]
+    chordal = nx.is_chordal(S)
+    if mine["isChordal"] != chordal:
+        problems.append(f"isChordal {mine['isChordal']}, NetworkX {chordal}")
+    order, cliques, hole = mine.get("eliminationOrder"), mine.get("chordalCliques"), mine.get("hole")
+    if (order is None) == chordal or (cliques is None) == chordal or (hole is None) != chordal:
+        problems.append("perfectEliminationOrdering / chordalGraphCliques / findHole disagree with isChordal")
+    if order is not None:
+        place = {v: i for i, v in enumerate(order)}
+        if sorted(order) != list(range(n)):
+            problems.append("perfectEliminationOrdering is not an order of the vertices")
+        elif any(not S.has_edge(a, b) for v in S for a in S[v] for b in S[v] if a < b and place[a] > place[v] and place[b] > place[v]):
+            problems.append(f"perfectEliminationOrdering {order} is not one")
+        if not mine["eliminationIsReversedSearch"]:
+            problems.append("perfectEliminationOrdering is not maximumCardinalitySearch() reversed")
+    if cliques is not None:
+        theirs = sorted(sorted(c) for c in nx.chordal_graph_cliques(S)) if n > 0 else []
+        if sorted(cliques) != theirs or any(c != sorted(c) for c in cliques):
+            problems.append(f"chordalGraphCliques {sorted(cliques)}, NetworkX {theirs}")
+        width = nx.chordal_graph_treewidth(S) if n > 0 else -1
+        if mine.get("treewidth") != width:
+            problems.append(f"chordalGraphTreewidth {mine.get('treewidth')}, NetworkX {width}")
+    if hole is not None:
+        members = set(hole)
+        if not mine["holeValid"] or len(hole) < 4 or len(members) != len(hole) or hole[0] != min(hole):
+            problems.append(f"findHole {hole} is not a canonical cycle of four or more")
+        elif S.subgraph(members).number_of_edges() != len(hole):
+            problems.append(f"findHole {hole} has a chord")
     return problems
 
 
@@ -978,6 +1265,31 @@ def compare_centrality(case, mine, G):
     check("betweennessCentrality(normalized: false)", mine["betweennessRaw"], nx.betweenness_centrality(H, normalized=False))
     check("betweennessCentrality(endpoints: true)", mine["betweennessEndpoints"], nx.betweenness_centrality(H, endpoints=True))
     check("weighted betweennessCentrality", mine["weightedBetweenness"], nx.betweenness_centrality(H, weight="b"))
+
+    # Edge betweenness, by edge (the library's rows are [u, v, score]); pivots are the case's sources
+    # (NetworkX's `k=` with its sample fixed to them).
+    class FixedSample(random.Random):
+        def sample(self, population, k):
+            return list(case["sources"])
+
+    def check_edges(name, ours, theirs):
+        def lookup(u, v):
+            return theirs[(u, v)] if (u, v) in theirs else theirs[(v, u)]
+        if len(ours) != len(theirs) or any(abs(x - lookup(int(u), int(v))) > 1e-9 * max(1.0, abs(lookup(int(u), int(v)))) for u, v, x in ours):
+            problems.append(f"{name}: library {[(int(u), int(v), round(x, 6)) for u, v, x in ours][:6]}, NetworkX {[(e, round(x, 6)) for e, x in theirs.items()][:6]}")
+
+    k = len(case["sources"])
+    check_edges("edgeBetweennessCentrality", mine["edgeBetweenness"], nx.edge_betweenness_centrality(H))
+    check_edges("edgeBetweennessCentrality(normalized: false)", mine["edgeBetweennessRaw"], nx.edge_betweenness_centrality(H, normalized=False))
+    check_edges("weighted edgeBetweennessCentrality", mine["weightedEdgeBetweenness"], nx.edge_betweenness_centrality(H, weight="b"))
+    check_edges("edgeBetweennessCentrality(pivots:)", mine["pivotEdgeBetweenness"], nx.edge_betweenness_centrality(H, k=k, seed=FixedSample()))
+    check_edges("weighted edgeBetweennessCentrality(pivots:, normalized: false)", mine["weightedPivotEdgeBetweenness"],
+                nx.edge_betweenness_centrality(H, k=k, seed=FixedSample(), weight="b", normalized=False))
+    theirs = nx.betweenness_centrality(H, k=k, seed=FixedSample())
+    ours = mine["pivotBetweenness"]
+    if len(ours) != n or any((x is None) != math.isnan(theirs[v]) or (x is not None and abs(x - theirs[v]) > 1e-9 * max(1.0, abs(theirs[v]))) for v, x in enumerate(ours)):
+        problems.append(f"betweennessCentrality(pivots:): library {ours[:8]}, NetworkX {[theirs[v] for v in nodes][:8]}")
+    check("betweennessCentrality(pivots:, endpoints: true)", mine["pivotBetweennessEndpoints"], nx.betweenness_centrality(H, k=k, seed=FixedSample(), endpoints=True))
     # Iterations: compared when both converge; a nil on one side only is reported, since both run
     # the same iteration and stop rule.
     if n > 0:
@@ -994,6 +1306,7 @@ def compare_centrality(case, mine, G):
                 check("hits authorities", mine.get("authorities"), theirs and theirs[1], 1e-4)
     if not mine["consistent"]:
         problems.append("centrality: one-vertex forms, floating weights or the directed view disagree")
+    differential_centrality.compare_centrality_extras(case, mine["extras"], problems)
     return problems
 
 
@@ -1362,6 +1675,37 @@ def compare_communities(case, mine, G):
             problems.append(f"greedy: library {mine['greedy']}, NetworkX {canonical_labels(lab)}")
     if mine["louvainModularity"] < mine["singletonModularity"] - 1e-12:
         problems.append(f"Louvain's modularity {mine['louvainModularity']} is below the singletons' {mine['singletonModularity']}")
+    if not directed and n <= 30:
+        # Girvan–Newman's first five levels against NetworkX's girvan_newman, up to the first removal
+        # whose greatest edge betweenness is within 1e-9 of another's (ties break by edge order,
+        # which differs), and at most 60 removals.
+        H = nx.Graph()
+        H.add_nodes_from(range(n))
+        H.add_edges_from((u, v) for u, v in ends if u != v)
+        state = {"stop": False, "removals": 0}
+
+        def most_central(F):
+            eb = nx.edge_betweenness_centrality(F)
+            best = max(eb.values())
+            state["removals"] += 1
+            if sum(1 for x in eb.values() if x >= best - 1e-9 * max(1.0, best)) > 1 or state["removals"] > 60:
+                state["stop"] = True
+            return max(eb, key=eb.get)
+
+        expected = []
+        for level in nx.community.girvan_newman(H, most_valuable_edge=most_central):
+            if state["stop"]:
+                break
+            lab = [0] * n
+            for i, c in enumerate(level):
+                for v in c:
+                    lab[v] = i
+            expected.append(canonical_labels(lab))
+            if len(expected) == 5:
+                break
+        ours = mine.get("girvanNewman") or []
+        if ours[:len(expected)] != expected:
+            problems.append(f"girvanNewman: library {ours[:len(expected)]}, NetworkX {expected}")
     if not directed:
         for key, f, w in [("labelPropagation", semisync_model, unit), ("asynchronous", async_model, unit), ("weightedAsynchronous", async_model, absw)]:
             expected = canonical_labels(f(g, w))
@@ -1377,6 +1721,7 @@ def compare_communities(case, mine, G):
                     lab[v] = i
             if mine.get("labelPropagation") != canonical_labels(lab):
                 problems.append(f"labelPropagation: library {mine.get('labelPropagation')}, NetworkX {canonical_labels(lab)}")
+    differential_communities.compare_community_extras(case, mine["extras"], problems)
     return problems
 
 
@@ -1384,7 +1729,9 @@ def compare_bipartite(case, mine, G):
     """Bipartiteness against NetworkX on the undirected graph (a directed case's arcs as edges):
     is_bipartite; the canonical sides (each component's least vertex left, the rest by distance
     parity); the odd cycle's validity (odd, simple, consecutive vertices joined by its edges); and
-    the projection onto the left side against projected_graph."""
+    the projection onto the left side against projected_graph, and its weighted forms against
+    weighted_projected_graph (exactly), overlap_weighted_projected_graph (both forms) and
+    collaboration_weighted_projected_graph (within 1e-9 relative)."""
     problems = []
     n = case["n"]
     U = nx.MultiGraph()
@@ -1411,6 +1758,25 @@ def compare_bipartite(case, mine, G):
         expected = sorted(tuple(sorted(e)) for e in P.edges())
         if ours != expected:
             problems.append(f"projection: library {ours[:8]}, NetworkX {expected[:8]}")
+        S = nx.Graph(U)
+        # NetworkX refuses a projection when the other side is empty; there are no edges then.
+        weighted = [] if len(left) >= n else [
+            ("sharedWeights", nx.bipartite.weighted_projected_graph(S, left), True),
+            ("jaccardWeights", nx.bipartite.overlap_weighted_projected_graph(S, left), False),
+            ("lesserOverlapWeights", nx.bipartite.overlap_weighted_projected_graph(S, left, jaccard=False), False),
+            ("collaborationWeights", nx.bipartite.collaboration_weighted_projected_graph(S, left), False)]
+        if not weighted and any(mine.get(k) for k in ("sharedWeights", "jaccardWeights", "lesserOverlapWeights", "collaborationWeights")):
+            problems.append("weighted projections: weights with an empty right side")
+        for name, W, exact in weighted:
+            got = mine.get(name) or []
+            if len(got) != len(mine.get("projectionEdges") or []):
+                problems.append(f"{name}: {len(got)} weights for {len(mine.get('projectionEdges') or [])} edges")
+                continue
+            for (u, v), w in zip(mine.get("projectionEdges") or [], got):
+                want = W[u][v]["weight"]
+                if (w != want) if exact else not math.isclose(w, want, rel_tol=1e-9, abs_tol=1e-12):
+                    problems.append(f"{name}: {u}–{v} library {w}, NetworkX {want}")
+                    break
     else:
         cycle, cedges = mine.get("oddCycle"), mine.get("oddCycleEdges")
         ok = cycle is not None and len(cycle) % 2 == 1 and len(set(cycle)) == len(cycle) and len(cedges) == len(cycle)
@@ -1586,6 +1952,18 @@ def compare_covering(case, mine, G):
                     break
             if best is not None and mine["maximumIndependentSet"] != best:
                 problems.append(f"maximumIndependentSet {mine['maximumIndependentSet']}, least {best}")
+            # The least minimum vertex cover: the first cover of n − α vertices in combinations
+            # order (looped vertices are in every cover).
+            least_cover = None
+            for combo in combinations(range(n), n - alpha):
+                cs = set(combo)
+                if all(u in cs or v in cs for u, v in ends):
+                    least_cover = list(combo)
+                    break
+            if mine.get("leastMinimumVertexCover") is not None and mine["leastMinimumVertexCover"] != least_cover:
+                problems.append(f"lexicographicallyFirstMinimumVertexCover {mine['leastMinimumVertexCover']}, least {least_cover}")
+        if mine.get("leastMinimumVertexCover") is not None and len(mine["leastMinimumVertexCover"]) != n - alpha:
+            problems.append(f"lexicographicallyFirstMinimumVertexCover size {len(mine['leastMinimumVertexCover'])}, NetworkX n − α {n - alpha}")
     if mine.get("minimumDominatingSet") is not None:
         from itertools import combinations
         closed = [{v} | set(S[v]) for v in range(n)]
@@ -1904,6 +2282,14 @@ def main():
         for problem in catalog[:20]:
             print(problem)
         failures += len(catalog)
+    if "formats" in sections:
+        # Its own requests (Differential's `formats` mode), from cases of their own seed.
+        failures += differential_formats.run(command[0], random.Random(seed ^ 0x5F0F), args.cases, generate,
+                                             lambda case, problems: record(case, problems, seed))
+        print("formats: " + ", ".join(f"{k} {v}" for k, v in sorted(differential_formats.COVERED.items())))
+    if sections == {"formats"}:
+        print(f"{args.cases} cases (seed {seed}, formats only): " + (f"{failures} disagreement(s) in {os.path.relpath(FAILURES, ROOT)}/" if failures else "all agree"))
+        sys.exit(1 if failures else 0)
     covered = dict.fromkeys(["directed", "undirected", "negative weights"], 0)
     for section, counters in [
             ("shortestpaths", ["negative cycle reachable", "negative cycle elsewhere only", "cutoff", "scipy compared", "target unreachable"]),
@@ -1911,7 +2297,9 @@ def main():
             ("trees", ["trees", "forests of 2+ trees", "arborescences"]),
             ("centrality", ["eigenvector converged", "eigenvector nil", "katz nil", "hits compared"]),
             ("bipartite", ["bipartite", "odd cycles checked"]),
-            ("planarity", ["planar", "K5 witnesses", "K3,3 witnesses", "outerplanar"])]:
+            ("planarity", ["planar", "K5 witnesses", "K3,3 witnesses", "outerplanar"]),
+            ("traversal", ["paths listed", "paths compared", "topological orders counted"]),
+            ("cliques", ["chordal", "holes found"])]:
         if section in sections:
             covered.update(dict.fromkeys(counters, 0))
     for start in range(0, args.cases, args.batch):
@@ -1922,6 +2310,12 @@ def main():
         if "tours" in sections:
             for case in cases:
                 case["tours"] = differential_tours.tours_case(case)
+        if "generators" in sections:
+            for case in cases:
+                case["generators"] = differential_generators.generator_case(case)
+        if "communities" in sections:
+            for case in cases:
+                case["plantedPartition"] = differential_communities.planted_partition_case(case)
         # Every run is bounded: a library bug that never terminates must fail the run, not hang
         # it. A batch normally takes seconds.
         try:
@@ -1958,6 +2352,14 @@ def main():
                 covered["cutoff"] += case["cutoff"] is not None and "dijkstra" in ref
                 covered["scipy compared"] += "scipy" in ref
                 covered["target unreachable"] += "single" in ref and ref["single"] is None
+            if "cliques" in sections and not case["directed"]:
+                covered["chordal"] += mine["cliques"]["isChordal"]
+                covered["holes found"] += mine["cliques"].get("hole") is not None
+            if "traversal" in sections:
+                traversal = mine["traversal"]
+                covered["paths listed"] += traversal.get("paths") is not None
+                covered["paths compared"] += len(traversal.get("paths") or [])
+                covered["topological orders counted"] += (traversal.get("topologicalSorts") or 0) > 0
             if "cycles" in sections:
                 cycles = mine["cycles"]
                 covered["all cycles listed"] += cycles.get("simple") is not None
@@ -1994,10 +2396,28 @@ def main():
             print(problem)
         failures += len(native)
     print("covered: " + ", ".join(f"{k} {v}" for k, v in covered.items()))
+    if "centrality" in sections:
+        print("centrality: " + ", ".join(f"{k} {v}" for k, v in differential_centrality.COVERED.items()))
+    if "communities" in sections:
+        print("communities: " + ", ".join(f"{k} {v}" for k, v in sorted(differential_communities.COVERED.items())))
     if "flows" in sections:
         print("flows: " + ", ".join(f"{k} {v}" for k, v in sorted(differential_flows.COVERED.items())))
     if "tours" in sections:
         print("tours: " + ", ".join(f"{k} {v}" for k, v in sorted(differential_tours.COVERED.items())))
+    if "similarity" in sections:
+        print("similarity: " + ", ".join(f"{k} {v}" for k, v in differential_similarity.COVERED.items()))
+    if "spectral" in sections:
+        print("spectral: " + ", ".join(f"{k} {v}" for k, v in differential_spectral.COVERED.items()))
+    if "isomorphism" in sections:
+        print("isomorphism: " + ", ".join(f"{k} {v}" for k, v in differential_isomorphism.COVERED.items()))
+    if "drawing" in sections:
+        print("drawing: " + ", ".join(f"{k} {v}" for k, v in differential_drawing.COVERED.items()))
+    if "generators" in sections:
+        print("generators: " + ", ".join(f"{k} {v}" for k, v in sorted(differential_generators.COVERED.items())))
+    if sections & {"cliques", "connectivity", "dag"}:
+        print("cohesion: " + ", ".join(f"{k} {v}" for k, v in sorted(differential_cohesion.COVERED.items())))
+    if "assortativity" in sections:
+        print("assortativity: " + ", ".join(f"{k} {v}" for k, v in sorted(differential_assortativity.COVERED.items())))
     if "coloring" in sections:
         print("coloring: " + ", ".join(f"{k} {v}" for k, v in sorted(COLORING_COVERED.items()))
               + "; NetworkX's own strategy equal: " + ", ".join(f"{k} {v}" for k, v in NX_NATIVE_AGREE.items()))
