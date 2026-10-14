@@ -333,19 +333,23 @@ struct AdjacencyListWitnessTests {
         func contains(_ g: some DirectedGraph<CountingVertex>, _ v: CountingVertex) -> Bool { g.contains(v) }
         func contains(_ g: some DirectedGraph<CountingVertex>, edge: DirectedEdge<CountingVertex>) -> Bool { g.contains(edge: edge) }
         func outDegree(_ g: some DirectedGraph<CountingVertex>, _ v: CountingVertex) -> Int { g.outDegree(of: v) }
-        // The defaults would compare against up to 201 vertices, or 200 successors.
+        // The defaults would compare against up to 201 vertices, or 200 successors. A hash lookup
+        // compares once per occupied bucket on its probe; the run of occupied buckets is random,
+        // because the seed is per process and per table, and at this table's load (201 of 512
+        // buckets) one or two lookups now and then probe 10 to 25 buckets. 50 leaves room
+        // for that tail and still tells a lookup from a scan.
         counter.comparisons = 0
         #expect(contains(graph, leaves[199]))
-        #expect(counter.comparisons < 10)
+        #expect(counter.comparisons < 50)
         counter.comparisons = 0
         #expect(contains(graph, edge: DirectedEdge(from: hub, to: leaves[199])))
-        #expect(counter.comparisons < 10)
+        #expect(counter.comparisons < 50)
         counter.comparisons = 0
         #expect(!contains(graph, edge: DirectedEdge(from: leaves[3], to: hub)))
-        #expect(counter.comparisons < 10)
+        #expect(counter.comparisons < 50)
         counter.comparisons = 0
         #expect(outDegree(graph, hub) == 200)
-        #expect(counter.comparisons < 10)
+        #expect(counter.comparisons < 50)
     }
 
     @Test("DG-I03 vertex indices after a removal are still one-to-one and in vertices order")
