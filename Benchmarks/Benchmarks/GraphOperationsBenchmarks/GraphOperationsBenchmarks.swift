@@ -49,6 +49,57 @@ let complementInputs: (view: ComplementView<CompressedSparseRow>, copy: Compress
     return (view, copy)
 }()
 
+/// The k-th power of `graph` by hand: a breadth-first search over the flat rows from each vertex,
+/// stopped after k layers, its finds sorted into the row: the baseline for `power(of:_:)`.
+func handPower(_ graph: CompressedSparseRow, _ k: Int) -> CompressedSparseRow {
+    let n = graph.vertexCount
+    let offsets = graph.offsets, targets = graph.targets
+    var stamp = [Int](repeating: -1, count: n), queue = [Int](repeating: 0, count: n)
+    var outOffsets = [0], outTargets: [Int] = []
+    for s in 0 ..< n {
+        stamp[s] = s
+        queue[0] = s
+        var head = 0, tail = 1, depth = 0
+        while depth < k && head < tail {
+            let end = tail
+            while head < end {
+                let v = queue[head]
+                head += 1
+                for e in offsets[v] ..< offsets[v + 1] where stamp[targets[e]] != s {
+                    stamp[targets[e]] = s
+                    queue[tail] = targets[e]
+                    tail += 1
+                }
+            }
+            depth += 1
+        }
+        outTargets += queue[1 ..< tail].sorted()
+        outOffsets.append(outTargets.count)
+    }
+    return try! CompressedSparseRow(offsets: outOffsets, targets: outTargets)
+}
+
+/// `graph` renumbered by `rank` by hand: each row mapped and sorted, repeats dropped: the baseline
+/// for `relabeled(_:ordering:)`.
+func handRenumbered(_ graph: CompressedSparseRow, old: [Int], rank: [Int]) -> CompressedSparseRow {
+    let offsets = graph.offsets, targets = graph.targets
+    var outOffsets = [0], outTargets: [Int] = []
+    outTargets.reserveCapacity(targets.count)
+    var row: [Int] = []
+    for i in old {
+        row.removeAll(keepingCapacity: true)
+        for e in offsets[i] ..< offsets[i + 1] { row.append(rank[targets[e]]) }
+        row.sort()
+        var previous = -1
+        for w in row where w != previous {
+            outTargets.append(w)
+            previous = w
+        }
+        outOffsets.append(outTargets.count)
+    }
+    return try! CompressedSparseRow(offsets: outOffsets, targets: outTargets)
+}
+
 let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
@@ -259,6 +310,95 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("GraphOperations: DirectedAcyclicGraph<AdjacencyList<Int>>(condensation()) on an acyclic AdjacencyList (10⁵ components)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(DirectedAcyclicGraph<AdjacencyList<Int>>(lowerTriangle.condensation())) }
+    }
+
+    // MARK: power, relabeling, binary operations, ego graph, contraction and closures
+
+    let powerInput = CompressedSparseRow(vertexCount: 20_000, edges: Inputs.randomEdges(vertexCount: 20_000, edgeCount: 60_000, seed: 5))
+    precondition(handPower(powerInput, 2).edges.map { $0 } == CompressedSparseRow.power(of: powerInput, 2).edges.map { $0 })
+    Benchmark("GraphOperations: BASELINE the square by hand over flat rows, G(2·10⁴, 6·10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handPower(powerInput, 2)) }
+    }
+    Benchmark("GraphOperations: CompressedSparseRow.power(of: g, 2), G(2·10⁴, 6·10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.power(of: powerInput, 2)) }
+    }
+
+    let loopless = CompressedSparseRow(vertexCount: n, edges: arcs.filter { $0.source != $0.target })
+    var shuffler = SeededRandomNumberGenerator(seed: 12)
+    let ordering = Array(0 ..< n).shuffled(using: &shuffler)
+    var rank = [Int](repeating: 0, count: n)
+    for (r, i) in ordering.enumerated() { rank[i] = r }
+    precondition(handRenumbered(loopless, old: ordering, rank: rank).edges.map { $0 } == CompressedSparseRow.relabeled(loopless, ordering: ordering).edges.map { $0 })
+    Benchmark("GraphOperations: BASELINE renumbering by hand over flat rows, G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handRenumbered(loopless, old: ordering, rank: rank)) }
+    }
+    Benchmark("GraphOperations: CompressedSparseRow.relabeled(g, ordering:), G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.relabeled(loopless, ordering: ordering)) }
+    }
+
+    let other = AdjacencyList<Int>(vertices: 0 ..< n, edges: Inputs.sortedUnique(Inputs.randomEdges(vertexCount: n, edgeCount: 1_000_000, seed: 6)))
+    Benchmark("GraphOperations: BASELINE AdjacencyList<Int>(vertices:edges:) of both edge lists, G(10⁵, 10⁶) twice") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(AdjacencyList<Int>(vertices: 0 ..< n, edges: Array(list.edges) + Array(other.edges))) }
+    }
+    Benchmark("GraphOperations: AdjacencyList<Int>.union(g, h), G(10⁵, 10⁶) twice") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(AdjacencyList<Int>.union(list, other)) }
+    }
+    Benchmark("GraphOperations: AdjacencyList<Int>.intersection(g, h), G(10⁵, 10⁶) twice") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(AdjacencyList<Int>.intersection(list, other)) }
+    }
+
+    Benchmark("GraphOperations: BASELINE breadth-first search to radius 2 by hand, then inducedSubgraphView(on:), CompressedSparseRow G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let offsets = csr.offsets, targets = csr.targets
+            var seen = [Bool](repeating: false, count: n)
+            var frontier = [0], kept = [0]
+            seen[0] = true
+            for _ in 0 ..< 2 {
+                var next: [Int] = []
+                for v in frontier {
+                    for e in offsets[v] ..< offsets[v + 1] where !seen[targets[e]] {
+                        seen[targets[e]] = true
+                        next.append(targets[e])
+                    }
+                }
+                kept += next
+                frontier = next
+            }
+            blackHole(csr.inducedSubgraphView(on: kept))
+        }
+    }
+    Benchmark("GraphOperations: CompressedSparseRow.egoGraphView(of: 0, radius: 2), G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(csr.egoGraphView(of: 0, radius: 2)) }
+    }
+
+    var blocks = (0 ..< n).map { [$0] }
+    blocks[0] = [0, n - 1]
+    blocks.removeLast()
+    Benchmark("GraphOperations: BASELINE CompressedSparseRow.quotient(of:by:) merging two vertices, G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.quotient(of: csr, by: blocks)) }
+    }
+    Benchmark("GraphOperations: CompressedSparseRow.contraction(of: g, 0, n − 1), G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.contraction(of: csr, 0, n - 1)) }
+    }
+
+    // A random DAG on 4000 vertices, and the same graph with a few back arcs closing cycles.
+    let dagArcs = Inputs.randomEdges(vertexCount: 4000, edgeCount: 12_000, seed: 7).filter { $0.source < $0.target }
+    let dag = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: 0 ..< 4000, edges: dagArcs)!
+    let cyclic = CompressedSparseRow(vertexCount: 4000, edges: dagArcs + (0 ..< 40).map { DirectedEdge(from: 3999 - $0 * 50, to: $0 * 7) })
+    Benchmark("GraphOperations: BASELINE DirectedAcyclicGraph.transitiveClosure(), random DAG n = 4000") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(dag.transitiveClosure()) }
+    }
+    Benchmark("GraphOperations: CompressedSparseRow.transitiveClosure(of:), the same DAG") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.transitiveClosure(of: dag)) }
+    }
+    Benchmark("GraphOperations: BASELINE DirectedAcyclicGraph.transitiveReduction(), random DAG n = 4000") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(dag.transitiveReduction()) }
+    }
+    Benchmark("GraphOperations: CompressedSparseRow.transitiveReduction(of:), the same DAG") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.transitiveReduction(of: dag)) }
+    }
+    Benchmark("GraphOperations: CompressedSparseRow.transitiveReduction(of:), the DAG with 40 back arcs") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.transitiveReduction(of: cyclic)) }
     }
 
     // MARK: Index-space hooks of the representations vs reads by vertex lookup

@@ -12,8 +12,10 @@ a view never hash.
 
 Each view or result is checked against
   * NetworkX 3.7 (reverse_view, subgraph, subgraph_view, edge_subgraph, complement, line_graph,
-    condensation, quotient_graph, disjoint_union, full_join) and igraph 1.0 (induced_subgraph,
-    subgraph_edges, complementer, linegraph on simple graphs, contract_vertices, disjoint_union);
+    condensation, quotient_graph, disjoint_union, full_join, ego_graph, power, contracted_nodes,
+    transitive_closure, transitive_reduction, relabel_nodes, compose, intersection, difference,
+    symmetric_difference) and igraph 1.0 (induced_subgraph, subgraph_edges, complementer, linegraph
+    on simple graphs, contract_vertices, disjoint_union, neighborhood);
   * the DirectedGraph / BidirectionalDirectedGraph / Graph laws (rows, counts, contains(edge:),
     dense indices, edges in index order);
   * the boundary law that index-space members hash nothing.
@@ -616,6 +618,204 @@ def join(g, h):
     return Built(ng + nh, sorted(es), g.directed)
 
 
+# ---------------------------------------------------------------- relabelings, binary operations, powers,
+# ego graphs, contractions, closures
+
+def _simple_rows(g, rank):
+    """g's edges renumbered through rank, loops trapping (the construction targets take none)."""
+    es = set()
+    for p in g.positions():
+        u, v = (g.src(p), g.tgt(p)) if g.directed else g.ends(p)
+        require(u != v, "a self-loop, which the construction targets do not take")
+        a, b = rank[u], rank[v]
+        es.add((a, b) if g.directed else (min(a, b), max(a, b)))
+    return es
+
+
+def relabeled_ordering(g, ordering):
+    """`Target.relabeled(g, ordering:)`: ordering[i] becomes vertex i."""
+    rank = [-1] * g.n()
+    for k, l in enumerate(ordering):
+        i = g.vertex_index(l)
+        require(rank[i] < 0, f"{l} is listed twice in the ordering")
+        rank[i] = k
+    require(len(ordering) == g.n(), "the ordering does not list every vertex")
+    return Built(g.n(), sorted(_simple_rows(g, rank)), g.directed)
+
+
+def relabeled_by(g, mapping, multi):
+    """`Target.relabeled(g, by:)` into an AdjacencyList / DirectedPseudograph (or undirected): distinct
+    names at their first occurrence; each edge renamed in position order; a simple target keeps the
+    first of coinciding edges, a pseudograph all."""
+    names = []
+    for l in g.labels():
+        if mapping[l] not in names:
+            names.append(mapping[l])
+    out = []
+    for p in g.positions():
+        u, v = (g.src(p), g.tgt(p)) if g.directed else g.ends(p)
+        e = (mapping[g.label(u)], mapping[g.label(v)])
+        if not multi and any(x == e or (not g.directed and x == e[::-1]) for x in out):
+            continue
+        out.append(e)
+    return (DiBase if g.directed else UBase)(names, out)
+
+
+def _label_edges(g):
+    out = set()
+    for p in g.positions():
+        u, v = (g.src(p), g.tgt(p)) if g.directed else g.ends(p)
+        out.add((g.label(u), g.label(v)) if g.directed else frozenset((g.label(u), g.label(v))))
+    return out
+
+
+def combined(g, h, op):
+    """`Target.union / intersection / difference / symmetricDifference(g, h)`: vertex lists as the
+    API documents them; edges a set, inserted row-major in the result's order, earlier end first."""
+    require(g.directed == h.directed, "both directed or both undirected")
+    gl, hl = g.labels(), h.labels()
+    if op in ("union", "symmetricDifference"):
+        names = gl + [l for l in hl if l not in gl]
+    elif op == "intersection":
+        names = [l for l in gl if l in hl]
+    else:
+        names = list(gl)
+    ge, he = _label_edges(g), _label_edges(h)
+    es = {"union": ge | he, "intersection": ge & he, "difference": ge - he, "symmetricDifference": ge ^ he}[op]
+    at = {l: i for i, l in enumerate(names)}
+    pairs = []
+    for e in es:
+        if g.directed:
+            pairs.append((at[e[0]], at[e[1]]))
+        else:
+            ends = sorted(e, key=lambda l: at[l])
+            a, b = at[ends[0]], at[ends[-1]]
+            pairs.append((a, b))
+    pairs.sort()
+    edges = [(names[a], names[b]) for a, b in pairs]
+    return (DiBase if g.directed else UBase)(names, edges)
+
+
+def _row(g, i, backward=False):
+    if g.directed:
+        out = [g.tgt(p) for p in g.out_edges(i)]
+        if backward:
+            out += [g.src(p) for p in g.in_edges(i)]
+        return out
+    out = []
+    for p in g.incident(i):
+        u, v = g.ends(p)
+        out.append(v if u == i else u)
+    return out
+
+
+def _distances(g, s, limit, backward=False):
+    dist = {s: 0}
+    frontier = [s]
+    d = 0
+    while frontier and d < limit:
+        nxt = []
+        for v in frontier:
+            for w in _row(g, v, backward):
+                if w not in dist:
+                    dist[w] = d + 1
+                    nxt.append(w)
+        frontier = nxt
+        d += 1
+    return dist
+
+
+def power(g, k):
+    """`Target.power(of: g, k)`: an edge between distinct vertices at distance at most k."""
+    require(k >= 1, "the power must be at least 1")
+    require(g.has_vertex_indices, "the graph has no vertex indices (vertexIndexBound is nil)")
+    es = set()
+    for s in range(g.n()):
+        for w in _distances(g, s, k):
+            if w != s:
+                es.add((s, w) if g.directed else (min(s, w), max(s, w)))
+    return Built(g.n(), sorted(es), g.directed)
+
+
+def ego(g, center, radius=1, undirected=False):
+    """`g.egoGraphView(of: center, radius:, undirected:)`: the induced subgraph on the vertices within
+    the radius, distances along arcs both ways when undirected."""
+    require(g.has_vertex_indices, "the base has no vertex indices (vertexIndexBound is nil)")
+    c = g.vertex_index(center)
+    require(radius >= 0, "the radius must not be negative")
+    keep = set(_distances(g, c, radius, undirected))
+    return SubgraphView(g, keep, None)
+
+
+def contraction(g, u, v):
+    """`Target.contraction(of: g, u, v)`: the two merged at the smaller index, later vertices down by
+    one, loops dropped, parallel edges merged."""
+    i, j = g.vertex_index(u), g.vertex_index(v)
+    return _contract(g, i, j)
+
+
+def contraction_edge(g, p):
+    u, v = (g.src(p), g.tgt(p)) if g.directed else g.ends(p)
+    return _contract(g, u, v)
+
+
+def _contract(g, i, j):
+    a, b = min(i, j), max(i, j)
+    n = g.n()
+    m = [x if a == b or x < b else (a if x == b else x - 1) for x in range(n)]
+    es = set()
+    for p in g.positions():
+        s, t = (g.src(p), g.tgt(p)) if g.directed else g.ends(p)
+        x, y = m[s], m[t]
+        if x != y:
+            es.add((x, y) if g.directed else (min(x, y), max(x, y)))
+    return Built(n if a == b else n - 1, sorted(es), g.directed)
+
+
+def _reach(g):
+    n = g.n()
+    r = [[False] * n for _ in range(n)]
+    for p in g.positions():
+        r[g.src(p)][g.tgt(p)] = True
+    for k in range(n):
+        for i in range(n):
+            if r[i][k]:
+                for j in range(n):
+                    if r[k][j]:
+                        r[i][j] = True
+    return r
+
+
+def transitive_closure(g):
+    """`Target.transitiveClosure(of: g)`: u → v for distinct u, v with a path from u to v."""
+    require(g.has_vertex_indices, "the graph has no vertex indices (vertexIndexBound is nil)")
+    r = _reach(g)
+    n = g.n()
+    return Built(n, [(i, j) for i in range(n) for j in range(n) if i != j and r[i][j]], True)
+
+
+def transitive_reduction(g):
+    """`Target.transitiveReduction(of: g)` (Aho, Garey and Ullman): each component of two or more a
+    cycle through its members in index order; each condensation-reduction arc between the
+    components' first members."""
+    require(g.has_vertex_indices, "the graph has no vertex indices (vertexIndexBound is nil)")
+    r = _reach(g)
+    n = g.n()
+    first = [next(j for j in range(n) if j == i or (r[i][j] and r[j][i])) for i in range(n)]
+    es = set()
+    leaders = sorted(set(first))
+    for c in leaders:
+        members = [i for i in range(n) if first[i] == c]
+        if len(members) > 1:
+            for k, x in enumerate(members):
+                es.add((x, members[(k + 1) % len(members)]))
+    for c in leaders:
+        for d in leaders:
+            if c != d and r[c][d] and not any(e not in (c, d) and r[c][e] and r[e][d] for e in leaders):
+                es.add((c, d))
+    return Built(n, sorted(es), True)
+
+
 # ---------------------------------------------------------------- laws
 
 def check(g):
@@ -828,6 +1028,113 @@ def spec_join(g, h, R):
     assert set(R.es) == want
 
 
+def _simple_nx(g):
+    return nx.DiGraph(to_nx(g)) if g.directed else nx.Graph(to_nx(g))
+
+
+def _idx(r):
+    return {(u, v) if r.directed else (min(u, v), max(u, v)) for u, v in r.es}
+
+
+def spec_relabeled_ordering(g, ordering, R):
+    S = _simple_nx(g)
+    T = nx.relabel_nodes(S, {l: i for i, l in enumerate(ordering)})
+    assert {(u, v) if g.directed else (min(u, v), max(u, v)) for u, v in T.edges()} == set(R.es)
+
+
+def spec_relabeled_by(g, mapping, multi, R):
+    G = to_nx(g)
+    T = nx.relabel_nodes(G, mapping, copy=True)
+    assert set(map(str, T.nodes())) == set(map(str, R.labels()))
+    mine = sorted(((R.label(R.src(p)), R.label(R.tgt(p))) if R.directed else tuple(sorted((R.label(R.ends(p)[0]), R.label(R.ends(p)[1])))))
+                  for p in R.positions())
+    theirs = sorted((u, v) if g.directed else tuple(sorted((u, v))) for u, v, _ in T.edges(keys=True))
+    if multi:
+        assert mine == theirs, (mine, theirs)
+    else:
+        assert sorted(set(mine)) == mine and set(mine) == set(theirs), (mine, theirs)
+
+
+def spec_combined(g, h, op, R):
+    G, H = _simple_nx(g), _simple_nx(h)
+    if op == "union":
+        T = nx.compose(G, H)
+    elif op == "intersection":
+        T = nx.intersection(G, H)
+    elif set(G) == set(H):
+        T = nx.difference(G, H) if op == "difference" else nx.symmetric_difference(G, H)
+    else:
+        T = None
+    if T is not None:
+        assert set(T.nodes()) == set(R.labels())
+        assert {(u, v) if g.directed else frozenset((u, v)) for u, v in T.edges()} == _label_edges(R)
+
+
+def spec_power(g, k, R):
+    if not g.directed:
+        T = nx.power(nx.Graph(to_nx(g)), k)
+        want = {(min(g._index[u], g._index[v]), max(g._index[u], g._index[v])) for u, v in T.edges() if u != v}
+        assert want == set(R.es)
+    I = to_ig(g)
+    mode = "out" if g.directed else "all"
+    want = set()
+    for s, row in enumerate(I.neighborhood(order=k, mode=mode)):
+        for w in row:
+            if w != s:
+                want.add((s, w) if g.directed else (min(s, w), max(s, w)))
+    assert want == set(R.es), (want, R.es)
+
+
+def spec_ego(g, center, radius, undirected, view):
+    G = to_nx(g)
+    E = nx.ego_graph(G, center, radius=radius, undirected=undirected)
+    same(view, E)
+
+
+def spec_contraction(g, u, v, R):
+    S = _simple_nx(g)
+    if u == v:
+        T = S.copy()
+        T.remove_edges_from(list(nx.selfloop_edges(T)))
+    else:
+        T = nx.contracted_nodes(S, u, v, self_loops=False)
+    i, j = g._index[u], g._index[v]
+    a, b = min(i, j), max(i, j)
+    def new(label):
+        x = g._index[label]
+        return x if a == b or x < b else (a if x == b else x - 1)
+    at = {l: new(l) for l in g.labels()}
+    at[u] = a
+    want = {(at[x], at[y]) if g.directed else (min(at[x], at[y]), max(at[x], at[y])) for x, y in T.edges() if at[x] != at[y]}
+    assert want == set(R.es), (want, R.es)
+
+
+def spec_contraction_edge(g, p, R):
+    u, v = (g.src(p), g.tgt(p)) if g.directed else g.ends(p)
+    spec_contraction(g, g.label(u), g.label(v), R)
+
+
+def spec_closure(g, R):
+    T = nx.transitive_closure(nx.DiGraph(to_nx(g)), reflexive=False)
+    want = {(g._index[u], g._index[v]) for u, v in T.edges() if u != v}
+    assert want == set(R.es)
+
+
+def spec_reduction(g, R):
+    D = nx.DiGraph(to_nx(g))
+    D.remove_edges_from(list(nx.selfloop_edges(D)))
+    closure = {(u, v) for u, v in nx.transitive_closure(D, reflexive=False).edges() if u != v}
+    T = nx.DiGraph()
+    T.add_nodes_from(range(g.n()))
+    T.add_edges_from(R.es)
+    assert {(g.label(u), g.label(v)) for u, v in nx.transitive_closure(T, reflexive=False).edges() if u != v} == closure
+    C = nx.condensation(D)
+    count = sum(len(C.nodes[c]["members"]) for c in C if len(C.nodes[c]["members"]) > 1) + nx.transitive_reduction(C).number_of_edges()
+    assert len(R.es) == count, (R.es, count)
+    if nx.is_directed_acyclic_graph(D):
+        assert {(g._index[u], g._index[v]) for u, v in nx.transitive_reduction(D).edges()} == set(R.es)
+
+
 # ---------------------------------------------------------------- formatting
 
 def fmt_state(g):
@@ -850,6 +1157,18 @@ def fmt_built(r):
         comps = ", ".join("{" + ", ".join(str(x) for x in c) + "}" for c in r.comp_labels)
         s = f"components [{comps}]; " + s + f"; topologicalOrder {r.order}"
     return s
+
+
+def fmt_labeled(r):
+    """A result with labels (an AdjacencyList-like target): its vertices and its edges in position
+    order."""
+    arrow = "→" if r.directed else "–"
+    es = [(r.src(p), r.tgt(p)) if r.directed else r.ends(p) for p in r.positions()]
+    return f"V [{', '.join(str(l) for l in r.labels())}]; E [{', '.join(f'{r.label(u)}{arrow}{r.label(v)}' for u, v in es)}]"
+
+
+def fmt_result(r):
+    return fmt_labeled(r) if isinstance(r, (DiBase, UBase)) else fmt_built(r)
 
 
 def fmt_rows(g):
@@ -913,7 +1232,7 @@ def built_case(group, title, inputs, make, call_text, spec=None):
         check(r)
         if spec:
             spec(*[b for b, _ in inputs], r)
-        exp = fmt_built(r)
+        exp = fmt_result(r)
     except Trap as t:
         exp = f"**trap** ({t})"
     row(group, title, f"{texts} / {call_text}", exp)
@@ -1190,6 +1509,145 @@ def define():
     ]:
         built_case(G, title, [a, b], join, "UndirectedAdjacencyList<Int>.join(g, h)" if not a[0].directed else "CompressedSparseRow.join(g, h)", spec_join)
 
+    # ---- egoGraphView
+    G = "EgoGraph"
+    for title, base, center, radius, undirected in [
+        ("radius 1: the center and its successors", AL("a b c d", "a>b b>c d>a"), "a", None, None),
+        ("radius 2 reaches two arcs out", AL("a b c d", "a>b b>c d>a"), "a", 2, None),
+        ("radius 0 keeps the center alone", AL("a b c", "a>b b>c"), "b", 0, None),
+        ("undirected: true follows arcs backwards", AL("a b c d", "a>b b>c d>a"), "a", None, True),
+        ("undirected: false is the directed ego graph", AL("a b c d", "a>b b>c d>a"), "a", None, False),
+        ("a radius past the eccentricity keeps every vertex reached", AL("a b c d", "a>b b>c c>a"), "b", 9, None),
+        ("every vertex kept: the base's rows and edge indices", AL("a b c", "a>b b>c c>a"), "a", 5, None),
+        ("parallel arcs and a self-loop kept as the induced subgraph keeps them", AL("a b c", "a>b a>b b>b b>c"), "a", 1, None),
+        ("undirected path, radius 1 of an inner vertex", UL("a b c d e", "a-b b-c c-d d-e"), "c", None, None),
+        ("undirected: a self-loop twice in its row", UL("a b c", "a-a a-b b-c"), "a", None, None),
+        ("center not a vertex traps", AL("a b", "a>b"), "z", None, None),
+        ("negative radius traps", UL("a b", "a-b"), "a", -1, None),
+    ]:
+        args = f"of: {center}" + (f", radius: {radius}" if radius is not None else "") + (f", undirected: {'true' if undirected else 'false'}" if undirected is not None else "")
+        view_case(G, title, base, lambda g, c=center, r=radius, u=undirected: ego(g, c, 1 if r is None else r, bool(u)),
+                  f".egoGraphView({args})",
+                  lambda g, v, c=center, r=radius, u=undirected: spec_ego(g, c, 1 if r is None else r, bool(u), v))
+    view_case(G, "base without vertex indices traps", (no_indices(DiBase(["a", "b"], [("a", "b")])), "Stable (with holes) V [a, b]; E [a→b]"),
+              lambda g: ego(g, "a"), ".egoGraphView(of: a)")
+
+    # ---- power
+    G = "Power"
+    for title, base, k in [
+        ("directed path squared", AL("a b c d", "a>b b>c c>d"), 2),
+        ("directed 4-cycle cubed is the complete digraph", AL("a b c d", "a>b b>c c>d d>a"), 3),
+        ("first power: loops dropped, parallel arcs merged", AL("a b c", "a>a a>b a>b b>c"), 1),
+        ("a power past the longest path adds nothing more", AL("a b c", "a>b b>c"), 7),
+        ("undirected path P5 squared", UL("a b c d e", "a-b b-c c-d d-e"), 2),
+        ("undirected C5 squared is K5", UL("a b c d e", "a-b b-c c-d d-e e-a"), 2),
+        ("undirected: isolated vertices stay isolated", UL("a b c", "a-b"), 3),
+        ("undirected: loops and parallel edges ignored", UL("a b c", "a-a a-b b-a b-c"), 1),
+        ("power 0 traps", UL("a b", "a-b"), 0),
+    ]:
+        target = "CompressedSparseRow" if base[0].directed else "UndirectedAdjacencyList<Int>"
+        built_case(G, title, [base], lambda g, k=k: power(g, k), f"{target}.power(of: g, {k})",
+                   lambda g, r, k=k: spec_power(g, k, r))
+
+    # ---- contraction
+    G = "Contraction"
+    for title, base, u, v in [
+        ("undirected path: two inner vertices merge", UL("a b c d", "a-b b-c c-d"), "b", "c"),
+        ("directed: nonadjacent vertices merge at the smaller index", AL("a b c d", "a>b b>c c>d"), "c", "a"),
+        ("directed: arcs both ways between the two vanish", AL("a b c", "a>b b>a b>c"), "a", "b"),
+        ("undirected: common neighbours' edges merge", UL("a b c d", "a-c b-c a-d b-d"), "a", "b"),
+        ("a vertex with itself: a copy, loops dropped", AL("a b", "a>a a>b"), "b", "b"),
+        ("vertex not in the graph traps", UL("a b", "a-b"), "a", "z"),
+    ]:
+        target = "CompressedSparseRow" if base[0].directed else "UndirectedAdjacencyList<Int>"
+        built_case(G, title, [base], lambda g, u=u, v=v: contraction(g, u, v), f"{target}.contraction(of: g, {u}, {v})",
+                   lambda g, r, u=u, v=v: spec_contraction(g, u, v, r))
+    for title, base, p in [
+        ("edge of a triangle: K2", UL("a b c", "a-b b-c c-a"), 1),
+        ("edge of C4: a triangle", UL("a b c d", "a-b b-c c-d d-a"), 0),
+        ("directed: the arc and its parallel copy vanish", AL("a b c", "a>b a>b b>c"), 0),
+        ("a self-loop: a copy without loops", AL("a b", "a>b b>b"), 1),
+    ]:
+        target = "CompressedSparseRow" if base[0].directed else "UndirectedAdjacencyList<Int>"
+        built_case(G, title, [base], lambda g, p=p: contraction_edge(g, p), f"{target}.contraction(of: g, edgeAt: {p})",
+                   lambda g, r, p=p: spec_contraction_edge(g, p, r))
+
+    # ---- transitive closure and reduction
+    G = "TransitiveClosure"
+    for title, base in [
+        ("empty", AL("", "")),
+        ("path: every forward pair", AL("a b c d", "a>b b>c c>d")),
+        ("cycle: every ordered pair, no loops", AL("a b c", "a>b b>c c>a")),
+        ("two cycles, one arc between", AL("a b c d", "a>b b>a b>c c>d d>c")),
+        ("a self-loop alone adds nothing", AL("a b", "a>a")),
+        ("parallel arcs merge", AL("a b c", "a>b a>b b>c")),
+    ]:
+        built_case(G, title, [base], transitive_closure, "CompressedSparseRow.transitiveClosure(of: g)", spec_closure)
+    G = "TransitiveReduction"
+    for title, base in [
+        ("acyclic: the shortcut goes", AL("a b c", "a>b b>c a>c")),
+        ("acyclic diamond with a shortcut", AL("a b c d", "a>b a>c b>d c>d a>d")),
+        ("cycle with a chord: the cycle in index order", AL("a b c", "a>b b>c c>a a>c")),
+        ("a component's cycle runs in index order, not the arcs' order", AL("a b c", "a>c c>b b>a")),
+        ("two components: one arc between their first members", AL("a b c d", "a>b b>a b>c b>d c>d d>c")),
+        ("components through a middle one: the long arc goes", AL("a b c d e", "a>b b>a a>c c>d d>c d>e a>e")),
+        ("self-loops and parallel arcs dropped", AL("a b", "a>a a>b a>b")),
+    ]:
+        built_case(G, title, [base], transitive_reduction, "CompressedSparseRow.transitiveReduction(of: g)", spec_reduction)
+
+    # ---- relabelings
+    G = "Relabel"
+    for title, base, ordering in [
+        ("ordering reversed", AL("a b c", "a>b b>c"), ["c", "b", "a"]),
+        ("ordering by name", UL("d b a c", "d-b b-a a-c"), ["a", "b", "c", "d"]),
+        ("parallel edges merge", UL("a b", "a-b b-a"), ["b", "a"]),
+        ("vertex listed twice traps", AL("a b", "a>b"), ["a", "a"]),
+        ("ordering missing a vertex traps", AL("a b c", "a>b"), ["a", "b"]),
+        ("self-loop traps (phase 1)", AL("a b", "a>a"), ["a", "b"]),
+    ]:
+        target = "CompressedSparseRow" if base[0].directed else "UndirectedAdjacencyList<Int>"
+        built_case(G, title, [base], lambda g, o=ordering: relabeled_ordering(g, o),
+                   f"{target}.relabeled(g, ordering: [{', '.join(ordering)}])",
+                   lambda g, r, o=ordering: spec_relabeled_ordering(g, o, r))
+    for title, base, mapping, target in [
+        ("one-to-one: the edges in order", AL("a b c", "a>b b>c c>a"), {"a": "x", "b": "y", "c": "z"}, "AdjacencyList<String>"),
+        ("merging two ends makes a self-loop; coinciding arcs kept once", AL("a b c", "a>c b>c a>b"), {"a": "x", "b": "x", "c": "y"}, "AdjacencyList<String>"),
+        ("merging into a pseudograph keeps every arc", AL("a b c", "a>c b>c a>b"), {"a": "x", "b": "x", "c": "y"}, "DirectedPseudograph<String>"),
+        ("undirected: names merge, the first edge's orientation kept", UL("a b c d", "a-b c-d b-c d-a"), {"a": "p", "b": "q", "c": "p", "d": "q"}, "UndirectedAdjacencyList<String>"),
+        ("undirected into a pseudograph", UL("a b c", "a-b b-c"), {"a": "p", "b": "q", "c": "p"}, "Pseudograph<String>"),
+    ]:
+        multi = "Pseudograph" in target
+        built_case(G, title, [base], lambda g, m=mapping, mu=multi: relabeled_by(g, m, mu),
+                   f"{target}.relabeled(g, by: [{', '.join(f'{k}: {v}' for k, v in mapping.items())}])",
+                   lambda g, r, m=mapping, mu=multi: spec_relabeled_by(g, m, mu, r))
+
+    # ---- union, intersection, difference, symmetric difference
+    for G, op, cases in [
+        ("Union", "union", [
+            ("shared vertices merge: NetworkX compose", AL("a b c", "a>b b>c"), AL("b c d", "c>b c>d b>c")),
+            ("disjoint vertex sets", AL("a b", "a>b"), AL("c d", "d>c")),
+            ("undirected: an edge in both, reversed, once", UL("a b c", "a-b b-c"), UL("c b d", "b-a c-d")),
+            ("self-loops kept", UL("a b", "a-a"), UL("b", "b-b")),
+        ]),
+        ("Intersection", "intersection", [
+            ("NetworkX example", UL("0 1 2", "0-1 0-2 1-2"), UL("0 1 2 3", "0-3 1-2 2-3")),
+            ("directed: opposite arcs do not meet", AL("a b c", "a>b b>c"), AL("b a c", "b>a b>c")),
+            ("only the shared vertices", AL("a b c", "a>b"), AL("d b a", "a>b")),
+        ]),
+        ("Difference", "difference", [
+            ("NetworkX example", UL("0 1 2 3", "0-1 0-2 1-2 1-3"), UL("0 1 2 3", "0-1 1-2 0-3")),
+            ("directed: an arc's reverse does not remove it", AL("a b", "a>b b>a"), AL("a b", "b>a")),
+            ("vertex sets may differ: g's vertices", AL("a b c", "a>b b>c"), AL("b c d", "b>c c>d")),
+        ]),
+        ("SymmetricDifference", "symmetricDifference", [
+            ("NetworkX example", UL("0 1 2 3", "0-1 0-2 1-2 1-3"), UL("0 1 2 3", "0-1 1-2 0-3")),
+            ("directed, vertex sets differ: every vertex of either", AL("a b c", "a>b b>c"), AL("c b d", "b>c c>d")),
+        ]),
+    ]:
+        for title, a, b in cases:
+            target = "AdjacencyList<String>" if a[0].directed else "UndirectedAdjacencyList<String>"
+            built_case(G, title, [a, b], lambda g, h, op=op: combined(g, h, op), f"{target}.{op}(g, h)",
+                       lambda g, h, r, op=op: spec_combined(g, h, op, r))
 
 # ---------------------------------------------------------------- output
 
@@ -1214,7 +1672,13 @@ def render():
         "* A materialized result: `n` vertices `0..<n`, `E [u→v, …]` its edges at positions `0..<m`. A line graph's vertex",
         "  `k` is the base's edge with `edgeIndex` `k`; a quotient's vertex `i` is block `i`; a disjoint union or join",
         "  numbers `g`'s vertices first, by index, then `h`'s. A condensation lists `components` (Connectivity's Tarjan",
-        "  order, each in `vertices` order), whose index is the DAG vertex, and `topologicalOrder`.",
+        "  order, each in `vertices` order), whose index is the DAG vertex, and `topologicalOrder`. A power, a",
+        "  contraction, a transitive closure or reduction and a relabeling by ordering number the result by the base's",
+        "  vertex indices (the contraction's merged vertex at the smaller index, later ones down by one; the ordering's",
+        "  `i`th vertex at `i`).",
+        "* A result with labels (`relabeled(g, by:)`, written as the name map, and the binary operations on two",
+        "  bases `g ; h`): `V [...]` its vertices in order, `E [...]` its edges in position order.",
+        "* An ego graph is an induced subgraph view, written out as one.",
         "* `hashes` counts base label lookups (`vertexIndex(of:)` on the base) since the view was built. It is a",
         "  benchmark counter, not API: the Swift suite checks it with a vertex type whose `hash(into:)` counts.",
         "* `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`).",
@@ -1260,6 +1724,30 @@ def stress():
             other = DiBase(pool[:2], [("a", "b")]) if base.directed else UBase(pool[:2], [("a", "b")])
             R = disjoint_union(loopless, other); check(R); spec_disjoint_union(loopless, other, R)
             R = join(loopless, other); check(R); spec_join(loopless, other, R)
+            if vs:
+                c = rng.choice(vs)
+                r = rng.randrange(0, 4)
+                v = ego(base, c, r); check(v); spec_ego(base, c, r, False, v)
+                if base.directed:
+                    v = ego(base, c, r, True); check(v); spec_ego(base, c, r, True, v)
+                k = rng.randrange(1, 5)
+                P = power(base, k); check(P); spec_power(base, k, P)
+                u, w = rng.choice(vs), rng.choice(vs)
+                C = contraction(base, u, w); check(C); spec_contraction(base, u, w, C)
+                order = list(vs)
+                rng.shuffle(order)
+                R = relabeled_ordering(loopless, order); check(R); spec_relabeled_ordering(loopless, order, R)
+                mapping = {l: rng.choice("xyz") for l in vs}
+                for multi in (False, True):
+                    R = relabeled_by(base, mapping, multi); check(R); spec_relabeled_by(base, mapping, multi, R)
+            if base.directed:
+                T = transitive_closure(base); check(T); spec_closure(base, T)
+                T = transitive_reduction(base); check(T); spec_reduction(base, T)
+            hs = [l for l in pool if rng.random() < 0.6]
+            harcs = [(rng.choice(hs), rng.choice(hs)) for _ in range(rng.randrange(0, 8))] if hs else []
+            h = DiBase(hs, harcs) if base.directed else UBase(hs, harcs)
+            for op in ("union", "intersection", "difference", "symmetricDifference"):
+                R = combined(base, h, op); check(R); spec_combined(base, h, op, R)
             count += 1
     return count
 

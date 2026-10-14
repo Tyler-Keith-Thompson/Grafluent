@@ -133,3 +133,54 @@
         let undirected = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "b")])
         #expect(UndirectedAdjacencyList<Int>.lineGraph(of: undirected).edges.map { [$0.u, $0.v] } == [[0, 1]])
     }
+
+    @Test("power(of:_:) below 1 traps directed too; relabeled(_:ordering:) traps on an undirected self-loop")
+    func powerAndOrderingFaults() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = CompressedSparseRow.power(of: graph, 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "b")])
+            _ = UndirectedAdjacencyList<Int>.relabeled(graph, ordering: ["b", "a"])
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+            _ = UndirectedAdjacencyList<Int>.relabeled(graph, ordering: ["b"])
+        }
+        // Without the faults.
+        let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(CompressedSparseRow.power(of: graph, 1).edges.map { [$0.source, $0.target] } == [[0, 1]])
+        let undirected = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+        #expect(UndirectedAdjacencyList<Int>.relabeled(undirected, ordering: ["b", "a"]).edges.map { [$0.u, $0.v] } == [[0, 1]])
+    }
+
+    @Test("The operations that read vertex indices trap on a base without them")
+    func noVertexIndices() async {
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.remove("removed")
+            _ = CompressedSparseRow.power(of: graph, 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.remove("removed")
+            _ = CompressedSparseRow.transitiveClosure(of: graph)
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.remove("removed")
+            _ = AdjacencyList<String>.union(graph, graph)
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.remove("removed")
+            _ = AdjacencyList<String>.relabeled(graph) { $0 }
+        }
+        // Without the removal the same calls are accepted.
+        let graph = StableDirectedGraph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(CompressedSparseRow.power(of: graph, 1).edgeCount == 1)
+        #expect(CompressedSparseRow.transitiveClosure(of: graph).edgeCount == 1)
+        #expect(AdjacencyList<String>.union(graph, graph).edgeCount == 1)
+        #expect(AdjacencyList<String>.relabeled(graph) { $0 }.edgeCount == 1)
+    }

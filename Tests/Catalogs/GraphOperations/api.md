@@ -1,24 +1,32 @@
 # GraphOperations: API
 
 GraphOperations has two kinds of operation. Unary operations whose rows can be computed from the
-base's rows are **lazy views**: `transposedView`, the three subgraph entry points, and
-`complementView`. Each view is a value holding its base, conforms conditionally to the base's
+base's rows are **lazy views**: `transposedView`, the three subgraph entry points, the ego graph,
+and `complementView`. Each view is a value holding its base, conforms conditionally to the base's
 protocols, and copies nothing per edge. Operations whose result has a different vertex set, or
 edges no base row lists, are **materialized**: the line graph, the condensation as a
-`DirectedAcyclicGraph`, the quotient, the disjoint union and the join. They are built in one bulk
+`DirectedAcyclicGraph`, the quotient, the contractions, the disjoint union and the join, the power,
+the transitive closure and reduction, and the relabeling by an ordering. They are built in one bulk
 step through the construction hooks `_DirectedGraphConstruction` / `_GraphConstruction`, the same
-way NamedGraphs' generators are. To materialize a view, pass it to a representation's initializer
+way NamedGraphs' generators are. The operations that keep vertex labels (the relabeling by a
+name map, the union, intersection, difference and symmetric difference) are built on a
+`MutableDirectedGraph` / `MutableGraph` target (`AdjacencyList`, `DirectedPseudograph`,
+`StableDirectedGraph`; `UndirectedAdjacencyList`, `Pseudograph`) through `_built`, one insertion
+per vertex and per edge. No materialized result carries attached maps; a value moves over by
+vertex, through the vertex numbering each operation documents. To materialize a view, pass it to a representation's initializer
 (`CompressedSparseRow(g.transposedView)`).
 
-`cases.md` (GO-001 – GO-105, 105 rows) pins the values. `ref.py` ports two bases, an
+`cases.md` (GO-001 – GO-173, 173 rows) pins the values. `ref.py` ports two bases, an
 AdjacencyList-like directed pseudograph and its undirected counterpart, and implements every view
 and result in index space. Every lookup of a vertex label is counted as a hash. Each result is
 checked three ways:
 
 - against NetworkX 3.7: `reverse_view`, `subgraph`, `subgraph_view`, `complement`, `line_graph`,
-  `condensation`, `quotient_graph`, `disjoint_union` and `full_join`;
+  `condensation`, `quotient_graph`, `disjoint_union`, `full_join`, `ego_graph`, `power`,
+  `contracted_nodes`, `transitive_closure`, `transitive_reduction`, `relabel_nodes`, `compose`,
+  `intersection`, `difference` and `symmetric_difference`;
 - against igraph 1.0: `induced_subgraph`, `subgraph_edges`, `complementer`, `linegraph`,
-  `contract_vertices` and `disjoint_union`. igraph is used on simple graphs only where its
+  `contract_vertices`, `disjoint_union` and `neighborhood`. igraph is used on simple graphs only where its
   multigraph semantics differ;
 - against the protocol laws, including the boundary law that a view's index-space members hash
   nothing.
@@ -43,6 +51,15 @@ To run it:
 | Quotient (vertex contraction) | `Target.quotient(of:by:)`, the partition as a sequence of blocks |
 | Disjoint union | `Target.disjointUnion(_:_:)` |
 | Join | `Target.join(_:_:)` |
+| Ego graph | `egoGraphView(of:radius:)`, with `undirected:` on a bidirectional base; a `SubgraphView` |
+| Power Gᵏ | `Target.power(of:_:)` |
+| Vertex identification | `Target.contraction(of:_:_:)` |
+| Edge contraction G/e | `Target.contraction(of:edgeAt:)` |
+| Transitive closure, reduction (cycles allowed) | `Target.transitiveClosure(of:)`, `Target.transitiveReduction(of:)` |
+| Renumbering (NetworkX `convert_node_labels_to_integers`) | `Target.relabeled(_:ordering:)` |
+| Renaming (NetworkX `relabel_nodes`) | `Target.relabeled(_:by:)` on a mutable target |
+| Union G ∪ H (NetworkX `compose`) | `Target.union(_:_:)` on a mutable target |
+| Intersection, difference, symmetric difference | `Target.intersection(_:_:)`, `difference(_:_:)`, `symmetricDifference(_:_:)` |
 | Underlying graph | `undirectedView` (`UndirectedView`, in GraphProtocols) |
 | A view's base | `base`, read-only |
 
@@ -108,6 +125,9 @@ GO-054, GO-060), so the complement of the complement is the simple, loopless bas
 | condensation | Materialized | `DirectedAcyclicGraph<Base>` |
 | `quotient(of:by:)` | Materialized | `Target` |
 | `disjointUnion`, `join` | Materialized | `Target` |
+| `egoGraphView(of:radius:)` | Lazy, O(n + rows walked) to build | `SubgraphView<Base>` |
+| `power`, `contraction`, `transitiveClosure`, `transitiveReduction`, `relabeled(_:ordering:)` | Materialized | `Target` |
+| `relabeled(_:by:)`, `union`, `intersection`, `difference`, `symmetricDifference` | Materialized, labels kept | a `MutableDirectedGraph` / `MutableGraph` target |
 
 `Target` is any `_DirectedGraphConstruction` (`CompressedSparseRow`, `AdjacencyList<Int>`,
 `AdjacencyMatrix`, `StableDirectedGraph<Int>`) or `_GraphConstruction`
@@ -227,6 +247,39 @@ extension _DirectedGraphConstruction {
     public static func join(_ g: some DirectedGraph, _ h: some DirectedGraph) -> Self
 }
 extension _GraphConstruction { /* the same four over Graph */ }
+
+// MARK: Ego graph
+extension DirectedGraph {
+    public func egoGraphView(of center: Vertex, radius: Int = 1) -> SubgraphView<Self>
+    public func egoGraphView(checkedOf center: Vertex, radius: Int = 1) throws(VertexNotFound) -> SubgraphView<Self>
+}
+extension BidirectionalDirectedGraph {
+    public func egoGraphView(of center: Vertex, radius: Int = 1, undirected: Bool) -> SubgraphView<Self>
+    public func egoGraphView(checkedOf center: Vertex, radius: Int = 1, undirected: Bool) throws(VertexNotFound) -> SubgraphView<Self>
+}
+extension Graph { /* egoGraphView(of:radius:) and egoGraphView(checkedOf:radius:) */ }
+
+// MARK: Materialized in index space
+extension _DirectedGraphConstruction {
+    public static func power<G: DirectedGraph>(of graph: G, _ k: Int) -> Self
+    public static func contraction<G: DirectedGraph>(of graph: G, _ u: G.Vertex, _ v: G.Vertex) -> Self
+    public static func contraction<G: DirectedGraph>(of graph: G, checked u: G.Vertex, _ v: G.Vertex) throws(VertexNotFound) -> Self
+    public static func contraction<G: DirectedGraph>(of graph: G, edgeAt position: G.Edges.Index) -> Self
+    public static func transitiveClosure<G: DirectedGraph>(of graph: G) -> Self
+    public static func transitiveReduction<G: DirectedGraph>(of graph: G) -> Self
+    public static func relabeled<G: DirectedGraph>(_ graph: G, ordering: some Sequence<G.Vertex>) -> Self
+}
+extension _GraphConstruction { /* power, the three contractions and relabeled(_:ordering:) over Graph */ }
+
+// MARK: Materialized with labels
+extension MutableDirectedGraph {
+    public static func relabeled<G: DirectedGraph>(_ graph: G, by transform: (G.Vertex) -> Vertex) -> Self
+    public static func union(_ g: some DirectedGraph<Vertex>, _ h: some DirectedGraph<Vertex>) -> Self
+    public static func intersection(_ g: some DirectedGraph<Vertex>, _ h: some DirectedGraph<Vertex>) -> Self
+    public static func difference(_ g: some DirectedGraph<Vertex>, _ h: some DirectedGraph<Vertex>) -> Self
+    public static func symmetricDifference(_ g: some DirectedGraph<Vertex>, _ h: some DirectedGraph<Vertex>) -> Self
+}
+extension MutableGraph { /* the same five over Graph */ }
 extension DirectedAcyclicGraph where Base: _DirectedGraphConstruction {
     public init<G>(_ condensation: Condensation<G>)
 }
@@ -242,6 +295,18 @@ Result numbering:
   the graph has no edge indices. That second case costs one hash per edge.
 - Quotient: vertex `i` is block `i`.
 - Disjoint union and join: `g`'s vertex index `i` is `i`, and `h`'s `j` is `|V(g)| + j`.
+- Power, transitive closure and reduction: vertex `i` is the graph's vertex at index `i`.
+- Contraction: the merged vertex takes the smaller of the two indices; the vertices after the
+  larger one move down by one.
+- `relabeled(_:ordering:)`: vertex `i` is `ordering[i]`; the ordering is the label table.
+- `relabeled(_:by:)`: the distinct names in vertex order, each at its first occurrence; the edges
+  inserted in `edges` order, renamed. Equal names merge (an edge between them becomes a
+  self-loop); a simple target keeps the first of coinciding edges, a pseudograph all of them.
+- Union and symmetric difference: `g`'s vertices, then `h`'s that `g` lacks; intersection, the
+  shared ones in `g`'s order; difference, `g`'s. Equal vertices are one vertex, so the vertex sets
+  may overlap (NetworkX's `compose`; `disjointUnion` keeps them apart). Edges are sets, inserted
+  in row-major order of the result's vertices, undirected with the earlier end first; self-loops
+  are edges like any other. Difference and symmetric difference accept different vertex sets.
 
 ## Semantics, preconditions and traps
 
@@ -264,7 +329,15 @@ Result numbering:
 | `disjointUnion` / `join` with a self-loop | **Trap** | GO-099, GO-105 |
 | Mutating the base after making a view | Impossible: the view holds a copy, so mutating the original never shows through | — |
 | `spanningSubgraphView` / `subgraph` over a base without edge indices | Sorted kept positions, binary search per row entry and per rank; dense edge indices still | hand-written test |
-| A materialized operation over a graph without vertex indices | **Trap**, like the views | — |
+| A materialized operation over a graph without vertex indices | **Trap**, like the views | GO-118, extra traps |
+| `egoGraphView`: center not a vertex, negative radius | **Trap**; `checkedOf:` throws `VertexNotFound` for the center | GO-116, GO-117 |
+| `power(of:_:)` with k < 1 | **Trap** | GO-127, extra traps |
+| `power`: self-loops, parallel edges | Ignored | GO-121, GO-126 |
+| `contraction`: a vertex not in the graph | **Trap**; `checked:` throws `VertexNotFound` | GO-133 |
+| `contraction`: edges between the two, other self-loops | Dropped (the targets take no loops); `u == v` is a copy | GO-130, GO-132, GO-137 |
+| `transitiveClosure`: a vertex on a cycle | No self-loop (not reflexive) | GO-140, GO-142 |
+| `transitiveReduction` on a graph with cycles | Each component of two or more a cycle in index order; one arc between first members per condensation-reduction arc (Aho, Garey and Ullman); a subgraph only on acyclic input | GO-146 – GO-149 |
+| `relabeled(_:ordering:)`: a vertex listed twice, a vertex missing, a self-loop | **Trap** | GO-154 – GO-156 |
 
 ## Complexity
 
@@ -287,6 +360,14 @@ n and m are the base's counts, and k is the number of kept vertices.
 | condensation → DAG | O(k + e) after `condensation()` | the target |
 | `quotient` | O(n + m + sort), one hash per listed vertex | O(n) |
 | `disjointUnion`, `join` | O(n + m), join + O(\|V(g)\|·\|V(h)\|) | the target |
+| `power(of:_:)` | O(n · (n + m)) worst case, a search per vertex stopped after k layers | O(n) scratch |
+| `contraction` | O(n + m + row sorts), one hash per named vertex | O(n) |
+| `transitiveClosure` | O(n + m + k·e/64 + output and its sorts), k components, e arcs between them | k²/8 bytes |
+| `transitiveReduction` | O(n + m + k·e/64) | k²/8 bytes |
+| `relabeled(_:ordering:)` | O(n + m + row sorts), one hash per listed vertex | O(n) |
+| `relabeled(_:by:)` | O(n + m), one hash per vertex plus the target's insertions | O(n + m) |
+| `union`, `intersection`, `difference`, `symmetricDifference` | O(n + m + row sorts), one lookup in `g` per vertex of `h`, plus the target's insertions | O(n + m) |
+| `egoGraphView` | O(n + rows walked) to build, one hash for the center | O(n) |
 
 ## Implementation notes
 

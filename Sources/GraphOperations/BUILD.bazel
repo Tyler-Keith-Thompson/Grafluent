@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Subgraph, induced subgraph, transposed and complement views, line graph, condensation, quotient graph, disjoint union and join.
+# Subgraph, induced subgraph, ego graph, transposed and complement views, line graph, condensation, quotient graph and contraction, disjoint union and join, union, intersection, difference and symmetric difference, power, relabeling, transitive closure and reduction.
 swift_library(
     name = "GraphOperations",
     srcs = glob(["**/*.swift"]),

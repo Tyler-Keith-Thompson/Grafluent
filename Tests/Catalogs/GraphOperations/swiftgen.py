@@ -71,7 +71,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 105 and sorted(REC) == list(range(1, N + 1))
+assert N == 173 and sorted(REC) == list(range(1, N + 1))
 
 
 def group(n): return CELLS[n][1]
@@ -143,6 +143,7 @@ def swift_chain(call_text):
         return m.group(1) + ("[" + ", ".join(items) + "]" if items else "[] as [Int]")
     t = re.sub(r"((?:on|vertices): )\[([^\]]*)\]", quote, call_text)
     t = re.sub(r"(edges: )\[([^\]]*)\]", ints_, t)
+    t = re.sub(r"(of: )(\w+)(?=[,)])", lambda m: m.group(1) + s(m.group(2)), t)
     return t
 
 
@@ -430,8 +431,44 @@ def built_swift(n, call_text):
             items = [x.strip() for x in b.split(",") if x.strip()]
             out.append("[" + ", ".join(s(x) for x in items) + "]")
         return "by: [" + ", ".join(out) + "])"
-    t = re.sub(r"by: \[(.*)\]\)$", blocks, t)
+    t = re.sub(r"by: \[(\[.*)\]\)$", blocks, t)
+
+    def names(m):
+        pairs = [x.strip().split(": ") for x in m.group(1).split(",")]
+        return "by: { [" + ", ".join("%s: %s" % (s(a), s(b)) for a, b in pairs) + "][$0]! })"
+    t = re.sub(r"by: \[(\w+: [^\[\]]*)\]\)$", names, t)
+
+    def ordering(m):
+        items = [x.strip() for x in m.group(1).split(",") if x.strip()]
+        return "ordering: [" + ", ".join(s(x) for x in items) + "])"
+    t = re.sub(r"ordering: \[([^\]]*)\]\)$", ordering, t)
+    t = t.replace("(g, by:", "(graph, by:").replace("(g, ordering:", "(graph, ordering:").replace("(of: g, ", "(of: graph, ")
+    m = re.match(r"^(.*\.contraction\(of: graph, )(\w+), (\w+)\)$", t)
+    if m:
+        t = "%s%s, %s)" % (m.group(1), s(m.group(2)), s(m.group(3)))
     return t
+
+
+def labeled_state(r, var="result"):
+    """A result with labels: its vertices, its edges in position order, every row by label."""
+    L = r.labels()
+    ps = r.positions()
+    out = ["#expect(Array(%s.vertices) == %s)" % (var, strs(L)),
+           "#expect(%s.vertexCount == %d && %s.edgeCount == %d)" % (var, len(L), var, len(ps))]
+    if r.directed:
+        out.append("#expect(%s.edges.map { [$0.source, $0.target] } == %s)" % (var, str_pairs([(r.label(r.src(p)), r.label(r.tgt(p))) for p in ps])))
+        for i, l in enumerate(L):
+            out.append("#expect(Array(%s.successors(of: %s)) == %s)" % (var, s(l), strs([r.label(r.tgt(p)) for p in r.out_edges(i)])))
+            out.append("#expect(Array(%s.predecessors(of: %s)) == %s)" % (var, s(l), strs([r.label(r.src(p)) for p in r.in_edges(i)])))
+    else:
+        out.append("#expect(%s.edges.map { [$0.u, $0.v] } == %s)" % (var, str_pairs([(r.label(r.ends(p)[0]), r.label(r.ends(p)[1])) for p in ps])))
+        for i, l in enumerate(L):
+            nb = []
+            for p in r.incident(i):
+                a, c = r.ends(p)
+                nb.append(r.label(c if a == i else a))
+            out.append("#expect(Array(%s.neighbors(of: %s)) == %s)" % (var, s(l), strs(nb)))
+    return out
 
 
 def built_test(n):
@@ -439,7 +476,7 @@ def built_test(n):
     bases = [fresh(sp) for sp in specs]
     r = make(*bases)
     ref.check(r)
-    assert ref.fmt_built(r) == cell(n), (n, ref.fmt_built(r), cell(n))
+    assert ref.fmt_result(r) == cell(n), (n, ref.fmt_result(r), cell(n))
     lines = header(n)
     lines.append("        // %s" % inp(n))
     lines.append("        // Expected: %s" % cell(n))
@@ -460,7 +497,10 @@ def built_test(n):
         lines.append("        #expect(result.edges.map { [$0.source, $0.target] } == condensation.graph.edges.map { [$0.source, $0.target] })")
     else:
         lines.append("        let result = %s" % call)
-        lines += ["        " + l for l in built_state(r)]
+        if isinstance(r, (ref.DiBase, ref.UBase)):
+            lines += ["        " + l for l in labeled_state(r)]
+        else:
+            lines += ["        " + l for l in built_state(r)]
     lines.append("    }")
     return lines
 
@@ -588,6 +628,27 @@ FILES = [
     ("DisjointUnionJoinTests.swift", "GraphOperations disjointUnion and join", ids("DisjointUnion", "Join"),
      "disjointUnion and join (catalog GO-095 – GO-104): g's vertices first, then h's offset by |V(g)|;\n"
      "// parallel edges merge; the join adds every edge across (both ways, directed)."),
+    ("EgoGraphTests.swift", "GraphOperations egoGraphView(of:radius:)", ids("EgoGraph"),
+     "egoGraphView(of:radius:) (catalog GO-106 – GO-115): the subgraph induced on the vertices within\n"
+     "// the radius, numbered and positioned as inducedSubgraphView(on:) does; with undirected: true a\n"
+     "// step may follow an arc backwards."),
+    ("PowerTests.swift", "GraphOperations power(of:_:)", ids("Power"),
+     "power(of:_:) (catalog GO-119 – GO-126): an edge between distinct vertices at distance at most k,\n"
+     "// vertex i the base's vertex at index i; loops and parallel edges ignored."),
+    ("ContractionTests.swift", "GraphOperations contraction(of:_:_:) and contraction(of:edgeAt:)", ids("Contraction"),
+     "contraction (catalog GO-128 – GO-137): the two vertices merged at the smaller index, the\n"
+     "// vertices after the larger one moved down by one; loops dropped, parallel edges merged."),
+    ("TransitiveClosureTests.swift", "GraphOperations transitiveClosure(of:) and transitiveReduction(of:)", ids("TransitiveClosure", "TransitiveReduction"),
+     "transitiveClosure(of:) and transitiveReduction(of:) (catalog GO-138 – GO-150), on graphs with\n"
+     "// cycles: the closure without loops; the reduction a cycle per component in index order and one\n"
+     "// arc between first members per condensation-reduction arc (Aho, Garey and Ullman)."),
+    ("RelabelingTests.swift", "GraphOperations relabeled(_:ordering:) and relabeled(_:by:)", ids("Relabel"),
+     "relabeled (catalog GO-151 – GO-161): by ordering, ordering[i] becomes vertex i; by a name map,\n"
+     "// the distinct names at their first occurrence and every edge renamed in edges order, a simple\n"
+     "// target keeping the first of coinciding edges and a pseudograph all of them."),
+    ("SetOperationsTests.swift", "GraphOperations union, intersection, difference and symmetricDifference", ids("Union", "Intersection", "Difference", "SymmetricDifference"),
+     "union, intersection, difference and symmetricDifference (catalog GO-162 – GO-173): equal vertices\n"
+     "// are one vertex; the edges form a set, inserted in row-major order of the result's vertices."),
     ("GraphOperationsPreconditionTests.swift", "GraphOperations preconditions", TRAPS,
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test). The\n"
      "// same setup then runs in this process without the fault, so the trap is the call's and not the\n"

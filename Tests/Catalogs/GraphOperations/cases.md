@@ -17,7 +17,13 @@ Conventions:
 * A materialized result: `n` vertices `0..<n`, `E [u→v, …]` its edges at positions `0..<m`. A line graph's vertex
   `k` is the base's edge with `edgeIndex` `k`; a quotient's vertex `i` is block `i`; a disjoint union or join
   numbers `g`'s vertices first, by index, then `h`'s. A condensation lists `components` (Connectivity's Tarjan
-  order, each in `vertices` order), whose index is the DAG vertex, and `topologicalOrder`.
+  order, each in `vertices` order), whose index is the DAG vertex, and `topologicalOrder`. A power, a
+  contraction, a transitive closure or reduction and a relabeling by ordering number the result by the base's
+  vertex indices (the contraction's merged vertex at the smaller index, later ones down by one; the ordering's
+  `i`th vertex at `i`).
+* A result with labels (`relabeled(g, by:)`, written as the name map, and the binary operations on two
+  bases `g ; h`): `V [...]` its vertices in order, `E [...]` its edges in position order.
+* An ego graph is an induced subgraph view, written out as one.
 * `hashes` counts base label lookups (`vertexIndex(of:)` on the base) since the view was built. It is a
   benchmark counter, not API: the Swift suite checks it with a vertex type whose `hash(into:)` counts.
 * `**trap**` rows are preconditions, run as exit tests (`#expect(processExitsWith:)`).
@@ -129,3 +135,71 @@ Conventions:
 | GO-103 | Join | star K1,3 as K1 + edgeless 3 | UL V [c]; E [] ; UL V [x, y, z]; E [] / UndirectedAdjacencyList<Int>.join(g, h) | n 4; E [0–1, 0–2, 0–3] |
 | GO-104 | Join | directed: arcs both ways across | AL V [a]; E [] ; AL V [b, c]; E [b→c] / CompressedSparseRow.join(g, h) | n 3; E [0→1, 0→2, 1→0, 1→2, 2→0] |
 | GO-105 | Join | self-loop traps (phase 1) | UL V [a]; E [a–a] ; UL V [b]; E [] / UndirectedAdjacencyList<Int>.join(g, h) | **trap** (a self-loop, which the construction targets do not take) |
+| GO-106 | EgoGraph | radius 1: the center and its successors | AL V [a, b, c, d]; E [a→b, b→c, d→a] / .egoGraphView(of: a) | V [a#0, b#1]; E [0:a→b]; bounds 2/nil |
+| GO-107 | EgoGraph | radius 2 reaches two arcs out | AL V [a, b, c, d]; E [a→b, b→c, d→a] / .egoGraphView(of: a, radius: 2) | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c]; bounds 3/nil |
+| GO-108 | EgoGraph | radius 0 keeps the center alone | AL V [a, b, c]; E [a→b, b→c] / .egoGraphView(of: b, radius: 0) | V [b#0]; E []; bounds 1/nil |
+| GO-109 | EgoGraph | undirected: true follows arcs backwards | AL V [a, b, c, d]; E [a→b, b→c, d→a] / .egoGraphView(of: a, undirected: true) | V [a#0, b#1, d#2]; E [0:a→b, 2:d→a]; bounds 3/nil |
+| GO-110 | EgoGraph | undirected: false is the directed ego graph | AL V [a, b, c, d]; E [a→b, b→c, d→a] / .egoGraphView(of: a, undirected: false) | V [a#0, b#1]; E [0:a→b]; bounds 2/nil |
+| GO-111 | EgoGraph | a radius past the eccentricity keeps every vertex reached | AL V [a, b, c, d]; E [a→b, b→c, c→a] / .egoGraphView(of: b, radius: 9) | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c, 2:c→a]; bounds 3/nil |
+| GO-112 | EgoGraph | every vertex kept: the base's rows and edge indices | AL V [a, b, c]; E [a→b, b→c, c→a] / .egoGraphView(of: a, radius: 5) | V [a#0, b#1, c#2]; E [0:a→b, 1:b→c, 2:c→a]; bounds 3/3 |
+| GO-113 | EgoGraph | parallel arcs and a self-loop kept as the induced subgraph keeps them | AL V [a, b, c]; E [a→b, a→b, b→b, b→c] / .egoGraphView(of: a, radius: 1) | V [a#0, b#1]; E [0:a→b, 1:a→b, 2:b→b]; bounds 2/nil |
+| GO-114 | EgoGraph | undirected path, radius 1 of an inner vertex | UL V [a, b, c, d, e]; E [a–b, b–c, c–d, d–e] / .egoGraphView(of: c) | V [b#0, c#1, d#2]; E [1:b–c, 2:c–d]; bounds 3/nil |
+| GO-115 | EgoGraph | undirected: a self-loop twice in its row | UL V [a, b, c]; E [a–a, a–b, b–c] / .egoGraphView(of: a) | V [a#0, b#1]; E [0:a–a, 1:a–b]; bounds 2/nil |
+| GO-116 | EgoGraph | center not a vertex traps | AL V [a, b]; E [a→b] / .egoGraphView(of: z) | **trap** (z is not a vertex) |
+| GO-117 | EgoGraph | negative radius traps | UL V [a, b]; E [a–b] / .egoGraphView(of: a, radius: -1) | **trap** (the radius must not be negative) |
+| GO-118 | EgoGraph | base without vertex indices traps | Stable (with holes) V [a, b]; E [a→b] / .egoGraphView(of: a) | **trap** (the base has no vertex indices (vertexIndexBound is nil)) |
+| GO-119 | Power | directed path squared | AL V [a, b, c, d]; E [a→b, b→c, c→d] / CompressedSparseRow.power(of: g, 2) | n 4; E [0→1, 0→2, 1→2, 1→3, 2→3] |
+| GO-120 | Power | directed 4-cycle cubed is the complete digraph | AL V [a, b, c, d]; E [a→b, b→c, c→d, d→a] / CompressedSparseRow.power(of: g, 3) | n 4; E [0→1, 0→2, 0→3, 1→0, 1→2, 1→3, 2→0, 2→1, 2→3, 3→0, 3→1, 3→2] |
+| GO-121 | Power | first power: loops dropped, parallel arcs merged | AL V [a, b, c]; E [a→a, a→b, a→b, b→c] / CompressedSparseRow.power(of: g, 1) | n 3; E [0→1, 1→2] |
+| GO-122 | Power | a power past the longest path adds nothing more | AL V [a, b, c]; E [a→b, b→c] / CompressedSparseRow.power(of: g, 7) | n 3; E [0→1, 0→2, 1→2] |
+| GO-123 | Power | undirected path P5 squared | UL V [a, b, c, d, e]; E [a–b, b–c, c–d, d–e] / UndirectedAdjacencyList<Int>.power(of: g, 2) | n 5; E [0–1, 0–2, 1–2, 1–3, 2–3, 2–4, 3–4] |
+| GO-124 | Power | undirected C5 squared is K5 | UL V [a, b, c, d, e]; E [a–b, b–c, c–d, d–e, e–a] / UndirectedAdjacencyList<Int>.power(of: g, 2) | n 5; E [0–1, 0–2, 0–3, 0–4, 1–2, 1–3, 1–4, 2–3, 2–4, 3–4] |
+| GO-125 | Power | undirected: isolated vertices stay isolated | UL V [a, b, c]; E [a–b] / UndirectedAdjacencyList<Int>.power(of: g, 3) | n 3; E [0–1] |
+| GO-126 | Power | undirected: loops and parallel edges ignored | UL V [a, b, c]; E [a–a, a–b, b–a, b–c] / UndirectedAdjacencyList<Int>.power(of: g, 1) | n 3; E [0–1, 1–2] |
+| GO-127 | Power | power 0 traps | UL V [a, b]; E [a–b] / UndirectedAdjacencyList<Int>.power(of: g, 0) | **trap** (the power must be at least 1) |
+| GO-128 | Contraction | undirected path: two inner vertices merge | UL V [a, b, c, d]; E [a–b, b–c, c–d] / UndirectedAdjacencyList<Int>.contraction(of: g, b, c) | n 3; E [0–1, 1–2] |
+| GO-129 | Contraction | directed: nonadjacent vertices merge at the smaller index | AL V [a, b, c, d]; E [a→b, b→c, c→d] / CompressedSparseRow.contraction(of: g, c, a) | n 3; E [0→1, 0→2, 1→0] |
+| GO-130 | Contraction | directed: arcs both ways between the two vanish | AL V [a, b, c]; E [a→b, b→a, b→c] / CompressedSparseRow.contraction(of: g, a, b) | n 2; E [0→1] |
+| GO-131 | Contraction | undirected: common neighbours' edges merge | UL V [a, b, c, d]; E [a–c, b–c, a–d, b–d] / UndirectedAdjacencyList<Int>.contraction(of: g, a, b) | n 3; E [0–1, 0–2] |
+| GO-132 | Contraction | a vertex with itself: a copy, loops dropped | AL V [a, b]; E [a→a, a→b] / CompressedSparseRow.contraction(of: g, b, b) | n 2; E [0→1] |
+| GO-133 | Contraction | vertex not in the graph traps | UL V [a, b]; E [a–b] / UndirectedAdjacencyList<Int>.contraction(of: g, a, z) | **trap** (z is not a vertex) |
+| GO-134 | Contraction | edge of a triangle: K2 | UL V [a, b, c]; E [a–b, b–c, c–a] / UndirectedAdjacencyList<Int>.contraction(of: g, edgeAt: 1) | n 2; E [0–1] |
+| GO-135 | Contraction | edge of C4: a triangle | UL V [a, b, c, d]; E [a–b, b–c, c–d, d–a] / UndirectedAdjacencyList<Int>.contraction(of: g, edgeAt: 0) | n 3; E [0–1, 0–2, 1–2] |
+| GO-136 | Contraction | directed: the arc and its parallel copy vanish | AL V [a, b, c]; E [a→b, a→b, b→c] / CompressedSparseRow.contraction(of: g, edgeAt: 0) | n 2; E [0→1] |
+| GO-137 | Contraction | a self-loop: a copy without loops | AL V [a, b]; E [a→b, b→b] / CompressedSparseRow.contraction(of: g, edgeAt: 1) | n 2; E [0→1] |
+| GO-138 | TransitiveClosure | empty | AL V []; E [] / CompressedSparseRow.transitiveClosure(of: g) | n 0; E [] |
+| GO-139 | TransitiveClosure | path: every forward pair | AL V [a, b, c, d]; E [a→b, b→c, c→d] / CompressedSparseRow.transitiveClosure(of: g) | n 4; E [0→1, 0→2, 0→3, 1→2, 1→3, 2→3] |
+| GO-140 | TransitiveClosure | cycle: every ordered pair, no loops | AL V [a, b, c]; E [a→b, b→c, c→a] / CompressedSparseRow.transitiveClosure(of: g) | n 3; E [0→1, 0→2, 1→0, 1→2, 2→0, 2→1] |
+| GO-141 | TransitiveClosure | two cycles, one arc between | AL V [a, b, c, d]; E [a→b, b→a, b→c, c→d, d→c] / CompressedSparseRow.transitiveClosure(of: g) | n 4; E [0→1, 0→2, 0→3, 1→0, 1→2, 1→3, 2→3, 3→2] |
+| GO-142 | TransitiveClosure | a self-loop alone adds nothing | AL V [a, b]; E [a→a] / CompressedSparseRow.transitiveClosure(of: g) | n 2; E [] |
+| GO-143 | TransitiveClosure | parallel arcs merge | AL V [a, b, c]; E [a→b, a→b, b→c] / CompressedSparseRow.transitiveClosure(of: g) | n 3; E [0→1, 0→2, 1→2] |
+| GO-144 | TransitiveReduction | acyclic: the shortcut goes | AL V [a, b, c]; E [a→b, b→c, a→c] / CompressedSparseRow.transitiveReduction(of: g) | n 3; E [0→1, 1→2] |
+| GO-145 | TransitiveReduction | acyclic diamond with a shortcut | AL V [a, b, c, d]; E [a→b, a→c, b→d, c→d, a→d] / CompressedSparseRow.transitiveReduction(of: g) | n 4; E [0→1, 0→2, 1→3, 2→3] |
+| GO-146 | TransitiveReduction | cycle with a chord: the cycle in index order | AL V [a, b, c]; E [a→b, b→c, c→a, a→c] / CompressedSparseRow.transitiveReduction(of: g) | n 3; E [0→1, 1→2, 2→0] |
+| GO-147 | TransitiveReduction | a component's cycle runs in index order, not the arcs' order | AL V [a, b, c]; E [a→c, c→b, b→a] / CompressedSparseRow.transitiveReduction(of: g) | n 3; E [0→1, 1→2, 2→0] |
+| GO-148 | TransitiveReduction | two components: one arc between their first members | AL V [a, b, c, d]; E [a→b, b→a, b→c, b→d, c→d, d→c] / CompressedSparseRow.transitiveReduction(of: g) | n 4; E [0→1, 0→2, 1→0, 2→3, 3→2] |
+| GO-149 | TransitiveReduction | components through a middle one: the long arc goes | AL V [a, b, c, d, e]; E [a→b, b→a, a→c, c→d, d→c, d→e, a→e] / CompressedSparseRow.transitiveReduction(of: g) | n 5; E [0→1, 0→2, 1→0, 2→3, 2→4, 3→2] |
+| GO-150 | TransitiveReduction | self-loops and parallel arcs dropped | AL V [a, b]; E [a→a, a→b, a→b] / CompressedSparseRow.transitiveReduction(of: g) | n 2; E [0→1] |
+| GO-151 | Relabel | ordering reversed | AL V [a, b, c]; E [a→b, b→c] / CompressedSparseRow.relabeled(g, ordering: [c, b, a]) | n 3; E [1→0, 2→1] |
+| GO-152 | Relabel | ordering by name | UL V [d, b, a, c]; E [d–b, b–a, a–c] / UndirectedAdjacencyList<Int>.relabeled(g, ordering: [a, b, c, d]) | n 4; E [0–1, 0–2, 1–3] |
+| GO-153 | Relabel | parallel edges merge | UL V [a, b]; E [a–b, b–a] / UndirectedAdjacencyList<Int>.relabeled(g, ordering: [b, a]) | n 2; E [0–1] |
+| GO-154 | Relabel | vertex listed twice traps | AL V [a, b]; E [a→b] / CompressedSparseRow.relabeled(g, ordering: [a, a]) | **trap** (a is listed twice in the ordering) |
+| GO-155 | Relabel | ordering missing a vertex traps | AL V [a, b, c]; E [a→b] / CompressedSparseRow.relabeled(g, ordering: [a, b]) | **trap** (the ordering does not list every vertex) |
+| GO-156 | Relabel | self-loop traps (phase 1) | AL V [a, b]; E [a→a] / CompressedSparseRow.relabeled(g, ordering: [a, b]) | **trap** (a self-loop, which the construction targets do not take) |
+| GO-157 | Relabel | one-to-one: the edges in order | AL V [a, b, c]; E [a→b, b→c, c→a] / AdjacencyList<String>.relabeled(g, by: [a: x, b: y, c: z]) | V [x, y, z]; E [x→y, y→z, z→x] |
+| GO-158 | Relabel | merging two ends makes a self-loop; coinciding arcs kept once | AL V [a, b, c]; E [a→c, b→c, a→b] / AdjacencyList<String>.relabeled(g, by: [a: x, b: x, c: y]) | V [x, y]; E [x→y, x→x] |
+| GO-159 | Relabel | merging into a pseudograph keeps every arc | AL V [a, b, c]; E [a→c, b→c, a→b] / DirectedPseudograph<String>.relabeled(g, by: [a: x, b: x, c: y]) | V [x, y]; E [x→y, x→y, x→x] |
+| GO-160 | Relabel | undirected: names merge, the first edge's orientation kept | UL V [a, b, c, d]; E [a–b, c–d, b–c, d–a] / UndirectedAdjacencyList<String>.relabeled(g, by: [a: p, b: q, c: p, d: q]) | V [p, q]; E [p–q] |
+| GO-161 | Relabel | undirected into a pseudograph | UL V [a, b, c]; E [a–b, b–c] / Pseudograph<String>.relabeled(g, by: [a: p, b: q, c: p]) | V [p, q]; E [p–q, q–p] |
+| GO-162 | Union | shared vertices merge: NetworkX compose | AL V [a, b, c]; E [a→b, b→c] ; AL V [b, c, d]; E [c→b, c→d, b→c] / AdjacencyList<String>.union(g, h) | V [a, b, c, d]; E [a→b, b→c, c→b, c→d] |
+| GO-163 | Union | disjoint vertex sets | AL V [a, b]; E [a→b] ; AL V [c, d]; E [d→c] / AdjacencyList<String>.union(g, h) | V [a, b, c, d]; E [a→b, d→c] |
+| GO-164 | Union | undirected: an edge in both, reversed, once | UL V [a, b, c]; E [a–b, b–c] ; UL V [c, b, d]; E [b–a, c–d] / UndirectedAdjacencyList<String>.union(g, h) | V [a, b, c, d]; E [a–b, b–c, c–d] |
+| GO-165 | Union | self-loops kept | UL V [a, b]; E [a–a] ; UL V [b]; E [b–b] / UndirectedAdjacencyList<String>.union(g, h) | V [a, b]; E [a–a, b–b] |
+| GO-166 | Intersection | NetworkX example | UL V [0, 1, 2]; E [0–1, 0–2, 1–2] ; UL V [0, 1, 2, 3]; E [0–3, 1–2, 2–3] / UndirectedAdjacencyList<String>.intersection(g, h) | V [0, 1, 2]; E [1–2] |
+| GO-167 | Intersection | directed: opposite arcs do not meet | AL V [a, b, c]; E [a→b, b→c] ; AL V [b, a, c]; E [b→a, b→c] / AdjacencyList<String>.intersection(g, h) | V [a, b, c]; E [b→c] |
+| GO-168 | Intersection | only the shared vertices | AL V [a, b, c]; E [a→b] ; AL V [d, b, a]; E [a→b] / AdjacencyList<String>.intersection(g, h) | V [a, b]; E [a→b] |
+| GO-169 | Difference | NetworkX example | UL V [0, 1, 2, 3]; E [0–1, 0–2, 1–2, 1–3] ; UL V [0, 1, 2, 3]; E [0–1, 1–2, 0–3] / UndirectedAdjacencyList<String>.difference(g, h) | V [0, 1, 2, 3]; E [0–2, 1–3] |
+| GO-170 | Difference | directed: an arc's reverse does not remove it | AL V [a, b]; E [a→b, b→a] ; AL V [a, b]; E [b→a] / AdjacencyList<String>.difference(g, h) | V [a, b]; E [a→b] |
+| GO-171 | Difference | vertex sets may differ: g's vertices | AL V [a, b, c]; E [a→b, b→c] ; AL V [b, c, d]; E [b→c, c→d] / AdjacencyList<String>.difference(g, h) | V [a, b, c]; E [a→b] |
+| GO-172 | SymmetricDifference | NetworkX example | UL V [0, 1, 2, 3]; E [0–1, 0–2, 1–2, 1–3] ; UL V [0, 1, 2, 3]; E [0–1, 1–2, 0–3] / UndirectedAdjacencyList<String>.symmetricDifference(g, h) | V [0, 1, 2, 3]; E [0–2, 0–3, 1–3] |
+| GO-173 | SymmetricDifference | directed, vertex sets differ: every vertex of either | AL V [a, b, c]; E [a→b, b→c] ; AL V [c, b, d]; E [b→c, c→d] / AdjacencyList<String>.symmetricDifference(g, h) | V [a, b, c, d]; E [a→b, c→d] |

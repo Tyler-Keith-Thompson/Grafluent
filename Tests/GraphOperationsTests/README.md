@@ -1,9 +1,12 @@
 # GraphOperations test suite
 
-`GraphOperations` has two kinds of operation. The lazy views (`transposedView`, the subgraph views and
-`complementView`) hold their base and compute every row from the base's rows. The materialized results
-(the line graph, the condensation as a `DirectedAcyclicGraph`, the quotient, the disjoint union and
-the join) are built in one step through the construction hooks, on a target type the caller picks.
+`GraphOperations` has two kinds of operation. The lazy views (`transposedView`, the subgraph views, the
+ego graph and `complementView`) hold their base and compute every row from the base's rows. The
+materialized results (the line graph, the condensation as a `DirectedAcyclicGraph`, the quotient, the
+contractions, the disjoint union and the join, the power, the transitive closure and reduction, the
+relabelings, and the union, intersection, difference and symmetric difference) are built in one step on
+a target type the caller picks: through the construction hooks, or, for the operations that keep vertex
+labels, through a mutable representation's bulk build.
 The API is described in `api.md` in [`Tests/Catalogs/GraphOperations/`](../Catalogs/GraphOperations/).
 
 - The reversal view is `transposedView` (`TransposedView<Base>`), and it needs a bidirectional base.
@@ -25,6 +28,10 @@ g.complementView -> ComplementView<G>                   // DirectedGraph and Gra
 view.base
 Target.lineGraph(of:), Target.quotient(of:by:), Target.disjointUnion(_:_:), Target.join(_:_:)
 DirectedAcyclicGraph<Base>(_ condensation: Condensation<G>)
+g.egoGraphView(of:radius:), g.egoGraphView(of:radius:undirected:), and their checkedOf: forms -> SubgraphView<G>
+Target.power(of:_:), Target.contraction(of:_:_:), Target.contraction(of:checked:_:), Target.contraction(of:edgeAt:)
+Target.transitiveClosure(of:), Target.transitiveReduction(of:), Target.relabeled(_:ordering:)
+Mutable.relabeled(_:by:), Mutable.union(_:_:), Mutable.intersection(_:_:), Mutable.difference(_:_:), Mutable.symmetricDifference(_:_:)
 ```
 
 ## Conventions
@@ -44,6 +51,12 @@ DirectedAcyclicGraph<Base>(_ condensation: Condensation<G>)
 | Condensation | Vertex i is component i; the order is n−1, …, 0 | GO-078 – GO-084 |
 | Quotient | Block i is vertex i; edges merged; none inside a block; an empty block is isolated | GO-085 – GO-091 |
 | Union and join | `g`'s vertices, then `h`'s offset by `|V(g)|`; parallel edges merge | GO-095 – GO-104 |
+| Ego graph | The induced subgraph on the vertices within the radius, numbered as there; `undirected: true` steps along arcs backwards | GO-106 – GO-115 |
+| Power | An edge between distinct vertices at distance ≤ k; loops and parallel edges ignored | GO-119 – GO-126 |
+| Contraction | The merged vertex at the smaller index, later ones down by one; loops dropped | GO-128 – GO-137 |
+| Closure and reduction | No loops; the reduction a cycle per component in index order plus first-member arcs | GO-138 – GO-150 |
+| Relabeling | By ordering, `ordering[i]` is `i`; by name map, distinct names at first occurrence, equal names merged | GO-151 – GO-161 |
+| Set operations | Equal vertices are one; `g`'s vertices first; edges a set in row-major order | GO-162 – GO-173 |
 | Traps | A label or a position not in the base; a base without vertex indices; a directed self-loop in a line graph; a self-loop in a union or join; a bad partition | trap rows |
 
 ## How values are pinned
@@ -74,7 +87,8 @@ partition, or the Stable base without its removal), and its state is checked, so
 from the call and not from the setup.
 
 The catalog-row files are every file except `GraphOperationsConformanceTests.swift`,
-`GraphOperationsPropertyTests.swift`, `ViewCheckedLookupTests.swift` (the views' `checked:` lookups) and `ViewMapTests.swift` (the views as graph adaptors). `swiftgen.py` generated them from `cases.md`; it sits next to
+`GraphOperationsPropertyTests.swift`, `OperationsPropertyTests.swift`, `OperationsTargetTests.swift`,
+`ViewCheckedLookupTests.swift` (the views' `checked:` lookups) and `ViewMapTests.swift` (the views as graph adaptors). `swiftgen.py` generated them from `cases.md`; it sits next to
 `ref.py` and `cases.md` in [`Tests/Catalogs/GraphOperations/`](../Catalogs/GraphOperations/):
 
 ```
@@ -111,6 +125,19 @@ catalog cell, and writes the test. The precondition file also takes the hand-wri
   indices by rank, membership of every pair); the transposed view's laws; the complement, directed and
   undirected, and the complement of the complement; the line graph's definition (also over a view
   without edge indices); the quotient, the disjoint union and the join; the condensation DAG.
+- **More properties.** `OperationsPropertyTests.swift`: the relabelings (merging into simple and
+  pseudograph targets, and by ordering), the four set operations against label sets on overlapping
+  vertex sets listed in different orders, the power and the ego graph against Floyd–Warshall
+  distances, the contractions against a renumbered edge set, the closure against Warshall and the
+  reduction against Aho, Garey and Ullman's construction (and, on acyclic input, the
+  `DirectedAcyclicGraph` module's closure and reduction).
+- **Targets and inputs.** `OperationsTargetTests.swift`: the index-space operations agree across
+  `CompressedSparseRow`, `AdjacencyList<Int>`, `AdjacencyMatrix` and `StableDirectedGraph<Int>`
+  targets, and over `CompressedSparseRow`, `AdjacencyMatrix`, induced-subgraph and transposed inputs
+  with their copies; the label operations agree across `AdjacencyList`, `DirectedPseudograph` and
+  `StableDirectedGraph` (undirected: `UndirectedAdjacencyList`, `Pseudograph`); closure and
+  reduction on 150 vertices, past one 64-bit word of components; the `checkedOf:` and `checked:`
+  spellings throw `VertexNotFound` and otherwise equal the plain ones.
 - **Views as adaptors.** `ViewMapTests.swift`. Each view's generation is its base's. The
   transposed and subgraph views read the base's edge and vertex maps at the base's positions, and
   the complement reads vertex maps. A subgraph view's `[map, of:]` and `[map, ofEdgeAt:]` trap

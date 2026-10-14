@@ -407,6 +407,156 @@ struct GraphOperationsPreconditionTests {
         #expect(other.vertexIndexBound == 1)
     }
 
+    @Test("GO-116 center not a vertex traps")
+    func go116() async {
+        // AL V [a, b]; E [a→b] / .egoGraphView(of: z) → **trap** (z is not a vertex)
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.egoGraphView(of: "z")
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
+        #expect(graph.vertexIndexBound == 2)
+    }
+
+    @Test("GO-117 negative radius traps")
+    func go117() async {
+        // UL V [a, b]; E [a–b] / .egoGraphView(of: a, radius: -1) → **trap** (the radius must not be negative)
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+            _ = graph.egoGraphView(of: "a", radius: -1)
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "b"]])
+        #expect(graph.vertexIndexBound == 2)
+    }
+
+    @Test("GO-118 base without vertex indices traps")
+    func go118() async {
+        // Stable (with holes) V [a, b]; E [a→b] / .egoGraphView(of: a) → **trap** (the base has no vertex indices (vertexIndexBound is nil))
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.remove("removed")
+            _ = graph.egoGraphView(of: "a")
+        }
+        // Without the removal the same base has vertex indices, and the call is accepted.
+        let graph = StableDirectedGraph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(graph.vertexIndexBound == 2)
+        let view = graph.egoGraphView(of: "a")
+        #expect(Array(view.vertices) == ["a", "b"])
+        #expect(view.vertices.map { view.vertexIndex(of: $0) } == [0, 1])
+        #expect((0 ..< 2).map { view.vertex(atIndex: $0) } == ["a", "b"])
+        #expect(view.vertexCount == 2 && view.edgeCount == 1 && view.edges.count == 1)
+        #expect(view.vertexIndexBound == 2 && view.edgeIndexBound == 1)
+        #expect(Array(view.edges.indices) == [0])
+        #expect(view.edges.map { [$0.source, $0.target] } == [["a", "b"]])
+        #expect(view.edges.indices.map { [view.source(ofEdgeAt: $0), view.target(ofEdgeAt: $0)] } == [["a", "b"]])
+        #expect(view.edges.indices.map { [view.sourceIndex(ofEdgeAt: $0), view.targetIndex(ofEdgeAt: $0)] } == [[0, 1]])
+        #expect(view.edges.indices.map { view.edgeIndex(of: $0) } == [0])
+        #expect(view.contains("a"))
+        #expect(Array(view.successors(of: "a")) == ["b"])
+        #expect(Array(view.successorIndices(ofIndex: 0)) == [1])
+        #expect(Array(view.outEdges(of: "a")) == [0])
+        #expect(Array(view.outEdges(ofIndex: 0)) == [0])
+        #expect(view.outDegree(of: "a") == 1 && view.outDegree(ofIndex: 0) == 1)
+        #expect(Array(view.predecessors(of: "a")) == [] as [String])
+        #expect(Array(view.predecessorIndices(ofIndex: 0)) == [] as [Int])
+        #expect(Array(view.inEdges(of: "a")) == [] as [Int])
+        #expect(Array(view.inEdges(ofIndex: 0)) == [] as [Int])
+        #expect(view.inDegree(of: "a") == 0 && view.inDegree(ofIndex: 0) == 0 && view.degree(of: "a") == 1)
+        #expect(view.contains("b"))
+        #expect(Array(view.successors(of: "b")) == [] as [String])
+        #expect(Array(view.successorIndices(ofIndex: 1)) == [] as [Int])
+        #expect(Array(view.outEdges(of: "b")) == [] as [Int])
+        #expect(Array(view.outEdges(ofIndex: 1)) == [] as [Int])
+        #expect(view.outDegree(of: "b") == 0 && view.outDegree(ofIndex: 1) == 0)
+        #expect(Array(view.predecessors(of: "b")) == ["a"])
+        #expect(Array(view.predecessorIndices(ofIndex: 1)) == [0])
+        #expect(Array(view.inEdges(of: "b")) == [0])
+        #expect(Array(view.inEdges(ofIndex: 1)) == [0])
+        #expect(view.inDegree(of: "b") == 1 && view.inDegree(ofIndex: 1) == 1 && view.degree(of: "b") == 1)
+        // contains(edge:) for every ordered pair, source-major.
+        #expect(view.vertices.flatMap { s in view.vertices.map { t in view.contains(edge: DirectedEdge(from: s, to: t)) } } == [false, true, false, false])
+        // The removal itself leaves a hole.
+        var holed = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [DirectedEdge(from: "a", to: "b")])
+        _ = holed.remove("removed")
+        #expect(holed.vertexIndexBound == nil && Array(holed.vertices) == ["a", "b"])
+    }
+
+    @Test("GO-127 power 0 traps")
+    func go127() async {
+        // UL V [a, b]; E [a–b] / UndirectedAdjacencyList<Int>.power(of: g, 0) → **trap** (the power must be at least 1)
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+            _ = UndirectedAdjacencyList<Int>.power(of: graph, 0)
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "b"]])
+        #expect(graph.vertexIndexBound == 2)
+    }
+
+    @Test("GO-133 vertex not in the graph traps")
+    func go133() async {
+        // UL V [a, b]; E [a–b] / UndirectedAdjacencyList<Int>.contraction(of: g, a, z) → **trap** (z is not a vertex)
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+            _ = UndirectedAdjacencyList<Int>.contraction(of: graph, "a", "z")
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "b"]])
+        #expect(graph.vertexIndexBound == 2)
+    }
+
+    @Test("GO-154 vertex listed twice traps")
+    func go154() async {
+        // AL V [a, b]; E [a→b] / CompressedSparseRow.relabeled(g, ordering: [a, a]) → **trap** (a is listed twice in the ordering)
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = CompressedSparseRow.relabeled(graph, ordering: ["a", "a"])
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
+        #expect(graph.vertexIndexBound == 2)
+    }
+
+    @Test("GO-155 ordering missing a vertex traps")
+    func go155() async {
+        // AL V [a, b, c]; E [a→b] / CompressedSparseRow.relabeled(g, ordering: [a, b]) → **trap** (the ordering does not list every vertex)
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = CompressedSparseRow.relabeled(graph, ordering: ["a", "b"])
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = AdjacencyList<String>(vertices: ["a", "b", "c"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(Array(graph.vertices) == ["a", "b", "c"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
+        #expect(graph.vertexIndexBound == 3)
+    }
+
+    @Test("GO-156 self-loop traps (phase 1)")
+    func go156() async {
+        // AL V [a, b]; E [a→a] / CompressedSparseRow.relabeled(g, ordering: [a, b]) → **trap** (a self-loop, which the construction targets do not take)
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a")])
+            _ = CompressedSparseRow.relabeled(graph, ordering: ["a", "b"])
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = DirectedPseudograph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "a")])
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "a"]])
+        #expect(graph.vertexIndexBound == 2)
+    }
+
     @Test("Label-space rows of a vertex outside a subgraph view trap; index-space reads past the bound trap")
     func subgraphOutsideVertices() async {
         await #expect(processExitsWith: .failure) {
@@ -541,5 +691,56 @@ struct GraphOperationsPreconditionTests {
         #expect(AdjacencyList<Int>.lineGraph(of: graph).vertexCount == 1)
         let undirected = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "b")])
         #expect(UndirectedAdjacencyList<Int>.lineGraph(of: undirected).edges.map { [$0.u, $0.v] } == [[0, 1]])
+    }
+
+    @Test("power(of:_:) below 1 traps directed too; relabeled(_:ordering:) traps on an undirected self-loop")
+    func powerAndOrderingFaults() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = CompressedSparseRow.power(of: graph, 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("b", "b")])
+            _ = UndirectedAdjacencyList<Int>.relabeled(graph, ordering: ["b", "a"])
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+            _ = UndirectedAdjacencyList<Int>.relabeled(graph, ordering: ["b"])
+        }
+        // Without the faults.
+        let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(CompressedSparseRow.power(of: graph, 1).edges.map { [$0.source, $0.target] } == [[0, 1]])
+        let undirected = Pseudograph<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+        #expect(UndirectedAdjacencyList<Int>.relabeled(undirected, ordering: ["b", "a"]).edges.map { [$0.u, $0.v] } == [[0, 1]])
+    }
+
+    @Test("The operations that read vertex indices trap on a base without them")
+    func noVertexIndices() async {
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.remove("removed")
+            _ = CompressedSparseRow.power(of: graph, 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.remove("removed")
+            _ = CompressedSparseRow.transitiveClosure(of: graph)
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.remove("removed")
+            _ = AdjacencyList<String>.union(graph, graph)
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = StableDirectedGraph<String>(vertices: ["a", "b", "removed"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.remove("removed")
+            _ = AdjacencyList<String>.relabeled(graph) { $0 }
+        }
+        // Without the removal the same calls are accepted.
+        let graph = StableDirectedGraph<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(CompressedSparseRow.power(of: graph, 1).edgeCount == 1)
+        #expect(CompressedSparseRow.transitiveClosure(of: graph).edgeCount == 1)
+        #expect(AdjacencyList<String>.union(graph, graph).edgeCount == 1)
+        #expect(AdjacencyList<String>.relabeled(graph) { $0 }.edgeCount == 1)
     }
 }
