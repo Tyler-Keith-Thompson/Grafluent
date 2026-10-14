@@ -48,7 +48,7 @@ func _startVectorEntry(_ i: Int) -> Double {
 /// max(floor, |θ − shift|): relative to θ (shift 0), or to the gap from a shift (σ − θ = λ₂ on
 /// σI − L).
 @usableFromInline
-struct _LanczosRule {
+package struct _LanczosRule {
     @usableFromInline let tolerance: Double
     @usableFromInline let shift: Double
     @usableFromInline let floor: Double
@@ -61,7 +61,7 @@ struct _LanczosRule {
     @usableFromInline let budget: Int
 
     @usableFromInline
-    init(tolerance: Double, shift: Double, floor: Double, abandonRatio: Double, budget: Int) {
+    package init(tolerance: Double, shift: Double, floor: Double, abandonRatio: Double, budget: Int) {
         self.tolerance = tolerance
         self.shift = shift
         self.floor = floor
@@ -91,7 +91,7 @@ struct _LanczosRule {
 /// Zhou and Saad, Chebyshev–Davidson, 2007). Its Ritz vectors are then judged by their residual
 /// for M itself.
 @usableFromInline
-func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filters: Bool, rule: _LanczosRule, products: inout Int, apply op: (UnsafePointer<Double>, UnsafeMutablePointer<Double>) throws(NoConvergence) -> Void) throws(NoConvergence) -> (value: Double, vector: [Double])? {
+package func _largestEigenpair(count n: Int, null: [Double]?, lowerBound: Double, filters: Bool, rule: _LanczosRule, products: inout Int, apply op: (UnsafePointer<Double>, UnsafeMutablePointer<Double>) throws(NoConvergence) -> Void) throws(NoConvergence) -> (value: Double, vector: [Double])? {
     let dimension = null == nil ? n : n - 1
     precondition(dimension >= 1, "No vector to iterate on")
     let m = min(_lanczosBasisSize, dimension)

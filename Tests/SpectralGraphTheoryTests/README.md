@@ -5,7 +5,9 @@ covers the adjacency, Laplacian, normalized, random-walk and signless Laplacian 
 `SparseMatrix`, and the full spectra of A, L and N. On large sparse graphs it gives the algebraic
 connectivity, the Fiedler vector, the spectral ordering and the spectral radius by Lanczos. It also
 gives the spanning-tree count, resistance distance, effective graph resistance and the Kemeny
-constant. The API description (`api.md`) is in
+constant; the k extreme eigenpairs of A, L, N and Q and the spectral embedding; hitting and
+commute times, the stationary distribution of a directed graph; and the
+incidence and modularity matrices. The API description (`api.md`) is in
 [`Tests/Catalogs/SpectralGraphTheory/`](../Catalogs/SpectralGraphTheory/). The module is pure Swift;
 matrices are `SparseMatrix` with `Double` elements; a vector's sign is fixed so that the first
 entry of magnitude at least 1e-4 of the largest is positive.
@@ -31,10 +33,24 @@ extension Graph {               // each also with weight: (Edges.Index) -> W, W:
     func numberOfSpanningTrees(as: UInt128.Type, weight:) -> UInt128?                               // exact; nil from 2¹²⁸ on; W: BinaryInteger
     func resistanceDistance(from:to:weight:tolerance:maxIterations:) throws(NoConvergence) -> Double?  // nil across components
     func effectiveGraphResistance(weight:) -> Double?, kemenyConstant(weight:) -> Double?
+    func adjacencyEigenpairs(smallest:weight:tolerance:maxIterations:) throws(NoConvergence) -> Eigenpairs<Self>  // also largest:,
+         laplacianEigenpairs, normalizedLaplacianEigenpairs, signlessLaplacianEigenpairs                // ascending / descending
+    func spectralEmbedding(dimensions:weight:tolerance:maxIterations:) throws(NoConvergence) -> SpectralEmbedding<Self>
+    func hittingTime(from:to:weight:tolerance:maxIterations:) throws(NoConvergence) -> Double?        // nil across components
+    func commuteTime(from:to:weight:tolerance:maxIterations:) throws(NoConvergence) -> Double?        // vol(C) · R
+    func incidenceMatrix(oriented:) -> SparseMatrix                                                 // n × m; a loop 2 or nothing
+    func modularityMatrix(weight:) -> [[Double]]                                                    // A − k kᵀ / vol
 }
-extension DirectedGraph { func adjacencyMatrix(weight:), laplacianMatrix(weight:) }                 // out-degrees
+extension DirectedGraph {
+    func adjacencyMatrix(weight:), laplacianMatrix(weight:)                                        // out-degrees
+    func incidenceMatrix(oriented:) -> SparseMatrix, modularityMatrix(weight:) -> [[Double]]        // A − k_out k_inᵀ / m
+    func stationaryDistribution(weight:tolerance:maxIterations:) throws(NoConvergence) -> StationaryDistribution<Self>
+}
 struct SparseMatrix: Equatable, Hashable, Sendable, CustomStringConvertible
-    rowCount, offsets, columns, values, nonzeroCount, subscript(_ row: Int, _ column: Int), pattern, static *
+    rowCount, columnCount, offsets, columns, values, nonzeroCount, subscript(_ row: Int, _ column: Int), pattern, static *
+struct Eigenpairs<G: Graph> { eigenvalues, count, eigenvector(at:), eigenvectorEntries(of:), (checked:), (ofIndex:) }
+struct SpectralEmbedding<G: Graph> { dimensions, eigenvalues, coordinates(of:), (checked:), (ofIndex:) }
+struct StationaryDistribution<G: DirectedGraph> { probabilities, probability(of:), (checked:), (ofIndex:) }
 struct FiedlerVector<G: Graph> { algebraicConnectivity, values, value(of:), value(ofIndex:) }
 struct NoConvergence: Error, Hashable, Sendable { iterations, residual }                            // GraphProtocols
 ```
@@ -68,7 +84,8 @@ and after the vertices in `resistanceDistance(from:to:weight:tolerance:)`. The s
 
 The catalog-row files are every file except `CanonicalSignTests.swift`, `ExactSpanningTreeFormulaTests.swift`,
 `SpectralAccuracyTests.swift`, `SpectralConformanceTests.swift`, `SpectralNoConvergenceTests.swift`,
-`SpectralPropertyTests.swift` and `Performance/SpectralStressTests.swift`.
+`SpectralPropertyTests.swift`, `Performance/SpectralStressTests.swift` and the hand-written eigenpair,
+embedding, random-walk and matrix files listed under Hand-written files.
 `swiftgen.py` generated them from `cases.md`. It sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/SpectralGraphTheory/`](../Catalogs/SpectralGraphTheory/):
 
@@ -77,9 +94,9 @@ uv run --quiet --no-project --with networkx==3.7 --with scipy==1.18.1 --with num
 ```
 
 It first checks that `ref.py` reproduces `cases.md` byte for byte. Then it re-evaluates each row
-(except SGT-231 – SGT-243) on the model at full precision, asserts that the value renders to the
+(except SGT-298 – SGT-310) on the model at full precision, asserts that the value renders to the
 catalog cell, and writes one `@Test` per row. With `--phase2` it also writes
-`SpectralPhase2Tests.swift` for SGT-231 – SGT-243. Each graph is the catalog's, on the reference
+`SpectralPhase2Tests.swift` for SGT-298 – SGT-310. Each graph is the catalog's, on the reference
 conformer, with every vertex listed in `vertices` order and the edges in position order. Weights are
 `[Int]` when every weight is an integer, so that the `BinaryInteger` overload is exercised, and
 `[Double]` otherwise.
@@ -95,6 +112,10 @@ conformer, with every vertex listed in `vertices` order and the edges in positio
 | Spanning-tree count | Integer-valued when unweighted, relative to the value | 1e-9 relative (counts are "dense results") |
 | Resistance distance | The value; exactly 0 or nil | 1e-6 · max(1, R) |
 | Effective graph resistance, Kemeny constant | The value; exactly 0 or nil | 1e-9 · max(1, value) |
+| Eigenpairs | Every eigenvalue; the vectors the contract pins (simple eigenvalues, null vectors per component), every entry; every vector unit, orthogonal and with residual ‖Mx − λx‖ small | 1e-9 · max(1, scale) for values and residuals, 1e-9 per entry, 1e-12 for orthogonality |
+| Embedding | Its eigenvalues and, when they are simple, every coordinate | 1e-9 |
+| Hitting and commute times, stationary distribution | The value or each probability; exactly 0 or nil | 1e-9 · max(1, value); 1e-9 per probability |
+| Incidence and modularity matrices | Shape, stored count and every entry | exact; 1e-12 relative |
 
 A trap row runs the faulting call in a child process (an exit test). The same setup then runs in
 this process without the fault, with valid weights or two vertices, and its result is checked, so
@@ -110,6 +131,28 @@ hand-written exit tests in `extra_traps.swift`:
 - `SparseMatrix` out-of-range entries and a vector of the wrong length.
 
 ## Hand-written files
+
+The eigenpair, embedding, random-walk and matrix files below have no catalog rows:
+`EigenpairsTests.swift`, `EigenpairsPropertyTests.swift`, `EigenpairsTrapTests.swift`,
+`SpectralEmbeddingTests.swift`, `RandomWalkTests.swift`, `IncidenceModularityTests.swift` and
+`Performance/EigenpairsStressTests.swift`.
+
+- **Eigenpairs.** Hand-computed spectra and vectors (P₃, K₄, the star, two triangles, isolated
+  vertices, loops and parallel edges); closed forms by Lanczos: C₁₀₀'s double eigenvalue (both
+  copies, through the locking check), P₃₀₀ by shift-invert (values and vectors), the 10 × 10 and
+  100 × 100 grids, K₁₀₀ (a Krylov space of dimension 2); every end against the dense spectra on
+  seeded graphs of 70 to 200 vertices; weights at 10^±300; the overloads, lookups, representations
+  and `maxIterations`. Properties: values, residuals, orthonormality and the canonical sign against
+  the dense spectra on random multigraphs, the null vectors per component, and Lanczos on 64 to 80
+  vertices.
+- **Embedding.** x₂/√d solving L y = λ D y on P₃, a barbell's cliques separated by sign, the
+  weighted overloads, lookups, a graph without vertex indices and an isolated vertex at 0.
+- **Random walks.** Stationary distributions of reversible, periodic, dangling, weighted and
+  reducible chains, and πP = π as a property; hitting times on P₃, paths, complete graphs, loops
+  and components, commute times as both hitting times and vol · R, also as properties against the
+  definition h = 1 + P h.
+- **Incidence and modularity.** Hand-computed matrices, loops and parallel edges, B Bᵀ = Q and L,
+  the directed forms, and both against their definitions as properties.
 
 - **Canonical sign.** The relative 1e-4 rule against an absolute threshold. P₅ with the third
   weight 1.00001 lists its middle vertex first: that entry is real but 3 · 10⁻⁶ of the largest, so

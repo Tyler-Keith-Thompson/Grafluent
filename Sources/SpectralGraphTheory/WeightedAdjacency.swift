@@ -310,8 +310,8 @@ extension _WeightedAdjacency {
         return _WeightedAdjacency(offsets: resultOffsets, columns: resultColumns, values: values == nil ? nil : resultValues, gershgorinBound: gershgorinBound, hasNegativeEntry: hasNegativeEntry, hasLoop: hasLoop)
     }
 
-    /// The dense matrix of `kind` (adjacency, Laplacian or normalized Laplacian), column-major,
-    /// accumulated from the rows.
+    /// The dense matrix of `kind` (adjacency, Laplacian, normalized or signless Laplacian),
+    /// column-major, accumulated from the rows.
     @usableFromInline
     func dense(_ kind: _MatrixKind) -> [Double] {
         let n = count
@@ -338,7 +338,14 @@ extension _WeightedAdjacency {
                     a[u * n + v] -= weight(k) / root[v] / root[u]
                 }
             }
-        case .randomWalkLaplacian, .signlessLaplacian:
+        case .signlessLaplacian:
+            // D + A: a loop's two slots add 2w to A[v][v], and to d(v) again.
+            let d = degrees()
+            for v in 0 ..< n {
+                a[v * n + v] = d[v]
+                for k in offsets[v] ..< offsets[v + 1] { a[Int(columns[k]) * n + v] += weight(k) }
+            }
+        case .randomWalkLaplacian:
             preconditionFailure("No dense form of this matrix is used")
         }
         return a

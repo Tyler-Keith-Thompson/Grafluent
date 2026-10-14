@@ -21,7 +21,7 @@ cell, and writes one @Test per row with the full-precision values as literals:
   effective graph resistance and the Kemeny constant 1e-9 · max(1, |value|); exact 0 and nil.
 
 Trap rows become exit tests followed by the same setup without the fault. The hand-written exit
-tests in extra_traps.swift are spliced into the precondition file. Rows SGT-205 onward are
+tests in extra_traps.swift are spliced into the precondition file. Rows SGT-298 onward are
 written to SpectralPhase2Tests.swift only with --phase2.
 """
 import os
@@ -50,9 +50,9 @@ with open(os.path.join(HERE, "cases.md")) as f:
     assert f.read() == TEXT, "cases.md is not ref.py's output"
 ROWS = {int(r[0][4:]): r for r in ref.ROWS}
 N = len(ROWS)
-assert N == 243
+assert N == 310
 PHASE2_FIRST = min(n for n, r in ROWS.items() if r[1] == "Phase 2")
-assert PHASE2_FIRST == 231
+assert PHASE2_FIRST == 298
 
 
 def is_trap(n): return ROWS[n][5] == "**trap**"
@@ -146,7 +146,7 @@ def raw(n):
     wr = ref.parse_weights(op)
     call = op.split(" [")[0].strip()
     name = call.split("(")[0]
-    w = ref.check_weights(g, wr, allow_negative=(name == "adjacencyMatrix"))
+    w = ref.check_weights(g, wr, allow_negative=(name in ("adjacencyMatrix", "adjacencyEigenpairs")))
     if name == "adjacencyMatrix":
         v = ref.adjacency(g, w)
     elif name == "laplacianMatrix":
@@ -195,6 +195,20 @@ def raw(n):
         v = ref.kemeny(g, w)
     elif name == "spectralBisection":
         v = ref.bisection(g, w)
+    elif name.endswith("Eigenpairs"):
+        k = int(re.search(r"(smallest|largest): (-?\d+)", call).group(2))
+        v = ref.eigenpairs(g, w, name[:-len("Eigenpairs")], "largest" in call, k)
+    elif name == "spectralEmbedding":
+        v = ref.embedding(g, w, int(re.search(r"dimensions: (-?\d+)", call).group(1)))
+    elif name in ("hittingTime", "commuteTime"):
+        a, b = map(int, re.findall(r"-?\d+", call)[:2])
+        v = (ref.hitting if name == "hittingTime" else ref.commute)(g, w, g.vertices.index(a), g.vertices.index(b))
+    elif name == "stationaryDistribution":
+        v = ref.stationary(g, w)
+    elif name == "incidenceMatrix":
+        v = ref.incidence(g, "oriented: true" in call)
+    elif name == "modularityMatrix":
+        v = ref.modularity(g, w)
     else:
         raise AssertionError(op)
     assert ref.render_value(name, g, v) == expected, (n, ref.render_value(name, g, v), expected)
@@ -221,7 +235,11 @@ def scale_of(g, w, name, call):
 
 # The entry points that iterate, so throw `NoConvergence`: their calls are written with `try`.
 THROWING = ("adjacencySpectrum", "laplacianSpectrum", "normalizedLaplacianSpectrum", "algebraicConnectivity",
-            "fiedlerVector", "spectralOrdering", "spectralRadius", "resistanceDistance")
+            "fiedlerVector", "spectralOrdering", "spectralRadius", "resistanceDistance",
+            "adjacencyEigenpairs", "laplacianEigenpairs", "normalizedLaplacianEigenpairs", "signlessLaplacianEigenpairs",
+            "spectralEmbedding", "hittingTime", "commuteTime", "stationaryDistribution")
+# The entry points whose `weight:` follows their other arguments.
+WEIGHT_LAST = THROWING[8:] + ("modularityMatrix",)
 
 
 def call_expr(call, wr, var="graph"):
@@ -233,7 +251,7 @@ def call_expr(call, wr, var="graph"):
     inner = call[len(name) + 1:-1] if call.endswith(")") else ""
     args = [a.strip() for a in inner.split(",") if a.strip() and a.strip() != "weight:"]
     if wr is not None:
-        if name == "resistanceDistance" or "UInt128" in call:
+        if name == "resistanceDistance" or "UInt128" in call or name in WEIGHT_LAST:
             args.append("weight: { weights[$0] }")
         else:
             args.insert(0, "weight: { weights[$0] }")
@@ -321,7 +339,7 @@ def row_test(n):
     lines = header(n) + ["    func sgt%03d() throws {" % n, comment(n)]
     lines += graph_lines(g)
     lines += weight_decl(wr)
-    if name.endswith("Matrix"):
+    if name.endswith("Matrix") and name not in ("incidenceMatrix", "modularityMatrix"):
         lines.append("        let matrix = " + ce)
         lines += matrix_lines(g, v)
     elif name.endswith("Spectrum"):
@@ -384,12 +402,125 @@ def row_test(n):
             if isinstance(v, Fraction):
                 lines.append("        // %s" % ref.fnum(v))
             lines.append("        #expect(abs(result - %s) <= 1e-9 * %s)" % (num(x), num(max(1.0, abs(x)))))
+    elif name.endswith("Eigenpairs"):
+        lines += eigenpair_lines(g, w, wr, name, call, v, ce)
+    elif name == "spectralEmbedding":
+        lines += embedding_lines(v, ce)
+    elif name in ("hittingTime", "commuteTime"):
+        lines.append("        let value = " + ce)
+        if v is None:
+            lines.append("        #expect(value == nil)")
+        elif v == 0:
+            lines.append("        #expect(value == 0)")
+        else:
+            x = float(v)
+            lines.append("        let time = try #require(value)")
+            lines.append("        // %s" % ref.fnum(v))
+            lines.append("        #expect(abs(time - %s) <= 1e-9 * %s)" % (num(x), num(max(1.0, x))))
+    elif name == "stationaryDistribution":
+        lines.append("        let distribution = " + ce)
+        lines.append("        let expected: [Double] = %s" % nums([float(x) for x in v]))
+        lines.append("        #expect(distribution.probabilities.count == expected.count)")
+        lines.append("        for (k, value) in zip(distribution.probabilities, expected).enumerated() {")
+        lines.append("            #expect(abs(value.0 - value.1) <= 1e-9, \"probability \\(k)\")")
+        lines.append("        }")
+        if g.n:
+            lines.append("        #expect(distribution.probability(of: %d) == distribution.probabilities[0])" % g.vertices[0])
+    elif name == "incidenceMatrix":
+        flat = [x for row in v for x in row]
+        lines.append("        let matrix = " + ce)
+        lines.append("        #expect(matrix.rowCount == %d && matrix.columnCount == %d)" % (g.n, g.m))
+        lines.append("        #expect(matrix.nonzeroCount == %d && !matrix.values.contains(0))" % sum(1 for x in flat if x))
+        if g.m:
+            lines.append("        let rows: [[Double]] = [")
+            for row in v:
+                lines.append("            %s," % nums(row, per_line=99))
+            lines.append("        ]")
+            lines.append("        for i in 0 ..< %d {" % g.n)
+            lines.append("            for j in 0 ..< %d { #expect(matrix[i, j] == rows[i][j], \"entry (\\(i), \\(j))\") }" % g.m)
+            lines.append("        }")
+    elif name == "modularityMatrix":
+        lines.append("        let matrix = " + ce)
+        lines.append("        let expected: [[Double]] = [")
+        for row in v:
+            lines.append("            %s," % nums([float(x) for x in row], per_line=99))
+        lines.append("        ]")
+        lines.append("        #expect(matrix.count == expected.count)")
+        lines.append("        for (i, row) in zip(matrix, expected).enumerated() {")
+        lines.append("            #expect(row.0.count == row.1.count)")
+        lines.append("            for (j, entry) in zip(row.0, row.1).enumerated() {")
+        lines.append("                #expect(abs(entry.0 - entry.1) <= 1e-12 * max(1, abs(entry.1)), \"entry (\\(i), \\(j))\")")
+        lines.append("            }")
+        lines.append("        }")
     else:
         raise AssertionError(name)
     lines.append("    }")
     if not any(re.search(r"(^|[^A-Za-z])try ", l) for l in lines):
         lines[1] = lines[1].replace("() throws {", "() {")
     return lines
+
+
+def eigenpair_lines(g, w, wr, name, call, v, ce):
+    values, vectors = v
+    kind = name[:-len("Eigenpairs")]
+    M = {"adjacency": ref.adjacency, "laplacian": ref.laplacian, "normalizedLaplacian": ref.normalized, "signlessLaplacian": ref.signless}[kind](g, w)
+    s = max([1.0] + [abs(x) for x in ref.eigvalsh(M)])
+    out = ["        let pairs = " + ce,
+           "        #expect(pairs.count == %d)" % len(values)]
+    if not values:
+        out.append("        #expect(pairs.eigenvalues.isEmpty)")
+        return out
+    out += ["        let values: [Double] = %s" % nums(values),
+            "        for (k, value) in zip(pairs.eigenvalues, values).enumerated() {",
+            "            #expect(abs(value.0 - value.1) <= 1e-9 * %s, \"eigenvalue \\(k)\")" % num(s),
+            "        }"]
+    for i, x in enumerate(vectors):
+        if x is None:
+            continue
+        out += ["        let vector%d: [Double] = %s" % (i, nums(x)),
+                "        for (v, entry) in zip(pairs.eigenvector(at: %d), vector%d).enumerated() {" % (i, i),
+                "            #expect(abs(entry.0 - entry.1) <= 1e-9, \"vector %d, entry \\(v)\")" % i,
+                "        }"]
+    matrix_call = "graph.%sMatrix(%s)" % (kind, "weight: { weights[$0] }" if wr is not None else "")
+    out += ["        // Every vector: unit, orthogonal to the others, and an eigenvector of the matrix.",
+            "        let matrix = " + matrix_call,
+            "        for i in 0 ..< pairs.count {",
+            "            let x = pairs.eigenvector(at: i)",
+            "            let mx = matrix * x",
+            "            var residual = 0.0",
+            "            for v in 0 ..< x.count { residual += (mx[v] - pairs.eigenvalues[i] * x[v]) * (mx[v] - pairs.eigenvalues[i] * x[v]) }",
+            "            #expect(residual.squareRoot() <= 1e-9 * %s, \"residual \\(i)\")" % num(s),
+            "            for j in 0 ... i {",
+            "                var dot = 0.0",
+            "                for (a, b) in zip(x, pairs.eigenvector(at: j)) { dot += a * b }",
+            "                #expect(abs(dot - (i == j ? 1 : 0)) <= 1e-12, \"x\\(i) · x\\(j)\")",
+            "            }",
+            "        }"]
+    return out
+
+
+def embedding_lines(v, ce):
+    values, coords = v
+    out = ["        let embedding = " + ce,
+           "        #expect(embedding.dimensions == %d)" % len(values),
+           "        let values: [Double] = %s" % nums(values),
+           "        for (k, value) in zip(embedding.eigenvalues, values).enumerated() {",
+           "            #expect(abs(value.0 - value.1) <= 1e-9, \"eigenvalue \\(k)\")",
+           "        }"]
+    if coords is None:
+        out += ["        // A multiple eigenvalue: the coordinates are not pinned, only finite.",
+                "        for v in graph.vertices { for x in embedding.coordinates(of: v) { #expect(x.isFinite) } }"]
+    else:
+        out += ["        let coordinates: [[Double]] = ["]
+        for c in coords:
+            out.append("            %s," % nums(c, per_line=99))
+        out += ["        ]",
+                "        for (i, vertex) in graph.vertices.enumerated() {",
+                "            for (j, value) in zip(embedding.coordinates(of: vertex), coordinates[i]).enumerated() {",
+                "                #expect(abs(value.0 - value.1) <= 1e-9, \"vertex \\(vertex), coordinate \\(j)\")",
+                "            }",
+                "        }"]
+    return out
 
 
 def null_vector(g, w, normalized):
@@ -607,6 +738,15 @@ FILES = [
      "Exact spanning tree counts (catalog SGT-205 – SGT-229): `UInt128`, nil from 2¹²⁸ on (K₂₉, K₈,₃₂ at\n"
      "// exactly 2¹²⁸, K₃,₇₄, weights multiplying to 2¹²⁸); exact past 2⁵³ and 2¹²³ (K₂₅, K₂₈, K₂,₁₂₂ just\n"
      "// below 2¹²⁸, weights multiplying to 2¹²⁸ − 1, 2¹²⁴ and the primes' products); integer weights past\n// 2⁵³ counted exactly."),
+    ("EigenpairCatalogTests.swift", "SpectralGraphTheory eigenpairs and embedding", ids("Eigenpairs", "Spectral embedding"),
+     "Eigenpairs and the spectral embedding (catalog SGT-231 – SGT-255): the k extreme eigenpairs of\n"
+     "// A, L, N and Q with every eigenvalue, the vectors the contract pins (simple eigenvalues, the\n"
+     "// null vectors per component), and every vector unit, orthogonal and an eigenvector; the\n"
+     "// embedding's eigenvalues and coordinates."),
+    ("RandomWalkCatalogTests.swift", "SpectralGraphTheory random walks, incidence and modularity", ids("Hitting and commute times", "Stationary distribution", "Incidence and modularity matrices"),
+     "Hitting and commute times, stationary distributions, incidence and modularity matrices (catalog\n"
+     "// SGT-256 – SGT-297): exact rationals, nil across components; the lazy walk's limit from the\n"
+     "// uniform distribution; every entry of the matrices."),
     ("SpectralPreconditionTests.swift", "SpectralGraphTheory preconditions", TRAPS,
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test). The\n"
      "// same setup then runs in this process without the fault, so the trap is the fault's and not the\n"
@@ -614,7 +754,7 @@ FILES = [
 ]
 if PHASE2:
     FILES.append(("SpectralPhase2Tests.swift", "SpectralGraphTheory phase 2", list(range(PHASE2_FIRST, N + 1)),
-                  "Phase 2 (catalog SGT-231 – SGT-243): directed arborescence counts, the signless spectrum and\n"
+                  "Phase 2 (catalog SGT-298 – SGT-310): directed arborescence counts, the signless spectrum and\n"
                   "// spectral bisection. Written only with --phase2."))
 
 

@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Adjacency, Laplacian, normalized, random-walk and signless Laplacian matrices as a SparseMatrix; dense spectra; algebraic connectivity, Fiedler vector, spectral ordering and spectral radius by thick-restart Lanczos; spanning-tree counts, resistance distance, effective graph resistance and the Kemeny constant.
+# Adjacency, Laplacian, normalized, random-walk and signless Laplacian matrices and incidence matrices as a SparseMatrix, modularity matrices; dense spectra; algebraic connectivity, Fiedler vector, spectral ordering, spectral radius and the k extreme eigenpairs by thick-restart Lanczos; spectral embedding (Laplacian eigenmaps); spanning-tree counts, resistance distance, effective graph resistance, the Kemeny constant, hitting and commute times, and stationary distributions.
 swift_library(
     name = "SpectralGraphTheory",
     srcs = glob(["**/*.swift"]),

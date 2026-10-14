@@ -144,6 +144,35 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("SpectralGraphTheory: resistanceDistance(from:to:weight:), grid 100×100, conductances over twelve decades") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(try spreadGrid.resistanceDistance(from: 0, to: spreadGrid.vertexCount - 1, weight: { spread[$0] })) }
     }
+    // k extreme eigenpairs, spectral clustering and embedding on the giant component of G(n, p) 10⁴.
+    let giant4 = inputs[4].1
+    Benchmark("SpectralGraphTheory: laplacianEigenpairs(smallest: 8), G(n, p) 10⁴ giant component") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try giant4.laplacianEigenpairs(smallest: 8)) }
+    }
+    Benchmark("SpectralGraphTheory: adjacencyEigenpairs(largest: 8), G(n, p) 10⁴ giant component") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try giant4.adjacencyEigenpairs(largest: 8)) }
+    }
+    Benchmark("SpectralGraphTheory: laplacianEigenpairs(smallest: 4), grid 100×100") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try spreadGrid.laplacianEigenpairs(smallest: 4)) }
+    }
+    Benchmark("SpectralGraphTheory: spectralEmbedding(dimensions: 2), G(n, p) 10⁴ giant component") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try giant4.spectralEmbedding(dimensions: 2)) }
+    }
+    // Random walks: the stationary distribution of G(n, m = 5n) as arcs, and a hitting time.
+    let digraph = AdjacencyList(vertices: 0 ..< 100_000, edges: Inputs.randomEdges(vertexCount: 100_000, edgeCount: 500_000, seed: 8))
+    Benchmark("SpectralGraphTheory: stationaryDistribution(), random digraph 10⁵, 5 · 10⁵ arcs") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try digraph.stationaryDistribution()) }
+    }
+    Benchmark("SpectralGraphTheory: hittingTime(from:to:), G(n, p) 10⁵ giant component") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(try giant.hittingTime(from: 0, to: giant.vertexCount - 1)) }
+    }
+    Benchmark("SpectralGraphTheory: incidenceMatrix(oriented: true), G(n, p) 10⁵ giant component") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(giant.incidenceMatrix(oriented: true)) }
+    }
+    Benchmark("SpectralGraphTheory: modularityMatrix(), G(n, p) 2000") { benchmark in
+        let graph = giantComponent(2_000, seed: 9)
+        for _ in benchmark.scaledIterations { blackHole(graph.modularityMatrix()) }
+    }
     // The correct λ₂ is 2 − 2cos(π/1000) ≈ 9.8696e-6.
     Benchmark("SpectralGraphTheory: algebraicConnectivity(), grid 1000×1000 (target < 120 s; no SciPy method finished)", configuration: .init(maxDuration: .seconds(1), maxIterations: 1)) { benchmark in
         let graph = grid(1_000)

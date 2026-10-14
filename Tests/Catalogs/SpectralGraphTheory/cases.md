@@ -1,4 +1,4 @@
-# SpectralGraphTheory: case catalog (SGT-001 – SGT-243, 243 rows; SGT-231 onward have no entry point)
+# SpectralGraphTheory: case catalog (SGT-001 – SGT-310, 310 rows; SGT-298 onward have no entry point)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 scipy==1.18.1 --with numpy==2.5.4 python3 Tests/Catalogs/SpectralGraphTheory/ref.py`; `--write`
@@ -57,6 +57,17 @@ returning wₚ for the edge at position p (`nan`, `inf` are those `Double`s).
   1e-9 · max(1, |largest value|); iterative results (`algebraicConnectivity`, `fiedlerVector`,
   `spectralOrdering`, `spectralRadius`, `resistanceDistance`) within 1e-6 · max(1, scale) for
   values and 1e-5 per vector entry. Decimals are printed to 10 significant digits.
+- `…Eigenpairs`: `λ` and the eigenvalues from the end asked for (ascending for `smallest:`,
+  descending for `largest:`), then each eigenvector with the canonical sign where the contract
+  pins it: a simple eigenvalue, or, among the smallest of L and N, a component's null vector
+  (components by least vertex, an isolated vertex e_v). `(multiple eigenvalue: some unit vector)`:
+  the test checks only that the vector is unit, orthogonal to the others and an eigenvector.
+- `spectralEmbedding`: `λ` and λ₂ … λ_{k+1} of N, then each vertex's coordinates x_j(v)/√d(v)
+  where every eigenvalue used is simple.
+- `hittingTime`, `commuteTime`: exact rationals, 0 from a vertex to itself, `nil` across
+  components. `stationaryDistribution`: one exact probability per vertex (the limit of the lazy
+  walk from the uniform distribution). `incidenceMatrix`: `n×m` and every row. `modularityMatrix`:
+  every row, exactly.
 - `**trap**` rows are preconditions.
 
 
@@ -292,18 +303,85 @@ returning wₚ for the edge at position p (`nan`, `inf` are those `Double`s).
 | SGT-228 | Exact spanning trees | weights the three primes: past 2¹²⁸, nil | `U: P(0..3)` | `numberOfSpanningTrees(as: UInt128.self) weight: [4611686018427387847, 4611686018427387817, 4611686018427387787]` | nil |
 | SGT-229 | Exact spanning trees | weighted K4 near 2¹²⁷ (three primes) | `U: K(4)` | `numberOfSpanningTrees(as: UInt128.self) weight: [2199023255551, 2199023255553, 2199023255557, 2199023255563, 2199023255579, 2199023255581]` | 170141183463254596820090958604545301260 |
 | SGT-230 | Exact spanning trees | negative weight | `U: P(0..2)` | `numberOfSpanningTrees(as: UInt128.self) weight: [1, -1]` | **trap** |
-| SGT-231 | Phase 2 | arborescences of a directed 3-cycle from 0 | `D: C(0,1,2)` | `numberOfSpanningTrees(root: 0)` | 1 |
-| SGT-232 | Phase 2 | arborescences, both arcs of K3 | `D: 0>1, 1>0, 0>2, 2>0, 1>2, 2>1` | `numberOfSpanningTrees(root: 0)` | 3 |
-| SGT-233 | Phase 2 | arborescences: root reaches nothing | `D: 1>0, 2>0` | `numberOfSpanningTrees(root: 0)` | 0 |
-| SGT-234 | Phase 2 | arborescences: weighted | `D: 0>1, 0>2, 1>2, 2>1` | `numberOfSpanningTrees(root: 0) weight: [1, 2, 3, 4]` | 13 |
-| SGT-235 | Phase 2 | arborescences: parallel arcs and a loop | `D: 0>1, 0>1, 1>1, 1>2` | `numberOfSpanningTrees(root: 0)` | 2 |
-| SGT-236 | Phase 2 | arborescences: root not a vertex | `D: C(0,1,2)` | `numberOfSpanningTrees(root: 7)` | **trap** |
-| SGT-237 | Phase 2 | signless Laplacian of a bipartite graph = its Laplacian spectrum | `U: C(0..5)` | `signlessLaplacianSpectrum()` | 0, 1 ×2, 3 ×2, 4 |
-| SGT-238 | Phase 2 | signless Laplacian of a triangle | `U: C(0,1,2)` | `signlessLaplacianSpectrum()` | 1 ×2, 4 |
-| SGT-239 | Phase 2 | signless Laplacian with a loop: Q[v][v] gains 4 | `U: 0-0, 0-1` | `signlessLaplacianSpectrum()` | 0.7639320225, 5.236067977 |
-| SGT-240 | Phase 2 | spectral bisection of the barbell | `U: K(0..3), K(4..7), 3-4` | `spectralBisection()` | ([4, 5, 6, 7], [0, 1, 2, 3]) |
-| SGT-241 | Phase 2 | spectral bisection of P5: the zero entry joins the nonnegative side | `U: P(0..4)` | `spectralBisection()` | ([3, 4], [0, 1, 2]) |
-| SGT-242 | Phase 2 | spectral bisection, degenerate λ₂ | `U: C(0..5)` | `spectralBisection()` | degenerate λ₂: some split by a λ₂ eigenvector |
-| SGT-243 | Phase 2 | spectral bisection, disconnected | `U: C(0,1,2), C(3,4,5)` | `spectralBisection()` | nil |
+| SGT-231 | Eigenpairs | P3: L's 0, 1, 3 with their vectors | `U: P(0..2)` | `laplacianEigenpairs(smallest: 3)` | λ 0, 1, 3; [0.5773502692, 0.5773502692, 0.5773502692]; [0.7071067812, 0, -0.7071067812]; [0.4082482905, -0.8164965809, 0.4082482905] |
+| SGT-232 | Eigenpairs | P3: L's largest first | `U: P(0..2)` | `laplacianEigenpairs(largest: 2)` | λ 3, 1; [0.4082482905, -0.8164965809, 0.4082482905]; [0.7071067812, 0, -0.7071067812] |
+| SGT-233 | Eigenpairs | count 0: no pair | `U: P(0..2)` | `laplacianEigenpairs(smallest: 0)` | no pair |
+| SGT-234 | Eigenpairs | empty graph, count 0 | `U:` | `adjacencyEigenpairs(largest: 0)` | no pair |
+| SGT-235 | Eigenpairs | K4: A's 3 then −1 (multiple) | `U: K(4)` | `adjacencyEigenpairs(largest: 2)` | λ 3, -1; [0.5, 0.5, 0.5, 0.5]; (multiple eigenvalue: some unit vector) |
+| SGT-236 | Eigenpairs | star K1,3: A's ±√3 | `U: S(0;1..3)` | `adjacencyEigenpairs(smallest: 1)` | λ -1.732050808; [0.7071067812, -0.4082482905, -0.4082482905, -0.4082482905] |
+| SGT-237 | Eigenpairs | star K1,3: A's largest | `U: S(0;1..3)` | `adjacencyEigenpairs(largest: 1)` | λ 1.732050808; [0.7071067812, 0.4082482905, 0.4082482905, 0.4082482905] |
+| SGT-238 | Eigenpairs | two triangles: L's null vectors per component, then 3 (multiple) | `U: C(0,1,2), C(3,4,5)` | `laplacianEigenpairs(smallest: 3)` | λ 0, 0, 3; [0.5773502692, 0.5773502692, 0.5773502692, 0, 0, 0]; [0, 0, 0, 0.5773502692, 0.5773502692, 0.5773502692]; (multiple eigenvalue: some unit vector) |
+| SGT-239 | Eigenpairs | isolated vertex: e_v, its own component | `U: [0, 1, 2] 1-2` | `laplacianEigenpairs(smallest: 3)` | λ 0, 0, 2; [1, 0, 0]; [0, 0.7071067812, 0.7071067812]; [0, 0.7071067812, -0.7071067812] |
+| SGT-240 | Eigenpairs | isolated vertex in N: e_v | `U: [0, 1, 2] 1-2` | `normalizedLaplacianEigenpairs(smallest: 2)` | λ 0, 0; [1, 0, 0]; [0, 0.7071067812, 0.7071067812] |
+| SGT-241 | Eigenpairs | N of P4 | `U: P(0..3)` | `normalizedLaplacianEigenpairs(smallest: 4)` | λ 0, 0.5, 1.5, 2; [0.4082482905, 0.5773502692, 0.5773502692, 0.4082482905]; [0.5773502692, 0.4082482905, -0.4082482905, -0.5773502692]; [0.5773502692, -0.4082482905, -0.4082482905, 0.5773502692]; [0.4082482905, -0.5773502692, 0.5773502692, -0.4082482905] |
+| SGT-242 | Eigenpairs | N's largest of K1,3: 2 | `U: S(0;1..3)` | `normalizedLaplacianEigenpairs(largest: 1)` | λ 2; [0.7071067812, -0.4082482905, -0.4082482905, -0.4082482905] |
+| SGT-243 | Eigenpairs | loop: L ignores it | `U: 0-0, 0-1` | `laplacianEigenpairs(smallest: 2)` | λ 0, 2; [0.7071067812, 0.7071067812]; [0.7071067812, -0.7071067812] |
+| SGT-244 | Eigenpairs | loop: Q[v][v] gains 4, 3 ± √5 | `U: 0-0, 0-1` | `signlessLaplacianEigenpairs(smallest: 2)` | λ 0.7639320225, 5.236067977; [0.2297529205, -0.9732489895]; [0.9732489895, 0.2297529205] |
+| SGT-245 | Eigenpairs | Q of a bipartite path: 0 first | `U: P(0..3)` | `signlessLaplacianEigenpairs(smallest: 1)` | λ 0; [0.5, -0.5, 0.5, -0.5] |
+| SGT-246 | Eigenpairs | parallel edges add up | `U: 0=1, 1-2` | `laplacianEigenpairs(smallest: 3)` | λ 0, 1.267949192, 4.732050808; [0.5773502692, 0.5773502692, 0.5773502692]; [0.5773502692, 0.2113248654, -0.7886751346]; [0.5773502692, -0.7886751346, 0.2113248654] |
+| SGT-247 | Eigenpairs | weighted path | `U: P(0..3)` | `laplacianEigenpairs(smallest: 2) weight: [1, 2, 3]` | λ 0, 0.9358222275; [0.5, 0.5, 0.5, 0.5]; [0.7931284139, 0.05090121489, -0.3440296287, -0.5] |
+| SGT-248 | Eigenpairs | weighted adjacency, a negative weight | `U: C(0,1,2)` | `adjacencyEigenpairs(largest: 3) weight: [1, -2, 3]` | λ 3.201911777, 0.9111788076, -4.113090584; [0.6108341623, -0.2733689273, 0.743068675]; [0.5247942056, 0.8425210807, -0.1214465741]; [0.5928513034, -0.4641418513, -0.6581030876] |
+| SGT-249 | Eigenpairs | Petersen: L's 2 (multiplicity 5) after 0 | `U: nx(petersen)` | `laplacianEigenpairs(smallest: 2)` | λ 0, 2; [0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766]; (multiple eigenvalue: some unit vector) |
+| SGT-250 | Eigenpairs | Petersen: A's 3 | `U: nx(petersen)` | `adjacencyEigenpairs(largest: 1)` | λ 3; [0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766, 0.316227766] |
+| SGT-251 | Eigenpairs | weight 0 disconnects | `U: P(0..2)` | `normalizedLaplacianEigenpairs(smallest: 2) weight: [1, 0]` | λ 0, 0; [0.7071067812, 0.7071067812, 0]; [0, 0, 1] |
+| SGT-252 | Spectral embedding | P3: x₂/√d | `U: P(0..2)` | `spectralEmbedding(dimensions: 1)` | λ 1; [[0.7071067812], [0], [-0.7071067812]] |
+| SGT-253 | Spectral embedding | P5 in two dimensions | `U: P(0..4)` | `spectralEmbedding(dimensions: 2)` | λ 0.2928932188, 1; [[0.5, 0.5], [0.3535533906, 0], [0, -0.5], [-0.3535533906, 0], [-0.5, 0.5]] |
+| SGT-254 | Spectral embedding | weighted triangle | `U: C(0,1,2)` | `spectralEmbedding(dimensions: 2) weight: [1, 2, 4]` | λ 1.231258075, 1.768741925; [[0.225823556, 0.2785231591], [-0.4916275823, 0.142151617], [0.0576274945, -0.303178441]] |
+| SGT-255 | Spectral embedding | C5: λ₂ double, not pinned | `U: C(0..4)` | `spectralEmbedding(dimensions: 1)` | λ 0.6909830056; (a multiple eigenvalue: coordinates not pinned) |
+| SGT-256 | Hitting and commute times | P3: h(0 → 2) = 4 | `U: P(0..2)` | `hittingTime(from: 0, to: 2)` | 4 |
+| SGT-257 | Hitting and commute times | P3: h(1 → 0) = 3 | `U: P(0..2)` | `hittingTime(from: 1, to: 0)` | 3 |
+| SGT-258 | Hitting and commute times | the same vertex: 0 | `U: P(0..2)` | `hittingTime(from: 1, to: 1)` | 0 |
+| SGT-259 | Hitting and commute times | across components: nil | `U: P(0..1), P(2..3)` | `hittingTime(from: 0, to: 3)` | nil |
+| SGT-260 | Hitting and commute times | P6: (n − 1)² | `U: P(0..5)` | `hittingTime(from: 0, to: 5)` | 25 |
+| SGT-261 | Hitting and commute times | K5: n − 1 | `U: K(5)` | `hittingTime(from: 0, to: 3)` | 4 |
+| SGT-262 | Hitting and commute times | star: leaf to centre 1, centre to leaf 2n − 1 | `U: S(0;1..4)` | `hittingTime(from: 0, to: 2)` | 7 |
+| SGT-263 | Hitting and commute times | a loop slows the walk | `U: 0-0, 0-1` | `hittingTime(from: 0, to: 1)` | 3 |
+| SGT-264 | Hitting and commute times | weighted | `U: C(0,1,2,3)` | `hittingTime(from: 0, to: 2) weight: [1, 2, 3, 4]` | 21/5 (4.2) |
+| SGT-265 | Hitting and commute times | parallel edges | `U: 0=1, 1-2` | `hittingTime(from: 2, to: 0)` | 3 |
+| SGT-266 | Hitting and commute times | P3: commute 0 ↔ 2 = 2m · R = 8 | `U: P(0..2)` | `commuteTime(from: 0, to: 2)` | 8 |
+| SGT-267 | Hitting and commute times | commute across components: nil | `U: P(0..1), P(2..3)` | `commuteTime(from: 0, to: 2)` | nil |
+| SGT-268 | Hitting and commute times | commute: the component's volume | `U: P(0..2), C(3,4,5)` | `commuteTime(from: 3, to: 5)` | 4 |
+| SGT-269 | Hitting and commute times | commute: a loop counts twice in the volume | `U: 0-0, 0-1` | `commuteTime(from: 0, to: 1)` | 4 |
+| SGT-270 | Hitting and commute times | commute: weighted | `U: C(0,1,2,3)` | `commuteTime(from: 0, to: 2) weight: [1, 2, 3, 4]` | 42/5 (8.4) |
+| SGT-271 | Hitting and commute times | commute: Petersen | `U: nx(petersen)` | `commuteTime(from: 0, to: 1)` | 18 |
+| SGT-272 | Stationary distribution | empty | `D:` | `stationaryDistribution()` | [] |
+| SGT-273 | Stationary distribution | one vertex | `D: [0]` | `stationaryDistribution()` | [1] |
+| SGT-274 | Stationary distribution | directed cycle: uniform | `D: C(0..4)` | `stationaryDistribution()` | [1/5 (0.2), 1/5 (0.2), 1/5 (0.2), 1/5 (0.2), 1/5 (0.2)] |
+| SGT-275 | Stationary distribution | both arcs of P4: d / vol | `D: 0>1, 1>0, 1>2, 2>1, 2>3, 3>2` | `stationaryDistribution()` | [1/6 (0.1666666667), 1/3 (0.3333333333), 1/3 (0.3333333333), 1/6 (0.1666666667)] |
+| SGT-276 | Stationary distribution | a dangling vertex jumps uniformly | `D: 0>1` | `stationaryDistribution()` | [1/3 (0.3333333333), 2/3 (0.6666666667)] |
+| SGT-277 | Stationary distribution | no arcs: uniform | `D: E(3)` | `stationaryDistribution()` | [1/3 (0.3333333333), 1/3 (0.3333333333), 1/3 (0.3333333333)] |
+| SGT-278 | Stationary distribution | periodic: the star both ways | `D: 0>1, 1>0, 0>2, 2>0, 0>3, 3>0` | `stationaryDistribution()` | [1/2 (0.5), 1/6 (0.1666666667), 1/6 (0.1666666667), 1/6 (0.1666666667)] |
+| SGT-279 | Stationary distribution | weights and a loop | `D: 0>0, 0>1, 1>0` | `stationaryDistribution() weight: [1, 3, 5]` | [4/7 (0.5714285714), 3/7 (0.4285714286)] |
+| SGT-280 | Stationary distribution | parallel arcs add up | `D: 0>0, 0>1, 0>1, 0>1, 1>0` | `stationaryDistribution()` | [4/7 (0.5714285714), 3/7 (0.4285714286)] |
+| SGT-281 | Stationary distribution | two closed classes fed equally | `D: 0>1, 1>0, 2>3, 3>2, 4>0, 4>2` | `stationaryDistribution()` | [1/4 (0.25), 1/4 (0.25), 1/4 (0.25), 1/4 (0.25), 0] |
+| SGT-282 | Stationary distribution | two closed classes, unequally | `D: 0>1, 1>0, 2>2, 3>0, 3>1, 3>2` | `stationaryDistribution()` | [1/3 (0.3333333333), 1/3 (0.3333333333), 1/3 (0.3333333333), 0] |
+| SGT-283 | Stationary distribution | a weight-0 arc is no arc | `D: 0>1, 1>2, 2>0, 2>1` | `stationaryDistribution() weight: [1, 1, 0, 1]` | [0, 1/2 (0.5), 1/2 (0.5)] |
+| SGT-284 | Stationary distribution | a 3-cycle with a chord | `D: C(0,1,2), 0>2` | `stationaryDistribution()` | [2/5 (0.4), 1/5 (0.2), 2/5 (0.4)] |
+| SGT-285 | Incidence and modularity matrices | P3 unoriented | `U: P(0..2)` | `incidenceMatrix()` | 3×2: [[1, 0], [1, 1], [0, 1]] (nnz 4) |
+| SGT-286 | Incidence and modularity matrices | P3 oriented | `U: P(0..2)` | `incidenceMatrix(oriented: true)` | 3×2: [[-1, 0], [1, -1], [0, 1]] (nnz 4) |
+| SGT-287 | Incidence and modularity matrices | loop: 2 unoriented | `U: 1-1, 0-1, 0-1, 2-1` | `incidenceMatrix()` | 3×4: [[2, 1, 1, 1], [0, 1, 1, 0], [0, 0, 0, 1]] (nnz 7) |
+| SGT-288 | Incidence and modularity matrices | loop: empty oriented | `U: 1-1, 0-1, 0-1, 2-1` | `incidenceMatrix(oriented: true)` | 3×4: [[0, 1, 1, 1], [0, -1, -1, 0], [0, 0, 0, -1]] (nnz 6) |
+| SGT-289 | Incidence and modularity matrices | directed oriented | `D: 2>0, 0>1, 1>1, 0>1` | `incidenceMatrix(oriented: true)` | 3×4: [[-1, 0, 0, 0], [1, -1, 0, -1], [0, 1, 0, 1]] (nnz 6) |
+| SGT-290 | Incidence and modularity matrices | directed unoriented | `D: 2>0, 0>1, 1>1, 0>1` | `incidenceMatrix()` | 3×4: [[1, 0, 0, 0], [1, 1, 0, 1], [0, 1, 2, 1]] (nnz 7) |
+| SGT-291 | Incidence and modularity matrices | no edges | `U: E(3)` | `incidenceMatrix()` | 3×0: [[], [], []] (nnz 0) |
+| SGT-292 | Incidence and modularity matrices | modularity of P3 | `U: P(0..2)` | `modularityMatrix()` | [[-1/4 (-0.25), 1/2 (0.5), -1/4 (-0.25)], [1/2 (0.5), -1, 1/2 (0.5)], [-1/4 (-0.25), 1/2 (0.5), -1/4 (-0.25)]] |
+| SGT-293 | Incidence and modularity matrices | modularity of K4 | `U: K(4)` | `modularityMatrix()` | [[-3/4 (-0.75), 1/4 (0.25), 1/4 (0.25), 1/4 (0.25)], [1/4 (0.25), -3/4 (-0.75), 1/4 (0.25), 1/4 (0.25)], [1/4 (0.25), 1/4 (0.25), -3/4 (-0.75), 1/4 (0.25)], [1/4 (0.25), 1/4 (0.25), 1/4 (0.25), -3/4 (-0.75)]] |
+| SGT-294 | Incidence and modularity matrices | modularity with a loop (A[v][v] = 2w) and weights | `U: 0-0, 0-1, 1-2, 1-2, 2-3` | `modularityMatrix() weight: [3, 1, 2, 5, 4]` | [[131/30 (4.366666667), -13/15 (-0.8666666667), -77/30 (-2.566666667), -14/15 (-0.9333333333)], [-13/15 (-0.8666666667), -32/15 (-2.133333333), 61/15 (4.066666667), -16/15 (-1.066666667)], [-77/30 (-2.566666667), 61/15 (4.066666667), -121/30 (-4.033333333), 38/15 (2.533333333)], [-14/15 (-0.9333333333), -16/15 (-1.066666667), 38/15 (2.533333333), -8/15 (-0.5333333333)]] |
+| SGT-295 | Incidence and modularity matrices | modularity without edges: zeros | `U: E(2)` | `modularityMatrix()` | [[0, 0], [0, 0]] |
+| SGT-296 | Incidence and modularity matrices | directed modularity | `D: 0>1, 0>2, 1>2, 2>2` | `modularityMatrix()` | [[0, 1/2 (0.5), -1/2 (-0.5)], [0, -1/4 (-0.25), 1/4 (0.25)], [0, -1/4 (-0.25), 1/4 (0.25)]] |
+| SGT-297 | Incidence and modularity matrices | directed modularity, weighted | `D: C(0,1,2), 0>2` | `modularityMatrix() weight: [1, 2, 3, 4]` | [[-3/2 (-1.5), 1/2 (0.5), 1], [-3/5 (-0.6), -1/5 (-0.2), 4/5 (0.8)], [21/10 (2.1), -3/10 (-0.3), -9/5 (-1.8)]] |
+| SGT-298 | Phase 2 | arborescences of a directed 3-cycle from 0 | `D: C(0,1,2)` | `numberOfSpanningTrees(root: 0)` | 1 |
+| SGT-299 | Phase 2 | arborescences, both arcs of K3 | `D: 0>1, 1>0, 0>2, 2>0, 1>2, 2>1` | `numberOfSpanningTrees(root: 0)` | 3 |
+| SGT-300 | Phase 2 | arborescences: root reaches nothing | `D: 1>0, 2>0` | `numberOfSpanningTrees(root: 0)` | 0 |
+| SGT-301 | Phase 2 | arborescences: weighted | `D: 0>1, 0>2, 1>2, 2>1` | `numberOfSpanningTrees(root: 0) weight: [1, 2, 3, 4]` | 13 |
+| SGT-302 | Phase 2 | arborescences: parallel arcs and a loop | `D: 0>1, 0>1, 1>1, 1>2` | `numberOfSpanningTrees(root: 0)` | 2 |
+| SGT-303 | Phase 2 | arborescences: root not a vertex | `D: C(0,1,2)` | `numberOfSpanningTrees(root: 7)` | **trap** |
+| SGT-304 | Phase 2 | signless Laplacian of a bipartite graph = its Laplacian spectrum | `U: C(0..5)` | `signlessLaplacianSpectrum()` | 0, 1 ×2, 3 ×2, 4 |
+| SGT-305 | Phase 2 | signless Laplacian of a triangle | `U: C(0,1,2)` | `signlessLaplacianSpectrum()` | 1 ×2, 4 |
+| SGT-306 | Phase 2 | signless Laplacian with a loop: Q[v][v] gains 4 | `U: 0-0, 0-1` | `signlessLaplacianSpectrum()` | 0.7639320225, 5.236067977 |
+| SGT-307 | Phase 2 | spectral bisection of the barbell | `U: K(0..3), K(4..7), 3-4` | `spectralBisection()` | ([4, 5, 6, 7], [0, 1, 2, 3]) |
+| SGT-308 | Phase 2 | spectral bisection of P5: the zero entry joins the nonnegative side | `U: P(0..4)` | `spectralBisection()` | ([3, 4], [0, 1, 2]) |
+| SGT-309 | Phase 2 | spectral bisection, degenerate λ₂ | `U: C(0..5)` | `spectralBisection()` | degenerate λ₂: some split by a λ₂ eigenvector |
+| SGT-310 | Phase 2 | spectral bisection, disconnected | `U: C(0,1,2), C(3,4,5)` | `spectralBisection()` | nil |
 
-243 rows.
+310 rows.

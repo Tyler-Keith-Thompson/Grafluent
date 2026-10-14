@@ -21,9 +21,10 @@ func _hypot(_ a: Double, _ b: Double) -> Double {
 /// `a` is overwritten with orthonormal eigenvectors, column `j` (entries `a[j * n ..< j * n + n]`)
 /// belonging to `d[j]`. `a` is column-major (for a symmetric matrix, also row-major); only its
 /// lower triangle is read. `e` is scratch of `n` entries. O(n³) time. Throws when an eigenvalue
-/// takes more than 60 QL iterations (see `_tridiagonalQL`).
+/// takes more than 60 QL iterations, or the QL iterations in all would pass `maxIterations` (see
+/// `_tridiagonalQL`).
 @usableFromInline
-func _symmetricEigen(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>, vectors: Bool) throws(NoConvergence) {
+package func _symmetricEigen(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>, vectors: Bool, maxIterations: Int = .max) throws(NoConvergence) {
     guard n > 0 else { return }
     if n == 1 {
         d[0] = a[0]
@@ -31,7 +32,7 @@ func _symmetricEigen(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMut
         return
     }
     _tridiagonalize(n, a, d, e, vectors: vectors)
-    try _tridiagonalQL(n, a, d, e, vectors: vectors)
+    try _tridiagonalQL(n, a, d, e, vectors: vectors, maxIterations: maxIterations)
     // Selection sort, ascending, carrying the vectors.
     for i in 0 ..< n - 1 {
         var k = i
@@ -170,10 +171,11 @@ func _tridiagonalize(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMut
 
 /// The implicit QL iteration on the tridiagonal (`tql2`): eigenvalues into `d` (unsorted); with
 /// `vectors`, the rotations applied to the columns of `a`. Throws when an eigenvalue takes more
-/// than 60 iterations (EISPACK's `tql2` gives up after 30), with the iterations spent in all and
-/// the off-diagonal entry left, relative to the largest |d| + |e| seen.
+/// than 60 iterations (EISPACK's `tql2` gives up after 30), or before an iteration past
+/// `maxIterations` in all, with the iterations spent in all and the off-diagonal entry left,
+/// relative to the largest |d| + |e| seen.
 @inline(__always)
-func _tridiagonalQL(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>, vectors: Bool) throws(NoConvergence) {
+func _tridiagonalQL(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMutablePointer<Double>, _ e: UnsafeMutablePointer<Double>, vectors: Bool, maxIterations: Int) throws(NoConvergence) {
     for i in 1 ..< n { e[i - 1] = e[i] }
     e[n - 1] = 0
     var f = 0.0
@@ -190,6 +192,7 @@ func _tridiagonalQL(_ n: Int, _ a: UnsafeMutablePointer<Double>, _ d: UnsafeMuta
         if m > l {
             var iterations = 0
             repeat {
+                guard total < maxIterations else { throw NoConvergence(iterations: total, residual: abs(e[l]) / tst1) }
                 iterations += 1
                 total += 1
                 var g = d[l]

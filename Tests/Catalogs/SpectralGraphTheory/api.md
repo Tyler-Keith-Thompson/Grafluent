@@ -4,10 +4,12 @@ Graph matrices (adjacency, Laplacian, normalized, random-walk and signless Lapla
 square `SparseMatrix`; full spectra of small graphs; the algebraic connectivity, Fiedler vector,
 spectral ordering and spectral radius of large sparse graphs by a Lanczos iteration; and the
 quantities of the matrix-tree theorem and of electrical networks: the number of spanning trees,
-resistance distance, effective graph resistance and the Kemeny constant. Everything is pure
-Swift, on every platform, with no package dependency beyond the library.
+resistance distance, effective graph resistance and the Kemeny constant; the k extreme eigenpairs
+of A, L, N and Q and the spectral embedding; hitting and commute times and
+the stationary distribution of a random walk; incidence and modularity matrices. Everything is
+pure Swift, on every platform, with no package dependency beyond the library.
 
-`cases.md` (SGT-001 – SGT-243, 243 rows) pins the values; SGT-231 – SGT-243 describe quantities
+`cases.md` (SGT-001 – SGT-310, 310 rows) pins the values; SGT-298 – SGT-310 describe quantities
 that no entry point computes and have no tests. `ref.py` builds every matrix from the definitions
 below in exact fractions, takes spectra from `numpy.linalg.eigvalsh`, counts spanning trees and
 resistances exactly (Kirchhoff determinants), and checks rows against closed forms (complete,
@@ -39,6 +41,12 @@ On `Graph`; the two matrices marked also on `DirectedGraph`.
 | `resistanceDistance(from:to:)` → `Double?` | Klein–Randić 1993. One Laplacian solve, not a pseudoinverse |
 | `effectiveGraphResistance()` → `Double?` | The Kirchhoff index of Klein–Randić |
 | `kemenyConstant()` → `Double?` | The expected steps of the random walk to a stationary target |
+| `adjacencyEigenpairs(smallest:)`, `(largest:)`, and the same for `laplacian`, `normalizedLaplacian`, `signlessLaplacian` → `Eigenpairs<Self>` | The k extreme eigenpairs (eigenvalues and unit eigenvectors). Sparse (Lanczos with locking) |
+| `spectralEmbedding(dimensions:)` → `SpectralEmbedding<Self>` | Laplacian eigenmaps (Belkin–Niyogi 2003) |
+| `hittingTime(from:to:)`, `commuteTime(from:to:)` → `Double?` | Expected steps of the random walk one way, and there and back (vol · R, Chandra et al. 1989) |
+| `incidenceMatrix(oriented:)` (also `DirectedGraph`) → `SparseMatrix` | n × m, a column per edge |
+| `modularityMatrix()` (also `DirectedGraph`) → `[[Double]]` | Newman 2006; Leicht–Newman 2008 directed |
+| `DirectedGraph.stationaryDistribution()` → `StationaryDistribution<Self>` | The random walk's stationary distribution, dangling vertices jumping uniformly |
 
 Every entry point has `weight:` overloads, one for `BinaryInteger` and one for
 `BinaryFloatingPoint` weights, reading the weight of the edge at each position once. `weight:`
@@ -85,24 +93,61 @@ extension Graph {
     public func resistanceDistance<W>(from source: Vertex, to target: Vertex, weight: (Edges.Index) -> W, tolerance: Double = 1e-10, maxIterations: Int? = nil) throws(NoConvergence) -> Double?
     public func effectiveGraphResistance() -> Double?
         public func kemenyConstant() -> Double?
+
+    // The k extreme eigenpairs; each also with weight: after the count. maxIterations: products
+    // per Lanczos run.
+    public func adjacencyEigenpairs(smallest: Int, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> Eigenpairs<Self>
+    public func adjacencyEigenpairs(largest: Int, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> Eigenpairs<Self>
+    // … laplacianEigenpairs, normalizedLaplacianEigenpairs, signlessLaplacianEigenpairs alike
+    public func spectralEmbedding(dimensions: Int, tolerance: Double = 1e-8, maxIterations: Int? = nil) throws(NoConvergence) -> SpectralEmbedding<Self>
+
+    // Random walks; each also with weight: after the vertices.
+    public func hittingTime(from source: Vertex, to target: Vertex, tolerance: Double = 1e-10, maxIterations: Int? = nil) throws(NoConvergence) -> Double?
+    public func commuteTime(from source: Vertex, to target: Vertex, tolerance: Double = 1e-10, maxIterations: Int? = nil) throws(NoConvergence) -> Double?
+
+    public func incidenceMatrix(oriented: Bool = false) -> SparseMatrix   // n × m
+    public func modularityMatrix() -> [[Double]]                          // also weight:
 }
 
 extension DirectedGraph {
     public func adjacencyMatrix() -> SparseMatrix              // A[u][v] = arcs u → v; a loop adds 1
         public func laplacianMatrix() -> SparseMatrix              // D_out − A
+    public func incidenceMatrix(oriented: Bool = false) -> SparseMatrix
+    public func modularityMatrix() -> [[Double]]              // A − k_out k_inᵀ / m; also weight:
+    public func stationaryDistribution(tolerance: Double = 1e-12, maxIterations: Int? = nil) throws(NoConvergence) -> StationaryDistribution<Self>
 }
 
-/// A square matrix of `Double`s in compressed sparse row form, storing exactly its nonzero entries.
+/// A matrix of `Double`s in compressed sparse row form, storing exactly its nonzero entries.
 @frozen public struct SparseMatrix: Equatable, Hashable, Sendable, CustomStringConvertible {
-    public var rowCount: Int { get }                 // = column count
+    public var rowCount: Int { get }
+    public var columnCount: Int { get }              // rowCount, or the edge count of an incidence matrix
     public var offsets: [Int] { get }                // rowCount + 1 entries, as CompressedSparseRow
     public var columns: [Int] { get }                // ascending within each row
     public var values: [Double] { get }              // aligned with `columns`; never 0
     public var nonzeroCount: Int { get }
     public subscript(row: Int, column: Int) -> Double { get }   // m[i, j], unlabelled; 0 when not stored;
                                                      // O(log row length); traps out of range
-    public var pattern: CompressedSparseRow { get }  // the stored positions as a graph, O(1), sharing storage
-    public static func * (matrix: SparseMatrix, vector: [Double]) -> [Double]   // traps on a wrong length
+    public var pattern: CompressedSparseRow { get }  // the stored positions as a graph, O(1), sharing storage;
+                                                     // traps unless square
+    public static func * (matrix: SparseMatrix, vector: [Double]) -> [Double]   // traps unless vector.count == columnCount
+}
+
+@frozen public struct Eigenpairs<G: Graph> {        // Sendable when G and G.Vertex are
+    public let eigenvalues: [Double]                 // from the end asked for
+    public var count: Int { get }
+    public func eigenvector(at position: Int) -> [Double]
+    public func eigenvectorEntries(of vertex: G.Vertex) -> [Double]       // also (checked:), (ofIndex:)
+}
+
+@frozen public struct SpectralEmbedding<G: Graph> {
+    public let dimensions: Int
+    public let eigenvalues: [Double]                 // λ₂ … λ_{k+1} of N
+    public func coordinates(of vertex: G.Vertex) -> [Double]              // also (checked:), (ofIndex:)
+}
+
+@frozen public struct StationaryDistribution<G: DirectedGraph> {
+    public let probabilities: [Double]
+    public func probability(of vertex: G.Vertex) -> Double                // also (checked:), (ofIndex:)
 }
 
 @frozen public struct FiedlerVector<G: Graph> {     // Sendable when G and G.Vertex are
@@ -226,6 +271,50 @@ With w(e) the weight of edge e (1 without `weight:`):
   vertex of largest degree (the difference then loses at most vol/d_g ≤ n). π rather than d keeps
   the intermediates in range for weights near `Double`'s limits.
 
+### Eigenpairs and embedding
+
+- `…Eigenpairs(smallest: k)` and `(largest: k)` return the k eigenvalues at that end of the
+  spectrum of A, L, N or Q (the random-walk Laplacian is not symmetric; its eigenvectors are
+  D^-1/2 times N's), ascending for `smallest:` and descending for `largest:`, each with a unit
+  eigenvector with the canonical sign; k = 0 gives none, k outside `0...vertexCount` traps
+  (SGT-231 – SGT-251).
+- The smallest of L and N come component by component: each component's null vector first
+  (eigenvalue exactly 0; the normalized indicator for L, D^1/2 times it for N, e_v for an
+  isolated vertex), components in order of their least vertex (SGT-238 – SGT-240), then the
+  smallest positive eigenvalues of all components merged, ties in component order; the positive
+  values are edge-sum Rayleigh quotients, relative to themselves, as λ₂ is.
+- A multiple eigenvalue has no unique vector: the vectors returned are some orthonormal basis of
+  the part of its eigenspace they cover; rows say `(multiple eigenvalue: some unit vector)` and
+  pin only unit length, orthogonality and the residual.
+- `spectralEmbedding(dimensions: k)` is Belkin and Niyogi's Laplacian eigenmap: the eigenvectors
+  x₂ … x_{k+1} of N, x_j(v)/√d(v) (0 at degree 0), the generalized eigenvectors of L y = λ D y;
+  `dimensions` in `1..<vertexCount`.
+### Random walks, incidence and modularity
+
+- `hittingTime(from: s, to: t)`: the expected steps of the walk (an edge taken with probability
+  w/d(v), a loop 2w/d(v)) from s to its first visit of t: h solves L h = d off t, h(t) = 0, on t's
+  component; 0 when s = t without reading a weight, `nil` across components, a trap for a
+  non-vertex. One conjugate-gradient solve, as for resistances. `commuteTime` = h(s → t) +
+  h(t → s) = vol(C) · R(s, t), vol(C) the degree sum of their component (a loop twice), from
+  `resistanceDistance`'s solve (SGT-256 – SGT-271).
+- `stationaryDistribution()` on `DirectedGraph`: the walk leaves along an out-arc with
+  probability proportional to its weight (parallel arcs add, a loop stays); a dangling vertex (no
+  out-arc of positive weight) jumps to a uniform vertex, PageRank's rule with damping 1. Power
+  iteration on the lazy walk (π + πP)/2 from the uniform distribution, which has P's stationary
+  distributions and is aperiodic, so it converges on every graph, periodic ones included; with
+  several closed classes the result is the lazy walk's limit from the uniform distribution (each
+  class weighted by its absorption probability). Stops once ‖πP − π‖₁ ≤ `tolerance` (1e-12);
+  throws `NoConvergence` after `maxIterations` steps (100,000) (SGT-272 – SGT-284). An undirected
+  graph's walk is `graph.directedView`'s; for a connected one it is d/vol.
+- `incidenceMatrix(oriented:)`: n × m, column j the j-th edge in `edges` order. Unoriented: 1 at
+  both ends, 2 at a loop's vertex, so B Bᵀ = Q; oriented: −1 at u and +1 at v of the edge as
+  stored (source and target on `DirectedGraph`), a loop's column empty, so B Bᵀ = L. Unweighted:
+  a weighted Laplacian is B W Bᵀ (SGT-285 – SGT-291). NetworkX's `incidence_matrix` leaves a loop's
+  column empty unoriented too.
+- `modularityMatrix()`: dense rows of B = A − k kᵀ / vol (A with a loop 2w, k its row sums), and
+  on `DirectedGraph` B = A − k_out k_inᵀ / m; A itself (zeros) without an edge of positive weight;
+  nonnegative weights (SGT-292 – SGT-297).
+
 ## Numerics
 
 ### Algorithms
@@ -290,6 +379,15 @@ With w(e) the weight of edge e (1 without `weight:`):
   polynomial-filtered step counts 10). Below 64 vertices λ₂ and ρ come from the dense solver,
   which does not read `maxIterations`. `nil` keeps its one meaning (not connected, different
   components), and an invalid parameter (`tolerance` ≤ 0, `maxIterations` < 1) traps.
+- **Several eigenpairs**: the same thick restart with a basis of max(30, 2k + 10) vectors, keeping
+  k + (m − k)/2 Ritz vectors, the top k tested every 5 steps. A single-vector Krylov space holds
+  one vector of each multiple eigenvalue, so pairs are locked: each run deflates the vectors found
+  before (and the null vectors), until k are found, then one more run on the complement of them
+  all must not find a larger eigenvalue (else it replaces the smallest, and the check repeats).
+  The vectors are then rotated by Rayleigh–Ritz on M. The smallest of L and N use σI − M or
+  shift-invert per component as λ₂ does, each Ritz vector of L⁺ taken one inverse-iteration step
+  further; the other ends run on M, −A or σI − M with the floor `tolerance` · max(|λ|, s/1000), s
+  Gershgorin's bound. Dense below 64 vertices or when k ≥ n/3.
 - **Start vector**: a fixed one, vᵢ = SplitMix64(i)'s 53-bit uniform in [0.5, 1.5) (the counter
   i + 1 times the golden-ratio increment, then SplitMix64's finalizer), so results are
   reproducible bit for bit on one platform and build; across platforms the last bits may differ
@@ -357,8 +455,9 @@ covers `Multigraph`, `Pseudograph` and the undirected views. Directed graphs get
 - Weights whose Gershgorin bound lies outside 2^±500 are scaled by a power of two (exactly)
   before an iterative path, and the result scaled back (λ and ρ with the weights, R inversely, N
   and vectors not at all): the engines square and sum entries.
-- `SparseMatrix` is square (n × n, `Int` columns). The incidence matrix of a graph is
-  `IncidenceMatrixModule`'s representation.
+- `SparseMatrix` is n × n for the graph matrices and n × m for an incidence matrix (`Int`
+  columns). `IncidenceMatrixModule`'s `IncidenceMatrix` is a hypergraph representation, not this
+  numeric matrix.
 - `SparseMatrix.pattern` wraps `offsets` and `columns` with `CompressedSparseRow`'s package
   initializer (no copy).
 - Vertices without indices (`AdjacencyList<String>`) are numbered once by `_vertexNumbering()`;
@@ -375,4 +474,9 @@ covers `Multigraph`, `Pseudograph` and the undirected views. Directed graphs get
 | `numberOfSpanningTrees(as: UInt128.self)` | O(n³) GTH elimination for the size, then two modular eliminations (three when it passes 2¹²⁰) | n² `Double`s, n² `UInt64`s, 3 m `UInt64`s weighted |
 | `resistanceDistance` | O((n + m) √κ) conjugate gradients | about 9 n words, and the incomplete factor when built |
 | `effectiveGraphResistance`, `kemenyConstant` | O(n³) GTH elimination and the diagonal of L_g⁻¹ | n² `Double`s |
+| `…Eigenpairs`, `spectralEmbedding` | O((n + m) · products + n k²), k + 1 Lanczos runs or more (locking); O(n³) below n = 64 | n · max(30, 2k + 10) for the basis, n k for the vectors |
+| `hittingTime`, `commuteTime` | one conjugate-gradient solve, O((n + m) √κ) | as `resistanceDistance` |
+| `stationaryDistribution` | O((n + m) · iterations) | 2 n `Double`s and the rows |
+| `incidenceMatrix` | O(n + m) | the result |
+| `modularityMatrix` | O(n² + m) | n² `Double`s |
 

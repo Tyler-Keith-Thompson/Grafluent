@@ -16,6 +16,11 @@ The model works in index space, from the definitions in api.md:
     fractions: τ(G) = det of L with one row and column removed (Bareiss); R(u, v) = τ(G/uv) / τ(G)
     on u's component (G/uv: u and v identified); effective graph resistance = Σ_{u<v} R(u, v).
 
+  * Eigenpairs from numpy.linalg.eigh, the smallest of L and N component by component; the
+    embedding from them; hitting times exactly from L h = d, commute times as vol · R; the
+    stationary distribution exactly, as the lazy walk's limit (closed classes and absorption);
+    incidence and modularity matrices from their definitions.
+
 Independent checks on every row: closed forms for the named families (K_n, P_n, C_n, stars,
 K_{m,n}, hypercubes, grids, Petersen), brute-force spanning-tree enumeration (m ≤ 16) and the
 Moore–Penrose pseudoinverse for resistances, and NetworkX 3.7 (matrices, spectra,
@@ -689,6 +694,172 @@ def fvec(x):
     return "first 4 [" + ", ".join(fnum(t) for t in x[:4]) + f"], argmax {max(range(len(x)), key=lambda i: x[i])}, argmin {min(range(len(x)), key=lambda i: x[i])}"
 
 
+# ============================================================================ eigenpairs, random walks, incidence and modularity
+
+def solve(M, b):
+    """x with M x = b, exactly (Fraction Gauss–Jordan); M nonsingular."""
+    n = len(M)
+    A = [row[:] + [b[i]] for i, row in enumerate(M)]
+    for c in range(n):
+        p = next(r for r in range(c, n) if A[r][c] != 0)
+        A[c], A[p] = A[p], A[c]
+        for r in range(n):
+            if r != c and A[r][c] != 0:
+                f = A[r][c] / A[c][c]
+                for k in range(c, n + 1):
+                    A[r][k] -= f * A[c][k]
+    return [A[i][n] / A[i][i] for i in range(n)]
+
+
+def transition(g, w):
+    """P of the walk on a directed graph: out-arcs by weight, a dangling vertex uniformly."""
+    n = g.n
+    A = adjacency(g, w)
+    d = degrees(A)
+    return [[A[i][j] / d[i] if d[i] > 0 else Fraction(1, n) for j in range(n)] for i in range(n)]
+
+
+def stationary(g, w):
+    """The lazy walk's limit from the uniform distribution, exactly: each closed class C (a strong
+    component of P's support that nothing leaves) gets the probability of being absorbed there
+    from the uniform start, spread as C's own stationary distribution."""
+    n = g.n
+    if n == 0:
+        return []
+    P = transition(g, w)
+    reach = [[P[i][j] > 0 or i == j for j in range(n)] for i in range(n)]
+    for k in range(n):
+        for i in range(n):
+            if reach[i][k]:
+                for j in range(n):
+                    if reach[k][j]:
+                        reach[i][j] = True
+    closed = []
+    for v in range(n):
+        cls = [u for u in range(n) if reach[v][u] and reach[u][v]]
+        if all(not reach[v][u] or u in cls for u in range(n)) and cls not in closed:
+            closed.append(cls)
+    inside = {v for c in closed for v in c}
+    transient = [v for v in range(n) if v not in inside]
+    pi = [Fraction(0)] * n
+    for cls in closed:
+        # C's stationary distribution: πP = π on C, Σ π = 1 (one equation replaced).
+        k = len(cls)
+        M = [[(P[cls[j]][cls[i]] - (1 if i == j else 0)) for j in range(k)] for i in range(k)]
+        M[-1] = [Fraction(1)] * k
+        local = solve(M, [Fraction(0)] * (k - 1) + [Fraction(1)])
+        # Absorption into C from each transient vertex: h = P_TT h + P_TC 1.
+        if transient:
+            T = [[(1 if i == j else 0) - P[transient[i]][transient[j]] for j in range(len(transient))] for i in range(len(transient))]
+            h = solve(T, [sum(P[t][c] for c in cls) for t in transient])
+        else:
+            h = []
+        mass = Fraction(len(cls), n) + sum(h, Fraction(0)) / n
+        for i, v in enumerate(cls):
+            pi[v] = mass * local[i]
+    return pi
+
+
+def hitting(g, w, s, t):
+    """The expected steps from s to t: L h = d off t on t's component, exactly; None across."""
+    if s == t:
+        return Fraction(0)
+    comp = next(c for c in components(g, w) if t in c)
+    if s not in comp:
+        return None
+    A = adjacency(g, w)
+    d = degrees(A)
+    rest = [v for v in comp if v != t]
+    M = [[(d[u] - A[u][u] if u == v else -A[u][v]) for v in rest] for u in rest]
+    return solve(M, [d[u] for u in rest])[rest.index(s)]
+
+
+def commute(g, w, s, t):
+    if s == t:
+        return Fraction(0)
+    r = resistance(g, w, s, t)
+    if r is None:
+        return None
+    d = degrees(adjacency(g, w))
+    comp = next(c for c in components(g, w) if t in c)
+    return sum((d[v] for v in comp), Fraction(0)) * r
+
+
+def incidence(g, oriented):
+    """n × m: −1 at the tail and +1 at the head oriented (a loop's column empty), 1 at both ends
+    and 2 at a loop's vertex unoriented."""
+    B = [[0] * g.m for _ in range(g.n)]
+    for j, (u, v) in enumerate(g.edges):
+        if u == v:
+            B[u][j] = 0 if oriented else 2
+        else:
+            B[u][j] = -1 if oriented else 1
+            B[v][j] = 1
+    return B
+
+
+def modularity(g, w):
+    """A − k kᵀ / vol (undirected, a loop 2w in A), A − k_out k_inᵀ / m (directed); A when the
+    total is 0."""
+    A = adjacency(g, w)
+    n = g.n
+    out = degrees(A)
+    inn = [sum(A[i][j] for i in range(n)) for j in range(n)]
+    total = sum(out, Fraction(0))
+    if total == 0:
+        return A
+    return [[A[i][j] - out[i] * inn[j] / total for j in range(n)] for i in range(n)]
+
+
+def eigenpairs(g, w, kind, largest, k):
+    """(values, vectors): the k eigenpairs at one end, values from that end; a vector where the
+    contract pins it (a simple eigenvalue, with the canonical sign; the smallest of L and N: each
+    component's null vector, components by least vertex), else None."""
+    if k < 0 or k > g.n:
+        raise Trap("count out of range")
+    M = {"adjacency": adjacency, "laplacian": laplacian, "normalizedLaplacian": normalized, "signlessLaplacian": signless}[kind](g, w)
+    vals, vecs = np.linalg.eigh(np.array(M, dtype=float)) if g.n else (np.zeros(0), np.zeros((0, 0)))
+    s = scale_of(list(vals))
+
+    def simple(x):
+        return sum(1 for y in vals if abs(y - x) <= 1e-8 * s) == 1
+
+    if not largest and kind in ("laplacian", "normalizedLaplacian"):
+        comps = components(g, w)
+        d = [float(x) for x in degrees(adjacency(g, w))]
+        cands = []
+        for c in comps:
+            x = [0.0] * g.n
+            if len(c) == 1:
+                x[c[0]] = 1.0
+            elif kind == "laplacian":
+                for v in c:
+                    x[v] = 1 / math.sqrt(len(c))
+            else:
+                vol = sum(d[v] for v in c)
+                for v in c:
+                    x[v] = math.sqrt(d[v] / vol)
+            cands.append((0.0, x))
+        positive = [(float(vals[i]), canonical_sign([float(t) for t in vecs[:, i]]) if simple(vals[i]) else None) for i in range(len(comps), g.n)]
+        pairs = (cands + positive)[:k]
+        return [p[0] for p in pairs], [p[1] for p in pairs]
+    order = list(range(g.n - 1, g.n - 1 - k, -1)) if largest else list(range(k))
+    return ([float(vals[i]) for i in order],
+            [canonical_sign([float(t) for t in vecs[:, i]]) if simple(vals[i]) else None for i in order])
+
+
+def embedding(g, w, k):
+    """(λ₂ … λ_{k+1} of N, each vertex's coordinates x_j(v)/√d(v)), coordinates None unless every
+    eigenvalue used is simple."""
+    if k < 1 or k >= g.n:
+        raise Trap("dimensions out of range")
+    values, vectors = eigenpairs(g, w, "normalizedLaplacian", False, k + 1)
+    d = [float(x) for x in degrees(adjacency(g, w))]
+    if any(x is None for x in vectors[1:]):
+        return values[1:], None
+    return values[1:], [[vectors[j + 1][v] / math.sqrt(d[v]) if d[v] > 0 else 0.0 for j in range(k)] for v in range(g.n)]
+
+
 # ============================================================================ NetworkX / SciPy cross-checks
 
 def to_nx(g, w, simple=False):
@@ -856,7 +1027,7 @@ def evaluate(cell, op):
     call = op.split(" [")[0].strip()
     name = call.split("(")[0]
     try:
-        w = check_weights(g, wr, allow_negative=(name == "adjacencyMatrix"))
+        w = check_weights(g, wr, allow_negative=(name in ("adjacencyMatrix", "adjacencyEigenpairs")))
         if name == "adjacencyMatrix":
             v = adjacency(g, w)
         elif name == "laplacianMatrix":
@@ -909,6 +1080,22 @@ def evaluate(cell, op):
             v = kemeny(g, w)
         elif name == "spectralBisection":
             v = bisection(g, w)
+        elif name.endswith("Eigenpairs"):
+            k = int(re.search(r"(smallest|largest): (-?\d+)", call).group(2))
+            v = eigenpairs(g, w, name[:-len("Eigenpairs")], "largest" in call, k)
+        elif name == "spectralEmbedding":
+            v = embedding(g, w, int(re.search(r"dimensions: (-?\d+)", call).group(1)))
+        elif name in ("hittingTime", "commuteTime"):
+            a, b = map(int, re.findall(r"-?\d+", call)[:2])
+            if a not in g.vertices or b not in g.vertices:
+                raise Trap("not a vertex")
+            v = (hitting if name == "hittingTime" else commute)(g, w, g.vertices.index(a), g.vertices.index(b))
+        elif name == "stationaryDistribution":
+            v = stationary(g, w)
+        elif name == "incidenceMatrix":
+            v = incidence(g, "oriented: true" in call)
+        elif name == "modularityMatrix":
+            v = modularity(g, w)
         else:
             raise AssertionError(op)
     except Trap:
@@ -954,10 +1141,97 @@ def evaluate(cell, op):
             assert min(abs(t) for t in x) <= 1e-8 * max(abs(t) for t in x), op
             disagree("NetworkX", "spectral_bisection: a zero Fiedler entry goes by its rounding sign (ours: the nonnegative side)")
 
+    check_new(g, w, name, call, v)
     return render_value(name, g, v)
 
 
+def check_new(g, w, name, call, v):
+    """Independent checks of the eigenpair, random-walk, incidence and modularity rows."""
+    if name.endswith("Eigenpairs") and g.n:
+        kind = name[:-len("Eigenpairs")]
+        M = np.array({"adjacency": adjacency, "laplacian": laplacian, "normalizedLaplacian": normalized, "signlessLaplacian": signless}[kind](g, w), dtype=float)
+        values, vectors = v
+        s = scale_of(list(np.linalg.eigvalsh(M)))
+        for x, vec in zip(values, vectors):
+            if vec is not None:
+                assert np.linalg.norm(M @ np.array(vec) - x * np.array(vec)) <= 1e-9 * s, (name, call)
+        if g.n > 2 and not g.has_loops() and kind != "signlessLaplacian":
+            k = len(values)
+            if 0 < k < g.n - 1 and np.abs(M).max() > 0:
+                v0 = np.linspace(1, 2, g.n)
+                theirs = sp.sparse.linalg.eigsh(sp.sparse.csr_array(M), k=k, which="LA" if "largest" in call else "SA", v0=v0, tol=1e-14, return_eigenvectors=False)
+                theirs = sorted(theirs, reverse="largest" in call)
+                assert vclose(values, theirs, 1e-8), (call, values, theirs)
+    if name == "hittingTime" and v is not None and v != 0:
+        # h(s → t) against the pseudoinverse: (1/2) Σ_w d(w) (R(s,t) + R(t,w) − R(s,w)) (Tetali).
+        a, b = map(int, re.findall(r"-?\d+", call)[:2])
+        s_, t_ = g.vertices.index(a), g.vertices.index(b)
+        d = degrees(adjacency(g, w))
+        comp = next(c for c in components(g, w) if t_ in c)
+        r = lambda x, y: resistance(g, w, x, y)  # noqa: E731
+        tetali = sum((d[x] * (r(s_, t_) + r(t_, x) - r(s_, x)) for x in comp), Fraction(0)) / 2
+        assert tetali == v, (call, v, tetali)
+    if name == "commuteTime" and v is not None and v != 0:
+        a, b = map(int, re.findall(r"-?\d+", call)[:2])
+        s_, t_ = g.vertices.index(a), g.vertices.index(b)
+        assert v == hitting(g, w, s_, t_) + hitting(g, w, t_, s_), call
+    if name == "stationaryDistribution" and g.n:
+        P = transition(g, w)
+        assert all(sum(v[i] * P[i][j] for i in range(g.n)) == v[j] for j in range(g.n)) and sum(v) == 1, call
+        lazy = (np.eye(g.n) + np.array(P, dtype=float)) / 2
+        for _ in range(40):
+            lazy = lazy @ lazy
+            lazy /= lazy.sum(axis=1, keepdims=True)
+        assert np.abs(np.full(g.n, 1 / g.n) @ lazy - np.array(v, dtype=float)).sum() <= 1e-9, call
+        if np.linalg.matrix_rank(np.array(P, dtype=float).T - np.eye(g.n), tol=1e-9) == g.n - 1:
+            try:
+                rank = nx.pagerank(to_nx(g, w, simple=True), alpha=1.0, tol=1e-13, max_iter=100000) if g.m and g.is_simple() else None
+            except nx.PowerIterationFailedConvergence:
+                rank = None
+                disagree("NetworkX", "pagerank(alpha=1): power iteration does not converge on a periodic chain (ours: the lazy walk)")
+            if rank is not None:
+                assert np.abs(np.array([rank[i] for i in range(g.n)]) - np.array(v, dtype=float)).sum() <= 1e-8, call
+    if name == "incidenceMatrix" and g.m:
+        h = to_nx(g, w)
+        theirs = nx.incidence_matrix(h, nodelist=range(g.n), edgelist=[(u, x, j) for j, (u, x) in enumerate(g.edges)], oriented="oriented: true" in call).toarray()
+        for j, (a, b) in enumerate(g.edges):
+            column = [v[i][j] for i in range(g.n)]
+            if a == b:
+                disagree("NetworkX", "incidence_matrix: a self-loop's column is empty (ours: 2 unoriented)") if "oriented: true" not in call else None
+            else:
+                assert column == list(theirs[:, j]), (call, j, column, theirs[:, j])
+    if name == "modularityMatrix" and g.n and sum(w, Fraction(0)) > 0:
+        h = to_nx(g, w, simple=True)
+        if g.directed:
+            theirs = nx.directed_modularity_matrix(h, nodelist=range(g.n), weight="weight")
+        elif not g.has_loops() and g.is_simple():
+            theirs = nx.modularity_matrix(h, nodelist=range(g.n), weight="weight")
+        else:
+            theirs = None
+        if theirs is not None and (g.is_simple() or not g.directed):
+            assert np.allclose(np.array(v, dtype=float), np.asarray(theirs), atol=1e-12), (call, v, theirs)
+
+
 def render_value(name, g, v):
+    if name.endswith("Eigenpairs"):
+        values, vectors = v
+        if not values:
+            return "no pair"
+        return ("λ " + ", ".join(fnum(x) for x in values) + "; " +
+                "; ".join(fvec(x) if x is not None else "(multiple eigenvalue: some unit vector)" for x in vectors))
+    if name == "spectralEmbedding":
+        values, coords = v
+        out = "λ " + ", ".join(fnum(x) for x in values)
+        if coords is None:
+            return out + "; (a multiple eigenvalue: coordinates not pinned)"
+        return out + "; " + "[" + ", ".join(fvec(c) for c in coords) + "]"
+    if name == "stationaryDistribution":
+        return "[" + ", ".join(fnum(x) for x in v) + "]"
+    if name == "incidenceMatrix":
+        nnz = sum(1 for row in v for x in row if x != 0)
+        return f"{g.n}×{g.m}: [" + ", ".join("[" + ", ".join(str(x) for x in row) + "]" for row in v) + f"] (nnz {nnz})"
+    if name == "modularityMatrix":
+        return "[" + ", ".join("[" + ", ".join(fnum(x) for x in row) + "]" for row in v) + "]"
     if type(v) is int:
         return str(v)
     if name.endswith("Matrix"):
@@ -1231,6 +1505,83 @@ def define():
     R(X, "weighted K4 near 2¹²⁷ (three primes)", "U: K(4)", W + "[2199023255551, 2199023255553, 2199023255557, 2199023255563, 2199023255579, 2199023255581]")
     R(X, "negative weight", "U: P(0..2)", W + "[1, -1]")
 
+    EP = "Eigenpairs"
+    R(EP, "P3: L's 0, 1, 3 with their vectors", "U: P(0..2)", "laplacianEigenpairs(smallest: 3)")
+    R(EP, "P3: L's largest first", "U: P(0..2)", "laplacianEigenpairs(largest: 2)")
+    R(EP, "count 0: no pair", "U: P(0..2)", "laplacianEigenpairs(smallest: 0)")
+    R(EP, "empty graph, count 0", "U:", "adjacencyEigenpairs(largest: 0)")
+    R(EP, "K4: A's 3 then −1 (multiple)", "U: K(4)", "adjacencyEigenpairs(largest: 2)")
+    R(EP, "star K1,3: A's ±√3", "U: S(0;1..3)", "adjacencyEigenpairs(smallest: 1)")
+    R(EP, "star K1,3: A's largest", "U: S(0;1..3)", "adjacencyEigenpairs(largest: 1)")
+    R(EP, "two triangles: L's null vectors per component, then 3 (multiple)", "U: C(0,1,2), C(3,4,5)", "laplacianEigenpairs(smallest: 3)")
+    R(EP, "isolated vertex: e_v, its own component", "U: [0, 1, 2] 1-2", "laplacianEigenpairs(smallest: 3)")
+    R(EP, "isolated vertex in N: e_v", "U: [0, 1, 2] 1-2", "normalizedLaplacianEigenpairs(smallest: 2)")
+    R(EP, "N of P4", "U: P(0..3)", "normalizedLaplacianEigenpairs(smallest: 4)")
+    R(EP, "N's largest of K1,3: 2", "U: S(0;1..3)", "normalizedLaplacianEigenpairs(largest: 1)")
+    R(EP, "loop: L ignores it", "U: 0-0, 0-1", "laplacianEigenpairs(smallest: 2)")
+    R(EP, "loop: Q[v][v] gains 4, 3 ± √5", "U: 0-0, 0-1", "signlessLaplacianEigenpairs(smallest: 2)")
+    R(EP, "Q of a bipartite path: 0 first", "U: P(0..3)", "signlessLaplacianEigenpairs(smallest: 1)")
+    R(EP, "parallel edges add up", "U: 0=1, 1-2", "laplacianEigenpairs(smallest: 3)")
+    R(EP, "weighted path", "U: P(0..3)", "laplacianEigenpairs(smallest: 2) weight: [1, 2, 3]")
+    R(EP, "weighted adjacency, a negative weight", "U: C(0,1,2)", "adjacencyEigenpairs(largest: 3) weight: [1, -2, 3]")
+    R(EP, "Petersen: L's 2 (multiplicity 5) after 0", "U: nx(petersen)", "laplacianEigenpairs(smallest: 2)")
+    R(EP, "Petersen: A's 3", "U: nx(petersen)", "adjacencyEigenpairs(largest: 1)")
+    R(EP, "weight 0 disconnects", "U: P(0..2)", "normalizedLaplacianEigenpairs(smallest: 2) weight: [1, 0]")
+
+    EM = "Spectral embedding"
+    R(EM, "P3: x₂/√d", "U: P(0..2)", "spectralEmbedding(dimensions: 1)")
+    R(EM, "P5 in two dimensions", "U: P(0..4)", "spectralEmbedding(dimensions: 2)")
+    R(EM, "weighted triangle", "U: C(0,1,2)", "spectralEmbedding(dimensions: 2) weight: [1, 2, 4]")
+    R(EM, "C5: λ₂ double, not pinned", "U: C(0..4)", "spectralEmbedding(dimensions: 1)")
+
+    HT = "Hitting and commute times"
+    R(HT, "P3: h(0 → 2) = 4", "U: P(0..2)", "hittingTime(from: 0, to: 2)")
+    R(HT, "P3: h(1 → 0) = 3", "U: P(0..2)", "hittingTime(from: 1, to: 0)")
+    R(HT, "the same vertex: 0", "U: P(0..2)", "hittingTime(from: 1, to: 1)")
+    R(HT, "across components: nil", "U: P(0..1), P(2..3)", "hittingTime(from: 0, to: 3)")
+    R(HT, "P6: (n − 1)²", "U: P(0..5)", "hittingTime(from: 0, to: 5)")
+    R(HT, "K5: n − 1", "U: K(5)", "hittingTime(from: 0, to: 3)")
+    R(HT, "star: leaf to centre 1, centre to leaf 2n − 1", "U: S(0;1..4)", "hittingTime(from: 0, to: 2)")
+    R(HT, "a loop slows the walk", "U: 0-0, 0-1", "hittingTime(from: 0, to: 1)")
+    R(HT, "weighted", "U: C(0,1,2,3)", "hittingTime(from: 0, to: 2) weight: [1, 2, 3, 4]")
+    R(HT, "parallel edges", "U: 0=1, 1-2", "hittingTime(from: 2, to: 0)")
+    R(HT, "P3: commute 0 ↔ 2 = 2m · R = 8", "U: P(0..2)", "commuteTime(from: 0, to: 2)")
+    R(HT, "commute across components: nil", "U: P(0..1), P(2..3)", "commuteTime(from: 0, to: 2)")
+    R(HT, "commute: the component's volume", "U: P(0..2), C(3,4,5)", "commuteTime(from: 3, to: 5)")
+    R(HT, "commute: a loop counts twice in the volume", "U: 0-0, 0-1", "commuteTime(from: 0, to: 1)")
+    R(HT, "commute: weighted", "U: C(0,1,2,3)", "commuteTime(from: 0, to: 2) weight: [1, 2, 3, 4]")
+    R(HT, "commute: Petersen", "U: nx(petersen)", "commuteTime(from: 0, to: 1)")
+
+    ST = "Stationary distribution"
+    R(ST, "empty", "D:", "stationaryDistribution()")
+    R(ST, "one vertex", "D: [0]", "stationaryDistribution()")
+    R(ST, "directed cycle: uniform", "D: C(0..4)", "stationaryDistribution()")
+    R(ST, "both arcs of P4: d / vol", "D: 0>1, 1>0, 1>2, 2>1, 2>3, 3>2", "stationaryDistribution()")
+    R(ST, "a dangling vertex jumps uniformly", "D: 0>1", "stationaryDistribution()")
+    R(ST, "no arcs: uniform", "D: E(3)", "stationaryDistribution()")
+    R(ST, "periodic: the star both ways", "D: 0>1, 1>0, 0>2, 2>0, 0>3, 3>0", "stationaryDistribution()")
+    R(ST, "weights and a loop", "D: 0>0, 0>1, 1>0", "stationaryDistribution() weight: [1, 3, 5]")
+    R(ST, "parallel arcs add up", "D: 0>0, 0>1, 0>1, 0>1, 1>0", "stationaryDistribution()")
+    R(ST, "two closed classes fed equally", "D: 0>1, 1>0, 2>3, 3>2, 4>0, 4>2", "stationaryDistribution()")
+    R(ST, "two closed classes, unequally", "D: 0>1, 1>0, 2>2, 3>0, 3>1, 3>2", "stationaryDistribution()")
+    R(ST, "a weight-0 arc is no arc", "D: 0>1, 1>2, 2>0, 2>1", "stationaryDistribution() weight: [1, 1, 0, 1]")
+    R(ST, "a 3-cycle with a chord", "D: C(0,1,2), 0>2", "stationaryDistribution()")
+
+    IM = "Incidence and modularity matrices"
+    R(IM, "P3 unoriented", "U: P(0..2)", "incidenceMatrix()")
+    R(IM, "P3 oriented", "U: P(0..2)", "incidenceMatrix(oriented: true)")
+    R(IM, "loop: 2 unoriented", "U: 1-1, 0-1, 0-1, 2-1", "incidenceMatrix()")
+    R(IM, "loop: empty oriented", "U: 1-1, 0-1, 0-1, 2-1", "incidenceMatrix(oriented: true)")
+    R(IM, "directed oriented", "D: 2>0, 0>1, 1>1, 0>1", "incidenceMatrix(oriented: true)")
+    R(IM, "directed unoriented", "D: 2>0, 0>1, 1>1, 0>1", "incidenceMatrix()")
+    R(IM, "no edges", "U: E(3)", "incidenceMatrix()")
+    R(IM, "modularity of P3", "U: P(0..2)", "modularityMatrix()")
+    R(IM, "modularity of K4", "U: K(4)", "modularityMatrix()")
+    R(IM, "modularity with a loop (A[v][v] = 2w) and weights", "U: 0-0, 0-1, 1-2, 1-2, 2-3", "modularityMatrix() weight: [3, 1, 2, 5, 4]")
+    R(IM, "modularity without edges: zeros", "U: E(2)", "modularityMatrix()")
+    R(IM, "directed modularity", "D: 0>1, 0>2, 1>2, 2>2", "modularityMatrix()")
+    R(IM, "directed modularity, weighted", "D: C(0,1,2), 0>2", "modularityMatrix() weight: [1, 2, 3, 4]")
+
     P = "Phase 2"
     R(P, "arborescences of a directed 3-cycle from 0", "D: C(0,1,2)", "numberOfSpanningTrees(root: 0)")
     R(P, "arborescences, both arcs of K3", "D: 0>1, 1>0, 0>2, 2>0, 1>2, 2>1", "numberOfSpanningTrees(root: 0)")
@@ -1328,6 +1679,17 @@ returning wₚ for the edge at position p (`nan`, `inf` are those `Double`s).
   1e-9 · max(1, |largest value|); iterative results (`algebraicConnectivity`, `fiedlerVector`,
   `spectralOrdering`, `spectralRadius`, `resistanceDistance`) within 1e-6 · max(1, scale) for
   values and 1e-5 per vector entry. Decimals are printed to 10 significant digits.
+- `…Eigenpairs`: `λ` and the eigenvalues from the end asked for (ascending for `smallest:`,
+  descending for `largest:`), then each eigenvector with the canonical sign where the contract
+  pins it: a simple eigenvalue, or, among the smallest of L and N, a component's null vector
+  (components by least vertex, an isolated vertex e_v). `(multiple eigenvalue: some unit vector)`:
+  the test checks only that the vector is unit, orthogonal to the others and an eigenvector.
+- `spectralEmbedding`: `λ` and λ₂ … λ_{{k+1}} of N, then each vertex's coordinates x_j(v)/√d(v)
+  where every eigenvalue used is simple.
+- `hittingTime`, `commuteTime`: exact rationals, 0 from a vertex to itself, `nil` across
+  components. `stationaryDistribution`: one exact probability per vertex (the limit of the lazy
+  walk from the uniform distribution). `incidenceMatrix`: `n×m` and every row. `modularityMatrix`:
+  every row, exactly.
 - `**trap**` rows are preconditions.
 
 """
@@ -1375,6 +1737,9 @@ def stress():
                 ours = np.array(adjacency(g, w) if name == "adjacencyMatrix" else
                                 [[(degrees(adjacency(g, w))[i] if i == j else 0) - adjacency(g, w)[i][j] for j in range(n)] for i in range(n)], dtype=float)
                 assert np.allclose(ours, nx_matrix(g, w, name))
+            check_new(g, w, "stationaryDistribution", "stationaryDistribution()", stationary(g, w))
+            check_new(g, w, "modularityMatrix", "modularityMatrix()", modularity(g, w))
+            c["stationary distributions"] += 1
             c["directed"] += 1
             continue
         tau = spanning_trees(g, w)
@@ -1408,6 +1773,15 @@ def stress():
             o = spectral_ordering(g, w)
             cross_check(g, w, "spectralOrdering()", o)
             c["orderings"] += 1
+            check_new(g, w, "hittingTime", f"hittingTime(from: {u}, to: {v})", hitting(g, w, u, v))
+            check_new(g, w, "commuteTime", f"commuteTime(from: {u}, to: {v})", commute(g, w, u, v))
+            for kind in ("adjacency", "laplacian", "normalizedLaplacian"):
+                k = rng.randint(0, n)
+                largest = rng.random() < 0.5
+                call = f"{kind}Eigenpairs({'largest' if largest else 'smallest'}: {k})"
+                check_new(g, w, kind + "Eigenpairs", call, eigenpairs(g, w, kind, largest, k))
+            check_new(g, w, "incidenceMatrix", "incidenceMatrix(oriented: true)", incidence(g, True))
+            c["random walks, eigenpairs and incidence"] += 1
     return c
 
 

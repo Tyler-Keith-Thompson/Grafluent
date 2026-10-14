@@ -7,7 +7,13 @@
 // - on up to 9 vertices: the matrix-tree count against a Bareiss determinant in Int128 (exact for
 //   integer weights below 2⁵³), resistance as a metric, Foster's theorem Σ w_e R(e) = n − 1, the
 //   pairwise sum against `effectiveGraphResistance`, and the Kemeny constant against
-//   (1/2vol) Σ dᵢdⱼR(i, j).
+//   (1/2vol) Σ dᵢdⱼR(i, j);
+// - on 64 to 95 vertices, the k extreme eigenpairs of A, L, N or Q (either end, k ≤ 4) against
+//   the dense spectrum, each vector's residual, unit length and orthogonality;
+// - on up to 9 vertices: hitting times against a dense solve of L h = d, commute times against
+//   both hitting times and vol · R; B Bᵀ = Q and L for the incidence matrices; the modularity
+//   matrix against A − k kᵀ / vol (and its directed form); the stationary distribution of a
+//   directed edge list against πP = π; the embedding's finiteness.
 
 import FuzzSupport
 import GraphProtocols
@@ -39,6 +45,28 @@ struct EdgeListGraph: Graph {
     func vertex(atIndex index: Int) -> Int { index }
 }
 
+/// A directed pseudograph as a plain edge list with vertex indices 0..<n.
+struct DirectedEdgeListGraph: DirectedGraph {
+    let vertices: [Int]
+    let edges: [DirectedEdge<Int>]
+    let outgoing: [[Int]]
+
+    init(vertices: Range<Int>, edges: [DirectedEdge<Int>]) {
+        self.vertices = Array(vertices)
+        self.edges = edges
+        var outgoing = [[Int]](repeating: [], count: vertices.count)
+        for (k, e) in edges.enumerated() { outgoing[e.source].append(k) }
+        self.outgoing = outgoing
+    }
+
+    func outEdges(of vertex: Int) -> [Int] { outgoing[vertex] }
+    func successors(of vertex: Int) -> [Int] { outgoing[vertex].map { edges[$0].target } }
+    func contains(_ vertex: Int) -> Bool { vertex >= 0 && vertex < vertices.count }
+    var vertexIndexBound: Int? { vertices.count }
+    func vertexIndex(of vertex: Int) -> Int { vertex }
+    func vertex(atIndex index: Int) -> Int { index }
+}
+
 @main
 enum FuzzSpectral {
     static func main() { runFuzzer(fuzz) }
@@ -58,7 +86,11 @@ enum FuzzSpectral {
 
     static func fuzz(_ input: inout FuzzInput) {
         do {
-            if input.byte() % 2 == 0 { try large(&input) } else { try small(&input) }
+            switch input.byte() % 3 {
+            case 0: try large(&input)
+            case 1: try small(&input)
+            default: try walks(&input)
+            }
         } catch {
             // The default iteration limits should never be reached, so a throw is a finding.
             check(false, "\(error)")
@@ -145,6 +177,169 @@ enum FuzzSpectral {
         bound = rows.max()!
         let radius = try graph.spectralRadius(weight: { signed[$0] })
         check(abs(radius - rho) <= 1e-6 * rho + 1e-11 * Double(n) * bound, "ρ \(radius) against dense \(rho)")
+
+        // The k extreme eigenpairs of one matrix, at one end.
+        let matrixKind = input.int(below: 4), largest = input.byte() % 2 == 0, k = input.int(in: 1 ... 4)
+        let w: [Double] = matrixKind == 0 ? signed : weights
+        let pairs: Eigenpairs<EdgeListGraph>
+        let spectrum: [Double]
+        let matrix: SparseMatrix
+        switch matrixKind {
+        case 0:
+            pairs = try largest ? graph.adjacencyEigenpairs(largest: k, weight: { w[$0] }) : graph.adjacencyEigenpairs(smallest: k, weight: { w[$0] })
+            spectrum = a
+            matrix = graph.adjacencyMatrix(weight: { w[$0] })
+        case 1:
+            pairs = try largest ? graph.laplacianEigenpairs(largest: k, weight: { w[$0] }) : graph.laplacianEigenpairs(smallest: k, weight: { w[$0] })
+            spectrum = try graph.laplacianSpectrum(weight: { w[$0] })
+            matrix = graph.laplacianMatrix(weight: { w[$0] })
+        case 2:
+            pairs = try largest ? graph.normalizedLaplacianEigenpairs(largest: k, weight: { w[$0] }) : graph.normalizedLaplacianEigenpairs(smallest: k, weight: { w[$0] })
+            spectrum = try graph.normalizedLaplacianSpectrum(weight: { w[$0] })
+            matrix = graph.normalizedLaplacianMatrix(weight: { w[$0] })
+        default:
+            pairs = try largest ? graph.signlessLaplacianEigenpairs(largest: k, weight: { w[$0] }) : graph.signlessLaplacianEigenpairs(smallest: k, weight: { w[$0] })
+            let q = graph.signlessLaplacianMatrix(weight: { w[$0] })
+            matrix = q
+            // Q's spectrum through its Rayleigh quotients is not at hand: the residual checks it below.
+            spectrum = []
+        }
+        var gershgorin = 0.0
+        for i in 0 ..< n {
+            var row = 0.0
+            for t in matrix.offsets[i] ..< matrix.offsets[i + 1] { row += abs(matrix.values[t]) }
+            gershgorin = max(gershgorin, row)
+        }
+        check(pairs.count == k, "\(pairs.count) eigenpairs for \(k)")
+        let expected = largest ? Array(spectrum.reversed().prefix(k)) : Array(spectrum.prefix(k))
+        for i in 0 ..< k {
+            let value = pairs.eigenvalues[i]
+            let floor = 1e-6 * max(abs(value), 1e-3 * gershgorin) + 1e-11 * Double(n) * gershgorin
+            if !expected.isEmpty { check(abs(value - expected[i]) <= floor, "eigenvalue \(i) \(value) against dense \(expected[i]), matrix \(matrixKind), largest \(largest)") }
+            if i > 0 { check(largest ? value <= pairs.eigenvalues[i - 1] : value >= pairs.eigenvalues[i - 1], "eigenvalues out of order") }
+            let x = pairs.eigenvector(at: i)
+            let mx = matrix * x
+            var residual = 0.0
+            for r in 0 ..< n { residual += (mx[r] - value * x[r]) * (mx[r] - value * x[r]) }
+            check(residual.squareRoot() <= 1e-5 * max(abs(value), 1e-3 * gershgorin) + 1e-10 * Double(n) * gershgorin, "eigenvector \(i) residual \(residual.squareRoot()), λ \(value), matrix \(matrixKind), largest \(largest)")
+            for j in 0 ... i {
+                var dot = 0.0
+                let y = pairs.eigenvector(at: j)
+                for r in 0 ..< n { dot += x[r] * y[r] }
+                check(abs(dot - (i == j ? 1 : 0)) <= 1e-8, "eigenvectors \(i), \(j) not orthonormal: \(dot)")
+            }
+        }
+    }
+
+    /// Random walks, incidence and modularity matrices, and clustering on small graphs.
+    static func walks(_ input: inout FuzzInput) throws {
+        let n = input.int(in: 1 ... 9)
+        let kind = input.int(below: 2)
+        let m = input.int(below: 24)
+        var edges: [UndirectedEdge<Int>] = []
+        var weights: [Double] = []
+        for _ in 0 ..< m {
+            edges.append(UndirectedEdge(input.int(below: n), input.int(below: n)))
+            weights.append(weight(&input, kind == 0 ? 0 : 1, 1))
+        }
+        let graph = EdgeListGraph(vertices: 0 ..< n, edges: edges)
+        // Dense A (a loop 2w), degrees, components over positive weights.
+        var a = [[Double]](repeating: [Double](repeating: 0, count: n), count: n)
+        for (k, e) in edges.enumerated() {
+            a[e.u][e.v] += weights[k]
+            a[e.v][e.u] += weights[k]
+        }
+        let d = a.map { $0.reduce(0, +) }
+        var parent = Array(0 ..< n)
+        func find(_ x: Int) -> Int {
+            var x = x
+            while parent[x] != x { x = parent[x] }
+            return x
+        }
+        for (k, e) in edges.enumerated() where weights[k] > 0 { parent[find(e.u)] = find(e.v) }
+
+        // Hitting times to a target against Gaussian elimination on L h = d over its component.
+        let target = input.int(below: n)
+        let component = (0 ..< n).filter { find($0) == find(target) && $0 != target }
+        var system = component.map { u in component.map { v in u == v ? d[u] - a[u][u] : -a[u][v] } + [d[u]] }
+        let size = component.count
+        for p in 0 ..< size {
+            let pivot = (p ..< size).max { abs(system[$0][p]) < abs(system[$1][p]) }!
+            system.swapAt(p, pivot)
+            for r in 0 ..< size where r != p {
+                let f = system[r][p] / system[p][p]
+                for c in p ... size { system[r][c] -= f * system[p][c] }
+            }
+        }
+        for v in 0 ..< n {
+            let h = try graph.hittingTime(from: v, to: target, weight: { weights[$0] })
+            if v == target {
+                check(h == 0, "h(v, v) = \(String(describing: h))")
+            } else if let i = component.firstIndex(of: v) {
+                let expected = system[i][size] / system[i][i]
+                check(h != nil && abs(h! - expected) <= 1e-7 * expected, "h(\(v) → \(target)) = \(String(describing: h)), expected \(expected)")
+                let back = try graph.hittingTime(from: target, to: v, weight: { weights[$0] })!
+                let commute = try graph.commuteTime(from: v, to: target, weight: { weights[$0] })!
+                let resistance = try graph.resistanceDistance(from: v, to: target, weight: { weights[$0] })!
+                var volume = 0.0
+                for u in 0 ..< n where find(u) == find(target) { volume += d[u] }
+                check(abs(commute - (h! + back)) <= 1e-7 * commute, "commute \(commute) against \(h!) + \(back)")
+                check(abs(commute - volume * resistance) <= 1e-9 * commute, "commute \(commute) against vol · R \(volume * resistance)")
+            } else {
+                check(h == nil, "h across components: \(String(describing: h))")
+                check(try graph.commuteTime(from: v, to: target, weight: { weights[$0] }) == nil, "commute time across components")
+            }
+        }
+
+        // Incidence matrices: B Bᵀ = Q unoriented, L oriented.
+        for oriented in [false, true] {
+            let b = graph.incidenceMatrix(oriented: oriented)
+            let expected = oriented ? graph.laplacianMatrix() : graph.signlessLaplacianMatrix()
+            check(b.rowCount == n && b.columnCount == m, "incidence shape \(b.rowCount)×\(b.columnCount)")
+            for i in 0 ..< n {
+                for j in 0 ..< n {
+                    var sum = 0.0
+                    for e in 0 ..< m { sum += b[i, e] * b[j, e] }
+                    check(sum == expected[i, j], "B Bᵀ (\(i), \(j)) = \(sum), expected \(expected[i, j]), oriented \(oriented)")
+                }
+            }
+        }
+
+        // The modularity matrix.
+        let modularity = graph.modularityMatrix(weight: { weights[$0] })
+        let volume = d.reduce(0, +)
+        for i in 0 ..< n {
+            for j in 0 ..< n {
+                let expected = volume > 0 ? a[i][j] - d[i] * d[j] / volume : a[i][j]
+                check(abs(modularity[i][j] - expected) <= 1e-12 * max(1, volume), "B[\(i)][\(j)] = \(modularity[i][j]), expected \(expected)")
+            }
+        }
+
+        // The stationary distribution of the edges as arcs u → v.
+        let digraph = DirectedEdgeListGraph(vertices: 0 ..< n, edges: edges.map { DirectedEdge(from: $0.u, to: $0.v) })
+        let pi = try digraph.stationaryDistribution(weight: { weights[$0] }).probabilities
+        var out = [Double](repeating: 0, count: n)
+        for (k, e) in edges.enumerated() { out[e.u] += weights[k] }
+        var next = [Double](repeating: 0, count: n)
+        for v in 0 ..< n where out[v] == 0 { for u in 0 ..< n { next[u] += pi[v] / Double(n) } }
+        for (k, e) in edges.enumerated() where out[e.u] > 0 { next[e.v] += pi[e.u] * weights[k] / out[e.u] }
+        var residual = 0.0, total = 0.0
+        for v in 0 ..< n {
+            residual += abs(next[v] - pi[v])
+            total += pi[v]
+            check(pi[v] >= 0, "π(\(v)) = \(pi[v])")
+        }
+        check(residual <= 1e-10 && abs(total - 1) <= 1e-12, "‖πP − π‖₁ = \(residual), Σπ = \(total)")
+        let directedModularity = digraph.modularityMatrix(weight: { weights[$0] })
+        for i in 0 ..< n {
+            check(abs(directedModularity[i].reduce(0, +)) <= 1e-9 * max(1, volume), "directed modularity row \(i) sums to \(directedModularity[i].reduce(0, +))")
+        }
+
+        // The embedding.
+        if n > 1 {
+            let embedding = try graph.spectralEmbedding(dimensions: input.int(in: 1 ... n - 1), weight: { weights[$0] })
+            for v in 0 ..< n { check(embedding.coordinates(of: v).allSatisfy(\.isFinite), "embedding of \(v) not finite") }
+        }
     }
 
     /// The electrical laws and the matrix-tree theorem on small graphs.

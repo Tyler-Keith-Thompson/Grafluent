@@ -1,7 +1,8 @@
 import CompressedSparseRowModule
 
-/// A square matrix of `Double`s in compressed sparse row form, storing exactly its nonzero
-/// entries: the result of `adjacencyMatrix()`, `laplacianMatrix()` and the other graph matrices.
+/// A matrix of `Double`s in compressed sparse row form, storing exactly its nonzero entries: the
+/// result of `adjacencyMatrix()`, `laplacianMatrix()` and the other graph matrices (square), and of
+/// `incidenceMatrix(oriented:)` (a row per vertex, a column per edge).
 ///
 /// Row `i` holds the entries `values[offsets[i] ..< offsets[i + 1]]` in the columns
 /// `columns[offsets[i] ..< offsets[i + 1]]`, ascending. No stored value is 0, so two matrices are
@@ -14,19 +15,26 @@ public struct SparseMatrix: Hashable, Sendable {
     @usableFromInline var _offsets: [Int]
     @usableFromInline var _columns: [Int]
     @usableFromInline var _values: [Double]
+    @usableFromInline var _columnCount: Int
 
     /// Unchecked: `offsets` starts at 0 and ends at `columns.count`, each row's columns ascend in
-    /// `0..<rowCount`, and no value is 0.
+    /// `0..<columnCount`, and no value is 0. Square when `columnCount` is nil.
     @inlinable
-    init(_offsets: [Int], _columns: [Int], _values: [Double]) {
+    init(_offsets: [Int], _columns: [Int], _values: [Double], columnCount: Int? = nil) {
         self._offsets = _offsets
         self._columns = _columns
         self._values = _values
+        self._columnCount = columnCount ?? _offsets.count - 1
     }
 
-    /// The number of rows, which is also the number of columns.
+    /// The number of rows.
     @inlinable
     public var rowCount: Int { _offsets.count - 1 }
+
+    /// The number of columns: `rowCount` for the square graph matrices, the number of edges for an
+    /// incidence matrix.
+    @inlinable
+    public var columnCount: Int { _columnCount }
 
     /// Where each row starts in `columns` and `values`: `rowCount + 1` entries, the first 0 and the
     /// last `nonzeroCount`, as `CompressedSparseRow.offsets`.
@@ -48,11 +56,10 @@ public struct SparseMatrix: Hashable, Sendable {
     /// The entry in `row` and `column`: 0 when nothing is stored there. O(log k) for a row of k
     /// stored entries.
     ///
-    /// - Precondition: `row` and `column` are in `0..<rowCount`.
+    /// - Precondition: `row` is in `0..<rowCount` and `column` in `0..<columnCount`.
     @inlinable
     public subscript(row: Int, column: Int) -> Double {
-        let n = rowCount
-        precondition(row >= 0 && row < n && column >= 0 && column < n, "SparseMatrix index out of range")
+        precondition(row >= 0 && row < rowCount && column >= 0 && column < _columnCount, "SparseMatrix index out of range")
         var low = _offsets[row], high = _offsets[row + 1]
         while low < high {
             let middle = low + (high - low) / 2
@@ -65,16 +72,22 @@ public struct SparseMatrix: Hashable, Sendable {
 
     /// The stored positions as a directed graph on `0..<rowCount`: an arc i → j for each stored
     /// entry (the sparsity pattern). O(1): it shares `offsets` and `columns`.
-    @inlinable
-    public var pattern: CompressedSparseRow { CompressedSparseRow(_offsets: _offsets, _targets: _columns) }
-
-    /// The product of `matrix` and the column `vector`. O(rowCount + nonzeroCount).
     ///
-    /// - Precondition: `vector.count == matrix.rowCount`.
+    /// - Precondition: the matrix is square.
+    @inlinable
+    public var pattern: CompressedSparseRow {
+        precondition(rowCount == _columnCount, "The sparsity pattern is a graph only for a square matrix")
+        return CompressedSparseRow(_offsets: _offsets, _targets: _columns)
+    }
+
+    /// The product of `matrix` and the column `vector`, of length `rowCount`.
+    /// O(rowCount + nonzeroCount).
+    ///
+    /// - Precondition: `vector.count == matrix.columnCount`.
     @inlinable
     public static func * (matrix: SparseMatrix, vector: [Double]) -> [Double] {
         let n = matrix.rowCount
-        precondition(vector.count == n, "The vector's length is not the matrix's size")
+        precondition(vector.count == matrix._columnCount, "The vector's length is not the matrix's column count")
         var result = [Double](repeating: 0, count: n)
         for i in 0 ..< n {
             var sum = 0.0
@@ -90,7 +103,7 @@ public struct SparseMatrix: Hashable, Sendable {
 extension SparseMatrix: CustomStringConvertible {
     /// The size and the stored entries row by row, as `(column: value)` pairs.
     public var description: String {
-        var text = "SparseMatrix(\(rowCount)×\(rowCount), \(nonzeroCount) stored"
+        var text = "SparseMatrix(\(rowCount)×\(columnCount), \(nonzeroCount) stored"
         for i in 0 ..< rowCount {
             let entries = (_offsets[i] ..< _offsets[i + 1]).map { "\(_columns[$0]): \(_values[$0])" }
             text += i == 0 ? ": " : "; "
