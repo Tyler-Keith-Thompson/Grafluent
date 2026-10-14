@@ -14,7 +14,10 @@
 // search) and on an UndirectedAdjacencyList of strings (through the view). Tropical −∞ (Int.min)
 // edges, often on cycles: Bellman–Ford, Floyd–Warshall and DAG paths against the W engine with
 // −∞ stood in by -1000: nil together, or the same distances. UInt, Int8 and Float against Int, Double and the enumeration. NaN weights
-// on edges the sources never reach: Dijkstra and Bellman–Ford answer as without them.
+// on edges the sources never reach: Dijkstra and Bellman–Ford answer as without them. Max-plus,
+// Viterbi and lexicographic products: the laws on random values; longest paths on the acyclic
+// orientation, most probable paths, and shortest paths with the fewest edges among equals, each
+// against the simple-path enumeration.
 
 import AdjacencyListModule
 import DirectedAcyclicGraphModule
@@ -49,6 +52,7 @@ enum FuzzSemirings {
         negativeInfinity(n, sources, raw)
         otherScalars(n, sources, raw)
         unexaminedNaN(n, sources, raw)
+        products(n, sources, raw)
     }
 
     // MARK: - Laws
@@ -88,6 +92,27 @@ enum FuzzSemirings {
         let c = bytes.map { $0 % 41 - 20 }
         semiring(CountingSemiring(c[0]), CountingSemiring(c[1]), CountingSemiring(c[2]))
         semiring(CountingSemiring(Double(c[0]) / 4), CountingSemiring(Double(c[1]) / 4), CountingSemiring(Double(c[2]) / 4))
+
+        let mp = bytes.map { int($0, top: Int.min, bottom: nil) }
+        semiring(MaxPlusSemiring(mp[0]), MaxPlusSemiring(mp[1]), MaxPlusSemiring(mp[2]))
+        selective(MaxPlusSemiring(mp[0]), MaxPlusSemiring(mp[1]), MaxPlusSemiring(mp[2]))
+        let mpd = bytes.map { $0 >= 250 ? -Double.infinity : Double($0 % 41 - 20) / 4 }
+        semiring(MaxPlusSemiring(mpd[0]), MaxPlusSemiring(mpd[1]), MaxPlusSemiring(mpd[2]))
+        selective(MaxPlusSemiring(mpd[0]), MaxPlusSemiring(mpd[1]), MaxPlusSemiring(mpd[2]))
+        // Powers of two, so products are exact.
+        let v = bytes.map { $0 >= 250 ? 0.0 : 1.0 / Double(1 << ($0 % 9)) }
+        semiring(ViterbiSemiring(v[0]), ViterbiSemiring(v[1]), ViterbiSemiring(v[2]))
+        selective(ViterbiSemiring(v[0]), ViterbiSemiring(v[1]), ViterbiSemiring(v[2]))
+        let l = zip(t, b).map { LexicographicSemiring(TropicalSemiring($0.0), BottleneckSemiring($0.1)) }
+        semiring(l[0], l[1], l[2])
+        selective(l[0], l[1], l[2])
+        let lm = zip(mp, t).map { LexicographicSemiring(MaxPlusSemiring($0.0), TropicalSemiring($0.1)) }
+        semiring(lm[0], lm[1], lm[2])
+        selective(lm[0], lm[1], lm[2])
+        check(MaxPlusSemiring(mp[0]).plus(MaxPlusSemiring(mp[1])).value == max(mp[0], mp[1]), "max-plus plus \(mp)")
+        check(MaxPlusSemiring(mp[0]).times(MaxPlusSemiring(mp[1])).value == (mp[0] == Int.min || mp[1] == Int.min ? Int.min : mp[0] + mp[1]), "max-plus times \(mp)")
+        check(ViterbiSemiring(v[0]).plus(ViterbiSemiring(v[1])).value == max(v[0], v[1]) && ViterbiSemiring(v[0]).times(ViterbiSemiring(v[1])).value == v[0] * v[1], "Viterbi \(v)")
+        check((l[0].first == .zero) == (l[0].second == .zero), "lexicographic zero normalization \(l[0])")
 
         // The raw operations.
         check(TropicalSemiring(t[0]).plus(TropicalSemiring(t[1])).value == min(t[0], t[1]), "tropical plus \(t)")
@@ -504,6 +529,43 @@ enum FuzzSemirings {
         if let dag = DirectedAcyclicGraph(dagGraph) {
             checkTree(dag.dagShortestPaths(from: sources, weight: forwardWeight), dag, vertices, sources, forwardWeight, dagExpected, "widest DirectedAcyclicGraph, \(context)")
             check(vertices.map { dag.dagShortestDistances(from: sources, weight: forwardWeight).distance(to: $0) } == dagExpected.map { $0 ?? .zero }, "widest DAG distances, \(context)")
+        }
+    }
+
+    // MARK: - Max-plus, Viterbi and lexicographic products
+
+    static func products(_ n: Int, _ sources: [Int], _ raw: [(u: Int, v: Int, byte: Int)]) {
+        let vertices = Array(0 ..< n)
+        // Weights 0...7: lengths, Viterbi exponents (probability 2^-w) and longest-path lengths.
+        let arcs: [Arc] = raw.map { ($0.u, $0.v, $0.byte % 8) }
+        let graph = DirectedPseudograph(vertices: 0 ..< n, edges: arcs.map { DirectedEdge(from: $0.u, to: $0.v) })
+        let context = "n \(n), sources \(sources): \(arcs)"
+        // Most probable: the fewest halvings over the simple paths.
+        let exponents = simplePaths(n, arcs, sources, start: 0, fold: +, better: <)
+        let probable = graph.dijkstraShortestPaths(from: sources) { ViterbiSemiring(1.0 / Double(1 << arcs[$0].w)) }
+        check(vertices.map { probable.distance(to: $0)?.value } == exponents.map { $0.map { 1.0 / Double(1 << $0) } }, "Viterbi Dijkstra, \(context)")
+        // Shortest, then fewest edges: length · 100 + edges, as one number (paths have under 100 edges).
+        let lexicographic = simplePaths(n, arcs, sources, start: 0, fold: { $0 + $1 * 100 + 1 }, better: <)
+        let pairs = graph.dijkstraShortestPaths(from: sources) { LexicographicSemiring(TropicalSemiring(arcs[$0].w), TropicalSemiring(1)) }
+        check(vertices.map { pairs.distance(to: $0).map { $0.first.value * 100 + $0.second.value } } == lexicographic, "lexicographic Dijkstra, \(context)")
+        if let bellmanFord = graph.bellmanFordShortestPaths(from: sources, weight: { LexicographicSemiring(TropicalSemiring(arcs[$0].w), TropicalSemiring(1)) }) {
+            check(vertices.map { bellmanFord.distance(to: $0).map { $0.first.value * 100 + $0.second.value } } == lexicographic, "lexicographic Bellman–Ford, \(context)")
+        } else {
+            check(false, "lexicographic Bellman–Ford nil, \(context)")
+        }
+        // Longest paths on the acyclic orientation; Bellman–Ford is nil exactly when a positive
+        // cycle is reachable on the graph itself.
+        let forward = arcs.filter { $0.u < $0.v }
+        let dag = DirectedPseudograph(vertices: 0 ..< n, edges: forward.map { DirectedEdge(from: $0.u, to: $0.v) })
+        let longest = simplePaths(n, forward, sources, start: 0, fold: +, better: >)
+        let tree = dag.dagShortestPaths(from: sources) { MaxPlusSemiring(forward[$0].w) }
+        check(tree.map { t in vertices.map { t.distance(to: $0)?.value } } == longest, "max-plus DAG, \(context)")
+        let bellmanFord = graph.bellmanFordShortestPaths(from: sources) { MaxPlusSemiring(arcs[$0].w) }
+        if !cycleReachable(n, arcs, sources) {
+            check(bellmanFord.map { t in vertices.map { t.distance(to: $0)?.value } } == simplePaths(n, arcs, sources, start: 0, fold: +, better: >), "max-plus Bellman–Ford, \(context)")
+        } else if arcs.allSatisfy({ $0.w > 0 }) {
+            // Every reachable cycle is positive.
+            check(bellmanFord == nil, "max-plus Bellman–Ford on a positive cycle, \(context)")
         }
     }
 

@@ -3633,4 +3633,1170 @@ struct SemiringLawTests {
         #expect((a ⊕ b) == sum)
     }
     #endif
+
+    @Test("SR-460 ⊕ is associative (MaxPlusSemiring<Int>: a = 3, b = -2, c = 7)")
+    func sr460() {
+        // (a ⊕ b) ⊕ c == a ⊕ (b ⊕ c) → both 7
+        let a = MaxPlusSemiring<Int>(3)
+        let b = MaxPlusSemiring<Int>(-2)
+        let c = MaxPlusSemiring<Int>(7)
+        let lhs: MaxPlusSemiring<Int> = a.plus(b).plus(c)
+        let rhs: MaxPlusSemiring<Int> = a.plus(b.plus(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 7 && rhs.value == 7)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = (a ⊕ b) ⊕ c
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊕ (b ⊕ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-461 ⊕ is associative (MaxPlusSemiring<Int>: a = 5, b = Int.min, c = 0)")
+    func sr461() {
+        // (a ⊕ b) ⊕ c == a ⊕ (b ⊕ c) → both 5
+        let a = MaxPlusSemiring<Int>(5)
+        let b = MaxPlusSemiring<Int>(Int.min)
+        let c = MaxPlusSemiring<Int>(0)
+        let lhs: MaxPlusSemiring<Int> = a.plus(b).plus(c)
+        let rhs: MaxPlusSemiring<Int> = a.plus(b.plus(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 5 && rhs.value == 5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = (a ⊕ b) ⊕ c
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊕ (b ⊕ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-462 ⊕ is associative (MaxPlusSemiring<Int>: a = -4, b = -4, c = Int.min)")
+    func sr462() {
+        // (a ⊕ b) ⊕ c == a ⊕ (b ⊕ c) → both -4
+        let a = MaxPlusSemiring<Int>(-4)
+        let b = MaxPlusSemiring<Int>(-4)
+        let c = MaxPlusSemiring<Int>(Int.min)
+        let lhs: MaxPlusSemiring<Int> = a.plus(b).plus(c)
+        let rhs: MaxPlusSemiring<Int> = a.plus(b.plus(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == -4 && rhs.value == -4)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = (a ⊕ b) ⊕ c
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊕ (b ⊕ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-463 ⊕ is commutative (MaxPlusSemiring<Int>: a = 3, b = -2, c = 7)")
+    func sr463() {
+        // a ⊕ b == b ⊕ a → both 3
+        let a = MaxPlusSemiring<Int>(3)
+        let b = MaxPlusSemiring<Int>(-2)
+        let lhs: MaxPlusSemiring<Int> = a.plus(b)
+        let rhs: MaxPlusSemiring<Int> = b.plus(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 3 && rhs.value == 3)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊕ b
+        let rhsOperators: MaxPlusSemiring<Int> = b ⊕ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-464 ⊕ is commutative (MaxPlusSemiring<Int>: a = 5, b = Int.min, c = 0)")
+    func sr464() {
+        // a ⊕ b == b ⊕ a → both 5
+        let a = MaxPlusSemiring<Int>(5)
+        let b = MaxPlusSemiring<Int>(Int.min)
+        let lhs: MaxPlusSemiring<Int> = a.plus(b)
+        let rhs: MaxPlusSemiring<Int> = b.plus(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 5 && rhs.value == 5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊕ b
+        let rhsOperators: MaxPlusSemiring<Int> = b ⊕ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-465 ⊕ is commutative (MaxPlusSemiring<Int>: a = -4, b = -4, c = Int.min)")
+    func sr465() {
+        // a ⊕ b == b ⊕ a → both -4
+        let a = MaxPlusSemiring<Int>(-4)
+        let b = MaxPlusSemiring<Int>(-4)
+        let lhs: MaxPlusSemiring<Int> = a.plus(b)
+        let rhs: MaxPlusSemiring<Int> = b.plus(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == -4 && rhs.value == -4)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊕ b
+        let rhsOperators: MaxPlusSemiring<Int> = b ⊕ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-466 zero is ⊕'s identity (MaxPlusSemiring<Int>: a = 3, b = -2, c = 7)")
+    func sr466() {
+        // a ⊕ .zero == a → both 3
+        let a = MaxPlusSemiring<Int>(3)
+        let lhs: MaxPlusSemiring<Int> = a.plus(MaxPlusSemiring<Int>.zero)
+        let rhs: MaxPlusSemiring<Int> = a
+        #expect(lhs == rhs)
+        #expect(lhs.value == 3 && rhs.value == 3)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊕ .zero
+        let rhsOperators: MaxPlusSemiring<Int> = a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-467 zero is ⊕'s identity (MaxPlusSemiring<Int>: a = 5, b = Int.min, c = 0)")
+    func sr467() {
+        // a ⊕ .zero == a → both 5
+        let a = MaxPlusSemiring<Int>(5)
+        let lhs: MaxPlusSemiring<Int> = a.plus(MaxPlusSemiring<Int>.zero)
+        let rhs: MaxPlusSemiring<Int> = a
+        #expect(lhs == rhs)
+        #expect(lhs.value == 5 && rhs.value == 5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊕ .zero
+        let rhsOperators: MaxPlusSemiring<Int> = a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-468 zero is ⊕'s identity (MaxPlusSemiring<Int>: a = -4, b = -4, c = Int.min)")
+    func sr468() {
+        // a ⊕ .zero == a → both -4
+        let a = MaxPlusSemiring<Int>(-4)
+        let lhs: MaxPlusSemiring<Int> = a.plus(MaxPlusSemiring<Int>.zero)
+        let rhs: MaxPlusSemiring<Int> = a
+        #expect(lhs == rhs)
+        #expect(lhs.value == -4 && rhs.value == -4)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊕ .zero
+        let rhsOperators: MaxPlusSemiring<Int> = a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-469 ⊗ is associative (MaxPlusSemiring<Int>: a = 3, b = -2, c = 7)")
+    func sr469() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both 8
+        let a = MaxPlusSemiring<Int>(3)
+        let b = MaxPlusSemiring<Int>(-2)
+        let c = MaxPlusSemiring<Int>(7)
+        let lhs: MaxPlusSemiring<Int> = a.times(b).times(c)
+        let rhs: MaxPlusSemiring<Int> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 8 && rhs.value == 8)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = (a ⊗ b) ⊗ c
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-470 ⊗ is associative (MaxPlusSemiring<Int>: a = 5, b = Int.min, c = 0)")
+    func sr470() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both Int.min
+        let a = MaxPlusSemiring<Int>(5)
+        let b = MaxPlusSemiring<Int>(Int.min)
+        let c = MaxPlusSemiring<Int>(0)
+        let lhs: MaxPlusSemiring<Int> = a.times(b).times(c)
+        let rhs: MaxPlusSemiring<Int> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int.min && rhs.value == Int.min)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = (a ⊗ b) ⊗ c
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-471 ⊗ is associative (MaxPlusSemiring<Int>: a = -4, b = -4, c = Int.min)")
+    func sr471() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both Int.min
+        let a = MaxPlusSemiring<Int>(-4)
+        let b = MaxPlusSemiring<Int>(-4)
+        let c = MaxPlusSemiring<Int>(Int.min)
+        let lhs: MaxPlusSemiring<Int> = a.times(b).times(c)
+        let rhs: MaxPlusSemiring<Int> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int.min && rhs.value == Int.min)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = (a ⊗ b) ⊗ c
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-472 one is ⊗'s identity (MaxPlusSemiring<Int>: a = 3, b = -2, c = 7)")
+    func sr472() {
+        // .one ⊗ a == a ⊗ .one → both 3
+        let a = MaxPlusSemiring<Int>(3)
+        let lhs: MaxPlusSemiring<Int> = MaxPlusSemiring<Int>.one.times(a)
+        let rhs: MaxPlusSemiring<Int> = a.times(MaxPlusSemiring<Int>.one)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 3 && rhs.value == 3)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = .one ⊗ a
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊗ .one
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-473 one is ⊗'s identity (MaxPlusSemiring<Int>: a = 5, b = Int.min, c = 0)")
+    func sr473() {
+        // .one ⊗ a == a ⊗ .one → both 5
+        let a = MaxPlusSemiring<Int>(5)
+        let lhs: MaxPlusSemiring<Int> = MaxPlusSemiring<Int>.one.times(a)
+        let rhs: MaxPlusSemiring<Int> = a.times(MaxPlusSemiring<Int>.one)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 5 && rhs.value == 5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = .one ⊗ a
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊗ .one
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-474 one is ⊗'s identity (MaxPlusSemiring<Int>: a = -4, b = -4, c = Int.min)")
+    func sr474() {
+        // .one ⊗ a == a ⊗ .one → both -4
+        let a = MaxPlusSemiring<Int>(-4)
+        let lhs: MaxPlusSemiring<Int> = MaxPlusSemiring<Int>.one.times(a)
+        let rhs: MaxPlusSemiring<Int> = a.times(MaxPlusSemiring<Int>.one)
+        #expect(lhs == rhs)
+        #expect(lhs.value == -4 && rhs.value == -4)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = .one ⊗ a
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊗ .one
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-475 zero annihilates (MaxPlusSemiring<Int>: a = 3, b = -2, c = 7)")
+    func sr475() {
+        // .zero ⊗ a == a ⊗ .zero → both Int.min
+        let a = MaxPlusSemiring<Int>(3)
+        let lhs: MaxPlusSemiring<Int> = MaxPlusSemiring<Int>.zero.times(a)
+        let rhs: MaxPlusSemiring<Int> = a.times(MaxPlusSemiring<Int>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int.min && rhs.value == Int.min)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = .zero ⊗ a
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-476 zero annihilates (MaxPlusSemiring<Int>: a = 5, b = Int.min, c = 0)")
+    func sr476() {
+        // .zero ⊗ a == a ⊗ .zero → both Int.min
+        let a = MaxPlusSemiring<Int>(5)
+        let lhs: MaxPlusSemiring<Int> = MaxPlusSemiring<Int>.zero.times(a)
+        let rhs: MaxPlusSemiring<Int> = a.times(MaxPlusSemiring<Int>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int.min && rhs.value == Int.min)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = .zero ⊗ a
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-477 zero annihilates (MaxPlusSemiring<Int>: a = -4, b = -4, c = Int.min)")
+    func sr477() {
+        // .zero ⊗ a == a ⊗ .zero → both Int.min
+        let a = MaxPlusSemiring<Int>(-4)
+        let lhs: MaxPlusSemiring<Int> = MaxPlusSemiring<Int>.zero.times(a)
+        let rhs: MaxPlusSemiring<Int> = a.times(MaxPlusSemiring<Int>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int.min && rhs.value == Int.min)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = .zero ⊗ a
+        let rhsOperators: MaxPlusSemiring<Int> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-478 ⊗ distributes over ⊕ from the left (MaxPlusSemiring<Int>: a = 3, b = -2, c = 7)")
+    func sr478() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 10
+        let a = MaxPlusSemiring<Int>(3)
+        let b = MaxPlusSemiring<Int>(-2)
+        let c = MaxPlusSemiring<Int>(7)
+        let lhs: MaxPlusSemiring<Int> = a.times(b.plus(c))
+        let rhs: MaxPlusSemiring<Int> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 10 && rhs.value == 10)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊗ (b ⊕ c)
+        let rhsOperators: MaxPlusSemiring<Int> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-479 ⊗ distributes over ⊕ from the left (MaxPlusSemiring<Int>: a = 5, b = Int.min, c = 0)")
+    func sr479() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 5
+        let a = MaxPlusSemiring<Int>(5)
+        let b = MaxPlusSemiring<Int>(Int.min)
+        let c = MaxPlusSemiring<Int>(0)
+        let lhs: MaxPlusSemiring<Int> = a.times(b.plus(c))
+        let rhs: MaxPlusSemiring<Int> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 5 && rhs.value == 5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊗ (b ⊕ c)
+        let rhsOperators: MaxPlusSemiring<Int> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-480 ⊗ distributes over ⊕ from the left (MaxPlusSemiring<Int>: a = -4, b = -4, c = Int.min)")
+    func sr480() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both -8
+        let a = MaxPlusSemiring<Int>(-4)
+        let b = MaxPlusSemiring<Int>(-4)
+        let c = MaxPlusSemiring<Int>(Int.min)
+        let lhs: MaxPlusSemiring<Int> = a.times(b.plus(c))
+        let rhs: MaxPlusSemiring<Int> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == -8 && rhs.value == -8)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊗ (b ⊕ c)
+        let rhsOperators: MaxPlusSemiring<Int> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-481 ⊗ distributes over ⊕ from the right (MaxPlusSemiring<Int>: a = 3, b = -2, c = 7)")
+    func sr481() {
+        // (a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c) → both 10
+        let a = MaxPlusSemiring<Int>(3)
+        let b = MaxPlusSemiring<Int>(-2)
+        let c = MaxPlusSemiring<Int>(7)
+        let lhs: MaxPlusSemiring<Int> = a.plus(b).times(c)
+        let rhs: MaxPlusSemiring<Int> = a.times(c).plus(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 10 && rhs.value == 10)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = (a ⊕ b) ⊗ c
+        let rhsOperators: MaxPlusSemiring<Int> = (a ⊗ c) ⊕ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-482 ⊗ distributes over ⊕ from the right (MaxPlusSemiring<Int>: a = 5, b = Int.min, c = 0)")
+    func sr482() {
+        // (a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c) → both 5
+        let a = MaxPlusSemiring<Int>(5)
+        let b = MaxPlusSemiring<Int>(Int.min)
+        let c = MaxPlusSemiring<Int>(0)
+        let lhs: MaxPlusSemiring<Int> = a.plus(b).times(c)
+        let rhs: MaxPlusSemiring<Int> = a.times(c).plus(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 5 && rhs.value == 5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = (a ⊕ b) ⊗ c
+        let rhsOperators: MaxPlusSemiring<Int> = (a ⊗ c) ⊕ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-483 ⊗ distributes over ⊕ from the right (MaxPlusSemiring<Int>: a = -4, b = -4, c = Int.min)")
+    func sr483() {
+        // (a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c) → both Int.min
+        let a = MaxPlusSemiring<Int>(-4)
+        let b = MaxPlusSemiring<Int>(-4)
+        let c = MaxPlusSemiring<Int>(Int.min)
+        let lhs: MaxPlusSemiring<Int> = a.plus(b).times(c)
+        let rhs: MaxPlusSemiring<Int> = a.times(c).plus(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int.min && rhs.value == Int.min)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = (a ⊕ b) ⊗ c
+        let rhsOperators: MaxPlusSemiring<Int> = (a ⊗ c) ⊕ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-484 ⊗ is commutative (not a requirement) (MaxPlusSemiring<Int>: a = 3, b = -2, c = 7)")
+    func sr484() {
+        // a ⊗ b == b ⊗ a → both 1
+        let a = MaxPlusSemiring<Int>(3)
+        let b = MaxPlusSemiring<Int>(-2)
+        let lhs: MaxPlusSemiring<Int> = a.times(b)
+        let rhs: MaxPlusSemiring<Int> = b.times(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 1 && rhs.value == 1)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊗ b
+        let rhsOperators: MaxPlusSemiring<Int> = b ⊗ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-485 ⊗ is commutative (not a requirement) (MaxPlusSemiring<Int>: a = 5, b = Int.min, c = 0)")
+    func sr485() {
+        // a ⊗ b == b ⊗ a → both Int.min
+        let a = MaxPlusSemiring<Int>(5)
+        let b = MaxPlusSemiring<Int>(Int.min)
+        let lhs: MaxPlusSemiring<Int> = a.times(b)
+        let rhs: MaxPlusSemiring<Int> = b.times(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == Int.min && rhs.value == Int.min)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊗ b
+        let rhsOperators: MaxPlusSemiring<Int> = b ⊗ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-486 ⊗ is commutative (not a requirement) (MaxPlusSemiring<Int>: a = -4, b = -4, c = Int.min)")
+    func sr486() {
+        // a ⊗ b == b ⊗ a → both -8
+        let a = MaxPlusSemiring<Int>(-4)
+        let b = MaxPlusSemiring<Int>(-4)
+        let lhs: MaxPlusSemiring<Int> = a.times(b)
+        let rhs: MaxPlusSemiring<Int> = b.times(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == -8 && rhs.value == -8)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Int> = a ⊗ b
+        let rhsOperators: MaxPlusSemiring<Int> = b ⊗ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-487 selective: a ⊕ b is the better by < (MaxPlusSemiring<Int>: a = 3, b = -2)")
+    func sr487() {
+        // a ⊕ b == (b < a ? b : a) → true (3)
+        let a = MaxPlusSemiring<Int>(3)
+        let b = MaxPlusSemiring<Int>(-2)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 3)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-488 idempotent (MaxPlusSemiring<Int>: a = 3)")
+    func sr488() {
+        // a ⊕ a == a → true (a ⊕ a = 3)
+        let a = MaxPlusSemiring<Int>(3)
+        let sum = a.plus(a)
+        #expect(sum == a)
+        #expect(sum.value == 3)
+        #expect((a ⊕ a) == sum)
+    }
+
+    @Test("SR-489 selective: a ⊕ b is the better by < (MaxPlusSemiring<Int>: a = 5, b = Int.min)")
+    func sr489() {
+        // a ⊕ b == (b < a ? b : a) → true (5)
+        let a = MaxPlusSemiring<Int>(5)
+        let b = MaxPlusSemiring<Int>(Int.min)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 5)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-490 idempotent (MaxPlusSemiring<Int>: a = 5)")
+    func sr490() {
+        // a ⊕ a == a → true (a ⊕ a = 5)
+        let a = MaxPlusSemiring<Int>(5)
+        let sum = a.plus(a)
+        #expect(sum == a)
+        #expect(sum.value == 5)
+        #expect((a ⊕ a) == sum)
+    }
+
+    @Test("SR-491 selective: a ⊕ b is the better by < (MaxPlusSemiring<Int>: a = -4, b = -4)")
+    func sr491() {
+        // a ⊕ b == (b < a ? b : a) → true (-4)
+        let a = MaxPlusSemiring<Int>(-4)
+        let b = MaxPlusSemiring<Int>(-4)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == -4)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-492 idempotent (MaxPlusSemiring<Int>: a = -4)")
+    func sr492() {
+        // a ⊕ a == a → true (a ⊕ a = -4)
+        let a = MaxPlusSemiring<Int>(-4)
+        let sum = a.plus(a)
+        #expect(sum == a)
+        #expect(sum.value == -4)
+        #expect((a ⊕ a) == sum)
+    }
+
+    @Test("SR-493 the natural order: < is ‘better’ (MaxPlusSemiring<Int>: a = 3, b = -2)")
+    func sr493() {
+        // a < b → true
+        let a = MaxPlusSemiring<Int>(3)
+        let b = MaxPlusSemiring<Int>(-2)
+        #expect((a < b))
+        // The natural order: a < b exactly when a.plus(b) == a and a != b.
+        #expect((a < b) == (a.plus(b) == a && a != b))
+        #expect(!(b < a) && a != b)
+    }
+
+    @Test("SR-494 zero is the greatest (worst) element (MaxPlusSemiring<Int>: a = 3)")
+    func sr494() {
+        // a < .zero || a == .zero → true
+        let a = MaxPlusSemiring<Int>(3)
+        #expect(a < .zero || a == .zero)
+        #expect(!(MaxPlusSemiring<Int>.zero < a))
+        #expect(a.plus(.zero) == a)
+    }
+
+    @Test("SR-496 ⊕ is associative (MaxPlusSemiring<Double>: a = 1.5, b = -2.25, c = 4.0)")
+    func sr496() {
+        // (a ⊕ b) ⊕ c == a ⊕ (b ⊕ c) → both 4.0
+        let a = MaxPlusSemiring<Double>(1.5)
+        let b = MaxPlusSemiring<Double>(-2.25)
+        let c = MaxPlusSemiring<Double>(4.0)
+        let lhs: MaxPlusSemiring<Double> = a.plus(b).plus(c)
+        let rhs: MaxPlusSemiring<Double> = a.plus(b.plus(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 4.0 && rhs.value == 4.0)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = (a ⊕ b) ⊕ c
+        let rhsOperators: MaxPlusSemiring<Double> = a ⊕ (b ⊕ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-497 ⊕ is associative (MaxPlusSemiring<Double>: a = -.infinity, b = 0.5, c = -3.0)")
+    func sr497() {
+        // (a ⊕ b) ⊕ c == a ⊕ (b ⊕ c) → both 0.5
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let b = MaxPlusSemiring<Double>(0.5)
+        let c = MaxPlusSemiring<Double>(-3.0)
+        let lhs: MaxPlusSemiring<Double> = a.plus(b).plus(c)
+        let rhs: MaxPlusSemiring<Double> = a.plus(b.plus(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.5 && rhs.value == 0.5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = (a ⊕ b) ⊕ c
+        let rhsOperators: MaxPlusSemiring<Double> = a ⊕ (b ⊕ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-498 ⊕ is commutative (MaxPlusSemiring<Double>: a = 1.5, b = -2.25, c = 4.0)")
+    func sr498() {
+        // a ⊕ b == b ⊕ a → both 1.5
+        let a = MaxPlusSemiring<Double>(1.5)
+        let b = MaxPlusSemiring<Double>(-2.25)
+        let lhs: MaxPlusSemiring<Double> = a.plus(b)
+        let rhs: MaxPlusSemiring<Double> = b.plus(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 1.5 && rhs.value == 1.5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = a ⊕ b
+        let rhsOperators: MaxPlusSemiring<Double> = b ⊕ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-499 ⊕ is commutative (MaxPlusSemiring<Double>: a = -.infinity, b = 0.5, c = -3.0)")
+    func sr499() {
+        // a ⊕ b == b ⊕ a → both 0.5
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let b = MaxPlusSemiring<Double>(0.5)
+        let lhs: MaxPlusSemiring<Double> = a.plus(b)
+        let rhs: MaxPlusSemiring<Double> = b.plus(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.5 && rhs.value == 0.5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = a ⊕ b
+        let rhsOperators: MaxPlusSemiring<Double> = b ⊕ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-500 zero is ⊕'s identity (MaxPlusSemiring<Double>: a = 1.5, b = -2.25, c = 4.0)")
+    func sr500() {
+        // a ⊕ .zero == a → both 1.5
+        let a = MaxPlusSemiring<Double>(1.5)
+        let lhs: MaxPlusSemiring<Double> = a.plus(MaxPlusSemiring<Double>.zero)
+        let rhs: MaxPlusSemiring<Double> = a
+        #expect(lhs == rhs)
+        #expect(lhs.value == 1.5 && rhs.value == 1.5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = a ⊕ .zero
+        let rhsOperators: MaxPlusSemiring<Double> = a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-501 zero is ⊕'s identity (MaxPlusSemiring<Double>: a = -.infinity, b = 0.5, c = -3.0)")
+    func sr501() {
+        // a ⊕ .zero == a → both -.infinity
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let lhs: MaxPlusSemiring<Double> = a.plus(MaxPlusSemiring<Double>.zero)
+        let rhs: MaxPlusSemiring<Double> = a
+        #expect(lhs == rhs)
+        #expect(lhs.value == -Double.infinity && rhs.value == -Double.infinity)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = a ⊕ .zero
+        let rhsOperators: MaxPlusSemiring<Double> = a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-502 ⊗ is associative (MaxPlusSemiring<Double>: a = 1.5, b = -2.25, c = 4.0)")
+    func sr502() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both 3.25
+        let a = MaxPlusSemiring<Double>(1.5)
+        let b = MaxPlusSemiring<Double>(-2.25)
+        let c = MaxPlusSemiring<Double>(4.0)
+        let lhs: MaxPlusSemiring<Double> = a.times(b).times(c)
+        let rhs: MaxPlusSemiring<Double> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 3.25 && rhs.value == 3.25)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = (a ⊗ b) ⊗ c
+        let rhsOperators: MaxPlusSemiring<Double> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-503 ⊗ is associative (MaxPlusSemiring<Double>: a = -.infinity, b = 0.5, c = -3.0)")
+    func sr503() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both -.infinity
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let b = MaxPlusSemiring<Double>(0.5)
+        let c = MaxPlusSemiring<Double>(-3.0)
+        let lhs: MaxPlusSemiring<Double> = a.times(b).times(c)
+        let rhs: MaxPlusSemiring<Double> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == -Double.infinity && rhs.value == -Double.infinity)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = (a ⊗ b) ⊗ c
+        let rhsOperators: MaxPlusSemiring<Double> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-504 one is ⊗'s identity (MaxPlusSemiring<Double>: a = 1.5, b = -2.25, c = 4.0)")
+    func sr504() {
+        // .one ⊗ a == a ⊗ .one → both 1.5
+        let a = MaxPlusSemiring<Double>(1.5)
+        let lhs: MaxPlusSemiring<Double> = MaxPlusSemiring<Double>.one.times(a)
+        let rhs: MaxPlusSemiring<Double> = a.times(MaxPlusSemiring<Double>.one)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 1.5 && rhs.value == 1.5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = .one ⊗ a
+        let rhsOperators: MaxPlusSemiring<Double> = a ⊗ .one
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-505 one is ⊗'s identity (MaxPlusSemiring<Double>: a = -.infinity, b = 0.5, c = -3.0)")
+    func sr505() {
+        // .one ⊗ a == a ⊗ .one → both -.infinity
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let lhs: MaxPlusSemiring<Double> = MaxPlusSemiring<Double>.one.times(a)
+        let rhs: MaxPlusSemiring<Double> = a.times(MaxPlusSemiring<Double>.one)
+        #expect(lhs == rhs)
+        #expect(lhs.value == -Double.infinity && rhs.value == -Double.infinity)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = .one ⊗ a
+        let rhsOperators: MaxPlusSemiring<Double> = a ⊗ .one
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-506 zero annihilates (MaxPlusSemiring<Double>: a = 1.5, b = -2.25, c = 4.0)")
+    func sr506() {
+        // .zero ⊗ a == a ⊗ .zero → both -.infinity
+        let a = MaxPlusSemiring<Double>(1.5)
+        let lhs: MaxPlusSemiring<Double> = MaxPlusSemiring<Double>.zero.times(a)
+        let rhs: MaxPlusSemiring<Double> = a.times(MaxPlusSemiring<Double>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == -Double.infinity && rhs.value == -Double.infinity)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = .zero ⊗ a
+        let rhsOperators: MaxPlusSemiring<Double> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-507 zero annihilates (MaxPlusSemiring<Double>: a = -.infinity, b = 0.5, c = -3.0)")
+    func sr507() {
+        // .zero ⊗ a == a ⊗ .zero → both -.infinity
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let lhs: MaxPlusSemiring<Double> = MaxPlusSemiring<Double>.zero.times(a)
+        let rhs: MaxPlusSemiring<Double> = a.times(MaxPlusSemiring<Double>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == -Double.infinity && rhs.value == -Double.infinity)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = .zero ⊗ a
+        let rhsOperators: MaxPlusSemiring<Double> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-508 ⊗ distributes over ⊕ from the left (MaxPlusSemiring<Double>: a = 1.5, b = -2.25, c = 4.0)")
+    func sr508() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 5.5
+        let a = MaxPlusSemiring<Double>(1.5)
+        let b = MaxPlusSemiring<Double>(-2.25)
+        let c = MaxPlusSemiring<Double>(4.0)
+        let lhs: MaxPlusSemiring<Double> = a.times(b.plus(c))
+        let rhs: MaxPlusSemiring<Double> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 5.5 && rhs.value == 5.5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = a ⊗ (b ⊕ c)
+        let rhsOperators: MaxPlusSemiring<Double> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-509 ⊗ distributes over ⊕ from the left (MaxPlusSemiring<Double>: a = -.infinity, b = 0.5, c = -3.0)")
+    func sr509() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both -.infinity
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let b = MaxPlusSemiring<Double>(0.5)
+        let c = MaxPlusSemiring<Double>(-3.0)
+        let lhs: MaxPlusSemiring<Double> = a.times(b.plus(c))
+        let rhs: MaxPlusSemiring<Double> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == -Double.infinity && rhs.value == -Double.infinity)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = a ⊗ (b ⊕ c)
+        let rhsOperators: MaxPlusSemiring<Double> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-510 ⊗ distributes over ⊕ from the right (MaxPlusSemiring<Double>: a = 1.5, b = -2.25, c = 4.0)")
+    func sr510() {
+        // (a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c) → both 5.5
+        let a = MaxPlusSemiring<Double>(1.5)
+        let b = MaxPlusSemiring<Double>(-2.25)
+        let c = MaxPlusSemiring<Double>(4.0)
+        let lhs: MaxPlusSemiring<Double> = a.plus(b).times(c)
+        let rhs: MaxPlusSemiring<Double> = a.times(c).plus(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 5.5 && rhs.value == 5.5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = (a ⊕ b) ⊗ c
+        let rhsOperators: MaxPlusSemiring<Double> = (a ⊗ c) ⊕ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-511 ⊗ distributes over ⊕ from the right (MaxPlusSemiring<Double>: a = -.infinity, b = 0.5, c = -3.0)")
+    func sr511() {
+        // (a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c) → both -2.5
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let b = MaxPlusSemiring<Double>(0.5)
+        let c = MaxPlusSemiring<Double>(-3.0)
+        let lhs: MaxPlusSemiring<Double> = a.plus(b).times(c)
+        let rhs: MaxPlusSemiring<Double> = a.times(c).plus(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == -2.5 && rhs.value == -2.5)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = (a ⊕ b) ⊗ c
+        let rhsOperators: MaxPlusSemiring<Double> = (a ⊗ c) ⊕ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-512 ⊗ is commutative (not a requirement) (MaxPlusSemiring<Double>: a = 1.5, b = -2.25, c = 4.0)")
+    func sr512() {
+        // a ⊗ b == b ⊗ a → both -0.75
+        let a = MaxPlusSemiring<Double>(1.5)
+        let b = MaxPlusSemiring<Double>(-2.25)
+        let lhs: MaxPlusSemiring<Double> = a.times(b)
+        let rhs: MaxPlusSemiring<Double> = b.times(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == -0.75 && rhs.value == -0.75)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = a ⊗ b
+        let rhsOperators: MaxPlusSemiring<Double> = b ⊗ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-513 ⊗ is commutative (not a requirement) (MaxPlusSemiring<Double>: a = -.infinity, b = 0.5, c = -3.0)")
+    func sr513() {
+        // a ⊗ b == b ⊗ a → both -.infinity
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let b = MaxPlusSemiring<Double>(0.5)
+        let lhs: MaxPlusSemiring<Double> = a.times(b)
+        let rhs: MaxPlusSemiring<Double> = b.times(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == -Double.infinity && rhs.value == -Double.infinity)
+        // The operators call the methods.
+        let lhsOperators: MaxPlusSemiring<Double> = a ⊗ b
+        let rhsOperators: MaxPlusSemiring<Double> = b ⊗ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-514 selective: a ⊕ b is the better by < (MaxPlusSemiring<Double>: a = 1.5, b = -2.25)")
+    func sr514() {
+        // a ⊕ b == (b < a ? b : a) → true (1.5)
+        let a = MaxPlusSemiring<Double>(1.5)
+        let b = MaxPlusSemiring<Double>(-2.25)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 1.5)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-515 idempotent (MaxPlusSemiring<Double>: a = 1.5)")
+    func sr515() {
+        // a ⊕ a == a → true (a ⊕ a = 1.5)
+        let a = MaxPlusSemiring<Double>(1.5)
+        let sum = a.plus(a)
+        #expect(sum == a)
+        #expect(sum.value == 1.5)
+        #expect((a ⊕ a) == sum)
+    }
+
+    @Test("SR-516 selective: a ⊕ b is the better by < (MaxPlusSemiring<Double>: a = -.infinity, b = 0.5)")
+    func sr516() {
+        // a ⊕ b == (b < a ? b : a) → true (0.5)
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let b = MaxPlusSemiring<Double>(0.5)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 0.5)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-517 idempotent (MaxPlusSemiring<Double>: a = -.infinity)")
+    func sr517() {
+        // a ⊕ a == a → true (a ⊕ a = -.infinity)
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let sum = a.plus(a)
+        #expect(sum == a)
+        #expect(sum.value == -Double.infinity)
+        #expect((a ⊕ a) == sum)
+    }
+
+    @Test("SR-518 the natural order: < is ‘better’ (MaxPlusSemiring<Double>: a = 1.5, b = -2.25)")
+    func sr518() {
+        // a < b → true
+        let a = MaxPlusSemiring<Double>(1.5)
+        let b = MaxPlusSemiring<Double>(-2.25)
+        #expect((a < b))
+        // The natural order: a < b exactly when a.plus(b) == a and a != b.
+        #expect((a < b) == (a.plus(b) == a && a != b))
+        #expect(!(b < a) && a != b)
+    }
+
+    @Test("SR-519 zero is the greatest (worst) element (MaxPlusSemiring<Double>: a = 1.5)")
+    func sr519() {
+        // a < .zero || a == .zero → true
+        let a = MaxPlusSemiring<Double>(1.5)
+        #expect(a < .zero || a == .zero)
+        #expect(!(MaxPlusSemiring<Double>.zero < a))
+        #expect(a.plus(.zero) == a)
+    }
+
+    @Test("SR-521 ⊕ is associative (ViterbiSemiring<Double>: a = 0.5, b = 0.25, c = 1.0)")
+    func sr521() {
+        // (a ⊕ b) ⊕ c == a ⊕ (b ⊕ c) → both 1.0
+        let a = ViterbiSemiring<Double>(0.5)
+        let b = ViterbiSemiring<Double>(0.25)
+        let c = ViterbiSemiring<Double>(1.0)
+        let lhs: ViterbiSemiring<Double> = a.plus(b).plus(c)
+        let rhs: ViterbiSemiring<Double> = a.plus(b.plus(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 1.0 && rhs.value == 1.0)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = (a ⊕ b) ⊕ c
+        let rhsOperators: ViterbiSemiring<Double> = a ⊕ (b ⊕ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-522 ⊕ is associative (ViterbiSemiring<Double>: a = 0.0, b = 0.75, c = 0.5)")
+    func sr522() {
+        // (a ⊕ b) ⊕ c == a ⊕ (b ⊕ c) → both 0.75
+        let a = ViterbiSemiring<Double>(0.0)
+        let b = ViterbiSemiring<Double>(0.75)
+        let c = ViterbiSemiring<Double>(0.5)
+        let lhs: ViterbiSemiring<Double> = a.plus(b).plus(c)
+        let rhs: ViterbiSemiring<Double> = a.plus(b.plus(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.75 && rhs.value == 0.75)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = (a ⊕ b) ⊕ c
+        let rhsOperators: ViterbiSemiring<Double> = a ⊕ (b ⊕ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-523 ⊕ is commutative (ViterbiSemiring<Double>: a = 0.5, b = 0.25, c = 1.0)")
+    func sr523() {
+        // a ⊕ b == b ⊕ a → both 0.5
+        let a = ViterbiSemiring<Double>(0.5)
+        let b = ViterbiSemiring<Double>(0.25)
+        let lhs: ViterbiSemiring<Double> = a.plus(b)
+        let rhs: ViterbiSemiring<Double> = b.plus(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.5 && rhs.value == 0.5)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = a ⊕ b
+        let rhsOperators: ViterbiSemiring<Double> = b ⊕ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-524 ⊕ is commutative (ViterbiSemiring<Double>: a = 0.0, b = 0.75, c = 0.5)")
+    func sr524() {
+        // a ⊕ b == b ⊕ a → both 0.75
+        let a = ViterbiSemiring<Double>(0.0)
+        let b = ViterbiSemiring<Double>(0.75)
+        let lhs: ViterbiSemiring<Double> = a.plus(b)
+        let rhs: ViterbiSemiring<Double> = b.plus(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.75 && rhs.value == 0.75)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = a ⊕ b
+        let rhsOperators: ViterbiSemiring<Double> = b ⊕ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-525 zero is ⊕'s identity (ViterbiSemiring<Double>: a = 0.5, b = 0.25, c = 1.0)")
+    func sr525() {
+        // a ⊕ .zero == a → both 0.5
+        let a = ViterbiSemiring<Double>(0.5)
+        let lhs: ViterbiSemiring<Double> = a.plus(ViterbiSemiring<Double>.zero)
+        let rhs: ViterbiSemiring<Double> = a
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.5 && rhs.value == 0.5)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = a ⊕ .zero
+        let rhsOperators: ViterbiSemiring<Double> = a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-526 zero is ⊕'s identity (ViterbiSemiring<Double>: a = 0.0, b = 0.75, c = 0.5)")
+    func sr526() {
+        // a ⊕ .zero == a → both 0.0
+        let a = ViterbiSemiring<Double>(0.0)
+        let lhs: ViterbiSemiring<Double> = a.plus(ViterbiSemiring<Double>.zero)
+        let rhs: ViterbiSemiring<Double> = a
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.0 && rhs.value == 0.0)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = a ⊕ .zero
+        let rhsOperators: ViterbiSemiring<Double> = a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-527 ⊗ is associative (ViterbiSemiring<Double>: a = 0.5, b = 0.25, c = 1.0)")
+    func sr527() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both 0.125
+        let a = ViterbiSemiring<Double>(0.5)
+        let b = ViterbiSemiring<Double>(0.25)
+        let c = ViterbiSemiring<Double>(1.0)
+        let lhs: ViterbiSemiring<Double> = a.times(b).times(c)
+        let rhs: ViterbiSemiring<Double> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.125 && rhs.value == 0.125)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = (a ⊗ b) ⊗ c
+        let rhsOperators: ViterbiSemiring<Double> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-528 ⊗ is associative (ViterbiSemiring<Double>: a = 0.0, b = 0.75, c = 0.5)")
+    func sr528() {
+        // (a ⊗ b) ⊗ c == a ⊗ (b ⊗ c) → both 0.0
+        let a = ViterbiSemiring<Double>(0.0)
+        let b = ViterbiSemiring<Double>(0.75)
+        let c = ViterbiSemiring<Double>(0.5)
+        let lhs: ViterbiSemiring<Double> = a.times(b).times(c)
+        let rhs: ViterbiSemiring<Double> = a.times(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.0 && rhs.value == 0.0)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = (a ⊗ b) ⊗ c
+        let rhsOperators: ViterbiSemiring<Double> = a ⊗ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-529 one is ⊗'s identity (ViterbiSemiring<Double>: a = 0.5, b = 0.25, c = 1.0)")
+    func sr529() {
+        // .one ⊗ a == a ⊗ .one → both 0.5
+        let a = ViterbiSemiring<Double>(0.5)
+        let lhs: ViterbiSemiring<Double> = ViterbiSemiring<Double>.one.times(a)
+        let rhs: ViterbiSemiring<Double> = a.times(ViterbiSemiring<Double>.one)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.5 && rhs.value == 0.5)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = .one ⊗ a
+        let rhsOperators: ViterbiSemiring<Double> = a ⊗ .one
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-530 one is ⊗'s identity (ViterbiSemiring<Double>: a = 0.0, b = 0.75, c = 0.5)")
+    func sr530() {
+        // .one ⊗ a == a ⊗ .one → both 0.0
+        let a = ViterbiSemiring<Double>(0.0)
+        let lhs: ViterbiSemiring<Double> = ViterbiSemiring<Double>.one.times(a)
+        let rhs: ViterbiSemiring<Double> = a.times(ViterbiSemiring<Double>.one)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.0 && rhs.value == 0.0)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = .one ⊗ a
+        let rhsOperators: ViterbiSemiring<Double> = a ⊗ .one
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-531 zero annihilates (ViterbiSemiring<Double>: a = 0.5, b = 0.25, c = 1.0)")
+    func sr531() {
+        // .zero ⊗ a == a ⊗ .zero → both 0.0
+        let a = ViterbiSemiring<Double>(0.5)
+        let lhs: ViterbiSemiring<Double> = ViterbiSemiring<Double>.zero.times(a)
+        let rhs: ViterbiSemiring<Double> = a.times(ViterbiSemiring<Double>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.0 && rhs.value == 0.0)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = .zero ⊗ a
+        let rhsOperators: ViterbiSemiring<Double> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-532 zero annihilates (ViterbiSemiring<Double>: a = 0.0, b = 0.75, c = 0.5)")
+    func sr532() {
+        // .zero ⊗ a == a ⊗ .zero → both 0.0
+        let a = ViterbiSemiring<Double>(0.0)
+        let lhs: ViterbiSemiring<Double> = ViterbiSemiring<Double>.zero.times(a)
+        let rhs: ViterbiSemiring<Double> = a.times(ViterbiSemiring<Double>.zero)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.0 && rhs.value == 0.0)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = .zero ⊗ a
+        let rhsOperators: ViterbiSemiring<Double> = a ⊗ .zero
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-533 ⊗ distributes over ⊕ from the left (ViterbiSemiring<Double>: a = 0.5, b = 0.25, c = 1.0)")
+    func sr533() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 0.5
+        let a = ViterbiSemiring<Double>(0.5)
+        let b = ViterbiSemiring<Double>(0.25)
+        let c = ViterbiSemiring<Double>(1.0)
+        let lhs: ViterbiSemiring<Double> = a.times(b.plus(c))
+        let rhs: ViterbiSemiring<Double> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.5 && rhs.value == 0.5)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = a ⊗ (b ⊕ c)
+        let rhsOperators: ViterbiSemiring<Double> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-534 ⊗ distributes over ⊕ from the left (ViterbiSemiring<Double>: a = 0.0, b = 0.75, c = 0.5)")
+    func sr534() {
+        // a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c) → both 0.0
+        let a = ViterbiSemiring<Double>(0.0)
+        let b = ViterbiSemiring<Double>(0.75)
+        let c = ViterbiSemiring<Double>(0.5)
+        let lhs: ViterbiSemiring<Double> = a.times(b.plus(c))
+        let rhs: ViterbiSemiring<Double> = a.times(b).plus(a.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.0 && rhs.value == 0.0)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = a ⊗ (b ⊕ c)
+        let rhsOperators: ViterbiSemiring<Double> = (a ⊗ b) ⊕ (a ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-535 ⊗ distributes over ⊕ from the right (ViterbiSemiring<Double>: a = 0.5, b = 0.25, c = 1.0)")
+    func sr535() {
+        // (a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c) → both 0.5
+        let a = ViterbiSemiring<Double>(0.5)
+        let b = ViterbiSemiring<Double>(0.25)
+        let c = ViterbiSemiring<Double>(1.0)
+        let lhs: ViterbiSemiring<Double> = a.plus(b).times(c)
+        let rhs: ViterbiSemiring<Double> = a.times(c).plus(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.5 && rhs.value == 0.5)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = (a ⊕ b) ⊗ c
+        let rhsOperators: ViterbiSemiring<Double> = (a ⊗ c) ⊕ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-536 ⊗ distributes over ⊕ from the right (ViterbiSemiring<Double>: a = 0.0, b = 0.75, c = 0.5)")
+    func sr536() {
+        // (a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c) → both 0.375
+        let a = ViterbiSemiring<Double>(0.0)
+        let b = ViterbiSemiring<Double>(0.75)
+        let c = ViterbiSemiring<Double>(0.5)
+        let lhs: ViterbiSemiring<Double> = a.plus(b).times(c)
+        let rhs: ViterbiSemiring<Double> = a.times(c).plus(b.times(c))
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.375 && rhs.value == 0.375)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = (a ⊕ b) ⊗ c
+        let rhsOperators: ViterbiSemiring<Double> = (a ⊗ c) ⊕ (b ⊗ c)
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-537 ⊗ is commutative (not a requirement) (ViterbiSemiring<Double>: a = 0.5, b = 0.25, c = 1.0)")
+    func sr537() {
+        // a ⊗ b == b ⊗ a → both 0.125
+        let a = ViterbiSemiring<Double>(0.5)
+        let b = ViterbiSemiring<Double>(0.25)
+        let lhs: ViterbiSemiring<Double> = a.times(b)
+        let rhs: ViterbiSemiring<Double> = b.times(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.125 && rhs.value == 0.125)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = a ⊗ b
+        let rhsOperators: ViterbiSemiring<Double> = b ⊗ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-538 ⊗ is commutative (not a requirement) (ViterbiSemiring<Double>: a = 0.0, b = 0.75, c = 0.5)")
+    func sr538() {
+        // a ⊗ b == b ⊗ a → both 0.0
+        let a = ViterbiSemiring<Double>(0.0)
+        let b = ViterbiSemiring<Double>(0.75)
+        let lhs: ViterbiSemiring<Double> = a.times(b)
+        let rhs: ViterbiSemiring<Double> = b.times(a)
+        #expect(lhs == rhs)
+        #expect(lhs.value == 0.0 && rhs.value == 0.0)
+        // The operators call the methods.
+        let lhsOperators: ViterbiSemiring<Double> = a ⊗ b
+        let rhsOperators: ViterbiSemiring<Double> = b ⊗ a
+        #expect(lhsOperators == lhs && rhsOperators == rhs)
+    }
+
+    @Test("SR-539 selective: a ⊕ b is the better by < (ViterbiSemiring<Double>: a = 0.5, b = 0.25)")
+    func sr539() {
+        // a ⊕ b == (b < a ? b : a) → true (0.5)
+        let a = ViterbiSemiring<Double>(0.5)
+        let b = ViterbiSemiring<Double>(0.25)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 0.5)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-540 idempotent (ViterbiSemiring<Double>: a = 0.5)")
+    func sr540() {
+        // a ⊕ a == a → true (a ⊕ a = 0.5)
+        let a = ViterbiSemiring<Double>(0.5)
+        let sum = a.plus(a)
+        #expect(sum == a)
+        #expect(sum.value == 0.5)
+        #expect((a ⊕ a) == sum)
+    }
+
+    @Test("SR-541 selective: a ⊕ b is the better by < (ViterbiSemiring<Double>: a = 0.0, b = 0.75)")
+    func sr541() {
+        // a ⊕ b == (b < a ? b : a) → true (0.75)
+        let a = ViterbiSemiring<Double>(0.0)
+        let b = ViterbiSemiring<Double>(0.75)
+        let sum = a.plus(b)
+        #expect(sum == (b < a ? b : a))
+        #expect(sum == a || sum == b)
+        #expect(sum.value == 0.75)
+        #expect((a ⊕ b) == sum)
+    }
+
+    @Test("SR-542 idempotent (ViterbiSemiring<Double>: a = 0.0)")
+    func sr542() {
+        // a ⊕ a == a → true (a ⊕ a = 0.0)
+        let a = ViterbiSemiring<Double>(0.0)
+        let sum = a.plus(a)
+        #expect(sum == a)
+        #expect(sum.value == 0.0)
+        #expect((a ⊕ a) == sum)
+    }
+
+    @Test("SR-543 the natural order: < is ‘better’ (ViterbiSemiring<Double>: a = 0.5, b = 0.25)")
+    func sr543() {
+        // a < b → true
+        let a = ViterbiSemiring<Double>(0.5)
+        let b = ViterbiSemiring<Double>(0.25)
+        #expect((a < b))
+        // The natural order: a < b exactly when a.plus(b) == a and a != b.
+        #expect((a < b) == (a.plus(b) == a && a != b))
+        #expect(!(b < a) && a != b)
+    }
+
+    @Test("SR-544 zero is the greatest (worst) element (ViterbiSemiring<Double>: a = 0.5)")
+    func sr544() {
+        // a < .zero || a == .zero → true
+        let a = ViterbiSemiring<Double>(0.5)
+        #expect(a < .zero || a == .zero)
+        #expect(!(ViterbiSemiring<Double>.zero < a))
+        #expect(a.plus(.zero) == a)
+    }
 }

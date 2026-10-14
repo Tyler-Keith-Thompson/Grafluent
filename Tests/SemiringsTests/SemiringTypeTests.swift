@@ -1,7 +1,7 @@
-// The four semirings' constants (catalog SR-001 – SR-007, and the other scalar families from
-// SR-356): zero and one by value, their descriptions, zero worse than one by the
-// natural order, and hashing; and the counting semiring, which is not selective, so only
-// dagShortestDistances takes it (SR-324, SR-333).
+// The semirings' constants (catalog SR-001 – SR-007, the other scalar families from SR-356,
+// and max-plus and Viterbi from SR-459): zero and one by value, their descriptions, zero worse
+// than one by the natural order, and hashing; and the counting semiring, which is not
+// selective, so only dagShortestDistances takes it (SR-324, SR-333).
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -215,4 +215,46 @@ struct SemiringTypeTests {
         #expect(Set([BottleneckSemiring<Float16>.zero, BottleneckSemiring<Float16>(-Float16.infinity), BottleneckSemiring<Float16>.one]).count == 2)
     }
     #endif
+
+    @Test("SR-459 zero and one (MaxPlusSemiring<Int>)")
+    func sr459() {
+        // (.zero, .one) → (Int.min, 0)
+        #expect(MaxPlusSemiring<Int>.zero.value == Int.min && MaxPlusSemiring<Int>.one.value == 0)
+        #expect(MaxPlusSemiring<Int>.zero == MaxPlusSemiring<Int>(Int.min) && MaxPlusSemiring<Int>.one == MaxPlusSemiring<Int>(0))
+        // CustomStringConvertible: the value.
+        #expect(MaxPlusSemiring<Int>.zero.description == "-9223372036854775808" && MaxPlusSemiring<Int>.one.description == "0")
+        #expect("\(MaxPlusSemiring<Int>(0))" == "0")
+        // zero is the worst element, one beats it.
+        #expect(MaxPlusSemiring<Int>.one < MaxPlusSemiring<Int>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([MaxPlusSemiring<Int>.zero, MaxPlusSemiring<Int>(Int.min), MaxPlusSemiring<Int>.one]).count == 2)
+    }
+
+    @Test("SR-495 zero and one (MaxPlusSemiring<Double>)")
+    func sr495() {
+        // (.zero, .one) → (-.infinity, 0.0)
+        #expect(MaxPlusSemiring<Double>.zero.value == -Double.infinity && MaxPlusSemiring<Double>.one.value == 0.0)
+        #expect(MaxPlusSemiring<Double>.zero == MaxPlusSemiring<Double>(-Double.infinity) && MaxPlusSemiring<Double>.one == MaxPlusSemiring<Double>(0.0))
+        // CustomStringConvertible: the value.
+        #expect(MaxPlusSemiring<Double>.zero.description == "-inf" && MaxPlusSemiring<Double>.one.description == "0.0")
+        #expect("\(MaxPlusSemiring<Double>(0.0))" == "0.0")
+        // zero is the worst element, one beats it.
+        #expect(MaxPlusSemiring<Double>.one < MaxPlusSemiring<Double>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([MaxPlusSemiring<Double>.zero, MaxPlusSemiring<Double>(-Double.infinity), MaxPlusSemiring<Double>.one]).count == 2)
+    }
+
+    @Test("SR-520 zero and one (ViterbiSemiring<Double>)")
+    func sr520() {
+        // (.zero, .one) → (0.0, 1.0)
+        #expect(ViterbiSemiring<Double>.zero.value == 0.0 && ViterbiSemiring<Double>.one.value == 1.0)
+        #expect(ViterbiSemiring<Double>.zero == ViterbiSemiring<Double>(0.0) && ViterbiSemiring<Double>.one == ViterbiSemiring<Double>(1.0))
+        // CustomStringConvertible: the value.
+        #expect(ViterbiSemiring<Double>.zero.description == "0.0" && ViterbiSemiring<Double>.one.description == "1.0")
+        #expect("\(ViterbiSemiring<Double>(1.0))" == "1.0")
+        // zero is the worst element, one beats it.
+        #expect(ViterbiSemiring<Double>.one < ViterbiSemiring<Double>.zero)
+        // Hashable: equal values hash alike.
+        #expect(Set([ViterbiSemiring<Double>.zero, ViterbiSemiring<Double>(0.0), ViterbiSemiring<Double>.one]).count == 2)
+    }
 }

@@ -1,4 +1,4 @@
-# Semirings: case catalog (SR-001 – SR-458, 458 rows)
+# Semirings: case catalog (SR-001 – SR-577, 577 rows)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
 scipy==1.18.1 --with numpy==2.3.4 python3 Tests/Catalogs/Semirings/ref.py`; `--write` regenerates
@@ -503,5 +503,124 @@ preconditions; "does not compile" rows are type checks (a `#if false` snippet, o
 | SR-456 | Phase 2: laws | zero is ⊕'s identity | `LogSemiring<Double>` | `a = .infinity, b = 0.25, c = 3.0` | `a ⊕ .zero == a` | both .infinity |
 | SR-457 | Phase 2: laws | ⊗ distributes over ⊕ from the left | `LogSemiring<Double>` | `a = .infinity, b = 0.25, c = 3.0` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both .infinity |
 | SR-458 | Phase 2: Log | −log of the total probability of the paths | `LogSemiring<Double>` | `D[4]: 0>1:0.6931471805599453, 0>2:1.3862943611198906, 1>3:0.0, 2>3:0.6931471805599453` | `dagShortestDistances(from: 0)` | [≈0, ≈0.69314718056, ≈1.38629436112, ≈0.470003629246] |
+| SR-459 | Constants | zero and one | `MaxPlusSemiring<Int>` | — | `(.zero, .one)` | (Int.min, 0) |
+| SR-460 | Laws | ⊕ is associative | `MaxPlusSemiring<Int>` | `a = 3, b = -2, c = 7` | `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)` | both 7 |
+| SR-461 | Laws | ⊕ is associative | `MaxPlusSemiring<Int>` | `a = 5, b = Int.min, c = 0` | `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)` | both 5 |
+| SR-462 | Laws | ⊕ is associative | `MaxPlusSemiring<Int>` | `a = -4, b = -4, c = Int.min` | `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)` | both -4 |
+| SR-463 | Laws | ⊕ is commutative | `MaxPlusSemiring<Int>` | `a = 3, b = -2, c = 7` | `a ⊕ b == b ⊕ a` | both 3 |
+| SR-464 | Laws | ⊕ is commutative | `MaxPlusSemiring<Int>` | `a = 5, b = Int.min, c = 0` | `a ⊕ b == b ⊕ a` | both 5 |
+| SR-465 | Laws | ⊕ is commutative | `MaxPlusSemiring<Int>` | `a = -4, b = -4, c = Int.min` | `a ⊕ b == b ⊕ a` | both -4 |
+| SR-466 | Laws | zero is ⊕'s identity | `MaxPlusSemiring<Int>` | `a = 3, b = -2, c = 7` | `a ⊕ .zero == a` | both 3 |
+| SR-467 | Laws | zero is ⊕'s identity | `MaxPlusSemiring<Int>` | `a = 5, b = Int.min, c = 0` | `a ⊕ .zero == a` | both 5 |
+| SR-468 | Laws | zero is ⊕'s identity | `MaxPlusSemiring<Int>` | `a = -4, b = -4, c = Int.min` | `a ⊕ .zero == a` | both -4 |
+| SR-469 | Laws | ⊗ is associative | `MaxPlusSemiring<Int>` | `a = 3, b = -2, c = 7` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both 8 |
+| SR-470 | Laws | ⊗ is associative | `MaxPlusSemiring<Int>` | `a = 5, b = Int.min, c = 0` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both Int.min |
+| SR-471 | Laws | ⊗ is associative | `MaxPlusSemiring<Int>` | `a = -4, b = -4, c = Int.min` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both Int.min |
+| SR-472 | Laws | one is ⊗'s identity | `MaxPlusSemiring<Int>` | `a = 3, b = -2, c = 7` | `.one ⊗ a == a ⊗ .one` | both 3 |
+| SR-473 | Laws | one is ⊗'s identity | `MaxPlusSemiring<Int>` | `a = 5, b = Int.min, c = 0` | `.one ⊗ a == a ⊗ .one` | both 5 |
+| SR-474 | Laws | one is ⊗'s identity | `MaxPlusSemiring<Int>` | `a = -4, b = -4, c = Int.min` | `.one ⊗ a == a ⊗ .one` | both -4 |
+| SR-475 | Laws | zero annihilates | `MaxPlusSemiring<Int>` | `a = 3, b = -2, c = 7` | `.zero ⊗ a == a ⊗ .zero` | both Int.min |
+| SR-476 | Laws | zero annihilates | `MaxPlusSemiring<Int>` | `a = 5, b = Int.min, c = 0` | `.zero ⊗ a == a ⊗ .zero` | both Int.min |
+| SR-477 | Laws | zero annihilates | `MaxPlusSemiring<Int>` | `a = -4, b = -4, c = Int.min` | `.zero ⊗ a == a ⊗ .zero` | both Int.min |
+| SR-478 | Laws | ⊗ distributes over ⊕ from the left | `MaxPlusSemiring<Int>` | `a = 3, b = -2, c = 7` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 10 |
+| SR-479 | Laws | ⊗ distributes over ⊕ from the left | `MaxPlusSemiring<Int>` | `a = 5, b = Int.min, c = 0` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 5 |
+| SR-480 | Laws | ⊗ distributes over ⊕ from the left | `MaxPlusSemiring<Int>` | `a = -4, b = -4, c = Int.min` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both -8 |
+| SR-481 | Laws | ⊗ distributes over ⊕ from the right | `MaxPlusSemiring<Int>` | `a = 3, b = -2, c = 7` | `(a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c)` | both 10 |
+| SR-482 | Laws | ⊗ distributes over ⊕ from the right | `MaxPlusSemiring<Int>` | `a = 5, b = Int.min, c = 0` | `(a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c)` | both 5 |
+| SR-483 | Laws | ⊗ distributes over ⊕ from the right | `MaxPlusSemiring<Int>` | `a = -4, b = -4, c = Int.min` | `(a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c)` | both Int.min |
+| SR-484 | Laws | ⊗ is commutative (not a requirement) | `MaxPlusSemiring<Int>` | `a = 3, b = -2, c = 7` | `a ⊗ b == b ⊗ a` | both 1 |
+| SR-485 | Laws | ⊗ is commutative (not a requirement) | `MaxPlusSemiring<Int>` | `a = 5, b = Int.min, c = 0` | `a ⊗ b == b ⊗ a` | both Int.min |
+| SR-486 | Laws | ⊗ is commutative (not a requirement) | `MaxPlusSemiring<Int>` | `a = -4, b = -4, c = Int.min` | `a ⊗ b == b ⊗ a` | both -8 |
+| SR-487 | Laws | selective: a ⊕ b is the better by < | `MaxPlusSemiring<Int>` | `a = 3, b = -2` | `a ⊕ b == (b < a ? b : a)` | true (3) |
+| SR-488 | Laws | idempotent | `MaxPlusSemiring<Int>` | `a = 3` | `a ⊕ a == a` | true (a ⊕ a = 3) |
+| SR-489 | Laws | selective: a ⊕ b is the better by < | `MaxPlusSemiring<Int>` | `a = 5, b = Int.min` | `a ⊕ b == (b < a ? b : a)` | true (5) |
+| SR-490 | Laws | idempotent | `MaxPlusSemiring<Int>` | `a = 5` | `a ⊕ a == a` | true (a ⊕ a = 5) |
+| SR-491 | Laws | selective: a ⊕ b is the better by < | `MaxPlusSemiring<Int>` | `a = -4, b = -4` | `a ⊕ b == (b < a ? b : a)` | true (-4) |
+| SR-492 | Laws | idempotent | `MaxPlusSemiring<Int>` | `a = -4` | `a ⊕ a == a` | true (a ⊕ a = -4) |
+| SR-493 | Order | the natural order: < is ‘better’ | `MaxPlusSemiring<Int>` | `a = 3, b = -2` | `a < b` | true |
+| SR-494 | Order | zero is the greatest (worst) element | `MaxPlusSemiring<Int>` | `a = 3` | `a < .zero \|\| a == .zero` | true |
+| SR-495 | Constants | zero and one | `MaxPlusSemiring<Double>` | — | `(.zero, .one)` | (-.infinity, 0.0) |
+| SR-496 | Laws | ⊕ is associative | `MaxPlusSemiring<Double>` | `a = 1.5, b = -2.25, c = 4.0` | `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)` | both 4.0 |
+| SR-497 | Laws | ⊕ is associative | `MaxPlusSemiring<Double>` | `a = -.infinity, b = 0.5, c = -3.0` | `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)` | both 0.5 |
+| SR-498 | Laws | ⊕ is commutative | `MaxPlusSemiring<Double>` | `a = 1.5, b = -2.25, c = 4.0` | `a ⊕ b == b ⊕ a` | both 1.5 |
+| SR-499 | Laws | ⊕ is commutative | `MaxPlusSemiring<Double>` | `a = -.infinity, b = 0.5, c = -3.0` | `a ⊕ b == b ⊕ a` | both 0.5 |
+| SR-500 | Laws | zero is ⊕'s identity | `MaxPlusSemiring<Double>` | `a = 1.5, b = -2.25, c = 4.0` | `a ⊕ .zero == a` | both 1.5 |
+| SR-501 | Laws | zero is ⊕'s identity | `MaxPlusSemiring<Double>` | `a = -.infinity, b = 0.5, c = -3.0` | `a ⊕ .zero == a` | both -.infinity |
+| SR-502 | Laws | ⊗ is associative | `MaxPlusSemiring<Double>` | `a = 1.5, b = -2.25, c = 4.0` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both 3.25 |
+| SR-503 | Laws | ⊗ is associative | `MaxPlusSemiring<Double>` | `a = -.infinity, b = 0.5, c = -3.0` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both -.infinity |
+| SR-504 | Laws | one is ⊗'s identity | `MaxPlusSemiring<Double>` | `a = 1.5, b = -2.25, c = 4.0` | `.one ⊗ a == a ⊗ .one` | both 1.5 |
+| SR-505 | Laws | one is ⊗'s identity | `MaxPlusSemiring<Double>` | `a = -.infinity, b = 0.5, c = -3.0` | `.one ⊗ a == a ⊗ .one` | both -.infinity |
+| SR-506 | Laws | zero annihilates | `MaxPlusSemiring<Double>` | `a = 1.5, b = -2.25, c = 4.0` | `.zero ⊗ a == a ⊗ .zero` | both -.infinity |
+| SR-507 | Laws | zero annihilates | `MaxPlusSemiring<Double>` | `a = -.infinity, b = 0.5, c = -3.0` | `.zero ⊗ a == a ⊗ .zero` | both -.infinity |
+| SR-508 | Laws | ⊗ distributes over ⊕ from the left | `MaxPlusSemiring<Double>` | `a = 1.5, b = -2.25, c = 4.0` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 5.5 |
+| SR-509 | Laws | ⊗ distributes over ⊕ from the left | `MaxPlusSemiring<Double>` | `a = -.infinity, b = 0.5, c = -3.0` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both -.infinity |
+| SR-510 | Laws | ⊗ distributes over ⊕ from the right | `MaxPlusSemiring<Double>` | `a = 1.5, b = -2.25, c = 4.0` | `(a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c)` | both 5.5 |
+| SR-511 | Laws | ⊗ distributes over ⊕ from the right | `MaxPlusSemiring<Double>` | `a = -.infinity, b = 0.5, c = -3.0` | `(a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c)` | both -2.5 |
+| SR-512 | Laws | ⊗ is commutative (not a requirement) | `MaxPlusSemiring<Double>` | `a = 1.5, b = -2.25, c = 4.0` | `a ⊗ b == b ⊗ a` | both -0.75 |
+| SR-513 | Laws | ⊗ is commutative (not a requirement) | `MaxPlusSemiring<Double>` | `a = -.infinity, b = 0.5, c = -3.0` | `a ⊗ b == b ⊗ a` | both -.infinity |
+| SR-514 | Laws | selective: a ⊕ b is the better by < | `MaxPlusSemiring<Double>` | `a = 1.5, b = -2.25` | `a ⊕ b == (b < a ? b : a)` | true (1.5) |
+| SR-515 | Laws | idempotent | `MaxPlusSemiring<Double>` | `a = 1.5` | `a ⊕ a == a` | true (a ⊕ a = 1.5) |
+| SR-516 | Laws | selective: a ⊕ b is the better by < | `MaxPlusSemiring<Double>` | `a = -.infinity, b = 0.5` | `a ⊕ b == (b < a ? b : a)` | true (0.5) |
+| SR-517 | Laws | idempotent | `MaxPlusSemiring<Double>` | `a = -.infinity` | `a ⊕ a == a` | true (a ⊕ a = -.infinity) |
+| SR-518 | Order | the natural order: < is ‘better’ | `MaxPlusSemiring<Double>` | `a = 1.5, b = -2.25` | `a < b` | true |
+| SR-519 | Order | zero is the greatest (worst) element | `MaxPlusSemiring<Double>` | `a = 1.5` | `a < .zero \|\| a == .zero` | true |
+| SR-520 | Constants | zero and one | `ViterbiSemiring<Double>` | — | `(.zero, .one)` | (0.0, 1.0) |
+| SR-521 | Laws | ⊕ is associative | `ViterbiSemiring<Double>` | `a = 0.5, b = 0.25, c = 1.0` | `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)` | both 1.0 |
+| SR-522 | Laws | ⊕ is associative | `ViterbiSemiring<Double>` | `a = 0.0, b = 0.75, c = 0.5` | `(a ⊕ b) ⊕ c == a ⊕ (b ⊕ c)` | both 0.75 |
+| SR-523 | Laws | ⊕ is commutative | `ViterbiSemiring<Double>` | `a = 0.5, b = 0.25, c = 1.0` | `a ⊕ b == b ⊕ a` | both 0.5 |
+| SR-524 | Laws | ⊕ is commutative | `ViterbiSemiring<Double>` | `a = 0.0, b = 0.75, c = 0.5` | `a ⊕ b == b ⊕ a` | both 0.75 |
+| SR-525 | Laws | zero is ⊕'s identity | `ViterbiSemiring<Double>` | `a = 0.5, b = 0.25, c = 1.0` | `a ⊕ .zero == a` | both 0.5 |
+| SR-526 | Laws | zero is ⊕'s identity | `ViterbiSemiring<Double>` | `a = 0.0, b = 0.75, c = 0.5` | `a ⊕ .zero == a` | both 0.0 |
+| SR-527 | Laws | ⊗ is associative | `ViterbiSemiring<Double>` | `a = 0.5, b = 0.25, c = 1.0` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both 0.125 |
+| SR-528 | Laws | ⊗ is associative | `ViterbiSemiring<Double>` | `a = 0.0, b = 0.75, c = 0.5` | `(a ⊗ b) ⊗ c == a ⊗ (b ⊗ c)` | both 0.0 |
+| SR-529 | Laws | one is ⊗'s identity | `ViterbiSemiring<Double>` | `a = 0.5, b = 0.25, c = 1.0` | `.one ⊗ a == a ⊗ .one` | both 0.5 |
+| SR-530 | Laws | one is ⊗'s identity | `ViterbiSemiring<Double>` | `a = 0.0, b = 0.75, c = 0.5` | `.one ⊗ a == a ⊗ .one` | both 0.0 |
+| SR-531 | Laws | zero annihilates | `ViterbiSemiring<Double>` | `a = 0.5, b = 0.25, c = 1.0` | `.zero ⊗ a == a ⊗ .zero` | both 0.0 |
+| SR-532 | Laws | zero annihilates | `ViterbiSemiring<Double>` | `a = 0.0, b = 0.75, c = 0.5` | `.zero ⊗ a == a ⊗ .zero` | both 0.0 |
+| SR-533 | Laws | ⊗ distributes over ⊕ from the left | `ViterbiSemiring<Double>` | `a = 0.5, b = 0.25, c = 1.0` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 0.5 |
+| SR-534 | Laws | ⊗ distributes over ⊕ from the left | `ViterbiSemiring<Double>` | `a = 0.0, b = 0.75, c = 0.5` | `a ⊗ (b ⊕ c) == (a ⊗ b) ⊕ (a ⊗ c)` | both 0.0 |
+| SR-535 | Laws | ⊗ distributes over ⊕ from the right | `ViterbiSemiring<Double>` | `a = 0.5, b = 0.25, c = 1.0` | `(a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c)` | both 0.5 |
+| SR-536 | Laws | ⊗ distributes over ⊕ from the right | `ViterbiSemiring<Double>` | `a = 0.0, b = 0.75, c = 0.5` | `(a ⊕ b) ⊗ c == (a ⊗ c) ⊕ (b ⊗ c)` | both 0.375 |
+| SR-537 | Laws | ⊗ is commutative (not a requirement) | `ViterbiSemiring<Double>` | `a = 0.5, b = 0.25, c = 1.0` | `a ⊗ b == b ⊗ a` | both 0.125 |
+| SR-538 | Laws | ⊗ is commutative (not a requirement) | `ViterbiSemiring<Double>` | `a = 0.0, b = 0.75, c = 0.5` | `a ⊗ b == b ⊗ a` | both 0.0 |
+| SR-539 | Laws | selective: a ⊕ b is the better by < | `ViterbiSemiring<Double>` | `a = 0.5, b = 0.25` | `a ⊕ b == (b < a ? b : a)` | true (0.5) |
+| SR-540 | Laws | idempotent | `ViterbiSemiring<Double>` | `a = 0.5` | `a ⊕ a == a` | true (a ⊕ a = 0.5) |
+| SR-541 | Laws | selective: a ⊕ b is the better by < | `ViterbiSemiring<Double>` | `a = 0.0, b = 0.75` | `a ⊕ b == (b < a ? b : a)` | true (0.75) |
+| SR-542 | Laws | idempotent | `ViterbiSemiring<Double>` | `a = 0.0` | `a ⊕ a == a` | true (a ⊕ a = 0.0) |
+| SR-543 | Order | the natural order: < is ‘better’ | `ViterbiSemiring<Double>` | `a = 0.5, b = 0.25` | `a < b` | true |
+| SR-544 | Order | zero is the greatest (worst) element | `ViterbiSemiring<Double>` | `a = 0.5` | `a < .zero \|\| a == .zero` | true |
+| SR-545 | Arithmetic | Int.min is zero: it absorbs | `MaxPlusSemiring<Int>` | `a = Int.min, b = 5` | `a ⊗ b` | Int.min |
+| SR-546 | Arithmetic | a finite sum reaching Int.min is zero | `MaxPlusSemiring<Int>` | `a = Int.min + 3, b = -3` | `a ⊗ b` | Int.min |
+| SR-547 | Arithmetic | overflow traps | `MaxPlusSemiring<Int>` | `a = Int.max - 3, b = 4` | `a ⊗ b` | **trap** (overflow) |
+| SR-548 | Arithmetic | -.infinity is zero: it absorbs | `MaxPlusSemiring<Double>` | `a = -.infinity, b = 1e308` | `a ⊗ b` | -.infinity |
+| SR-549 | Arithmetic | products underflow to zero | `ViterbiSemiring<Double>` | `a = 1e-200, b = 1e-200` | `a ⊗ b` | 0.0 |
+| SR-550 | DAG | longest paths: the critical path | `MaxPlusSemiring<Int>` | `D[6]: 0>1:3, 0>2:2, 1>3:4, 2>3:1, 2>4:5, 3>5:2, 4>5:3` | `dagShortestPaths(from: 0)` | [0, 3, 2, 7, 7, 10] |
+| SR-551 | DAG | longest paths with negative weights | `MaxPlusSemiring<Int>` | `D[4]: 0>1:-2, 0>2:3, 1>2:4, 1>3:-1, 2>3:-6` | `dagShortestPaths(from: 0)` | [0, -2, 3, -3] |
+| SR-552 | Dijkstra | longest paths when no weight is positive | `MaxPlusSemiring<Int>` | `D[4]: 0>1:-2, 0>2:-1, 2>1:0, 1>3:-3, 2>3:-5` | `dijkstraShortestPaths(from: 0)` | [0, -1, -1, -4] |
+| SR-553 | Dijkstra | the longest path | `MaxPlusSemiring<Int>` | `D[4]: 0>1:-2, 0>2:-1, 2>1:0, 1>3:-3, 2>3:-5` | `dijkstraShortestPath(from: 0, to: 3)` | vertices [0, 2, 1, 3], edges [1, 2, 3], distance -4 |
+| SR-554 | Dijkstra | a positive examined weight traps | `MaxPlusSemiring<Int>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `dijkstraShortestPaths(from: 0)` | **trap** (a weight is better than one) |
+| SR-555 | Bellman–Ford | longest paths; a negative cycle is harmless | `MaxPlusSemiring<Int>` | `D[4]: 0>1:1, 1>2:-3, 2>1:1, 2>3:2` | `bellmanFordShortestPaths(from: 0)` | [0, 1, -2, 0] |
+| SR-556 | Bellman–Ford | a reachable positive cycle | `MaxPlusSemiring<Int>` | `D[3]: 0>1:1, 1>2:2, 2>1:1` | `bellmanFordShortestPaths(from: 0)` | nil |
+| SR-557 | Bellman–Ford | a positive cycle not reachable | `MaxPlusSemiring<Int>` | `D[4]: 0>1:1, 2>3:2, 3>2:1` | `bellmanFordShortestPaths(from: 0)` | [0, 1, —, —] |
+| SR-558 | Floyd–Warshall | all-pairs longest paths | `MaxPlusSemiring<Int>` | `D[6]: 0>1:3, 0>2:2, 1>3:4, 2>3:1, 2>4:5, 3>5:2, 4>5:3` | `floydWarshallShortestPaths()` | [0, 3, 2, 7, 7, 10; —, 0, —, 4, —, 6; —, —, 0, 1, 5, 8; —, —, —, 0, —, 2; —, —, —, —, 0, 3; —, —, —, —, —, 0] |
+| SR-559 | Floyd–Warshall | a positive cycle | `MaxPlusSemiring<Int>` | `D[3]: 0>1:1, 1>2:2, 2>1:1` | `floydWarshallShortestPaths()` | nil |
+| SR-560 | DAG | longest paths: the critical path | `MaxPlusSemiring<Double>` | `D[6]: 0>1:3, 0>2:2, 1>3:4, 2>3:1, 2>4:5, 3>5:2, 4>5:3` | `dagShortestPaths(from: 0)` | [0.0, 3.0, 2.0, 7.0, 7.0, 10.0] |
+| SR-561 | DAG | longest paths with negative weights | `MaxPlusSemiring<Double>` | `D[4]: 0>1:-2, 0>2:3, 1>2:4, 1>3:-1, 2>3:-6` | `dagShortestPaths(from: 0)` | [0.0, -2.0, 3.0, -3.0] |
+| SR-562 | Dijkstra | longest paths when no weight is positive | `MaxPlusSemiring<Double>` | `D[4]: 0>1:-2, 0>2:-1, 2>1:0, 1>3:-3, 2>3:-5` | `dijkstraShortestPaths(from: 0)` | [0.0, -1.0, -1.0, -4.0] |
+| SR-563 | Dijkstra | the longest path | `MaxPlusSemiring<Double>` | `D[4]: 0>1:-2, 0>2:-1, 2>1:0, 1>3:-3, 2>3:-5` | `dijkstraShortestPath(from: 0, to: 3)` | vertices [0, 2, 1, 3], edges [1, 2, 3], distance -4.0 |
+| SR-564 | Dijkstra | a positive examined weight traps | `MaxPlusSemiring<Double>` | `D[5]: 0>1:4, 0>2:1, 2>1:2, 1>3:1, 2>3:5` | `dijkstraShortestPaths(from: 0)` | **trap** (a weight is better than one) |
+| SR-565 | Bellman–Ford | longest paths; a negative cycle is harmless | `MaxPlusSemiring<Double>` | `D[4]: 0>1:1, 1>2:-3, 2>1:1, 2>3:2` | `bellmanFordShortestPaths(from: 0)` | [0.0, 1.0, -2.0, 0.0] |
+| SR-566 | Bellman–Ford | a reachable positive cycle | `MaxPlusSemiring<Double>` | `D[3]: 0>1:1, 1>2:2, 2>1:1` | `bellmanFordShortestPaths(from: 0)` | nil |
+| SR-567 | Bellman–Ford | a positive cycle not reachable | `MaxPlusSemiring<Double>` | `D[4]: 0>1:1, 2>3:2, 3>2:1` | `bellmanFordShortestPaths(from: 0)` | [0.0, 1.0, —, —] |
+| SR-568 | Floyd–Warshall | all-pairs longest paths | `MaxPlusSemiring<Double>` | `D[6]: 0>1:3, 0>2:2, 1>3:4, 2>3:1, 2>4:5, 3>5:2, 4>5:3` | `floydWarshallShortestPaths()` | [0.0, 3.0, 2.0, 7.0, 7.0, 10.0; —, 0.0, —, 4.0, —, 6.0; —, —, 0.0, 1.0, 5.0, 8.0; —, —, —, 0.0, —, 2.0; —, —, —, —, 0.0, 3.0; —, —, —, —, —, 0.0] |
+| SR-569 | Floyd–Warshall | a positive cycle | `MaxPlusSemiring<Double>` | `D[3]: 0>1:1, 1>2:2, 2>1:1` | `floydWarshallShortestPaths()` | nil |
+| SR-570 | Dijkstra | most probable paths | `ViterbiSemiring<Double>` | `D[4]: 0>1:0.5, 0>2:0.375, 1>2:0.5, 1>3:0.125, 2>3:1.0` | `dijkstraShortestPaths(from: 0)` | [1.0, 0.5, 0.375, 0.375] |
+| SR-571 | Dijkstra | the most probable path | `ViterbiSemiring<Double>` | `D[4]: 0>1:0.5, 0>2:0.375, 1>2:0.5, 1>3:0.125, 2>3:1.0` | `dijkstraShortestPath(from: 0, to: 3)` | vertices [0, 2, 3], edges [1, 4], distance 0.375 |
+| SR-572 | Dijkstra | an edge of weight zero reaches nothing | `ViterbiSemiring<Double>` | `D[3]: 0>1:Z, 1>2:O` | `dijkstraShortestPaths(from: 0)` | [1.0, —, —] |
+| SR-573 | Dijkstra | a weight above 1 traps | `ViterbiSemiring<Double>` | `D[4]: 0>1:2.0, 1>2:0.5, 0>3:0.5` | `dijkstraShortestPaths(from: 0)` | **trap** (a weight is better than one) |
+| SR-574 | Dijkstra | undirected through .directedView | `ViterbiSemiring<Double>` | `U[4]: 0-1:0.5, 1-2:0.25, 2-3:1.0, 0-3:0.0625` | `dijkstraShortestPaths(from: 0)` | [1.0, 0.5, 0.125, 0.125] |
+| SR-575 | Bellman–Ford | cycles never improve | `ViterbiSemiring<Double>` | `D[3]: 0>1:0.5, 1>2:0.5, 2>1:1.0` | `bellmanFordShortestPaths(from: 0)` | [1.0, 0.5, 0.25] |
+| SR-576 | DAG | most probable paths in a DAG | `ViterbiSemiring<Double>` | `D[4]: 0>1:0.5, 0>2:0.375, 1>2:0.5, 1>3:0.125, 2>3:1.0` | `dagShortestPaths(from: 0)` | [1.0, 0.5, 0.375, 0.375] |
+| SR-577 | Floyd–Warshall | all-pairs most probable paths | `ViterbiSemiring<Double>` | `D[4]: 0>1:0.5, 0>2:0.375, 1>2:0.5, 1>3:0.125, 2>3:1.0` | `floydWarshallShortestPaths()` | [1.0, 0.5, 0.375, 0.375; —, 1.0, 0.5, 0.5; —, —, 1.0, 1.0; —, —, —, 1.0] |
 
-458 rows.
+577 rows.

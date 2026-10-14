@@ -46,6 +46,9 @@ O = "BooleanSemiring.swift"
 C = "CountingSemiring.swift"
 S = "Semiring.swift"
 X = "SemiringScalar.swift"
+MP = "MaxPlusSemiring.swift"
+VI = "ViterbiSemiring.swift"
+LX = "LexicographicSemiring.swift"
 
 DJ = "SemiringDijkstra.swift"
 BF = "SemiringBellmanFord.swift"
@@ -74,6 +77,35 @@ MUTANTS = [
     Mutant("blt", B, "rhs.value < lhs.value", "lhs.value < rhs.value"),
     Mutant("bltties", B, "rhs.value < lhs.value", "rhs.value <= lhs.value"),
     Mutant("bdesc", B, '"\\(value)"', '"B\\(value)"'),
+
+    # The max-plus semiring (max, +).
+    Mutant("mpplus", MP, "value < other.value ? other : self", "self"),
+    Mutant("mpabsorb", MP, "        if value == negativeInfinity || other.value == negativeInfinity { return .zero }", "", mode="stmt"),
+    Mutant("mptimes", MP, "Self(value + other.value)", "Self(value)"),
+    Mutant("mpzero", MP, "Self(Value._semiringNegativeInfinity)", "Self(-1)"),
+    Mutant("mpone", MP, "Self(.zero)", "Self(1)"),
+    Mutant("mplt", MP, "rhs.value < lhs.value", "lhs.value < rhs.value"),
+    Mutant("mpltties", MP, "rhs.value < lhs.value", "rhs.value <= lhs.value"),
+    Mutant("mpdesc", MP, '"\\(value)"', '"M\\(value)"'),
+
+    # The Viterbi semiring (max, ×).
+    Mutant("vplus", VI, "value < other.value ? other : self", "self"),
+    Mutant("vtimes", VI, "Self(value * other.value)", "Self(value + other.value)"),
+    Mutant("vzero", VI, "Self(0)", "Self(0.5)"),
+    Mutant("vone", VI, "Self(1)", "Self(0.25)"),
+    Mutant("vlt", VI, "rhs.value < lhs.value", "lhs.value < rhs.value"),
+    Mutant("vltties", VI, "rhs.value < lhs.value", "rhs.value <= lhs.value"),
+    Mutant("vdesc", VI, '"\\(value)"', '"V\\(value)"'),
+
+    # The lexicographic product.
+    Mutant("lxnormfirst", LX, "first == .zero || second == .zero", "first == .zero"),
+    Mutant("lxnormsecond", LX, "first == .zero || second == .zero", "second == .zero"),
+    Mutant("lxplus", LX, "other < self ? other : self", "self"),
+    Mutant("lxtimes", LX, "Self(first.times(other.first), second.times(other.second))", "Self(first.times(other.first), second)"),
+    Mutant("lxlt", LX, "lhs.first < rhs.first || (lhs.first == rhs.first && lhs.second < rhs.second)", "lhs.first < rhs.first"),
+    Mutant("lxltties", LX, "lhs.first < rhs.first || (lhs.first == rhs.first && lhs.second < rhs.second)", "lhs.first < rhs.first || lhs.second < rhs.second"),
+    Mutant("lxone", LX, "Self(.one, .one)", "Self(.zero, .zero)"),
+    Mutant("lxdesc", LX, '"(\\(first), \\(second))"', '"(\\(second), \\(first))"'),
 
     # The Boolean semiring (∨, ∧).
     Mutant("boolplus", O, "Self(value || other.value)", "Self(value != other.value)"),

@@ -1,6 +1,7 @@
 // Dijkstra over a selective semiring (catalog Dijkstra rows): shortest paths (tropical), widest
-// paths (bottleneck, with a cutoff meaning at least this wide) and reachability (Boolean); an
-// edge of weight zero carries no path; undirected graphs through .directedView.
+// paths (bottleneck, with a cutoff meaning at least this wide), reachability (Boolean), longest
+// paths without positive weights (max-plus) and most probable paths (Viterbi); an edge of
+// weight zero carries no path; undirected graphs through .directedView.
 // Generated from cases.md by swiftgen.py; see README.md.
 
 import GraphProtocols
@@ -883,6 +884,207 @@ struct SemiringDijkstraTests {
             for (k, e) in path.edges.enumerated() {
                 #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
                 product = product.times(BottleneckSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-552 longest paths when no weight is positive (MaxPlusSemiring<Int>)")
+    func sr552() {
+        // dijkstraShortestPaths(from: 0) → [0, -1, -1, -4]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Int] = [-2, -1, 0, -3, -5]
+        let tree = graph.dijkstraShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) }
+        let expected: [Int?] = [0, -1, -1, -4]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = MaxPlusSemiring<Int>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(MaxPlusSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-553 the longest path (MaxPlusSemiring<Int>)")
+    func sr553() throws {
+        // dijkstraShortestPath(from: 0, to: 3) → vertices [0, 2, 1, 3], edges [1, 2, 3], distance -4
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Int] = [-2, -1, 0, -3, -5]
+        let result = try #require(graph.dijkstraShortestPath(from: 0, to: 3) { MaxPlusSemiring(w[$0]) })
+        #expect(result.path.vertices == [0, 2, 1, 3] && result.path.edges == [1, 2, 3])
+        #expect(result.distance.value == -4)
+        // The same distance as the tree's.
+        #expect(graph.dijkstraShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) }.distance(to: 3) == result.distance)
+        var product = MaxPlusSemiring<Int>.one
+        for (k, e) in result.path.edges.enumerated() {
+            #expect(graph.source(ofEdgeAt: e) == result.path.vertices[k] && graph.target(ofEdgeAt: e) == result.path.vertices[k + 1])
+            product = product.times(MaxPlusSemiring(w[e]))
+        }
+        #expect(result.path.vertices.first == 0 && result.path.vertices.last == 3)
+        #expect(product == result.distance)
+    }
+
+    @Test("SR-562 longest paths when no weight is positive (MaxPlusSemiring<Double>)")
+    func sr562() {
+        // dijkstraShortestPaths(from: 0) → [0.0, -1.0, -1.0, -4.0]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Double] = [-2.0, -1.0, 0.0, -3.0, -5.0]
+        let tree = graph.dijkstraShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) }
+        let expected: [Double?] = [0.0, -1.0, -1.0, -4.0]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = MaxPlusSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(MaxPlusSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-563 the longest path (MaxPlusSemiring<Double>)")
+    func sr563() throws {
+        // dijkstraShortestPath(from: 0, to: 3) → vertices [0, 2, 1, 3], edges [1, 2, 3], distance -4.0
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Double] = [-2.0, -1.0, 0.0, -3.0, -5.0]
+        let result = try #require(graph.dijkstraShortestPath(from: 0, to: 3) { MaxPlusSemiring(w[$0]) })
+        #expect(result.path.vertices == [0, 2, 1, 3] && result.path.edges == [1, 2, 3])
+        #expect(result.distance.value == -4.0)
+        // The same distance as the tree's.
+        #expect(graph.dijkstraShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) }.distance(to: 3) == result.distance)
+        var product = MaxPlusSemiring<Double>.one
+        for (k, e) in result.path.edges.enumerated() {
+            #expect(graph.source(ofEdgeAt: e) == result.path.vertices[k] && graph.target(ofEdgeAt: e) == result.path.vertices[k + 1])
+            product = product.times(MaxPlusSemiring(w[e]))
+        }
+        #expect(result.path.vertices.first == 0 && result.path.vertices.last == 3)
+        #expect(product == result.distance)
+    }
+
+    @Test("SR-570 most probable paths (ViterbiSemiring<Double>)")
+    func sr570() {
+        // dijkstraShortestPaths(from: 0) → [1.0, 0.5, 0.375, 0.375]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Double] = [0.5, 0.375, 0.5, 0.125, 1.0]
+        let tree = graph.dijkstraShortestPaths(from: 0) { ViterbiSemiring(w[$0]) }
+        let expected: [Double?] = [1.0, 0.5, 0.375, 0.375]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = ViterbiSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(ViterbiSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-571 the most probable path (ViterbiSemiring<Double>)")
+    func sr571() throws {
+        // dijkstraShortestPath(from: 0, to: 3) → vertices [0, 2, 3], edges [1, 4], distance 0.375
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Double] = [0.5, 0.375, 0.5, 0.125, 1.0]
+        let result = try #require(graph.dijkstraShortestPath(from: 0, to: 3) { ViterbiSemiring(w[$0]) })
+        #expect(result.path.vertices == [0, 2, 3] && result.path.edges == [1, 4])
+        #expect(result.distance.value == 0.375)
+        // The same distance as the tree's.
+        #expect(graph.dijkstraShortestPaths(from: 0) { ViterbiSemiring(w[$0]) }.distance(to: 3) == result.distance)
+        var product = ViterbiSemiring<Double>.one
+        for (k, e) in result.path.edges.enumerated() {
+            #expect(graph.source(ofEdgeAt: e) == result.path.vertices[k] && graph.target(ofEdgeAt: e) == result.path.vertices[k + 1])
+            product = product.times(ViterbiSemiring(w[e]))
+        }
+        #expect(result.path.vertices.first == 0 && result.path.vertices.last == 3)
+        #expect(product == result.distance)
+    }
+
+    @Test("SR-572 an edge of weight zero reaches nothing (ViterbiSemiring<Double>)")
+    func sr572() {
+        // dijkstraShortestPaths(from: 0) → [1.0, —, —]
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+        let w: [Double] = [0.0, 1.0]
+        let tree = graph.dijkstraShortestPaths(from: 0) { ViterbiSemiring(w[$0]) }
+        let expected: [Double?] = [1.0, nil, nil]
+        #expect((0 ..< 3).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 3).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 3).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 3 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = ViterbiSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(ViterbiSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-574 undirected through .directedView (ViterbiSemiring<Double>)")
+    func sr574() {
+        // dijkstraShortestPaths(from: 0) → [1.0, 0.5, 0.125, 0.125]
+        let graph = Pseudograph(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(0, 3)])
+        let directed = graph.directedView
+        let w: [Double] = [0.5, 0.25, 1.0, 0.0625]
+        let tree = directed.dijkstraShortestPaths(from: 0) { ViterbiSemiring(w[$0.position]) }
+        let expected: [Double?] = [1.0, 0.5, 0.125, 0.125]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = ViterbiSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(directed.source(ofEdgeAt: e) == path.vertices[k] && directed.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(ViterbiSemiring(w[e.position]))
             }
             #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
             #expect(product == tree.distance(to: v))

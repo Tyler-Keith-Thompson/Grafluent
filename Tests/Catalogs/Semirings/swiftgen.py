@@ -6,9 +6,9 @@
 
 First checks that ref.py's model reproduces cases.md byte for byte (every row recomputed, and
 every algorithm row checked against NetworkX, scipy or brute force by ref.py), then writes one
-@Test per row. The "Phase 2" rows (the last ones: `star`, `kleeneClosure`, `LogSemiring`, which the
-library does not declare) are written to SemiringPhase2Tests.swift only with --phase2; without the
-flag that file is removed.
+@Test per row. The "Phase 2" rows (SR-430 – SR-458: `star`, `kleeneClosure`, `LogSemiring`, which
+the library does not declare) are written to SemiringPhase2Tests.swift only with --phase2; without
+the flag that file is removed.
 
 Each row is written the way the catalog writes it: `S(value)` operands for the law and
 arithmetic rows; for the algorithm rows a `DirectedPseudograph` (or a `Pseudograph` read through
@@ -45,8 +45,10 @@ with open(os.path.join(HERE, "cases.md")) as f:
     assert f.read() == TEXT, "cases.md is not ref.py's output"
 ROWS = {int(r[0][3:]): r for r in ref.ROWS}
 N = len(ROWS)
-P2 = min(n for n, r in ROWS.items() if r[1].startswith("Phase 2"))
-assert all(ROWS[n][1].startswith("Phase 2") for n in range(P2, N + 1))
+# The "Phase 2" rows are one contiguous run; the rows after it are phase 1 again.
+PHASE2_ROWS = [n for n in sorted(ROWS) if ROWS[n][1].startswith("Phase 2")]
+assert PHASE2_ROWS == list(range(PHASE2_ROWS[0], PHASE2_ROWS[-1] + 1))
+PHASE1_ROWS = [n for n in sorted(ROWS) if n not in PHASE2_ROWS]
 
 
 def group(n): return ROWS[n][1]
@@ -542,6 +544,8 @@ WITHOUT = {
           "#expect((TropicalSemiring<UInt8>(200) ⊗ TropicalSemiring<UInt8>(55)) == .zero)"],
     ("TropicalSemiring<UInt64>", "a = UInt64.max - 2, b = 3"): ["// One less lands on UInt64.max: zero.",
           "#expect((TropicalSemiring<UInt64>(UInt64.max - 2) ⊗ TropicalSemiring<UInt64>(2)) == .zero)"],
+    ("MaxPlusSemiring<Int>", "a = Int.max - 3, b = 4"): ["// One less: the largest finite sum.",
+          "#expect((MaxPlusSemiring<Int>(Int.max - 3) ⊗ MaxPlusSemiring<Int>(3)).value == Int.max)"],
 }
 
 
@@ -684,7 +688,7 @@ def test_body(n):
 
 def ids(*groups, ops=None):
     out = []
-    for n in range(1, P2):
+    for n in PHASE1_ROWS:
         if is_trap(n) or group(n) not in groups:
             continue
         if ops and not any(op(n).split("(")[0].endswith(o) or ("." + o + "(") in op(n) for o in ops):
@@ -693,14 +697,15 @@ def ids(*groups, ops=None):
     return out
 
 
-TRAPS = [n for n in range(1, P2) if is_trap(n)]
+TRAPS = [n for n in PHASE1_ROWS if is_trap(n)]
 ALGO = ("Dijkstra", "Bellman–Ford", "DAG", "DAG distances", "Floyd–Warshall")
 FILES = [
     ("SemiringTypeTests.swift", "Semirings: zero, one and the types", ids("Constants", "Not available"),
-     "The four semirings' constants (catalog SR-001 – SR-007, and the other scalar families from\n"
-     f"// SR-{min(ids('Constants')[7:]):03d}): zero and one by value, their descriptions, zero worse than one by the\n"
-     "// natural order, and hashing; and the counting semiring, which is not selective, so only\n"
-     "// dagShortestDistances takes it (SR-%03d, SR-%03d)." % tuple(ids("Not available"))),
+     "The semirings' constants (catalog SR-001 – SR-007, the other scalar families from SR-%03d,\n"
+     "// and max-plus and Viterbi from SR-%03d): zero and one by value, their descriptions, zero worse\n"
+     "// than one by the natural order, and hashing; and the counting semiring, which is not\n"
+     "// selective, so only dagShortestDistances takes it (SR-%03d, SR-%03d)."
+     % ((min(ids("Constants")[7:]), min(n for n in ids("Constants") if n > 458)) + tuple(ids("Not available")))),
     ("SemiringLawTests.swift", "Semirings: laws and the natural order", ids("Laws", "Order"),
      "The semiring laws on the catalog's operands (SR-008 – SR-207, and from "
      f"SR-{min(n for n in ids('Laws') if n > 207):03d} one triple per\n"
@@ -716,8 +721,9 @@ FILES = [
      "// round, and unsigned 0 is the bottleneck zero."),
     ("SemiringDijkstraTests.swift", "Semirings: Dijkstra over a selective semiring", ids("Dijkstra"),
      "Dijkstra over a selective semiring (catalog Dijkstra rows): shortest paths (tropical), widest\n"
-     "// paths (bottleneck, with a cutoff meaning at least this wide) and reachability (Boolean); an\n"
-     "// edge of weight zero carries no path; undirected graphs through .directedView."),
+     "// paths (bottleneck, with a cutoff meaning at least this wide), reachability (Boolean), longest\n"
+     "// paths without positive weights (max-plus) and most probable paths (Viterbi); an edge of\n"
+     "// weight zero carries no path; undirected graphs through .directedView."),
     ("SemiringBellmanFordTests.swift", "Semirings: Bellman–Ford over a selective semiring", ids("Bellman–Ford"),
      "Bellman–Ford over a selective semiring (catalog Bellman–Ford rows): nil when a cycle better\n"
      "// than one is reachable, which only the tropical semiring has."),
@@ -743,7 +749,7 @@ FILES = [
 
 
 def write(fname, suite, rows, comment_text, extra=None, tags=""):
-    tests = [test_for(n) if n < P2 else phase2_test(n) for n in rows]
+    tests = [phase2_test(n) if n in PHASE2_ROWS else test_for(n) for n in rows]
     if extra:
         tests.append(extra)
     body = []
@@ -784,13 +790,13 @@ for fname, suite, rows, comment_text in FILES:
     print(fname, k)
     total += k
     rows_total += len(rows)
-assert rows_total == P2 - 1, rows_total
-assert sorted(n for _, _, rows, _ in FILES for n in rows) == list(range(1, P2))
+assert rows_total == len(PHASE1_ROWS), rows_total
+assert sorted(n for _, _, rows, _ in FILES for n in rows) == PHASE1_ROWS
 phase2 = os.path.join(OUT, "SemiringPhase2Tests.swift")
 if PHASE2:
-    k = write("SemiringPhase2Tests.swift", "Semirings: phase 2 (star, kleeneClosure, LogSemiring)", list(range(P2, N + 1)),
+    k = write("SemiringPhase2Tests.swift", "Semirings: phase 2 (star, kleeneClosure, LogSemiring)", PHASE2_ROWS,
               "Phase 2 (catalog SR-%03d – SR-%03d): star on the closed semirings, Lehmann's kleeneClosure (−∞\n"
-              "// through a negative cycle) and LogSemiring. Written only with swiftgen.py --phase2." % (P2, N))
+              "// through a negative cycle) and LogSemiring. Written only with swiftgen.py --phase2." % (PHASE2_ROWS[0], PHASE2_ROWS[-1]))
     print("SemiringPhase2Tests.swift", k)
 elif os.path.exists(phase2):
     os.remove(phase2)

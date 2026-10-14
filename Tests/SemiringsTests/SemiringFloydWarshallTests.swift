@@ -595,4 +595,129 @@ struct SemiringFloydWarshallTests {
             }
         }
     }
+
+    @Test("SR-558 all-pairs longest paths (MaxPlusSemiring<Int>)")
+    func sr558() throws {
+        // floydWarshallShortestPaths() → [0, 3, 2, 7, 7, 10; —, 0, —, 4, —, 6; —, —, 0, 1, 5, 8; —, —, —, 0, —, 2; —, —, —, —, 0, 3; —, —, —, —, —, 0]
+        let graph = DirectedPseudograph(vertices: 0 ..< 6, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3),
+            DirectedEdge(from: 2, to: 4), DirectedEdge(from: 3, to: 5), DirectedEdge(from: 4, to: 5),
+        ])
+        let w: [Int] = [3, 2, 4, 1, 5, 2, 3]
+        let matrix = try #require(graph.floydWarshallShortestPaths { MaxPlusSemiring(w[$0]) })
+        let expected: [[Int?]] = [
+            [0, 3, 2, 7, 7, 10],
+            [nil, 0, nil, 4, nil, 6],
+            [nil, nil, 0, 1, 5, 8],
+            [nil, nil, nil, 0, nil, 2],
+            [nil, nil, nil, nil, 0, 3],
+            [nil, nil, nil, nil, nil, 0],
+        ]
+        #expect((0 ..< 6).map { i in (0 ..< 6).map { matrix.distance(from: i, to: $0)?.value } } == expected)
+        #expect((0 ..< 6).map { i in (0 ..< 6).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 6).map { i in (0 ..< 6).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
+        // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
+        for i in 0 ..< 6 {
+            for j in 0 ..< 6 {
+                let path = matrix.path(from: i, to: j)
+                #expect((path == nil) == (expected[i][j] == nil))
+                guard let path else { continue }
+                var product = MaxPlusSemiring<Int>.one
+                for (k, e) in path.edges.enumerated() {
+                    #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                    product = product.times(MaxPlusSemiring(w[e]))
+                }
+                #expect(path.vertices.first == i && path.vertices.last == j)
+                #expect(product == matrix.distance(from: i, to: j))
+            }
+        }
+    }
+
+    @Test("SR-559 a positive cycle (MaxPlusSemiring<Int>)")
+    func sr559() {
+        // floydWarshallShortestPaths() → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)])
+        let w: [Int] = [1, 2, 1]
+        #expect(graph.floydWarshallShortestPaths { MaxPlusSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-568 all-pairs longest paths (MaxPlusSemiring<Double>)")
+    func sr568() throws {
+        // floydWarshallShortestPaths() → [0.0, 3.0, 2.0, 7.0, 7.0, 10.0; —, 0.0, —, 4.0, —, 6.0; —, —, 0.0, 1.0, 5.0, 8.0; —, —, —, 0.0, —, 2.0; —, —, —, —, 0.0, 3.0; —, —, —, —, —, 0.0]
+        let graph = DirectedPseudograph(vertices: 0 ..< 6, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3),
+            DirectedEdge(from: 2, to: 4), DirectedEdge(from: 3, to: 5), DirectedEdge(from: 4, to: 5),
+        ])
+        let w: [Double] = [3.0, 2.0, 4.0, 1.0, 5.0, 2.0, 3.0]
+        let matrix = try #require(graph.floydWarshallShortestPaths { MaxPlusSemiring(w[$0]) })
+        let expected: [[Double?]] = [
+            [0.0, 3.0, 2.0, 7.0, 7.0, 10.0],
+            [nil, 0.0, nil, 4.0, nil, 6.0],
+            [nil, nil, 0.0, 1.0, 5.0, 8.0],
+            [nil, nil, nil, 0.0, nil, 2.0],
+            [nil, nil, nil, nil, 0.0, 3.0],
+            [nil, nil, nil, nil, nil, 0.0],
+        ]
+        #expect((0 ..< 6).map { i in (0 ..< 6).map { matrix.distance(from: i, to: $0)?.value } } == expected)
+        #expect((0 ..< 6).map { i in (0 ..< 6).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 6).map { i in (0 ..< 6).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
+        // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
+        for i in 0 ..< 6 {
+            for j in 0 ..< 6 {
+                let path = matrix.path(from: i, to: j)
+                #expect((path == nil) == (expected[i][j] == nil))
+                guard let path else { continue }
+                var product = MaxPlusSemiring<Double>.one
+                for (k, e) in path.edges.enumerated() {
+                    #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                    product = product.times(MaxPlusSemiring(w[e]))
+                }
+                #expect(path.vertices.first == i && path.vertices.last == j)
+                #expect(product == matrix.distance(from: i, to: j))
+            }
+        }
+    }
+
+    @Test("SR-569 a positive cycle (MaxPlusSemiring<Double>)")
+    func sr569() {
+        // floydWarshallShortestPaths() → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)])
+        let w: [Double] = [1.0, 2.0, 1.0]
+        #expect(graph.floydWarshallShortestPaths { MaxPlusSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-577 all-pairs most probable paths (ViterbiSemiring<Double>)")
+    func sr577() throws {
+        // floydWarshallShortestPaths() → [1.0, 0.5, 0.375, 0.375; —, 1.0, 0.5, 0.5; —, —, 1.0, 1.0; —, —, —, 1.0]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Double] = [0.5, 0.375, 0.5, 0.125, 1.0]
+        let matrix = try #require(graph.floydWarshallShortestPaths { ViterbiSemiring(w[$0]) })
+        let expected: [[Double?]] = [
+            [1.0, 0.5, 0.375, 0.375],
+            [nil, 1.0, 0.5, 0.5],
+            [nil, nil, 1.0, 1.0],
+            [nil, nil, nil, 1.0],
+        ]
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(from: i, to: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.distance(fromIndex: i, toIndex: $0)?.value } } == expected)
+        #expect((0 ..< 4).map { i in (0 ..< 4).map { matrix.hasPath(from: i, to: $0) } } == expected.map { $0.map { $0 != nil } })
+        // Every path: arcs of the graph from i to j, whose ⊗-product is the distance; nil where no path.
+        for i in 0 ..< 4 {
+            for j in 0 ..< 4 {
+                let path = matrix.path(from: i, to: j)
+                #expect((path == nil) == (expected[i][j] == nil))
+                guard let path else { continue }
+                var product = ViterbiSemiring<Double>.one
+                for (k, e) in path.edges.enumerated() {
+                    #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                    product = product.times(ViterbiSemiring(w[e]))
+                }
+                #expect(path.vertices.first == i && path.vertices.last == j)
+                #expect(product == matrix.distance(from: i, to: j))
+            }
+        }
+    }
 }

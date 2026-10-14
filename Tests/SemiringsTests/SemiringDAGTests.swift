@@ -663,4 +663,144 @@ struct SemiringDAGTests {
         #expect((0 ..< 1156).map { distances.distance(toIndex: $0).value } == expected)
         #expect(distances.sources == [0])
     }
+
+    @Test("SR-550 longest paths: the critical path (MaxPlusSemiring<Int>)")
+    func sr550() throws {
+        // dagShortestPaths(from: 0) → [0, 3, 2, 7, 7, 10]
+        let graph = DirectedPseudograph(vertices: 0 ..< 6, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3),
+            DirectedEdge(from: 2, to: 4), DirectedEdge(from: 3, to: 5), DirectedEdge(from: 4, to: 5),
+        ])
+        let w: [Int] = [3, 2, 4, 1, 5, 2, 3]
+        let tree = try #require(graph.dagShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) })
+        let expected: [Int?] = [0, 3, 2, 7, 7, 10]
+        #expect((0 ..< 6).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 6).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 6).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 6 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = MaxPlusSemiring<Int>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(MaxPlusSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-551 longest paths with negative weights (MaxPlusSemiring<Int>)")
+    func sr551() throws {
+        // dagShortestPaths(from: 0) → [0, -2, 3, -3]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Int] = [-2, 3, 4, -1, -6]
+        let tree = try #require(graph.dagShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) })
+        let expected: [Int?] = [0, -2, 3, -3]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = MaxPlusSemiring<Int>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(MaxPlusSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-560 longest paths: the critical path (MaxPlusSemiring<Double>)")
+    func sr560() throws {
+        // dagShortestPaths(from: 0) → [0.0, 3.0, 2.0, 7.0, 7.0, 10.0]
+        let graph = DirectedPseudograph(vertices: 0 ..< 6, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 3), DirectedEdge(from: 2, to: 3),
+            DirectedEdge(from: 2, to: 4), DirectedEdge(from: 3, to: 5), DirectedEdge(from: 4, to: 5),
+        ])
+        let w: [Double] = [3.0, 2.0, 4.0, 1.0, 5.0, 2.0, 3.0]
+        let tree = try #require(graph.dagShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) })
+        let expected: [Double?] = [0.0, 3.0, 2.0, 7.0, 7.0, 10.0]
+        #expect((0 ..< 6).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 6).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 6).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 6 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = MaxPlusSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(MaxPlusSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-561 longest paths with negative weights (MaxPlusSemiring<Double>)")
+    func sr561() throws {
+        // dagShortestPaths(from: 0) → [0.0, -2.0, 3.0, -3.0]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Double] = [-2.0, 3.0, 4.0, -1.0, -6.0]
+        let tree = try #require(graph.dagShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) })
+        let expected: [Double?] = [0.0, -2.0, 3.0, -3.0]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = MaxPlusSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(MaxPlusSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-576 most probable paths in a DAG (ViterbiSemiring<Double>)")
+    func sr576() throws {
+        // dagShortestPaths(from: 0) → [1.0, 0.5, 0.375, 0.375]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Double] = [0.5, 0.375, 0.5, 0.125, 1.0]
+        let tree = try #require(graph.dagShortestPaths(from: 0) { ViterbiSemiring(w[$0]) })
+        let expected: [Double?] = [1.0, 0.5, 0.375, 0.375]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = ViterbiSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(ViterbiSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
 }

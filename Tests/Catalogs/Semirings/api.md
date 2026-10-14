@@ -1,16 +1,20 @@
 # Semirings: API
 
-The `Semiring` protocol, its `SelectiveSemiring` refinement, and four semirings:
-`TropicalSemiring` (min, +), `BottleneckSemiring` (max, min), `BooleanSemiring` (∨, ∧) and
-`CountingSemiring` (+, ×). The algorithms that take them are in ShortestPaths, as overloads of
+The `Semiring` protocol, its `SelectiveSemiring` refinement, six semirings:
+`TropicalSemiring` (min, +), `MaxPlusSemiring` (max, +), `BottleneckSemiring` (max, min),
+`ViterbiSemiring` (max, ×), `BooleanSemiring` (∨, ∧) and `CountingSemiring` (+, ×), and the
+`LexicographicSemiring` product of two selective semirings. The algorithms that take them are in ShortestPaths, as overloads of
 its numeric (`W`) entry points plus `dagShortestDistances`.
 
-`cases.md` (SR-001 – SR-458) pins the values. `ref.py` computes every row from the definitions
+`cases.md` (SR-001 – SR-577) pins the values; `LexicographicSemiring`, whose values are pairs, is
+tested by hand (`SemiringProductTests.swift`). `ref.py` computes every row from the definitions
 below with Swift's `Int` (trapping) and `Double` arithmetic. It recomputes every algorithm row
 another way:
 
 - tropical rows against NetworkX 3.7 and scipy 1.18.1 (`shortest_path` 'D', 'BF' and 'FW',
-  `NegativeCycleError`, `floyd_warshall`, `negative_edge_cycle`);
+  `NegativeCycleError`, `floyd_warshall`, `negative_edge_cycle`), and max-plus rows the same way
+  with every weight negated (a positive cycle is then a negative one);
+- Viterbi rows by brute force over simple paths;
 - bottleneck and Boolean rows by brute force over simple paths and against NetworkX
   `descendants` and `transitive_closure(reflexive=True)`;
 - counting rows against `all_simple_edge_paths` or the closed forms 2^k and C(r+c−2, r−1).
@@ -50,6 +54,22 @@ public protocol SelectiveSemiring: Semiring, Comparable {}
     public init(_ value: Value)
     // zero = +∞ (Int.max, .infinity), one = 0, ⊕ = min, ⊗ = + (0̄ absorbing, otherwise trapping)
 }
+@frozen public struct MaxPlusSemiring<Value: _SemiringScalar & SignedNumeric>: SelectiveSemiring, Hashable, Sendable {
+    public var value: Value
+    public init(_ value: Value)
+    // zero = −∞ (Int.min, -.infinity), one = 0, ⊕ = max, ⊗ = + (0̄ absorbing, otherwise trapping); `<` is "longer"
+}
+@frozen public struct ViterbiSemiring<Value: _SemiringScalar & BinaryFloatingPoint>: SelectiveSemiring, Hashable, Sendable {
+    public var value: Value
+    public init(_ value: Value)
+    // zero = 0, one = 1, ⊕ = max, ⊗ = *; `<` is "more probable"
+}
+@frozen public struct LexicographicSemiring<First: SelectiveSemiring, Second: SelectiveSemiring>: SelectiveSemiring {
+    public let first: First, second: Second
+    public init(_ first: First, _ second: Second)   // zero when either component is its zero
+    // zero = (0̄, 0̄), one = (1̄, 1̄), ⊕ = the better by first, then second, ⊗ componentwise;
+    // a semiring when First's ⊗ keeps strict order (integer tropical, max-plus)
+}   // Hashable, Sendable when both are
 @frozen public struct BottleneckSemiring<Value: _SemiringScalar>: SelectiveSemiring, Hashable, Sendable {
     public var value: Value
     public init(_ value: Value)

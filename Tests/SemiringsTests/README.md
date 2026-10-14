@@ -1,8 +1,9 @@
 # Semirings test suite
 
-`Semirings` holds the `Semiring` protocol, its `SelectiveSemiring` refinement and four semirings:
-`TropicalSemiring` (min, +), `BottleneckSemiring` (max, min), `BooleanSemiring` (∨, ∧) and
-`CountingSemiring` (+, ×). The algorithms that take them are ShortestPaths overloads: Dijkstra,
+`Semirings` holds the `Semiring` protocol, its `SelectiveSemiring` refinement, six semirings:
+`TropicalSemiring` (min, +), `MaxPlusSemiring` (max, +), `BottleneckSemiring` (max, min),
+`ViterbiSemiring` (max, ×), `BooleanSemiring` (∨, ∧) and `CountingSemiring` (+, ×), and the
+`LexicographicSemiring` product. The algorithms that take them are ShortestPaths overloads: Dijkstra,
 Bellman–Ford, DAG paths and Floyd–Warshall over a selective semiring, and `dagShortestDistances`
 (Mohri's shortest distance) over any semiring. The API is described in `api.md` in
 [`Tests/Catalogs/Semirings/`](../Catalogs/Semirings/). The suite pins these rules:
@@ -25,7 +26,9 @@ the seeded generator and the tags in `GrafluentTestSupport`.
 ```swift
 protocol Semiring: Equatable { static var zero, one; func plus(_:), times(_:) }   // ⊕, ⊗ in an extension
 protocol SelectiveSemiring: Semiring, Comparable                                    // < is the natural order
-TropicalSemiring<Value>, BottleneckSemiring<Value>, BooleanSemiring, CountingSemiring<Value>  // .value, init(_:)
+TropicalSemiring<Value>, MaxPlusSemiring<Value>, BottleneckSemiring<Value>, ViterbiSemiring<Value>,
+BooleanSemiring, CountingSemiring<Value>                                            // .value, init(_:)
+LexicographicSemiring<First, Second>                                                // .first, .second, init(_:_:)
 extension DirectedGraph {
     dijkstraShortestPaths(from:cutoff:weight:), dijkstraShortestPath(from:to:weight:)   // S: SelectiveSemiring
     bellmanFordShortestPaths(from:weight:), dagShortestPaths(from:weight:)             // optional
@@ -39,7 +42,7 @@ DistanceMatrix: distance(from:to:), distance(fromIndex:toIndex:), path(from:to:)
 
 ## How values are pinned
 
-`swiftgen.py` writes one test per catalog row from SR-001 to SR-429. It sits next to `ref.py` and
+`swiftgen.py` writes one test per catalog row from SR-001 to SR-429 and from SR-459 to SR-577. It sits next to `ref.py` and
 `cases.md` in [`Tests/Catalogs/Semirings/`](../Catalogs/Semirings/):
 
 ```
@@ -93,6 +96,14 @@ exit tests in `extra_traps.swift`:
 parenthesize them.
 
 ## Hand-written file
+
+**Products** (`SemiringProductTests.swift`, swift-property-based, with shrinking):
+`LexicographicSemiring`'s constants, the zero normalization (made or multiplied), the order, and a
+bottleneck first breaking distributivity as documented; the laws on random max-plus, Viterbi and
+lexicographic values in both spellings; Dijkstra and Bellman–Ford over lexicographic products
+(shortest with the fewest edges, shortest with the widest) and Viterbi against brute force over
+simple paths; max-plus longest paths in a DAG (`dagShortestPaths`, the `DirectedAcyclicGraph`
+overload, Bellman–Ford) against brute force.
 
 **Properties** (`SemiringPropertyTests.swift`, swift-property-based, with shrinking):
 

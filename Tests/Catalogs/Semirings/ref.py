@@ -115,6 +115,21 @@ CNT_I = SR("CountingSemiring<Int>", "Int", 0, 1, lambda a, b: chk(a + b), lambda
 CNT_D = SR("CountingSemiring<Double>", "Double", 0.0, 1.0, lambda a, b: a + b, lambda a, b: a * b)
 LOG_D = SR("LogSemiring<Double>", "Double", INF, 0.0, log_plus, trop_times_double)  # "Phase 2" rows only
 
+
+def maxplus_times_int(a, b):
+    if a == IMIN or b == IMIN:      # 0̄ (−∞) annihilates; a sum landing on Int.min is 0̄ too
+        return IMIN
+    return chk(a + b)
+
+
+def maxplus_times_double(a, b):
+    return -INF if a == -INF or b == -INF else a + b
+
+
+MAXPLUS_I = SR("MaxPlusSemiring<Int>", "Int", IMIN, 0, max, maxplus_times_int, lambda a, b: a > b)
+MAXPLUS_D = SR("MaxPlusSemiring<Double>", "Double", -INF, 0.0, max, maxplus_times_double, lambda a, b: a > b)
+VIT_D = SR("ViterbiSemiring<Double>", "Double", 0.0, 1.0, max, lambda a, b: a * b, lambda a, b: a > b)
+
 # The other scalars: fixed-width integers (trapping at their width; signed ones absorb .min as
 # −∞ after .max, unsigned ones have no −∞) and Float / Float16 (IEEE at their width).
 INT_WIDTHS = {"Int": (64, True), "Int8": (8, True), "Int16": (16, True), "Int32": (32, True), "Int64": (64, True),
@@ -160,7 +175,7 @@ SCALAR_SRS = [trop_int("Int8"), trop_int("Int16"), trop_int("Int32"), trop_int("
               trop_int("UInt32"), trop_int("UInt64"), trop_int("UInt"), bot_int("UInt"), bot_int("UInt8"),
               trop_float("Float"), trop_float("Float16"), bot_float("Float16")]
 
-ALL = {s.name: s for s in [TROP_I, TROP_D, BOT_I, BOT_D, BOOL, CNT_I, CNT_D, LOG_D] + SCALAR_SRS}
+ALL = {s.name: s for s in [TROP_I, TROP_D, BOT_I, BOT_D, BOOL, CNT_I, CNT_D, LOG_D, MAXPLUS_I, MAXPLUS_D, VIT_D] + SCALAR_SRS}
 
 
 def is_int(s):
@@ -322,7 +337,7 @@ def dijkstra(g, s, sources, cutoff=None):
     rows = g.out()
     dist = [s.zero] * g.n
     parent = [None] * g.n
-    key = (lambda v: 0 if v else 1) if s is BOOL else (lambda v: -v) if s.name.startswith("Bottleneck") else (lambda v: v)
+    key = (lambda v: 0 if v else 1) if s is BOOL else (lambda v: -v) if s.name.startswith(("Bottleneck", "MaxPlus", "Viterbi")) else (lambda v: v)
     heap, done, tick = [], [False] * g.n, itertools.count()
     for x in sources:
         dist[x] = s.one
@@ -596,10 +611,25 @@ def to_scipy(g, s):
     return a
 
 
+def negated(g, s):
+    """A max-plus graph as the tropical one with every weight negated (0̄ to 0̄)."""
+    t = TROP_I if s is MAXPLUS_I else TROP_D
+    return G(g.directed, g.n, [(u, v, t.zero if w == s.zero else -w) for u, v, w in g.edges]), t
+
+
 def check_row(g, s, op, sources, val):
     """Recompute `val` another way; raise on a mismatch."""
     def bad(why):
         raise AssertionError(f"{s} {op}: {why}")
+    if s in (MAXPLUS_I, MAXPLUS_D):
+        # Longest paths are the shortest paths of the negated weights: NetworkX and scipy check
+        # those, and a positive cycle is a negative one there.
+        h, t = negated(g, s)
+        neg = lambda x: None if x is None else -x
+        flip = None if val is None else [neg(x) if not isinstance(x, list) else [neg(y) for y in x] for x in val]
+        if op != "dagDistances":
+            check_row(h, t, op, sources, flip)
+        return
     if op == "bellmanFord" and s in (TROP_I, TROP_D):
         # The verdict by definition: a reachable cycle whose sum (−∞ for an Int.min edge) is negative.
         h = nx.DiGraph()
@@ -974,6 +1004,49 @@ def define():
     R("Phase 2: Log", "−log of the total probability of the paths", "LogSemiring<Double>",
       "D[4]: 0>1:0.6931471805599453, 0>2:1.3862943611198906, 1>3:0.0, 2>3:0.6931471805599453", "dagShortestDistances(from: 0)")
 
+    # ---------------------------------------------------------------- max-plus and Viterbi (after Phase 2, so its IDs stay)
+    for name, triples in [("MaxPlusSemiring<Int>", [("3", "-2", "7"), ("5", "Int.min", "0"), ("-4", "-4", "Int.min")]),
+                          ("MaxPlusSemiring<Double>", [("1.5", "-2.25", "4.0"), ("-.infinity", "0.5", "-3.0")]),
+                          ("ViterbiSemiring<Double>", [("0.5", "0.25", "1.0"), ("0.0", "0.75", "0.5")])]:
+        R("Constants", "zero and one", name, "—", "(.zero, .one)")
+        for law, text, _ in LAWS:
+            for t in triples:
+                R("Laws", law, name, f"a = {t[0]}, b = {t[1]}, c = {t[2]}", text)
+        for t in triples:
+            R("Laws", "selective: a ⊕ b is the better by <", name, f"a = {t[0]}, b = {t[1]}", "a ⊕ b == (b < a ? b : a)")
+            R("Laws", "idempotent", name, f"a = {t[0]}", "a ⊕ a == a")
+        R("Order", "the natural order: < is ‘better’", name, f"a = {triples[0][0]}, b = {triples[0][1]}", "a < b")
+        R("Order", "zero is the greatest (worst) element", name, f"a = {triples[0][0]}", "a < .zero || a == .zero")
+    R("Arithmetic", "Int.min is zero: it absorbs", "MaxPlusSemiring<Int>", "a = Int.min, b = 5", "a ⊗ b")
+    R("Arithmetic", "a finite sum reaching Int.min is zero", "MaxPlusSemiring<Int>", "a = Int.min + 3, b = -3", "a ⊗ b")
+    R("Arithmetic", "overflow traps", "MaxPlusSemiring<Int>", "a = Int.max - 3, b = 4", "a ⊗ b")
+    R("Arithmetic", "-.infinity is zero: it absorbs", "MaxPlusSemiring<Double>", "a = -.infinity, b = 1e308", "a ⊗ b")
+    R("Arithmetic", "products underflow to zero", "ViterbiSemiring<Double>", "a = 1e-200, b = 1e-200", "a ⊗ b")
+    M1 = "D[6]: 0>1:3, 0>2:2, 1>3:4, 2>3:1, 2>4:5, 3>5:2, 4>5:3"  # a project network: the critical path
+    M2 = "D[4]: 0>1:-2, 0>2:-1, 2>1:0, 1>3:-3, 2>3:-5"           # no positive weight: Dijkstra applies
+    M3 = "D[3]: 0>1:1, 1>2:2, 2>1:1"                              # a positive cycle
+    for name in ["MaxPlusSemiring<Int>", "MaxPlusSemiring<Double>"]:
+        R("DAG", "longest paths: the critical path", name, M1, "dagShortestPaths(from: 0)")
+        R("DAG", "longest paths with negative weights", name, G3, "dagShortestPaths(from: 0)")
+        R("Dijkstra", "longest paths when no weight is positive", name, M2, "dijkstraShortestPaths(from: 0)")
+        R("Dijkstra", "the longest path", name, M2, "dijkstraShortestPath(from: 0, to: 3)")
+        R("Dijkstra", "a positive examined weight traps", name, G1, "dijkstraShortestPaths(from: 0)")
+        R("Bellman–Ford", "longest paths; a negative cycle is harmless", name, G4, "bellmanFordShortestPaths(from: 0)")
+        R("Bellman–Ford", "a reachable positive cycle", name, M3, "bellmanFordShortestPaths(from: 0)")
+        R("Bellman–Ford", "a positive cycle not reachable", name, "D[4]: 0>1:1, 2>3:2, 3>2:1", "bellmanFordShortestPaths(from: 0)")
+        R("Floyd–Warshall", "all-pairs longest paths", name, M1, "floydWarshallShortestPaths()")
+        R("Floyd–Warshall", "a positive cycle", name, M3, "floydWarshallShortestPaths()")
+    V1 = "D[4]: 0>1:0.5, 0>2:0.375, 1>2:0.5, 1>3:0.125, 2>3:1.0"
+    name = "ViterbiSemiring<Double>"
+    R("Dijkstra", "most probable paths", name, V1, "dijkstraShortestPaths(from: 0)")
+    R("Dijkstra", "the most probable path", name, V1, "dijkstraShortestPath(from: 0, to: 3)")
+    R("Dijkstra", "an edge of weight zero reaches nothing", name, Z8, "dijkstraShortestPaths(from: 0)")
+    R("Dijkstra", "a weight above 1 traps", name, "D[4]: 0>1:2.0, 1>2:0.5, 0>3:0.5", "dijkstraShortestPaths(from: 0)")
+    R("Dijkstra", "undirected through .directedView", name, "U[4]: 0-1:0.5, 1-2:0.25, 2-3:1.0, 0-3:0.0625", "dijkstraShortestPaths(from: 0)")
+    R("Bellman–Ford", "cycles never improve", name, "D[3]: 0>1:0.5, 1>2:0.5, 2>1:1.0", "bellmanFordShortestPaths(from: 0)")
+    R("DAG", "most probable paths in a DAG", name, V1, "dagShortestPaths(from: 0)")
+    R("Floyd–Warshall", "all-pairs most probable paths", name, V1, "floydWarshallShortestPaths()")
+
 
 # ============================================================================ evaluation
 
@@ -1151,7 +1224,7 @@ NetworkX 3.7 and scipy 1.18.1 (`shortest_path` 'D', 'BF', 'FW', `NegativeCycleEr
 `floyd_warshall`, `negative_edge_cycle`), bottleneck and Boolean rows against brute force over
 simple paths (and NetworkX `descendants`, `transitive_closure(reflexive=True)`), counting rows
 against NetworkX `all_simple_edge_paths` (closed forms 2^k and C(r+c−2, r−1) for the big ones).
-Law rows evaluate both sides; the model asserts they are equal. Rows SR-{p2first:03d} – SR-{last:03d}
+Law rows evaluate both sides; the model asserts they are equal. Rows SR-{p2first:03d} – SR-{p2last:03d}
 (the "Phase 2" groups) pin `star`, `kleeneClosure` and `LogSemiring`, which the library does not
 declare; `swiftgen.py` writes their tests only with `--phase2`.
 
@@ -1197,8 +1270,8 @@ def render():
         lines.append("| " + " | ".join(c.replace("|", "\\|") for c in cells) + " |")
     lines.append("")
     lines.append(f"{len(ROWS)} rows.")
-    p2 = next(i for i, r in enumerate(ROWS) if r[1].startswith("Phase 2")) + 1
-    head = HEADER.format(last=len(ROWS), count=len(ROWS), p2first=p2)
+    p2 = [i + 1 for i, r in enumerate(ROWS) if r[1].startswith("Phase 2")]
+    head = HEADER.format(last=len(ROWS), count=len(ROWS), p2first=p2[0], p2last=p2[-1])
     return head + "\n".join(lines) + "\n"
 
 
@@ -1254,6 +1327,20 @@ def stress():
             check_row(g, s, "bellmanFord", src, bellman_ford(g, s, src)); bump(f"{s.name.split('<')[0]} Bellman–Ford")
             check_row(g, s, "floydWarshall", [], floyd_warshall(g, s)); bump(f"{s.name.split('<')[0]} Floyd–Warshall")
             assert kleene(g, s) == floyd_warshall(g, s)
+        for s in (MAXPLUS_I, MAXPLUS_D):
+            src = [rng.randrange(n)]
+            g = random_graph(rng, n, s, -9, 0)
+            check_row(g, s, "dijkstra", src, dijkstra(g, s, src)[0]); bump("max-plus Dijkstra")
+            g = random_graph(rng, n, s, -9, 3)
+            check_row(g, s, "bellmanFord", src, bellman_ford(g, s, src)); bump("max-plus Bellman–Ford")
+            check_row(g, s, "floydWarshall", [], floyd_warshall(g, s)); bump("max-plus Floyd–Warshall")
+            g = random_graph(rng, n, s, -3, 9, acyclic=True)
+            check_row(g, s, "dag", src, dag_paths(g, s, src)); bump("max-plus DAG")
+        g = random_graph(rng, n, VIT_D, 0, 4)
+        src = [rng.randrange(n)]
+        check_row(g, VIT_D, "dijkstra", src, dijkstra(g, VIT_D, src)[0]); bump("Viterbi Dijkstra")
+        check_row(g, VIT_D, "bellmanFord", src, bellman_ford(g, VIT_D, src)); bump("Viterbi Bellman–Ford")
+        check_row(g, VIT_D, "floydWarshall", [], floyd_warshall(g, VIT_D)); bump("Viterbi Floyd–Warshall")
         for s in (CNT_I,):
             g = random_graph(rng, n, s, 0, 3, acyclic=True)
             src = [rng.randrange(n)]
@@ -1265,7 +1352,10 @@ def stress():
                      (BOT_D, lambda: rng.choice([INF, -INF, rng.randint(-50, 50) / 4])),
                      (BOOL, lambda: rng.random() < 0.5),
                      (CNT_I, lambda: rng.randint(-50, 50)),
-                     (CNT_D, lambda: rng.randint(-50, 50) / 4)]:
+                     (CNT_D, lambda: rng.randint(-50, 50) / 4),
+                     (MAXPLUS_I, lambda: rng.choice([IMIN, rng.randint(-50, 50)])),
+                     (MAXPLUS_D, lambda: rng.choice([-INF, rng.randint(-50, 50) / 4])),
+                     (VIT_D, lambda: rng.randint(0, 8) / 8)]:
         for _ in range(500):
             a, b, c = gen_v(), gen_v(), gen_v()
             for _, _, f in LAWS:

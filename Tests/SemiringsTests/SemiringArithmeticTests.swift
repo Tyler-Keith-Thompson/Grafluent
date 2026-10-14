@@ -174,4 +174,40 @@ struct SemiringArithmeticTests {
         #expect(a.times(b).value == -Float16.infinity && b.times(a).value == -Float16.infinity)
     }
     #endif
+
+    @Test("SR-545 Int.min is zero: it absorbs (MaxPlusSemiring<Int>: a = Int.min, b = 5)")
+    func sr545() {
+        // a ⊗ b → Int.min
+        let a = MaxPlusSemiring<Int>(Int.min)
+        let b = MaxPlusSemiring<Int>(5)
+        #expect((a ⊗ b).value == Int.min)
+        #expect(a.times(b).value == Int.min && b.times(a).value == Int.min)
+    }
+
+    @Test("SR-546 a finite sum reaching Int.min is zero (MaxPlusSemiring<Int>: a = Int.min + 3, b = -3)")
+    func sr546() {
+        // a ⊗ b → Int.min
+        let a = MaxPlusSemiring<Int>(Int.min + 3)
+        let b = MaxPlusSemiring<Int>(-3)
+        #expect((a ⊗ b).value == Int.min)
+        #expect(a.times(b).value == Int.min && b.times(a).value == Int.min)
+    }
+
+    @Test("SR-548 -.infinity is zero: it absorbs (MaxPlusSemiring<Double>: a = -.infinity, b = 1e308)")
+    func sr548() {
+        // a ⊗ b → -.infinity
+        let a = MaxPlusSemiring<Double>(-Double.infinity)
+        let b = MaxPlusSemiring<Double>(1e308)
+        #expect((a ⊗ b).value == -Double.infinity)
+        #expect(a.times(b).value == -Double.infinity && b.times(a).value == -Double.infinity)
+    }
+
+    @Test("SR-549 products underflow to zero (ViterbiSemiring<Double>: a = 1e-200, b = 1e-200)")
+    func sr549() {
+        // a ⊗ b → 0.0
+        let a = ViterbiSemiring<Double>(1e-200)
+        let b = ViterbiSemiring<Double>(1e-200)
+        #expect((a ⊗ b).value == 0.0)
+        #expect(a.times(b).value == 0.0 && b.times(a).value == 0.0)
+    }
 }

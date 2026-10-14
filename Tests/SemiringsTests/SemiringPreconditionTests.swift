@@ -296,6 +296,87 @@ struct SemiringPreconditionTests {
         #expect((TropicalSemiring<UInt64>(UInt64.max - 2) ⊗ TropicalSemiring<UInt64>(2)) == .zero)
     }
 
+    @Test("SR-547 overflow traps (MaxPlusSemiring<Int>: a = Int.max - 3, b = 4)")
+    func sr547() async {
+        // a ⊗ b → **trap** (overflow)
+        await #expect(processExitsWith: .failure) {
+            let a = MaxPlusSemiring<Int>(Int.max - 3)
+            let b = MaxPlusSemiring<Int>(4)
+            _ = a ⊗ b
+        }
+        // The method the operator calls traps too.
+        await #expect(processExitsWith: .failure) {
+            let a = MaxPlusSemiring<Int>(Int.max - 3)
+            let b = MaxPlusSemiring<Int>(4)
+            _ = a.times(b)
+        }
+        // One less: the largest finite sum.
+        #expect((MaxPlusSemiring<Int>(Int.max - 3) ⊗ MaxPlusSemiring<Int>(3)).value == Int.max)
+    }
+
+    @Test("SR-554 a positive examined weight traps (MaxPlusSemiring<Int>)")
+    func sr554() async throws {
+        // dijkstraShortestPaths(from: 0) → **trap** (a weight is better than one)
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 5, edges: [
+                DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 3),
+                DirectedEdge(from: 2, to: 3),
+            ])
+            let w: [Int] = [4, 1, 2, 1, 5]
+            _ = graph.dijkstraShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) }
+        }
+        // Without the fault: from 3 no weight is examined, and Bellman–Ford takes the graph.
+        let graph = DirectedPseudograph(vertices: 0 ..< 5, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Int] = [4, 1, 2, 1, 5]
+        let tree = graph.dijkstraShortestPaths(from: 3) { MaxPlusSemiring(w[$0]) }
+        #expect((0 ..< 5).map { tree.distance(to: $0)?.value } == [nil, nil, nil, 0, nil])
+        let reference = try #require(graph.bellmanFordShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) })
+        #expect((0 ..< 5).map { reference.distance(to: $0)?.value } == [0, 4, 1, 6, nil])
+    }
+
+    @Test("SR-564 a positive examined weight traps (MaxPlusSemiring<Double>)")
+    func sr564() async throws {
+        // dijkstraShortestPaths(from: 0) → **trap** (a weight is better than one)
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 5, edges: [
+                DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 3),
+                DirectedEdge(from: 2, to: 3),
+            ])
+            let w: [Double] = [4.0, 1.0, 2.0, 1.0, 5.0]
+            _ = graph.dijkstraShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) }
+        }
+        // Without the fault: from 3 no weight is examined, and Bellman–Ford takes the graph.
+        let graph = DirectedPseudograph(vertices: 0 ..< 5, edges: [
+            DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 3),
+            DirectedEdge(from: 2, to: 3),
+        ])
+        let w: [Double] = [4.0, 1.0, 2.0, 1.0, 5.0]
+        let tree = graph.dijkstraShortestPaths(from: 3) { MaxPlusSemiring(w[$0]) }
+        #expect((0 ..< 5).map { tree.distance(to: $0)?.value } == [nil, nil, nil, 0.0, nil])
+        let reference = try #require(graph.bellmanFordShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) })
+        #expect((0 ..< 5).map { reference.distance(to: $0)?.value } == [0.0, 4.0, 1.0, 6.0, nil])
+    }
+
+    @Test("SR-573 a weight above 1 traps (ViterbiSemiring<Double>)")
+    func sr573() async throws {
+        // dijkstraShortestPaths(from: 0) → **trap** (a weight is better than one)
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 3)])
+            let w: [Double] = [2.0, 0.5, 0.5]
+            _ = graph.dijkstraShortestPaths(from: 0) { ViterbiSemiring(w[$0]) }
+        }
+        // Without the fault: from 3 no weight is examined, and Bellman–Ford takes the graph.
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 3)])
+        let w: [Double] = [2.0, 0.5, 0.5]
+        let tree = graph.dijkstraShortestPaths(from: 3) { ViterbiSemiring(w[$0]) }
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == [nil, nil, nil, 1.0])
+        let reference = try #require(graph.bellmanFordShortestPaths(from: 0) { ViterbiSemiring(w[$0]) })
+        #expect((0 ..< 4).map { reference.distance(to: $0)?.value } == [1.0, 2.0, 1.0, 0.5])
+    }
+
     @Test("A source or target that is not a vertex traps, in every semiring entry point")
     func nonVertexSources() async throws {
         await #expect(processExitsWith: .failure) {

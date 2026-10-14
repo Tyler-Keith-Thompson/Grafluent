@@ -513,4 +513,145 @@ struct SemiringBellmanFordTests {
             #expect(tree.parentEdge(of: v) == path.edges.last)
         }
     }
+
+    @Test("SR-555 longest paths; a negative cycle is harmless (MaxPlusSemiring<Int>)")
+    func sr555() throws {
+        // bellmanFordShortestPaths(from: 0) → [0, 1, -2, 0]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 3)])
+        let w: [Int] = [1, -3, 1, 2]
+        let tree = try #require(graph.bellmanFordShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) })
+        let expected: [Int?] = [0, 1, -2, 0]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = MaxPlusSemiring<Int>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(MaxPlusSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-556 a reachable positive cycle (MaxPlusSemiring<Int>)")
+    func sr556() {
+        // bellmanFordShortestPaths(from: 0) → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)])
+        let w: [Int] = [1, 2, 1]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-557 a positive cycle not reachable (MaxPlusSemiring<Int>)")
+    func sr557() throws {
+        // bellmanFordShortestPaths(from: 0) → [0, 1, —, —]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 2)])
+        let w: [Int] = [1, 2, 1]
+        let tree = try #require(graph.bellmanFordShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) })
+        let expected: [Int?] = [0, 1, nil, nil]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = MaxPlusSemiring<Int>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(MaxPlusSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-565 longest paths; a negative cycle is harmless (MaxPlusSemiring<Double>)")
+    func sr565() throws {
+        // bellmanFordShortestPaths(from: 0) → [0.0, 1.0, -2.0, 0.0]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 3)])
+        let w: [Double] = [1.0, -3.0, 1.0, 2.0]
+        let tree = try #require(graph.bellmanFordShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) })
+        let expected: [Double?] = [0.0, 1.0, -2.0, 0.0]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = MaxPlusSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(MaxPlusSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-566 a reachable positive cycle (MaxPlusSemiring<Double>)")
+    func sr566() {
+        // bellmanFordShortestPaths(from: 0) → nil
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)])
+        let w: [Double] = [1.0, 2.0, 1.0]
+        #expect(graph.bellmanFordShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) } == nil)
+    }
+
+    @Test("SR-567 a positive cycle not reachable (MaxPlusSemiring<Double>)")
+    func sr567() throws {
+        // bellmanFordShortestPaths(from: 0) → [0.0, 1.0, —, —]
+        let graph = DirectedPseudograph(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 2)])
+        let w: [Double] = [1.0, 2.0, 1.0]
+        let tree = try #require(graph.bellmanFordShortestPaths(from: 0) { MaxPlusSemiring(w[$0]) })
+        let expected: [Double?] = [0.0, 1.0, nil, nil]
+        #expect((0 ..< 4).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 4).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 4 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = MaxPlusSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(MaxPlusSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
+
+    @Test("SR-575 cycles never improve (ViterbiSemiring<Double>)")
+    func sr575() throws {
+        // bellmanFordShortestPaths(from: 0) → [1.0, 0.5, 0.25]
+        let graph = DirectedPseudograph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1)])
+        let w: [Double] = [0.5, 0.5, 1.0]
+        let tree = try #require(graph.bellmanFordShortestPaths(from: 0) { ViterbiSemiring(w[$0]) })
+        let expected: [Double?] = [1.0, 0.5, 0.25]
+        #expect((0 ..< 3).map { tree.distance(to: $0)?.value } == expected)
+        #expect((0 ..< 3).map { tree.distance(toIndex: $0)?.value } == expected)
+        #expect((0 ..< 3).map { tree.hasPath(to: $0) } == expected.map { $0 != nil })
+        #expect(tree.sources == [0])
+        // Every tree path: arcs of the graph from a source, whose ⊗-product is the distance.
+        for v in 0 ..< 3 {
+            guard let path = tree.path(to: v) else { continue }
+            var product = ViterbiSemiring<Double>.one
+            for (k, e) in path.edges.enumerated() {
+                #expect(graph.source(ofEdgeAt: e) == path.vertices[k] && graph.target(ofEdgeAt: e) == path.vertices[k + 1])
+                product = product.times(ViterbiSemiring(w[e]))
+            }
+            #expect(path.vertices.last == v && tree.sources.contains(path.vertices[0]))
+            #expect(product == tree.distance(to: v))
+            #expect(tree.parentEdge(of: v) == path.edges.last)
+        }
+    }
 }
