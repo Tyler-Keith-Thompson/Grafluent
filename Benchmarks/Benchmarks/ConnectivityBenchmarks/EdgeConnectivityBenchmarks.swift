@@ -93,4 +93,10 @@ func edgeConnectivityBenchmarks() {
     Benchmark("Connectivity: kEdgeConnectedComponents(5), G(2000, 8000)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(graph.kEdgeConnectedComponents(5)) }
     }
+    var kept = Set<UndirectedEdge<Int>>()
+    let cohesive = UndirectedAdjacencyList(vertices: 0 ..< 300, edges: Inputs.randomEdges(vertexCount: 300, edgeCount: 1500, seed: 12)
+        .map { UndirectedEdge($0.source, $0.target) }.filter { !$0.isSelfLoop && kept.insert($0).inserted })
+    Benchmark("Connectivity: kComponents(), G(300, 1500)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(cohesive.kComponents()) }
+    }
 }

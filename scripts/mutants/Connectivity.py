@@ -12,6 +12,9 @@
 #   ke_degree    (removed) Pruning only vertices of degree below k − 1: a vertex of degree k − 1
 #                cannot carry k edge-disjoint paths either, so its flows all stop below k and it
 #                is still a class alone. Time only.
+#   (not planted) In kComponents' cut search, flows between adjacent vertices and an unbroken
+#                search after reaching the sink: the direct arc carries k paths at once, and a
+#                fuller search reaches the sink all the same. Time only.
 
 TESTS = ["ConnectivityTests"]
 
@@ -206,4 +209,18 @@ MUTANTS = [
     Mutant("ke_k2", "EdgeConnectedComponents.swift", "        if k == 2 { return biEdgeConnectedComponents() }", "        if k == 2 { return connectedComponents() }", mode="stmt"),
     Mutant("ke_one", "EdgeConnectedComponents.swift", "parts == 1", "parts <= 2"),
     Mutant("ke_relabel", "EdgeConnectedComponents.swift", "        _ = _relabelByFirstAppearance(&labels, count: count)", "", mode="stmt", nth=1),
+    # k-components
+    Mutant("kc_dedupe", "KComponents.swift", "last[w] != v", "true"),
+    Mutant("kc_firstlevel", "KComponents.swift", "seen[v] != epoch && offsets[v + 1] > offsets[v]", "seen[v] != epoch"),
+    Mutant("kc_blocksize", "KComponents.swift", "offsets[b + 1] - offsets[b] > 2", "offsets[b + 1] - offsets[b] >= 2"),
+    Mutant("kc_sort", "KComponents.swift", "            current.sort { $0.lexicographicallyPrecedes($1) }", "", mode="stmt"),
+    Mutant("kc_peel", "KComponents.swift", "d < k", "d < k - 1"),
+    Mutant("kc_cascade", "KComponents.swift", "degree[w] < k", "degree[w] < k - 1"),
+    Mutant("kc_cutback", "KComponents.swift", "part + cut", "part"),
+    Mutant("kc_pivots", "KComponents.swift", "min(k, c)", "min(k - 1, c)"),
+    Mutant("kc_reset", "KComponents.swift", "                for a in 0 ..< arcCount { residual[a] = capacity[a] }", "", mode="stmt"),
+    Mutant("kc_reverse", "KComponents.swift", "                        residual[a ^ 1] += 1", "", mode="stmt"),
+    Mutant("kc_flowcap", "KComponents.swift", "flow < k", "flow < k - 1", nth=0),
+    Mutant("kc_cut", "KComponents.swift", "reached[2 * l] == round && reached[2 * l + 1] != round", "reached[2 * l + 1] != round"),
+    Mutant("kc_edgecap", "KComponents.swift", "                capacity.append(c)", "                capacity.append(1)", mode="stmt"),
 ]

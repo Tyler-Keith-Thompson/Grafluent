@@ -57,6 +57,8 @@ struct EdgeConnectivityAnswers: Encodable {
     /// For k = 1 … 4.
     var components: [[[Int]]] = []
     var subgraphs: [[[Int]]] = []
+    /// kComponents(), level k at k − 1.
+    var kComponents: [[[Int]]] = []
 }
 
 func edgeConnectivityAnswers(n: Int, edges: [[Int]]) -> EdgeConnectivityAnswers {
@@ -66,6 +68,8 @@ func edgeConnectivityAnswers(n: Int, edges: [[Int]]) -> EdgeConnectivityAnswers 
         a.components.append(graph.kEdgeConnectedComponents(k).map(Array.init))
         a.subgraphs.append(graph.kEdgeConnectedSubgraphs(k).map(Array.init))
     }
+    let components = graph.kComponents()
+    a.kComponents = (0 ..< components.maximumK).map { components[$0 + 1].map(Array.init) }
     return a
 }
 

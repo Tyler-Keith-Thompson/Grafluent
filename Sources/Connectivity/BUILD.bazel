@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected, bi-edge-connected and k-edge-connected components, k-edge-connected subgraphs and the block–cut tree of undirected graphs.
+# Strong and weak components, condensation, attracting components, dominators; connected components, bridges, articulation points, biconnected, bi-edge-connected and k-edge-connected components, k-edge-connected subgraphs, k-components and the block–cut tree of undirected graphs.
 swift_library(
     name = "Connectivity",
     srcs = glob(["**/*.swift"]),

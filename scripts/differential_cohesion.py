@@ -5,7 +5,7 @@ k whose k-truss holds it), the k-trusses, `onion_layers`, `k_crust`, `k_corona`,
 `enumerate_all_cliques`, the triangles, `find_cliques(nodes=[target])`, `node_clique_number` and
 `max_weight_clique` (by weight, the returned set checked to be a clique), all on the simple graph
 without self-loops, which NetworkX rejects. Undirected cases (connectivity section):
-`k_edge_components` and `k_edge_subgraphs` for k = 1 … 4. Directed cases (dag section): the
+`k_edge_components` and `k_edge_subgraphs` for k = 1 … 4, and `k_components`. Directed cases (dag section): the
 case's edges inserted as the library does (rejected when a self-loop or closing a cycle), then
 `is_d_separator`, `find_minimal_d_separator` (equal, and minimal by `is_minimal_d_separator`) and
 `moral_graph`. Differential/Sources/GrafluentDifferential/Cohesion.swift answers.
@@ -124,6 +124,17 @@ def compare_edge_connectivity(case, mine):
             problems.append(f"kEdgeConnectedSubgraphs({k}) {ours}, NetworkX {theirs}")
         if k >= 3:
             COVERED[f"nontrivial {k}-edge components"] += sum(1 for c in theirs if len(c) > 1)
+    theirs = nx.k_components(S) if S.number_of_edges() else {}
+    ours = mine["kComponents"]
+    if len(ours) != len(theirs):
+        problems.append(f"kComponents() has {len(ours)} levels, NetworkX {sorted(theirs)}")
+    for k, level in theirs.items():
+        expected = sorted(sorted(c) for c in level)
+        found = ours[k - 1] if k <= len(ours) else None
+        if found != expected:
+            problems.append(f"kComponents()[{k}] {found}, NetworkX {expected}")
+        if k >= 3:
+            COVERED[f"{k}-components"] += len(expected)
     return problems
 
 

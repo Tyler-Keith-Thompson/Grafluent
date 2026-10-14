@@ -175,6 +175,42 @@ enum FuzzUndirectedConnectivity {
                 check(graph.kEdgeConnectedSubgraphs(k).map(Array.init) == subgraphs, "\(name) kEdgeConnectedSubgraphs(\(k))")
             }
 
+            // k-components: the maximal sets of more than k vertices that no fewer than k
+            // removed vertices disconnect. Every vertex set and every small cut: small graphs only.
+            if n <= 7 {
+                func inducesConnected(_ set: Int) -> Bool {
+                    guard set != 0 else { return false }
+                    var reached = set & -set
+                    while true {
+                        var grown = reached
+                        for (a, b) in edges where set & (1 << a) != 0 && set & (1 << b) != 0 {
+                            if reached & (1 << a) != 0 { grown |= 1 << b }
+                            if reached & (1 << b) != 0 { grown |= 1 << a }
+                        }
+                        if grown == reached { return reached == set }
+                        reached = grown
+                    }
+                }
+                let levels = graph.kComponents()
+                var top = 0
+                for k in 1 ... max(n, 1) {
+                    var cohesive: [Int] = []
+                    for set in 1 ..< max(1 << n, 2) where set.nonzeroBitCount > k {
+                        var whole = true
+                        for removed in 0 ... set where removed & ~set == 0 && removed.nonzeroBitCount < k && !inducesConnected(set & ~removed) {
+                            whole = false
+                            break
+                        }
+                        if whole { cohesive.append(set) }
+                    }
+                    let expected = cohesive.filter { set in !cohesive.contains { $0 != set && $0 & set == set } }
+                        .map { set in (0 ..< n).filter { set & (1 << $0) != 0 } }.sorted { $0.lexicographicallyPrecedes($1) }
+                    if !expected.isEmpty { top = k }
+                    check(levels[k].map(Array.init) == expected, "\(name) kComponents()[\(k)]")
+                }
+                check(levels.maximumK == top, "\(name) kComponents().maximumK")
+            }
+
             let tree = graph.blockCutTree()
             check(tree.articulationPoints == points, "\(name) block–cut tree points")
             var treeEdges = 0
