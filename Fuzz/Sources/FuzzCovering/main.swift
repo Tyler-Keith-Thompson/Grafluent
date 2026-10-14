@@ -1,7 +1,8 @@
 // Covering against brute force, on multigraphs of at most 10 vertices with self-loops and
 // parallel edges, without vertex indices: the maximum independent set is the first independent
 // set of the greatest size in combinations order, the minimum vertex cover its complement, the
-// minimum dominating set the first dominating set of the least size; the approximations are valid
+// least minimum vertex cover the first cover of the least size, the minimum dominating set the
+// first dominating set of the least size; the approximations are valid
 // and within their bounds (twice the least weighted cover; H(Δ + 1) times the least weighted
 // dominating set); the maximal independent set is maximal; König's cover is a minimum cover with
 // the most left vertices; the edge cover has n − ν edges; and the checks agree with definitions.
@@ -45,7 +46,7 @@ enum FuzzCovering {
         // Lexicographic order on equal sizes: the set holding the least vertex of the difference
         // first; among sets of one size the least in this order is the first in combinations order.
         func lexLess(_ a: [Int], _ b: [Int]) -> Bool { a.lexicographicallyPrecedes(b) }
-        var bestIndependent: [Int] = [], bestDominating = Array(0 ..< n)
+        var bestIndependent: [Int] = [], bestDominating = Array(0 ..< n), bestCover = Array(0 ..< n)
         var bestCoverWeight = Int.max, bestDominatingWeight = Int.max
         for mask in 0 ..< (1 << n) {
             let m = members(mask), s = Set(m)
@@ -54,7 +55,10 @@ enum FuzzCovering {
                 if m.count < bestDominating.count || (m.count == bestDominating.count && lexLess(m, bestDominating)) { bestDominating = m }
                 bestDominatingWeight = min(bestDominatingWeight, m.reduce(0) { $0 + weights[$1] })
             }
-            if cover(s) { bestCoverWeight = min(bestCoverWeight, m.reduce(0) { $0 + weights[$1] }) }
+            if cover(s) {
+                if m.count < bestCover.count || (m.count == bestCover.count && lexLess(m, bestCover)) { bestCover = m }
+                bestCoverWeight = min(bestCoverWeight, m.reduce(0) { $0 + weights[$1] })
+            }
         }
         let least = graph.lexicographicallyFirstMaximumIndependentSet()
         check(least == bestIndependent, "lexicographicallyFirstMaximumIndependentSet \(least), expected \(bestIndependent) on \(ends)")
@@ -62,6 +66,8 @@ enum FuzzCovering {
         let mis = graph.maximumIndependentSet()
         check(mis.count == bestIndependent.count && mis == mis.sorted() && independent(Set(mis)), "maximumIndependentSet \(mis), α \(bestIndependent.count) on \(ends)")
         check(graph.minimumVertexCover() == (0 ..< n).filter { !mis.contains($0) }, "minimumVertexCover is not the complement")
+        let leastCover = graph.lexicographicallyFirstMinimumVertexCover()
+        check(leastCover == bestCover, "lexicographicallyFirstMinimumVertexCover \(leastCover), expected \(bestCover) on \(ends)")
         let leastDominating = graph.lexicographicallyFirstMinimumDominatingSet()
         check(leastDominating == bestDominating, "lexicographicallyFirstMinimumDominatingSet \(leastDominating), expected \(bestDominating) on \(ends)")
         let mds = graph.minimumDominatingSet()

@@ -35,6 +35,16 @@ MUTANTS = [
     Mutant("dominating_bound", "ExactCovering.swift", "if most * remaining < undominated { return -1 }", "", mode="stmt"),
     Mutant("dominating_budget", "ExactCovering.swift", "if remaining <= 0 { return -1 }", "", mode="stmt"),
 
+    # The greatest maximum independent set (the least minimum vertex cover's complement)
+    Mutant("last_goal", "ExactCovering.swift", "goal == .lexicographicallyLast", "false"),
+    Mutant("last_complete", "ExactCovering.swift", "inSet[last ? greatest : least] = true", "inSet[least] = true", mode="stmt", nth=0),
+    Mutant("last_complete_piece", "ExactCovering.swift", "inSet[last ? greatest : least] = true", "inSet[least] = true", mode="stmt", nth=1),
+    Mutant("last_lattice", "ExactCovering.swift", "(side[v] == 0) != last", "side[v] == 0"),
+    Mutant("last_simplicial", "ExactCovering.swift", "(g.targets[k] < x) != last", "g.targets[k] < x"),
+    Mutant("last_delete", "ExactCovering.swift", "!piece.isEmpty && kernel.solve(g, piece, need: need, wantSet: true) >= need", "false"),
+    Mutant("last_need", "ExactCovering.swift", "kernel.solve(g, piece, need: need, wantSet: true) >= need", "kernel.solve(g, piece, need: need, wantSet: true) >= need - 1"),
+    Mutant("last_witness", "ExactCovering.swift", "            for u in kernel.set { witness[u] = true }", "", mode="stmt", nth=1),
+
     # The fast spellings: one solve, its set kept
     Mutant("fast_kernel_set", "ExactCovering.swift", "size += kernel!.solve(g, members, need: Int.max, wantSet: true)", "size += kernel!.solve(g, members, need: Int.max, wantSet: false)", mode="stmt"),
     Mutant("fast_kernel_flags", "ExactCovering.swift", "            for u in kernel!.set { inSet[u] = true }", "", mode="stmt"),

@@ -2349,11 +2349,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-050 empty graph, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv050() {
-        // V []; E []; minimumVertexCover().count
+        // V []; E []; lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
@@ -2365,6 +2368,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 0)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
@@ -2375,6 +2381,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyList<Int>(vertices: [] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
@@ -2385,6 +2394,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyMatrix(vertexCount: 0, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
@@ -2395,11 +2407,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-051 one vertex, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv051() {
-        // V [0]; E []; minimumVertexCover().count
+        // V [0]; E []; lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = []
             let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 0)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
@@ -2411,6 +2426,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 0)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
@@ -2421,6 +2439,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
@@ -2431,6 +2452,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = []
             let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 0)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 0)
             #expect(graph.isVertexCover(cover))
@@ -2441,11 +2465,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-052 self-loop: its vertex, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv052() {
-        // V [0]; E [0-0]; minimumVertexCover().count
+        // V [0]; E [0-0]; lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 1)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2457,6 +2484,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 1)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2467,6 +2497,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = AdjacencyList<Int>(vertices: [0] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2477,6 +2510,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 0)]
             let graph = AdjacencyMatrix(vertexCount: 1, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2485,13 +2521,16 @@ struct CoveringRepresentationTests {
         }
     }
 
-    @Test("CV-053 one edge: the greater end, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
+    @Test("CV-053 one edge: the lesser end, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv053() {
-        // V [0, 1]; E [0-1]; minimumVertexCover().count
+        // V [0, 1]; E [0-1]; lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 1)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2503,6 +2542,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 1)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2513,6 +2555,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2523,6 +2568,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1)]
             let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 1)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2533,11 +2581,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-054 loop and edge, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv054() {
-        // V [0, 1]; E [0-0, 0-1]; minimumVertexCover().count
+        // V [0, 1]; E [0-0, 0-1]; lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 0), (0, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 2)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2549,6 +2600,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 2)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2559,6 +2613,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 0), (0, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2569,6 +2626,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 0), (0, 1)]
             let graph = AdjacencyMatrix(vertexCount: 2, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 2)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2579,12 +2639,15 @@ struct CoveringRepresentationTests {
 
     @Test("CV-055 parallel edges, on no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv055() {
-        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; minimumVertexCover().count
+        // multigraph V [0, 1, 2]; E [0-1, 1-0, 1-2]; lexicographicallyFirstMinimumVertexCover()
         do { // no indices
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2595,6 +2658,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2605,6 +2671,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 0), (1, 2)]
             let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2615,11 +2684,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-056 triangle, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv056() {
-        // K(3); minimumVertexCover().count
+        // K(3); lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2631,6 +2703,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2641,6 +2716,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2651,6 +2729,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2)]
             let graph = AdjacencyMatrix(vertexCount: 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2661,11 +2742,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-057 K(4), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv057() {
-        // K(4); minimumVertexCover().count
+        // K(4); lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -2677,6 +2761,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -2687,6 +2774,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -2697,6 +2787,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
             let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -2707,11 +2800,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-058 P(4), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv058() {
-        // P(4); minimumVertexCover().count
+        // P(4); lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2723,6 +2819,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2733,6 +2832,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2743,6 +2845,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
             let graph = AdjacencyMatrix(vertexCount: 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2753,11 +2858,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-059 C(5), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv059() {
-        // C(5); minimumVertexCover().count
+        // C(5); lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -2769,6 +2877,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -2779,6 +2890,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -2789,6 +2903,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -2799,11 +2916,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-060 star(5): the hub, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv060() {
-        // star(5); minimumVertexCover().count
+        // star(5); lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2815,6 +2935,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2825,6 +2948,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2835,6 +2961,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 1)
             #expect(graph.isVertexCover(cover))
@@ -2845,11 +2974,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-061 Petersen: 6, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv061() {
-        // nx(petersen_graph); minimumVertexCover().count
+        // nx(petersen_graph); lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 15)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3, 7, 8, 9] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
@@ -2861,6 +2993,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 15)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3, 7, 8, 9] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
@@ -2871,6 +3006,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3, 7, 8, 9] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
@@ -2881,6 +3019,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 4), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 7), (5, 8), (6, 8), (6, 9), (7, 9)]
             let graph = AdjacencyMatrix(vertexCount: 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 15)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3, 7, 8, 9] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
@@ -2891,11 +3032,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-062 Kb(2,3): the left side, on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv062() {
-        // Kb(2,3); minimumVertexCover().count
+        // Kb(2,3); lexicographicallyFirstMinimumVertexCover()
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2906,6 +3050,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2917,6 +3064,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2927,6 +3077,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2937,6 +3090,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2947,11 +3103,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-063 Kb(3,2): the right side, on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv063() {
-        // Kb(3,2); minimumVertexCover().count
+        // Kb(3,2); lexicographicallyFirstMinimumVertexCover()
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (1, 3), (1, 4), (2, 3), (2, 4)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [3, 4] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2962,6 +3121,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (1, 3), (1, 4), (2, 3), (2, 4)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [3, 4] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2973,6 +3135,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [3, 4] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2983,6 +3148,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (1, 3), (1, 4), (2, 3), (2, 4)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [3, 4] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -2993,6 +3161,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 3), (0, 4), (1, 3), (1, 4), (2, 3), (2, 4)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 6)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [3, 4] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -3003,11 +3174,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-064 L [0,1,2]; R [3,4,5]: lex vs Koenig, on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv064() {
-        // L [0, 1, 2]; R [3, 4, 5]; E [0-3, 1-3, 1-4, 2-4, 2-5]; minimumVertexCover().count
+        // L [0, 1, 2]; R [3, 4, 5]; E [0-3, 1-3, 1-4, 2-4, 2-5]; lexicographicallyFirstMinimumVertexCover()
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(0, 3), (1, 3), (1, 4), (2, 4), (2, 5)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -3018,6 +3192,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 3), (1, 3), (1, 4), (2, 4), (2, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -3029,6 +3206,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -3039,6 +3219,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 3), (1, 3), (1, 4), (2, 4), (2, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -3049,6 +3232,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 3), (1, 3), (1, 4), (2, 4), (2, 5)]
             let graph = AdjacencyMatrix(vertexCount: 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 5)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3)
             #expect(graph.isVertexCover(cover))
@@ -3059,11 +3245,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-065 BipartiteGraph with an isolated right vertex, on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv065() {
-        // L [0, 1]; R [2, 3, 4]; E [0-2, 1-2, 1-3]; minimumVertexCover().count
+        // L [0, 1]; R [2, 3, 4]; E [0-2, 1-2, 1-3]; lexicographicallyFirstMinimumVertexCover()
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(0, 2), (1, 2), (1, 3)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -3074,6 +3263,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 2), (1, 2), (1, 3)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -3085,6 +3277,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -3095,6 +3290,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 2), (1, 2), (1, 3)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -3105,6 +3303,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 2), (1, 2), (1, 3)]
             let graph = AdjacencyMatrix(vertexCount: 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -3115,11 +3316,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-066 lcgb(8,6,18,7), on UndirectedAdjacencyList, ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv066() {
-        // lcgb(8,6,18,7); minimumVertexCover().count
+        // lcgb(8,6,18,7); lexicographicallyFirstMinimumVertexCover()
         do { // UndirectedAdjacencyList
             let pairs: [(Int, Int)] = [(6, 13), (1, 13), (0, 8), (3, 12), (3, 11), (0, 10), (5, 12), (5, 11), (4, 13), (0, 9), (6, 8), (5, 8), (0, 13), (6, 9), (5, 13), (1, 9), (4, 8), (4, 10)]
             let graph = UndirectedAdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 18)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3, 4, 5, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
@@ -3130,6 +3334,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(6, 13), (1, 13), (0, 8), (3, 12), (3, 11), (0, 10), (5, 12), (5, 11), (4, 13), (0, 9), (6, 8), (5, 8), (0, 13), (6, 9), (5, 13), (1, 9), (4, 8), (4, 10)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 18)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3, 4, 5, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
@@ -3141,6 +3348,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 18)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3, 4, 5, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
@@ -3151,6 +3361,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(6, 13), (1, 13), (0, 8), (3, 12), (3, 11), (0, 10), (5, 12), (5, 11), (4, 13), (0, 9), (6, 8), (5, 8), (0, 13), (6, 9), (5, 13), (1, 9), (4, 8), (4, 10)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3, 4, 5, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
@@ -3161,6 +3374,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(6, 13), (1, 13), (0, 8), (3, 12), (3, 11), (0, 10), (5, 12), (5, 11), (4, 13), (0, 9), (6, 8), (5, 8), (0, 13), (6, 9), (5, 13), (1, 9), (4, 8), (4, 10)]
             let graph = AdjacencyMatrix(vertexCount: 14, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 18)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 3, 4, 5, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 6)
             #expect(graph.isVertexCover(cover))
@@ -3171,11 +3387,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-067 grid(4,5), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv067() {
-        // grid(4,5); minimumVertexCover().count
+        // grid(4,5); lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 6), (5, 10), (6, 7), (6, 11), (7, 8), (7, 12), (8, 9), (8, 13), (9, 14), (10, 11), (10, 15), (11, 12), (11, 16), (12, 13), (12, 17), (13, 14), (13, 18), (14, 19), (15, 16), (16, 17), (17, 18), (18, 19)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 31)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 2, 4, 6, 8, 10, 12, 14, 16, 18] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
@@ -3187,6 +3406,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 31)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 2, 4, 6, 8, 10, 12, 14, 16, 18] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
@@ -3197,6 +3419,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 6), (5, 10), (6, 7), (6, 11), (7, 8), (7, 12), (8, 9), (8, 13), (9, 14), (10, 11), (10, 15), (11, 12), (11, 16), (12, 13), (12, 17), (13, 14), (13, 18), (14, 19), (15, 16), (16, 17), (17, 18), (18, 19)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 31)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 2, 4, 6, 8, 10, 12, 14, 16, 18] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
@@ -3207,6 +3432,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 5), (1, 2), (1, 6), (2, 3), (2, 7), (3, 4), (3, 8), (4, 9), (5, 6), (5, 10), (6, 7), (6, 11), (7, 8), (7, 12), (8, 9), (8, 13), (9, 14), (10, 11), (10, 15), (11, 12), (11, 16), (12, 13), (12, 17), (13, 14), (13, 18), (14, 19), (15, 16), (16, 17), (17, 18), (18, 19)]
             let graph = AdjacencyMatrix(vertexCount: 20, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 31)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 2, 4, 6, 8, 10, 12, 14, 16, 18] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
@@ -3217,11 +3445,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-068 mixed components, on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv068() {
-        // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 1-2, 2-0, 3-4, 4-5, 6-6, 6-7]; minimumVertexCover().count
+        // V [0, 1, 2, 3, 4, 5, 6, 7]; E [0-1, 1-2, 2-0, 3-4, 4-5, 6-6, 6-7]; lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 7)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 4, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 4)
             #expect(graph.isVertexCover(cover))
@@ -3233,6 +3464,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 7)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 4, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 4)
             #expect(graph.isVertexCover(cover))
@@ -3243,6 +3477,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 4, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 4)
             #expect(graph.isVertexCover(cover))
@@ -3253,6 +3490,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (6, 6), (6, 7)]
             let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 7)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 4, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 4)
             #expect(graph.isVertexCover(cover))
@@ -3263,11 +3503,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-069 letters, on ReferencePseudograph, no indices, AdjacencyList.undirectedView")
     func cv069() {
-        // V [d, a, c, b]; E [d-a, a-c, c-b]; minimumVertexCover().count
+        // V [d, a, c, b]; E [d-a, a-c, c-b]; lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
             let graph = ReferencePseudograph<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == ["d", "c"] as [String])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -3279,6 +3522,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == ["d", "c"] as [String])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -3289,6 +3535,9 @@ struct CoveringRepresentationTests {
             let pairs: [(String, String)] = [("d", "a"), ("a", "c"), ("c", "b")]
             let graph = AdjacencyList<String>(vertices: ["d", "a", "c", "b"] as [String], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 3)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == ["d", "c"] as [String])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 2)
             #expect(graph.isVertexCover(cover))
@@ -3299,11 +3548,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-070 lcg(18,35,8), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv070() {
-        // lcg(18,35,8); minimumVertexCover().count
+        // lcg(18,35,8); lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(4, 6), (14, 7), (14, 5), (16, 5), (1, 11), (9, 1), (2, 7), (13, 14), (12, 5), (6, 0), (11, 15), (16, 4), (3, 10), (4, 7), (11, 9), (16, 15), (6, 16), (0, 12), (15, 13), (12, 15), (17, 0), (2, 5), (1, 17), (15, 10), (11, 6), (15, 3), (10, 4), (8, 14), (5, 1), (4, 11), (11, 7), (15, 9), (10, 9), (5, 4), (13, 5)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 35)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2, 4, 5, 6, 10, 11, 14, 15] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
@@ -3315,6 +3567,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 35)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2, 4, 5, 6, 10, 11, 14, 15] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
@@ -3325,6 +3580,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(4, 6), (14, 7), (14, 5), (16, 5), (1, 11), (9, 1), (2, 7), (13, 14), (12, 5), (6, 0), (11, 15), (16, 4), (3, 10), (4, 7), (11, 9), (16, 15), (6, 16), (0, 12), (15, 13), (12, 15), (17, 0), (2, 5), (1, 17), (15, 10), (11, 6), (15, 3), (10, 4), (8, 14), (5, 1), (4, 11), (11, 7), (15, 9), (10, 9), (5, 4), (13, 5)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 35)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2, 4, 5, 6, 10, 11, 14, 15] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
@@ -3335,6 +3593,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(4, 6), (14, 7), (14, 5), (16, 5), (1, 11), (9, 1), (2, 7), (13, 14), (12, 5), (6, 0), (11, 15), (16, 4), (3, 10), (4, 7), (11, 9), (16, 15), (6, 16), (0, 12), (15, 13), (12, 15), (17, 0), (2, 5), (1, 17), (15, 10), (11, 6), (15, 3), (10, 4), (8, 14), (5, 1), (4, 11), (11, 7), (15, 9), (10, 9), (5, 4), (13, 5)]
             let graph = AdjacencyMatrix(vertexCount: 18, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 35)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2, 4, 5, 6, 10, 11, 14, 15] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 10)
             #expect(graph.isVertexCover(cover))
@@ -3345,11 +3606,14 @@ struct CoveringRepresentationTests {
 
     @Test("CV-071 wheel(7), on ReferencePseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func cv071() {
-        // wheel(7); minimumVertexCover().count
+        // wheel(7); lexicographicallyFirstMinimumVertexCover()
         do { // ReferencePseudograph
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 1)]
             let graph = ReferencePseudograph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.edgeCount == 14)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2, 4, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 5)
             #expect(graph.isVertexCover(cover))
@@ -3361,6 +3625,9 @@ struct CoveringRepresentationTests {
             let graph = UnindexedGraph<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             #expect(graph.vertexIndexBound == nil && graph.edgeIndexBound == nil)
             #expect(graph.edgeCount == 14)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2, 4, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 5)
             #expect(graph.isVertexCover(cover))
@@ -3371,6 +3638,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 1)]
             let graph = AdjacencyList<Int>(vertices: [0, 1, 2, 3, 4, 5, 6, 7] as [Int], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 14)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2, 4, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 5)
             #expect(graph.isVertexCover(cover))
@@ -3381,6 +3651,9 @@ struct CoveringRepresentationTests {
             let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 1)]
             let graph = AdjacencyMatrix(vertexCount: 8, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
             #expect(graph.edgeCount == 14)
+            let result = graph.lexicographicallyFirstMinimumVertexCover()
+            #expect(result == [0, 1, 2, 4, 6] as [Int])
+            #expect(graph.isVertexCover(result))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 5)
             #expect(graph.isVertexCover(cover))

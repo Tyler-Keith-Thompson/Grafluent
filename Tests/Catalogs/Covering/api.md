@@ -11,8 +11,9 @@ positions ascending (as `Matching.edges`).
   `lexicographicallyFirstMinimumColoring()`. The greedy maximal independent set in vertex order
   (`maximalIndependentSet()`, optionally `containing:` seed vertices).
 * **Vertex covers.** The exact minimum vertex cover (`minimumVertexCover()`), defined as the
-  complement of `maximumIndependentSet()`. On bipartite graphs and on every bipartite component of
-  any graph it runs in O(m √n) from a maximum matching (König). König's own cover is
+  complement of `maximumIndependentSet()`, and the lexicographically least one by vertex index
+  (`lexicographicallyFirstMinimumVertexCover()`). On bipartite graphs and on every bipartite
+  component of any graph both run in O(m √n) from a maximum matching (König). König's own cover is
   `minimumVertexCover(bipartition:)`. The Bar-Yehuda–Even 2-approximation, weighted or not
   (`approximateMinimumVertexCover(weight:)`).
 * **Dominating sets.** The exact minimum dominating set (`minimumDominatingSet()`, and the
@@ -45,6 +46,7 @@ it).
 | `independenceNumber()` | α(G), the same solve without building the set |
 | `maximalIndependentSet()`, `maximalIndependentSet(containing:)` | Deterministic: vertex order, not a random choice |
 | `minimumVertexCover()` | The complement of `maximumIndependentSet()` (Gallai: τ + α = n) |
+| `lexicographicallyFirstMinimumVertexCover()` | Exact and fixed by a rule: the least cover, the complement of the greatest maximum independent set, decided vertex by vertex |
 | `minimumVertexCover(bipartition:)` | König's construction from a maximum matching; a different minimum cover from `minimumVertexCover()` (Semantics) |
 | `approximateMinimumVertexCover()`, `approximateMinimumVertexCover(weight:)` | Bar-Yehuda–Even local ratio. O(n + m), at most twice the least weight |
 | `minimumDominatingSet()` | Exact, branch and bound: γ and the last set found |
@@ -98,6 +100,11 @@ extension Graph {
     /// A minimum vertex cover (exact): `vertices` minus `maximumIndependentSet()`, in `vertices`
     /// order. Every vertex with a self-loop is in it.
     public func minimumVertexCover() -> [Vertex]
+
+    /// The lexicographically first minimum vertex cover: of the smallest covers, the one holding
+    /// the least vertex of any two's symmetric difference; in `vertices` order. The complement of
+    /// the lexicographically greatest maximum independent set.
+    public func lexicographicallyFirstMinimumVertexCover() -> [Vertex]
 
     /// König's minimum vertex cover of a bipartite graph: from a maximum matching, Z is the set of vertices reached from the free left vertices by
     /// alternating paths, and the cover is (left ∖ Z) ∪ (right ∩ Z). It is the one minimum cover
@@ -169,8 +176,9 @@ cover, which favours one side, is `minimumVertexCover(bipartition:)`; it can dif
 complement of the lexicographically least independent set (CV-064: `[3, 4, 5]` against König's
 `[0, 1, 2]`). `g.lexicographicallyFirstMaximumIndependentSet()` equals Cliques'
 `lexicographicallyFirstMaximumClique()` of the complement, and its complement is the
-lexicographically greatest minimum cover. There is no lexicographic cover entry point; take that
-complement.
+lexicographically greatest minimum cover. The lexicographically least minimum cover,
+`lexicographicallyFirstMinimumVertexCover()`, is the complement of the greatest maximum independent
+set instead (CV-058: P(4) gives `[0, 2]`, while the least set {0, 2} has complement `[1, 3]`).
 
 The integer dominating-set overload cross-multiplies, so it compares ratios exactly; the
 floating-point overload divides (CV-165). The vertex-cover approximation only subtracts, so
@@ -202,6 +210,18 @@ floating-point overload divides (CV-165). The vertex-cover approximation only su
   whatever the search finds. `minimumVertexCover()` is its complement, so MinimumVC rows give τ,
   with the complement of the least set in the Checked column. Tests assert size, order and
   validity, never which set.
+* **`lexicographicallyFirstMinimumVertexCover()`**: the lexicographically least minimum vertex
+  cover, under the same rule. The least vertex of two covers' symmetric difference is in one cover
+  exactly when it is in the other's complement, so this cover is the complement of the
+  lexicographically greatest maximum independent set, not of the least. It is computed as the least
+  set is below, with every choice reversed: the bipartite core pass gives each undecided pair the
+  value that leaves v out (its mate independent), a complete component keeps its greatest vertex,
+  and the vertex-by-vertex search deletes v whenever a maximum set of what is left lacks it (a
+  witness lacking v answers at once; otherwise one kernel solve asks whether v's component less v
+  keeps the witness's count), with the simplicial rule taking a vertex greater than all its
+  neighbours. MinimumVC rows give this cover as Expected, checked against brute force (the first
+  cover in combinations order), a vertex-by-vertex greedy with an independence-number oracle, and
+  the complement of the greatest of igraph's largest independent sets.
 * **`lexicographicallyFirstMaximumIndependentSet()`**: the lexicographically least maximum
   independent set by vertex index. The rule is Cliques' `lexicographicallyFirstMaximumClique()`'s:
   of equal-size sets, the first sorted index tuple. Examples: P(4) gives {0, 2}
@@ -340,6 +360,7 @@ MatchingModule's checks.
 |---|---|---|
 | `lexicographicallyFirstMaximumIndependentSet()` | Lexicographically least maximum independent set | Exact; brute force; Cliques' `lexicographicallyFirstMaximumClique()` on the complement |
 | `maximumIndependentSet()`, `minimumVertexCover()` | Some maximum independent set (and its complement), from one solve | Size, order, validity; the cover is the set's complement; König size on bipartite graphs |
+| `lexicographicallyFirstMinimumVertexCover()` | Lexicographically least minimum vertex cover | Exact; brute force; the complement of the greatest of igraph's largest independent sets |
 | `independenceNumber()` | α | Exact |
 | `minimumVertexCover(bipartition:)` | König's cover: the minimum cover with the most left vertices | Exact |
 | `approximateMinimumVertexCover` | Bar-Yehuda–Even, positions, lesser index on ties | Exact; ≤ 2 · optimum |

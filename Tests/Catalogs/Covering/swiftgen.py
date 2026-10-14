@@ -338,29 +338,47 @@ def konig_cover(g, L):
     return ref.konig_model(g, L, es)
 
 
+BRUTE_LEX_VC = [
+    "// Brute force over every subset (bit i is the vertex at index i): of the covers the smallest,",
+    "// and of those the lexicographically least, the one holding the least vertex of the symmetric",
+    "// difference.",
+    "var first = -1",
+    "for mask in 0 ..< 1 << n where ends.allSatisfy({ mask & (1 << $0.0) != 0 || mask & (1 << $0.1) != 0 }) {",
+    "    let least = (mask ^ max(first, 0)).trailingZeroBitCount",
+    "    if first < 0 || mask.nonzeroBitCount < first.nonzeroBitCount || (mask.nonzeroBitCount == first.nonzeroBitCount && mask & (1 << least) != 0) { first = mask }",
+    "}",
+]
+
+
 def body_vc(cid, g, T):
     mis = ref.mis_model(g)
     cover = set(range(g.n)) - mis
     exp = g.names(cover)
-    assert str(len(cover)) == CELLS[cid][5]
-    assert f"the complement of lexicographicallyFirstMaximumIndependentSet() is {ref.fmtl(exp)};" in CELLS[cid][6]
-    L = ["let cover = graph.minimumVertexCover()", f"#expect(cover.count == {len(cover)})"]
-    L += order_lines("cover") + COVER_DEF
-    L += ["#expect(graph.isVertexCover(cover))",
-          "// The complement of maximumIndependentSet(), n − α vertices.",
+    lex = ref.lex_vc_model(g)
+    lexp = g.names(lex)
+    assert ref.fmtl(lexp) == CELLS[cid][5], (cid, lexp)
+    assert f"n - alpha = {len(cover)}; the complement of lexicographicallyFirstMaximumIndependentSet() is {ref.fmtl(exp)}" in CELLS[cid][6]
+    L = ["let result = graph.lexicographicallyFirstMinimumVertexCover()", f"#expect(result == {tarr(lexp, T)})"]
+    L += order_lines("result") + COVER_DEF
+    L += ["#expect(graph.isVertexCover(result))",
+          "// minimumVertexCover(): the complement of maximumIndependentSet(), as small, n − α vertices.",
+          "let cover = graph.minimumVertexCover()",
+          f"#expect(cover.count == {len(cover)})",
+          "#expect(graph.isVertexCover(cover))",
           "let independent = graph.maximumIndependentSet()",
           "#expect(cover == vertexList.filter { !independent.contains($0) })",
           "#expect(cover.count == n - graph.independenceNumber())",
-          "// The complement of the lexicographically first maximum independent set, the catalog's cover.",
+          "#expect(result.count == cover.count)",
+          "// The complement of the lexicographically first maximum independent set is a minimum cover too.",
           "let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()",
           "let leastCover = vertexList.filter { !leastSet.contains($0) }",
-          f"#expect(leastCover == {tarr(exp, T)})"]
+          f"#expect(leastCover == {tarr(exp, T)})",
+          "#expect(graph.isVertexCover(leastCover))"]
     if small(g):
-        L += BRUTE_LEX_MIS + ["// So that cover is the complement of this set, and no cover is smaller.",
+        L += BRUTE_LEX_VC + ["#expect(members == (0 ..< n).filter { first & (1 << $0) != 0 })"]
+        L += BRUTE_LEX_MIS + ["// That least set's complement is a cover as small as any.",
                               "#expect(leastCover == (0 ..< n).filter { best & (1 << $0) == 0 }.map { vertexList[$0] })",
-                              "var fewest = n",
-                              "for mask in 0 ..< 1 << n where ends.allSatisfy({ mask & (1 << $0.0) != 0 || mask & (1 << $0.1) != 0 }) { fewest = min(fewest, mask.nonzeroBitCount) }",
-                              "#expect(cover.count == fewest)"]
+                              "#expect(leastCover.count == first.nonzeroBitCount)"]
     else:
         L += [f"// {g.n} vertices, too many for brute force here (ref.py checked the row against an",
               "// independence-number oracle and igraph): minimal, at least: no vertex can leave it.",
@@ -679,7 +697,9 @@ def rep_body(cid, kind, args, kwargs, g, T, rep, h):
         L += [f"#expect(graph.independenceNumber() == {len(ref.mis_model(g))})"]
     elif kind == "vc":
         exp = g.names(set(range(g.n)) - ref.mis_model(g))
-        L += ["let cover = graph.minimumVertexCover()", f"#expect(cover.count == {len(exp)})", "#expect(graph.isVertexCover(cover))",
+        lexp = g.names(ref.lex_vc_model(g))
+        L += ["let result = graph.lexicographicallyFirstMinimumVertexCover()", f"#expect(result == {tarr(lexp, T)})", "#expect(graph.isVertexCover(result))",
+              "let cover = graph.minimumVertexCover()", f"#expect(cover.count == {len(exp)})", "#expect(graph.isVertexCover(cover))",
               "let leastSet = graph.lexicographicallyFirstMaximumIndependentSet()",
               f"#expect(Array(graph.vertices).filter {{ !leastSet.contains($0) }} == {tarr(exp, T)})"]
     elif kind == "konig":
@@ -940,13 +960,15 @@ FILES = [
      "`independenceNumber()` (catalog §IndependenceNumber, CV-042 – CV-049): α exactly, the size of "
      "`maximumIndependentSet()` and `lexicographicallyFirstMaximumIndependentSet()`, n − |`minimumVertexCover()`|, "
      "and the largest independent subset by brute force on rows of at most 16 vertices."),
-    ("MinimumVertexCoverTests.swift", ["vc"], "minimumVertexCover()", "MinimumVertexCoverTests",
-     "`minimumVertexCover()` (catalog §MinimumVC, CV-050 – CV-071): a cover (checked here: every edge and every "
-     "self-loop has an end in it) in `vertices` order, the complement of `maximumIndependentSet()`, of n − α "
-     "vertices; the complement of `lexicographicallyFirstMaximumIndependentSet()` is the catalog's cover; by brute "
-     "force that cover is the complement of the lexicographically least maximum independent set, and no cover "
-     "is smaller; on `BipartiteGraph` rows as large as `maximumBipartiteMatching()` (König), and König's own "
-     "cover where it differs."),
+    ("MinimumVertexCoverTests.swift", ["vc"], "lexicographicallyFirstMinimumVertexCover() and minimumVertexCover()", "MinimumVertexCoverTests",
+     "`lexicographicallyFirstMinimumVertexCover()` and `minimumVertexCover()` (catalog §MinimumVC, CV-050 – "
+     "CV-071): the lexicographically least minimum vertex cover by vertex index, exact; in `vertices` order; a "
+     "cover (checked here: every edge and every self-loop has an end in it); `minimumVertexCover()` a cover as "
+     "small, the complement of `maximumIndependentSet()`, of n − α vertices; the complement of "
+     "`lexicographicallyFirstMaximumIndependentSet()` a cover as small too; on rows of at most 16 vertices the "
+     "lexicographically least of the smallest covers by brute force, and the complement of the lexicographically "
+     "least maximum independent set; on `BipartiteGraph` rows as large as `maximumBipartiteMatching()` (König), "
+     "and König's own cover where it differs."),
     ("KoenigVertexCoverTests.swift", ["konig"], "minimumVertexCover(bipartition:)", "KoenigVertexCoverTests",
      "`minimumVertexCover(bipartition: g.bipartition()!)` (catalog §KoenigVC, CV-072 – CV-086): König's cover, "
      "exact, with the canonical sides asserted; a cover as large as "

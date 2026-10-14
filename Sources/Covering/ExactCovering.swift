@@ -82,15 +82,19 @@ enum _IndependentSetGoal {
     case maximumIndependentSet
     /// α and the lexicographically least maximum independent set.
     case lexicographicallyFirst
+    /// α and the lexicographically greatest maximum independent set, whose complement is the
+    /// lexicographically least minimum vertex cover.
+    case lexicographicallyLast
 }
 
 /// A maximum independent set (flags by vertex number) and its size α, for `goal`. Looped vertices
 /// are left out. Bipartite components go through a maximum matching (`_bipartiteIndependentSet`),
-/// complete ones take their least vertex, and the others go through `_IndependentSetReduction` (the
-/// lexicographically least set) or straight to `_IndependentSetKernel` (one solve: α, and a set
-/// unless only α is asked for). The lexicographic rule composes: the least vertex of a symmetric
-/// difference lies in one component, whose own least set wins there. For `.independenceNumber`,
-/// only the size is meaningful.
+/// complete ones take their least vertex (their greatest for `.lexicographicallyLast`), and the
+/// others go through `_IndependentSetReduction` (the lexicographically least or greatest set) or
+/// straight to `_IndependentSetKernel` (one solve: α, and a set unless only α is asked for). The
+/// lexicographic rule composes: the least vertex of a symmetric difference lies in one component,
+/// whose own least (or greatest) set wins there. For `.independenceNumber`, only the size is
+/// meaningful.
 @inlinable
 func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], goal: _IndependentSetGoal) -> (inSet: [Bool], size: Int) {
     let n = g.count
@@ -102,22 +106,24 @@ func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], goal: _Independ
     var reduction: _IndependentSetReduction?
     var kernel: _IndependentSetKernel?
     var members: [Int] = []
+    let last = goal == .lexicographicallyLast
     for c in bipartite.indices {
         let first = starts[c], end = starts[c + 1]
         if bipartite[c] {
             for i in first ..< end { side[order[i]] = color[order[i]] }
             continue
         }
-        // A complete component: its least vertex.
-        var least = order[first], ends = 0
+        // A complete component: its least vertex, or its greatest.
+        var least = order[first], greatest = order[first], ends = 0
         for i in first ..< end {
             let u = order[i]
             least = min(least, u)
+            greatest = max(greatest, u)
             for k in g.offsets[u] ..< g.offsets[u + 1] where !loops[g.targets[k]] { ends += 1 }
         }
         let p = end - first
         if ends == p * (p - 1) {
-            inSet[least] = true
+            inSet[last ? greatest : least] = true
             size += 1
             continue
         }
@@ -125,8 +131,8 @@ func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], goal: _Independ
         members.append(contentsOf: order[first ..< end])
         members.sort()
         switch goal {
-        case .lexicographicallyFirst:
-            if reduction == nil { reduction = _IndependentSetReduction(count: n) }
+        case .lexicographicallyFirst, .lexicographicallyLast:
+            if reduction == nil { reduction = _IndependentSetReduction(count: n, last: last) }
             reduction!.solve(g, members, side: &side, into: &inSet)
         case .maximumIndependentSet:
             if kernel == nil { kernel = _IndependentSetKernel(count: n) }
@@ -138,9 +144,9 @@ func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], goal: _Independ
         }
     }
     if side.contains(where: { $0 >= 0 }) {
-        size += _bipartiteIndependentSet(g, side: side, wantSet: goal != .independenceNumber, into: &inSet)
+        size += _bipartiteIndependentSet(g, side: side, wantSet: goal != .independenceNumber, last: last, into: &inSet)
     }
-    if goal == .lexicographicallyFirst {
+    if goal == .lexicographicallyFirst || last {
         size = 0
         for flag in inSet where flag { size += 1 }
     }
@@ -148,8 +154,9 @@ func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], goal: _Independ
 }
 
 /// The lexicographically least maximum independent set of the bipartite components at once
-/// (`side[v]` is v's colour there, −1 outside them), written into `inSet` when `wantSet`; returns
-/// its size, the number of those vertices minus a maximum matching (König).
+/// (`side[v]` is v's colour there, −1 outside them), or with `last` the greatest, written into
+/// `inSet` when `wantSet`; returns its size, the number of those vertices minus a maximum matching
+/// (König).
 ///
 /// Hopcroft–Karp (Hopcroft and Karp 1973) after a greedy start gives a maximum matching. One
 /// breadth-first search from every free vertex along alternating paths (unmatched edges leaving
@@ -160,9 +167,10 @@ func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], goal: _Independ
 /// requires "X's left end independent implies Y's left end independent" (Dulmage and Mendelsohn
 /// 1958). The least set is one pass over the core in index order: each vertex whose pair is
 /// undecided is made independent, and the choice propagates forward (left end) or backward (right
-/// end) to undecided pairs. O(m √n) for the matching, O(n + m) for the rest.
+/// end) to undecided pairs. The greatest set is the same pass with each such vertex left out, its
+/// mate made independent instead. O(m √n) for the matching, O(n + m) for the rest.
 @inlinable
-func _bipartiteIndependentSet(_ g: _CompressedRows, side: [Int8], wantSet: Bool, into inSet: inout [Bool]) -> Int {
+func _bipartiteIndependentSet(_ g: _CompressedRows, side: [Int8], wantSet: Bool, last: Bool, into inSet: inout [Bool]) -> Int {
     let n = g.count
     var mateSlot = [Int](repeating: -1, count: n), pairRight = [Int](repeating: -1, count: n)
     var left: [Int] = []
@@ -228,7 +236,8 @@ func _bipartiteIndependentSet(_ g: _CompressedRows, side: [Int8], wantSet: Bool,
         let x = side[v] == 0 ? v : mate[v]
         guard choice[x] == 0 else { continue }
         stack.append(x)
-        if side[v] == 0 {
+        // The least set makes v independent; the greatest makes its mate independent.
+        if (side[v] == 0) != last {
             // Successors of X: the pairs Y whose right end y is an unmatched core neighbour of X.
             choice[x] = 1
             while let a = stack.popLast() {
@@ -529,7 +538,7 @@ struct _IndependentSetKernel {
                     others += 1
                 }
             }
-            if anyBipartite { total += _bipartiteIndependentSet(kernel, side: side, wantSet: wantSet, into: &found) }
+            if anyBipartite { total += _bipartiteIndependentSet(kernel, side: side, wantSet: wantSet, last: false, into: &found) }
             for c in bipartite.indices where !bipartite[c] {
                 part.removeAll(keepingCapacity: true)
                 part.append(contentsOf: order[starts[c] ..< starts[c + 1]])
@@ -565,23 +574,27 @@ struct _IndependentSetKernel {
 }
 
 /// The lexicographically least maximum independent set of one component that is neither
-/// bipartite nor complete. The least set is decided vertex by vertex in ascending number: v is
-/// taken when some maximum set extends the choices so far with v, else deleted. A witness W, a
-/// maximum set of what is left, answers whenever it holds v; otherwise `_IndependentSetKernel`
-/// decides whether v's component C of what is left, less N[v], still has |W ∩ C| − 1 independent
-/// vertices, and a success becomes the witness there.
+/// bipartite nor complete, or with `last` the greatest. The least set is decided vertex by vertex
+/// in ascending number: v is taken when some maximum set extends the choices so far with v, else
+/// deleted. A witness W, a maximum set of what is left, answers whenever it holds v; otherwise
+/// `_IndependentSetKernel` decides whether v's component C of what is left, less N[v], still has
+/// |W ∩ C| − 1 independent vertices, and a success becomes the witness there. The greatest set is
+/// decided the other way round: v is deleted when some maximum set extends the choices so far
+/// without v, which W answers whenever it lacks v; otherwise the kernel decides whether C less v
+/// still has |W ∩ C| independent vertices.
 ///
-/// Between decisions, rules that keep the least set itself shrink what is left (each by an
-/// exchange: the set holding the lesser vertex of a swap is the lesser set):
+/// Between decisions, rules that keep the least (greatest) set itself shrink what is left (each by
+/// an exchange: the set holding the lesser vertex of a swap is the lesser set):
 /// * a vertex x with no neighbour left is in every maximum set;
-/// * a simplicial vertex x (its neighbours left form a clique; checked up to degree 8) less than
-///   all of them is in the least set: a maximum set S without x holds exactly one neighbour u, and
-///   S − u + x is a lesser maximum set. A leaf less than its neighbour is the common case.
+/// * a simplicial vertex x (its neighbours left form a clique; checked up to degree 8) less
+///   (greater) than all of them is in the least (greatest) set: a maximum set S without x holds
+///   exactly one neighbour u, and S − u + x is a lesser (greater) maximum set. A leaf less
+///   (greater) than its neighbour is the common case.
 /// Taking x deletes N[x]; a witness holding the neighbour u swaps it for x. After each kernel call
 /// the component is split again: pieces that turned bipartite go to the final
-/// `_bipartiteIndependentSet` pass, complete ones take their least vertex. A kernel call costs
-/// O(|C| + its edges) plus the kernel search, so a component costs O(c (c + m)) at worst and O(c +
-/// m) when the rules and the witness settle it.
+/// `_bipartiteIndependentSet` pass, complete ones take their least (greatest) vertex. A kernel call
+/// costs O(|C| + its edges) plus the kernel search, so a component costs O(c (c + m)) at worst and
+/// O(c + m) when the rules and the witness settle it.
 @frozen
 @usableFromInline
 struct _IndependentSetReduction {
@@ -596,9 +609,12 @@ struct _IndependentSetReduction {
     @usableFromInline var reached: [Int] = []
     @usableFromInline var piece: [Int] = []
     @usableFromInline var kernel: _IndependentSetKernel
+    /// Whether the set sought is the greatest, not the least.
+    @usableFromInline let last: Bool
 
     @inlinable
-    init(count n: Int) {
+    init(count n: Int, last: Bool) {
+        self.last = last
         alive = [Bool](repeating: false, count: n)
         degree = [Int](repeating: 0, count: n)
         witness = [Bool](repeating: false, count: n)
@@ -637,12 +653,13 @@ struct _IndependentSetReduction {
                 continue
             }
             guard d <= 8 else { continue }
-            var least = true
-            for k in g.offsets[x] ..< g.offsets[x + 1] where alive[g.targets[k]] && g.targets[k] < x {
-                least = false
+            // x must be less than every neighbour left (greater, for the greatest set).
+            var extreme = true
+            for k in g.offsets[x] ..< g.offsets[x + 1] where alive[g.targets[k]] && (g.targets[k] < x) != last {
+                extreme = false
                 break
             }
-            guard least else { continue }
+            guard extreme else { continue }
             if d > 1 {
                 stamp += 1
                 for k in g.offsets[x] ..< g.offsets[x + 1] where alive[g.targets[k]] { mark[g.targets[k]] = stamp }
@@ -688,8 +705,8 @@ struct _IndependentSetReduction {
     }
 
     /// Splits the vertices alive among `list` into components: bipartite ones leave for the
-    /// matching pass (`side`), complete ones take their least vertex, and with `computeWitness`
-    /// the others get a witness from the kernel.
+    /// matching pass (`side`), complete ones take their least vertex (greatest, with `last`), and
+    /// with `computeWitness` the others get a witness from the kernel.
     @inlinable
     mutating func split(_ g: _CompressedRows, _ list: [Int], side: inout [Int8], into inSet: inout [Bool], computeWitness: Bool) {
         stamp += 1
@@ -699,11 +716,12 @@ struct _IndependentSetReduction {
             piece.append(s)
             mark[s] = visit
             color[s] = 0
-            var proper = true, ends = 0, least = s, head = 0
+            var proper = true, ends = 0, least = s, greatest = s, head = 0
             while head < piece.count {
                 let u = piece[head]
                 head += 1
                 least = min(least, u)
+                greatest = max(greatest, u)
                 for k in g.offsets[u] ..< g.offsets[u + 1] {
                     let w = g.targets[k]
                     guard alive[w] else { continue }
@@ -724,7 +742,7 @@ struct _IndependentSetReduction {
                 }
             } else if ends == piece.count * (piece.count - 1) {
                 for x in piece { alive[x] = false }
-                inSet[least] = true
+                inSet[last ? greatest : least] = true
             } else if computeWitness {
                 piece.sort()
                 _ = kernel.solve(g, piece, need: Int.max, wantSet: true)
@@ -733,8 +751,9 @@ struct _IndependentSetReduction {
         }
     }
 
-    /// Writes the least maximum independent set of the component `members` (ascending numbers)
-    /// into `inSet`, except for the pieces it leaves to the matching pass through `side`.
+    /// Writes the least (with `last`, the greatest) maximum independent set of the component
+    /// `members` (ascending numbers) into `inSet`, except for the pieces it leaves to the matching
+    /// pass through `side`.
     @inlinable
     mutating func solve(_ g: _CompressedRows, _ members: [Int], side: inout [Int8], into inSet: inout [Bool]) {
         for u in members {
@@ -751,6 +770,10 @@ struct _IndependentSetReduction {
         split(g, members, side: &side, into: &inSet, computeWitness: true)
         for v in members {
             guard alive[v] else { continue }
+            if last {
+                decideLast(g, v, side: &side, into: &inSet)
+                continue
+            }
             if witness[v] {
                 take(g, v, into: &inSet)
                 reduce(g, into: &inSet)
@@ -784,6 +807,33 @@ struct _IndependentSetReduction {
             reduce(g, into: &inSet)
             split(g, reached, side: &side, into: &inSet, computeWitness: false)
         }
+    }
+
+    /// Decides v for the greatest set: deleted when some maximum set of what is left lacks it,
+    /// else taken.
+    @inlinable
+    mutating func decideLast(_ g: _CompressedRows, _ v: Int, side: inout [Int8], into inSet: inout [Bool]) {
+        if !witness[v] {
+            kill(g, v)
+            reduce(g, into: &inSet)
+            return
+        }
+        reach(g, v)
+        var need = 0
+        for u in reached where witness[u] { need += 1 }
+        piece.removeAll(keepingCapacity: true)
+        for u in reached where u != v { piece.append(u) }
+        piece.sort()
+        let delete = !piece.isEmpty && kernel.solve(g, piece, need: need, wantSet: true) >= need
+        if delete {
+            for u in reached { witness[u] = false }
+            for u in kernel.set { witness[u] = true }
+            kill(g, v)
+        } else {
+            take(g, v, into: &inSet)
+        }
+        reduce(g, into: &inSet)
+        split(g, reached, side: &side, into: &inSet, computeWitness: false)
     }
 }
 
@@ -1658,12 +1708,37 @@ extension Graph {
 
     /// A minimum vertex cover (exact): `vertices` minus `maximumIndependentSet()`, in `vertices`
     /// order (τ = n − α, Gallai). Every vertex with a self-loop is in it; parallel edges count
-    /// once. The cost is `maximumIndependentSet()`'s: O(m √n) on bipartite components. For the
-    /// cover fixed by a rule, take the complement of `lexicographicallyFirstMaximumIndependentSet()`.
+    /// once. The cost is `maximumIndependentSet()`'s: O(m √n) on bipartite components.
+    /// Deterministic, but which minimum cover it is depends on the search; for one fixed by a rule,
+    /// see `lexicographicallyFirstMinimumVertexCover()`.
     @inlinable
     public func minimumVertexCover() -> [Vertex] {
         let (g, loops) = _coveringGraph(recordsLoops: true)
         var flags = _maximumIndependentSet(g, loops: loops, goal: .maximumIndependentSet).inSet
+        for v in flags.indices { flags[v].toggle() }
+        return _coveringVertices(flagged: flags, _listedVertices())
+    }
+
+    /// The lexicographically first minimum vertex cover: of the smallest vertex covers, the least
+    /// by vertex index (the rule of `lexicographicallyFirstMaximumIndependentSet()`: of two covers
+    /// of one size, the lesser holds the least vertex of their symmetric difference), in `vertices`
+    /// order; [] for the empty graph. Every vertex with a self-loop is in it; parallel edges count
+    /// once.
+    ///
+    /// It is the complement of the lexicographically greatest maximum independent set, not of the
+    /// least one: the least vertex of a symmetric difference is in one cover exactly when it is in
+    /// the other cover's complement. That set is found as in
+    /// `lexicographicallyFirstMaximumIndependentSet()`, with each choice the other way round: the
+    /// core pass on a bipartite component leaves out each vertex it decides, a complete component
+    /// keeps its greatest vertex, and any other component deletes a vertex whenever a maximum set
+    /// without it remains, with the reductions taking a simplicial vertex greater than all its
+    /// neighbours. The cost is that of `lexicographicallyFirstMaximumIndependentSet()`: O(m √n) on
+    /// bipartite components, and up to c exponential searches on a component of c vertices the
+    /// reductions do not settle. The search does not check for task cancellation.
+    @inlinable
+    public func lexicographicallyFirstMinimumVertexCover() -> [Vertex] {
+        let (g, loops) = _coveringGraph(recordsLoops: true)
+        var flags = _maximumIndependentSet(g, loops: loops, goal: .lexicographicallyLast).inSet
         for v in flags.indices { flags[v].toggle() }
         return _coveringVertices(flagged: flags, _listedVertices())
     }

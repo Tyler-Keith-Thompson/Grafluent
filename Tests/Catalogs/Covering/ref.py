@@ -18,6 +18,18 @@ What decides Expected, per entry point (api.md, Determinism), and what each row 
                               NetworkX max_weight_clique on the complement), to brute force on small
                               graphs, and (with igraph) to the least of igraph's
                               largest_independent_vertex_sets.
+* lexicographicallyFirstMin-  the lexicographically least minimum vertex cover (the same rule): the
+  imumVertexCover()           complement of the lexicographically greatest maximum independent set.
+  minimumVertexCover()        minimumVertexCover() has as many vertices; MinimumVC rows also list the
+                              complement of the least maximum independent set. Model: the documented
+                              algorithm (as above, each choice the other way round: the lattice
+                              greedy leaves out each vertex it decides, the search deletes a vertex
+                              whenever a maximum set without it remains). Checked: equal to a
+                              vertex-by-vertex greedy with an independence-number oracle that puts a
+                              vertex in the cover whenever a minimum cover extends the choices with
+                              it, to brute force on small graphs (the first cover in combinations
+                              order), and (with igraph) to the complement of the greatest of igraph's
+                              largest_independent_vertex_sets.
 * minimumVertexCover(         Koenig's cover from a maximum matching: Z = alternating reach from the
     bipartition:)             free left vertices, (L - Z) + (R & Z). Checked: equal to NetworkX
                               to_vertex_cover; size equal to the matching; by brute force, the unique
@@ -320,6 +332,32 @@ def alpha_oracle(g, cand):
     return nx.max_weight_clique(H, weight=None)[1]
 
 
+def brute_lex_vc(g):
+    for k in range(g.n + 1):
+        for c in itertools.combinations(range(g.n), k):   # combinations order = lex rule
+            if is_vc(g, c):
+                return set(c)
+
+
+def reference_lex_vc(g):
+    """Vertex-by-vertex greedy in index order with an independence-number oracle: puts v in the
+    cover when some minimum cover extends the choices so far with v, that is when some maximum
+    independent set of what is left lacks v. Looped vertices are always in it."""
+    cand = set(v for v in range(g.n) if not g.loop[v])
+    a = alpha_oracle(g, cand)
+    independent = set()
+    for v in range(g.n):
+        if v not in cand:
+            continue
+        if alpha_oracle(g, cand - {v}) == a:
+            cand = cand - {v}
+        else:
+            independent.add(v)
+            cand = cand - {v} - g.adj[v]
+            a -= 1
+    return set(range(g.n)) - independent
+
+
 def reference_mis(g):
     """Vertex-by-vertex greedy in index order with an independence-number oracle: no components,
     no matchings. Takes v when some maximum independent set extends the choices so far with v."""
@@ -361,9 +399,9 @@ def hk_simple(vs, adj, isleft):
     return mate
 
 
-def lattice_greedy(vs, adj, isleft, mate):
+def lattice_greedy(vs, adj, isleft, mate, last=False):
     """The lexicographically least maximum independent set of a bipartite component, from a
-    maximum matching (api.md, Implementation notes)."""
+    maximum matching (api.md, Implementation notes); with `last`, the greatest."""
     vs = sorted(vs)
     side_free = [v for v in vs if v not in mate]
     Z = set()
@@ -421,8 +459,8 @@ def lattice_greedy(vs, adj, isleft, mate):
         X = pair[v]
         if X in choice:
             continue
-        if isleft[v]:
-            spread(X, "R", succ)      # v independent: its mate covers
+        if isleft[v] != last:
+            spread(X, "R", succ)      # the left end independent: its mate covers
         else:
             spread(X, "L", pred)
     for X, c in choice.items():
@@ -463,10 +501,11 @@ def two_color(g, comp):
     return col
 
 
-def mis_model(g):
+def mis_model(g, last=False):
     """The documented algorithm: looped vertices out; per component, bipartite ones through a
     maximum matching and the lattice greedy, the others by the lexicographic search (here the
-    oracle greedy restricted to the component)."""
+    oracle greedy restricted to the component). With `last`, the greatest maximum set, whose
+    complement is the least minimum vertex cover."""
     alive = set(v for v in range(g.n) if not g.loop[v])
     out = set()
     for comp in components(g, alive):
@@ -474,12 +513,16 @@ def mis_model(g):
         if col is not None:
             adj = {v: g.adj[v] & alive for v in comp}
             mate = hk_simple(comp, adj, col)
-            out |= lattice_greedy(comp, adj, col, mate)
+            out |= lattice_greedy(comp, adj, col, mate, last)
         else:
             sub = G([g.V[v] for v in comp], [(g.V[a], g.V[b]) for a in comp for b in g.adj[a] if a < b and b in alive])
-            loc = reference_mis(sub)
+            loc = set(range(sub.n)) - reference_lex_vc(sub) if last else reference_mis(sub)
             out |= set(comp[i] for i in loc)
     return out
+
+
+def lex_vc_model(g):
+    return set(range(g.n)) - mis_model(g, last=True)
 
 
 def brute_wvc(g):
@@ -822,6 +865,37 @@ def igraph_lex_mis(g):
     return min(sets, key=lambda s: lexkey(s, g.n))
 
 
+def igraph_lex_vc(g):
+    if igraph is None:
+        return None
+    alive = [v for v in range(g.n) if not g.loop[v]]
+    pos = {v: i for i, v in enumerate(alive)}
+    es = [(pos[a], pos[b]) for a in alive for b in g.adj[a] if a < b and b in pos]
+    if not alive:
+        return set(range(g.n))
+    H = igraph.Graph(n=len(alive), edges=es)
+    sets = [set(alive[i] for i in s) for s in H.largest_independent_vertex_sets()]
+    return set(range(g.n)) - max(sets, key=lambda s: lexkey(s, g.n))
+
+
+def check_lex_vc(c, g, got):
+    chk = []
+    if reference_lex_vc(g) != got:
+        fail(c, f"lex VC model {sorted(got)} vs oracle reference {sorted(reference_lex_vc(g))}")
+    chk.append("= oracle reference")
+    if small(g):
+        b = brute_lex_vc(g)
+        if b != got:
+            fail(c, f"lex VC brute {sorted(b)} vs {sorted(got)}")
+        chk.append("brute force")
+    ig = igraph_lex_vc(g)
+    if ig is not None:
+        if ig != got:
+            fail(c, f"lex VC igraph {sorted(ig)} vs {sorted(got)}")
+        chk.append("complement of the greatest of igraph largest_independent_vertex_sets")
+    return "; ".join(chk)
+
+
 def check_mis(c, g, got):
     chk = []
     ref = reference_mis(g)
@@ -870,7 +944,10 @@ def case_vc(name, g):
     mis = mis_model(g)
     cover = set(range(g.n)) - mis
     assert is_vc(g, cover)
-    chk = check_mis(c, g, mis)
+    check_mis(c, g, mis)
+    lex = lex_vc_model(g)
+    assert is_vc(g, lex) and len(lex) == len(cover)
+    chk = check_lex_vc(c, g, lex)
     if small(g):
         b = brute_wvc(withw(g, None))
         if b != len(cover):
@@ -884,8 +961,8 @@ def case_vc(name, g):
         note = f"; size = maximum matching {len(es)}"
         if kc != cover:
             note += f"; NetworkX to_vertex_cover (most left vertices) is {fmtl(g.names(kc))}"
-    add("MinimumVC", name, g.text(), "minimumVertexCover().count", str(len(cover)),
-        f"n - alpha; the complement of lexicographicallyFirstMaximumIndependentSet() is {fmtl(g.names(cover))}; " + chk + note)
+    add("MinimumVC", name, g.text(), "lexicographicallyFirstMinimumVertexCover()", fmtl(g.names(lex)),
+        f"{chk}; n - alpha = {len(cover)}; the complement of lexicographicallyFirstMaximumIndependentSet() is {fmtl(g.names(cover))}" + note)
 
 
 def case_konig(name, g, left=None):
@@ -1183,7 +1260,7 @@ def build():
 
     # ---------------- minimumVertexCover ----------------
     for nm, g in [("empty graph", E0), ("one vertex", one), ("self-loop: its vertex", loop1),
-                  ("one edge: the greater end", edge), ("loop and edge", loopedge),
+                  ("one edge: the lesser end", edge), ("loop and edge", loopedge),
                   ("parallel edges", par), ("triangle", tri), ("K(4)", K(4)), ("P(4)", P(4)), ("C(5)", C(5)),
                   ("star(5): the hub", S(5)), ("Petersen: 6", named("petersen_graph")),
                   ("Kb(2,3): the left side", Kb(2, 3)), ("Kb(3,2): the right side", Kb(3, 2)),
@@ -1343,8 +1420,9 @@ def stress():
         got = mis_model(g)
         if got != brute_mis(g):
             FAILS.append(f"stress {t}: lex MIS {sorted(got)} vs brute {sorted(brute_mis(g))} on {g.text()}")
-        if set(range(n)) - got != set(range(n)) - brute_mis(g):
-            pass
+        lex = lex_vc_model(g)
+        if lex != brute_lex_vc(g):
+            FAILS.append(f"stress {t}: lex VC {sorted(lex)} vs brute {sorted(brute_lex_vc(g))} on {g.text()}")
         if not is_maximal_is(g, maximal_is_model(g)):
             FAILS.append(f"stress {t}: maximal")
         cov = bye_model(g)

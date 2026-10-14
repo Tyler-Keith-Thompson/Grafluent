@@ -67,6 +67,65 @@ struct CoveringPropertyTests {
         }
     }
 
+    @Test("lexicographicallyFirstMinimumVertexCover() is the lexicographically least minimum vertex cover by brute force, on multigraphs with self-loops, on denser simple graphs, and on bipartite graphs with interleaved sides")
+    func exactVertexCover() async {
+        let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 24)
+        await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
+            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            let pairs = raw.map { ($0.0 % n, $0.1 % n) }
+            let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
+            let index = Dictionary(uniqueKeysWithValues: listed.enumerated().map { ($1, $0) })
+            // Three graphs on the listed vertices: the multigraph as drawn, its loop-free simple
+            // graph, and the bipartite graph of the pairs that join an even and an odd vertex.
+            let loopFree = pairs.filter { $0.0 != $0.1 }
+            let crossing = pairs.filter { ($0.0 + $0.1) % 2 == 1 }
+            for (label, chosen) in [("multigraph", pairs), ("loop-free", loopFree), ("bipartite", crossing)] {
+                let ends = chosen.map { (index[$0.0]!, index[$0.1]!) }
+                let context = "\(label) \(chosen) on \(listed)"
+                // Brute force: of the covers the smallest, and of those the one holding the least
+                // vertex of the symmetric difference.
+                var first = -1
+                for mask in 0 ..< 1 << n where ends.allSatisfy({ mask & (1 << $0.0) != 0 || mask & (1 << $0.1) != 0 }) {
+                    let least = (mask ^ max(first, 0)).trailingZeroBitCount
+                    if first < 0 || mask.nonzeroBitCount < first.nonzeroBitCount || (mask.nonzeroBitCount == first.nonzeroBitCount && mask & (1 << least) != 0) { first = mask }
+                }
+                let expected = (0 ..< n).filter { first & (1 << $0) != 0 }.map { listed[$0] }
+                let multigraph = ReferencePseudograph(vertices: listed, edges: chosen.map { UndirectedEdge($0.0, $0.1) })
+                #expect(multigraph.lexicographicallyFirstMinimumVertexCover() == expected, "\(context)")
+                #expect(multigraph.minimumVertexCover().count == expected.count, "\(context)")
+                let simple = UndirectedAdjacencyList(vertices: listed, edges: chosen.map { UndirectedEdge($0.0, $0.1) })
+                #expect(simple.lexicographicallyFirstMinimumVertexCover() == expected, "\(context)")
+                // Not, in general, the complement of the least maximum independent set: that is
+                // the greatest one's.
+                var last = -1
+                for mask in 0 ..< 1 << n where ends.allSatisfy({ mask & (1 << $0.0) == 0 || mask & (1 << $0.1) == 0 }) {
+                    let least = (mask ^ max(last, 0)).trailingZeroBitCount
+                    if last < 0 || mask.nonzeroBitCount > last.nonzeroBitCount || (mask.nonzeroBitCount == last.nonzeroBitCount && mask & (1 << least) == 0) { last = mask }
+                }
+                #expect(expected == (0 ..< n).filter { last & (1 << $0) == 0 }.map { listed[$0] }, "\(context)")
+            }
+            // The bipartite graph as a BipartiteGraph, even vertices left, both sides shuffled:
+            // its own vertex order decides the rule.
+            let leftOrder = listed.filter { $0 % 2 == 0 }
+            let rightOrder = listed.filter { $0 % 2 == 1 }
+            guard let bipartite = BipartiteGraph(left: leftOrder, right: rightOrder, edges: crossing.map { UndirectedEdge($0.0, $0.1) }) else {
+                Issue.record("not a bipartite graph: \(crossing)")
+                return
+            }
+            let order = leftOrder + rightOrder
+            let at = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })
+            let bipartiteEnds = crossing.map { (at[$0.0]!, at[$0.1]!) }
+            var first = -1
+            for mask in 0 ..< 1 << n where bipartiteEnds.allSatisfy({ mask & (1 << $0.0) != 0 || mask & (1 << $0.1) != 0 }) {
+                let least = (mask ^ max(first, 0)).trailingZeroBitCount
+                if first < 0 || mask.nonzeroBitCount < first.nonzeroBitCount || (mask.nonzeroBitCount == first.nonzeroBitCount && mask & (1 << least) != 0) { first = mask }
+            }
+            let expected = (0 ..< n).filter { first & (1 << $0) != 0 }.map { order[$0] }
+            #expect(bipartite.lexicographicallyFirstMinimumVertexCover() == expected, "\(crossing) on \(order)")
+            #expect(expected.count == bipartite.maximumBipartiteMatching().edges.count, "König: \(crossing)")
+        }
+    }
+
     @Test("Bipartite graphs, sides interleaved in the vertex order: the lexicographic set by brute force; König's cover the unique minimum cover with the most left vertices, NetworkX's construction, as large as the maximum matching")
     func bipartiteCovers() async {
         let edges = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 0 ... 16)

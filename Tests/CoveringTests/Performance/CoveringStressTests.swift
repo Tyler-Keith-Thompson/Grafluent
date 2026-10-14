@@ -29,6 +29,7 @@ struct CoveringStressTests {
             #expect(path.lexicographicallyFirstMaximumIndependentSet() == evens)
             #expect(path.independenceNumber() == n / 2 + 1)
             #expect(path.minimumVertexCover() == Array(stride(from: 1, to: n, by: 2)))
+            #expect(path.lexicographicallyFirstMinimumVertexCover() == Array(stride(from: 1, to: n, by: 2)))
             #expect(path.maximalIndependentSet() == evens)
             // Bar-Yehuda–Even on the path in order (CV-093 at scale): each edge {i, i + 1} finds i with
             // the lesser remaining cost (0 after the previous subtraction, or a tie), so every vertex but
@@ -40,6 +41,8 @@ struct CoveringStressTests {
             let alternate = cycle.maximumIndependentSet()
             #expect(alternate == Array(stride(from: 0, to: n, by: 2)) || alternate == Array(stride(from: 1, to: n, by: 2)))
             #expect(cycle.minimumVertexCover().count == n / 2)
+            // Its two minimum covers are the same two sets; the even vertices come first.
+            #expect(cycle.lexicographicallyFirstMinimumVertexCover() == Array(stride(from: 0, to: n, by: 2)))
             #expect(cycle.maximalIndependentSet(containing: [1]) == Array(stride(from: 1, to: n, by: 2)))
             // The cycle's edges taken alternately cover it exactly: ν = n / 2, so ρ = n / 2.
             #expect(cycle.minimumEdgeCover()?.count == n / 2)
@@ -62,13 +65,15 @@ struct CoveringStressTests {
             #expect(independent == independent.sorted())
             let cover = tree.minimumVertexCover()
             #expect(cover.count == nu && tree.isVertexCover(cover))
+            let least = tree.lexicographicallyFirstMinimumVertexCover()
+            #expect(least.count == nu && tree.isVertexCover(least))
             let sides = tree.bipartition()!
             #expect(tree.minimumVertexCover(bipartition: sides).count == nu)
             #expect(tree.minimumEdgeCover()?.count == n - nu)
         }.value
     }
 
-    @Test("20,000 copies of CV-064's bipartite gadget (120,000 vertices): the least maximum independent set is each copy's left side, so its complement the right side; König's cover each copy's left side", .timeLimit(.minutes(1)))
+    @Test("20,000 copies of CV-064's bipartite gadget (120,000 vertices): the least maximum independent set is each copy's left side, so its complement the right side; König's cover and the least minimum cover each copy's left side", .timeLimit(.minutes(1)))
     func bipartiteGadgets() async throws {
         try await Task {
             let copies = 20_000
@@ -91,6 +96,8 @@ struct CoveringStressTests {
             #expect((0 ..< 6 * copies).filter { !inLeast.contains($0) } == right)
             let cover = graph.minimumVertexCover()
             #expect(cover.count == 3 * copies && graph.isVertexCover(cover))
+            // The least minimum cover is each copy's left side (CV-064), not that complement.
+            #expect(graph.lexicographicallyFirstMinimumVertexCover() == left)
             let sides = try #require(graph.bipartition())
             #expect(Array(sides.left) == left)
             #expect(graph.minimumVertexCover(bipartition: sides) == left)
@@ -110,6 +117,8 @@ struct CoveringStressTests {
             let graph = try #require(BipartiteGraph(left: 0 ..< half, right: half ..< 2 * half, edges: pairs.map { UndirectedEdge($0.0, $0.1) }))
             let cover = graph.minimumVertexCover()
             #expect(cover.count == half)
+            // The left side is a minimum cover, and no set of as many vertices is lesser.
+            #expect(graph.lexicographicallyFirstMinimumVertexCover() == Array(0 ..< half))
             #expect(graph.isVertexCover(cover))
             #expect(graph.independenceNumber() == half)
             let sides = try #require(graph.bipartition())
@@ -173,6 +182,7 @@ struct CoveringStressTests {
             #expect(graph.lexicographicallyFirstMaximumIndependentSet() == planted.sorted())
             #expect(graph.independenceNumber() == independent.count)
             #expect(graph.minimumVertexCover() == (0 ..< n).filter { !planted.contains($0) })
+            #expect(graph.lexicographicallyFirstMinimumVertexCover() == (0 ..< n).filter { !planted.contains($0) })
             // Maximal: every other vertex has a neighbour in it.
             let inside = Set(independent)
             #expect((0 ..< n).allSatisfy { v in inside.contains(v) || graph.neighbors(of: v).contains { inside.contains($0) } })

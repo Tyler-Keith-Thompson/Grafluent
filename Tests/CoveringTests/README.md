@@ -2,7 +2,8 @@
 
 `Covering` finds vertex covers, independent sets, dominating sets and edge covers of an undirected
 graph: the exact maximum independent set (any one, or the lexicographically least by vertex index)
-with `independenceNumber()` and the complement `minimumVertexCover()`; König's cover from a maximum
+with `independenceNumber()` and the complement `minimumVertexCover()`; the exact minimum vertex
+cover, any one or the lexicographically least; König's cover from a maximum
 matching; the greedy maximal independent set; the exact minimum dominating set (any one, or the
 lexicographically least); the Bar-Yehuda–Even
 and greedy set-cover approximations; the minimum edge cover from a matching; and four checks. The
@@ -22,6 +23,7 @@ extension Graph {
     func maximalIndependentSet() -> [Vertex]                                  // greedy in vertex order
     func maximalIndependentSet(containing:) -> [Vertex]?                      // seeds first; nil if not independent
     func minimumVertexCover() -> [Vertex]                                     // vertices − maximumIndependentSet()
+    func lexicographicallyFirstMinimumVertexCover() -> [Vertex]               // lexicographically least
     func minimumVertexCover(bipartition:) -> [Vertex]                         // König's
     func approximateMinimumVertexCover(weight:), approximateMinimumVertexCover() -> [Vertex]      // Bar-Yehuda–Even
     func minimumDominatingSet() -> [Vertex]                                   // some minimum set
@@ -37,7 +39,7 @@ extension Graph {
 | Question | Choice | Cases |
 |---|---|---|
 | Result order | Vertex sets in `vertices` order (not label order, not seed order); edge covers as ascending positions | every row, `verticesOrder`, CV-027, CV-069 |
-| Lexicographic rule | `lexicographicallyFirst…`: of two sets of one size, the lesser holds the least vertex index of their symmetric difference; brute force keeps the best mask under that rule | MaximumIS, MinimumVC, MinimumDS rows, `exactIndependentSet`, `dominatingSets` |
+| Lexicographic rule | `lexicographicallyFirst…`: of two sets of one size, the lesser holds the least vertex index of their symmetric difference; brute force keeps the best mask under that rule | MaximumIS, MinimumVC, MinimumDS rows, `exactIndependentSet`, `exactVertexCover`, `dominatingSets` |
 | Fast spellings | `maximumIndependentSet()`, `minimumDominatingSet()`: some optimum, so tests assert its size, order and validity, never which set | every MaximumIS, MinimumVC and MinimumDS row, `exactIndependentSet`, `dominatingSets` |
 | Self-loops | Never independent, always in a vertex cover, irrelevant to domination, may be an edge cover's edge | CV-003, CV-006, CV-031, CV-032, CV-052, CV-089, CV-121, CV-131, CV-169, CV-173, CV-191, CV-198 |
 | Parallel edges | Change no vertex set; an edge cover names the copy its rule meets first | CV-007, CV-055, CV-084, CV-091, CV-126, CV-175, CV-212 |
@@ -112,7 +114,7 @@ graph of density ½ for the branch and bound.
 |---|---|---|
 | `MaximumIndependentSetTests.swift` | 41 | §MaximumIS, CV-001 – CV-041: degenerate graphs, loops, parallel edges, Kₙ, paths, cycles, stars, wheels, Petersen, grids, `BipartiteGraph` rows, mixed components, string vertices, interleaved bipartite orders, the lattice choice, odd cycles with pendants, small named graphs, seeded random graphs |
 | `IndependenceNumberTests.swift` | 8 | §IndependenceNumber, CV-042 – CV-049 |
-| `MinimumVertexCoverTests.swift` | 22 | §MinimumVC, CV-050 – CV-071: the complement rule, König's size and König's own cover on `BipartiteGraph` rows |
+| `MinimumVertexCoverTests.swift` | 22 | §MinimumVC, CV-050 – CV-071: the lexicographically least cover against brute force, the complement rule, König's size and König's own cover on `BipartiteGraph` rows |
 | `KoenigVertexCoverTests.swift` | 15 | §KoenigVC, CV-072 – CV-086: canonical sides, König's cover, the unique most-left minimum cover |
 | `ApproximateVertexCoverTests.swift` | 25 | §ApproxVC, CV-087 – CV-111: unweighted and weighted, ties, residual costs, zero and `Double` weights, a fixed edge order |
 | `MaximalIndependentSetTests.swift` | 17 | §MaximalIS, CV-112 – CV-128: the greedy pass, seeds, nil seeds, loops, repeats |
@@ -122,12 +124,12 @@ graph of density ½ for the branch and bound.
 | `CoveringCheckTests.swift` | 24 | §Checks, CV-189 – CV-212, in order, reversed and twice |
 | `CoveringPreconditionTests.swift` | 17 | Exit tests: CV-213 – CV-220; then a non-vertex to `isIndependentSet` and `isDominatingSet`, a negative position, a non-vertex after a valid seed, a NaN and a negative `Double` weight to the dominating-set approximation, a negative `Double` weight and a negative weight on an isolated vertex to the vertex-cover approximation, a bipartition that puts an edge inside a side |
 | `CoveringRepresentationTests.swift` | 212 | Every non-trap row again on `ReferencePseudograph`, `UndirectedAdjacencyList` (the `BipartiteGraph` rows), a conformer with no indices, `AdjacencyList.undirectedView` and `AdjacencyMatrix.undirectedView` |
-| `CoveringConformanceTests.swift` | 11 | `vertices` order with string vertices, generic code, `CompressedSparseRow` through `AdjacencyList(csr).undirectedView`, `graph.directedView.undirectedView`, `Int32`, `UInt8`, `Float` and `Int8` weights, zero weights, the unit weights, `weight` read once per vertex, exact integer ratios beyond 2⁵³, any `Sequence`, edge covers from non-maximum, empty and `Double`-weighted matchings, König on a `BipartiteGraph`, edgeless graphs |
-| `CoveringPropertyTests.swift` | 7 | PropertyBased, shrinking, multigraphs with loops in shuffled vertex orders: the exact independent set and cover against brute force, α + τ = n, parallel edges collapsed; bipartite graphs with interleaved sides (the lattice) and König's cover against brute force and the alternating-path construction, on `UndirectedAdjacencyList` and `BipartiteGraph`; Bar-Yehuda–Even written out in `Int` and `Double`, its bound, the weight read once per vertex, the maximal-matching containment; the greedy and seeded maximal sets, nil exactly for dependent seeds; the exact dominating set against brute force and the greedy set cover written out in `Int`, `Double` and unweighted, with its H(Δ + 1) bound; edge covers against the construction, Gallai and brute force, from maximal and weighted matchings; the checks against their definitions |
+| `CoveringConformanceTests.swift` | 13 | `vertices` order with string vertices, the least minimum cover against the least independent set's complement, a clique past the simplicial rule's degree limit, generic code, `CompressedSparseRow` through `AdjacencyList(csr).undirectedView`, `graph.directedView.undirectedView`, `Int32`, `UInt8`, `Float` and `Int8` weights, zero weights, the unit weights, `weight` read once per vertex, exact integer ratios beyond 2⁵³, any `Sequence`, edge covers from non-maximum, empty and `Double`-weighted matchings, König on a `BipartiteGraph`, edgeless graphs |
+| `CoveringPropertyTests.swift` | 8 | PropertyBased, shrinking, multigraphs with loops in shuffled vertex orders: the exact independent set and cover, and the least minimum cover, against brute force, α + τ = n, parallel edges collapsed; bipartite graphs with interleaved sides (the lattice) and König's cover against brute force and the alternating-path construction, on `UndirectedAdjacencyList` and `BipartiteGraph`; Bar-Yehuda–Even written out in `Int` and `Double`, its bound, the weight read once per vertex, the maximal-matching containment; the greedy and seeded maximal sets, nil exactly for dependent seeds; the exact dominating set against brute force and the greedy set cover written out in `Int`, `Double` and unweighted, with its H(Δ + 1) bound; edge covers against the construction, Gallai and brute force, from maximal and weighted matchings; the checks against their definitions |
 | `Performance/CoveringStressTests.swift` | 7 | Inside a `Task` with a one-minute limit: P₁₀₀₀₀₁ and C₁₀₀₀₀₀, a random tree of 10⁵ vertices, 20,000 bipartite gadgets, a planted perfect matching on 10⁵ vertices, 1,000 Petersen and P₇ copies and 2,000 stars, a dense 60-vertex branch and bound, the linear entry points on 10⁵ vertices and 3 · 10⁵ edges |
 
-220 catalog rows (212 value rows, 8 trap rows), their 212 representation tests, and 34 more tests
-(9 precondition, 11 conformance, 7 property, 7 stress): 466 tests in all.
+220 catalog rows (212 value rows, 8 trap rows), their 212 representation tests, and 37 more tests
+(9 precondition, 13 conformance, 8 property, 7 stress): 469 tests in all.
 
 ## Case IDs
 

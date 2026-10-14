@@ -57,6 +57,12 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Covering: lexicographicallyFirstMaximumIndependentSet(), G(150, 1100)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(dense.lexicographicallyFirstMaximumIndependentSet()) }
     }
+    Benchmark("Covering: lexicographicallyFirstMinimumVertexCover(), G(150, 1100)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(dense.lexicographicallyFirstMinimumVertexCover()) }
+    }
+    Benchmark("Covering: lexicographicallyFirstMinimumVertexCover(), bipartite, 10⁵ vertices, 3·10⁵ edges") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(bipartite.lexicographicallyFirstMinimumVertexCover()) }
+    }
     Benchmark("Covering: minimumDominatingSet(), G(80, 320)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(small.minimumDominatingSet()) }
     }

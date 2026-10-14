@@ -41,20 +41,60 @@ struct CoveringConformanceTests {
         #expect(graph.approximateMinimumDominatingSet() == ["a", "d"])
     }
 
+    @Test("The least minimum vertex cover is not the complement of the least maximum independent set: P4 listed as c, a, d, b")
+    func leastCoverIsNotTheLeastSetsComplement() {
+        // Indices c 0, a 1, d 2, b 3; edges c–a, a–d, d–b. The minimum covers have two vertices:
+        // {a, d} (indices 1, 2), {c, d} (0, 2) and {a, b} (1, 3). The least holds index 0: {c, d}.
+        // The least maximum independent set is {c, d} too, whose complement {a, b} is the
+        // greatest cover.
+        let graph = UndirectedAdjacencyList(vertices: ["c", "a", "d", "b"], edges: [UndirectedEdge("c", "a"), UndirectedEdge("a", "d"), UndirectedEdge("d", "b")])
+        #expect(graph.lexicographicallyFirstMinimumVertexCover() == ["c", "d"])
+        let least = graph.lexicographicallyFirstMaximumIndependentSet()
+        #expect(graph.vertices.filter { !least.contains($0) } == ["a", "b"])
+        // Disjoint copies: each component's least cover, in `vertices` order.
+        let twice = UndirectedAdjacencyList(vertices: 0 ..< 8, edges: [(0, 1), (1, 2), (2, 3), (4, 5), (5, 6), (6, 7)].map { UndirectedEdge($0.0, $0.1) })
+        #expect(twice.lexicographicallyFirstMinimumVertexCover() == [0, 2, 4, 6])
+        // A self-loop puts its vertex in the cover; an isolated vertex stays out.
+        let looped = UndirectedAdjacencyList(vertices: 0 ..< 4, edges: [UndirectedEdge(2, 2), UndirectedEdge(2, 3), UndirectedEdge(0, 3)])
+        #expect(looped.lexicographicallyFirstMinimumVertexCover() == [0, 2])
+        #expect(UndirectedAdjacencyList<Int>().lexicographicallyFirstMinimumVertexCover().isEmpty)
+    }
+
+    @Test("A clique left by a decision, too large for the simplicial rule, keeps its greatest vertex out of the least cover")
+    func leastCoverLargeClique() {
+        // K₁₁ on 1 … 11 and a pendant 0–1. Every maximum independent set is {0, k} for k in
+        // 2 … 11, so the minimum covers are everything but 0 and one k; the least leaves out the
+        // greatest k. Deciding 0 removes 1 and leaves K₁₀ on 2 … 11, whose degrees (9) are past
+        // the simplicial rule's limit, so the split keeps 11.
+        var edges = [UndirectedEdge(0, 1)]
+        for a in 1 ... 10 { for b in a + 1 ... 11 { edges.append(UndirectedEdge(a, b)) } }
+        let graph = UndirectedAdjacencyList(vertices: 0 ... 11, edges: edges)
+        #expect(graph.lexicographicallyFirstMinimumVertexCover() == Array(1 ... 10))
+        #expect(graph.minimumVertexCover().count == 10)
+        // The same graph with the pendant at the clique's greatest vertex: 0–11 instead.
+        var other = [UndirectedEdge(0, 11)]
+        for a in 1 ... 10 { for b in a + 1 ... 11 { other.append(UndirectedEdge(a, b)) } }
+        let moved = UndirectedAdjacencyList(vertices: 0 ... 11, edges: other)
+        // Covers: everything but 0 and one k in 1 … 10; the least leaves out 10.
+        #expect(moved.lexicographicallyFirstMinimumVertexCover() == Array(1 ... 9) + [11])
+    }
+
     @Test("Generic code over some Graph sees the same results as concrete code")
     func genericCode() {
         func everything(_ graph: some Graph<Int>) -> [[Int]] {
             [graph.lexicographicallyFirstMaximumIndependentSet(), graph.minimumVertexCover(), graph.maximalIndependentSet(),
              graph.lexicographicallyFirstMinimumDominatingSet(), graph.approximateMinimumVertexCover(), graph.approximateMinimumDominatingSet(),
-             [graph.independenceNumber()], graph.maximumIndependentSet(), graph.minimumDominatingSet()]
+             [graph.independenceNumber()], graph.maximumIndependentSet(), graph.minimumDominatingSet(), graph.lexicographicallyFirstMinimumVertexCover()]
         }
         // C5: the least MIS [0, 2] (CV-015), covers of 3 (CV-059), α = 2, γ = 2.
         let cycle = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: (0 ..< 5).map { UndirectedEdge($0, ($0 + 1) % 5) })
         let concrete = [cycle.lexicographicallyFirstMaximumIndependentSet(), cycle.minimumVertexCover(), cycle.maximalIndependentSet(),
                         cycle.lexicographicallyFirstMinimumDominatingSet(), cycle.approximateMinimumVertexCover(), cycle.approximateMinimumDominatingSet(),
-                        [cycle.independenceNumber()], cycle.maximumIndependentSet(), cycle.minimumDominatingSet()]
+                        [cycle.independenceNumber()], cycle.maximumIndependentSet(), cycle.minimumDominatingSet(), cycle.lexicographicallyFirstMinimumVertexCover()]
         #expect(everything(cycle) == concrete)
         #expect(concrete[0] == [0, 2] && concrete[1].count == 3 && concrete[6] == [2] && concrete[7].count == 2 && concrete[8].count == 2)
+        // The least cover of C5 (CV-059).
+        #expect(concrete[9] == [0, 1, 3])
         #expect(cycle.isVertexCover(concrete[4]))
     }
 
