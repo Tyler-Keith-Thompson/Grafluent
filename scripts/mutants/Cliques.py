@@ -28,6 +28,9 @@
 #   mw_skip             `>=` for `>` when skipping a vertex whose candidates' total cannot beat the
 #                       best: a tie is never taken, so the search finds nothing.
 
+#   td_fill_zero        no early stop at fill-in zero: nothing later is below zero; time only.
+#   td_valid_loop       allowing a bag edge to itself: with B − 1 edges one of them wasted leaves the
+#                       bags disconnected, which the reach check rejects.
 TESTS = ["CliquesTests"]
 
 MUTANTS = [
@@ -149,4 +152,26 @@ MUTANTS = [
     Mutant("mw_backrow", "MaximumWeightClique.swift", "                    search.rows[j * words + i >> 6] |= 1 << UInt64(i & 63)", "", mode="stmt"),
     Mutant("cn_vertex", "MaximumWeightClique.swift", "_cliqueNumber(neighborhood.rows).clique.count + 1", "_cliqueNumber(neighborhood.rows).clique.count"),
     Mutant("cn_checked", "MaximumWeightClique.swift", "        guard contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
+    # Tree decompositions
+    Mutant("td_width", "TreeDecomposition.swift", "(bags.lazy.map(\\.count).max() ?? 0) - 1", "(bags.lazy.map(\\.count).max() ?? 0)"),
+    Mutant("td_clique_stop_degree", "TreeDecomposition.swift", "adjacency[u].count != remaining - 1", "adjacency[u].count != remaining"),
+    Mutant("td_clique_stop_fill", "TreeDecomposition.swift", "if adjacency[byDegree[0]].count == remaining - 1 { break }", "", mode="stmt"),
+    Mutant("td_priority", "TreeDecomposition.swift", "rows.degree(v) &* n &+ v", "rows.degree(v) &* n &- v"),
+    Mutant("td_update", "TreeDecomposition.swift", "if !minimumFillIn { queue.updatePriority(of: u, to: adjacency[u].count &* n &+ u) }", "", mode="stmt"),
+    Mutant("td_fill_clique", "TreeDecomposition.swift", "for w in around where w != u && stamp[w] != round { adjacency[u].append(w) }", "", mode="stmt"),
+    Mutant("td_drop_v", "TreeDecomposition.swift", "adjacency[u].removeLast()", "()", mode="stmt"),
+    Mutant("td_fill_count", "TreeDecomposition.swift", "missing += around.count - 1 - shared", "missing += around.count - shared"),
+    Mutant("td_fill_better", "TreeDecomposition.swift", "missing < best", "missing <= best"),
+    Mutant("td_fill_early", "TreeDecomposition.swift", "if best != Int.max && missing >= best { break }", "if best != Int.max && missing >= best / 2 { break }", mode="stmt"),
+    Mutant("td_bucket", "TreeDecomposition.swift", "bucketStart[adjacency[u].count + 1] += 1", "bucketStart[adjacency[u].count] += 1", mode="stmt"),
+    Mutant("td_parent_first", "TreeDecomposition.swift", "step[u] < step[next]", "step[u] > step[next]"),
+    Mutant("td_parent_root", "TreeDecomposition.swift", "parents.append(next < 0 ? 0 : step[next] + 1)", "parents.append(next < 0 ? 0 : step[next])", mode="stmt"),
+    Mutant("td_bag_v", "TreeDecomposition.swift", "bags.append(([v] + around).sorted())", "bags.append(around.sorted())", mode="stmt"),
+    Mutant("td_root_bag", "TreeDecomposition.swift", "(0 ..< n).filter { alive[$0] }", "[Int]()"),
+    Mutant("td_valid_count", "TreeDecomposition.swift", "decomposition.edges.count == bagCount - 1", "true"),
+    Mutant("td_valid_reach", "TreeDecomposition.swift", "guard reached == bagCount else { return false }", "", mode="stmt"),
+    Mutant("td_valid_foreign", "TreeDecomposition.swift", "guard contains(vertex) else { return false }", "", mode="stmt"),
+    Mutant("td_valid_connected", "TreeDecomposition.swift", "guard count == bags.count else { return false }", "", mode="stmt"),
+    Mutant("td_valid_edges", "TreeDecomposition.swift", "guard shared else { return false }", "", mode="stmt"),
+    Mutant("td_valid_dup", "TreeDecomposition.swift", "if holding[v].last != b { holding[v].append(b) }", "holding[v].append(b)", mode="stmt"),
 ]

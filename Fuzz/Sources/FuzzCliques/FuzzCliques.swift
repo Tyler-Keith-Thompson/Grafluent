@@ -108,6 +108,23 @@ enum FuzzCliques {
             hasHole = seen.count == members.count
         }
         FuzzSupport.check(graph.isChordal == !hasHole, "\(name): isChordal \(graph.isChordal)")
+        // Tree decompositions: valid, checked here as well as by isTreeDecomposition; no narrower
+        // than the clique number allows; exact under minimum fill-in on a chordal graph.
+        for (heuristic, decomposition) in [("min degree", graph.treewidthMinDegree()), ("min fill-in", graph.treewidthMinFillIn())] {
+            FuzzSupport.check(graph.isTreeDecomposition(decomposition), "\(name): \(heuristic) decomposition rejected")
+            let bags = decomposition.bags.map { Set($0) }
+            FuzzSupport.check(decomposition.edges.count == bags.count - 1 && !bags.isEmpty, "\(name): \(heuristic) tree edge count")
+            FuzzSupport.check(bags.reduce(into: Set<Int>()) { $0.formUnion($1) } == Set(0 ..< n), "\(name): \(heuristic) bags miss a vertex")
+            for u in 0 ..< n {
+                for v in u + 1 ..< n where adjacent[u][v] {
+                    FuzzSupport.check(bags.contains { $0.contains(u) && $0.contains(v) }, "\(name): \(heuristic) leaves \(u)–\(v) uncovered")
+                }
+            }
+            FuzzSupport.check(decomposition.width >= omega - 1, "\(name): \(heuristic) width \(decomposition.width) below ω − 1")
+            if !hasHole && heuristic == "min fill-in" {
+                FuzzSupport.check(decomposition.width == omega - 1, "\(name): min fill-in width \(decomposition.width) on a chordal graph")
+            }
+        }
         if let order = graph.perfectEliminationOrdering() {
             var place = [Int](repeating: 0, count: n)
             for (i, v) in order.enumerated() { place[v] = i }

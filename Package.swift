@@ -106,7 +106,7 @@ let targets: [Target] = [
     .target(name: "Flows", dependencies: ["GraphProtocols", "Trees", "Walks", "LinkCutTreeModule"], exclude: bazelFiles),
     .target(name: "MatchingModule", dependencies: ["GraphProtocols", "BipartiteGraphs"], exclude: bazelFiles),
     .target(name: "ColoringModule", dependencies: ["GraphProtocols", "BipartiteGraphs", "Cliques"], exclude: bazelFiles),
-    .target(name: "Cliques", dependencies: ["GraphProtocols", "Walks", "Traversal"], exclude: bazelFiles),
+    .target(name: "Cliques", dependencies: ["GraphProtocols", "Walks", "Traversal", "PriorityQueueModule"], exclude: bazelFiles),
     .target(name: "Covering", dependencies: ["GraphProtocols", "MatchingModule", "BipartiteGraphs", "Cliques"], exclude: bazelFiles),
     .target(name: "Centrality", dependencies: ["GraphProtocols", "PriorityQueueModule"], exclude: bazelFiles),
     .target(name: "CommunityDetection", dependencies: ["GraphProtocols", "PriorityQueueModule", "Centrality", "Cliques", "SpectralGraphTheory"], exclude: bazelFiles),

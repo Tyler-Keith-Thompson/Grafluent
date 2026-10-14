@@ -126,6 +126,15 @@ struct CliqueAnswers: Encodable {
     var treewidth: Int?
     var hole: [Int]?
     var holeValid = true
+    /// Tree decompositions: treewidthMinDegree() and treewidthMinFillIn(), with the library's
+    /// own isTreeDecomposition(_:) verdict.
+    var minDegreeBags: [[Int]] = []
+    var minDegreeEdges: [[Int]] = []
+    var minDegreeWidth = 0
+    var minFillInBags: [[Int]] = []
+    var minFillInEdges: [[Int]] = []
+    var minFillInWidth = 0
+    var decompositionsValid = true
 }
 
 /// Distances, unweighted and (with nonnegative weights) weighted, by eccentricities() and by
@@ -1126,6 +1135,14 @@ for c in cases {
             if let order = cliques.eliminationOrder { cliques.eliminationIsReversedSearch = order == graph.maximumCardinalitySearch().reversed() }
             cliques.chordalCliques = graph.chordalGraphCliques()
             cliques.treewidth = graph.chordalGraphTreewidth()
+            let minDegree = graph.treewidthMinDegree(), minFillIn = graph.treewidthMinFillIn()
+            cliques.minDegreeBags = minDegree.bags
+            cliques.minDegreeEdges = minDegree.edges.map { [$0.u, $0.v] }
+            cliques.minDegreeWidth = minDegree.width
+            cliques.minFillInBags = minFillIn.bags
+            cliques.minFillInEdges = minFillIn.edges.map { [$0.u, $0.v] }
+            cliques.minFillInWidth = minFillIn.width
+            cliques.decompositionsValid = graph.isTreeDecomposition(minDegree) && graph.isTreeDecomposition(minFillIn)
             if let hole = graph.findHole() {
                 cliques.hole = hole.vertices
                 cliques.holeValid = Cycle(vertices: hole.vertices, edges: hole.edges, in: graph) != nil

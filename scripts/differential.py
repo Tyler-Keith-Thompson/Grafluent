@@ -1193,6 +1193,56 @@ def compare_cliques(case, mine, G):
     if not mine.get("oneShotsAgree", False):
         problems.append("triangleCount / transitivity / per-vertex one-shots disagree with clusteringCoefficients()")
     problems += compare_chordal(case, mine, S)
+    problems += compare_tree_decompositions(case, mine, S)
+    return problems
+
+
+def least_degree_heuristic(graph_dict):
+    """NetworkX's minimum-degree rule with ties to the least vertex (its own MinDegreeHeuristic
+    breaks them in set order): the least (degree, vertex), or None when the rest is a clique."""
+    if not graph_dict:
+        return None
+    v = min(graph_dict, key=lambda u: (len(graph_dict[u]), u))
+    return None if len(graph_dict[v]) == len(graph_dict) - 1 else v
+
+
+def compare_tree_decompositions(case, mine, S):
+    """treewidthMinDegree() and treewidthMinFillIn() on the simple graph: the widths against
+    NetworkX's treewidth_decomp with a least-vertex minimum-degree heuristic and against
+    treewidth_min_fill_in (deterministic for nodes in index order); each decomposition checked
+    here (one tree of bags, every vertex and edge covered, each vertex's bags connected) and by
+    isTreeDecomposition(_:); for a chordal graph the min fill-in width is its treewidth."""
+    problems = []
+    n = case["n"]
+    if "minDegreeWidth" not in mine:
+        return problems
+    width_degree = nx.algorithms.approximation.treewidth.treewidth_decomp(S, least_degree_heuristic)[0] if n > 0 else -1
+    width_fill = nx.algorithms.approximation.treewidth_min_fill_in(S)[0] if n > 0 else -1
+    if mine["minDegreeWidth"] != width_degree:
+        problems.append(f"treewidthMinDegree width {mine['minDegreeWidth']}, NetworkX {width_degree}")
+    if mine["minFillInWidth"] != width_fill:
+        problems.append(f"treewidthMinFillIn width {mine['minFillInWidth']}, NetworkX {width_fill}")
+    if nx.is_chordal(S) and n > 0 and mine["minFillInWidth"] != nx.chordal_graph_treewidth(S):
+        problems.append(f"treewidthMinFillIn width {mine['minFillInWidth']} on a chordal graph, treewidth {nx.chordal_graph_treewidth(S)}")
+    if not mine["decompositionsValid"]:
+        problems.append("isTreeDecomposition rejects a heuristic's decomposition")
+    for name, bags, edges, width in [("treewidthMinDegree", mine["minDegreeBags"], mine["minDegreeEdges"], mine["minDegreeWidth"]),
+                                     ("treewidthMinFillIn", mine["minFillInBags"], mine["minFillInEdges"], mine["minFillInWidth"])]:
+        T = nx.Graph()
+        T.add_nodes_from(range(len(bags)))
+        T.add_edges_from(map(tuple, edges))
+        sets = [set(b) for b in bags]
+        if not bags or not nx.is_tree(T) or len(edges) != len(bags) - 1:
+            problems.append(f"{name}: the bags do not form a tree")
+            continue
+        if width != max(len(b) for b in bags) - 1:
+            problems.append(f"{name}: width {width} is not the largest bag less one")
+        if set().union(*sets) != set(range(n)):
+            problems.append(f"{name}: the bags do not cover the vertices")
+        if any(not any(u in b and v in b for b in sets) for u, v in S.edges()):
+            problems.append(f"{name}: an edge is in no bag")
+        if any(not nx.is_connected(T.subgraph([i for i, b in enumerate(sets) if v in b])) for v in range(n)):
+            problems.append(f"{name}: a vertex's bags are not connected")
     return problems
 
 

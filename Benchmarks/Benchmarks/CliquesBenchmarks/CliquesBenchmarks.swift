@@ -307,4 +307,26 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Cliques: cliqueNumber(of:) for 100 vertices, G(2000, 2·10⁴)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole((0 ..< 100).map { dense.cliqueNumber(of: $0 * 20) }) }
     }
+    // Tree decompositions: a 60 × 60 grid (treewidth 60) and a sparse G(2000, 3000).
+    var gridEdges: [UndirectedEdge<Int>] = []
+    for r in 0 ..< 60 {
+        for c in 0 ..< 60 {
+            if c < 59 { gridEdges.append(UndirectedEdge(60 * r + c, 60 * r + c + 1)) }
+            if r < 59 { gridEdges.append(UndirectedEdge(60 * r + c, 60 * r + c + 60)) }
+        }
+    }
+    let grid = UndirectedAdjacencyList(vertices: 0 ..< 3600, edges: gridEdges)
+    let thin = simple(2000, 3000, 11)
+    Benchmark("Cliques: treewidthMinDegree(), 60 × 60 grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(grid.treewidthMinDegree().width) }
+    }
+    Benchmark("Cliques: treewidthMinFillIn(), 60 × 60 grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(grid.treewidthMinFillIn().width) }
+    }
+    Benchmark("Cliques: treewidthMinDegree(), G(2000, 3000)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(thin.treewidthMinDegree().width) }
+    }
+    Benchmark("Cliques: treewidthMinFillIn(), G(2000, 3000)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(thin.treewidthMinFillIn().width) }
+    }
 }

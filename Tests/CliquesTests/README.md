@@ -88,6 +88,7 @@ tests write their oracles inside each test.
 | `OnionLayerTests.swift` | 10 | §I: CQ-920 – CQ-929: onion layers (isolated vertices, the core rising, rounds within a shell), k-crusts and k-coronas, the checked spelling, exits, and NetworkX's rounds replayed on sets |
 | `CliqueListingTests.swift` | 10 | §I: CQ-930 – CQ-939: `allCliques(sizes:)` (counts, the documented order), `maximalCliques(containing:)`, `cliqueNumber(of:)`, `maximumWeightClique(weight:)`, checked spellings, exits, and every vertex subset |
 | `Performance/CohesionStressTests.swift` | 4 | §I: CQ-940 – CQ-943: a 10⁵ path, a hub over 2·10⁴ triangles, K₁₂₀, lcg(3·10⁴, 1.5·10⁵), each within a minute |
+| `TreeDecompositionTests.swift` | 10 | `treewidthMinDegree()`, `treewidthMinFillIn()` and `isTreeDecomposition(_:)`: hand-computed bags and trees (paths, a 5-cycle, a disconnected graph, string vertices), the empty graph, one vertex with a loop, K₅ with parallel edges, known treewidths never undercut, a chordal graph exact, nine invalid decompositions, and random pseudographs against a naive port of both heuristics and the exact treewidth over every elimination order |
 
 454 tests in all.
 

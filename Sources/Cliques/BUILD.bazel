@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Bron–Kerbosch, every clique by size, maximum and maximum-weight cliques, k-cores, crusts and coronas, onion layers, k-trusses, triangle counting, clustering coefficient, chordal graphs (recognition, perfect elimination orderings, holes, cliques, treewidth).
+# Bron–Kerbosch, every clique by size, maximum and maximum-weight cliques, k-cores, crusts and coronas, onion layers, k-trusses, triangle counting, clustering coefficient, chordal graphs (recognition, perfect elimination orderings, holes, cliques, treewidth), tree decompositions by the minimum-degree and minimum fill-in heuristics.
 swift_library(
     name = "Cliques",
     srcs = glob(["**/*.swift"]),
@@ -12,6 +12,7 @@ swift_library(
         "//Sources/GraphProtocols",
         "//Sources/Walks",
         "//Sources/Traversal",
+        "//Sources/PriorityQueueModule",
     ],
     visibility = ["//visibility:public"],
 )
@@ -25,6 +26,7 @@ docc_archive(
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
         "//Sources/Walks:WalksDocumentation",
         "//Sources/Traversal:TraversalDocumentation",
+        "//Sources/PriorityQueueModule:PriorityQueueModuleDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],
