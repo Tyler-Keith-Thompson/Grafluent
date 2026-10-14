@@ -144,4 +144,15 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("TreeAlgorithms: centroidDecomposition, 10⁶") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(tree.centroidDecomposition()) }
     }
+    // TA-B05: tree edit distance (Zhang–Shasha) on two random recursive ordered trees of 400
+    // vertices; Tests/TreeAlgorithmsTests/Performance holds the hand-written comparison.
+    let editRows: [[[Int]]] = (0 ..< 2).map { t in
+        var rows = [[Int]](repeating: [], count: 400)
+        for v in 1 ..< 400 { rows[Int((UInt64(v &+ 977 &* t) &* 0x9E37_79B9_7F4A_7C15) >> 20) % v].append(v) }
+        return rows
+    }
+    let editA = OrderedTree(root: 0) { editRows[0][$0] }!, editB = OrderedTree(root: 0) { editRows[1][$0] }!
+    Benchmark("TreeAlgorithms: treeEditDistance(to:), two 400-vertex ordered trees") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(editA.treeEditDistance(to: editB)) }
+    }
 }

@@ -4,7 +4,8 @@
 // climbing for every pair; the segments expand to the path; the Euler tour is a closed walk
 // crossing each edge twice in preorder; center, centroid and diameter agree with a search from
 // every vertex; the centroid decomposition has the centroid of each part at its top and height at
-// most ⌊log₂ n⌋.
+// most ⌊log₂ n⌋. Tree edit distance on two ordered trees of at most 7 vertices (the first vertices
+// of the parent array and the input's rest) agrees with the recursive forest distance.
 
 import FuzzSupport
 import GraphProtocols
@@ -123,5 +124,44 @@ enum FuzzTreeAlgorithms {
             let centroids = part.sorted().filter { 2 * largestPart($0, in: part) <= part.count }
             check(centroids.first == c, "the top of \(part.sorted()) is \(c), its first centroid is \(String(describing: centroids.first))")
         }
+
+        // Tree edit distance: the first k vertices form a tree (parents are below); a second tree
+        // of up to 7 vertices from the rest of the input. Children in increasing order, reversed
+        // at even vertices.
+        let k = min(n, 7)
+        let m = input.isEmpty ? 1 : input.int(in: 1 ... 7)
+        let second: [Int] = (0 ..< m).map { i in i == 0 ? -1 : (input.isEmpty ? 0 : input.int(below: i)) }
+        var rows = [[[Int]](repeating: [], count: k), [[Int]](repeating: [], count: m)]
+        for v in 1 ..< max(k, 1) { rows[0][parents[v]!].append(v) }
+        for v in 1 ..< max(m, 1) { rows[1][second[v]].append(v) }
+        for t in 0 ..< 2 { for v in rows[t].indices where v % 2 == 0 { rows[t][v].reverse() } }
+        let first = OrderedTree(root: 0) { rows[0][$0] }!
+        let other = OrderedTree(root: 0) { rows[1][$0] }!
+        let substitution: (Int, Int) -> Int = { $0 % 2 == $1 % 2 ? 0 : 3 }
+        let deletion: (Int) -> Int = { $0 % 3 + 1 }
+        let insertion: (Int) -> Int = { 2 - $0 % 2 }
+        var memo: [[Int]: Int] = [:]
+        // Forests as their roots, -1 between the two; F − v replaces the last root by its children.
+        func forest(_ f: [Int], _ g: [Int]) -> Int {
+            let key = f + [-1] + g
+            if let known = memo[key] { return known }
+            var best = 0
+            if let v = f.last {
+                best = forest(f.dropLast() + rows[0][v], g) + deletion(v)
+                if let w = g.last {
+                    best = min(best, forest(f, g.dropLast() + rows[1][w]) + insertion(w))
+                    best = min(best, forest(rows[0][v], rows[1][w]) + forest(Array(f.dropLast()), Array(g.dropLast())) + substitution(v, w))
+                }
+            } else if let w = g.last {
+                best = forest(f, g.dropLast() + rows[1][w]) + insertion(w)
+            }
+            memo[key] = best
+            return best
+        }
+        let expectedDistance = forest([0], [0])
+        let editDistance = first.treeEditDistance(to: other, substitutionCost: substitution, deletionCost: deletion, insertionCost: insertion)
+        check(editDistance == expectedDistance, "treeEditDistance \(editDistance), expected \(expectedDistance) for \(rows)")
+        check(first.treeEditDistance(to: first) == 0, "treeEditDistance to itself")
+        check(first.treeEditDistance(to: other) == other.treeEditDistance(to: first), "unit tree edit distance is symmetric")
     }
 }

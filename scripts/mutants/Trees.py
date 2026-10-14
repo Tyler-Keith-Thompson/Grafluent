@@ -117,3 +117,16 @@ for k, name in enumerate(["tree", "rooted", "arborescence", "forest"]):
     ]
 for file, name in [("Tree.swift", "tree"), ("RootedTree.swift", "rooted"), ("Arborescence.swift", "arborescence"), ("Forest.swift", "forest")]:
     MUTANTS.append(Mutant(f"{name}stamp", file, "        _generation.stamp()", "", mode="stmt"))
+
+# OrderedTree
+O = "OrderedTree.swift"
+MUTANTS += [
+    Mutant("orderedrepeat", O, "slots.updateValue(vertices.count, forKey: child) == nil", "true"),
+    Mutant("orderedrange", O, "UInt(bitPattern: x) < UInt(bitPattern: n)", "UInt(bitPattern: x) <= UInt(bitPattern: n)"),
+    Mutant("orderedroot", O, "dense ? ends.first ?? 0 : 0", "0"),
+    Mutant("orderedsamecount", O, "rowLength(a) == other.rowLength(b)", "true"),
+    Mutant("orderedsamevertex", O, "vertices[a] == other.vertices[b]", "true"),
+    Mutant("orderedhashcount", O, "            hasher.combine(rowLength(v))", "", mode="stmt"),
+    Mutant("ordereddeeper", O, "d > previous", "d >= previous"),
+    Mutant("orderedclose", O, "String(repeating: \")\", count: previous - d)", "String(repeating: \")\", count: 0)"),
+]

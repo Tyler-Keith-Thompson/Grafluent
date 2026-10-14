@@ -42,6 +42,10 @@ extension Tree {
     func diameterPath() -> Path<Vertex, Int>
     func diameterPath<W>(weight: (Int) -> W) -> (path: Path<Vertex, Int>, distance: W)
 }   // W: Comparable & AdditiveArithmetic; every weight ≥ .zero and not NaN (precondition)
+extension OrderedTree {
+    func treeEditDistance<Other, Cost>(to:substitutionCost:deletionCost:insertionCost:) -> Cost
+    func treeEditDistance<Other>(to:) -> Int                       // unit deletions and insertions, free substitution
+}   // Zhang–Shasha; Cost: AdditiveArithmetic & Comparable, costs not negative
 ```
 
 ## Conventions

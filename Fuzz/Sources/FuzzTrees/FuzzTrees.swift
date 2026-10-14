@@ -7,7 +7,10 @@
 // rebuilds it; a forest's trees are its components by least vertex; the Graph laws hold. Every
 // `checked:` spelling returns its plain spelling's value at a vertex (also over `String` vertices,
 // which take the linear search or the hash table) and throws `VertexNotFound` off the tree, or
-// `EdgeNotFound` off an arborescence's positions.
+// `EdgeNotFound` off an arborescence's positions. An ordered tree grown from 0 along the arcs (each
+// vertex's targets in edge order) exists exactly when no vertex is reached twice, and its preorder,
+// postorder, children and conversions agree with a depth-first walk of those lists; rebuilt with
+// its vertices numbered in postorder it is equal, and swapping two siblings makes it unequal.
 
 import AdjacencyListModule
 import FuzzSupport
@@ -209,12 +212,60 @@ enum FuzzTrees {
         check(RootedTree(parents: parents) == tree && Arborescence(parents: parents) == arborescence, "init(parents:)")
     }
 
+    /// An ordered tree grown from 0 along the arcs, against a walk of the same lists.
+    static func checkOrdered(_ n: Int, _ edges: [(Int, Int)]) {
+        var lists = [[Int]](repeating: [], count: n)
+        for (a, b) in edges { lists[a].append(b) }
+        var seen = [Bool](repeating: false, count: n), queue = [0], head = 0, repeated = false
+        seen[0] = true
+        while head < queue.count, !repeated {
+            for w in lists[queue[head]] {
+                if seen[w] { repeated = true }
+                seen[w] = true
+                queue.append(w)
+            }
+            head += 1
+        }
+        let ordered = OrderedTree(root: 0) { lists[$0] }
+        check((ordered == nil) == repeated, "OrderedTree exists \(ordered != nil), expected \(!repeated)")
+        guard let ordered else { return }
+        var preorder: [Int] = [], postorder: [Int] = [], parent = [Int: Int](), stack = [(0, 0)]
+        preorder.append(0)
+        while let (v, k) = stack.last {
+            if k < lists[v].count {
+                stack[stack.count - 1].1 += 1
+                parent[lists[v][k]] = v
+                preorder.append(lists[v][k])
+                stack.append((lists[v][k], 0))
+            } else {
+                postorder.append(v)
+                stack.removeLast()
+            }
+        }
+        check(Array(ordered.preorder) == preorder && ordered.postorder == postorder, "ordered preorder / postorder")
+        check(ordered.vertexCount == preorder.count, "ordered vertexCount")
+        let rooted = RootedTree(ordered), arborescence = Arborescence(ordered)
+        for v in preorder {
+            check(Array(ordered.children(of: v)) == lists[v] && ordered.parent(of: v) == parent[v], "ordered children / parent of \(v)")
+            check(Array(rooted.children(of: v)) == lists[v] && Array(arborescence.successors(of: v)) == lists[v], "converted children of \(v)")
+        }
+        check(OrderedTree(rooted) == ordered && OrderedTree(arborescence) == ordered, "conversions round-trip")
+        let renumbered = OrderedTree(RootedTree(vertices: postorder) { parent[$0] }!)
+        check(renumbered == ordered && renumbered.hashValue == ordered.hashValue, "renumbered ordered tree")
+        if let v = preorder.first(where: { lists[$0].count >= 2 }) {
+            var swapped = lists
+            swapped[v].swapAt(0, 1)
+            check(OrderedTree(root: 0) { swapped[$0] } != ordered, "a sibling swap is unequal")
+        }
+    }
+
     static func fuzz(_ input: inout FuzzInput) {
         let n = input.int(in: 1 ... 9)
         let directedFlips = input.int(below: 4)
         var edges: [(Int, Int)] = []
         while !input.isEmpty, edges.count < 12 { edges.append((input.int(below: n), input.int(below: n))) }
         let (labels, cyclic) = components(n, edges)
+        checkOrdered(n, edges)
         let componentCount = Set(labels).count
         let undirected = edges.map { UndirectedEdge($0.0, $0.1) }
         let isTree = !cyclic && componentCount == 1

@@ -63,4 +63,15 @@ MUTANTS = [
     Mutant("checkedsubtree", "HeavyLightDecomposition.swift", "        subtree(ofIndex: try _layout.checkedNumber(of: vertex))", "        subtree(ofIndex: 0)", mode="stmt"),
     Mutant("checkedhldlca", "HeavyLightDecomposition.swift", "lowestCommonAncestor(ofIndex: x, y)", "lowestCommonAncestor(ofIndex: y, y)"),
     Mutant("checkedsegments", "HeavyLightDecomposition.swift", "        return segments(fromIndex: x, toIndex: y, includingCommonAncestor: includingCommonAncestor)", "        return segments(fromIndex: x, toIndex: y, includingCommonAncestor: true)", mode="stmt"),
+    # Tree edit distance (Zhang–Shasha)
+    Mutant("tedkeyroots", "TreeEditDistance.swift", "parent < 0 || leftmost[position[parent]] != leftmost[p]", "parent < 0"),
+    Mutant("tedleftmost", "TreeEditDistance.swift", "leftmost[p] = p - node.size + 1", "leftmost[p] = p - node.size + (node.size > 2 ? 2 : 1)", mode="stmt"),
+    Mutant("tedwhole", "TreeEditDistance.swift", "wholeA && lb[q] == lj", "lb[q] == lj"),
+    Mutant("tedinsert", "TreeEditDistance.swift", "if inserted < best { best = inserted }", "", mode="stmt"),
+    Mutant("tedsubstitute", "TreeEditDistance.swift", "if substituted < best { best = substituted }", "", mode="stmt"),
+    Mutant("tedmatched", "TreeEditDistance.swift", "fd[(la[p] - li) * stride + lb[q] - lj]", "fd[(la[p] - li) * stride]"),
+    Mutant("tedmatchedmin", "TreeEditDistance.swift", "if matched < best { best = matched }", "best = matched", mode="stmt"),
+    Mutant("tedfirstcolumn", "TreeEditDistance.swift", "deletion[li + x - 1]", "deletion[li]"),
+    Mutant("tedfirstrow", "TreeEditDistance.swift", "insertion[lj + y - 1]", "insertion[lj]"),
+    Mutant("tedresult", "TreeEditDistance.swift", "treeDistance[n * m - 1]", "treeDistance[n * m - 1 - (n * m > 1 ? 1 : 0)]"),
 ]

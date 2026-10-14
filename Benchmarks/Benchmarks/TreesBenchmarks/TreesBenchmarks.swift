@@ -141,4 +141,16 @@ let benchmarks: @Sendable () -> Void = {
         let other = Tree(edges: pairs.prefix(100_000).map { UndirectedEdge("v\($0.u)", "v\($0.v)") })!
         for _ in benchmark.scaledIterations { blackHole(stringTree == other) }
     }
+    // OrderedTree: built level by level from child lists, then compared.
+    var childRows = [[Int]](repeating: [], count: n)
+    for v in 0 ..< n { if let p = parents[v] { childRows[p].append(v) } }
+    let ordered = OrderedTree(root: n / 2) { childRows[$0] }!
+    let orderedCopy = OrderedTree(RootedTree(vertices: ordered.postorder) { ordered.parent(of: $0) }!)
+    precondition(ordered == orderedCopy)
+    Benchmark("Trees: OrderedTree(root:children:), 10⁶ random tree") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(OrderedTree(root: n / 2) { childRows[$0] }) }
+    }
+    Benchmark("Trees: OrderedTree ==, 10⁶ random tree numbered two ways") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(ordered == orderedCopy) }
+    }
 }

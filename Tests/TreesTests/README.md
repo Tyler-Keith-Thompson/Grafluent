@@ -49,6 +49,14 @@ struct Arborescence<Vertex: Hashable>: BidirectionalDirectedGraph
     degree, vertexIndex (checked:)                                   // throw VertexNotFound
     source(checkedEdgeAt:), target(checkedEdgeAt:)                   // throw EdgeNotFound
 
+struct OrderedTree<Vertex: Hashable>                                 // not a Graph; child order is part of its value
+    init?<C, E>(root:children: (Vertex) throws(E) -> C) throws(E)    // level by level; nil on a repeated vertex
+    init(_ tree: RootedTree<Vertex>), init(_ arborescence: Arborescence<Vertex>)   // O(1), children(of:) order
+    root, vertexCount, contains, parent(of:), children(of:), depth(of:), height, preorder, postorder
+    parent(checked:), children(checked:), depth(checked:)            // throw VertexNotFound
+    // ==: same root and children in the same order (preorder and child counts); RootedTree(_:) and
+    // Arborescence(_:) convert back in O(1)
+
 struct Forest<Vertex: Hashable>: Graph
     init(), init?(_ graph:), init?(edges:), init?(vertices:edges:), init(_ tree: Tree<Vertex>)
     var trees: Trees                                                 // RandomAccessCollection<Tree<Vertex>>, by least vertex

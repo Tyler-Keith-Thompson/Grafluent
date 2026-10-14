@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Lowest common ancestor, Euler tour, heavy–light decomposition, center, centroid, diameter.
+# Lowest common ancestor, Euler tour, heavy–light decomposition, center, centroid, diameter, tree edit distance (Zhang–Shasha).
 swift_library(
     name = "TreeAlgorithms",
     srcs = glob(["**/*.swift"]),
