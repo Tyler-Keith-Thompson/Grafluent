@@ -100,6 +100,54 @@ enum FuzzShortestPaths {
             for (i, k) in edgeIndices.enumerated() { sparseWeight[k] = weight[order[i]]! }
             checkTree(sparse.dijkstraShortestPaths(from: sources) { sparseWeight[$0] }, sparse, { sparseWeight[$0] }, expected, "Dijkstra on CSR")
 
+            // The event sequence: every reached vertex settled once, in nondecreasing order, at
+            // Floyd–Warshall's distance; each examined edge offers d(u) + w and is then relaxed
+            // or not exactly when its target is unsettled; the last relaxed edge into each vertex
+            // is a parent edge on a shortest path; a vertex finishes right after its edges.
+            func checkSearch<G: DirectedGraph<Int>>(_ graph: G, _ weight: @escaping (G.Edges.Index) -> Int, _ name: String) {
+                var settled = [Int?](repeating: nil, count: n)
+                var order: [Int] = []
+                var parent = [G.Edges.Index?](repeating: nil, count: n)
+                var current = -1
+                var decisionDue: G.Edges.Index?
+                for event in graph.dijkstraSearch(from: sources, weight: weight) {
+                    if let due = decisionDue {
+                        switch event {
+                        case .edgeRelaxed(let e, _), .edgeNotRelaxed(let e, _): check(e == due, "\(name): decision for another edge")
+                        default: check(false, "\(name): an edge into an unsettled vertex was not decided")
+                        }
+                        decisionDue = nil
+                    }
+                    switch event {
+                    case .discover(let v, let dv):
+                        check(settled[v] == nil && (sources.contains(v) ? dv == 0 : dv >= expected[v]!), "\(name): discover \(v)")
+                    case .examine(let v, let dv):
+                        check(settled[v] == nil && dv == expected[v], "\(name): \(v) settled at \(dv), expected \(String(describing: expected[v]))")
+                        settled[v] = dv
+                        order.append(dv)
+                        current = v
+                    case .examineEdge(let e, let offer):
+                        check(graph.source(ofEdgeAt: e) == current && offer == settled[current]! + weight(e), "\(name): offer")
+                        if settled[graph.target(ofEdgeAt: e)] == nil { decisionDue = e }
+                    case .edgeRelaxed(let e, let dv):
+                        check(dv == settled[current]! + weight(e), "\(name): relaxed distance")
+                        parent[graph.target(ofEdgeAt: e)] = e
+                    case .edgeNotRelaxed(let e, let dv):
+                        check(dv <= settled[current]! + weight(e), "\(name): not relaxed but shorter")
+                    case .finish(let v, let dv):
+                        check(v == current && dv == settled[v], "\(name): finish")
+                    }
+                }
+                check(settled == expected, "\(name): settled \(settled), expected \(expected)")
+                check(order == order.sorted(), "\(name): settled out of order")
+                for v in 0 ..< n where !sources.contains(v) && expected[v] != nil {
+                    guard let e = parent[v] else { check(false, "\(name): \(v) has no relaxed edge"); continue }
+                    check(expected[graph.source(ofEdgeAt: e)]! + weight(e) == expected[v], "\(name): last relaxed edge into \(v)")
+                }
+            }
+            checkSearch(list, w, "search on AdjacencyList")
+            checkSearch(sparse, { sparseWeight[$0] }, "search on CSR")
+
             // A* with h(v) a fraction of the true distance to the target (admissible, usually not
             // consistent), any value where the target is unreachable, and negative at the target.
             let source = sources[0]

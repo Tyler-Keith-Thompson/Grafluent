@@ -3,8 +3,8 @@
 load("@rules_apple//apple:macos.bzl", "macos_unit_test")
 load("//tools:swift_rules.bzl", "swift_library", "swift_test")
 
-# The tests, built once and linked into two runners.
-# Tagged `debug-only`: none of these relies on speed, so
+# The tests, built once and linked into two runners; the speed-reliant ones, in Performance/, are
+# ShortestPathsPerformanceTests below. Tagged `debug-only`: none of these relies on speed, so
 # `--config=release` neither builds nor runs them (.bazelrc).
 swift_library(
     name = "ShortestPathsTestsLibrary",
@@ -12,7 +12,7 @@ swift_library(
     # Tests are found through metadata the linker would otherwise drop, since nothing
     # references them by name.
     alwayslink = True,
-    srcs = glob(["**/*.swift"]),
+    srcs = glob(["**/*.swift"], exclude = ["Performance/**"]),
     module_name = "ShortestPathsTests",
     tags = ["debug-only"],
     # Read by //:package_swift_test, which checks Package.swift against the Bazel graph.
@@ -55,4 +55,55 @@ macos_unit_test(
     # Visible so `//:xcodeproj` can name it as a top-level target.
     visibility = ["//visibility:public"],
     deps = [":ShortestPathsTestsLibrary"],
+)
+
+# The speed-reliant tests (PERFORMANCE_TESTS in scripts/modules.py): debug and `--config=release`
+# both run them.
+swift_library(
+    name = "ShortestPathsPerformanceTestsLibrary",
+    testonly = True,
+    # Tests are found through metadata the linker would otherwise drop, since nothing
+    # references them by name.
+    alwayslink = True,
+    srcs = glob(["Performance/**/*.swift"]),
+    module_name = "ShortestPathsPerformanceTests",
+    # Read by //:package_swift_test, which checks Package.swift against the Bazel graph.
+    visibility = ["//:__pkg__"],
+    deps = [
+        "//Sources/GraphProtocols",
+        "//Sources/ShortestPaths",
+        "//Sources/Traversal",
+        "//Sources/AdjacencyListModule",
+        "//Sources/AdjacencyMatrixModule",
+        "//Sources/CompressedSparseRowModule",
+        "//Sources/DirectedAcyclicGraphModule",
+        "//Sources/Multigraphs",
+        "//Sources/StableGraphs",
+        "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swift_property_based//:PropertyBased",
+        "//Sources/Walks",
+        "//Sources/Trees",
+        "//Sources/Semirings",
+    ],
+)
+
+# `bazel test` / `just test`: a standalone executable, fast to start and run in Bazel's sandbox.
+swift_test(
+    name = "ShortestPathsPerformanceTests",
+    size = "medium",
+    deps = [":ShortestPathsPerformanceTestsLibrary"],
+)
+
+# The generated Xcode project: a real .xctest bundle (an MH_BUNDLE), which is what Xcode's test
+# runner loads. `manual` keeps it out of `bazel test //...`; it runs through xcodebuild, so it
+# is only for Xcode. XCTest refuses exit tests in a sandboxed host, hence `no-sandbox`.
+macos_unit_test(
+    name = "ShortestPathsPerformanceTestsBundle",
+    bundle_name = "ShortestPathsPerformanceTests",
+    size = "medium",
+    minimum_os_version = "15.0",
+    tags = ["manual", "no-sandbox"],
+    # Visible so `//:xcodeproj` can name it as a top-level target.
+    visibility = ["//visibility:public"],
+    deps = [":ShortestPathsPerformanceTestsLibrary"],
 )

@@ -161,7 +161,7 @@ PERFORMANCE_TESTS = [
     "CoveringTests", "CyclesTests", "DistancesTests", "FlowsTests", "FunctionalGraphsTests", "GraphDrawingTests",
     "GraphFormatsTests", "GraphOperationsTests", "HypergraphsTests", "ImplicitGraphsTests", "IncidenceMatrixTests",
     "IsomorphismTests", "LabeledGraphsTests", "MatchingModuleTests", "MultigraphsTests", "PlanarityTests",
-    "RandomGraphsTests", "SimilarityTests", "SpectralGraphTheoryTests", "StableGraphsTests", "ToursTests", "TreeAlgorithmsTests",
+    "RandomGraphsTests", "ShortestPathsTests", "SimilarityTests", "SpectralGraphTheoryTests", "StableGraphsTests", "ToursTests", "TreeAlgorithmsTests",
     "TreesTests",
 ]
 

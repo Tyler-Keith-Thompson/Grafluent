@@ -292,6 +292,26 @@ unspecified order, so ties are compared as sets.
 | SP-190 | Preconditions | a negative weight in all-pairs Dijkstra; a lookup of a non-vertex | — |
 | SP-191 | Property | ≤ 20 edges on 6 vertices, weights −2…6, loops and parallel edges: Johnson equals Floyd–Warshall and is nil exactly when it is; all-pairs Dijkstra on |w| equals it on two representations | (ref) Floyd–Warshall |
 
+
+### O. Dijkstra as an event sequence
+
+`dijkstraSearch(from:weight:)` reports the Boost Graph Library's Dijkstra visitor events:
+`discover`, `examine` (settled), `examineEdge` with the offer d(u) + w, then `edgeRelaxed` or
+`edgeNotRelaxed` for an unsettled target (an edge into a settled vertex is examined only), and
+`finish`. `cases_search.py` reproduces SP-192 and SP-194 in `cases_search.out`.
+
+| ID | Case | Expected | Source |
+|---|---|---|---|
+| SP-192 | Hand-traced directed graph | 0→1 (4), 0→2 (1), 0→3 (9), 1→2 (0), 1→3 (5), 2→1 (2), 2→3 (4), 3→3 (5), 4 isolated, from 0: settles 0, 2, 1, 3 at 0, 1, 3, 5; 1→2 examined only; 1→3 offers 8, not relaxed at 5; the loop examined only; 26 events, the same on AL, CSR, matrix, reference multigraph, pseudograph, an unindexed graph and a stable graph with a hole | (ref) `cases_search.py` |
+| SP-193 | Trivial | one vertex, or a source with no out-edges: discover, examine, finish; unreachable vertices never reported; descriptions | — |
+| SP-194 | Parallel edges, loops | a 0-weight loop examined only; copies 5, 2, 2: relaxed, relaxed, not relaxed | (ref) `cases_search.py` |
+| SP-195 | Several sources | all discovered first at zero, in order, a repeat ignored; equal priorities leave the queue in insertion order | — |
+| SP-196 | Undirected | the town (13 streets) from Home: Home 0, Bakery 4, Park 6, School 11, Library 11, Market 12, Café 14, Station 16; each street examined twice, decided once; arcs leave the examined vertex; an undirected loop examined only | (ref) Dijkstra |
+| SP-197 | Preconditions | a negative or NaN examined weight, a missing source, no sources, a negative undirected edge trap; a negative edge never examined does not | — |
+| SP-198 | Property | ≤ 30 edges on 8 vertices, weights 0…9, loops and parallel edges: every vertex `dijkstraShortestPaths` reaches is settled once, in nondecreasing distance, at its distance, and its last relaxed edge is the tree's parent edge; directed (reference multigraph, pseudograph) and undirected | (ref) Dijkstra |
+| SP-199 | Value semantics | a later insertion does not change the search; each iterator starts over; stopping early | — |
+| SP-200 | Ratio (release) | every event within 1.6× of `dijkstraShortestPaths` on directed G(10⁵, 10⁶) (AL, CSR), 1.8× on undirected G(10⁵, 5·10⁵) | — |
+
 ---
 
 ## Benchmarks (not tests)
@@ -306,3 +326,4 @@ unspecified order, so ties are compared as sets.
 | SP-B06 | Bellman–Ford (active rounds) vs classical full-edge rounds vs a queue (SPFA) on random graphs with negative edges, on the 10⁶ path in reverse order, and on the lasso |
 | SP-B07 | Interleaved `(target, weight)` rows vs separate arrays, hand-written, on G(10⁶, 10⁷) |
 | SP-B08 | `shortestSimplePaths(...).prefix(k)` on a grid; `allShortestPaths` on a grid; `bidirectionalDijkstraShortestPath` vs `dijkstraShortestPath` on random s–t pairs; `johnsonShortestPaths` and `allPairsDijkstraShortestPaths` vs `floydWarshallShortestPaths` on a sparse graph |
+| SP-B09 | `dijkstraSearch`, pulling every event, on CSR, `AdjacencyList<Int>` and `UndirectedAdjacencyList`, against `dijkstraShortestPaths` on the same graphs (SP-B01, SP-B03) |

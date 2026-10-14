@@ -230,6 +230,34 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("ShortestPaths: dijkstraShortestPaths on UndirectedAdjacencyList, through directed") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(undirected.dijkstraShortestPaths(from: 0) { undirectedWeights[$0] }) }
     }
+    // SP-B09: every event of the lazy Dijkstra search, against the plain call above.
+    Benchmark("ShortestPaths: dijkstraSearch, every event, on CompressedSparseRow") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var settled = 0
+            for event in csr.dijkstraSearch(from: 0, weight: { weights[$0] }) {
+                if case .examine(_, let d) = event { settled &+= d }
+            }
+            blackHole(settled)
+        }
+    }
+    Benchmark("ShortestPaths: dijkstraSearch, every event, on AdjacencyList<Int>") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var settled = 0
+            for event in list.dijkstraSearch(from: 0, weight: { weights[$0] }) {
+                if case .examine(_, let d) = event { settled &+= d }
+            }
+            blackHole(settled)
+        }
+    }
+    Benchmark("ShortestPaths: dijkstraSearch, every event, on UndirectedAdjacencyList") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var settled = 0
+            for event in undirected.dijkstraSearch(from: 0, weight: { undirectedWeights[$0] }) {
+                if case .examine(_, let d) = event { settled &+= d }
+            }
+            blackHole(settled)
+        }
+    }
     // SP-B02: a single target, stopping early, and A* on a grid.
     Benchmark("ShortestPaths: dijkstraShortestPath to the far corner of a 1000×1000 grid") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(grid.dijkstraShortestPath(from: 0, to: side * side - 1) { _ in 1 }) }
