@@ -48,6 +48,126 @@ func handWrittenCores(_ offsets: [Int], _ targets: [Int]) -> [Int] {
     return degree
 }
 
+/// Chordality by hand: maximum cardinality search with buckets (ties in any order) over flat
+/// rows, then Tarjan and Yannakakis's zero fill-in test of its reverse. The baseline for CQ-B05.
+func handWrittenIsChordal(_ offsets: [Int], _ targets: [Int]) -> Bool {
+    let n = offsets.count - 1
+    guard n > 0 else { return true }
+    var count = [Int](repeating: 0, count: n)
+    var bucketHead = [Int](repeating: -1, count: n + 1)
+    var next = [Int](repeating: -1, count: n), previous = [Int](repeating: -1, count: n)
+    for v in 0 ..< n {
+        next[v] = bucketHead[0]
+        if bucketHead[0] >= 0 { previous[bucketHead[0]] = v }
+        bucketHead[0] = v
+    }
+    var visited = [Bool](repeating: false, count: n)
+    var order: [Int] = [], position = [Int](repeating: 0, count: n)
+    var top = 0
+    for _ in 0 ..< n {
+        while bucketHead[top] < 0 { top -= 1 }
+        let v = bucketHead[top]
+        bucketHead[top] = next[v]
+        if next[v] >= 0 { previous[next[v]] = -1 }
+        visited[v] = true
+        position[v] = order.count
+        order.append(v)
+        for k in offsets[v] ..< offsets[v + 1] where !visited[targets[k]] {
+            let w = targets[k], c = count[w]
+            if previous[w] >= 0 { next[previous[w]] = next[w] } else { bucketHead[c] = next[w] }
+            if next[w] >= 0 { previous[next[w]] = previous[w] }
+            count[w] = c + 1
+            previous[w] = -1
+            next[w] = bucketHead[c + 1]
+            if bucketHead[c + 1] >= 0 { previous[bucketHead[c + 1]] = w }
+            bucketHead[c + 1] = w
+            if c + 1 > top { top = c + 1 }
+        }
+    }
+    // The zero fill-in test on the elimination order, the reverse of the visit order.
+    let elimination = Array(order.reversed())
+    for (i, v) in elimination.enumerated() { position[v] = i }
+    var follower = [Int](repeating: -1, count: n), index = [Int](repeating: -1, count: n)
+    for i in 0 ..< n {
+        let v = elimination[i]
+        follower[v] = v
+        index[v] = i
+        for k in offsets[v] ..< offsets[v + 1] where position[targets[k]] < i {
+            let w = targets[k]
+            index[w] = i
+            if follower[w] == w { follower[w] = v }
+        }
+        for k in offsets[v] ..< offsets[v + 1] where position[targets[k]] < i {
+            if index[follower[targets[k]]] < i { return false }
+        }
+    }
+    return true
+}
+
+/// Truss numbers by hand: rows sorted, edges numbered, supports by marking, then peeling in a
+/// bucket order with binary searches in the rows (Wang–Cheng) over flat arrays. The baseline for
+/// CQ-B06.
+func handWrittenTrusses(_ offsets: [Int], _ targets: [Int]) -> [Int] {
+    let n = offsets.count - 1
+    var rows = targets
+    for v in 0 ..< n { rows[offsets[v] ..< offsets[v + 1]].sort() }
+    func slot(_ w: Int, _ v: Int) -> Int {
+        var low = offsets[v], high = offsets[v + 1]
+        while low < high { let mid = (low + high) >> 1; if rows[mid] < w { low = mid + 1 } else { high = mid } }
+        return low < offsets[v + 1] && rows[low] == w ? low : -1
+    }
+    var edge = [Int](repeating: 0, count: rows.count), ends: [Int] = []
+    for v in 0 ..< n {
+        for s in offsets[v] ..< offsets[v + 1] {
+            if rows[s] > v { edge[s] = ends.count >> 1; ends.append(v); ends.append(rows[s]) } else { edge[s] = edge[slot(v, rows[s])] }
+        }
+    }
+    let m = ends.count >> 1
+    var support = [Int](repeating: 0, count: m)
+    var mark = [Int](repeating: -1, count: n)
+    for v in 0 ..< n {
+        for k in offsets[v] ..< offsets[v + 1] { mark[rows[k]] = v }
+        for k in offsets[v] ..< offsets[v + 1] where rows[k] > v {
+            let w = rows[k]
+            for j in offsets[w] ..< offsets[w + 1] where rows[j] > w && mark[rows[j]] == v {
+                support[edge[k]] += 1
+                support[edge[j]] += 1
+                support[edge[slot(rows[j], v)]] += 1
+            }
+        }
+    }
+    let maxSupport = support.max() ?? 0
+    var bin = [Int](repeating: 0, count: maxSupport + 1)
+    for s in support { bin[s] += 1 }
+    var start = 0
+    for s in 0 ... maxSupport { let c = bin[s]; bin[s] = start; start += c }
+    var sorted = [Int](repeating: 0, count: m), pos = [Int](repeating: 0, count: m)
+    for e in 0 ..< m { pos[e] = bin[support[e]]; sorted[pos[e]] = e; bin[support[e]] += 1 }
+    for s in stride(from: maxSupport, to: 0, by: -1) { bin[s] = bin[s - 1] }
+    bin[0] = 0
+    var removed = [Bool](repeating: false, count: m), truss = [Int](repeating: 0, count: m)
+    for i in 0 ..< m {
+        let e = sorted[i], s = support[e]
+        truss[e] = s + 2
+        removed[e] = true
+        var a = ends[2 * e], b = ends[2 * e + 1]
+        if offsets[a + 1] - offsets[a] > offsets[b + 1] - offsets[b] { swap(&a, &b) }
+        for k in offsets[a] ..< offsets[a + 1] where rows[k] != b && !removed[edge[k]] {
+            let j = slot(rows[k], b)
+            guard j >= 0, !removed[edge[j]] else { continue }
+            for side in 0 ..< 2 {
+                let f = side == 0 ? edge[k] : edge[j]
+                guard support[f] > s else { continue }
+                let sf = support[f], pf = pos[f], pg = bin[sf], g = sorted[pg]
+                if f != g { pos[f] = pg; sorted[pf] = g; pos[g] = pf; sorted[pg] = f }
+                bin[sf] += 1
+                support[f] -= 1
+            }
+        }
+    }
+    return truss
+}
+
 let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
@@ -125,5 +245,66 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("Cliques: clusteringCoefficients(), G(10⁵, 5·10⁵)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(sparse.clusteringCoefficients()) }
+    }
+
+    // CQ-B05: chordality on 10⁵ vertices, each joined to a random earlier vertex and to that
+    // vertex's own parent (chordal), and the same with one long hole closed through the root.
+    var parent = [0, 0]
+    var chordalEdges = [UndirectedEdge(0, 1)]
+    var state: UInt64 = 0x9E37_79B9_7F4A_7C15
+    for v in 2 ..< 100_000 {
+        state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+        let p = Int(state >> 33) % v
+        parent.append(p)
+        chordalEdges.append(UndirectedEdge(v, p))
+        if parent[p] != p { chordalEdges.append(UndirectedEdge(v, parent[p])) }
+    }
+    let chordal = UndirectedAdjacencyList(vertices: 0 ..< 100_000, edges: chordalEdges)
+    let (co, ct) = rows(chordal)
+    precondition(chordal.isChordal && handWrittenIsChordal(co, ct))
+    Benchmark("Cliques: BASELINE hand-written MCS chordality test, chordal 10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenIsChordal(co, ct)) }
+    }
+    Benchmark("Cliques: isChordal, chordal 10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(chordal.isChordal) }
+    }
+    Benchmark("Cliques: chordalGraphCliques, chordal 10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(chordal.chordalGraphCliques()) }
+    }
+    Benchmark("Cliques: findHole, G(10⁵, 5·10⁵)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(sparse.findHole()) }
+    }
+
+    // CQ-B06: trusses, onion layers, every triangle, clique numbers by vertex, a maximum-weight
+    // clique; k-crusts and k-coronas read the core numbers.
+    let trussBaseline = handWrittenTrusses(so, st)
+    let trusses = sparse.trussNumbers()
+    precondition(trussBaseline.reduce(0, +) == sparse.edges.indices.reduce(0) { $0 + trusses.trussNumber(ofEdgeAt: $1)! })
+    Benchmark("Cliques: BASELINE hand-written Wang–Cheng trusses, G(10⁵, 5·10⁵)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenTrusses(so, st)) }
+    }
+    Benchmark("Cliques: trussNumbers(), G(10⁵, 5·10⁵)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(sparse.trussNumbers()) }
+    }
+    Benchmark("Cliques: onionLayers(), G(10⁵, 5·10⁵)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(sparse.onionLayers()) }
+    }
+    Benchmark("Cliques: kCorona(2), G(10⁵, 5·10⁵)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(sparseCores.kCorona(2)) }
+    }
+    Benchmark("Cliques: allCliques(sizes: 3...3) counted, G(10⁵, 5·10⁵)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(sparse.allCliques(sizes: 3 ... 3).reduce(0) { n, _ in n + 1 }) }
+    }
+    Benchmark("Cliques: allCliques(sizes: 1...) counted, G(2000, 2·10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(dense.allCliques(sizes: 1...).reduce(0) { n, _ in n + 1 }) }
+    }
+    Benchmark("Cliques: maximumWeightClique, G(2000, 2·10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(dense.maximumWeightClique { ($0 * 7) % 11 + 1 }) }
+    }
+    Benchmark("Cliques: maximumWeightClique, G(120, 0.9)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(packedSmall.maximumWeightClique { ($0 * 7) % 11 + 1 }) }
+    }
+    Benchmark("Cliques: cliqueNumber(of:) for 100 vertices, G(2000, 2·10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole((0 ..< 100).map { dense.cliqueNumber(of: $0 * 20) }) }
     }
 }

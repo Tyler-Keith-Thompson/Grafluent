@@ -82,7 +82,12 @@ tests write their oracles inside each test.
 | `Performance/CliqueStressTests.swift` | 6 | §G inside a `Task` with a one-minute limit: the 10⁵ path and star, a 300 × 300 grid, K₁₂₀, moon(8) (6 561 cliques), lcg(2000, 20000, 7) |
 | `CliqueConformanceTests.swift` | 6 | `Sendable` across a `Task` (sequence, iterator, both values). Value semantics after mutating the graph. Iterators that start over, and a copied iterator that resumes on its own. Laziness on a row-counting conformer, and a lazy filter by size. Not a `Collection`. Generic and existential code. No hashing on `UndirectedAdjacencyList` |
 | `CliquePreconditionTests.swift` | 8 | Exit tests: non-vertices on the graph, on both values and through a view (CQ-068, CQ-466); `kCore(-1)` and `kShell(-1)` (CQ-069); every `ofIndex:` member at n and at −1 |
+| `ChordalTests.swift` | 6 | §H: CQ-900 – CQ-905: NetworkX's chordal example (cliques, treewidth), squares with and without a chord, trees, K₆, a long hole, multigraphs, the empty graph and one vertex, and every answer against brute force over vertex subsets on four representations |
 | `CliqueReviewTests.swift` | 6 | CQ-1001 – CQ-1006: a 2·10⁵-leaf star (hub last in degeneracy order, index 0 for the least maximum clique), a hub over 4000 5-cycles, K₄₀₀, seeded dense graphs spanning several bitset words against NetworkX, the exact documented order of `maximalCliques()` on two seeded graphs, and a graph where the pivot's least-index tie rule changes the order |
+| `TrussTests.swift` | 10 | §I: CQ-910 – CQ-919: truss numbers and k-trusses on K₄, a triangle with a pendant, the diamond, K₅ and K₄ with a triangle on a parallel copy, loops and parallels, degenerate graphs, five representations, the checked spelling, exits, and peeling by definition |
+| `OnionLayerTests.swift` | 10 | §I: CQ-920 – CQ-929: onion layers (isolated vertices, the core rising, rounds within a shell), k-crusts and k-coronas, the checked spelling, exits, and NetworkX's rounds replayed on sets |
+| `CliqueListingTests.swift` | 10 | §I: CQ-930 – CQ-939: `allCliques(sizes:)` (counts, the documented order), `maximalCliques(containing:)`, `cliqueNumber(of:)`, `maximumWeightClique(weight:)`, checked spellings, exits, and every vertex subset |
+| `Performance/CohesionStressTests.swift` | 4 | §I: CQ-940 – CQ-943: a 10⁵ path, a hub over 2·10⁴ triangles, K₁₂₀, lcg(3·10⁴, 1.5·10⁵), each within a minute |
 
 454 tests in all.
 

@@ -74,6 +74,33 @@ public struct CoreNumbers<G: Graph> {
         precondition(k >= 0, "k must be nonnegative")
         return _core.indices.filter { _core[$0] == k }.map { _graph._vertex(number: $0, _listed) }
     }
+
+    /// The vertices of the k-crust (core number at most k), in `vertices` order: what is left once
+    /// the (k + 1)-core is removed. The main crust is `kCrust(degeneracy - 1)`. O(n).
+    ///
+    /// - Precondition: `k >= 0`.
+    @inlinable
+    public func kCrust(_ k: Int) -> [G.Vertex] {
+        precondition(k >= 0, "k must be nonnegative")
+        return _core.indices.filter { _core[$0] <= k }.map { _graph._vertex(number: $0, _listed) }
+    }
+
+    /// The vertices of the k-corona (Goltsev, Dorogovtsev and Mendes), in `vertices` order: those
+    /// of core number exactly k with exactly k distinct neighbors in the k-core. Reads the simple
+    /// graph again: O(n + m).
+    ///
+    /// - Precondition: `k >= 0`.
+    @inlinable
+    public func kCorona(_ k: Int) -> [G.Vertex] {
+        precondition(k >= 0, "k must be nonnegative")
+        let rows = _graph._simpleRows()
+        return _core.indices.filter { v in
+            guard _core[v] == k else { return false }
+            var inCore = 0
+            for slot in rows.offsets[v] ..< rows.offsets[v + 1] where _core[rows.targets[slot]] >= k { inCore += 1 }
+            return inCore == k
+        }.map { _graph._vertex(number: $0, _listed) }
+    }
 }
 
 extension CoreNumbers: Sendable where G: Sendable, G.Vertex: Sendable {}

@@ -21,11 +21,20 @@ python3 ref.py`).
 | `clusteringCoefficients()` → `ClusteringCoefficients<Self>` | One O(m^{3/2}) triangle pass gives each vertex's triangle count and local clustering, plus the transitivity and the average clustering |
 | `triangleCount()`, `transitivity()`, `averageClustering()` | One-shot scalars; `triangleCount()` skips the per-vertex arrays. Each equals the same member of `clusteringCoefficients()` |
 | `triangleCount(of:)`, `clusteringCoefficient(of:)` | One vertex costs O(Σ_{w ∈ N(v)} d(w)), not a whole-graph pass |
+| `isChordal`, `perfectEliminationOrdering()` → `[Vertex]?` | O(n + m): the reverse of `maximumCardinalitySearch()` (Traversal), checked by Tarjan and Yannakakis's test |
+| `findHole()` → `Cycle<Vertex, Edges.Index>?` | The witness of a graph that is not chordal: a chordless cycle of four or more, from its least vertex through its lesser edge there |
+| `chordalGraphCliques()` → `[[Vertex]]?`, `chordalGraphTreewidth()` → `Int?` | A chordal graph's maximal cliques (at most n, each in `vertices` order, the list in `maximumCardinalitySearch()` order) and treewidth (ω − 1, −1 for the empty graph) in O(n + m); nil when not chordal |
+| `trussNumbers()` → `TrussNumbers<Self>` | Wang–Cheng's truss decomposition in O(m^{1.5} log Δ): each edge's truss number (nil for a self-loop; parallel copies share one), and `kTruss(_:)`, the edge positions of truss number at least k (every non-loop edge for k ≤ 2) |
+| `onionLayers()` → `OnionLayers<Self>` | Hébert-Dufresne et al.'s onion decomposition in O(n + m): `layer(of:)` from 1 (isolated vertices alone in layer 1), `layerCount` |
+| `CoreNumbers.kCrust(_:)`, `kCorona(_:)` → `[Vertex]` | Core number at most k; core number k with exactly k neighbours in the k-core (NetworkX's conventions) |
+| `allCliques(sizes:)` → `AllCliques<Self>`, a lazy `Sequence` of `[Vertex]` | Every clique, maximal or not, whose size is in the range: Chiba–Nishizeki in degeneracy order, cut below the least size and not extended past the greatest |
+| `maximalCliques(containing:)` → `MaximalCliques<Self>` | The maximal cliques through one vertex: one Bron–Kerbosch search from its neighbours |
+| `cliqueNumber(of:)` → `Int` | The size of a largest clique through a vertex (NetworkX's node clique number): one BBMC search over its neighbours |
+| `maximumWeightClique(weight:)` → `[Vertex]` | A clique of greatest total vertex weight, weights ≤ 0 never taken: Östergård's algorithm on each vertex's later neighbours in degeneracy order |
 
 Related computations that are not entry points:
 
 * Cliques of at least k vertices: `maximalCliques().lazy.filter { $0.count >= k }`.
-* A k-crust is `coreNumbers()` filtered by core number `< k`.
 * `kCore(_:)` returns the vertex list, not a subgraph.
 * `isClique`: `allSatisfy` over `contains(edge:)` for each pair.
 * A clique is a `[Vertex]` in `vertices` order, so equal cliques give equal arrays.

@@ -368,3 +368,72 @@ Recursion-free and linear where api.md says so; values from the same model.
 | CQ-631 | `U: lcg(2000,20000,7)` | `triangleCount` | `#1315` |  |
 | CQ-632 | `U: lcg(2000,20000,7)` | `transitivity` | `#0.009915274046110423` |  |
 | CQ-633 | `U: lcg(2000,20000,7)` | `averageClustering` | `#0.00983522597322751` |  |
+
+## H. Chordal graphs (CQ-900 – CQ-905)
+
+`isChordal`, `perfectEliminationOrdering()`, `findHole()`, `chordalGraphCliques()` and
+`chordalGraphTreewidth()`, on the simple graph like the rest of the module: a maximum
+cardinality search (Traversal) and Tarjan and Yannakakis's test of its reverse. A hole is a
+chordless cycle of four or more vertices, the witness of a graph that is not chordal. These cases
+are hand-written in `ChordalTests.swift` and are not read by `ref.py` (the first column is not
+`ID`); the property case checks brute force over vertex subsets, and the differential compares
+with NetworkX's `is_chordal`, `chordal_graph_cliques` and `chordal_graph_treewidth`.
+
+| Case | Asserts |
+|---|---|
+| CQ-900 | NetworkX's `chordal_graph_cliques` example: cliques {1,2,3}, {2,3,4}, {3,4,5,6}, {7,8}, {9}, each in vertex order; treewidth 3; the ordering is `maximumCardinalitySearch()` reversed |
+| CQ-901 | C₄ is its own hole, `[0,1,2,3]/[0,1,2,3]`, and every other answer is nil; with a chord it is chordal of treewidth 2; a tree has treewidth 1 and one clique per edge; K₆ is one clique of treewidth 5 |
+| CQ-902 | An 8-cycle beside a chordal fan: the hole is a chordless cycle of the graph, from its least vertex |
+| CQ-903 | Loops and parallel copies are ignored; the hole takes the first copy of each edge |
+| CQ-904 | The empty graph (treewidth −1), one vertex (treewidth 0), `String` vertices, a conformer without vertex indices |
+| CQ-905 | 300 random multigraphs on 8 vertices, on four representations: `isChordal` exactly when no vertex subset induces a cycle of four or more; the ordering perfect by its definition; the cliques the maximal cliques; the treewidth ω − 1; the hole a chordless cycle of the graph, canonical |
+
+## I. Trusses, onion layers, crusts, coronas and clique listings (CQ-910 – CQ-943)
+
+`trussNumbers()` and the `TrussNumbers` value (`trussNumber(ofEdgeAt:)`, `kTruss(_:)`),
+`onionLayers()`, `CoreNumbers.kCrust(_:)` and `kCorona(_:)`, `allCliques(sizes:)`,
+`maximalCliques(containing:)`, `cliqueNumber(of:)` and `maximumWeightClique(weight:)`, on the simple
+graph like the rest of the module (a self-loop has no truss number). These cases are hand-written
+in `TrussTests.swift`, `OnionLayerTests.swift`, `CliqueListingTests.swift` and
+`Performance/CohesionStressTests.swift`, and are not read by `ref.py` (the first column is not
+`ID`); the property cases check peeling, NetworkX's onion rounds and every vertex subset, and the
+differential (`scripts/differential_cohesion.py`) compares with NetworkX's `k_truss`,
+`onion_layers`, `k_crust`, `k_corona`, `enumerate_all_cliques`, `find_cliques(nodes:)`,
+`node_clique_number` and `max_weight_clique`.
+
+| Case | Asserts |
+|---|---|
+| CQ-910 | K₄: every edge has truss number 4; kTruss(4) is every edge, kTruss(5) none |
+| CQ-911 | A triangle with a pendant edge: the triangle's edges are 3, the pendant 2 |
+| CQ-912 | The diamond: the shared edge is in two triangles, but the 4-truss is empty, so every edge is 3 |
+| CQ-913 | K₅ and K₄ joined by an edge, a 4-cycle, and a triangle on a K₄ edge: 5, 4, 2, 2, then 3, 3 and the copy's 4 |
+| CQ-914 | Self-loops have no truss number and are in no k-truss; parallel copies share their simple edge's number |
+| CQ-915 | The empty graph, one vertex, and an edgeless graph have no edges in any truss |
+| CQ-916 | Every representation: UndirectedAdjacencyList, Pseudograph, AdjacencyList and AdjacencyMatrix through undirectedView, and a graph without indices |
+| CQ-917 | trussNumber(checkedEdgeAt:) throws EdgeNotFound for a position outside the graph and answers otherwise |
+| CQ-918 | trussNumber(ofEdgeAt:) traps on a position outside the graph, kTruss on a negative k |
+| CQ-919 | Truss numbers are peeling by definition: an edge's number is the largest k for which it survives deleting edges in fewer than k − 2 triangles |
+| CQ-920 | A path with an isolated vertex: the isolated vertex is layer 1, the path's ends 2, its middle 3 |
+| CQ-921 | A triangle with a pendant: no isolated vertex, so the pendant is layer 1 and the triangle, once the core rises to 2, layer 2 |
+| CQ-922 | K₄ is one layer; a star's leaves are layer 1 and its centre layer 2 |
+| CQ-923 | Layers count rounds: a chain of triangles hanging off K₄ peels one or two vertices a round before K₄ goes at once |
+| CQ-924 | Loops and parallel edges are ignored; the empty graph has no layers |
+| CQ-925 | String vertices listed in reverse: layers by vertex, not by name |
+| CQ-926 | layer(checked:) throws VertexNotFound for a non-vertex; layer(of:) and layer(ofIndex:) trap |
+| CQ-927 | kCrust and kCorona on a triangle with a pendant and an isolated vertex, and on the diamond |
+| CQ-928 | kCrust and kCorona trap on a negative k |
+| CQ-929 | Onion layers are NetworkX's rounds replayed on sets; crusts and coronas follow their definitions |
+| CQ-930 | allCliques on a triangle with a pendant: nine cliques in all, four edges, one triangle, none of four |
+| CQ-931 | allCliques on K₅ lists C(5, k) cliques of each size k, and the documented order on a triangle: by first vertex in the degeneracy ordering, then depth first |
+| CQ-932 | allCliques ignores loops and parallel edges, keeps `vertices` order for String vertices listed in reverse, and lists nothing for the empty graph |
+| CQ-933 | allCliques traps on a negative size |
+| CQ-934 | maximalCliques(containing:) on a bowtie, an isolated vertex and a vertex with only a loop |
+| CQ-935 | maximalCliques(containing:) traps on a non-vertex |
+| CQ-936 | cliqueNumber(of:): a triangle with a pendant, K₄ with a pendant triangle, isolated vertices and loops |
+| CQ-937 | cliqueNumber(of:) traps on a non-vertex |
+| CQ-938 | maximumWeightClique: a heavy pendant edge beats the triangle; weights at or below zero are never taken |
+| CQ-939 | allCliques, maximalCliques(containing:), cliqueNumber(of:) and maximumWeightClique against every vertex subset |
+| CQ-940 | A path of 10⁵ vertices: 5·10⁴ onion layers, every edge of truss 2, no triangle |
+| CQ-941 | A hub over 2·10⁴ disjoint triangles: the triangles' edges and spokes are 4-trusses, nothing more |
+| CQ-942 | K₁₂₀: every edge of truss 120, one onion layer, a maximum-weight clique of every vertex |
+| CQ-943 | lcg(3·10⁴, 1.5·10⁵): trusses of 3 or more are exactly the edges in a triangle; the triangles listed once each |

@@ -260,34 +260,62 @@ public struct MaximalCliques<G: Graph>: Sequence {
     public typealias Element = [G.Vertex]
 
     @usableFromInline let graph: G
+    /// The number of the vertex every clique must contain, or nil for every maximal clique.
+    @usableFromInline let containing: Int?
 
     @inlinable
-    init(_ graph: G) {
+    init(_ graph: G, containing: Int? = nil) {
         self.graph = graph
+        self.containing = containing
     }
 
     @inlinable
-    public func makeIterator() -> Iterator { Iterator(graph) }
+    public func makeIterator() -> Iterator { Iterator(graph, containing: containing) }
 
     @frozen
     public struct Iterator: IteratorProtocol {
         @usableFromInline let graph: G
+        @usableFromInline let containing: Int?
         @usableFromInline var search: _MaximalCliqueSearch?
         @usableFromInline var listed: [G.Vertex]?
+        /// With `containing`: the neighborhood's vertices by local number, and whether the lone
+        /// clique of a vertex without neighbors is still to be reported.
+        @usableFromInline var members: [Int] = []
+        @usableFromInline var lonely = false
 
         @inlinable
-        init(_ graph: G) {
+        init(_ graph: G, containing: Int?) {
             self.graph = graph
+            self.containing = containing
         }
 
         @inlinable
         public mutating func next() -> [G.Vertex]? {
             if search == nil {
-                search = _MaximalCliqueSearch(graph._simpleRows())
+                let rows = graph._simpleRows()
                 listed = graph._listedVertices()
+                if let containing {
+                    let neighborhood = _neighborhood(of: containing, rows)
+                    members = neighborhood.members
+                    lonely = members.isEmpty
+                    search = _MaximalCliqueSearch(neighborhood.rows)
+                } else {
+                    search = _MaximalCliqueSearch(rows)
+                }
+            }
+            guard let containing else {
+                guard search!.next() else { return nil }
+                return search!.found.map { graph._vertex(number: $0, listed) }
+            }
+            if lonely {
+                lonely = false
+                return [graph._vertex(number: containing, listed)]
             }
             guard search!.next() else { return nil }
-            return search!.found.map { graph._vertex(number: $0, listed) }
+            var clique = search!.found.map { members[$0] }
+            clique.append(containing)
+            clique.sort()
+            return clique.map { graph._vertex(number: $0, listed) }
         }
     }
 }
@@ -300,4 +328,44 @@ extension Graph {
     /// order. Self-loops and parallel edges are ignored, and an isolated vertex is a clique of one.
     @inlinable
     public func maximalCliques() -> MaximalCliques<Self> { MaximalCliques(self) }
+
+    /// The maximal cliques containing `vertex`, once each, lazily, each in `vertices` order: the
+    /// maximal cliques of the subgraph its neighbors induce, in `maximalCliques()` order there,
+    /// each with `vertex` added; `[vertex]` alone when it has no neighbor. Self-loops and parallel
+    /// edges are ignored. O(n + m) before the first clique; memory O(n + m + degeneracy²), however
+    /// many neighbors the vertex has.
+    ///
+    /// - Precondition: `vertex` is a vertex of the graph.
+    @inlinable
+    public func maximalCliques(containing vertex: Vertex) -> MaximalCliques<Self> {
+        let numbers = _listedVertices().map { _vertexNumbers($0) }
+        return MaximalCliques(self, containing: _vertexNumber(of: vertex, numbers, "The vertex is not in the graph"))
+    }
+
+    /// The maximal cliques containing `vertex`, throwing instead of trapping when it is not a
+    /// vertex of the graph.
+    ///
+    /// - Throws: `VertexNotFound` when `vertex` is not a vertex of the graph.
+    @inlinable
+    public func maximalCliques(checkedContaining vertex: Vertex) throws(VertexNotFound) -> MaximalCliques<Self> {
+        guard contains(vertex) else { throw VertexNotFound() }
+        return maximalCliques(containing: vertex)
+    }
+}
+
+/// The simple subgraph induced by `v`'s neighbors, renumbered in ascending order: its rows, and
+/// each local number's vertex number. O(n + Σ deg u) over the neighbors u.
+@inlinable
+func _neighborhood(of v: Int, _ rows: _CompressedRows) -> (rows: _CompressedRows, members: [Int]) {
+    var members = Array(rows.targets[rows.offsets[v] ..< rows.offsets[v + 1]])
+    members.sort()
+    var local = [Int](repeating: -1, count: rows.count)
+    for (i, u) in members.enumerated() { local[u] = i }
+    var offsets = [Int](repeating: 0, count: members.count + 1)
+    var targets: [Int] = []
+    for (i, u) in members.enumerated() {
+        for k in rows.offsets[u] ..< rows.offsets[u + 1] where local[rows.targets[k]] >= 0 { targets.append(local[rows.targets[k]]) }
+        offsets[i + 1] = targets.count
+    }
+    return (_CompressedRows(offsets: offsets, targets: targets, edges: []), members)
 }
