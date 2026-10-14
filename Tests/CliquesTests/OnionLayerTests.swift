@@ -118,8 +118,11 @@ struct OnionLayerTests {
 
     @Test("CQ-929 Onion layers are NetworkX's rounds replayed on sets; crusts and coronas follow their definitions", .tags(.randomized))
     func againstReplay() async {
-        let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 30)
-        await propertyCheck(count: 300, input: Gen.int(in: 1 ... 10), edges) { n, raw in
+        // A local function rather than the closure given to propertyCheck: in a closure, Swift 6.3
+        // numbers a closure inside a #expect argument like the next closure written after it, and
+        // the `layer(of:)` map below has the type of the `coreNumber(of:)` map after it. Function
+        // bodies number their closures correctly.
+        @Sendable func check(_ n: Int, _ raw: [(Int, Int)]) {
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let graph = ReferencePseudograph(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             var adjacent = [Set<Int>](repeating: [], count: n)
@@ -162,5 +165,7 @@ struct OnionLayerTests {
                 #expect(cores.kCorona(k) == corona)
             }
         }
+        let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 30)
+        await propertyCheck(count: 300, input: Gen.int(in: 1 ... 10), edges) { n, raw in check(n, raw) }
     }
 }

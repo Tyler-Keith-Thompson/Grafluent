@@ -129,8 +129,11 @@ struct CliqueListingTests {
 
     @Test("CQ-939 allCliques, maximalCliques(containing:), cliqueNumber(of:) and maximumWeightClique against every vertex subset", .tags(.randomized))
     func againstSubsets() async {
-        let edges = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8)).array(of: 0 ... 30)
-        await propertyCheck(count: 300, input: Gen.int(in: 1 ... 9), edges, zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)), Gen.int(in: 0 ... 1_000_000)) { n, raw, bounds, seed in
+        // A local function rather than the closure given to propertyCheck: in a closure, Swift 6.3
+        // numbers a closure inside a #expect argument like the next closure written after it. Here
+        // that crashed the Linux compiler (SendNonSendable, "map::at"). Function bodies number
+        // their closures correctly.
+        @Sendable func check(_ n: Int, _ raw: [(Int, Int)], _ bounds: (Int, Int), _ seed: Int) {
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let graph = ReferencePseudograph(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             var neighbours = [Int](repeating: 0, count: n)
@@ -161,5 +164,7 @@ struct CliqueListingTests {
             #expect(chosen == chosen.sorted() && chosen.allSatisfy { weights[$0] > 0 })
             #expect(chosen.isEmpty || cliques.contains(chosen))
         }
+        let edges = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8)).array(of: 0 ... 30)
+        await propertyCheck(count: 300, input: Gen.int(in: 1 ... 9), edges, zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)), Gen.int(in: 0 ... 1_000_000)) { n, raw, bounds, seed in check(n, raw, bounds, seed) }
     }
 }
