@@ -2,7 +2,7 @@
 """Reference model for IsomorphismModule (Tests/Catalogs/Isomorphism).
 
 Run: uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with rustworkx==0.18.1 \
-         python3 Tests/Catalogs/Isomorphism/ref.py [--write] [--stress] [--bench] [--export DIR]
+         --with scipy==1.18.1 python3 Tests/Catalogs/Isomorphism/ref.py [--write] [--stress] [--bench] [--export DIR]
 
 The model works in index space, from the definitions in api.md:
 
@@ -22,6 +22,12 @@ The model works in index space, from the definitions in api.md:
   * Automorphism groups: the order and orbits from enumeration, or from python-igraph's
     bliss (`count_automorphisms`, `automorphism_group`) when the group is large; generators are
     checked to generate a group of that order.
+  * Graph edit distance: the least cost over every edit path, by brute force over every partial
+    injection of G's vertices into H's (`ged`). Deleting or inserting a vertex or an edge costs 1;
+    a substitution costs 0, or 1 between different colours. The edges between two vertices (a
+    vertex's loops) are matched as groups: equal colours for free, then max(|A|, |B|) minus the
+    common colours. Every row is compared with NetworkX's `graph_edit_distance` (node_match and
+    edge_match on the colours).
 
 Every row is cross-checked against NetworkX 3.7 (GraphMatcher family and vf2pp), python-igraph
 1.0.0 (VF2, LAD, bliss) and rustworkx 0.18.1 (vf2_mapping), each where it supports the input; the
@@ -474,6 +480,66 @@ def brute(g, h, mode, vcg=None, vch=None, ecg=None, ech=None):
                   if is_valid(g, h, mode, list(p), vcg, vch, ecg, ech))
 
 
+def ged_group(a, b):
+    """The least cost of turning the edge colours a into b at unit costs: equal colours substitute
+    for free; then a substitution (1) beats a deletion and an insertion (2)."""
+    rest, common = list(b), 0
+    for c in a:
+        if c in rest:
+            rest.remove(c)
+            common += 1
+    return max(len(a), len(b)) - common
+
+
+def ged_cost(g, h, f, vcg, vch, pg, ph):
+    """The cost of the edit path given by f (per G vertex its image, or -1 deleted)."""
+    used = set(x for x in f if x >= 0)
+    total = sum(1 if x < 0 else (0 if vcg is None or vcg[u] == vch[x] else 1) for u, x in enumerate(f))
+    total += h.n - len(used)
+    for a in range(g.n):
+        for b in range(g.n) if g.directed else range(a, g.n):
+            mine = pg.get((a, b), ())
+            if f[a] >= 0 and f[b] >= 0:
+                total += ged_group(mine, ph.get((f[a], f[b]), ()))
+            else:
+                total += len(mine)
+    total += sum(1 for u, v in h.edges if u not in used or v not in used)
+    return total
+
+
+def ged(g, h, vcg=None, vch=None, ecg=None, ech=None):
+    """The graph edit distance by brute force over every partial injection."""
+    pg, ph = g.pair_colors(ecg), h.pair_colors(ech)
+    best = None
+    for k in range(min(g.n, h.n) + 1):
+        for kept in itertools.combinations(range(g.n), k):
+            for images in itertools.permutations(range(h.n), k):
+                f = [-1] * g.n
+                for u, x in zip(kept, images):
+                    f[u] = x
+                c = ged_cost(g, h, f, vcg, vch, pg, ph)
+                if best is None or c < best:
+                    best = c
+    return best
+
+
+def nx_ged(g, h, vcg, vch, ecg, ech):
+    """NetworkX's graph_edit_distance on the same graphs, colours as attributes."""
+    def build(x, vc, ec):
+        kind = (nx.MultiDiGraph if x.directed else nx.MultiGraph) if not x.is_simple() else (nx.DiGraph if x.directed else nx.Graph)
+        G = kind()
+        G.add_nodes_from((v, {"c": vc[v] if vc is not None else 0}) for v in range(x.n))
+        for p, (u, v) in enumerate(x.edges):
+            G.add_edge(u, v, c=ec[p] if ec is not None else 0)
+        return G
+    A, B = build(g, vcg, ecg), build(h, vch, ech)
+    if A.is_multigraph() != B.is_multigraph():
+        A = (nx.MultiDiGraph if g.directed else nx.MultiGraph)(A)
+        B = (nx.MultiDiGraph if h.directed else nx.MultiGraph)(B)
+    return int(nx.graph_edit_distance(A, B, node_match=lambda a, b: a["c"] == b["c"],
+                                      edge_match=lambda a, b: a["c"] == b["c"]))
+
+
 # ============================================================================ libraries
 
 def to_nx(g, vc=None, ec=None):
@@ -757,6 +823,19 @@ def evaluate(gcell, hcell, op):
             for i in range(k):
                 assert partition([hs[v][i] for v in range(g.n)], g.vertices) == parts[i], (gcell, op, i)
         return "; ".join(f"r{i + 1}: {fmt_part(p)}" for i, p in enumerate(parts)) if parts else "(no rounds)"
+    if name in ("graphEditDistance", "optimalEditPath"):
+        d = ged(g, h, vcg, vch, ecg, ech)
+        theirs = nx_ged(g, h, vcg, vch, ecg, ech)
+        if theirs != d:
+            # On multigraphs NetworkX can substitute an edge by one whose ends are not the images
+            # of its ends, so it reports less (api.md, disagreements).
+            parallel = any(max(map(len, x.pair_colors().values()), default=0) > 1 for x in (g, h))
+            assert theirs < d and parallel, (gcell, hcell, op, theirs)
+            DISAGREE[("networkx graph_edit_distance", "multigraphs: substitutes edges between non-corresponding ends")] += 1
+        bound = re.search(r"upperBound: (\d+)", op)
+        if bound and d > int(bound.group(1)):
+            return "nil"
+        return str(d)
     if name == "automorphismGroup":
         order, orbits = automorphisms_info(g, vcg, ecg)
         if "().order" in op:
@@ -1016,6 +1095,43 @@ def define():
     R(Z, "doubled edge and a pendant: order", "U: 0=1, 1-2", None, "automorphismGroup().order")
     R(Z, "loops break symmetry: orbits", "U: 0-0, C(0,1,2,3)", None, "automorphismGroup().orbits")
     R(Z, "bouquet of three loops: order", "U: 0-0, 0-0, 0-0", None, "automorphismGroup().order")
+    # ------------------------------------------------------------ J. graph edit distance
+    J = "Graph edit distance"
+    for case, g, h in [("empty graphs", "U:", "U:"),
+                       ("one vertex deleted", "U: [0]", "U:"),
+                       ("K3 inserted: three vertices and three edges", "U:", "U: K(3)"),
+                       ("P3 to K3: one edge inserted", "U: P(0,1,2)", "U: K(3)"),
+                       ("C4 to P4: one edge deleted", "U: C(0,1,2,3)", "U: P(0,1,2,3)"),
+                       ("K4 to C4: the two diagonals", "U: K(4)", "U: C(0,1,2,3)"),
+                       ("star to path on four vertices: an edge moved", "U: S(0;1..3)", "U: P(0,1,2,3)"),
+                       ("two disjoint edges to P4", "U: 0-1, 2-3", "U: P(0,1,2,3)"),
+                       ("C6 to K3,3: three edges inserted", "U: C(0,1,2,3,4,5)", "U: KB(0..2;3..5)"),
+                       ("C5 to K5", "U: C(0,1,2,3,4)", "U: K(5)"),
+                       ("C6 to two triangles", "U: C(0,1,2,3,4,5)", "U: C(0,1,2), C(3,4,5)"),
+                       ("P5 to a relabelled P5: isomorphic", "U: P(0,1,2,3,4)", "U: P(3,1,4,0,2)"),
+                       ("K2,3 to the 4-wheel minus a spoke", "U: KB(0..1;2..4)", "U: C(0,1,2,3), 4-0, 4-1, 4-2"),
+                       ("triangle with a pendant to C4", "U: C(0,1,2), 2-3", "U: C(0,1,2,3)"),
+                       ("a self-loop deleted", "U: 0-0", "U: [0]"),
+                       ("a loop at the other end: isomorphic", "U: 0-1, 0-0", "U: 0-1, 1-1"),
+                       ("a doubled edge to one edge", "U: 0=1", "U: 0-1"),
+                       ("parallel edges into a triangle", "U: 0=1, 1-2", "U: K(3)"),
+                       ("two vertices to three, different sizes both ways", "U: 0-1", "U: [0, 1, 2] 1-2, 2-2"),
+                       ("directed: an arc to its reverse", "D: 0>1", "D: 1>0"),
+                       ("directed: a 2-cycle to one arc", "D: 0>1, 1>0", "D: 0>1"),
+                       ("directed: C3 to the transitive tournament", "D: C(0,1,2)", "D: tt(3)"),
+                       ("directed: out-star to in-star", "D: 0>1, 0>2, 0>3", "D: 1>0, 2>0, 3>0"),
+                       ("directed: path to cycle", "D: P(0,1,2,3)", "D: C(0,1,2,3)"),
+                       ("directed: loops and parallel arcs", "D: 0>0, 0>1, 0>1", "D: 1>1, 1>0, 0>1"),
+                       ("directed: empty to a 3-cycle", "D: [0, 1]", "D: C(0,1,2)")]:
+        R(J, case, g, h, "graphEditDistance(to:)")
+    R(J, "P3 with colours a b a to P3 with a a b", "U: P(0,1,2)", "U: P(0,1,2)", "graphEditDistance(to:) vertexColor: G [a,b,a] H [a,a,b]")
+    R(J, "K3 with one red vertex to K3 with none", "U: K(3)", "U: K(3)", "graphEditDistance(to:) vertexColor: G [r,b,b] H [b,b,b]")
+    R(J, "C4 with edge colours x x y y to x y x y", "U: C(0,1,2,3)", "U: C(0,1,2,3)", "graphEditDistance(to:) edgeColor: G [x,x,y,y] H [x,y,x,y]")
+    R(J, "a coloured doubled edge to one edge of either colour", "U: 0=1, 1-2", "U: 0-1, 1-2", "graphEditDistance(to:) edgeColor: G [x,y,x] H [y,y]")
+    R(J, "directed: an arc and its reverse with colours in vertices order: isomorphic", "D: 0>1", "D: 1>0", "graphEditDistance(to:) vertexColor: G [a,b] H [a,b]")
+    R(J, "upper bound below the distance: nil", "U: K(4)", "U: C(0,1,2,3)", "optimalEditPath(to:upperBound: 1)")
+    R(J, "upper bound at the distance", "U: K(4)", "U: C(0,1,2,3)", "optimalEditPath(to:upperBound: 2)")
+    R(J, "upper bound 0 on isomorphic graphs", "U: C(0,1,2,3,4)", "U: C(0,2,4,1,3)", "optimalEditPath(to:upperBound: 0)")
 
 
 def render():
@@ -1033,7 +1149,8 @@ def render():
 HEADER = """# IsomorphismModule: case catalog (IS-001 – IS-{last:03d}, {count} rows)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
-igraph==1.0.0 --with rustworkx==0.18.1 python3 Tests/Catalogs/Isomorphism/ref.py`; `--write`
+igraph==1.0.0 --with rustworkx==0.18.1 --with scipy==1.18.1 python3
+Tests/Catalogs/Isomorphism/ref.py`; `--write`
 regenerates this file, `--stress` adds random graphs). The model enumerates every mapping from the
 definitions in api.md; rows with at most 7 target vertices are also checked against brute force
 over every injection, and every matching row with at most 6,000 mappings is compared, as a set of
@@ -1043,7 +1160,8 @@ supports the input; the known disagreements are listed in `ref.py`'s KNOWN. Weis
 partitions are compared with
 NetworkX's `weisfeiler_lehman_subgraph_hashes` and hash equality with its
 `weisfeiler_lehman_graph_hash` on simple undirected rows. Automorphism group orders and orbits
-come from enumeration and python-igraph's bliss, which must agree.
+come from enumeration and python-igraph's bliss, which must agree. Graph edit distances come from
+brute force over every partial injection and must equal NetworkX's `graph_edit_distance`.
 
 ## Notation
 
@@ -1085,7 +1203,10 @@ vertex to H's vertex 2. `some (one of #N)` means a mapping is returned and is no
 checks it with the definition and checks that a second call returns the same one. `nil` is no
 mapping. `#N` is a count. Weisfeiler–Leman partitions list, for each round r, the classes of
 vertices with equal hashes, each class in `vertices` order, classes by their first vertex.
-Hashes themselves are not pinned (api.md). `**trap**` rows are preconditions.
+Hashes themselves are not pinned (api.md). `**trap**` rows are preconditions. A graph edit
+distance is written as an integer: substitutions cost 0 (1 between different colours, where
+`vertexColor:` or `edgeColor:` gives them), deletions and insertions 1; `optimalEditPath(to:upperBound: k)`
+is the distance, or `nil` when it exceeds k.
 
 """
 

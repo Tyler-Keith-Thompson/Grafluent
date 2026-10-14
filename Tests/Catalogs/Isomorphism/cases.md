@@ -1,7 +1,8 @@
-# IsomorphismModule: case catalog (IS-001 – IS-233, 233 rows)
+# IsomorphismModule: case catalog (IS-001 – IS-267, 267 rows)
 
 Generated and checked by `ref.py` (`uv run --quiet --no-project --with networkx==3.7 --with
-igraph==1.0.0 --with rustworkx==0.18.1 python3 Tests/Catalogs/Isomorphism/ref.py`; `--write`
+igraph==1.0.0 --with rustworkx==0.18.1 --with scipy==1.18.1 python3
+Tests/Catalogs/Isomorphism/ref.py`; `--write`
 regenerates this file, `--stress` adds random graphs). The model enumerates every mapping from the
 definitions in api.md; rows with at most 7 target vertices are also checked against brute force
 over every injection, and every matching row with at most 6,000 mappings is compared, as a set of
@@ -11,7 +12,8 @@ supports the input; the known disagreements are listed in `ref.py`'s KNOWN. Weis
 partitions are compared with
 NetworkX's `weisfeiler_lehman_subgraph_hashes` and hash equality with its
 `weisfeiler_lehman_graph_hash` on simple undirected rows. Automorphism group orders and orbits
-come from enumeration and python-igraph's bliss, which must agree.
+come from enumeration and python-igraph's bliss, which must agree. Graph edit distances come from
+brute force over every partial injection and must equal NetworkX's `graph_edit_distance`.
 
 ## Notation
 
@@ -53,7 +55,10 @@ vertex to H's vertex 2. `some (one of #N)` means a mapping is returned and is no
 checks it with the definition and checks that a second call returns the same one. `nil` is no
 mapping. `#N` is a count. Weisfeiler–Leman partitions list, for each round r, the classes of
 vertices with equal hashes, each class in `vertices` order, classes by their first vertex.
-Hashes themselves are not pinned (api.md). `**trap**` rows are preconditions.
+Hashes themselves are not pinned (api.md). `**trap**` rows are preconditions. A graph edit
+distance is written as an integer: substitutions cost 0 (1 between different colours, where
+`vertexColor:` or `edgeColor:` gives them), deletions and insertions 1; `optimalEditPath(to:upperBound: k)`
+is the distance, or `nil` when it exceeds k.
 
 
 | ID | Group | Case | G (pattern) | H (target) | Op | Expected |
@@ -291,5 +296,39 @@ Hashes themselves are not pinned (api.md). `**trap**` rows are preconditions.
 | IS-231 | Phase 2: automorphismGroup | doubled edge and a pendant: order | `U: 0=1, 1-2` | — | `automorphismGroup().order` | 1 |
 | IS-232 | Phase 2: automorphismGroup | loops break symmetry: orbits | `U: 0-0, C(0,1,2,3)` | — | `automorphismGroup().orbits` | {0} {1,3} {2} |
 | IS-233 | Phase 2: automorphismGroup | bouquet of three loops: order | `U: 0-0, 0-0, 0-0` | — | `automorphismGroup().order` | 1 |
+| IS-234 | Graph edit distance | empty graphs | `U:` | `U:` | `graphEditDistance(to:)` | 0 |
+| IS-235 | Graph edit distance | one vertex deleted | `U: [0]` | `U:` | `graphEditDistance(to:)` | 1 |
+| IS-236 | Graph edit distance | K3 inserted: three vertices and three edges | `U:` | `U: K(3)` | `graphEditDistance(to:)` | 6 |
+| IS-237 | Graph edit distance | P3 to K3: one edge inserted | `U: P(0,1,2)` | `U: K(3)` | `graphEditDistance(to:)` | 1 |
+| IS-238 | Graph edit distance | C4 to P4: one edge deleted | `U: C(0,1,2,3)` | `U: P(0,1,2,3)` | `graphEditDistance(to:)` | 1 |
+| IS-239 | Graph edit distance | K4 to C4: the two diagonals | `U: K(4)` | `U: C(0,1,2,3)` | `graphEditDistance(to:)` | 2 |
+| IS-240 | Graph edit distance | star to path on four vertices: an edge moved | `U: S(0;1..3)` | `U: P(0,1,2,3)` | `graphEditDistance(to:)` | 2 |
+| IS-241 | Graph edit distance | two disjoint edges to P4 | `U: 0-1, 2-3` | `U: P(0,1,2,3)` | `graphEditDistance(to:)` | 1 |
+| IS-242 | Graph edit distance | C6 to K3,3: three edges inserted | `U: C(0,1,2,3,4,5)` | `U: KB(0..2;3..5)` | `graphEditDistance(to:)` | 3 |
+| IS-243 | Graph edit distance | C5 to K5 | `U: C(0,1,2,3,4)` | `U: K(5)` | `graphEditDistance(to:)` | 5 |
+| IS-244 | Graph edit distance | C6 to two triangles | `U: C(0,1,2,3,4,5)` | `U: C(0,1,2), C(3,4,5)` | `graphEditDistance(to:)` | 4 |
+| IS-245 | Graph edit distance | P5 to a relabelled P5: isomorphic | `U: P(0,1,2,3,4)` | `U: P(3,1,4,0,2)` | `graphEditDistance(to:)` | 0 |
+| IS-246 | Graph edit distance | K2,3 to the 4-wheel minus a spoke | `U: KB(0..1;2..4)` | `U: C(0,1,2,3), 4-0, 4-1, 4-2` | `graphEditDistance(to:)` | 1 |
+| IS-247 | Graph edit distance | triangle with a pendant to C4 | `U: C(0,1,2), 2-3` | `U: C(0,1,2,3)` | `graphEditDistance(to:)` | 2 |
+| IS-248 | Graph edit distance | a self-loop deleted | `U: 0-0` | `U: [0]` | `graphEditDistance(to:)` | 1 |
+| IS-249 | Graph edit distance | a loop at the other end: isomorphic | `U: 0-1, 0-0` | `U: 0-1, 1-1` | `graphEditDistance(to:)` | 0 |
+| IS-250 | Graph edit distance | a doubled edge to one edge | `U: 0=1` | `U: 0-1` | `graphEditDistance(to:)` | 1 |
+| IS-251 | Graph edit distance | parallel edges into a triangle | `U: 0=1, 1-2` | `U: K(3)` | `graphEditDistance(to:)` | 2 |
+| IS-252 | Graph edit distance | two vertices to three, different sizes both ways | `U: 0-1` | `U: [0, 1, 2] 1-2, 2-2` | `graphEditDistance(to:)` | 2 |
+| IS-253 | Graph edit distance | directed: an arc to its reverse | `D: 0>1` | `D: 1>0` | `graphEditDistance(to:)` | 0 |
+| IS-254 | Graph edit distance | directed: a 2-cycle to one arc | `D: 0>1, 1>0` | `D: 0>1` | `graphEditDistance(to:)` | 1 |
+| IS-255 | Graph edit distance | directed: C3 to the transitive tournament | `D: C(0,1,2)` | `D: tt(3)` | `graphEditDistance(to:)` | 2 |
+| IS-256 | Graph edit distance | directed: out-star to in-star | `D: 0>1, 0>2, 0>3` | `D: 1>0, 2>0, 3>0` | `graphEditDistance(to:)` | 4 |
+| IS-257 | Graph edit distance | directed: path to cycle | `D: P(0,1,2,3)` | `D: C(0,1,2,3)` | `graphEditDistance(to:)` | 1 |
+| IS-258 | Graph edit distance | directed: loops and parallel arcs | `D: 0>0, 0>1, 0>1` | `D: 1>1, 1>0, 0>1` | `graphEditDistance(to:)` | 2 |
+| IS-259 | Graph edit distance | directed: empty to a 3-cycle | `D: [0, 1]` | `D: C(0,1,2)` | `graphEditDistance(to:)` | 4 |
+| IS-260 | Graph edit distance | P3 with colours a b a to P3 with a a b | `U: P(0,1,2)` | `U: P(0,1,2)` | `graphEditDistance(to:) vertexColor: G [a,b,a] H [a,a,b]` | 2 |
+| IS-261 | Graph edit distance | K3 with one red vertex to K3 with none | `U: K(3)` | `U: K(3)` | `graphEditDistance(to:) vertexColor: G [r,b,b] H [b,b,b]` | 1 |
+| IS-262 | Graph edit distance | C4 with edge colours x x y y to x y x y | `U: C(0,1,2,3)` | `U: C(0,1,2,3)` | `graphEditDistance(to:) edgeColor: G [x,x,y,y] H [x,y,x,y]` | 2 |
+| IS-263 | Graph edit distance | a coloured doubled edge to one edge of either colour | `U: 0=1, 1-2` | `U: 0-1, 1-2` | `graphEditDistance(to:) edgeColor: G [x,y,x] H [y,y]` | 2 |
+| IS-264 | Graph edit distance | directed: an arc and its reverse with colours in vertices order: isomorphic | `D: 0>1` | `D: 1>0` | `graphEditDistance(to:) vertexColor: G [a,b] H [a,b]` | 0 |
+| IS-265 | Graph edit distance | upper bound below the distance: nil | `U: K(4)` | `U: C(0,1,2,3)` | `optimalEditPath(to:upperBound: 1)` | nil |
+| IS-266 | Graph edit distance | upper bound at the distance | `U: K(4)` | `U: C(0,1,2,3)` | `optimalEditPath(to:upperBound: 2)` | 2 |
+| IS-267 | Graph edit distance | upper bound 0 on isomorphic graphs | `U: C(0,1,2,3,4)` | `U: C(0,2,4,1,3)` | `optimalEditPath(to:upperBound: 0)` | 0 |
 
-233 rows.
+267 rows.

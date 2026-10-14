@@ -1,7 +1,7 @@
 """Writes the catalog-row test files of Tests/IsomorphismTests from cases.md and ref.py.
 
     uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with rustworkx==0.18.1 \
-        python3 Tests/Catalogs/Isomorphism/swiftgen.py [--phase2] [OUT_DIR]
+        --with scipy==1.18.1 python3 Tests/Catalogs/Isomorphism/swiftgen.py [--phase2] [OUT_DIR]
     # default OUT_DIR: Tests/IsomorphismTests
 
 First checks that ref.py's model reproduces cases.md byte for byte (which re-runs every row against
@@ -17,7 +17,9 @@ count, no mapping twice, every mapping satisfies api.md's definition, written ou
 yes/no answer, and the first mapping (valid, and the same on a second call). A unique mapping is
 also read through every accessor. Weisfeiler–Leman rows compare hashes within the process and
 pin partitions. Trap rows run the call in a child process (exit test), then the same setup without
-it. Hand-written exit tests spliced into the precondition file: extra_traps.swift.
+it. Hand-written exit tests spliced into the precondition file: extra_traps.swift. Graph edit
+distance rows (IS-234 on) check the distance, then the optimal path: optimal, its operations adding
+up to its cost, every substituted edge between the images of its ends, and the distance back.
 """
 import os
 import re
@@ -42,10 +44,13 @@ with open(os.path.join(HERE, "cases.md")) as f:
     assert f.read() == ref.render(), "cases.md is not ref.py's output"
 ROWS = {int(r[0][3:]): r for r in ref.ROWS}
 N = len(ROWS)
-assert N == 233
+assert N == 267
 PHASE1 = range(1, 182)
+PHASE2_ROWS = range(182, 234)
+EDIT = range(234, N + 1)
 assert all(not ROWS[n][1].startswith("Phase 2") for n in PHASE1)
-assert all(ROWS[n][1].startswith("Phase 2") for n in range(182, N + 1))
+assert all(ROWS[n][1].startswith("Phase 2") for n in PHASE2_ROWS)
+assert all(ROWS[n][1] == "Graph edit distance" for n in EDIT)
 
 
 def group(n): return ROWS[n][1]
@@ -490,10 +495,79 @@ def automorphism_test(n):
 
 
 # ---------------------------------------------------------------------------------------------
+# Graph edit distance rows
+# ---------------------------------------------------------------------------------------------
+
+def ged_test(n):
+    g, h = ref.parse_graph(gcell(n)), ref.parse_graph(hcell(n))
+    vcg, vch, ecg, ech = colors = ref.parse_colors(op(n))
+    d = ref.ged(g, h, *colors)
+    bound = re.search(r"upperBound: (\d+)", op(n))
+    ind = "        "
+    lines = header(n) + ["    func is%03d() throws {" % n, comment(n)]
+    lines += graph_lines("pattern", g, ind) + graph_lines("target", h, ind) + color_lines(g, h, colors, ind)
+    vsub = "{ patternColor[$0]! == targetColor[$1]! ? 0 : 1 }" if vcg is not None else "{ _, _ in 0 }"
+    esub = "{ patternEdgeColor[$0] == targetEdgeColor[$1] ? 0 : 1 }" if ecg is not None else "{ _, _ in 0 }"
+    back_vsub = "{ targetColor[$0]! == patternColor[$1]! ? 0 : 1 }" if vcg is not None else "{ _, _ in 0 }"
+    back_esub = "{ targetEdgeColor[$0] == patternEdgeColor[$1] ? 0 : 1 }" if ecg is not None else "{ _, _ in 0 }"
+    costs = ", vertexSubstitutionCost: %s, vertexDeletionCost: { _ in 1 }, vertexInsertionCost: { _ in 1 }, edgeSubstitutionCost: %s, edgeDeletionCost: { _ in 1 }, edgeInsertionCost: { _ in 1 }"
+    plain = vcg is None and ecg is None
+    args = "to: target" + ("" if plain else costs % (vsub, esub))
+    back = "to: pattern" + ("" if plain else costs % (back_vsub, back_esub))
+    lines.append(ind + "// The catalog's value.")
+    if bound:
+        k = int(bound.group(1))
+        lines.append(ind + "let bounded = pattern.optimalEditPath(to: target, upperBound: %d)" % k)
+        if d > k:
+            assert cell(n) == "nil"
+            lines.append(ind + "#expect(bounded == nil)")
+        else:
+            assert cell(n) == str(d)
+            lines.append(ind + "#expect(bounded?.cost == %d)" % d)
+        lines.append(ind + "// Without the bound: the distance.")
+    else:
+        assert cell(n) == str(d)
+    lines.append(ind + "let distance = pattern.graphEditDistance(%s)" % args)
+    lines.append(ind + "#expect(distance == %d)" % d)
+    lines.append(ind + "// The optimal path: its operations add up to its cost (deletions and insertions 1,")
+    lines.append(ind + "// substitutions 0 or 1 by colour), and every substituted edge joins the images of its ends.")
+    lines.append(ind + "let path = try #require(pattern.optimalEditPath(%s))" % args)
+    lines.append(ind + "#expect(path.cost == %d)" % d)
+    lines.append(ind + "#expect(path.isOptimal)")
+    lines.append(ind + "var total = path.insertedVertices.count + path.deletedEdges.count + path.insertedEdges.count")
+    lines.append(ind + "for v in pattern.vertices {")
+    if vcg is not None:
+        lines.append(ind + "    if let x = path.image(of: v) { total += patternColor[v]! == targetColor[x]! ? 0 : 1 } else { total += 1 }")
+    else:
+        lines.append(ind + "    if path.image(of: v) == nil { total += 1 }")
+    lines.append(ind + "}")
+    lines.append(ind + "for p in pattern.edges.indices {")
+    lines.append(ind + "    guard let q = path.edgeImage(ofEdgeAt: p) else { continue }")
+    lines.append(ind + "    #expect(path.edgePreimage(ofEdgeAt: q) == p)")
+    if g.directed:
+        lines.append(ind + "    #expect(path.image(of: pattern.source(ofEdgeAt: p)) == target.source(ofEdgeAt: q) && path.image(of: pattern.target(ofEdgeAt: p)) == target.target(ofEdgeAt: q))")
+    else:
+        lines.append(ind + "    let ends = [path.image(of: pattern.edges[p].u), path.image(of: pattern.edges[p].v)], other = target.edges[q]")
+        lines.append(ind + "    #expect(ends == [other.u, other.v] || ends == [other.v, other.u])")
+    if ecg is not None:
+        lines.append(ind + "    total += patternEdgeColor[p] == targetEdgeColor[q] ? 0 : 1")
+    lines.append(ind + "}")
+    lines.append(ind + "#expect(total == %d)" % d)
+    lines.append(ind + "#expect(path.deletedVertices.count + target.vertexCount - path.insertedVertices.count == pattern.vertexCount)")
+    lines.append(ind + "// The distance back is the same: every cost here is symmetric.")
+    lines.append(ind + "let back = target.graphEditDistance(%s)" % back)
+    lines.append(ind + "#expect(back == %d)" % d)
+    lines.append("    }")
+    return lines
+
+
+# ---------------------------------------------------------------------------------------------
 # Files
 # ---------------------------------------------------------------------------------------------
 
 def test_for(n):
+    if n in EDIT:
+        return ged_test(n)
     if n >= 182:
         return automorphism_test(n)
     if is_trap(n):
@@ -541,8 +615,11 @@ FILES = [
      "// same setup then runs in this process without the call. Then the preconditions the catalog does\n"
      "// not list (extra_traps.swift)."),
 ]
+FILES.append(("GraphEditDistanceTests.swift", "Graph edit distance", list(EDIT),
+              "Graph edit distance (catalog IS-234 – IS-267): unit costs, colours as substitution costs,\n"
+              "// self-loops and parallel edges matched as groups, directed graphs, upper bounds."))
 if PHASE2:
-    FILES.append(("AutomorphismGroupTests.swift", "Automorphism group (phase 2)", list(range(182, N + 1)),
+    FILES.append(("AutomorphismGroupTests.swift", "Automorphism group (phase 2)", list(PHASE2_ROWS),
                   "Phase 2 (catalog IS-182 – IS-233): orders and orbits of automorphismGroup(), generators\n"
                   "// checked to be automorphisms whose orbits are `orbits`. Written only with --phase2."))
 
@@ -578,5 +655,5 @@ for fname, suite, rows, comment_text in FILES:
     print(fname, k)
     total += k
     rows_total += len(rows)
-assert rows_total == (N if PHASE2 else 181), rows_total
+assert rows_total == (N if PHASE2 else N - len(PHASE2_ROWS)), rows_total
 print("catalog rows", rows_total, "tests", total)

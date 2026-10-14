@@ -5,7 +5,10 @@
 // copies (vertices listed in another order, edges inserted in another order, labels changed) are
 // always isomorphic, and have equal Weisfeiler–Leman graph hashes and per-vertex hashes. The
 // automorphism group (order, orbits, generators) against brute force, with each colour overload;
-// canonical forms equal exactly when two graphs are isomorphic.
+// canonical forms equal exactly when two graphs are isomorphic. The graph edit distance (unit
+// costs, a substitution between colours costing 1) against brute force over every partial
+// injection, its path costing what its operations add up to, zero on a relabelled copy, and
+// symmetric.
 
 import FuzzSupport
 import GraphProtocols
@@ -330,6 +333,97 @@ enum FuzzIsomorphism {
         check(permutation.sorted() == Array(0 ..< n), "the canonical labeling is not a permutation")
     }
 
+    /// The graph edit distance from p to t against brute force: unit costs, a substitution between
+    /// different vertex or edge colours costs 1, groups of edges between two vertices matched at
+    /// max(|A|, |B|) minus their common colours. The path must cost what its operations add up to,
+    /// and the distance back must be the same.
+    static func checkEditDistance(_ p: Drawn, _ t: Drawn, directed isDirected: Bool) {
+        let n1 = p.labels.count, n2 = t.labels.count
+        let pc = pairColors(p, directed: isDirected), tc = pairColors(t, directed: isDirected)
+        func group(_ a: [Int], _ b: [Int]) -> Int {
+            var rest = b, common = 0
+            for c in a { if let k = rest.firstIndex(of: c) { rest.remove(at: k); common += 1 } }
+            return max(a.count, b.count) - common
+        }
+        func cost(_ f: [Int]) -> Int {
+            var used = [Bool](repeating: false, count: n2)
+            var total = 0
+            for u in 0 ..< n1 {
+                if f[u] < 0 { total += 1 } else {
+                    used[f[u]] = true
+                    total += p.vertexColors[u] == t.vertexColors[f[u]] ? 0 : 1
+                }
+            }
+            total += used.filter { !$0 }.count
+            for a in 0 ..< n1 {
+                for b in (isDirected ? 0 : a) ..< n1 {
+                    let mine = pc[a * n1 + b]
+                    total += f[a] >= 0 && f[b] >= 0 ? group(mine, tc[f[a] * n2 + f[b]]) : mine.count
+                }
+            }
+            total += t.edges.filter { !used[$0.0] || !used[$0.1] }.count
+            return total
+        }
+        var best = Int.max
+        var f = [Int](repeating: -1, count: n1)
+        var taken = [Bool](repeating: false, count: n2)
+        func visit(_ u: Int) {
+            if u == n1 {
+                best = min(best, cost(f))
+                return
+            }
+            f[u] = -1
+            visit(u + 1)
+            for x in 0 ..< n2 where !taken[x] {
+                taken[x] = true
+                f[u] = x
+                visit(u + 1)
+                taken[x] = false
+            }
+            f[u] = -1
+        }
+        visit(0)
+        let pv = Dictionary(uniqueKeysWithValues: zip(p.labels, p.vertexColors)), tv = Dictionary(uniqueKeysWithValues: zip(t.labels, t.vertexColors))
+        func vsub(_ a: Int, _ b: Int) -> Int { pv[a]! == tv[b]! ? 0 : 1 }
+        func vsubBack(_ a: Int, _ b: Int) -> Int { tv[a]! == pv[b]! ? 0 : 1 }
+        func esub(_ e: Int, _ q: Int) -> Int { p.edgeColors[e] == t.edgeColors[q] ? 0 : 1 }
+        func esubBack(_ e: Int, _ q: Int) -> Int { t.edgeColors[e] == p.edgeColors[q] ? 0 : 1 }
+        func one(_: Int) -> Int { 1 }
+        let found: Int, images: [Int], back: Int, consistent: Bool
+        if isDirected {
+            let g = directed(p), h = directed(t)
+            guard let path = g.optimalEditPath(to: h, vertexSubstitutionCost: vsub, vertexDeletionCost: one, vertexInsertionCost: one, edgeSubstitutionCost: esub, edgeDeletionCost: one, edgeInsertionCost: one) else {
+                check(false, "no edit path")
+                return
+            }
+            found = path.cost
+            images = p.labels.map { label in path.image(of: label).map { t.labels.firstIndex(of: $0)! } ?? -1 }
+            back = h.graphEditDistance(to: g, vertexSubstitutionCost: vsubBack, vertexDeletionCost: one, vertexInsertionCost: one, edgeSubstitutionCost: esubBack, edgeDeletionCost: one, edgeInsertionCost: one)
+            consistent = g.edges.indices.allSatisfy { e in
+                guard let q = path.edgeImage(ofEdgeAt: e) else { return true }
+                return path.image(of: g.source(ofEdgeAt: e)) == h.source(ofEdgeAt: q) && path.image(of: g.target(ofEdgeAt: e)) == h.target(ofEdgeAt: q)
+            } && path.isOptimal
+        } else {
+            let g = undirected(p), h = undirected(t)
+            guard let path = g.optimalEditPath(to: h, vertexSubstitutionCost: vsub, vertexDeletionCost: one, vertexInsertionCost: one, edgeSubstitutionCost: esub, edgeDeletionCost: one, edgeInsertionCost: one) else {
+                check(false, "no edit path")
+                return
+            }
+            found = path.cost
+            images = p.labels.map { label in path.image(of: label).map { t.labels.firstIndex(of: $0)! } ?? -1 }
+            back = h.graphEditDistance(to: g, vertexSubstitutionCost: vsubBack, vertexDeletionCost: one, vertexInsertionCost: one, edgeSubstitutionCost: esubBack, edgeDeletionCost: one, edgeInsertionCost: one)
+            consistent = g.edges.indices.allSatisfy { e in
+                guard let q = path.edgeImage(ofEdgeAt: e) else { return true }
+                let ends = [path.image(of: g.edges[e].u), path.image(of: g.edges[e].v)], other = h.edges[q]
+                return ends == [other.u, other.v] || ends == [other.v, other.u]
+            } && path.isOptimal
+        }
+        check(found == best, "graph edit distance \(found), brute force \(best)")
+        check(cost(images) == best, "the edit path's vertex mapping costs \(cost(images)), not \(best)")
+        check(back == best, "graph edit distance back \(back), forward \(best)")
+        check(consistent, "an edge is substituted between non-images, or the path is not optimal")
+    }
+
     /// Canonical forms are equal exactly when the graphs are isomorphic (without colours).
     static func checkForms(_ p: Drawn, _ t: Drawn, directed isDirected: Bool) {
         let isomorphic = !bruteForce(p, t, .isomorphism, directed: isDirected, colored: false).isEmpty
@@ -372,6 +466,7 @@ enum FuzzIsomorphism {
             checkHashes(d, copy, perm, directed: isDirected, iterations: input.int(in: 0 ... 4))
             checkGroup(d, directed: isDirected, colors: colors)
             checkForms(d, copy, directed: isDirected)
+            checkEditDistance(d, copy, directed: isDirected)
         case 1:
             // Two graphs of one size.
             let n = input.int(in: 0 ... 6)
@@ -379,6 +474,7 @@ enum FuzzIsomorphism {
             let t = draw(&input, vertices: n, maxEdges: 9, vertexKinds: vertexKinds, edgeKinds: edgeKinds, labelBase: 500)
             if isDirected { checkDirected(p, t, colors: colors) } else { checkUndirected(p, t, colors: colors) }
             checkForms(p, t, directed: isDirected)
+            checkEditDistance(p, t, directed: isDirected)
         default:
             // A pattern and a larger target.
             let nt = input.int(in: 0 ... 7)
@@ -386,6 +482,7 @@ enum FuzzIsomorphism {
             let p = draw(&input, vertices: np, maxEdges: 6, vertexKinds: vertexKinds, edgeKinds: edgeKinds, labelBase: 0)
             let t = draw(&input, vertices: nt, maxEdges: 14, vertexKinds: vertexKinds, edgeKinds: edgeKinds, labelBase: 500)
             if isDirected { checkDirected(p, t, colors: colors) } else { checkUndirected(p, t, colors: colors) }
+            checkEditDistance(p, t, directed: isDirected)
         }
     }
 }

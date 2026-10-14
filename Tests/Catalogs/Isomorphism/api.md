@@ -9,7 +9,8 @@ every assignment. Weisfeiler–Leman colour refinement also gives a cheap invari
 order) and canonical labeling come from individualization–refinement with automorphism pruning,
 which also decides the isomorphism pairs the joint search cannot.
 
-`cases.md` (IS-001 – IS-233, 233 rows; IS-182 – IS-233 are the automorphism rows) pins the values.
+`cases.md` (IS-001 – IS-267, 267 rows; IS-182 – IS-233 are the automorphism rows, IS-234 – IS-267
+the graph edit distance rows) pins the values.
 `ref.py` computes every row from the definitions below by backtracking, checks rows with at most 7
 target vertices against brute force over every injection, and compares every matching row of at
 most 6,000 mappings, as a set of mappings, with NetworkX 3.7 (`GraphMatcher`, `DiGraphMatcher`,
@@ -23,7 +24,10 @@ colours; up to 6 vertices) for each of the three problems, 900 WL checks, 798 au
 and 60 relabelled pairs of 8–29 vertices. Run:
 
 `uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with rustworkx==0.18.1
-python3 Tests/Catalogs/Isomorphism/ref.py [--write] [--stress] [--bench]`
+--with scipy==1.18.1 python3 Tests/Catalogs/Isomorphism/ref.py [--write] [--stress] [--bench]`
+
+Graph edit distances are brute force over every partial injection, compared with NetworkX's
+`graph_edit_distance` (scipy is its dependency).
 
 ## Scope
 
@@ -38,6 +42,7 @@ python3 Tests/Catalogs/Isomorphism/ref.py [--write] [--stress] [--bench]`
 | `weisfeilerLehmanGraphHash(iterations:)` → `Int`; `weisfeilerLehmanSubgraphHashes(iterations:)` → `WeisfeilerLehmanSubgraphHashes<Self>` | The same refinement is the matcher's root pruning |
 | `automorphismGroup()` → `AutomorphismGroup<Self>` (generators, orbits, order), coloured overloads | Enumerating `isomorphisms(to: self)` costs the group order (25! on IS-216); the pruned search returns O(n) generators |
 | `canonicalLabeling()` → `CanonicalLabeling<Self>` (a canonical index per vertex, and a `Hashable` canonical form) | Equal forms exactly when the graphs are isomorphic: deduplicating graph collections by hashing |
+| `graphEditDistance(to:)` → `Int`; `optimalEditPath(to:upperBound:expansionLimit:)` → `EditPath<Self, Other, Int>?`; both with six cost closures for any `Cost: SignedNumeric & Comparable` | The least total cost of vertex and edge substitutions, deletions and insertions; the path, its cost and whether it is proven optimal |
 
 Related computations that are not entry points:
 
@@ -115,6 +120,18 @@ public struct AutomorphismGroup<G> {
     public func orbit(checked vertex: G.Vertex) throws(VertexNotFound) -> Int
         public var order: Double                            // rounded; exceeds Int for 25 isolated vertices
     public var basicOrbitLengths: [Int]                 // the stabiliser chain the search found; product = the exact order
+}
+@frozen public struct EditPath<Pattern, Target, Cost> {   // members where both are Graph, or both DirectedGraph
+    public let cost: Cost
+    public let isOptimal: Bool                                             // false when the expansion limit stopped the search
+    public func image(of vertex: Pattern.Vertex) -> Target.Vertex?         // nil: deleted; traps on a non-vertex
+    public func preimage(of vertex: Target.Vertex) -> Pattern.Vertex?      // nil: inserted
+    public func edgeImage(ofEdgeAt position: Pattern.Edges.Index) -> Target.Edges.Index?
+    public func edgePreimage(ofEdgeAt position: Target.Edges.Index) -> Pattern.Edges.Index?
+    public func imageIndex(ofIndex index: Int) -> Int?
+    public var deletedVertices: [Pattern.Vertex], insertedVertices: [Target.Vertex]
+    public var deletedEdges: [Pattern.Edges.Index], insertedEdges: [Target.Edges.Index]
+    // image(checked:), preimage(checked:) throw VertexNotFound; edgeImage(checkedEdgeAt:), edgePreimage(checkedEdgeAt:) throw EdgeNotFound
 }
 public struct CanonicalLabeling<G> {
     public func canonicalIndex(of vertex: G.Vertex) -> Int
@@ -194,6 +211,22 @@ multiply to `order`. Canonical labelings are not pinned either (they depend on r
 target-cell choices); tests check that isomorphic inputs (relabelled copies) give equal `form`s and
 non-isomorphic rows give different ones.
 
+### Graph edit distance
+
+An edit path substitutes each vertex of G by a distinct vertex of H or deletes it, and inserts H's
+other vertices. The edges between two vertices u, v of G (a vertex's self-loops when u = v; the
+arcs u → v when directed) are substituted one for one by edges between their images or deleted;
+H's remaining edges are inserted. The cost is the sum of the operations' costs, read once per
+element or pair at the call. A substitution may cost more than a deletion and an insertion; the
+path takes the cheaper. The catalog's rows use unit costs: substitutions free, or 1 between
+different colours (NetworkX's node_match and edge_match), deletions and insertions 1. A group of
+edges between two vertex pairs then costs max(|A|, |B|) minus their common colours.
+`optimalEditPath(to:upperBound: k)` is nil when the distance exceeds k (IS-265 – IS-267).
+Disagreement: on multigraphs, and on graphs with self-loops, NetworkX's `graph_edit_distance` can
+substitute an edge by one whose ends are not the images of its ends (a loop for a non-loop), and
+then reports less (IS-258; `just diff --module Isomorphism` meets the self-loop cases and checks
+them against brute force).
+
 ## Determinism
 
 **Pinned:** every yes/no answer, every count, the set of all mappings on small rows, a mapping
@@ -264,6 +297,18 @@ mapping nil. `automorphismGroup()` and `canonicalLabeling()` run to completion. 
 exponential for every individualization–refinement solver: Miyazaki graphs and other rigid
 CFI-gadget constructions, where neither refinement nor automorphisms prune.
 
+**Graph edit distance** by depth-first branch and bound (Abu-Aisheh et al. 2015): G's vertices are
+decided by decreasing degree, each substituted by a free vertex of H or deleted; a decision costs
+its vertex operation and the edges it settles (to the decided vertices, and its loops), each group
+matched by an edit assignment. The search starts from the bipartite upper bound (Riesen and Bunke
+2009: the root bound's assignment completed to a path), visits children by increasing lower bound
+and prunes a node whose bound reaches the best cost. The lower bound is a linear sum assignment
+with edit operations (Hungarian method on the (n + n′)-square extension) over the undecided
+vertices, each pair costing its vertex operation, its settled edges exactly, and half the count
+bound on its remaining edges (Blumenthal and Gamper's branch bound); costs are doubled so halves
+stay exact. `expansionLimit` bounds the nodes expanded; the cheapest path found is returned with
+`isOptimal` false.
+
 ## Implementation notes (index space)
 
 - Number the vertices through the protocol: `vertexIndexBound` (then `vertexIndex(of:)` and
@@ -293,4 +338,5 @@ CFI-gadget constructions, where neither refinement nor automorphisms prune.
 | each further mapping of a sequence | the search between two leaves | — |
 | `weisfeilerLehmanGraphHash`, `weisfeilerLehmanSubgraphHashes` | O(k (n + m)) for k iterations | O(n + m) (k n for the subgraph hashes) |
 | `automorphismGroup`, `canonicalLabeling` | exponential in the worst case (Miyazaki graphs); near-linear refinement per node | O(n + m) plus O(n) per tree level and the generators |
+| `graphEditDistance`, `optimalEditPath` | NP-hard, exponential in the worst case; per node O((n + n′)³ + n · n′ · n) for its lower bound | O(n · n′ + m · m′) for the costs, O(n² + n′²) for the edge groups |
 

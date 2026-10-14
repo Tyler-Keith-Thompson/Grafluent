@@ -102,3 +102,65 @@
         #expect(graph.weisfeilerLehmanGraphHash(iterations: 0, vertexColor: { $0 }) == graph.weisfeilerLehmanGraphHash(iterations: 0, vertexColor: { $0 }))
         #expect(graph.weisfeilerLehmanSubgraphHashes(iterations: 0, vertexColor: { _ in 0 }, edgeColor: { $0 }).iterations == 0)
     }
+
+    @Test("Edit paths: a negative, NaN or infinite cost traps, as does a negative expansion limit")
+    func editCosts() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
+            _ = graph.graphEditDistance(to: graph, vertexSubstitutionCost: { _, _ in 0 }, vertexDeletionCost: { _ in -1 }, vertexInsertionCost: { _ in 1 },
+                                        edgeSubstitutionCost: { _, _ in 0 }, edgeDeletionCost: { _ in 1 }, edgeInsertionCost: { _ in 1 })
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
+            _ = graph.graphEditDistance(to: graph, vertexSubstitutionCost: { _, _ in 0.0 }, vertexDeletionCost: { _ in 1.0 }, vertexInsertionCost: { _ in 1.0 },
+                                        edgeSubstitutionCost: { _, _ in Double.nan }, edgeDeletionCost: { _ in 1.0 }, edgeInsertionCost: { _ in 1.0 })
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            _ = graph.graphEditDistance(to: graph, vertexSubstitutionCost: { _, _ in 0.0 }, vertexDeletionCost: { _ in 1.0 }, vertexInsertionCost: { _ in Double.infinity },
+                                        edgeSubstitutionCost: { _, _ in 0.0 }, edgeDeletionCost: { _ in 1.0 }, edgeInsertionCost: { _ in 1.0 })
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
+            _ = graph.optimalEditPath(to: graph, expansionLimit: -1)
+        }
+        // Without the traps: zero costs and a zero limit are allowed.
+        let graph = Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
+        #expect(graph.graphEditDistance(to: graph, vertexSubstitutionCost: { _, _ in 0 }, vertexDeletionCost: { _ in 0 }, vertexInsertionCost: { _ in 0 },
+                                        edgeSubstitutionCost: { _, _ in 0 }, edgeDeletionCost: { _ in 0 }, edgeInsertionCost: { _ in 0 }) == 0)
+        #expect(graph.optimalEditPath(to: graph, expansionLimit: 0)?.cost == 0)
+    }
+
+    @Test("Edit paths: the accessors trap on a non-vertex, a non-edge or an index out of range")
+    func editPathAccessors() async {
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
+            _ = graph.optimalEditPath(to: graph)!.image(of: 5)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
+            _ = graph.optimalEditPath(to: graph)!.preimage(of: 5)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<Int>(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
+            _ = graph.optimalEditPath(to: graph)!.edgeImage(ofEdgeAt: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            _ = graph.optimalEditPath(to: graph)!.edgePreimage(ofEdgeAt: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedPseudograph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+            _ = graph.optimalEditPath(to: graph)!.imageIndex(ofIndex: 2)
+        }
+        // Without the calls: the identity path, read through the same accessors.
+        let graph = DirectedPseudograph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
+        guard let path = graph.optimalEditPath(to: graph) else {
+            Issue.record("no path")
+            return
+        }
+        #expect(path.image(of: 0) == 0 && path.image(of: 1) == 1)
+        #expect(path.preimage(of: 1) == 1)
+        #expect(path.edgeImage(ofEdgeAt: 0) == 0 && path.edgePreimage(ofEdgeAt: 0) == 0)
+        #expect(path.imageIndex(ofIndex: 1) == 1)
+    }

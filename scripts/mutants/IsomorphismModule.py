@@ -61,6 +61,11 @@
 #   Hash quality, never equality.
 #     wlmixa, wlmixb, wlmixboth, wlmultisetboth, wlmix, wldegree, wlcount, wlinitial, wlround,
 #     wledgecolorplain.
+#   Graph edit distance.
+#     lsapedeletion      every deletion column open to every row: a row deleted in another row's
+#                        column costs the same, and rowMate reads any deletion column as -1.
+#     childprune         descending into a child whose bound reaches the best cost only spends
+#                        time: no leaf below it can be recorded (the leaf rechecks the bound).
 #   The result.
 #     chainkeep          redundant generators leave every basic orbit, and the order, as it is.
 #     grouporbitroot     orbits are numbered by their first vertex whatever the root.
@@ -78,6 +83,8 @@ MG = "Matching+Graph.swift"
 MD = "Matching+DirectedGraph.swift"
 A = "AutomorphismSearch.swift"
 AG = "AutomorphismGroup.swift"
+ES = "EditDistanceSearch.swift"
+EP = "EditPath.swift"
 
 MUTANTS = [
     # The union of G and H, and edge-colour weights.
@@ -385,4 +392,59 @@ MUTANTS = [
     Mutant("hashescheckeddirected", "WeisfeilerLehman.swift", "guard graph.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=1),
     Mutant("hashescheckedvalue", "WeisfeilerLehman.swift", "        return hashes(of: vertex)", "        return hashes(ofIndex: 0)", mode="stmt", nth=0),
     Mutant("hashescheckedvaluedirected", "WeisfeilerLehman.swift", "        return hashes(of: vertex)", "        return hashes(ofIndex: 0)", mode="stmt", nth=1),
+    # Graph edit distance: the index graph's cells.
+    Mutant("editcellsymmetric", ES, "if !isDirected { cellOffsets[t * n + s + 1] += 1 }", "", mode="stmt"),
+    Mutant("editcellfill", ES, "cellFill[s * n + t] += 1", "cellFill[s * n + t] += 0"),
+    Mutant("editincidence", ES, "incidenceOffsets[t + 1] += 1", "incidenceOffsets[t + 1] += 0"),
+    # The edit assignment (Hungarian method).
+    Mutant("lsapeslack", ES, "!hasSlack[j] || reduced < slack[j]", "!hasSlack[j] || reduced > slack[j]"),
+    Mutant("lsapedelta", ES, "hasSlack[j] && (!hasDelta || slack[j] < delta)", "hasSlack[j] && !hasDelta"),
+    Mutant("lsapepotential", ES, "rowPotential[columnRow[j]] += delta", "rowPotential[columnRow[j]] -= delta", mode="stmt"),
+    Mutant("lsapeslackupdate", ES, "slack[j] -= delta", "slack[j] += delta", mode="stmt"),
+    Mutant("lsapemate", ES, "if i < k1 { rowMate[i] = j - 1 < k2 ? j - 1 : -1 }", "if i < k1 { rowMate[i] = -1 }", mode="stmt"),
+    Mutant("lsapedeletion", ES, "return j &- k2 == i ? deletion[i] : nil", "return deletion[i]", mode="stmt"),
+    # Group costs.
+    Mutant("groupinsert", ES, "for k in b { c += edgeInsertion[g2.cellEdges[k]] }", "", mode="stmt", nth=0),
+    Mutant("groupdelete", ES, "for k in a { c += edgeDeletion[g1.cellEdges[k]] }", "", mode="stmt"),
+    Mutant("groupone", ES, "return substitute <= replace ? substitute : replace", "return substitute", mode="stmt"),
+    Mutant("groupassignone", ES, "if assign { edgeImage[e] = substitute <= replace ? f : -1 }", "if assign { edgeImage[e] = f }", mode="stmt"),
+    Mutant("groupassign", ES, "edgeImage[g1.cellEdges[ka]] = j < 0 ? -1 : g2.cellEdges[b.lowerBound + j]", "edgeImage[g1.cellEdges[ka]] = -1", mode="stmt"),
+    # Settled edges and the lower bound.
+    Mutant("settledloops", ES, "groupCost(g1.cell(u, u), x >= 0 ? g2.cell(x, x) : empty, &none)", "C.zero"),
+    Mutant("settleddirected", ES, "if g1.isDirected { c += groupCost(g1.cell(w, u), mapped ? g2.cell(y, x) : empty, &none) }", "", mode="stmt"),
+    Mutant("settledmapped", ES, "y >= 0 && x >= 0", "x >= 0"),
+    Mutant("surplusdouble", ES, "if a > b { return C(exactly: a - b)! * deletion }", "if a > b { return C(exactly: a - b)! * (deletion + deletion) }", mode="stmt"),
+    Mutant("boundbranch", ES, "outer.substitution[i * k2 + j] = settled + settled + branch", "outer.substitution[i * k2 + j] = settled + settled + branch + branch", mode="stmt"),
+    Mutant("bounddeletion", ES, "outer.deletion[i] = settled + settled + branchCost1[u]", "outer.deletion[i] = settled + settled + branchCost1[u] + branchCost1[u]", mode="stmt"),
+    Mutant("boundinsertion", ES, "outer.insertion[j] = settled + settled + branchCost2[x]", "outer.insertion[j] = settled + settled + branchCost2[x] + branchCost2[x]", mode="stmt"),
+    Mutant("boundsettled", ES, "vertexSubstitution[u * n2 + x] + settledCost(u, x)", "vertexSubstitution[u * n2 + x] + settledCost(u, x) + settledCost(u, x)", nth=0),
+    # Pruning, the search and the path.
+    Mutant("prunebound", ES, "if let bound { return lower > bound }", "if let bound { return lower >= bound }", mode="stmt"),
+    Mutant("leafinsertion", ES, "for v in 0 ..< n2 where preimage[v] < 0 { total += vertexInsertion[v] + vertexInsertion[v] }", "for v in 0 ..< n2 where preimage[v] < 0 { total += vertexInsertion[v] }", mode="stmt"),
+    Mutant("leafedges", ES, "preimage[g2.ends[2 * f]] < 0 || preimage[g2.ends[2 * f + 1]] < 0", "preimage[g2.ends[2 * f]] < 0 && preimage[g2.ends[2 * f + 1]] < 0"),
+    Mutant("limitcount", ES, "expansions >= expansionLimit", "expansions > expansionLimit"),
+    Mutant("limitflag", ES, "            exhausted = true", "", mode="stmt"),
+    Mutant("childorder", ES, "childBound[previous] > lower || (childBound[previous] == lower && key > mine)", "childBound[previous] < lower"),
+    Mutant("childprune", ES, "if isPruned(childBound[start + k]) { break }", "", mode="stmt"),
+    Mutant("heuristic", ES, "        if !isPruned(heuristicCost + heuristicCost) {\n            bestCost = heuristicCost + heuristicCost\n            bestImage = heuristic\n        }", "", mode="stmt"),
+    Mutant("pathdirected", ES, "(g1.isDirected ? 0 : a)", "a"),
+    Mutant("pathinserted", ES, "for f in 0 ..< g2.edgeCount where !used[g2.ends[2 * f]] || !used[g2.ends[2 * f + 1]] { c += edgeInsertion[f] }", "", mode="stmt"),
+    Mutant("pathoptimal", ES, "return (bestImage, edgeImages, cost, !exhausted)", "return (bestImage, edgeImages, cost, true)", mode="stmt"),
+    Mutant("costcheck", ES, "c >= .zero && c - c == .zero", "c - c == .zero"),
+    # The path's accessors and checked spellings.
+    Mutant("editlimitcheck", EP, "precondition(expansionLimit.map { $0 >= 0 } ?? true, \"The expansion limit is negative\")", "", mode="stmt"),
+    Mutant("editordinal", EP, "if positions[mid] < position { lo = mid + 1 } else { hi = mid }", "if positions[mid] <= position { lo = mid + 1 } else { hi = mid }", mode="stmt"),
+    Mutant("editimageindex", EP, "return x < 0 ? nil : x", "return x", mode="stmt"),
+    Mutant("editimagechecked", EP, "guard pattern.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=0),
+    Mutant("editimagecheckeddirected", EP, "guard pattern.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=1),
+    Mutant("editpreimagechecked", EP, "guard target.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=0),
+    Mutant("editpreimagecheckeddirected", EP, "guard target.contains(vertex) else { throw VertexNotFound() }", "guard true else { throw VertexNotFound() }", mode="stmt", nth=1),
+    Mutant("editedgechecked", EP, "guard _editOrdinal(of: position, in: _positions.pattern) != nil else { throw EdgeNotFound() }", "guard true else { throw EdgeNotFound() }", mode="stmt", nth=0),
+    Mutant("editedgecheckeddirected", EP, "guard _editOrdinal(of: position, in: _positions.pattern) != nil else { throw EdgeNotFound() }", "guard true else { throw EdgeNotFound() }", mode="stmt", nth=1),
+    Mutant("editedgepreimagechecked", EP, "guard _editOrdinal(of: position, in: _positions.target) != nil else { throw EdgeNotFound() }", "guard true else { throw EdgeNotFound() }", mode="stmt", nth=0),
+    Mutant("editedgepreimagecheckeddirected", EP, "guard _editOrdinal(of: position, in: _positions.target) != nil else { throw EdgeNotFound() }", "guard true else { throw EdgeNotFound() }", mode="stmt", nth=1),
+    Mutant("editinsertedvertices", EP, "for x in vertexImages where x >= 0 { used[x] = true }", "", mode="stmt", nth=0),
+    Mutant("editinsertedverticesdirected", EP, "for x in vertexImages where x >= 0 { used[x] = true }", "", mode="stmt", nth=1),
+    Mutant("editinsertededges", EP, "for f in edgeImages where f >= 0 { used[f] = true }", "", mode="stmt", nth=0),
+    Mutant("editinsertededgesdirected", EP, "for f in edgeImages where f >= 0 { used[f] = true }", "", mode="stmt", nth=1),
 ]

@@ -90,4 +90,25 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Isomorphism: isomorphisms(to:), all 120 of K5 onto itself") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(k5.isomorphisms(to: k5).reduce(0) { n, _ in n + 1 }) }
     }
+
+    // Graph edit distance at unit costs: the Petersen graph against the 5-prism, and G(n, 0.3)
+    // pairs on 8 and 10 vertices from the benchmark generator's edges.
+    let outer = (0 ..< 5).map { UndirectedEdge($0, ($0 + 1) % 5) }, spokes = (0 ..< 5).map { UndirectedEdge($0, $0 + 5) }
+    let petersen = UndirectedAdjacencyList<Int>(vertices: 0 ..< 10, edges: outer + spokes + (0 ..< 5).map { UndirectedEdge($0 + 5, ($0 + 2) % 5 + 5) })
+    let prism = UndirectedAdjacencyList<Int>(vertices: 0 ..< 10, edges: outer + spokes + (0 ..< 5).map { UndirectedEdge($0 + 5, ($0 + 1) % 5 + 5) })
+    Benchmark("Isomorphism: graphEditDistance(to:), Petersen against the 5-prism") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(petersen.graphEditDistance(to: prism)) }
+    }
+    for n in [8, 10] {
+        func random(_ seed: UInt) -> UndirectedAdjacencyList<Int> {
+            var edgeSeen = Set<UndirectedEdge<Int>>()
+            let edges = Inputs.randomEdges(vertexCount: n, edgeCount: n * (n - 1) * 3 / 20, seed: seed)
+                .map { UndirectedEdge($0.source, $0.target) }.filter { !$0.isSelfLoop && edgeSeen.insert($0).inserted }
+            return UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)
+        }
+        let g = random(41), h = random(42)
+        Benchmark("Isomorphism: graphEditDistance(to:), random pair on \(n) vertices") { benchmark in
+            for _ in benchmark.scaledIterations { blackHole(g.graphEditDistance(to: h)) }
+        }
+    }
 }

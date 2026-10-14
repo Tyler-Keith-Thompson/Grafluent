@@ -26,12 +26,17 @@ extension Graph {            // and DirectedGraph, with Other: DirectedGraph
     // (to:, vertexColor:, otherVertexColor:, edgeColor:, otherEdgeColor:)
     func weisfeilerLehmanGraphHash(iterations: Int = 3) -> Int                       // + (iterations:vertexColor:), (iterations:vertexColor:edgeColor:)
     func weisfeilerLehmanSubgraphHashes(iterations: Int = 3) -> WeisfeilerLehmanSubgraphHashes<Self>   // the same shapes
+    func graphEditDistance(to:) -> Int;      func optimalEditPath(to:upperBound:expansionLimit:) -> EditPath<Self, Other, Int>?
+    // both also with the six cost closures (vertex and edge substitution, deletion, insertion), any Cost
 }
 struct Isomorphism<Pattern, Target>: Hashable, CustomStringConvertible   // equal by images
     image(of:), image(checked:), preimage(of:), preimage(checked:), imageIndex(ofIndex:), images
 struct Isomorphisms<Pattern, Target>: Sequence                             // lazy
 struct WeisfeilerLehmanSubgraphHashes<G>
     iterations, hashes(of:), hashes(ofIndex:)                                // one hash per round 1…iterations
+struct EditPath<Pattern, Target, Cost>
+    cost, isOptimal, image(of:), preimage(of:), edgeImage(ofEdgeAt:), edgePreimage(ofEdgeAt:), imageIndex(ofIndex:),
+    deletedVertices, insertedVertices, deletedEdges, insertedEdges           // and the checked: spellings
 ```
 
 ## Conventions
@@ -46,6 +51,7 @@ struct WeisfeilerLehmanSubgraphHashes<G>
 | Order of mappings | Not pinned. Sets are compared, and a second call gives the same first mapping | IS-023, every matching row |
 | Weisfeiler–Leman | Round 0 is the vertex colour; a loop is two edge ends and parallel edges count once each; out and in apart when directed; partitions pinned, hash values not | IS-147 – IS-176 |
 | Preconditions | A non-vertex traps in `image(of:)`, `preimage(of:)` and `hashes(of:)`; `iterations` must be at least 0 | IS-165, IS-176, IS-178, IS-181, `extra_traps.swift` |
+| Graph edit distance | Unit costs by default (substitutions free, deletions and insertions 1); the edges between two vertices matched as a group; a colour mismatch costs 1 in the catalog's colour rows; an upper bound gives nil above it | IS-234 – IS-267 |
 
 ## How values are pinned
 
@@ -65,13 +71,14 @@ the process and pin each round's partition. A trap row runs its call in a child 
 test), then runs the same setup in this process without the call.
 
 The catalog-row files are every file except `IsomorphismConformanceTests.swift`,
-`IsomorphismPropertyTests.swift`, `Performance/IsomorphismStressTests.swift` and
-`IsomorphismHardFamiliesTests.swift`. `swiftgen.py` generates them
+`IsomorphismPropertyTests.swift`, `Performance/IsomorphismStressTests.swift`,
+`IsomorphismHardFamiliesTests.swift`, `EditPathTests.swift`, `GraphEditDistancePropertyTests.swift`
+and `Performance/GraphEditDistanceScaleTests.swift`. `swiftgen.py` generates them
 from `cases.md`. It sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/Isomorphism/`](../Catalogs/Isomorphism/):
 
 ```
-uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with rustworkx==0.18.1 python3 Tests/Catalogs/Isomorphism/swiftgen.py --phase2
+uv run --quiet --no-project --with networkx==3.7 --with igraph==1.0.0 --with rustworkx==0.18.1 --with scipy==1.18.1 python3 Tests/Catalogs/Isomorphism/swiftgen.py --phase2
 ```
 
 The generator first checks that `ref.py` reproduces `cases.md` byte for byte. That run re-checks
@@ -81,7 +88,9 @@ The precondition file also takes the hand-written exit tests in `extra_traps.swi
 writes the automorphism-group rows (IS-182 – IS-233) as `AutomorphismGroupTests.swift`; without
 it that file is left alone. Those tests pin `order` and `orbits`, check that the
 product of `basicOrbitLengths` is the order, and check that every generator is an automorphism
-whose orbits are `orbits`.
+whose orbits are `orbits`. The graph edit distance rows (IS-234 – IS-267) are
+`GraphEditDistanceTests.swift`: each checks the distance, then the optimal path (its operations add
+up to its cost, every substituted edge joins the images of its ends) and the distance back.
 
 ## Hand-written files
 
@@ -130,3 +139,16 @@ whose orbits are `orbits`.
   canonical forms of relabelled copies, loops, parallel edges and digraphs. The edge-colour check
   at a joint-search leaf is not pinned by a test: it fails only when two different colour
   multisets have equal 64-bit weight sums, and the code documents it as defensive.
+- **Edit paths** (`EditPathTests.swift`). Paths with one optimum read through every accessor and
+  `checked:` spelling, undirected and directed; a substitution dearer than a deletion and an
+  insertion; `Double` costs; each cost closure called once per vertex, edge or pair; the upper
+  bound (nil just below the distance) and the expansion limit (a path not proven optimal at limit
+  0, proven once the limit is not reached); every representation alone and mixed.
+- **Edit-distance properties** (`GraphEditDistancePropertyTests.swift`, with shrinking). Random
+  pseudographs and directed pseudographs on up to 4 and 5 vertices against brute force over every
+  partial injection, at unit costs with optional colours and at random costs on simple graphs with
+  loops; the path costs what its operations add up to and substitutes edges only between images;
+  the distance is symmetric at unit costs and zero exactly for isomorphic graphs.
+- **Edit distance at scale** (`Performance/GraphEditDistanceScaleTests.swift`, release only).
+  Random pairs on 7 vertices against brute force; pairs on 10 vertices (Petersen against the
+  5-prism, G(10, 0.3)) within a one-minute limit, symmetric, with an optimal path.
