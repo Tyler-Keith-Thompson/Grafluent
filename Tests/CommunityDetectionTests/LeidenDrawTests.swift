@@ -82,35 +82,26 @@ struct LeidenDrawTests {
         #expect(result.map { Array($0) } == [[0, 1, 4, 6], [2], [3, 5]])
     }
 
-    @Test("a vertex alone joins a neighbor's community on a tie, and a later iteration moves on from there")
-    func case7() {
-        let pairs: [(Int, Int)] = [(4, 1), (5, 3), (6, 2), (3, 6), (4, 5), (7, 0)]
-        let graph = ReferencePseudograph(vertices: 0 ..< 8, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SplitMix64(state: 1)
-        let result = graph.leidenCommunities(resolution: 1.0, randomness: 0.01, iterations: 2, using: &generator)
-        #expect(result.map { Array($0) } == [[0, 7], [1, 4, 5], [2, 3, 6]])
-    }
-
     @Test("a community whose parts tie at gain 0 is split into its connected parts")
-    func case8() {
-        let pairs: [(Int, Int)] = [(2, 3), (1, 2), (2, 4), (0, 0)]
-        let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        var generator = SplitMix64(state: 2509441887)
-        let result = graph.leidenCommunities(resolution: 2.0, randomness: 0.01, using: &generator)
-        #expect(result.map { Array($0) } == [[0], [1, 2], [3], [4]])
+    func case7() {
+        let pairs: [(Int, Int)] = [(2, 0), (0, 1), (3, 0), (4, 0)]
+        let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+        var generator = SplitMix64(state: 105)
+        let result = graph.leidenCommunities(resolution: 1.0, randomness: 0.01, using: &generator)
+        #expect(result.map { Array($0) } == [[0, 1], [2], [3], [4], [5]])
     }
 
     @Test("iterations continue while one moves a vertex")
-    func case9() {
+    func case8() {
         let pairs: [(Int, Int)] = [(6, 2), (5, 4), (1, 6), (5, 1), (4, 1), (4, 5), (6, 6), (1, 1), (4, 1), (2, 0), (1, 8), (6, 1), (7, 6), (1, 3), (6, 0), (8, 4), (1, 8), (5, 5), (1, 7), (6, 1), (2, 3), (1, 8), (1, 1), (8, 6), (6, 1)]
         let graph = ReferencePseudograph(vertices: 0 ..< 9, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         var generator = SplitMix64(state: 3525521651)
         let result = graph.leidenCommunities(quality: .constantPottsModel, resolution: 1.0, randomness: 0.01, using: &generator)
-        #expect(result.map { Array($0) } == [[0], [1, 6, 8], [2, 3], [4, 5], [7]])
+        #expect(result.map { Array($0) } == [[0], [1, 6, 8], [2], [3], [4, 5], [7]])
     }
 
     @Test("a vertex keeps its own community on a tie")
-    func case10() {
+    func case9() {
         let pairs: [(Int, Int)] = [(5, 2), (6, 5), (6, 5), (5, 4), (0, 6), (3, 6), (1, 5), (0, 1), (0, 2), (3, 6), (1, 3), (4, 0), (4, 1), (0, 5)]
         let graph = ReferencePseudograph(vertices: 0 ..< 7, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         var generator = SplitMix64(state: 3423720279)
@@ -119,7 +110,7 @@ struct LeidenDrawTests {
     }
 
     @Test("density sums within 10⁻⁴ tie")
-    func case11() {
+    func case10() {
         let pairs: [(Int, Int)] = [(4, 4), (4, 4), (6, 1), (7, 5), (3, 7), (8, 6), (7, 0), (5, 0), (6, 5), (2, 7), (2, 1), (7, 2), (7, 3), (3, 4), (4, 2), (7, 6), (1, 3), (4, 4), (0, 3), (2, 7), (8, 1), (8, 7), (8, 5), (7, 1), (8, 3), (7, 4), (2, 0)]
         let graph = ReferencePseudograph(vertices: 0 ..< 9, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         var generator = SplitMix64(state: 2209942359)
@@ -128,7 +119,7 @@ struct LeidenDrawTests {
     }
 
     @Test("a community's density follows its size")
-    func case12() {
+    func case11() {
         let pairs: [(Int, Int)] = [(3, 1), (1, 0), (0, 1), (1, 1), (1, 2), (2, 1), (1, 1), (1, 3), (2, 0), (2, 3), (1, 1), (2, 0)]
         let graph = ReferencePseudograph(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         var generator = SplitMix64(state: 283564262)
@@ -137,7 +128,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 1")
-    func case13() {
+    func case12() {
         let pairs: [(Int, Int)] = [(0, 2), (0, 3), (3, 3), (3, 1), (0, 3), (0, 3), (3, 4), (0, 3), (2, 1), (4, 0), (2, 0), (0, 0), (4, 0), (3, 1)]
         let graph = ReferencePseudograph(vertices: 0 ..< 5, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         var generator = SplitMix64(state: 2374513802)
@@ -146,7 +137,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 2")
-    func case14() {
+    func case13() {
         let pairs: [(Int, Int)] = [(1, 3), (2, 0), (3, 4), (5, 0), (1, 5), (5, 2), (0, 5), (2, 5), (5, 4), (3, 4), (5, 1), (2, 2), (4, 3), (4, 3), (4, 0), (3, 1)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let w: [Double] = [1.0, 2.0, 2.0, 0.0, 3.0, 0.0, 1.0, 3.0, 2.0, 3.0, 0.0, 3.0, 0.0, 2.0, 3.0, 1.0]
@@ -156,7 +147,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 3")
-    func case15() {
+    func case14() {
         let pairs: [(Int, Int)] = [(5, 5), (7, 4), (8, 0), (6, 8), (2, 8), (8, 3), (6, 0), (7, 5), (8, 3), (8, 6), (7, 5), (6, 5), (0, 8), (8, 5), (7, 0), (3, 2), (8, 2), (1, 8), (4, 0), (1, 1), (0, 7), (0, 4), (3, 4), (1, 2), (5, 4)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [1.0, 2.0, 2.0, 3.0, 2.0, 3.0, 3.0, 0.0, 0.0, 2.0, 3.0, 2.0, 3.0, 1.0, 2.0, 0.0, 2.0, 1.0, 3.0, 0.0, 1.0, 0.0, 3.0, 1.0, 0.0]
@@ -166,17 +157,17 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 4")
-    func case16() {
+    func case15() {
         let pairs: [(Int, Int)] = [(8, 0), (6, 9), (5, 6), (0, 4), (2, 3), (0, 4), (1, 1), (4, 4), (2, 6), (9, 4), (2, 0), (8, 0), (9, 3), (9, 7), (2, 9), (8, 0), (6, 3)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 10, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [3.0, 1.0, 3.0, 0.0, 3.0, 2.0, 3.0, 0.0, 2.0, 3.0, 2.0, 0.0, 1.0, 1.0, 2.0, 1.0, 2.0]
         var generator = SplitMix64(state: 2352037997)
         let result = graph.leidenCommunities(weight: { w[$0] }, quality: .constantPottsModel, resolution: 0.5, randomness: 5.0, iterations: 2, using: &generator)
-        #expect(result.map { Array($0) } == [[0, 8], [1], [2, 3, 5, 6], [4, 9], [7]])
+        #expect(result.map { Array($0) } == [[0, 8], [1], [2, 3, 6], [4, 9], [5], [7]])
     }
 
     @Test("seeded case 5")
-    func case17() {
+    func case16() {
         let pairs: [(Int, Int)] = [(5, 0), (0, 1), (1, 1), (4, 1), (2, 2), (4, 4), (2, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [1.0, 3.0, 1.0, 0.0, 2.0, 0.0, 3.0]
@@ -186,7 +177,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 6")
-    func case18() {
+    func case17() {
         let pairs: [(Int, Int)] = [(1, 0), (2, 2), (2, 0), (3, 2), (0, 0), (2, 0), (0, 0), (3, 0), (0, 1), (1, 3), (1, 0), (3, 1)]
         let graph = ReferencePseudograph(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let w: [Double] = [0.0, 3.0, 3.0, 2.0, 2.0, 3.0, 2.0, 0.0, 1.0, 2.0, 0.0, 0.0]
@@ -196,17 +187,17 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 7")
-    func case19() {
+    func case18() {
         let pairs: [(Int, Int)] = [(6, 1), (1, 5), (7, 1), (4, 3), (8, 7), (5, 4), (2, 8), (3, 4), (3, 3), (5, 1), (4, 1), (7, 1), (5, 3), (6, 4), (0, 5), (2, 5), (4, 3), (5, 1), (8, 1)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [1.0, 3.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 3.0, 3.0, 1.0, 0.0, 2.0, 0.0, 1.0, 1.0, 1.0]
         var generator = SplitMix64(state: 1260527780)
         let result = graph.leidenCommunities(weight: { w[$0] }, resolution: 0.5, randomness: 0.5, using: &generator)
-        #expect(result.map { Array($0) } == [[0, 1, 2, 5, 6, 7, 8], [3, 4]])
+        #expect(result.map { Array($0) } == [[0, 1, 5, 6, 7, 8], [2], [3, 4]])
     }
 
     @Test("seeded case 8")
-    func case20() {
+    func case19() {
         let pairs: [(Int, Int)] = [(0, 2), (4, 4), (1, 1), (2, 3), (4, 1), (0, 1), (2, 0), (3, 3), (4, 2), (4, 3), (4, 3), (0, 3), (2, 1)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [3.0, 0.0, 0.0, 2.0, 1.0, 1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 1.0, 0.0]
@@ -216,17 +207,17 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 9")
-    func case21() {
+    func case20() {
         let pairs: [(Int, Int)] = [(2, 3), (5, 3), (1, 5), (3, 2), (4, 4), (5, 5), (2, 5), (1, 0), (0, 4)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let w: [Double] = [1.0, 2.0, 2.0, 2.0, 2.0, 1.0, 3.0, 0.0, 0.0]
         var generator = SplitMix64(state: 1620051826)
         let result = graph.leidenCommunities(weight: { w[$0] }, resolution: 2.0, randomness: 5.0, using: &generator)
-        #expect(result.map { Array($0) } == [[0, 4], [1, 5], [2, 3]])
+        #expect(result.map { Array($0) } == [[0], [1, 5], [2, 3], [4]])
     }
 
     @Test("seeded case 10")
-    func case22() {
+    func case21() {
         let pairs: [(Int, Int)] = [(1, 4), (5, 6), (6, 0), (3, 5), (3, 5), (5, 2), (3, 4), (6, 1), (4, 5), (0, 4), (0, 6), (2, 5), (0, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 7, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let w: [Double] = [1.0, 0.0, 3.0, 1.0, 3.0, 3.0, 3.0, 1.0, 2.0, 3.0, 1.0, 3.0, 1.0]
@@ -236,7 +227,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 11")
-    func case23() {
+    func case22() {
         let pairs: [(Int, Int)] = [(0, 3), (8, 7), (0, 0), (3, 4), (3, 2), (4, 2), (8, 3), (4, 4), (4, 7), (2, 8), (5, 7), (6, 1), (3, 6), (3, 4), (1, 0), (1, 0), (8, 4), (2, 1), (8, 5), (4, 6), (8, 5), (8, 5), (0, 1), (7, 7), (5, 4), (8, 6)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         var generator = SplitMix64(state: 3941974067)
@@ -245,7 +236,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 12")
-    func case24() {
+    func case23() {
         let pairs: [(Int, Int)] = [(0, 2), (5, 4), (5, 5), (5, 4), (1, 3), (4, 4), (3, 5), (5, 2), (5, 1), (3, 4), (5, 4), (1, 2), (4, 0), (5, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         var generator = SplitMix64(state: 290965683)
@@ -254,7 +245,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 13")
-    func case25() {
+    func case24() {
         let pairs: [(Int, Int)] = [(0, 3), (5, 5), (1, 5), (6, 3), (6, 2), (6, 1), (6, 0), (6, 6), (4, 0), (2, 2), (6, 5), (3, 6), (5, 4), (2, 1), (3, 6), (2, 3), (1, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 7, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let w: [Double] = [0.0, 3.0, 0.0, 2.0, 0.0, 3.0, 0.0, 1.0, 1.0, 0.0, 3.0, 2.0, 2.0, 1.0, 1.0, 1.0, 2.0]
@@ -264,7 +255,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 14")
-    func case26() {
+    func case25() {
         let pairs: [(Int, Int)] = [(4, 2), (2, 4), (1, 3), (4, 3), (1, 3), (2, 4), (2, 1), (2, 4), (1, 0)]
         let graph = ReferencePseudograph(vertices: 0 ..< 5, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         var generator = SplitMix64(state: 3373318657)
@@ -273,27 +264,27 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 15")
-    func case27() {
+    func case26() {
         let pairs: [(Int, Int)] = [(3, 1), (2, 3), (1, 1), (1, 3), (2, 2), (3, 1)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 4, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [2.0, 0.0, 0.0, 1.0, 3.0, 2.0]
         var generator = SplitMix64(state: 193190480)
         let result = graph.leidenCommunities(weight: { w[$0] }, quality: .constantPottsModel, resolution: 0.0, randomness: 0.01, using: &generator)
-        #expect(result.map { Array($0) } == [[0], [1, 2, 3]])
+        #expect(result.map { Array($0) } == [[0], [1, 3], [2]])
     }
 
     @Test("seeded case 16")
-    func case28() {
+    func case27() {
         let pairs: [(Int, Int)] = [(0, 3), (5, 4), (5, 4), (3, 2), (5, 2), (0, 4), (5, 1), (0, 1), (3, 1), (3, 3), (3, 1), (1, 1), (2, 3), (4, 4), (3, 1), (3, 5)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 3.0, 2.0, 3.0, 2.0, 1.0, 3.0, 1.0, 1.0, 0.0, 0.0]
         var generator = SplitMix64(state: 2425557485)
         let result = graph.leidenCommunities(weight: { w[$0] }, quality: .constantPottsModel, resolution: 2.0, randomness: 0.01, iterations: 1, using: &generator)
-        #expect(result.map { Array($0) } == [[0], [1, 3], [2], [4], [5]])
+        #expect(result.map { Array($0) } == [[0], [1], [2], [3], [4], [5]])
     }
 
     @Test("seeded case 17")
-    func case29() {
+    func case28() {
         let pairs: [(Int, Int)] = [(3, 2), (0, 0), (4, 0), (4, 1), (0, 2), (0, 3)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 5, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [1.0, 2.0, 1.0, 3.0, 3.0, 2.0]
@@ -303,7 +294,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 18")
-    func case30() {
+    func case29() {
         let pairs: [(Int, Int)] = [(2, 0), (1, 1), (2, 2), (2, 2), (2, 0), (1, 2), (1, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         var generator = SplitMix64(state: 310458346)
@@ -312,7 +303,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 19")
-    func case31() {
+    func case30() {
         let pairs: [(Int, Int)] = [(0, 1), (3, 0), (0, 0), (3, 2), (0, 2), (0, 1)]
         let graph = ReferencePseudograph(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let w: [Double] = [1.0, 3.0, 3.0, 0.0, 2.0, 0.0]
@@ -322,7 +313,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 20")
-    func case32() {
+    func case31() {
         let pairs: [(Int, Int)] = [(1, 1), (2, 0), (1, 1), (0, 2), (1, 0), (1, 0), (2, 2), (0, 1)]
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         var generator = SplitMix64(state: 449631239)
@@ -331,7 +322,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 21")
-    func case33() {
+    func case32() {
         let pairs: [(Int, Int)] = [(1, 2), (0, 0), (1, 1), (2, 1), (0, 1), (1, 0), (2, 0), (0, 1), (2, 2)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let w: [Double] = [2.0, 2.0, 2.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0]
@@ -341,17 +332,17 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 22")
-    func case34() {
+    func case33() {
         let pairs: [(Int, Int)] = [(0, 2), (0, 8), (7, 4), (3, 5), (5, 5), (6, 4), (7, 5), (8, 8), (2, 0), (2, 4), (3, 2)]
         let graph = ReferencePseudograph(vertices: 0 ..< 9, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let w: [Double] = [3.0, 0.0, 0.0, 2.0, 0.0, 1.0, 2.0, 0.0, 0.0, 0.0, 1.0]
         var generator = SplitMix64(state: 3701549135)
         let result = graph.leidenCommunities(weight: { w[$0] }, resolution: 0.2, randomness: 5.0, using: &generator)
-        #expect(result.map { Array($0) } == [[0, 2, 3, 5, 7, 8], [1], [4, 6]])
+        #expect(result.map { Array($0) } == [[0, 2, 3, 5, 7], [1], [4, 6], [8]])
     }
 
     @Test("seeded case 23")
-    func case35() {
+    func case34() {
         let pairs: [(Int, Int)] = [(4, 3), (3, 7), (3, 6), (7, 5), (3, 7), (1, 4), (6, 3), (0, 6), (7, 1), (6, 6), (0, 5), (7, 0), (3, 4), (0, 1), (4, 5), (4, 6), (6, 4), (7, 4), (2, 7), (2, 2), (4, 0), (6, 0), (5, 6)]
         let graph = ReferencePseudograph(vertices: 0 ..< 8, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         var generator = SplitMix64(state: 3973547619)
@@ -360,7 +351,7 @@ struct LeidenDrawTests {
     }
 
     @Test("seeded case 24")
-    func case36() {
+    func case35() {
         let pairs: [(Int, Int)] = [(7, 4), (5, 7), (5, 6), (7, 1), (7, 5), (2, 6), (2, 0), (2, 4), (5, 2), (4, 6), (4, 8), (4, 6), (4, 6), (5, 7), (3, 7), (6, 6), (1, 1)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         var generator = SplitMix64(state: 1087587724)

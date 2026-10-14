@@ -26,9 +26,8 @@ public enum QualityFunction: Hashable, Sendable {
 
 /// Leiden's move phase on one level (`MoveNodesFast`): a queue of every level vertex in shuffled
 /// order; each vertex popped moves to the community of greatest gain (a neighbor's, or an empty
-/// one), staying unless another gains more by more than rounding (a vertex alone in its community
-/// joins a neighbor's at a gain of 0), and a move queues the vertex's neighbors outside its new
-/// community that are not queued already. `community` holds a label in
+/// one), staying unless another gains more by more than rounding, and a move queues the vertex's
+/// neighbors outside its new community that are not queued already. `community` holds a label in
 /// `0 ..< k` per level vertex and is updated in place. Returns whether any vertex moved.
 ///
 /// The gain of moving v into C is E(v, C) − γ′ (a_v B_C + b_v A_C), E(v, C) the weight between v
@@ -115,15 +114,13 @@ func _leidenMove<R: RandomNumberGenerator>(_ rows: _LouvainRows, _ community: in
                                         chosen = -1
                                     }
                                 }
-                                // A vertex alone joins a neighbor's community on a tie.
-                                let alone = size[current] == 1
                                 for i in 0 ..< touchedCount {
                                     let c = touched[i]
                                     if c == current { continue }
                                     let link = weightTo[c], penalty = gamma * (av * totalB[c] + bv * totalA[c])
                                     let gain = link - penalty
                                     let tolerance = 4 * max(abs(link), abs(penalty), abs(bestLink), abs(bestPenalty)).ulp
-                                    if gain - best > tolerance || (alone && chosen == current && gain - best >= -tolerance) {
+                                    if gain - best > tolerance {
                                         best = gain
                                         bestLink = link
                                         bestPenalty = penalty
@@ -365,9 +362,8 @@ func _leiden<R: RandomNumberGenerator>(_ graph: _CommunityGraph, _ weights: [Dou
             community = nextCommunity
             for v in 0 ..< n { node[v] = group[node[v]] }
         }
-        // No move at any level leaves the partition as it was. A move raises the quality, or keeps
-        // it and joins a vertex alone to another community (one community fewer), so the partition
-        // changed and never comes back.
+        // No move at any level leaves the partition as it was; a move raises the quality, so the
+        // partition changed.
         guard moved else { break }
         membership = (0 ..< n).map { community[node[$0]] }
     }
@@ -464,16 +460,16 @@ extension Graph {
     }
 
     /// Leiden communities (Traag, Waltman and van Eck 2019), maximizing `quality`. Each level moves
-    /// vertices from a queue (shuffled by `generator`) to the community of greatest gain (a vertex
-    /// alone in its community joins a neighbor's on a tie at gain 0), refines each community from
-    /// singletons by merging well-connected vertices at random (a merge of gain ΔH ≥ 0 drawn with
-    /// probability proportional to exp(ΔH / `randomness`), ΔH in units of edge weight: m times the
-    /// modularity gain, or the constant Potts model's gain), and aggregates the refined communities
-    /// into vertices. Iterations start from the last partition and repeat until one changes nothing
-    /// (which leaves no vertex that gains by moving alone), or `iterations` of them have run. Every
-    /// community is connected: refined communities grow only along edges, and each community is
-    /// finally split into its connected parts, which never lowers the quality. Parallel edges add;
-    /// a self-loop counts in degrees (modularity) or inside its community, and never moves a vertex.
+    /// vertices from a queue (shuffled by `generator`) to the community of greatest gain, refines
+    /// each community from singletons by merging well-connected vertices at random (a merge of gain
+    /// ΔH ≥ 0 drawn with probability proportional to exp(ΔH / `randomness`), ΔH in units of edge
+    /// weight: m times the modularity gain, or the constant Potts model's gain), and aggregates the
+    /// refined communities into vertices. Iterations start from the last partition and repeat until
+    /// one changes nothing (which leaves no vertex that gains by moving alone), or `iterations` of
+    /// them have run. Every community is connected: refined communities grow only along edges, and
+    /// each community is finally split into its connected parts, which never lowers the quality.
+    /// Parallel edges add; a self-loop counts in degrees (modularity) or
+    /// inside its community, and never moves a vertex.
     ///
     /// - Parameters:
     ///   - quality: what to maximize; modularity by default.

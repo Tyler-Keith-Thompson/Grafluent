@@ -165,8 +165,7 @@ def move(rows, com, a, b, gamma, g, M):
             link, pen = to[c], gamma * (av * B[c] + bv * A[c])
             gain = link - pen
             tol = 4 * ulp(max(abs(link), abs(pen), abs(bestLink), abs(bestPen)))
-            # A vertex alone joins a neighbor's community on a tie.
-            if gain - best > tol or (not M.get("notie") and size[cur] == 1 and chosen == cur and gain - best >= -tol):
+            if gain - best > tol:
                 best, bestLink, bestPen, chosen = gain, link, pen, c
         if chosen == cur:
             continue
@@ -459,8 +458,7 @@ PINNED = [
     ("a refinement that merges nothing aggregates by the communities instead", "leiden", dict(n=7, ends=[(6, 0), (0, 4), (0, 2), (0, 1), (2, 1), (0, 3), (2, 0)], directed=False, w=None, potts=False, res=1.0, theta=5.0, seed=1204001940, it=2)),
     ("the refinement never merges at a negative gain", "leiden", dict(n=8, ends=[(5, 3), (5, 7), (3, 2), (0, 5), (4, 3), (4, 3), (4, 7), (4, 0), (2, 6), (1, 4), (7, 3), (4, 3), (5, 4), (4, 1), (0, 1)], directed=False, w=None, potts=False, res=1.0, theta=5.0, seed=2375950889, it=2)),
     ("a refined community's weight to the rest of its community follows its merges", "leiden", dict(n=7, ends=[(0, 1), (4, 0), (0, 0), (0, 0), (0, 2), (5, 3), (3, 5), (1, 3), (2, 2), (6, 4), (5, 0)], directed=False, w=[3.0, 2.0, 0.0, 2.0, 2.0, 2.0, 3.0, 2.0, 1.0, 1.0, 3.0], potts=False, res=1.0, theta=5.0, seed=1394153924, it=2)),
-    ("a vertex alone joins a neighbor's community on a tie, and a later iteration moves on from there", "leiden", dict(n=8, ends=[(4, 1), (5, 3), (6, 2), (3, 6), (4, 5), (7, 0)], directed=False, w=None, potts=False, res=1.0, theta=0.01, seed=1, it=2)),
-    ("a community whose parts tie at gain 0 is split into its connected parts", "leiden", dict(n=5, ends=[(2, 3), (1, 2), (2, 4), (0, 0)], directed=True, w=None, potts=False, res=2.0, theta=0.01, seed=2509441887, it=None)),
+    ("a community whose parts tie at gain 0 is split into its connected parts", "leiden", dict(n=6, ends=[(2, 0), (0, 1), (3, 0), (4, 0)], directed=True, w=None, potts=False, res=1.0, theta=0.01, seed=105, it=None)),
     ("iterations continue while one moves a vertex", "leiden", dict(n=9, ends=[(6, 2), (5, 4), (1, 6), (5, 1), (4, 1), (4, 5), (6, 6), (1, 1), (4, 1), (2, 0), (1, 8), (6, 1), (7, 6), (1, 3), (6, 0), (8, 4), (1, 8), (5, 5), (1, 7), (6, 1), (2, 3), (1, 8), (1, 1), (8, 6), (6, 1)], directed=False, w=None, potts=True, res=1.0, theta=0.01, seed=3525521651, it=None)),
     ("a vertex keeps its own community on a tie", "fluid", dict(n=7, ends=[(5, 2), (6, 5), (6, 5), (5, 4), (0, 6), (3, 6), (1, 5), (0, 1), (0, 2), (3, 6), (1, 3), (4, 0), (4, 1), (0, 5)], k=7, seed=3423720279)),
     ("density sums within 10⁻⁴ tie", "fluid", dict(n=9, ends=[(4, 4), (4, 4), (6, 1), (7, 5), (3, 7), (8, 6), (7, 0), (5, 0), (6, 5), (2, 7), (2, 1), (7, 2), (7, 3), (3, 4), (4, 2), (7, 6), (1, 3), (4, 4), (0, 3), (2, 7), (8, 1), (8, 7), (8, 5), (7, 1), (8, 3), (7, 4), (2, 0)], k=2, seed=2209942359)),
