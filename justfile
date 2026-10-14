@@ -62,6 +62,10 @@ docs:
     rm -rf {{PROJECT_ROOT}}/.build/docs && mkdir -p {{PROJECT_ROOT}}/.build
     cp -RL {{PROJECT_ROOT}}/bazel-bin/docs {{PROJECT_ROOT}}/.build/docs && chmod -R u+w {{PROJECT_ROOT}}/.build/docs
 
+[doc('Build the browser explorer (Explore/) as size-optimized release WebAssembly into Explore/dist')]
+explore:
+    {{PROJECT_ROOT}}/Explore/build.sh
+
 [doc('Fuzz with libFuzzer, time-boxed, e.g. just fuzz, or just fuzz FuzzShortestPaths -t 600')]
 fuzz *args="":
     python3 {{PROJECT_ROOT}}/scripts/fuzz.py run {{args}}

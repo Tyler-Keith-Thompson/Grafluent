@@ -16,6 +16,7 @@ Tests/Catalogs/<Module>/       Case catalogs, reference models and test generato
 Benchmarks/                    Separate SwiftPM package (ordo-one/benchmark); Bazel ignores it
 Differential/                  Differential-testing harness, driven by scripts/differential.py
 Fuzz/                          libFuzzer targets, driven by scripts/fuzz.py
+Explore/                       Browser explorer: Grafluent as WebAssembly with ElementaryUI (`just explore`)
 scripts/modules.py             The module graph
 scripts/mutants/<Module>.py    Hand-written mutants for `just mutate`
 tools/                         Bazel rule wrappers (warnings as errors, Swift 6 mode), DocC rules
@@ -56,6 +57,7 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 | `just fuzz [Target] [-t secs]` | Time-boxed libFuzzer runs; `just fuzz-regress` replays corpora |
 | `just diff [--module X]` | Differential tests against NetworkX, scipy, rustworkx and igraph |
 | `just bench [--target X]` | Benchmarks; `just bench-compare` against the `main` baseline |
+| `just explore` | The browser explorer as release WebAssembly into `Explore/dist/` |
 | `just docs` | Combined DocC site into `.build/docs` |
 | `bazel query 'rdeps(//Tests/..., //Sources/X)'` | Test targets affected by a change to X |
 

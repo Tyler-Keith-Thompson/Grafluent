@@ -155,6 +155,7 @@ SwiftPM builds the same targets.
 | `just verify` | Run the tests with both Bazel and SwiftPM |
 | `just docs` | Build the DocC site into `.build/docs` |
 | `just bench` | Run the benchmarks in `Benchmarks/` |
+| `just explore` | Build the browser explorer in `Explore/` as WebAssembly |
 
 `Package.swift` and every `BUILD.bazel` are generated from `scripts/modules.py`. Edit the module
 table there and run `just modules`.

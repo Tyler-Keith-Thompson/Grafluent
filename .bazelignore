@@ -16,7 +16,8 @@ bazel-testlogs
 # The benchmark package is SwiftPM-only.
 Benchmarks
 
-# The differential and fuzz packages build with SwiftPM too.
+# The explorer, differential and fuzz packages build with SwiftPM too.
+Explore
 Differential/.build
 Fuzz/.build
 

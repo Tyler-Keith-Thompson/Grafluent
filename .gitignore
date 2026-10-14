@@ -31,6 +31,9 @@ xcuserdata/
 /Fuzz/Crashes/
 /Differential/Failures/
 
+# The explorer's build output (just explore).
+/Explore/dist/
+
 # Python
 __pycache__/
 
