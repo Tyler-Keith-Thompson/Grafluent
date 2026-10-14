@@ -13,6 +13,7 @@
 #   firstappear             missing a new endpoint falls back to hashing: slower, the same answer.
 #   algobspine              Algorithm B's links are labels of non-root vertices, never 1.
 #   huffmanorder            the standard library's sort keeps equal weights in offset order anyway.
+#   prefixrange             the array read past the end traps as the precondition does.
 #   parentskip              skipping the parent vertex instead of its edge still finds a parallel
 #                           pair, from the parent's row.
 
@@ -155,4 +156,16 @@ MUTANTS += [
     Mutant("huffmanedges", B, "ends[2 * e + 1] = children[2 * t]", "ends[2 * e + 1] = children[2 * t + 1]", mode="stmt"),
     Mutant("huffmansides", B, "for v in n ..< count { sides[v] = 3 }", "for v in n ..< count { sides[v] = 1 }", mode="stmt"),
     Mutant("binarytruncate", B, "for t in stack.reversed() where t == -1 { text += \")\" }", "", mode="stmt"),
+]
+
+# Prefix trees
+P = "PrefixTree.swift"
+MUTANTS += [
+    Mutant("prefixfollow", P, "v = w", "v = 0", mode="stmt", nth=0),
+    Mutant("prefixnew", P, "child[key] = w", "child[_PrefixTreeKey(0, symbol)] = w", mode="stmt"),
+    Mutant("prefixend", P, "for v in ends { isEnd[v] = true }", "for v in ends.dropLast() { isEnd[v] = true }", mode="stmt"),
+    Mutant("prefixrange", P, "position < _symbols.count", "position <= _symbols.count", nth=0),
+    Mutant("prefixcheckedrange", P, "guard position >= 0 && position < _symbols.count else { throw EdgeNotFound() }", "guard position < _symbols.count else { throw EdgeNotFound() }", mode="stmt"),
+    Mutant("prefixendrange", P, "guard vertex >= 0 && vertex < _isEnd.count else { throw VertexNotFound() }", "guard vertex < _isEnd.count else { throw VertexNotFound() }", mode="stmt"),
+    Mutant("prefixequal", P, "lhs.sequenceEnds == rhs.sequenceEnds", "true"),
 ]

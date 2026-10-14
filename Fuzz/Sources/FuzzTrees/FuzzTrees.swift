@@ -13,7 +13,8 @@
 // its vertices numbered in postorder it is equal, and swapping two siblings makes it unequal. A
 // binary tree grown from 0 (each vertex's first even-position arc its left child, first odd one its
 // right) exists exactly when no vertex is reached twice, and its traversals agree with a walk; the
-// Huffman tree of the edge endpoints as weights has the greedy merge cost.
+// Huffman tree of the edge endpoints as weights has the greedy merge cost. The prefix tree of each
+// vertex's arc targets has one vertex per distinct prefix, and each word's end spells it.
 
 import AdjacencyListModule
 import FuzzSupport
@@ -317,6 +318,27 @@ enum FuzzTrees {
         check(cost == merges && huffman.vertexCount == 2 * weights.count - 1, "Huffman cost \(cost), greedy \(merges)")
     }
 
+    /// The prefix tree of each vertex's arc targets, against the prefixes themselves.
+    static func checkPrefixTree(_ n: Int, _ edges: [(Int, Int)]) {
+        var words = [[Int]](repeating: [], count: n)
+        for (a, b) in edges { words[a].append(b) }
+        let trie = prefixTree(of: words)
+        let tree = trie.arborescence
+        var prefixes = Set<[Int]>()
+        for word in words { for k in 0 ... word.count { prefixes.insert(Array(word.prefix(k))) } }
+        check(tree.vertexCount == prefixes.count, "prefix tree has \(tree.vertexCount) vertices, \(prefixes.count) prefixes")
+        var spelled = [[Int]](repeating: [], count: tree.vertexCount)
+        for v in 1 ..< max(tree.vertexCount, 1) {
+            let p = tree.parent(of: v)!
+            check(p < v && tree.parentEdge(of: v) == v - 1, "prefix tree numbering at \(v)")
+            spelled[v] = spelled[p] + [trie.symbol(ofEdgeAt: v - 1)]
+        }
+        check(Set(spelled) == prefixes, "prefix tree prefixes")
+        for (i, word) in words.enumerated() { check(spelled[trie.sequenceEnds[i]] == word, "prefix tree end of word \(i)") }
+        let wordSet = Set(words)
+        for v in 0 ..< tree.vertexCount { check(trie.isSequenceEnd(v) == wordSet.contains(spelled[v]), "isSequenceEnd(\(v))") }
+    }
+
     static func fuzz(_ input: inout FuzzInput) {
         let n = input.int(in: 1 ... 9)
         let directedFlips = input.int(below: 4)
@@ -325,6 +347,7 @@ enum FuzzTrees {
         let (labels, cyclic) = components(n, edges)
         checkOrdered(n, edges)
         checkBinary(n, edges)
+        checkPrefixTree(n, edges)
         let componentCount = Set(labels).count
         let undirected = edges.map { UndirectedEdge($0.0, $0.1) }
         let isTree = !cyclic && componentCount == 1

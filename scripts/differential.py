@@ -921,6 +921,17 @@ def compare_trees(case, mine, G):
             if mine.get("preorder") != order:
                 problems.append(f"arborescence preorder {mine.get('preorder')}, NetworkX {order}")
         return problems
+    words = mine.get("prefixWords") or []
+    T = nx.prefix_tree(words)
+    spelled = {0: ()}
+    for u, v in nx.bfs_edges(T, 0):
+        if v != -1:
+            spelled[v] = spelled[u] + (T.nodes[v]["source"],)
+    ends = {spelled[u] for u in T.predecessors(-1)} if -1 in T else set()
+    if sorted(map(tuple, mine.get("prefixes") or [])) != sorted(spelled.values()):
+        problems.append(f"prefixTree prefixes {mine.get('prefixes')}, NetworkX {sorted(spelled.values())}")
+    if {tuple(e) for e in mine.get("prefixEnds") or []} != ends or [tuple(e) for e in mine.get("prefixEnds") or []] != [tuple(w) for w in words]:
+        problems.append(f"prefixTree ends {mine.get('prefixEnds')}, NetworkX {sorted(ends)}")
     is_tree = nx.is_tree(G) if n > 0 else False
     is_forest = nx.is_forest(G) if n > 0 else True
     if mine["isTree"] != is_tree or mine["tree"] != is_tree:

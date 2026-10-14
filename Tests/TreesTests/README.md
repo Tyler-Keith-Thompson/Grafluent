@@ -67,6 +67,13 @@ struct BinaryTree<Vertex: Hashable>                                  // not a Gr
 extension OrderedTree { init(_ tree: BinaryTree<Vertex>) }           // O(1), left child first
 extension Arborescence { init(_ tree: BinaryTree<Vertex>) }          // O(1)
 
+func prefixTree<S>(of sequences: S) -> PrefixTree<S.Element.Element>   // one vertex per distinct prefix, root 0
+struct PrefixTree<Symbol: Hashable>
+    let arborescence: Arborescence<Int>                              // vertices by first meeting; edge into v at v − 1
+    let sequenceEnds: [Int]                                          // per sequence, in input order
+    symbol(ofEdgeAt:), isSequenceEnd(_:)                             // trap off the tree
+    symbol(checkedEdgeAt:) throws(EdgeNotFound), isSequenceEnd(checked:) throws(VertexNotFound)
+
 struct Forest<Vertex: Hashable>: Graph
     init(), init?(_ graph:), init?(edges:), init?(vertices:edges:), init(_ tree: Tree<Vertex>)
     var trees: Trees                                                 // RandomAccessCollection<Tree<Vertex>>, by least vertex

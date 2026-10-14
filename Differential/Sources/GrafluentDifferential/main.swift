@@ -181,6 +181,11 @@ struct TreeAnswers: Encodable {
     var diameter: Int?
     var weightedDiameter: Int?
     var diameterPath: [Int]?
+    /// The prefix tree of every vertex's neighbor list: the words, each vertex's prefix, and the
+    /// prefix at each word's end.
+    var prefixWords: [[Int]]?
+    var prefixes: [[Int]]?
+    var prefixEnds: [[Int]]?
     /// lowestCommonAncestors[u][v] from the first source, by LowestCommonAncestors; checked
     /// against the one-shot query and HLD inside, flagged in `lcaAgree`.
     var lowestCommonAncestors: [[Int]]?
@@ -1017,6 +1022,13 @@ for c in cases {
         if wants("trees") {
             var trees = TreeAnswers()
             trees.isTree = graph.isTree
+            let words = (0 ..< c.n).map { Array(graph.neighbors(of: $0)) }
+            let trie = prefixTree(of: words)
+            var spelled = [[Int]](repeating: [], count: trie.arborescence.vertexCount)
+            for v in 1 ..< max(spelled.count, 1) { spelled[v] = spelled[trie.arborescence.parent(of: v)!] + [trie.symbol(ofEdgeAt: v - 1)] }
+            trees.prefixWords = words
+            trees.prefixes = spelled
+            trees.prefixEnds = trie.sequenceEnds.map { spelled[$0] }
             if let forest = Forest(graph) {
                 trees.forest = true
                 trees.forestTrees = forest.trees.map { $0.vertices.sorted() }

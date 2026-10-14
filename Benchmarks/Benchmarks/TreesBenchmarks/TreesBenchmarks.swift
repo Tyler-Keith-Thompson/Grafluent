@@ -193,4 +193,32 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Trees: BinaryTree.inorder, 2·10⁶ − 1 vertices") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(huffmanTree.inorder) }
     }
+    // Prefix trees: 10⁵ words of 1 … 12 symbols over 4 letters, against a hand-written trie of
+    // (parent, symbol) keys in one dictionary.
+    let prefixWords: [[UInt8]] = (0 ..< 100_000).map { i in
+        let h = UInt64(i) &* 0x9E37_79B9_7F4A_7C15
+        return (0 ..< Int(h >> 60) % 12 + 1).map { UInt8((h >> UInt64(2 * $0)) & 3) }
+    }
+    struct TrieKey: Hashable { let parent: Int, symbol: UInt8 }
+    Benchmark("Trees: BASELINE hand-written trie by dictionary, 10⁵ words") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var child: [TrieKey: Int] = [:], parents = [-1], ends: [Int] = []
+            for word in prefixWords {
+                var v = 0
+                for symbol in word {
+                    let key = TrieKey(parent: v, symbol: symbol)
+                    if let w = child[key] { v = w } else {
+                        child[key] = parents.count
+                        parents.append(v)
+                        v = parents.count - 1
+                    }
+                }
+                ends.append(v)
+            }
+            blackHole((parents, ends))
+        }
+    }
+    Benchmark("Trees: prefixTree(of:), 10⁵ words") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(prefixTree(of: prefixWords)) }
+    }
 }

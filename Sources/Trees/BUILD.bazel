@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Tree, RootedTree, Forest, Arborescence, OrderedTree and BinaryTree (every binary tree, Huffman trees).
+# Tree, RootedTree, Forest, Arborescence, OrderedTree and BinaryTree (every binary tree, Huffman trees); prefix trees.
 swift_library(
     name = "Trees",
     srcs = glob(["**/*.swift"]),
