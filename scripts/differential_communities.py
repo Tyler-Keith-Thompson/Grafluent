@@ -20,6 +20,10 @@ Differential/Sources/GrafluentDifferential/CommunityExtras.swift).
   how often the partitions differ at equal modularity, and how often igraph's community_walktrap
   differs (its merges use stale Δσ values for communities next to only one of the merged pair, so
   its dendrogram can differ), are counted.
+* Infomap (10 trials, unweighted and |w|): a partition whose reported codeLength equals the map
+  equation by its definition (`code_length`), and, on cases without self-loops (igraph counts a
+  self-loop's flow differently), no longer than igraph's community_infomap code length by more
+  than INFOMAP_SLACK relative; the exact partitions are not compared.
 * Spectral clustering: `planted_partition_case(case)` derives a planted partition from the case alone
   (a stable hash seeds it): 2 to 4 blocks of 10 to 40 vertices, each pair inside a block an edge
   with probability 0.7 and across blocks 0.002, vertices shuffled, redrawn until every vertex has at
@@ -28,6 +32,7 @@ Differential/Sources/GrafluentDifferential/CommunityExtras.swift).
 """
 
 import json
+import math
 import random
 import zlib
 
@@ -37,7 +42,10 @@ import numpy as np
 
 # Both are heuristics: a local optimum a little below every reference run is not a disagreement.
 LEIDEN_SLACK = 0.005
-COVERED = {"leiden": 0, "leiden best below the reference's best": 0, "leiden best above the reference's best": 0, "kernighan-lin": 0, "k-clique": 0, "walktrap": 0, "walktrap partitions differ": 0, "walktrap modularity differs from igraph's": 0, "walktrap near ties (not compared)": 0, "spectral clusterings": 0}
+# Both Infomaps are randomized greedy searches that can stop in different local optima (on small
+# trees the gap reaches about 5%): the library's code length may exceed igraph's by this, relative.
+INFOMAP_SLACK = 0.06
+COVERED = {"infomap": 0, "infomap longer than igraph's": 0, "infomap shorter than igraph's": 0, "leiden": 0, "leiden best below the reference's best": 0, "leiden best above the reference's best": 0, "kernighan-lin": 0, "k-clique": 0, "walktrap": 0, "walktrap partitions differ": 0, "walktrap modularity differs from igraph's": 0, "walktrap near ties (not compared)": 0, "spectral clusterings": 0}
 
 
 def planted_partition_case(case):
@@ -220,6 +228,28 @@ def node_optimal(n, directed, ends, w, labels, potts, gamma):
     return None
 
 
+def code_length(n, ends, w, labels):
+    """The two-level map equation over the edges: flow d/2W at each vertex, w/2W along each edge
+    each way, a self-loop twice in its vertex's degree and never leaving a module."""
+    total = sum(w)
+    if total == 0:
+        return 0.0
+    f = lambda x: x * math.log2(x) if x > 0 else 0.0
+    p = [0.0] * n
+    q = {}
+    size = {}
+    for (u, v), x in zip(ends, w):
+        p[u] += x / (2 * total)
+        p[v] += x / (2 * total)
+        if labels[u] != labels[v]:
+            q[labels[u]] = q.get(labels[u], 0.0) + x / (2 * total)
+            q[labels[v]] = q.get(labels[v], 0.0) + x / (2 * total)
+    for a in range(n):
+        size[labels[a]] = size.get(labels[a], 0.0) + p[a]
+    return (f(sum(q.values())) - 2 * sum(f(x) for x in q.values()) - sum(f(x) for x in p)
+            + sum(f(q.get(c, 0.0) + size[c]) for c in size))
+
+
 def compare_community_extras(case, mine, problems):
     n, directed = case["n"], case["directed"]
     ends = [(u, v) for u, v, _ in case["edges"]]
@@ -285,6 +315,32 @@ def compare_community_extras(case, mine, problems):
             COVERED["leiden best above the reference's best"] += 1
     if directed:
         return
+    for key, w in [("infomap", unit), ("weightedInfomap", absw)]:
+        labels = mine.get(key)
+        if labels is None:
+            problems.append(f"{key}: no answer")
+            continue
+        if sorted(set(labels)) != list(range(len(set(labels)))) or len(labels) != n:
+            problems.append(f"{key}: not a partition: {labels}")
+            continue
+        ours = mine[key + "CodeLength"]
+        length = code_length(n, ends, w, labels)
+        if abs(ours - length) > 1e-9:
+            problems.append(f"{key} codeLength: library {ours}, definition {length}")
+        # igraph counts a self-loop's flow differently, so code lengths are compared without them.
+        if sum(w) == 0 or any(u == v for u, v in ends):
+            continue
+        COVERED["infomap"] += 1
+        G = igraph.Graph(n=n, edges=ends)
+        igraph.set_random_number_generator(random.Random(n))
+        theirs = G.community_infomap(edge_weights=w, trials=10).codelength
+        igraph.set_random_number_generator(random)
+        if ours > theirs + INFOMAP_SLACK * max(1.0, theirs):
+            problems.append(f"{key}: code length {ours}, igraph's {theirs}, longer by more than {INFOMAP_SLACK} relative")
+        if ours > theirs + 1e-9:
+            COVERED["infomap longer than igraph's"] += 1
+        elif ours < theirs - 1e-9:
+            COVERED["infomap shorter than igraph's"] += 1
     loopless = [(u, v) for u, v in ends if u != v]
     if n >= 2:
         for key, weighted in [("kernighanLin", False), ("weightedKernighanLin", True)]:

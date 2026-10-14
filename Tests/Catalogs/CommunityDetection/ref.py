@@ -35,7 +35,9 @@ numbers in `vertices` order, edge numbers in position order, rows in `incidentEd
   eigenvectors (numpy eigh) and the labeling of least inertia over every labeling into k clusters
   (brute force, a unique least asserted). It is checked against Lloyd's iteration started from
   every k-subset of the rows, the least inertia kept. Rows pass `using: rng(1)`: the generator
-  draws only the k-means++ seeds, and the least labeling is what the 10 seeded runs reach.
+  draws only the k-means++ seeds, and the least labeling is what the 10 seeded runs reach;
+* the map equation's code length: the model's L(M) = f(Σ q_i) − 2 Σ f(q_i) − Σ f(p_v) +
+  Σ f(q_i + p_i), checked against the entropy form q H(Q) + Σ_i p_i⟳ H(P_i).
 """
 
 import inspect
@@ -256,6 +258,57 @@ def weights_of(g, w):
         if not finite(x) or x < 0:
             raise Trap()
     return [float(x) for x in w]
+
+
+def code_length_model(g, w, labels):
+    """The two-level map equation (api.md): flow d_v / 2W at each vertex and w / 2W along each edge
+    each way, a loop twice in its vertex's degree and never leaving a module; 0 when W = 0."""
+    total = sum(w)
+    if total == 0:
+        return 0.0
+    f = lambda x: x * math.log2(x) if x > 0 else 0.0
+    n = len(g.vertices)
+    p = [0.0] * n
+    q = {}
+    for e, (x, y) in enumerate(g.ends):
+        p[x] += w[e] / (2 * total)
+        p[y] += w[e] / (2 * total)
+        if labels[x] != labels[y]:
+            q[labels[x]] = q.get(labels[x], 0.0) + w[e] / (2 * total)
+            q[labels[y]] = q.get(labels[y], 0.0) + w[e] / (2 * total)
+    size = {}
+    for v in range(n):
+        size[labels[v]] = size.get(labels[v], 0.0) + p[v]
+    exits = sum(q.values())
+    return f(exits) - 2 * sum(f(x) for x in q.values()) - sum(f(x) for x in p) + sum(f(q.get(c, 0.0) + size[c]) for c in size)
+
+
+def code_length_by_entropies(g, w, labels):
+    """The same code length as q H(Q) + Σ_i p_i⟳ H(P_i), the index codebook's entropy weighted by
+    the exit rate plus each module codebook's (its exits and its vertices) weighted by its use."""
+    total = sum(w)
+    if total == 0:
+        return 0.0
+    n = len(g.vertices)
+    p = [0.0] * n
+    q = {}
+    for e, (x, y) in enumerate(g.ends):
+        p[x] += w[e] / (2 * total)
+        p[y] += w[e] / (2 * total)
+        if labels[x] != labels[y]:
+            q[labels[x]] = q.get(labels[x], 0.0) + w[e] / (2 * total)
+            q[labels[y]] = q.get(labels[y], 0.0) + w[e] / (2 * total)
+
+    def entropy(xs):
+        t = sum(xs)
+        return -sum(x / t * math.log2(x / t) for x in xs if x > 0) if t > 0 else 0.0
+    exits = sum(q.values())
+    length = exits * entropy(list(q.values()))
+    for c in set(labels):
+        members = [p[v] for v in range(n) if labels[v] == c]
+        use = q.get(c, 0.0) + sum(members)
+        length += use * entropy([q.get(c, 0.0)] + members)
+    return length
 
 
 def check_resolution(r):
@@ -1345,6 +1398,9 @@ def run(g, name, a, rng=None):
     if name == "girvanNewmanCommunities":
         levels, _ = girvan_newman_model(g)
         return ("part", levels[int(a["level"])])
+    if name == "codeLength":
+        w = weights_of(g, w)
+        return ("num", code_length_model(g, w, labels_of_partition(g, parse_partition(a["of"]))))
     if name == "constantPottsModel":
         w = weights_of(g, w)
         check_resolution(gamma)
@@ -1511,6 +1567,11 @@ def independent(g, name, a, part, arg, kind, val, tol):
                     break
             if got is None or not same_partition(nx_labels(n, list(got)), val):
                 probs.append(f"NetworkX girvan_newman level {k}: {got}")
+    elif name == "codeLength":
+        labels = labels_of_partition(g, parse_partition(a["of"]))
+        entropies = code_length_by_entropies(g, w, labels)
+        if abs(entropies - val) > max(tol, 1e-9):
+            probs.append(f"by entropies {entropies} != {val}")
     elif name == "constantPottsModel":
         labels = labels_of_partition(g, parse_partition(a["of"]))
         comms = canonical(labels)

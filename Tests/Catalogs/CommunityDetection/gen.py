@@ -305,6 +305,25 @@ S["K. Spectral clustering"] = [
     ("`U: P(0,1,2)`", "spectralClustering(clusterCount: 0, using: rng(1))", "exact", "clusterCount < 1"),
 ]
 
+IGRAPH_INFOMAP = [[0, 1, 2, 3, 7, 9, 11, 12, 13, 17, 19, 21], [4, 5, 6, 10, 16], [8, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]]
+
+S["L. The map equation"] = [
+    (TRI, "codeLength(of: [[0, 1, 2], [3, 4, 5]])", "exact", "igraph `community_infomap` finds it, codelength 2.3207303568"),
+    (TRI, "codeLength(of: [[0, 1, 2, 3, 4, 5]])", "exact", "One module: the entropy of the vertex flows"),
+    (TRI, "codeLength(of: [[0], [1], [2], [3], [4], [5]])", "exact", "Singletons"),
+    (KAR, f"codeLength(of: {L(IGRAPH_INFOMAP)})", "exact", "igraph `community_infomap`'s partition, codelength 4.3117926458"),
+    (KAR, f"codeLength(of: {CLUB})", "exact", "The club's split"),
+    (KAR, f"codeLength(of: {CLUB}, weight: {KW})", "exact", "Weighted: flows by weight"),
+    ("`U: 0-0, 1-1`", "codeLength(of: [[0], [1]])", "exact", "Loops never leave a module: 0"),
+    ("`U: 0-0, 1-1`", "codeLength(of: [[0, 1]])", "exact", "One module of two equal flows: 1 bit"),
+    ("`U: 0-1, 0-1, 1-2`", "codeLength(of: [[0, 1], [2]])", "exact", "Parallel edges add"),
+    ("`U: [0..2]`", "codeLength(of: [[0, 1, 2]])", "exact", "No edges: 0"),
+    ("`U: []`", "codeLength(of: [])", "exact", ""),
+    ("`U: P(0,1,2)`", "codeLength(of: [[0, 1, 2]], weight: [0, 0])", "exact", "Total weight 0: 0"),
+    ("`U: P(0,1,2)`", "codeLength(of: [[0, 1], [1, 2]])", "exact", "A vertex listed twice"),
+    ("`U: P(0,1,2)`", "codeLength(of: [[0, 1, 2]], weight: [1, -1])", "exact", "A negative weight"),
+]
+
 out = [Path(__file__).with_name("cases.head.md").read_text().rstrip("\n"), ""]
 i = 0
 for sec, rows in S.items():

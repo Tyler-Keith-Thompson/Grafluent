@@ -1,11 +1,11 @@
-# CommunityDetection: case catalog (CD-001 – CD-248, 248 cases)
+# CommunityDetection: case catalog (CD-001 – CD-262, 262 cases)
 
 Cases for the CommunityDetection module (api.md): `modularity(of:)`, `partitionQuality(of:)`,
 `louvainCommunities()`, `greedyModularityCommunities()`, `labelPropagationCommunities()`,
 `asynchronousLabelPropagationCommunities()`, `girvanNewmanCommunities()`, `constantPottsModel(of:)`,
 `leidenCommunities()`, `louvainPartitions()`, `kernighanLinBisection(startingFrom:)`,
-`kCliqueCommunities(_:)`, `walktrapCommunities()`, `leadingEigenvectorCommunities()` and
-`spectralClustering(clusterCount:)`, on `Graph` and
+`kCliqueCommunities(_:)`, `walktrapCommunities()`, `leadingEigenvectorCommunities()`,
+`spectralClustering(clusterCount:)` and `codeLength(of:)`, on `Graph` and
 (modularity, quality, Louvain, greedy, the constant Potts model, Leiden) `DirectedGraph`, unweighted and weighted. Every Expected cell is recomputed by `ref.py`'s model of
 api.md and checked independently (its docstring lists how): `uv run --quiet --no-project --with
 networkx==3.7 --with scipy==1.18.1 --with igraph==1.0.0 python3 ref.py` prints "all values agree". `gen.py` writes the

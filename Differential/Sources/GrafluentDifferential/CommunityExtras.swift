@@ -44,6 +44,11 @@ struct CommunityExtras: Encodable {
     var walktrapModularity: Double?
     /// With a planted partition: the spectral clustering's community per vertex; nil when it threw.
     var spectralClusters: [Int]?
+    /// Undirected only: Infomap (10 trials), unweighted and |w|, and the code length of each.
+    var infomap: [Int]?
+    var infomapCodeLength: Double?
+    var weightedInfomap: [Int]?
+    var weightedInfomapCodeLength: Double?
 }
 
 /// Spectral clustering of the planted partition into its cluster count, seeded by the case.
@@ -108,5 +113,11 @@ func undirectedCommunityExtras<G: Graph<Int>>(_ graph: G, _ n: Int, _ dw: (G.Edg
     let walktrap = graph.walktrapCommunities()
     a.walktrap = labels(walktrap, n)
     a.walktrapModularity = graph.modularity(of: walktrap)
+    let infomap = graph.infomapCommunities(using: &generator)
+    a.infomap = labels(infomap, n)
+    a.infomapCodeLength = graph.codeLength(of: infomap)
+    let weightedInfomap = graph.infomapCommunities(weight: dw, using: &generator)
+    a.weightedInfomap = labels(weightedInfomap, n)
+    a.weightedInfomapCodeLength = graph.codeLength(of: weightedInfomap, weight: dw)
     return a
 }

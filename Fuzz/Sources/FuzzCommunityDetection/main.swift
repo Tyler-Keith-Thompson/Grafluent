@@ -15,6 +15,14 @@
 // spectral clustering gives exactly the cluster count asked for, as a canonical partition, and the
 // same partition again from the same seed.
 
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
+#if canImport(math_h)
+import math_h
+#endif
 import AdjacencyListModule
 import CommunityDetection
 import FuzzSupport
@@ -275,6 +283,33 @@ enum FuzzCommunityDetection {
         let walktrap = labels(graph.walktrapCommunities(weight: weight), n, "\(name) Walktrap")
         let inside = components(n, ends.filter { walktrap[$0.0] == walktrap[$0.1] })
         for u in 0 ..< n { for v in 0 ..< n where walktrap[u] == walktrap[v] { check(inside[u] == inside[v], "\(name): a Walktrap community is not connected") } }
+        // Infomap: repeatable, its code length the map equation over the edges, and no longer
+        // than every vertex alone or one module.
+        var once = SplitMix(state: seed), twice = SplitMix(state: seed)
+        let infomap = graph.infomapCommunities(weight: weight, trials: 2, using: &once)
+        let modules = labels(infomap, n, "\(name) Infomap")
+        check(graph.infomapCommunities(weight: weight, trials: 2, using: &twice) == infomap, "\(name): Infomap not repeatable")
+        func mapEquation(_ labels: [Int]) -> Double {
+            let total = ends.indices.reduce(0.0) { $0 + weight($1) }
+            guard total > 0 else { return 0 }
+            func f(_ x: Double) -> Double { x > 0 ? x * log2(x) : 0 }
+            var p = [Double](repeating: 0, count: n), q = [Double](repeating: 0, count: n), size = [Double](repeating: 0, count: n)
+            for (e, (u, v)) in ends.enumerated() {
+                let x = weight(e) / (2 * total)
+                p[u] += x
+                p[v] += x
+                if labels[u] != labels[v] {
+                    q[labels[u]] += x
+                    q[labels[v]] += x
+                }
+            }
+            for v in 0 ..< n { size[labels[v]] += p[v] }
+            return f(q.reduce(0, +)) - 2 * q.map(f).reduce(0, +) - p.map(f).reduce(0, +) + (0 ..< n).map { f(q[$0] + size[$0]) }.reduce(0, +)
+        }
+        let found = graph.codeLength(of: infomap, weight: weight)
+        check(abs(found - mapEquation(modules)) <= 1e-9, "\(name): Infomap code length \(found) against \(mapEquation(modules))")
+        check(found <= mapEquation(Array(0 ..< n)) + 1e-9, "\(name): Infomap longer than every vertex alone")
+        check(found <= mapEquation([Int](repeating: 0, count: n)) + 1e-9, "\(name): Infomap longer than one module")
         if let leading = try? graph.leadingEigenvectorCommunities(weight: weight) { _ = labels(leading, n, "\(name) leading eigenvector") }
         let count = Int(seed % UInt64(n)) + 1
         var first = SplitMix(state: seed), again = SplitMix(state: seed)

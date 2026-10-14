@@ -1,11 +1,11 @@
-# CommunityDetection: case catalog (CD-001 – CD-248, 248 cases)
+# CommunityDetection: case catalog (CD-001 – CD-262, 262 cases)
 
 Cases for the CommunityDetection module (api.md): `modularity(of:)`, `partitionQuality(of:)`,
 `louvainCommunities()`, `greedyModularityCommunities()`, `labelPropagationCommunities()`,
 `asynchronousLabelPropagationCommunities()`, `girvanNewmanCommunities()`, `constantPottsModel(of:)`,
 `leidenCommunities()`, `louvainPartitions()`, `kernighanLinBisection(startingFrom:)`,
-`kCliqueCommunities(_:)`, `walktrapCommunities()`, `leadingEigenvectorCommunities()` and
-`spectralClustering(clusterCount:)`, on `Graph` and
+`kCliqueCommunities(_:)`, `walktrapCommunities()`, `leadingEigenvectorCommunities()`,
+`spectralClustering(clusterCount:)` and `codeLength(of:)`, on `Graph` and
 (modularity, quality, Louvain, greedy, the constant Potts model, Leiden) `DirectedGraph`, unweighted and weighted. Every Expected cell is recomputed by `ref.py`'s model of
 api.md and checked independently (its docstring lists how): `uv run --quiet --no-project --with
 networkx==3.7 --with scipy==1.18.1 --with igraph==1.0.0 python3 ref.py` prints "all values agree". `gen.py` writes the
@@ -364,3 +364,22 @@ Expected scalars are rounded to 12 digits.
 | CD-246 | `U: P(0..5)` | `spectralClustering(clusterCount: 2, weight: [3, 3, 0, 3, 3], using: rng(1))` | `[[0, 1, 2], [3, 4, 5]]` | exact | A weight-0 edge separates |
 | CD-247 | `U: P(0,1,2)` | `spectralClustering(clusterCount: 4, using: rng(1))` | `trap` | exact | clusterCount > vertexCount |
 | CD-248 | `U: P(0,1,2)` | `spectralClustering(clusterCount: 0, using: rng(1))` | `trap` | exact | clusterCount < 1 |
+
+## L. The map equation
+
+| ID | Graph | Op | Expected | Tol | Notes |
+|---|---|---|---|---|---|
+| CD-249 | `U: K(0..2), K(3..5), 2-3` | `codeLength(of: [[0, 1, 2], [3, 4, 5]])` | `#2.32073035683` | exact | igraph `community_infomap` finds it, codelength 2.3207303568 |
+| CD-250 | `U: K(0..2), K(3..5), 2-3` | `codeLength(of: [[0, 1, 2, 3, 4, 5]])` | `#2.55665670746` | exact | One module: the entropy of the vertex flows |
+| CD-251 | `U: K(0..2), K(3..5), 2-3` | `codeLength(of: [[0], [1], [2], [3], [4], [5]])` | `#4.55665670746` | exact | Singletons |
+| CD-252 | `U: nx(karate_club)` | `codeLength(of: [[0, 1, 2, 3, 7, 9, 11, 12, 13, 17, 19, 21], [4, 5, 6, 10, 16], [8, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]])` | `#4.3117926458` | exact | igraph `community_infomap`'s partition, codelength 4.3117926458 |
+| CD-253 | `U: nx(karate_club)` | `codeLength(of: [[0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 16, 17, 19, 21], [9, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]])` | `#4.46209072138` | exact | The club's split |
+| CD-254 | `U: nx(karate_club)` | `codeLength(of: [[0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 16, 17, 19, 21], [9, 14, 15, 18, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]], weight: [4, 5, 3, 3, 3, 3, 2, 2, 2, 3, 1, 3, 2, 2, 2, 2, 6, 3, 4, 5, 1, 2, 2, 2, 3, 4, 5, 1, 3, 2, 2, 2, 3, 3, 3, 2, 3, 5, 3, 3, 3, 3, 3, 4, 2, 3, 3, 2, 3, 4, 1, 2, 1, 3, 1, 2, 3, 5, 4, 3, 5, 4, 2, 3, 2, 7, 4, 2, 4, 2, 2, 4, 2, 3, 3, 4, 4, 5])` | `#4.25414247029` | exact | Weighted: flows by weight |
+| CD-255 | `U: 0-0, 1-1` | `codeLength(of: [[0], [1]])` | `#0` | exact | Loops never leave a module: 0 |
+| CD-256 | `U: 0-0, 1-1` | `codeLength(of: [[0, 1]])` | `#1` | exact | One module of two equal flows: 1 bit |
+| CD-257 | `U: 0-1, 0-1, 1-2` | `codeLength(of: [[0, 1], [2]])` | `#2.12581458369` | exact | Parallel edges add |
+| CD-258 | `U: [0..2]` | `codeLength(of: [[0, 1, 2]])` | `#0` | exact | No edges: 0 |
+| CD-259 | `U: []` | `codeLength(of: [])` | `#0` | exact |  |
+| CD-260 | `U: P(0,1,2)` | `codeLength(of: [[0, 1, 2]], weight: [0, 0])` | `#0` | exact | Total weight 0: 0 |
+| CD-261 | `U: P(0,1,2)` | `codeLength(of: [[0, 1], [1, 2]])` | `trap` | exact | A vertex listed twice |
+| CD-262 | `U: P(0,1,2)` | `codeLength(of: [[0, 1, 2]], weight: [1, -1])` | `trap` | exact | A negative weight |

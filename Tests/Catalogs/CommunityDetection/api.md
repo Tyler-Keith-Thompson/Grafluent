@@ -274,6 +274,19 @@ weights are finite and at least 0. Traps when k is not in `1...vertexCount`, `to
 `maxIterations < 1`. Catalog rows pin the labeling of least inertia over all labelings where the k
 smallest eigenvalues stand apart from the next (CD-241 – CD-246; traps CD-247, CD-248).
 
+### The map equation (Infomap)
+
+- `codeLength(of:)` and `codeLength(of:weight:)` on `Graph`: the two-level map equation (Rosvall and
+  Bergstrom) in bits. The flow is d_v / 2W at each vertex (a loop counts twice in d_v) and w / 2W
+  along each edge each way, W the total weight; q_i is the flow along a community's edges leaving
+  it and p_i its vertices' flow; L(M) = f(Σ q_i) − 2 Σ f(q_i) − Σ f(p_v) + Σ f(q_i + p_i),
+  f(x) = x log₂ x. 0 when W = 0. Traps as `modularity(of:)` on the grouping and on the weights.
+- `infomapCommunities(trials:using:)` and `infomapCommunities(weight:trials:using:)` on `Graph`: the
+  partition of least code length found in `trials` (default 10, at least 1) randomized runs of the
+  core algorithm (greedy moves in shuffled order, modules merged into nodes level by level), each
+  tuned while that shortens the code length (from its modules on the vertices, and on their
+  submodules), the single module when shorter. Not catalogued: the result depends on the generator.
+
 ### Determinism
 
 **Every entry point without `using:` is a deterministic function of the graph value: its vertex

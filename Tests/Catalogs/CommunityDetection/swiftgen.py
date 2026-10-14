@@ -32,6 +32,7 @@ SECTIONS = {
     "I": ("LeidenCatalogTests.swift", "Leiden, the constant Potts model and Louvain's levels", "LeidenCatalogTests"),
     "J": ("CommunityMethodsCatalogTests.swift", "Kernighan–Lin, k-clique, Walktrap and leading-eigenvector communities", "CommunityMethodsCatalogTests"),
     "K": ("SpectralClusteringCatalogTests.swift", "Spectral clustering (Ng–Jordan–Weiss)", "SpectralClusteringCatalogTests"),
+    "L": ("MapEquationCatalogTests.swift", "The map equation", "MapEquationCatalogTests"),
 }
 
 HEADERS = {
@@ -82,6 +83,11 @@ HEADERS = {
 // eigenvectors, clustered by k-means (10 k-means++ runs from the seeded generator, the least inertia
 // kept). Expected is the labeling of least inertia over every labeling (ref.py, by brute force),
 // on graphs whose k smallest eigenvalues stand apart from the next. Trap rows are exit tests.""",
+    "L": """// §L: the two-level map equation's code length (Rosvall and Bergstrom) of given groupings: flow
+// d_v / 2W at each vertex and w / 2W along each edge each way, a loop twice in its vertex's degree
+// and never leaving a module. ref.py rechecks every value as the entropy form q H(Q) + Σ p_i H(P_i);
+// the karate partition and the two triangles are igraph's `community_infomap` results, at its
+// codelength. Trap rows are exit tests.""",
 }
 
 COMMON = """// Expected values are ref.py's model at full precision (the catalog cells are the same values
@@ -192,7 +198,7 @@ def graph_lines(cell, g, indent, kind=None):
 def parse_rows():
     rows, sec = [], None
     for line in ref.CASES.read_text().splitlines():
-        m = re.match(r"## ([A-K])\. ", line)
+        m = re.match(r"## ([A-L])\. ", line)
         if m:
             sec = m.group(1)
         m = re.match(r"\| (CD-\d+) \| (.*?) \| `(.*?)` \| `(.*?)` \| (.*?) \|(.*)\|$", line)
@@ -275,6 +281,7 @@ FUNC = {
     "walktrapCommunities": "walktrap",
     "leadingEigenvectorCommunities": "leadingEigenvector",
     "spectralClustering": "spectralClustering",
+    "codeLength": "codeLength",
 }
 
 
@@ -313,7 +320,7 @@ def body_lines(row, indent, gname="graph", for_rep=False, rep_g=None, rep_eval=N
     uses_conn = False
     target = f"{gname}.directedView" if view == "directed" else gname
     in_view = view == "directed"
-    if name == "constantPottsModel":
+    if name in ("constantPottsModel", "codeLength"):
         comms = ref.parse_partition(a["of"])
         if comms:
             lines += partition_lines("communities", comms, vt, indent)
@@ -322,7 +329,7 @@ def body_lines(row, indent, gname="graph", for_rep=False, rep_g=None, rep_eval=N
         setup, args = call_args(a, g, in_view)
         lines += setup_lines(setup, indent)
         args = ", " + args if args else ""
-        lines.append(f"{indent}let value = {target}.constantPottsModel(of: communities{args})")
+        lines.append(f"{indent}let value = {target}.{name}(of: communities{args})")
         lines += close(indent, "value", val)
         return lines, uses_conn
     if name == "kCliqueCommunities":
@@ -467,7 +474,7 @@ def trap_test(row, indent):
              f"{indent}    await #expect(processExitsWith: .failure) {{"]
     inner = indent + "        "
     lines += graph_lines(row["graph"], ref.parse_graph(row["graph"]), inner)
-    if name in ("modularity", "partitionQuality", "constantPottsModel"):
+    if name in ("modularity", "partitionQuality", "constantPottsModel", "codeLength"):
         comms = ref.parse_partition(a["of"])
         lines += partition_lines("communities", comms, vtype(g), inner)
         setup, args = call_args(a, g, False)
@@ -475,8 +482,8 @@ def trap_test(row, indent):
         args = ", " + args if args else ""
         if name == "modularity":
             lines.append(f"{inner}_ = graph.modularity(of: communities{args})")
-        elif name == "constantPottsModel":
-            lines.append(f"{inner}_ = graph.constantPottsModel(of: communities{args})")
+        elif name in ("constantPottsModel", "codeLength"):
+            lines.append(f"{inner}_ = graph.{name}(of: communities{args})")
         else:
             lines.append(f"{inner}_ = graph.partitionQuality(of: communities)")
     else:
@@ -756,7 +763,7 @@ def write_representations(rows):
 
 def main():
     rows = parse_rows()
-    assert len(rows) == 248
+    assert len(rows) == 262
     counts = write_sections(rows)
     rc, covered = write_representations(rows)
     for k, v in counts.items():

@@ -188,4 +188,24 @@ MUTANTS = [
 
     # Leiden's final split into connected parts.
     Mutant("ldsplit", "Leiden.swift", "return _connectedParts(baseRows, membership)", "return membership", mode="stmt"),
+    # Infomap and the map equation's code length.
+    Mutant("implogp", "Infomap.swift", "x > 0 ? x * log2(x) : 0", "x > 0 ? x * log(x) : 0"),
+    Mutant("imloopflow", "Infomap.swift", "            flow[v] += f", "            if u != v { flow[v] += f }", mode="stmt"),
+    Mutant("imscale", "Infomap.swift", "1 / (2 * total)", "1 / total"),
+    Mutant("imexitterm", "Infomap.swift", "return _plogp(total) - 2 * exitTerm - vertexEntropy + sizeTerm", "return _plogp(total) - exitTerm - vertexEntropy + sizeTerm", mode="stmt"),
+    Mutant("imsourceexit", "Infomap.swift", "qA - ea + 2 * toSource", "qA - ea + toSource"),
+    Mutant("imtargetexit", "Infomap.swift", "qB + ea - 2 * toB", "qB + ea - toB"),
+    Mutant("imapplyexit", "Infomap.swift", "exit[target] = qB + ea - 2 * toTarget", "exit[target] = qB + ea", mode="stmt"),
+    Mutant("imnoempty", "Infomap.swift", "(size[source] > 1 && !empty.isEmpty ? 1 : 0)", "0"),
+    Mutant("imthreshold", "Infomap.swift", "guard best < -1e-10 else { continue }", "guard best < 1e-3 else { continue }", mode="stmt"),
+    Mutant("imonesweep", "Infomap.swift", "        if !moved { break }", "        break", mode="stmt"),
+    Mutant("imnoaggregate", "Infomap.swift", "        guard k < level.count else { break }", "        break", mode="stmt"),
+    Mutant("imcompose", "Infomap.swift", "for v in labels.indices { labels[v] = module[labels[v]] }", "labels = module", mode="stmt"),
+    Mutant("iminterlinks", "Infomap.swift", "                    guard j != i else { continue }", "", mode="stmt"),
+    Mutant("imtune", "Infomap.swift", "tunedLength < length - 1e-10", "false"),
+    Mutant("imcoarse", "Infomap.swift", "            fine.toggle()", "", mode="stmt"),
+    Mutant("imsubloop", "Infomap.swift", "flow[l] = base.flow[v] - base.exit[v]", "flow[l] = 0", mode="stmt"),
+    Mutant("imparent", "Infomap.swift", "for v in 0 ..< n { parent[sub[v]] = labels[v] }", "for v in 0 ..< n { parent[sub[v]] = sub[v] }", mode="stmt"),
+    Mutant("imbest", "Infomap.swift", "length < bestLength - 1e-10", "length > bestLength + 1e-10"),
+    Mutant("imtrials", "Infomap.swift", "0 ..< trials", "0 ..< 1"),
 ]
