@@ -155,7 +155,8 @@ extension _UndirectedRowsAlgorithm {
 
 extension Graph {
     /// Runs `algorithm` over the graph's incidence in index space: its stored rows when it offers
-    /// them (`_withIncidentIndexRows`), so nothing is hashed or copied; otherwise each row read
+    /// them (`_withIncidentIndexRows`), so nothing is hashed or copied; a `SparselyIndexedGraph`
+    /// with holes, its numbered rows (`_numberedIncidenceRows()`); otherwise each row read
     /// once, when first asked for, through `neighborIndices` and `incidentEdgeIndices` with vertex
     /// and edge indices, with one dictionary lookup per edge end for the edge numbers with vertex
     /// indices only, and one more for the neighbors without vertex indices.
@@ -177,6 +178,15 @@ extension Graph {
             return algorithm.run(count: n, edgeCount: m, &rows)
         }) {
             return output
+        }
+        // Holes in a `SparselyIndexedGraph`: its own numbered rows, in the same numbering (vertices
+        // in `vertices` order, edges in `edges` order), with no hashing.
+        if vertexNumbering == nil, let sparse = _sparselyIndexedGraph() {
+            let numbered = sparse._numberedIncidenceRows()
+            return numbered._withIncidenceTables { neighbors, neighborRows, edges, edgeRows in
+                var rows = _IncidenceRows(neighbors: neighbors, neighborRows: neighborRows, edges: edges, edgeRows: edgeRows)
+                return algorithm.run(count: numbered.count, edgeCount: m, &rows)
+            }
         }
         let n = vertexIndexBound ?? vertexCount
         var rows = _LazyIncidenceRows(self, count: n, readsEdges: algorithm.readsEdges, edgeNumbers: edgeNumbers, vertexNumbering: vertexNumbering)
