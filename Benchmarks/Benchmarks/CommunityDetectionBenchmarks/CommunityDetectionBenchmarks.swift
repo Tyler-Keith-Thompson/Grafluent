@@ -167,6 +167,7 @@ func giantComponent(_ n: Int, seed: UInt) -> UndirectedAdjacencyList<Int> {
 let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
+    infomapBenchmarks()
 
     func undirected(_ n: Int, _ m: Int, _ seed: UInt) -> UndirectedAdjacencyList<Int> {
         var seen = Set<UndirectedEdge<Int>>()
