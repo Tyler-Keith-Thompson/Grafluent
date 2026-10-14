@@ -71,7 +71,9 @@ struct RadixHeapTests {
         heap.insert(4, key: .max - 1)
         var keys: [UInt] = []
         while let (key, _) = heap.popMin() { keys.append(key) }
-        #expect(keys == [0, 1 << 63, (1 << 63) + 1, .max - 1, .max])
+        let top: UInt = 1 << 63
+        let expected: [UInt] = [0, top, top + 1, UInt.max - 1, UInt.max]
+        #expect(keys == expected)
     }
 
     @Test("removeMin returns the lowest pair")
