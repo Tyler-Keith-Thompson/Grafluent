@@ -172,4 +172,9 @@ MUTANTS = [
     Mutant("checkedfaceedge", "PlanarEmbedding.swift", "e >= 0 && e < _layout.edgeCount", "true", nth=1),
     Mutant("checkedfaceslot", "PlanarEmbedding.swift", "_layout.face(fromSlot: try _checkedSlot(from: vertex, alongEdgeAt: position))", "_layout.face(fromSlot: try _checkedSlot(from: vertex, alongEdgeAt: position) ^ 1)"),
     Mutant("checkedrightface", "PlanarEmbedding.swift", "Int(_layout.faceOfSlot[try _checkedSlot(from: vertex, alongEdgeAt: position)])", "Int(_layout.faceOfSlot[0])"),
+    # The dual graph
+    Mutant("dual_first_slot", "DualGraph.swift", "                    if firstSlot[e] < 0 { firstSlot[e] = q }", "                    firstSlot[e] = q", mode="stmt"),
+    Mutant("dual_left", "DualGraph.swift", "UndirectedEdge(Int(_layout.faceOfSlot[q]), Int(_layout.faceOfSlot[Int(_layout.twin[q])]))", "UndirectedEdge(Int(_layout.faceOfSlot[Int(_layout.twin[q])]), Int(_layout.faceOfSlot[q]))"),
+    Mutant("dual_twin", "DualGraph.swift", "Int(_layout.faceOfSlot[Int(_layout.twin[q])])", "Int(_layout.faceOfSlot[q])", nth=1),
+    Mutant("dual_vertices", "DualGraph.swift", "0 ..< faceCount", "0 ..< Swift.max(faceCount, 1)"),
 ]

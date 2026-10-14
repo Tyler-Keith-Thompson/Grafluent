@@ -2,7 +2,7 @@
 
 `Planarity` answers whether an undirected graph is planar, with a witness either way: a
 `PlanarEmbedding` (a rotation system, the clockwise order of the edges around each vertex, and its
-faces) when it is, and a `KuratowskiSubgraph` (a subdivision of K₅ or K₃,₃) when it is not. It also
+faces, and the dual graph on them) when it is, and a `KuratowskiSubgraph` (a subdivision of K₅ or K₃,₃) when it is not. It also
 tests outerplanarity. The API description (`api.md`) is in
 [`Tests/Catalogs/Planarity/`](../Catalogs/Planarity/). Two engines run behind it: the left-right
 test (Brandes's formulation) for `isPlanar`, `planarEmbedding()` and `isOuterplanar`, and
@@ -26,6 +26,7 @@ struct PlanarEmbedding<G: Graph>: CustomStringConvertible
     clockwiseIncidentEdges(of:), clockwiseIncidentEdges(checked:), clockwiseNeighbors(of:),
         clockwiseNeighbors(checked:), clockwiseNeighborIndices(ofIndex:)
         faceCount, faces, face(from:alongEdgeAt:), rightFace(from:alongEdgeAt:)
+        dualGraph() -> Pseudograph<Int>   // a vertex per face, edge k the dual of edges' kth
 
 struct KuratowskiSubgraph<G: Graph>: CustomStringConvertible
     kind (.k5, .k33), edges, branchVertices, paths

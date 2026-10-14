@@ -4,7 +4,8 @@
 // clockwise order a permutation of the incident edges starting at the first, the neighbours
 // across them, faces traced here from the rotation (the slot before the twin) equal to `faces`
 // and to `face(from:alongEdgeAt:)` and `rightFace(from:alongEdgeAt:)` from every half-edge, and
-// Euler's count per component with an edge. A witness is a subdivision of its kind made of the
+// Euler's count per component with an edge; `dualGraph()` joins, for each edge, the traced faces
+// on its two sides. A witness is a subdivision of its kind made of the
 // graph's edges (ascending, no loop, one copy of a pair), its paths use every edge once between
 // branch vertices, and it is minimal: without any one edge it is planar. `isOuterplanar` is
 // Boyer–Myrvold's answer on the graph plus an apex. A second call returns the same results.
@@ -97,6 +98,15 @@ enum FuzzPlanarity {
         let withEdges = Set(pairs.flatMap { [$0.0, $0.1] })
         let components = Set(withEdges.map(find)).count
         check(traced.count == pairs.count - withEdges.count + 2 * components, "Euler's formula fails: \(pairs)")
+        // The dual graph: a vertex per traced face, edge p from the face of its first slot (in
+        // vertex and row order) to the face of the other.
+        let dual = embedding.dualGraph()
+        check(Array(dual.vertices) == Array(0 ..< traced.count) && dual.edgeCount == pairs.count, "dualGraph counts: \(pairs)")
+        for p in pairs.indices where p < dual.edgeCount {
+            let a = slots[p][0], b = slots[p][1]
+            let edge = dual.edges[p]
+            check(edge.u == faceOf[a.v]![a.i] && edge.v == faceOf[b.v]![b.i], "dualGraph edge \(p) is \(edge): \(pairs)")
+        }
         // Every half-edge: face(from:alongEdgeAt:) is its orbit, rightFace its position.
         for v in listed {
             let row = rotation[v]!

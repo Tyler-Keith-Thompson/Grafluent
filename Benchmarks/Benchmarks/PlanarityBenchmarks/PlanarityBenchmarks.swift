@@ -2,6 +2,7 @@ import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
 import GraphProtocols
+import Multigraphs
 import Planarity
 
 // Planarity on Delaunay triangulations of uniform random points in the unit square (10⁴ and 10⁵
@@ -205,5 +206,16 @@ let benchmarks: @Sendable () -> Void = {
     let grid = graph(316 * 316, gridEdges(316))
     Benchmark("Planarity: isOuterplanar, grid 316 × 316") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(grid.isOuterplanar) }
+    }
+    // The dual: one pass over the half-edges, then the pseudograph's bulk build. The baseline
+    // builds the same pseudograph from edges computed beforehand.
+    let delaunayEmbedding = graph(100_000, delaunay100k).planarEmbedding()!
+    let dualEdges = Array(delaunayEmbedding.dualGraph().edges)
+    let faces = delaunayEmbedding.faceCount
+    Benchmark("Planarity: BASELINE Pseudograph from the dual's edges, Delaunay 10⁵ points") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(Pseudograph(vertices: 0 ..< faces, edges: dualEdges)) }
+    }
+    Benchmark("Planarity: dualGraph(), Delaunay 10⁵ points (m = \(delaunay100k.count))") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(delaunayEmbedding.dualGraph()) }
     }
 }
