@@ -354,6 +354,88 @@ and `N#`; `D v` and `X v` are as above. Positions are offsets into the written e
 | TR-220 | `forEach` stops at the first error and rethrows it, over lent rows (CSR, `AdjacencyList`, `UndirectedAdjacencyList`) and without them | hand-written | — |
 | TR-221 | Views whose edge indices are not their positions or whose rows are built per call: `forEach`, the iterator and the endpoint search on `directedView` agree (vertex events, tree edges, every edge once) | PropertyBased, 150 cases: `spanningSubgraphView(edges:)` keeping every other edge, `inducedSubgraphView(on:)` and `subgraphView(vertices:edges:)` dropping a vertex, a whole spanning subgraph (which lends the base's rows), and the `incidenceGraphView` of a random hypergraph | — |
 
+### Q. All simple paths
+
+`allSimplePaths(from:to:maxLength:)`, after NetworkX's `all_simple_paths` (a target or several, an
+optional cutoff): every path with no repeated vertex, as a Walks `Path` with edge positions, so
+each copy of a parallel edge gives its own path and a self-loop is on none. The order is a
+depth-first search from the source taking edges in row order; a path reaching one of several
+targets is listed and then extended towards the others; the source among the targets gives the
+trivial path first (NetworkX 3.7 does the same). Undirected, each path is listed once, from the
+source. Tests are in `SimplePathTests.swift`.
+
+| ID | Asserts | Graph and call → expected | Source |
+|---|---|---|---|
+| TR-230 | Every path to one target, in depth-first order, with its positions | ReferenceDirectedMultigraph `0→1, 1→2, 0→2, 2→3`; `allSimplePaths(from: 0, to: 3)` → `[0,1,2,3]/[0,1,3]`, `[0,2,3]/[2,3]`; none from 3 to 0 | hand-computed |
+| TR-231 | Several targets: a path through one goes on; the source as a target is the trivial path; repeats count once | the same; `to: [2, 3]` → `[0,1,2]`, `[0,1,2,3]`, `[0,2]`, `[0,2,3]`; `to: [0, 2]` → `[0]`, `[0,1,2]`, `[0,2]` | nx-3.7 `all_simple_paths` |
+| TR-232 | `maxLength` keeps the paths of at most that many edges, in order | `to: [1, 2, 3], maxLength: 2` → `[0,1]`, `[0,1,2]`, `[0,2]`, `[0,2,3]`; `maxLength: 0` → the trivial path only | nx-3.7 `cutoff=2` |
+| TR-233 | Directed parallel copies give a path each; loops and back edges are never taken | `DirectedPseudograph`, two copies of `0→1`, a loop at 1, `1→2`, `2→0` | hand-computed |
+| TR-234 | Undirected: each path once, parallel edges apart, loops never taken | C₄ from 0 to 2 → `[0,1,2]/[0,1]`, `[0,3,2]/[3,2]`; `0–1, 0–1, 1–2` plus loops → two paths `[0,2]`, `[1,2]` | nx-3.7 `all_simple_edge_paths` |
+| TR-235 | Unreachable targets, isolated sources, disconnected graphs | `AdjacencyList`, `UndirectedAdjacencyList` | hand-computed |
+| TR-236 | Complete digraphs on n = 2 … 7: Σₖ (n − 2)!/(n − 2 − k)! paths between two vertices, directed and undirected | `CompressedSparseRow`, `UndirectedAdjacencyList` | closed form |
+| TR-237 | `String` vertices; the sequence holds the graph and iterates again the same; `Sendable` | `AdjacencyList<String>` | — |
+| TR-238 | A source or target that is not a vertex, or a negative `maxLength`, traps, when the sequence is made | exit tests | — |
+| TR-239 | Directed: content and order are a recursive enumeration's, on every representation | PropertyBased, 200 edge lists on 0..<6 with repeats and loops, one or two targets, every bound: `ReferenceDirectedMultigraph`, a conformer without indices, `DirectedPseudograph`, CSR, `AdjacencyList`, `AdjacencyMatrix`, `StableDirectedGraph` with holes | — |
+| TR-240 | Undirected: the same | `ReferencePseudograph`, a conformer without indices, `Pseudograph`, `UndirectedAdjacencyList` | — |
+
+### R. Random walks
+
+`randomWalk(from:length:…using:)`, as igraph's `random_walk` (stopping where it is stuck) and with
+node2vec's second-order bias (Grover and Leskovec 2016): after the first step, an edge back to the
+previous vertex weighs 1/p, an edge to a vertex the previous vertex has an edge to 1, any other
+1/q, times the edge's weight when one is given. A step draws only through the generator's
+`next()`: `next() >> (bit length shift)` by rejection for a uniform pick, the top 53 bits as a
+`Double` in [0, 1) times the total otherwise, so a seed reproduces a walk on every platform and the
+tests replay it draw for draw. An undirected self-loop has two ends in its vertex's row, so it is
+twice as likely as another edge. Tests are in `RandomWalkTests.swift`.
+
+| ID | Asserts | Graph and call → expected | Source |
+|---|---|---|---|
+| TR-250 | A walk of the graph, of the asked length, the same for the same seed; forced steps; length 0 | CSR ring with a branch | — |
+| TR-251 | Stops early at a vertex with no out-edges, an isolated vertex, or edges all weighing zero; a zero-weight edge is never taken | `AdjacencyList`, `UndirectedAdjacencyList`, CSR | igraph `stuck = "return"` |
+| TR-252 | Parallel copies are separate choices and the copy taken is recorded; an undirected loop has two ends | `DirectedPseudograph`, `Pseudograph`: frequencies within 0.03 of 1/3 and 2/3 over 6 000 walks | — |
+| TR-253 | Weighted steps follow the weights; node2vec's 1/p, 1, 1/q bias the second step, undirected and directed | frequencies within 0.02–0.025 of the exact probabilities | Grover and Leskovec 2016 |
+| TR-254 | Directed: every walk equals a reference written in the test, draw for draw, uniform, weighted, biased and both | PropertyBased, 200 cases, on the seven directed representations of TR-239 | — |
+| TR-255 | Undirected: the same | the four undirected representations of TR-240 | — |
+| TR-256 | `Float` weights, `String` vertices | `AdjacencyList<String>` | — |
+| TR-257 | A non-vertex source, a negative length, p or q not positive and finite, a negative or NaN weight trap | exit tests | — |
+
+### S. All topological sorts
+
+`allTopologicalSorts()`, NetworkX's `all_topological_sorts`: every order of the vertices with each
+edge forward, lazily, in lexicographic order of the vertices' positions in `vertices` (NetworkX
+lists them in another order, so the differential compares counts). A cycle or a self-loop leaves
+none; the empty graph has one, the empty order. Backtracking over a bit set of ready vertices.
+Tests are in `AllTopologicalSortsTests.swift`.
+
+| ID | Asserts | Graph and call → expected | Source |
+|---|---|---|---|
+| TR-260 | Hand-computed orders: a fork, a diamond, a chain; positions, not values, order them | `[[0,1,2],[0,2,1]]` for `0→1, 0→2` | nx-3.7 |
+| TR-261 | The empty graph has `[[]]`; isolated vertices have every permutation (5 040 for 7) | — | nx-3.7 |
+| TR-262 | A cycle or a self-loop leaves none; parallel edges change nothing | — | — |
+| TR-263 | 70 vertices: the ready set spans two words; the first three orders | CSR | — |
+| TR-264 | Every order is a filtered permutation, in lexicographic order, on every representation | PropertyBased, 200 cases, cyclic or acyclic, on the seven directed representations, vertices listed out of order | — |
+| TR-265 | The sequence holds the graph and iterates again the same; `Sendable` | — | — |
+
+### T. Lexicographic breadth-first and maximum cardinality search
+
+`lexicographicBreadthFirstSearch()` (Rose, Tarjan and Lueker) and `maximumCardinalitySearch()`
+(Tarjan and Yannakakis), with and without `from:`, on the simple graph of an undirected graph.
+LexBFS: a vertex's label is the visit positions of its visited neighbors, ascending; the next
+vertex has a greatest label (smaller position at the first difference, or extending the other).
+MCS: the most visited neighbors. Both start at the first vertex in `vertices` order unless given
+`from:`; which of several equal vertices goes next is unspecified, the same for the same graph and
+rows. LexBFS is array-based partition refinement, MCS bucket queues, both O(n + m). Tests are in
+`ChordalOrderingTests.swift`; Cliques' chordality is built on MCS.
+
+| ID | Asserts | Graph and call → expected | Source |
+|---|---|---|---|
+| TR-270 | Forced orders: a path from either end, a square's far corner last under LexBFS, a star's center right after a leaf | C₄: LexBFS ends at 2 | hand-computed |
+| TR-271 | Labels against counts: a vertex never labelled by the first visit comes last under LexBFS | — | hand-computed |
+| TR-272 | Components, isolated vertices, the empty graph; loops and parallel copies; a graph that empties classes faster than it has vertices; repeat calls equal; `String` vertices | — | — |
+| TR-273 | A source that is not a vertex traps | exit tests | — |
+| TR-274 | Both orders valid at every step by their definitions with explicit labels and counts, starting where asked, and repeatable, with and without a start | PropertyBased, 300 multigraphs on 9 vertices, vertices listed out of order, on `ReferencePseudograph`, a conformer without indices, `Pseudograph`, `UndirectedAdjacencyList` | — |
+
 ### O. Benchmarks (not tests)
 
 | ID | Measures |
@@ -364,3 +446,7 @@ and `N#`; `D v` and `X v` are as above. Positions are offsets into the written e
 | TR-B04 | Dense vs dictionary state: the same graph as CSR vs a conformer without indices |
 | TR-B05 | Deep DFS: a 10⁷-vertex path on CSR (memory and time of the explicit stack) |
 | TR-B06 | The edge-position searches, pulled and pushed, against the endpoint searches and against hand-written edge-position loops over the flat rows, on CSR, `AdjacencyList` and `UndirectedAdjacencyList` |
+| TR-B07 | `allSimplePaths` counts against a hand-written iterative enumeration over the flat rows: the 10 × 10 grid DAG (48 620 paths, all reaching the target) and G(12, 40) (mostly dead ends) |
+| TR-B08 | `randomWalk` of 10⁵ steps on CSR and `AdjacencyList` against a hand-written walk over the flat rows drawing the same bits; weighted on CSR; node2vec on `UndirectedAdjacencyList` |
+| TR-B09 | `allTopologicalSorts` count (two chains of 3 and 3 free vertices, 60 480 orders) against a hand-written backtracking count |
+| TR-B10 | `lexicographicBreadthFirstSearch` and `maximumCardinalitySearch` on `UndirectedAdjacencyList`, G(10⁵, 10⁶), against a hand-written breadth-first search of every component |

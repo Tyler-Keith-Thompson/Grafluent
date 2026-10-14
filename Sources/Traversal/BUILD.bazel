@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Breadth-first and depth-first search as event sequences, reachability, topological ordering, cycle finding.
+# Breadth-first and depth-first search as event sequences, lexicographic breadth-first and maximum cardinality search, reachability, topological ordering (every order too), cycle finding, all simple paths, random walks (uniform, weighted, node2vec).
 swift_library(
     name = "Traversal",
     srcs = glob(["**/*.swift"]),

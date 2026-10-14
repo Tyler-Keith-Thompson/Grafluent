@@ -1,7 +1,12 @@
 # Planted bugs for Traversal's Walks results; run with `just mutate Traversal`. See
 # scripts/mutate.py.
 #
-# Known equivalent mutants (they survive by design): none.
+# Known equivalent mutants are left out rather than listed: allSimplePaths' pruning of vertices
+# that reach no target, and its stop at a path ending at the only target, only save work;
+# randomWalk's skipped neighbor set when q is 1, its choice between marking neighbors in an array
+# or a set, and its fallback when a draw rounds up to the total change nothing a walk can show.
+# LexBFS's reuse of a class number emptied by a visit (rather than by a move) is kept for the
+# n + 2 bound's sake, but no graph searched (random graphs up to 40 vertices) needs it.
 
 TESTS = ["TraversalTests"]
 
@@ -234,4 +239,55 @@ MUTANTS = [
     Mutant("er_u_bounds_end", "EdgeSearchRows.swift",
            "return (start, start &+ neighborRows[3 &* id &+ 1], edgeRows[3 &* id] &- start)",
            "return (start, start, edgeRows[3 &* id] &- start)", mode="stmt"),
+
+    # allSimplePaths
+    Mutant("sp_bound", "SimplePaths.swift", "top < maxLength", "top <= maxLength"),
+    Mutant("sp_trivial", "SimplePaths.swift", "            if isTarget[0] { return true }", "", mode="stmt"),
+    Mutant("sp_emit", "SimplePaths.swift", "                if isTarget[w] { return true }", "", mode="stmt"),
+    Mutant("sp_slots", "SimplePaths.swift", "!path.isEmpty", "path.count > 1"),
+    Mutant("sp_numbering", "SimplePaths.swift", "local[w] < 0", "local[w] <= 0"),
+    Mutant("sp_reach", "SimplePaths.swift", "                reaches[sources[k]] = true", "", mode="stmt"),
+    Mutant("sp_pasttargets", "SimplePaths.swift", "isTarget.lazy.filter { $0 }.count > 1", "isTarget.lazy.filter { $0 }.count > 2"),
+    Mutant("sp_targetcheck", "SimplePaths.swift",
+           '        for t in targets { precondition(graph.contains(t), "The target \\(t) is not a vertex of the graph") }',
+           "", mode="stmt", nth=0),
+    Mutant("sp_targetcheckundirected", "SimplePaths.swift",
+           '        for t in targets { precondition(graph.contains(t), "The target \\(t) is not a vertex of the graph") }',
+           "", mode="stmt", nth=1),
+
+    # randomWalk
+    Mutant("rw_index", "RandomWalks.swift", "n.leadingZeroBitCount", "n.leadingZeroBitCount + 1"),
+    Mutant("rw_unit", "RandomWalks.swift", "g.next() >> 11", "g.next() >> 12"),
+    Mutant("rw_return", "RandomWalks.swift", "w == previous", "w != previous"),
+    Mutant("rw_outward", "RandomWalks.swift", "1 / q", "q"),
+    Mutant("rw_stuck", "RandomWalks.swift", "total > 0", "total >= 0"),
+    Mutant("rw_firststep", "RandomWalks.swift", "(!biased || previous < 0)", "!biased"),
+    Mutant("rw_neighbors", "RandomWalks.swift",
+           "                for i in 0 ..< d { previousNeighbors.insert(bySlot ? edge(atSlot: first + i, shift: shift).target : rowTargets[i]) }",
+           "", mode="stmt"),
+    Mutant("rw_stamps", "RandomWalks.swift", "stamps[w] == steps - 1", "stamps[w] == steps"),
+    Mutant("rw_weightcheck", "RandomWalks.swift",
+           '                        precondition(x.isFinite && x >= 0, "A weight is negative or not finite")',
+           "", mode="stmt"),
+    Mutant("rw_returncheck", "RandomWalks.swift", "p > 0 && p.isFinite", "p.isFinite"),
+
+    # allTopologicalSorts
+    Mutant("ts_nextready", "AllTopologicalSorts.swift", "(~0 << UInt64(from & 63))", "~UInt64(0)"),
+    Mutant("ts_unready", "AllTopologicalSorts.swift",
+           "            if inDegree[w] == 0 { ready[w >> 6] &= ~(1 << UInt64(w & 63)) }",
+           "", mode="stmt"),
+    Mutant("ts_refill", "AllTopologicalSorts.swift", "                _ = _fill()", "", mode="stmt"),
+    Mutant("ts_cycle", "AllTopologicalSorts.swift", "            return _fill()", "            _ = _fill(); return true", mode="stmt"),
+
+    # lexicographicBreadthFirstSearch and maximumCardinalitySearch
+    Mutant("lb_split", "ChordalOrderings.swift", "splitRound[c] != i", "true"),
+    Mutant("lb_copy", "ChordalOrderings.swift", "                                if madeIn[c] == i { continue }", "", mode="stmt"),
+    Mutant("lb_front", "ChordalOrderings.swift", "                                classStart[c] = front + 1", "", mode="stmt"),
+    Mutant("lb_visit", "ChordalOrderings.swift", "                            classStart[own] += 1", "", mode="stmt"),
+    Mutant("lb_reusemove", "ChordalOrderings.swift", "front + 1 == classEnd[c]", "false"),
+    Mutant("lb_startswap", "ChordalOrderings.swift", "        order.swapAt(0, start)", "", mode="stmt"),
+    Mutant("mcs_stamp", "ChordalOrderings.swift", "stamp[w] != i", "true"),
+    Mutant("mcs_top", "ChordalOrderings.swift", "                                        if d + 1 > top { top = d + 1 }", "", mode="stmt"),
+    Mutant("mcs_start", "ChordalOrderings.swift", "start ?? bucket[top]", "bucket[top]"),
+    Mutant("mcs_visited", "ChordalOrderings.swift", "d >= 0", "true"),
 ]

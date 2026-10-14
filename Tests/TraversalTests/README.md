@@ -29,6 +29,7 @@ extension DirectedGraph
     func findCycle() -> Cycle<Vertex, Edges.Index>?                // the first back edge's cycle
     func findCycle(from:) -> Cycle<Vertex, Edges.Index>?           // only cycles reachable from roots
     var isAcyclic: Bool
+    func allTopologicalSorts() -> AllTopologicalSorts<Self>          // every order, lexicographic by position
 extension BidirectionalDirectedGraph
     func ancestors(of:) -> Set<Vertex>
     func bidirectionalShortestPath(from:to:) -> Path<Vertex, Edges.Index>?
@@ -43,6 +44,14 @@ extension DirectedGraph, Graph
     func edgeBreadthFirstSearch(from: Vertex | some Sequence<Vertex>, depthLimit: Int? = nil)
     func edgeDepthFirstSearch(from: Vertex | some Sequence<Vertex>, depthLimit: Int? = nil)
     func edgeDepthFirstSearch(depthLimit: Int? = nil)             // the whole graph
+
+extension DirectedGraph, Graph
+    func allSimplePaths(from: Vertex, to: Vertex | some Sequence<Vertex>, maxLength: Int = .max)   // lazy Paths
+    func randomWalk(from:length:returnParameter:inOutParameter:using:) -> Walk<Vertex, Edges.Index>
+    func randomWalk(from:length:weight:returnParameter:inOutParameter:using:) -> Walk<Vertex, Edges.Index>
+extension Graph
+    func lexicographicBreadthFirstSearch(), lexicographicBreadthFirstSearch(from:) -> [Vertex]   // LexBFS, ties unspecified
+    func maximumCardinalitySearch(), maximumCardinalitySearch(from:) -> [Vertex]
 
 func breadthFirstSearch(from:depthLimit:successors:) -> some Sequence<BreadthFirstSearchEvent<V>>
 func depthFirstSearch(from:depthLimit:successors:) -> some Sequence<DepthFirstSearchEvent<V>>
@@ -83,6 +92,10 @@ readable afterwards. `Connectivity`, `Flows` and `ShortestPaths` build on it.
 | `SearchReferenceTests.swift` | Transcripts on random graphs against a reference written in the test (recursive DFS, queue BFS), pulled and pushed, with and without vertex indices, with spread-out Int and String vertices, after vertex removals; topological, cycle and reachability answers against a reachability reference; `forEach` errors; deep closure searches; `findCycle(from:)` |
 | `TraversalWalkReviewTests.swift` | `findCycle` and `bidirectionalShortestPath` without vertex indices, over parallel edges (with steps found by the backward search, WK-1217, and by the forward one, WK-1405), and through a directed view's self-loop (WK-1216 – WK-1219) |
 | `TraversalWalkTests.swift` | `findCycle` and `bidirectionalShortestPath` as `Cycle` and `Path`, rotation, parallel copies, self-loops, cycles of a graph or of its undirected view |
+| `SimplePathTests.swift` | `allSimplePaths`: depth-first order, several targets, the trivial path, bounds, parallel edges and loops, closed-form counts, and every representation against a recursive enumeration (TR-230 – TR-240) |
+| `RandomWalkTests.swift` | `randomWalk`: validity, early stops, zero weights, parallel copies and loops, transition frequencies (weighted and node2vec), and every representation against a draw-for-draw reference (TR-250 – TR-257) |
+| `ChordalOrderingTests.swift` | `lexicographicBreadthFirstSearch` and `maximumCardinalitySearch`: forced orders, starts, components, loops and parallel copies, and every representation checked step by step against the definitions (TR-270 – TR-274) |
+| `AllTopologicalSortsTests.swift` | `allTopologicalSorts`: hand-computed orders, cycles, loops, wide graphs, and every representation against filtered permutations (TR-260 – TR-265) |
 | `SearchPropertyTests.swift` | Random graphs through every representation (shortest distances, parenthesis theorem, consistent classification, every edge once, back edge iff cycle, topological validity and minimality), real-world fixtures, deep and wide graphs, index-space dispatch, value semantics, preconditions |
 
 Case IDs (TR-01 … TR-191) refer to the catalog of cases (`Tests/Catalogs/Traversal/cases.md`).

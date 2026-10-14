@@ -323,4 +323,191 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(discovered)
         }
     }
+
+    // TR-B07: allSimplePaths against a hand-written iterative enumeration over the flat rows: the
+    // 10 × 10 grid DAG (edges right and down), whose 48 620 corner-to-corner paths all reach the
+    // target, and G(12, 40), whose paths mostly do not.
+    let side = 10
+    var gridArcs: [DirectedEdge<Int>] = []
+    for v in 0 ..< side * side {
+        if v % side + 1 < side { gridArcs.append(DirectedEdge(from: v, to: v + 1)) }
+        if v + side < side * side { gridArcs.append(DirectedEdge(from: v, to: v + side)) }
+    }
+    let gridDAG = CompressedSparseRow(vertexCount: side * side, edges: gridArcs)
+    let dense = CompressedSparseRow(vertexCount: 12, edges: Inputs.randomEdges(vertexCount: 12, edgeCount: 40, seed: 5))
+    func rows(_ g: CompressedSparseRow) -> (offsets: [Int], targets: [Int]) {
+        var offsets = [0], targets: [Int] = []
+        for v in 0 ..< g.vertexCount {
+            targets += g.successorIndices(ofIndex: v)
+            offsets.append(targets.count)
+        }
+        return (offsets, targets)
+    }
+    /// Every simple path from `s` to `t` counted by an iterative DFS with integer cursors.
+    func handWrittenPathCount(_ r: (offsets: [Int], targets: [Int]), _ s: Int, _ t: Int) -> Int {
+        var onPath = [Bool](repeating: false, count: r.offsets.count - 1)
+        var path = [s], cursor = [r.offsets[s]]
+        onPath[s] = true
+        var count = 0
+        while let u = path.last {
+            let k = cursor[cursor.count - 1]
+            if k < r.offsets[u + 1] {
+                cursor[cursor.count - 1] = k + 1
+                let w = r.targets[k]
+                if onPath[w] { continue }
+                if w == t {
+                    count += 1
+                    continue
+                }
+                onPath[w] = true
+                path.append(w)
+                cursor.append(r.offsets[w])
+            } else {
+                onPath[u] = false
+                path.removeLast()
+                cursor.removeLast()
+            }
+        }
+        return count
+    }
+    let gridRows = rows(gridDAG), denseRows = rows(dense)
+    precondition(handWrittenPathCount(gridRows, 0, side * side - 1) == gridDAG.allSimplePaths(from: 0, to: side * side - 1).reduce(0) { n, _ in n + 1 })
+    precondition(handWrittenPathCount(denseRows, 0, 11) == dense.allSimplePaths(from: 0, to: 11).reduce(0) { n, _ in n + 1 })
+    Benchmark("Traversal: BASELINE hand-written simple path count, 10 × 10 grid DAG") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenPathCount(gridRows, 0, side * side - 1)) }
+    }
+    Benchmark("Traversal: allSimplePaths count, 10 × 10 grid DAG") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(gridDAG.allSimplePaths(from: 0, to: side * side - 1).reduce(0) { n, _ in n + 1 }) }
+    }
+    Benchmark("Traversal: BASELINE hand-written simple path count, G(12, 40)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenPathCount(denseRows, 0, 11)) }
+    }
+    Benchmark("Traversal: allSimplePaths count, G(12, 40)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(dense.allSimplePaths(from: 0, to: 11).reduce(0) { n, _ in n + 1 }) }
+    }
+
+    // TR-B08: random walks of 10⁵ steps against a hand-written walk over the flat rows drawing
+    // the same bits.
+    let walkRows = rows(sparse)
+    func handWrittenWalk(_ r: (offsets: [Int], targets: [Int]), from s: Int, length: Int, seed: UInt) -> Int {
+        var generator = SeededRandomNumberGenerator(seed: seed)
+        var u = s, sum = 0
+        for _ in 0 ..< length {
+            let d = r.offsets[u + 1] - r.offsets[u]
+            if d == 0 { break }
+            let shift = UInt64(d.leadingZeroBitCount)
+            var k = d
+            while k >= d { k = Int(truncatingIfNeeded: generator.next() >> shift) }
+            u = r.targets[r.offsets[u] + k]
+            sum &+= u
+        }
+        return sum
+    }
+    var check = SeededRandomNumberGenerator(seed: 9)
+    precondition(handWrittenWalk(walkRows, from: 0, length: 1000, seed: 9) == sparse.randomWalk(from: 0, length: 1000, using: &check).vertices.dropFirst().reduce(0, &+))
+    Benchmark("Traversal: BASELINE hand-written random walk, 10⁵ steps, CompressedSparseRow") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenWalk(walkRows, from: 0, length: 100_000, seed: 9)) }
+    }
+    Benchmark("Traversal: randomWalk, 10⁵ steps, CompressedSparseRow") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = SeededRandomNumberGenerator(seed: 9)
+            blackHole(sparse.randomWalk(from: 0, length: 100_000, using: &generator))
+        }
+    }
+    Benchmark("Traversal: randomWalk, 10⁵ steps, AdjacencyList") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = SeededRandomNumberGenerator(seed: 9)
+            blackHole(list.randomWalk(from: 0, length: 100_000, using: &generator))
+        }
+    }
+    Benchmark("Traversal: randomWalk weighted, 10⁵ steps, CompressedSparseRow") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = SeededRandomNumberGenerator(seed: 9)
+            blackHole(sparse.randomWalk(from: 0, length: 100_000, weight: { Double($0 & 7) + 1 }, using: &generator))
+        }
+    }
+    Benchmark("Traversal: randomWalk node2vec (p 0.5, q 2), 10⁵ steps, UndirectedAdjacencyList") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = SeededRandomNumberGenerator(seed: 9)
+            blackHole(undirected.randomWalk(from: 0, length: 100_000, returnParameter: 0.5, inOutParameter: 2, using: &generator))
+        }
+    }
+
+    // TR-B09: allTopologicalSorts of 9 vertices, two chains of 3 and 3 free (60 480 orders),
+    // against a hand-written backtracking count.
+    let poset = CompressedSparseRow(vertexCount: 9, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 3, to: 4), DirectedEdge(from: 4, to: 5)])
+    let posetRows = rows(poset)
+    func handWrittenOrderCount(_ r: (offsets: [Int], targets: [Int])) -> Int {
+        let n = r.offsets.count - 1
+        var inDegree = [Int](repeating: 0, count: n)
+        for w in r.targets { inDegree[w] += 1 }
+        var placed = [Bool](repeating: false, count: n)
+        var depth = 0, count = 0
+        var cursor = [Int](repeating: -1, count: n + 1)
+        var chosen = [Int](repeating: -1, count: n)
+        while depth >= 0 {
+            if depth == n {
+                count += 1
+                depth -= 1
+                continue
+            }
+            if chosen[depth] >= 0 {
+                let v = chosen[depth]
+                placed[v] = false
+                for k in r.offsets[v] ..< r.offsets[v + 1] { inDegree[r.targets[k]] += 1 }
+                chosen[depth] = -1
+            }
+            var v = cursor[depth] + 1
+            while v < n && (placed[v] || inDegree[v] != 0) { v += 1 }
+            if v == n {
+                cursor[depth] = -1
+                depth -= 1
+                continue
+            }
+            cursor[depth] = v
+            chosen[depth] = v
+            placed[v] = true
+            for k in r.offsets[v] ..< r.offsets[v + 1] { inDegree[r.targets[k]] -= 1 }
+            depth += 1
+        }
+        return count
+    }
+    precondition(handWrittenOrderCount(posetRows) == poset.allTopologicalSorts().reduce(0) { n, _ in n + 1 })
+    Benchmark("Traversal: BASELINE hand-written topological order count, 9 vertices") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(handWrittenOrderCount(posetRows)) }
+    }
+    Benchmark("Traversal: allTopologicalSorts count, 9 vertices") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(poset.allTopologicalSorts().reduce(0) { n, _ in n + 1 }) }
+    }
+
+    // TR-B10: lexicographic breadth-first and maximum cardinality search on
+    // UndirectedAdjacencyList, G(10⁵, 10⁶), against a hand-written breadth-first search of the
+    // same graph by index (the floor: LexBFS is a breadth-first search that also refines classes).
+    Benchmark("Traversal: BASELINE hand-written BFS on UndirectedAdjacencyList, every component") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var visited = [Bool](repeating: false, count: n)
+            var queue: [Int] = []
+            queue.reserveCapacity(n)
+            for root in 0 ..< n where !visited[root] {
+                visited[root] = true
+                queue.append(root)
+                var head = queue.count - 1
+                while head < queue.count {
+                    let v = queue[head]
+                    head += 1
+                    for w in undirected.neighborIndices(ofIndex: v) where !visited[w] {
+                        visited[w] = true
+                        queue.append(w)
+                    }
+                }
+            }
+            blackHole(queue.count)
+        }
+    }
+    Benchmark("Traversal: lexicographicBreadthFirstSearch, UndirectedAdjacencyList") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(undirected.lexicographicBreadthFirstSearch()) }
+    }
+    Benchmark("Traversal: maximumCardinalitySearch, UndirectedAdjacencyList") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(undirected.maximumCardinalitySearch()) }
+    }
 }
