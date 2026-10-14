@@ -63,7 +63,7 @@ for line in TEXT.splitlines():
         parts = [p.strip() for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 151
+assert N == 283
 
 
 def group(n): return CELLS[n][1]
@@ -846,7 +846,282 @@ def stat_test(n):
     return L
 
 
+# ---------------------------------------------------------------------------------------------
+# The later families (RG-152 on): degree sequences, the configuration model, Chung–Lu, Holme–Kim,
+# Newman–Watts–Strogatz, connected Watts–Strogatz, random k-out, directed scale-free and G(a, b, m)
+# ---------------------------------------------------------------------------------------------
+
+FIRST_LATER = 152
+
+
+def lit(xs):
+    """A Swift array literal of ints or doubles."""
+    def one(x):
+        if isinstance(x, float):
+            return ".infinity" if x == math.inf else ("-.infinity" if x == -math.inf else repr(x))
+        return str(x)
+    return "[" + ", ".join(one(x) for x in xs) + "]"
+
+
+def later_call(kind, args, typ):
+    if kind == "graphical":
+        return "isGraphical(%s)" % lit(args[0])
+    if kind == "digraphical":
+        return "isDigraphical(inDegrees: %s, outDegrees: %s)" % (lit(args[0]), lit(args[1]))
+    if kind == "hh":
+        return "%s.havelHakimi(degreeSequence: %s)" % (typ, lit(args[0]))
+    if kind == "dhh":
+        return "%s.havelHakimi(inDegrees: %s, outDegrees: %s)" % (typ, lit(args[0]), lit(args[1]))
+    if kind == "cm":
+        return "%s.configurationModel(degreeSequence: %s, using: &generator)" % (typ, lit(args[0]))
+    if kind == "dcm":
+        return "%s.configurationModel(inDegrees: %s, outDegrees: %s, using: &generator)" % (typ, lit(args[0]), lit(args[1]))
+    if kind == "chunglu":
+        return "%s.chungLu(expectedDegrees: %s, using: &generator)" % (typ, lit(args[0]))
+    if kind == "hk":
+        return "%s.holmeKim(vertexCount: %d, edgesPerVertex: %d, triangleProbability: %r, using: &generator)" % (typ, *args)
+    if kind == "nws":
+        return "%s.newmanWattsStrogatz(vertexCount: %d, nearestNeighborCount: %d, shortcutProbability: %r, using: &generator)" % (typ, *args)
+    if kind == "cws":
+        return ("%s.connectedWattsStrogatz(vertexCount: %d, nearestNeighborCount: %d, rewiringProbability: %r, tries: %d, "
+                "using: &generator)") % (typ, *args)
+    if kind == "kout":
+        return "%s.randomKOut(vertexCount: %d, outDegree: %d, using: &generator)" % (typ, *args)
+    if kind == "sf":
+        return ("%s.scaleFree(vertexCount: %d, alpha: %r, beta: %r, gamma: %r, deltaIn: %r, deltaOut: %r, using: &generator)"
+                % (typ, *args))
+    if kind == "bipm":
+        return "%s.randomBipartite(leftCount: %d, rightCount: %d, edgeCount: %d, using: &generator)" % (typ, *args)
+    raise AssertionError(kind)
+
+
+# The conformers of each kind: (undirected, directed); None is a form the family does not have.
+LATER_TYPES = {
+    "hh": (UNDIRECTED, None), "dhh": (None, DIRECTED), "cm": (["Pseudograph<Int>"], None),
+    "dcm": (None, ["DirectedPseudograph<Int>"]), "sf": (None, ["DirectedPseudograph<Int>"]),
+    "chunglu": (UNDIRECTED, DIRECTED), "hk": (UNDIRECTED, DIRECTED), "nws": (UNDIRECTED, DIRECTED),
+    "cws": (UNDIRECTED, DIRECTED), "kout": (UNDIRECTED, DIRECTED), "bipm": (UNDIRECTED, DIRECTED),
+}
+
+
+def later_check(r, draws, seed, directed):
+    """The check function for one form, without the draws when the family makes none."""
+    if seed is not None:
+        return directed_check(r, draws, seed, "        ") if directed else undirected_check(r, draws, seed, "        ")
+    L = directed_check(r, 0, 0, "        ") if directed else undirected_check(r, 0, 0, "        ")
+    # Deterministic: no generator argument, no draws.
+    L[0] = L[0].replace(", _ generator: Xoshiro256StarStar", "")
+    return [x for x in L if "expected" not in x and "generator ==" not in x]
+
+
+def later_exact_test(n):
+    spec = ref.SPECS[n]
+    kind, args, seed, row_directed = spec["kind"], spec["args"], spec["seed"], spec["directed"]
+    L = header(n)
+    if kind in ("graphical", "digraphical"):
+        r, _ = ref.new_model(kind, args, seed, False)
+        assert cell(n).startswith("true" if r else "false"), n
+        assert ref.is_graphical(args[0]) == r if kind == "graphical" else ref.is_digraphical(*args) == r
+        L.append("        #expect(%s == %s)" % (later_call(kind, args, ""), "true" if r else "false"))
+        if kind == "graphical":
+            L.append("        // Any collection of degrees, in any order.")
+            L.append("        #expect(isGraphical(%s.reversed()) == %s)" % (lit(args[0]), "true" if r else "false"))
+            L.append("        #expect(isGraphical(ContiguousArray(%s)) == %s)" % (lit(args[0]), "true" if r else "false"))
+        else:
+            L.append("        // The same vertices listed in reverse.")
+            L.append("        #expect(isDigraphical(inDegrees: %s.reversed(), outDegrees: %s.reversed()) == %s)"
+                     % (lit(args[0]), lit(args[1]), "true" if r else "false"))
+        L.append("    }")
+        return L
+    undirected_types, directed_types = LATER_TYPES[kind]
+    for directed in (False, True):
+        types = directed_types if directed else undirected_types
+        if types is None:
+            continue
+        r, draws = ref.new_model(kind, args, seed, directed)
+        if isinstance(r, ref.Trap):
+            # The other form's count rule excludes this row (directed G(a, b, m) past ab).
+            assert directed != row_directed, n
+            continue
+        if directed == row_directed:
+            if r is None:
+                text = "nil; draws %d" % draws
+            else:
+                sep = "→" if directed else "–"
+                text = "n %d; m %d; E [%s]" % (r.n, len(r.edges), ", ".join("%d%s%d" % (u, sep, v) for u, v in r.edges))
+                if seed is not None:
+                    text += "; draws %d" % draws
+            assert cell(n).startswith(text), (n, text, cell(n))
+            own = later_call(kind, args, call(n).split(".")[0]).replace("&generator", "&Xoshiro256StarStar(seed: %s)" % seed)
+            assert own == call(n), (n, own, call(n))
+        else:
+            L.append("        // The %s form, from the same model." % ("directed" if directed else "undirected"))
+        if r is None:
+            L.append("        // Every try is disconnected: nil, after the tries' draws.")
+            for t in types:
+                L += ["        do {",
+                      "            var generator = Xoshiro256StarStar(seed: %d)" % seed,
+                      "            #expect(%s == nil, \"%s\")" % (later_call(kind, args, t), t),
+                      "            var expected = Xoshiro256StarStar(seed: %d)" % seed,
+                      "            for _ in 0 ..< %d { _ = expected.next() }" % draws,
+                      "            #expect(generator == expected, \"%s: %d draws\")" % (t, draws),
+                      "        }"]
+            continue
+        L += later_check(r, draws, seed, directed)
+        name = "checkDirected" if directed else "check"
+        for t in types:
+            c = later_call(kind, args, t)
+            if seed is None:
+                L.append("        %s(%s, \"%s\")" % (name, c, t))
+            elif kind == "cws":
+                L += ["        do {",
+                      "            var generator = Xoshiro256StarStar(seed: %d)" % seed,
+                      "            if let graph = %s {" % c,
+                      "                %s(graph, generator, \"%s\")" % (name, t),
+                      "            } else {",
+                      "                Issue.record(\"%s: nil\")" % t,
+                      "            }",
+                      "        }"]
+            else:
+                L += block(seed, "let graph = " + c, "%s(graph, generator, \"%s\")" % (name, t))
+        if kind == "bipm" and not directed:
+            a, b = args[0], args[1]
+            L.append("        // With its sides: left 0..<%d, right %d..<%d, the same edges and draws." % (a, a, a + b))
+            L += ["        do {",
+                  "            var generator = Xoshiro256StarStar(seed: %d)" % seed,
+                  "            let bipartite = " + later_call(kind, args, "BipartiteGraph<Int>"),
+                  "            #expect(Array(bipartite.left) == Array(0 ..< %d) && Array(bipartite.right) == Array(%d ..< %d))" % (a, a, a + b),
+                  "            check(bipartite, generator, \"BipartiteGraph<Int>\")",
+                  "        }"]
+    L.append("    }")
+    return L
+
+
+# Trap rows: the valid neighbour of each (args, seed).
+LATER_VALID = {
+    177: ([1, 1], [1, 1]), 191: ([3, 3, 2, 2],), 192: ([1, 0], [0, 1]), 193: ([1, 1], [1, 1]),
+    204: ([2, 2],), 205: ([2, 2],), 206: ([1, 1], [1, 1]), 207: ([1, 1], [1, 1]),
+    215: ([1.0, 1.0],), 216: ([1.0, 1.0e300],),
+    224: (5, 1, 0.5), 225: (3, 3, 0.5), 226: (5, 2, 1.0),
+    235: (10, 2, 0.3), 236: (4, 4, 0.3),
+    244: (1, 0, 0.5, 100), 245: (5, 2, 0.5, 0), 246: (5, 2, 0.5, 0),
+    255: (4, 3), 256: (4, 0),
+    261: (3, 0.41, 0.54, 0.05, 0.2, 0.0), 262: (5, 0.01, 0.94, 0.05, 0.2, 0.0), 263: (5, 0.5, 0.25, 0.25, 0.2, 0.0),
+    264: (5, 0.41, 0.54, 0.05, 0.0, 0.0),
+    272: (2, 2, 4), 273: (0, 2, 0),
+    278: ([1, 1, 0],),
+}
+
+
+def later_trap_test(n):
+    spec = ref.SPECS[n]
+    kind, args, row_directed = spec["kind"], spec["args"], spec["directed"]
+    msg = cell(n)[len("**trap**: "):]
+    L = header(n, True)
+    if kind in ("graphical", "digraphical"):
+        calls = [(None, later_call(kind, args, ""))]
+        valid_types = [None]
+    else:
+        undirected_types, directed_types = LATER_TYPES[kind]
+        calls = [(t, later_call(kind, args, t)) for t in (undirected_types or []) + (directed_types or [])]
+        valid_types = [(undirected_types or directed_types)[0]]
+    for t, c in calls:
+        directed = t in DIRECTED or t == "DirectedPseudograph<Int>"
+        r, _ = ref.new_model(kind, args, 0, directed)
+        if not isinstance(r, ref.Trap):
+            # The other kind's rule allows it (G(a, b, m) with ab < m ≤ 2ab, directed).
+            assert directed != row_directed, (n, t)
+            continue
+        assert str(r) == msg, (n, t, r)
+        L.append("        await #expect(processExitsWith: .failure) {")
+        if "&generator" in c:
+            L.append("            var generator = Xoshiro256StarStar(seed: 0)")
+        L.append("            _ = " + c)
+        L.append("        }")
+    vargs = LATER_VALID[n]
+    t = valid_types[0]
+    vdirected = t in DIRECTED or t == "DirectedPseudograph<Int>"
+    r, _ = ref.new_model(kind, vargs, 0, vdirected)
+    assert not isinstance(r, ref.Trap) and (r is not None or kind == "cws"), (n, r)
+    L.append("        // Without the fault: accepted.")
+    vc = later_call(kind, vargs, t)
+    if "&generator" in vc:
+        L.append("        var generator = Xoshiro256StarStar(seed: 0)")
+    if isinstance(r, bool):
+        L.append("        #expect(%s == %s)" % (vc, "true" if r else "false"))
+    elif kind == "cws" and r is None:
+        L.append("        // No tries: nil, with no draws.")
+        L.append("        #expect(%s == nil)" % vc)
+    elif kind == "cws":
+        L.append("        let graph = %s" % vc)
+        L.append("        #expect(graph?.vertexCount == %d && graph?.edgeCount == %d)" % (r.n, len(r.edges)))
+    else:
+        L.append("        let graph = %s" % vc)
+        L.append("        #expect(graph.vertexCount == %d && graph.edgeCount == %d)" % (r.n, len(r.edges)))
+    L.append("    }")
+    return L
+
+
+def later_law_test(n):
+    spec = ref.SPECS[n]
+    L = header(n)
+    i = "        "
+    if spec["kind"] in ("law_cm", "law_kout"):
+        S, counts = spec["S"], spec["counts"]
+        L.append(i + "var counts: [[[Int]]: Int] = [:]")
+        L.append(i + seeds_loop(S) + " {")
+        L.append(i + "    var generator = Xoshiro256StarStar(seed: seed)")
+        if spec["kind"] == "law_cm":
+            L.append(i + "    let graph = Pseudograph<Int>.configurationModel(degreeSequence: [1, 1, 1, 1], using: &generator)")
+            L.append(i + "    let key = graph.edges.map { [min($0.u, $0.v), max($0.u, $0.v)] }.sorted { $0.lexicographicallyPrecedes($1) }")
+        else:
+            L.append(i + "    let graph = CompressedSparseRow.randomKOut(vertexCount: 4, outDegree: 2, using: &generator)")
+            L.append(i + "    let key = [graph.successors(of: 0).sorted()]")
+        L.append(i + "    counts[key, default: 0] += 1")
+        L.append(i + "}")
+        if spec["kind"] == "law_cm":
+            expected = {tuple(k): v for k, v in counts.items()}
+            dict_text = "[" + ", ".join("%s: %d" % (pairs(k).replace(" as [[Int]]", ""), v) for k, v in sorted(expected.items())) + "]"
+        else:
+            dict_text = "[" + ", ".join("[%s]: %d" % (ints(k).replace(" as [Int]", ""), v) for k, v in sorted(counts.items())) + "]"
+        L.append(i + "#expect(counts == %s)" % dict_text)
+        L.append(i + "// The law: χ² over the 3 equally likely outcomes, below its 0.999 quantile (df 2).")
+        L.append(i + "let chi = counts.values.reduce(0.0) { $0 + (Double($1) - %d.0 / 3) * (Double($1) - %d.0 / 3) / (%d.0 / 3) }" % (S, S, S))
+        L.append(i + "#expect(counts.count == 3 && chi <= 13.816)")
+    else:
+        S, tot = spec["S"], spec["total"]
+        for t in UNDIRECTED:
+            L.append(i + "do {")
+            L.append(i + "    var total = 0")
+            L.append(i + "    " + seeds_loop(S) + " {")
+            L.append(i + "        var generator = Xoshiro256StarStar(seed: seed)")
+            L.append(i + "        let graph = %s.chungLu(expectedDegrees: (0 ..< 50).map { 1 + Double($0 %% 7) }, using: &generator)" % t)
+            L.append(i + "        total += graph.edgeCount")
+            L.append(i + "    }")
+            L.append(i + "    #expect(total == %d, \"%s\")" % (tot, t))
+            L.append(i + "}")
+        L.append(i + "// The law: |z| ≤ 4 against Σ p_uv per seed, with variance Σ p_uv(1 − p_uv).")
+        L.append(i + "let weights = (0 ..< 50).map { 1 + Double($0 % 7) }")
+        L.append(i + "let sum = weights.reduce(0, +)")
+        L.append(i + "var mean = 0.0, variance = 0.0")
+        L.append(i + "for u in 0 ..< 50 {")
+        L.append(i + "    for v in u + 1 ..< 50 {")
+        L.append(i + "        let p = min(weights[u] * weights[v] / sum, 1)")
+        L.append(i + "        mean += p")
+        L.append(i + "        variance += p * (1 - p)")
+        L.append(i + "    }")
+        L.append(i + "}")
+        L.append(i + "let z = (Double(%d) / %d - mean) / (variance / %d).squareRoot()" % (tot, S, S))
+        L.append(i + "#expect(abs(z) <= 4)")
+    L.append("    }")
+    return L
+
+
 def test_for(n):
+    if n >= FIRST_LATER:
+        if is_trap(n):
+            return later_trap_test(n)
+        return later_law_test(n) if ref.SPECS[n]["kind"].startswith("law_") else later_exact_test(n)
     if is_trap(n):
         return trap_test(n)
     if group(n) == "Generator":
@@ -860,8 +1135,12 @@ def test_for(n):
 # Files
 # ---------------------------------------------------------------------------------------------
 
+def later_ids(*groups):
+    return [n for n in range(FIRST_LATER, N + 1) if group(n) in groups and not is_trap(n)]
+
+
 def ids(*groups, stats=None):
-    out = [n for n in range(1, N + 1) if group(n) in groups and not is_trap(n)]
+    out = [n for n in range(1, FIRST_LATER) if group(n) in groups and not is_trap(n)]
     if stats is not None:
         out = [n for n in out if (n in EXACT or group(n) == "Generator") != stats]
     return out
@@ -897,6 +1176,23 @@ FILES = [
     ("StatisticalLawTests.swift", "RandomGraphs statistical laws", ids(*STAT_GROUPS, stats=True),
      "Statistical laws (catalog rows with seeds 0..<S): the exact aggregate of the pinned procedure over\n"
      "// the seeds on every conformer of the row's kind, then the law with api.md's tolerance."),
+    ("DegreeSequenceTests.swift", "RandomGraphs graphicality and Havel–Hakimi", later_ids("Graphicality", "HavelHakimi"),
+     "Graphical degree sequences and the Havel–Hakimi constructions (catalog RG-152 – RG-190):\n"
+     "// Erdős–Gallai and Fulkerson–Chen–Anstee against NetworkX's decisions; Havel–Hakimi and Kleitman–Wang\n"
+     "// with NetworkX's ties, on every conformer of their kind."),
+    ("ConfigurationModelChungLuTests.swift", "RandomGraphs configuration model and Chung–Lu exact outputs",
+     later_ids("ConfigurationModel", "ChungLu"),
+     "The configuration model and the Chung–Lu graph (catalog RG-194 – RG-214, RG-274, RG-276): shuffled\n"
+     "// stubs paired across the halves, loops and parallel edges kept; Miller–Hagberg's sweep."),
+    ("SmallWorldClusteringTests.swift", "RandomGraphs Holme–Kim, Newman–Watts–Strogatz and connected Watts–Strogatz exact outputs",
+     later_ids("HolmeKim", "NewmanWattsStrogatz", "ConnectedWattsStrogatz"),
+     "Holme–Kim, Newman–Watts–Strogatz and connected Watts–Strogatz for fixed seeds (catalog RG-217 –\n"
+     "// RG-243): triangle steps on the last preferential target; shortcuts on the ring; tries until connected."),
+    ("KOutScaleFreeBipartiteTests.swift", "RandomGraphs random k-out, directed scale-free and G(a, b, m) exact outputs",
+     later_ids("RandomKOut", "ScaleFree", "RandomBipartiteEdgeCount"),
+     "Random k-out graphs, directed scale-free graphs and G(a, b, m) for fixed seeds (catalog RG-247 –\n"
+     "// RG-271, RG-275): CPython's sample per vertex; Bollobás–Borgs–Chayes–Riordan from the 3-cycle; the\n"
+     "// bipartite rejection loop."),
     ("RandomGraphPreconditionTests.swift", "RandomGraphs preconditions", [n for n in range(1, N + 1) if is_trap(n)],
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test), on every\n"
      "// conformer the rule covers. A valid neighbour of the call then runs in this process."),

@@ -8,9 +8,10 @@ protocols as `NamedGraphs` (`_DirectedGraphConstruction`, `_GraphConstruction`; 
 k = n, and the lazy pair collections), `Trees` and `DirectedAcyclicGraphModule`.
 `Xoshiro256StarStar` lives here: `NamedGraphs` draws nothing.
 
-`cases.md` (RG-001 – RG-151, 151 rows) pins the values: 8 generator rows (one a trap), 84 exact
-outputs for fixed seeds (80 of them reproduced by NetworkX), 37 traps, 20 statistical laws and 2
-further edge cases. `ref.py` ports the generator and every procedure draw for draw. The procedures
+`cases.md` (RG-001 – RG-283, 283 rows) pins the values: RG-001 – RG-151 as below (8 generator
+rows, one a trap; 84 exact outputs for fixed seeds, 80 of them reproduced by NetworkX; 37 traps;
+20 statistical laws; 2 further edge cases), and RG-152 – RG-283 the degree sequences and the later
+families (see "The later families"). `ref.py` ports the generator and every procedure draw for draw. The procedures
 draw exactly what CPython's `random.Random` draws, so NetworkX 3.7 can run its own generators on
 the same stream, and every exact row marked `= NetworkX` is checked edge for edge against it.
 `--stress` repeats that over 16 000 graphs.
@@ -191,3 +192,58 @@ Swift suite asserts exactly, and the law it satisfies, which `ref.py` asserts:
   uniform shuffle makes the procedure commute with relabeling, and complementing commutes with it too
   (χ² over the three labeled 4-cycles).
 - Random bipartite: every edge joins the sides; E[m] = a·b·p, and 2·a·b·p directed.
+
+## The later families
+
+```swift
+public func isGraphical(_ degreeSequence: some Collection<Int>) -> Bool
+public func isDigraphical(inDegrees: some Collection<Int>, outDegrees: some Collection<Int>) -> Bool
+extension _GraphConstruction {
+    public static func havelHakimi(degreeSequence: some Collection<Int>) -> Self
+    public static func chungLu(expectedDegrees: some Collection<Double>, using:) -> Self
+    public static func holmeKim(vertexCount:edgesPerVertex:triangleProbability:using:) -> Self
+    public static func newmanWattsStrogatz(vertexCount:nearestNeighborCount:shortcutProbability:using:) -> Self
+    public static func connectedWattsStrogatz(vertexCount:nearestNeighborCount:rewiringProbability:tries: = 100,
+                                              using:) -> Self?
+    public static func randomKOut(vertexCount:outDegree:using:) -> Self
+    public static func randomBipartite(leftCount:rightCount:edgeCount:using:) -> Self
+}
+extension _DirectedGraphConstruction {
+    public static func havelHakimi(inDegrees:outDegrees:) -> Self   // Kleitman–Wang
+    // chungLu, newmanWattsStrogatz, connectedWattsStrogatz: both arcs; holmeKim: newer → older;
+    // randomKOut: each vertex's k arcs; randomBipartite(edgeCount:): m of the 2ab cross arcs
+}
+extension Pseudograph where Vertex == Int { public static func configurationModel(degreeSequence:using:) -> Pseudograph }
+extension DirectedPseudograph where Vertex == Int {
+    public static func configurationModel(inDegrees:outDegrees:using:) -> DirectedPseudograph
+    public static func scaleFree(vertexCount:alpha: = 0.41, beta: = 0.54, gamma: = 0.05, deltaIn: = 0.2,
+                                 deltaOut: = 0, using:) -> DirectedPseudograph
+}
+extension BipartiteGraph where Vertex == Int { public static func randomBipartite(leftCount:rightCount:edgeCount:using:) }
+// …and each random one again without `using:`.
+```
+
+| Factory | Procedure | NetworkX (`ref.py`) | Rows |
+|---|---|---|---|
+| `isGraphical` | Erdős–Gallai in Zverovich–Zverovich's linear form: degree counts, the early accept 4·dmin·n ≥ (dmax + dmin + 1)², then the inequality at each run end up to the Durfee number | `is_graphical`; `ref.py` checks Erdős–Gallai at every k | RG-152 – RG-164 |
+| `isDigraphical` | Fulkerson–Chen–Anstee on the vertices counting-sorted by out-degree, non-increasing (the order among equal out-degrees does not matter), the right side kept incrementally; the counts must match (trap) | `is_digraphical`; `ref.py` checks every k | RG-165 – RG-177 |
+| `havelHakimi(degreeSequence:)` | stacks of vertices by remaining degree, filled in vertex order; each round pops the top of the highest stack and d vertices from the highest stacks, then pushes them back one lower in pop order. Precondition `isGraphical` | `havel_hakimi_graph`, exactly (with zeros only at the end; NetworkX renumbers the vertices of nonzero degree) | RG-178 – RG-185, RG-191, RG-278 |
+| `havelHakimi(inDegrees:outDegrees:)` | heaps keyed (−out, −in, v) and (−out, v): the target is the first vertex with in-degree left; its sources the most out-degree left, the in-degree heap on ties | `directed_havel_hakimi_graph`, exactly | RG-186 – RG-190, RG-192, RG-193, RG-277, RG-282 |
+| `configurationModel(degreeSequence:)` | stubs in vertex order, Fisher–Yates (i from the last down to 1, swapped with `below(i + 1)`), the first half paired with the second; positions in pairing order | `configuration_model`, as multisets | RG-194 – RG-200, RG-204, RG-205, RG-274 |
+| `configurationModel(inDegrees:outDegrees:)` | out-stubs shuffled, then in-stubs, zipped | `directed_configuration_model` | RG-201 – RG-203, RG-206, RG-207 |
+| `chungLu(expectedDegrees:)` | Miller–Hagberg without self-loops: vertices by weight descending (ties by index); for each u, v from u + 1, p = min(w_u w_v/S, 1); while p > 0: unless p = 1, skip ⌊log(r)/log(1 − p)⌋ (r = `uniform01()`), then keep v with probability q/p | `expected_degree_graph(selfloops=False)` | RG-208 – RG-216, RG-276 |
+| `holmeKim(…)` | m isolated vertices, `repeated = [0, …, m − 1]`; s draws m distinct candidates, taken ascending; the first edge to candidate t; each later one, if `uniform01() < p`, to the `below(open)`-th neighbor of t (t's list in edge order, s and its neighbors skipped), else to the next candidate not yet joined (which becomes t). m(n − m) edges | `powerlaw_cluster_graph` when its set pops ascending and no candidate was already joined (NetworkX then adds one edge fewer) | RG-217 – RG-226 |
+| `newmanWattsStrogatz(…)` | the ring; then each ring edge by its smaller end u, in the order u's edges were made, adds with probability p a shortcut u – w, w = `below(n)` redrawn while it is u or joined to u (the full-vertex check after each redraw) | `newman_watts_strogatz_graph` | RG-227 – RG-236 |
+| `connectedWattsStrogatz(…)` | `wattsStrogatz` again on the stream until connected, at most `tries` times; nil otherwise | `connected_watts_strogatz_graph` (it raises where the library returns nil) | RG-237 – RG-246, RG-279, RG-280 |
+| `randomKOut(…)` | each u samples k of the other vertices (ascending) as CPython's `random.sample`: a shuffled pool when there are at most 21 + (k > 5 ? 4^⌈log₄ 3k⌉ : 0), else rejection on `below(N)`; rows sorted. Undirected: the arcs' pairs, each once | `random_uniform_k_out_graph(self_loops=False, with_replacement=False)` | RG-247 – RG-256, RG-275, RG-281 |
+| `scaleFree(…)` | from 0 → 1 → 2 → 0; per step r = `uniform01()`: r < α a new source, r < α + β two existing ends, else a new target; an end by its degree plus δ: with probability nδ/(nδ + m) `below(n)`, else a uniform entry of the degree list (the cycle's vertices, then each arc's end) | `scale_free_graph`, as multisets | RG-257 – RG-264, RG-283 |
+| `randomBipartite(…, edgeCount:)` | undirected: u = `below(a)`, v = `below(b)` until m distinct pairs; directed: one `below(2ab)` per try; past half the pairs, the ones left out | `bipartite.gnmk_random_graph` when 2m ≤ ab and its right-side set iterates ascending | RG-265 – RG-273 |
+
+Traps: a non-graphical sequence for `havelHakimi`, unequal counts for the paired sequences, a
+negative degree or an odd sum (configuration model), unequal sums (directed), a negative or
+non-finite weight, `edgesPerVertex` outside 1…n, the Watts–Strogatz rules for both small-world
+families, `vertexCount` < 1 or negative `tries` (connected Watts–Strogatz, checked before any try),
+`outDegree` outside 0…max(n − 1, 0), the scale-free parameters (n < 3, a non-positive α, β or γ,
+their sum off 1 by 10⁻⁹ or more, a negative or non-finite δ), and `edgeCount` outside 0…ab (2ab
+directed). Laws: every pairing of the stubs of [1, 1, 1, 1] equally likely (χ²), vertex 0's k-out
+targets uniform over the 2-subsets (χ²), and Chung–Lu's E[m] = Σ min(w_u w_v/S, 1) (|z| ≤ 4).

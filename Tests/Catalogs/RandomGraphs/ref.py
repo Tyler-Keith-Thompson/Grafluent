@@ -143,7 +143,7 @@ def check_vectors():
 # ---------------------------------------------------------------- results
 
 class R:
-    def __init__(self, n, edges, directed, positions=None, code=None, sort=True):
+    def __init__(self, n, edges, directed, positions=None, code=None, sort=True, multi=False):
         self.n = n
         self.directed = directed
         if sort:
@@ -155,7 +155,8 @@ class R:
         self.edges = edges
         self.positions = positions
         self.code = code
-        assert all(u != v for u, v in edges), "self-loop"
+        self.multi = multi
+        assert multi or all(u != v for u, v in edges), "self-loop"
         assert all(0 <= u < n and 0 <= v < n for u, v in edges)
 
     def key(self):
@@ -528,6 +529,372 @@ def dag_gnp(n, p, rng):
 def dag_gnm(n, m, rng):
     g = gnm(n, m, rng)
     return R(n, g.edges, True)
+
+
+# ---------------------------------------------------------------- degree sequences and the later families
+
+def is_graphical(seq):
+    """Erdős–Gallai, every k checked on the sorted sequence (the Swift side uses the
+    Zverovich–Zverovich form); NetworkX's is_graphical must agree."""
+    n = len(seq)
+    if any(d < 0 or d >= n for d in seq) or sum(seq) % 2:
+        return False
+    d = sorted(seq, reverse=True)
+    for k in range(1, n + 1):
+        if sum(d[:k]) > k * (k - 1) + sum(min(x, k) for x in d[k:]):
+            return False
+    return True
+
+
+def is_digraphical(ins, outs):
+    """Fulkerson–Chen–Anstee on pairs sorted by (out, in), both non-increasing, every k checked."""
+    require(len(ins) == len(outs), f"inDegrees.count {len(ins)} != outDegrees.count {len(outs)}")
+    n = len(ins)
+    if any(d < 0 or d >= n for d in ins + outs) or sum(ins) != sum(outs):
+        return False
+    pairs = sorted(zip(outs, ins), reverse=True)
+    for k in range(1, n + 1):
+        lhs = sum(a for a, _ in pairs[:k])
+        rhs = sum(min(b, k - 1) for _, b in pairs[:k]) + sum(min(b, k) for _, b in pairs[k:])
+        if lhs > rhs:
+            return False
+    return True
+
+
+def havel_hakimi(seq):
+    """NetworkX havel_hakimi_graph: buckets of vertices by remaining degree, each a stack filled in
+    vertex order."""
+    require(is_graphical(seq), "degreeSequence is not graphical")
+    p = len(seq)
+    buckets = [[] for _ in range(max(p, 1))]
+    dmax, n = 0, 0
+    for v, d in enumerate(seq):
+        if d > 0:
+            buckets[d].append(v)
+            dmax, n = max(dmax, d), n + 1
+    edges = []
+    while n > 0:
+        while not buckets[dmax]:
+            dmax -= 1
+        source = buckets[dmax].pop()
+        n -= 1
+        lowered = []
+        k = dmax
+        for _ in range(dmax):
+            while not buckets[k]:
+                k -= 1
+            target = buckets[k].pop()
+            edges.append((source, target))
+            n -= 1
+            if k > 1:
+                lowered.append((k - 1, target))
+        for d, v in lowered:
+            buckets[d].append(v)
+            n += 1
+    return R(p, edges, False)
+
+
+def directed_havel_hakimi(ins, outs):
+    """NetworkX directed_havel_hakimi_graph, its heaps of (−out, −in, v) and (−out, v)."""
+    import heapq
+    require(len(ins) == len(outs), f"inDegrees.count {len(ins)} != outDegrees.count {len(outs)}")
+    require(is_digraphical(ins, outs), "the degree sequences are not digraphical")
+    n = len(ins)
+    stub, zero = [], []
+    for v in range(n):
+        if ins[v] > 0:
+            stub.append((-outs[v], -ins[v], v))
+        elif outs[v] > 0:
+            zero.append((-outs[v], v))
+    heapq.heapify(stub)
+    heapq.heapify(zero)
+    edges = []
+    while stub:
+        freeout, freein, target = heapq.heappop(stub)
+        lowered = []
+        for _ in range(-freein):
+            if zero and (not stub or stub[0][0] > zero[0][0]):
+                so, src = heapq.heappop(zero)
+                si = 0
+            else:
+                so, si, src = heapq.heappop(stub)
+            edges.append((src, target))
+            if so + 1 < 0 or si < 0:
+                lowered.append((so + 1, si, src))
+        for so, si, src in lowered:
+            if si < 0:
+                heapq.heappush(stub, (so, si, src))
+            else:
+                heapq.heappush(zero, (so, src))
+        if freeout < 0:
+            heapq.heappush(zero, (freeout, target))
+    return R(n, edges, True)
+
+
+def _stubs(seq, name):
+    for d in seq:
+        require(d >= 0, f"{name} has a negative degree {d}")
+    return [v for v, d in enumerate(seq) for _ in range(d)]
+
+
+def _shuffle(x, rng):
+    for i in reversed(range(1, len(x))):
+        j = rng.below(i + 1)
+        x[i], x[j] = x[j], x[i]
+
+
+def configuration_model(seq, rng):
+    """NetworkX configuration_model: the stubs shuffled, the first half paired with the second.
+    Edges in pairing order, (first-half end, second-half end); loops and repeats kept."""
+    stubs = _stubs(seq, "degreeSequence")
+    require(len(stubs) % 2 == 0, f"the degree sum {len(stubs)} is odd")
+    _shuffle(stubs, rng)
+    half = len(stubs) // 2
+    return R(len(seq), list(zip(stubs[:half], stubs[half:])), False, sort=False, multi=True)
+
+
+def directed_configuration_model(ins, outs, rng):
+    """NetworkX directed_configuration_model: out-stubs shuffled, then in-stubs, zipped."""
+    require(len(ins) == len(outs), f"inDegrees.count {len(ins)} != outDegrees.count {len(outs)}")
+    src = _stubs(outs, "outDegrees")
+    dst = _stubs(ins, "inDegrees")
+    require(len(src) == len(dst), f"the in-degree sum {len(dst)} != the out-degree sum {len(src)}")
+    _shuffle(src, rng)
+    _shuffle(dst, rng)
+    return R(len(ins), list(zip(src, dst)), True, sort=False, multi=True)
+
+
+def chung_lu(w, rng, directed=False):
+    """NetworkX expected_degree_graph(selfloops=False): Miller–Hagberg; a p for which 1 − p rounds
+    to 1 ends u's sweep with no draw (NetworkX divides by zero there)."""
+    if directed:
+        return both_arcs(chung_lu(w, rng))
+    for x in w:
+        require(x >= 0 and math.isfinite(x), f"expected degree {x} is negative or not finite")
+    n = len(w)
+    if n == 0 or max(w) == 0:
+        return R(n, [], False)
+    total = 0.0
+    for x in w:
+        total += x
+    rho = 1 / total
+    order = sorted(range(n), key=lambda v: (-w[v], v))
+    seq = [w[v] for v in order]
+    edges = []
+    for u in range(n - 1):
+        v = u + 1
+        factor = seq[u] * rho
+        p = min(seq[v] * factor, 1)
+        while v < n and p > 0:
+            if p != 1:
+                lp = math.log(1 - p)
+                if not lp < 0:
+                    break
+                r = rng.uniform01()
+                skip = (math.log(r) if r > 0 else -math.inf) / lp
+                if not skip < n - v:
+                    break
+                v += int(skip)
+            if v < n:
+                q = min(seq[v] * factor, 1)
+                if rng.uniform01() < q / p:
+                    edges.append((order[u], order[v]))
+                v += 1
+                p = q
+    return R(n, edges, False)
+
+
+def holme_kim(n, m, p, rng, directed=False):
+    """NetworkX powerlaw_cluster_graph with its candidates popped in ascending order, and a
+    preferential step that skips a candidate already joined (NetworkX adds nothing there)."""
+    _count(n)
+    require(1 <= m <= n, f"edgesPerVertex {m} is not in 1...{n}")
+    _probability(p, "triangleProbability")
+    adj = [[] for _ in range(n)]
+    repeated = list(range(m))
+    edges = []
+    for s in range(m, n):
+        cand = set()
+        while len(cand) < m:
+            cand.add(repeated[rng.below(len(repeated))])
+        cand = sorted(cand)
+        joined = set()
+        cursor = 0
+        target = None
+        for step in range(m):
+            w = None
+            if step > 0 and rng.uniform01() < p:
+                open_ = [x for x in adj[target] if x != s and x not in joined]
+                if open_:
+                    w = open_[rng.below(len(open_))]
+            if w is None:
+                while cand[cursor] in joined:
+                    cursor += 1
+                w = cand[cursor]
+                cursor += 1
+                target = w
+            joined.add(w)
+            adj[s].append(w)
+            adj[w].append(s)
+            repeated.append(w)
+            edges.append((s, w) if directed else (w, s))
+        repeated.extend([s] * m)
+    return R(n, edges, directed)
+
+
+def newman_watts_strogatz(n, k, p, rng, directed=False):
+    """NetworkX newman_watts_strogatz_graph, draw for draw; directed, both arcs of every edge."""
+    if directed:
+        return both_arcs(newman_watts_strogatz(n, k, p, rng))
+    _count(n)
+    require(isinstance(k, int) and k >= 0 and k % 2 == 0, f"nearestNeighborCount {k} is not even")
+    require(k <= n, f"nearestNeighborCount {k} > vertexCount {n}")
+    _probability(p, "shortcutProbability")
+    if k == n:
+        return R(n, list(itertools.combinations(range(n), 2)), False)
+    adj = [[] for _ in range(n)]  # insertion order, as NetworkX's adjacency dicts
+    for j in range(1, k // 2 + 1):
+        for i in range(n):
+            adj[i].append((i + j) % n)
+            adj[(i + j) % n].append(i)
+    ring = [(u, v) for u in range(n) for v in adj[u] if v > u]
+    present = {(min(u, v), max(u, v)) for u, v in ring}
+    for u, v in ring:
+        if rng.uniform01() < p:
+            w = rng.below(n)
+            add = True
+            while w == u or (min(u, w), max(u, w)) in present:
+                w = rng.below(n)
+                if len(adj[u]) >= n - 1:
+                    add = False
+                    break
+            if add:
+                present.add((min(u, w), max(u, w)))
+                adj[u].append(w)
+                adj[w].append(u)
+    return R(n, list(present), False)
+
+
+def connected_watts_strogatz(n, k, p, tries, rng, directed=False):
+    """NetworkX connected_watts_strogatz_graph: Watts–Strogatz again until connected; None after
+    `tries` disconnected tries (NetworkX raises)."""
+    require(n >= 1, f"a connected graph needs at least 1 vertex, not {n}")
+    require(tries >= 0, f"tries {tries} is negative")
+    require(isinstance(k, int) and k >= 0 and k % 2 == 0, f"nearestNeighborCount {k} is not even")
+    require(k <= n, f"nearestNeighborCount {k} > vertexCount {n}")
+    _probability(p, "rewiringProbability")
+    for _ in range(tries):
+        g = watts_strogatz(n, k, p, rng)
+        H = nx.empty_graph(n)
+        H.add_edges_from(g.edges)
+        if nx.is_connected(H):
+            return both_arcs(g) if directed else g
+    return None
+
+
+def random_k_out(n, k, rng, directed=True):
+    """NetworkX random_uniform_k_out_graph(self_loops=False, with_replacement=False): CPython's
+    random.sample of k from the other vertices, ascending; each row sorted. Undirected: the arcs'
+    pairs, each once."""
+    _count(n)
+    require(0 <= k <= max(n - 1, 0), f"outDegree {k} is not in 0...{max(n - 1, 0)}")
+    arcs = []
+    for u in range(n):
+        population = [x for x in range(n) if x != u]
+        arcs.extend((u, t) for t in sorted(cpython_sample(population, k, rng)))
+    if directed:
+        return R(n, arcs, True)
+    return R(n, sorted({(min(u, v), max(u, v)) for u, v in arcs}), False)
+
+
+def cpython_sample(population, k, rng):
+    """CPython 3.11's random.sample, on our below(n)."""
+    n = len(population)
+    result = [None] * k
+    setsize = 21
+    if k > 5:
+        setsize += 4 ** math.ceil(math.log(k * 3, 4))
+    if n <= setsize:
+        pool = list(population)
+        for i in range(k):
+            j = rng.below(n - i)
+            result[i] = pool[j]
+            pool[j] = pool[n - i - 1]
+    else:
+        selected = set()
+        for i in range(k):
+            j = rng.below(n)
+            while j in selected:
+                j = rng.below(n)
+            selected.add(j)
+            result[i] = population[j]
+    return result
+
+
+def scale_free(n, alpha, beta, gamma, delta_in, delta_out, rng):
+    """NetworkX scale_free_graph from the 3-cycle, draw for draw. Arcs in insertion order."""
+    require(n >= 3, f"vertexCount {n} < 3, the starting cycle")
+    require(alpha > 0 and beta > 0 and gamma > 0, "alpha, beta and gamma must be positive")
+    require(abs(alpha + beta + gamma - 1) < 1e-9, f"alpha + beta + gamma {alpha + beta + gamma} is not 1")
+    require(delta_in >= 0 and math.isfinite(delta_in), f"deltaIn {delta_in} is negative or not finite")
+    require(delta_out >= 0 and math.isfinite(delta_out), f"deltaOut {delta_out} is negative or not finite")
+    # The out- and in-degree lists, each vertex once per arc end, start [0, 1, 2] (NetworkX's
+    # node order); after them come each new arc's ends.
+    src, dst = [0, 1, 2], [0, 1, 2]
+    count = 3
+
+    def choose(ends, delta):
+        if delta > 0:
+            bias = count * delta
+            if rng.uniform01() < bias / (bias + len(ends)):
+                return rng.below(count)
+        return ends[rng.below(len(ends))]
+
+    while count < n:
+        r = rng.uniform01()
+        if r < alpha:
+            v = count
+            count += 1
+            w = choose(dst, delta_in)
+        elif r < alpha + beta:
+            v = choose(src, delta_out)
+            w = choose(dst, delta_in)
+        else:
+            v = choose(src, delta_out)
+            w = count
+            count += 1
+        src.append(v)
+        dst.append(w)
+    return R(n, [(0, 1), (1, 2), (2, 0)] + list(zip(src[3:], dst[3:])), True, sort=False, multi=True)
+
+
+def random_bipartite_m(a, b, m, rng, directed=False):
+    """NetworkX bipartite.gnmk_random_graph's loop while 2m ≤ ab (u = below(a), v = below(b));
+    past that, the pairs left out. Directed: one draw below(2ab) per try."""
+    require(isinstance(a, int) and a >= 0, f"leftCount {a} is negative")
+    require(isinstance(b, int) and b >= 0, f"rightCount {b} is negative")
+    cross = a * b
+    total = 2 * cross if directed else cross
+    require(0 <= m <= total, f"edgeCount {m} is not in 0...{total}")
+    k = m if m <= total - m else total - m
+    chosen = set()
+    order = []
+    while len(order) < k:
+        if directed:
+            r = rng.below(total)
+            s_ = r if r < cross else r - cross
+            e = (s_ // b, a + s_ % b) if r < cross else (a + s_ % b, s_ // b)
+        else:
+            e = (rng.below(a), a + rng.below(b))
+        if e not in chosen:
+            chosen.add(e)
+            order.append(e)
+    if k == m:
+        return R(a + b, order, directed)
+    every = [(u, a + v) for u in range(a) for v in range(b)]
+    if directed:
+        every += [(a + v, u) for u in range(a) for v in range(b)]
+    return R(a + b, [e for e in every if e not in chosen], directed)
 
 
 # ---------------------------------------------------------------- NetworkX on our stream
@@ -1063,6 +1430,309 @@ def build_rows():
              lambda rng: sbm([2, 2], [[0.5, 0.1], [0.1, 0.5], [0.1, 0.5]], rng))
     trap_row("StochasticBlockModel", "longer rows than blocks", f"{UL}.stochasticBlockModel(…)",
              lambda rng: sbm([2, 2], [[0.5, 0.1, 0.1], [0.1, 0.5, 0.1]], rng))
+    later_rows()
+
+
+# ---------------------------------------------------------------- rows of the later families
+
+SPECS = {}  # row number -> the structured row, for swiftgen.py
+
+NEW_MODELS = {
+    "graphical": lambda a, rng, d: is_graphical(a[0]),
+    "digraphical": lambda a, rng, d: is_digraphical(a[0], a[1]),
+    "hh": lambda a, rng, d: havel_hakimi(a[0]),
+    "dhh": lambda a, rng, d: directed_havel_hakimi(a[0], a[1]),
+    "cm": lambda a, rng, d: configuration_model(a[0], rng),
+    "dcm": lambda a, rng, d: directed_configuration_model(a[0], a[1], rng),
+    "chunglu": lambda a, rng, d: chung_lu(a[0], rng, d),
+    "hk": lambda a, rng, d: holme_kim(*a, rng, d),
+    "nws": lambda a, rng, d: newman_watts_strogatz(*a, rng, d),
+    "cws": lambda a, rng, d: connected_watts_strogatz(*a, rng, d),
+    "kout": lambda a, rng, d: random_k_out(*a, rng, d),
+    "sf": lambda a, rng, d: scale_free(*a, rng),
+    "bipm": lambda a, rng, d: random_bipartite_m(*a, rng, d),
+}
+
+
+def new_model(kind, args, seed, directed):
+    """(result, draws) of a later family, or (Trap, None)."""
+    rng = Xoshiro256StarStar(0 if seed is None else seed)
+    try:
+        r = NEW_MODELS[kind](args, rng, directed)
+    except Trap as t:
+        return t, None
+    return r, rng.draws
+
+
+def nx_same_new(kind, args, seed, directed, r):
+    """Whether NetworkX gives the same answer (on our stream for the random ones); None when it
+    cannot be compared."""
+    from collections import Counter
+    rand = StreamRandom(0 if seed is None else seed)
+    if kind == "graphical":
+        return nx.is_graphical(args[0]) == r
+    if kind == "digraphical":
+        return nx.is_digraphical(args[0], args[1]) == r
+    if kind == "hh":
+        H = nx.havel_hakimi_graph(args[0])
+    elif kind == "dhh":
+        H = nx.directed_havel_hakimi_graph(args[0], args[1])
+    elif kind == "cm":
+        H = nx.configuration_model(args[0], seed=rand)
+        return Counter((min(u, v), max(u, v)) for u, v in H.edges()) == Counter((min(u, v), max(u, v)) for u, v in r.edges)
+    elif kind == "dcm":
+        H = nx.directed_configuration_model(args[0], args[1], seed=rand)
+        return Counter(H.edges()) == Counter(r.edges)
+    elif kind == "sf":
+        H = nx.scale_free_graph(*args, seed=rand)
+        return Counter(H.edges()) == Counter(r.edges) and H.number_of_nodes() == r.n
+    elif kind == "chunglu":
+        H = nx.expected_degree_graph(args[0], seed=rand, selfloops=False)
+    elif kind == "hk":
+        H = nx.powerlaw_cluster_graph(*args, seed=rand)
+    elif kind == "nws":
+        H = nx.newman_watts_strogatz_graph(*args, seed=rand)
+    elif kind == "cws":
+        try:
+            H = nx.connected_watts_strogatz_graph(*args, seed=rand)
+        except nx.NetworkXError:
+            return r is None
+        if r is None:
+            return False
+    elif kind == "kout":
+        from networkx.generators.directed import random_uniform_k_out_graph
+        H = random_uniform_k_out_graph(*args, self_loops=False, with_replacement=False, seed=rand)
+        if not directed:
+            H = nx.Graph(H.to_undirected())
+    elif kind == "bipm":
+        a, b, m = args
+        if directed or 2 * m > a * b or a == 1 or b == 1:
+            return None
+        H = nx.bipartite.gnmk_random_graph(a, b, m, seed=rand)
+    else:
+        raise AssertionError(kind)
+    if directed and not H.is_directed():
+        H = H.to_directed()
+    return nx_key(H) == r.key()
+
+
+def new_row(group, case, call, kind, args, seed=None, directed=False):
+    number = len(ROWS) + 1
+    r, draws = new_model(kind, args, seed, directed)
+    SPECS[number] = dict(kind=kind, args=args, seed=seed, directed=directed, result=r, draws=draws)
+    if isinstance(r, Trap):
+        ROWS.append((group, case, call, f"**trap**: {r}"))
+        return
+    same = nx_same_new(kind, args, seed, directed, r)
+    if same is False and kind != "hk":
+        raise AssertionError(f"NetworkX differs on {case}")
+    if isinstance(r, bool):
+        text = "true" if r else "false"
+    elif r is None:
+        text = f"nil; draws {draws}"
+    else:
+        if not r.multi:
+            H = ig.Graph(n=r.n, edges=r.edges, directed=r.directed)
+            assert H.is_simple()
+        text = f"n {r.n}; m {len(r.edges)}; E {fmt_edges(r)}"
+        if seed is not None:
+            text += f"; draws {draws}"
+    if same:
+        text += "; = NetworkX"
+    ROWS.append((group, case, call, text))
+
+
+def later_rows():
+    U, C, P, DP, B = UL, CSR, "Pseudograph<Int>", "DirectedPseudograph<Int>", "BipartiteGraph<Int>"
+    G_ = "&Xoshiro256StarStar(seed: %d)"
+    # ---- graphicality
+    for seq, what in (([3, 3, 3, 3], "K4"), ([3, 3, 3, 1], "odd sum"), ([], "the empty sequence"), ([0, 0], "no edges"),
+                      ([1], "odd sum, one vertex"), ([4, 1, 1, 1, 1], "a star"), ([3, 3, 1, 1], "Erdős–Gallai fails at k = 2"),
+                      ([-1, 1], "a negative degree"), ([4, 1, 1, 1], "a degree ≥ n"), ([2, 2, 2, 2, 2, 2], "Zverovich–Zverovich accepts at once"),
+                      ([6, 6, 5, 4, 4, 3, 2, 2, 1, 1], "runs of equal degrees"), ([5, 5, 5, 5, 2, 2, 2], "fails at the Durfee number"),
+                      ([4, 4, 4, 1, 1, 1, 1], "fails past the first run")):
+        new_row("Graphicality", f"{seq}: {what}", f"isGraphical({seq})", "graphical", (seq,))
+    for ins, outs, what in (([1, 1, 1], [1, 1, 1], "the directed 3-cycle"), ([2, 0, 0], [0, 1, 1], "two arcs into 0"),
+                            ([2, 2, 2], [2, 2, 2], "the complete digraph on 3"), ([1, 0], [0, 2], "unequal sums"),
+                            ([2, 0], [0, 2], "a degree ≥ n"), ([0, 2, 1, 1], [2, 0, 1, 1], ""),
+                            ([1, 1, 1, 0], [0, 0, 0, 3], "a source to every other vertex"),
+                            ([0, 0, 2, 2], [2, 2, 0, 0], "K2,2 one way"), ([3, 0, 0, 0], [0, 1, 1, 1], ""),
+                            ([2, 1, 0], [0, 1, 2], "a transitive tournament"), ([1, 1, 2, 0], [2, 1, 0, 1], ""),
+                            ([], [], "the empty sequences")):
+        new_row("Graphicality", f"in {ins}, out {outs}" + (f": {what}" if what else ""),
+                f"isDigraphical(inDegrees: {ins}, outDegrees: {outs})", "digraphical", (ins, outs))
+    new_row("Graphicality", "the counts differ", "isDigraphical(inDegrees: [1, 1], outDegrees: [1, 1, 0])", "digraphical",
+            ([1, 1], [1, 1, 0]))
+    # ---- Havel–Hakimi
+    for seq in ([3, 3, 3, 3], [3, 2, 2, 2, 1], [2, 2, 2, 2, 2, 2], [4, 1, 1, 1, 1], [0, 0, 0], [], [3, 3, 2, 2, 2, 1, 1],
+                [1, 1, 1, 1, 1, 1]):
+        new_row("HavelHakimi", f"{seq}", f"{U}.havelHakimi(degreeSequence: {seq})", "hh", (seq,))
+    for ins, outs in (([1, 1, 1], [1, 1, 1]), ([0, 2, 1, 1], [2, 0, 1, 1]), ([2, 2, 2], [2, 2, 2]), ([2, 1, 0], [0, 1, 2]),
+                      ([0, 0], [0, 0])):
+        new_row("HavelHakimi", f"Kleitman–Wang: in {ins}, out {outs}",
+                f"{C}.havelHakimi(inDegrees: {ins}, outDegrees: {outs})", "dhh", (ins, outs), directed=True)
+    new_row("HavelHakimi", "not graphical", f"{U}.havelHakimi(degreeSequence: [3, 3, 1, 1])", "hh", ([3, 3, 1, 1],))
+    new_row("HavelHakimi", "not digraphical", f"{C}.havelHakimi(inDegrees: [2, 0], outDegrees: [0, 2])", "dhh",
+            ([2, 0], [0, 2]), directed=True)
+    new_row("HavelHakimi", "the counts differ", f"{C}.havelHakimi(inDegrees: [1, 1], outDegrees: [1, 1, 0])", "dhh",
+            ([1, 1], [1, 1, 0]), directed=True)
+    # ---- configuration model
+    for seq, seed, what in (([3, 3, 2, 2, 2], 0, ""), ([3, 3, 2, 2, 2], 1, ""), ([2, 2, 2], 1, ""), ([4], 0, ": two self-loops"),
+                            ([0, 0], 0, ": no stubs, no draws"), ([1, 1], 0, ""), ([2, 2], 5, "")):
+        new_row("ConfigurationModel", f"degrees {seq}{what}",
+                f"{P}.configurationModel(degreeSequence: {seq}, using: {G_ % seed})", "cm", (seq,), seed)
+    for ins, outs, seed in (([1, 2, 0, 1], [2, 0, 1, 1], 0), ([1, 2, 0, 1], [2, 0, 1, 1], 1), ([2, 2], [2, 2], 0)):
+        new_row("ConfigurationModel", f"directed: in {ins}, out {outs}",
+                f"{DP}.configurationModel(inDegrees: {ins}, outDegrees: {outs}, using: {G_ % seed})", "dcm", (ins, outs), seed,
+                directed=True)
+    new_row("ConfigurationModel", "odd degree sum", f"{P}.configurationModel(degreeSequence: [2, 1], using: {G_ % 0})", "cm",
+            ([2, 1],), 0)
+    new_row("ConfigurationModel", "negative degree", f"{P}.configurationModel(degreeSequence: [2, -2], using: {G_ % 0})", "cm",
+            ([2, -2],), 0)
+    new_row("ConfigurationModel", "unequal sums", f"{DP}.configurationModel(inDegrees: [1, 1], outDegrees: [1, 0], using: {G_ % 0})",
+            "dcm", ([1, 1], [1, 0]), 0, directed=True)
+    new_row("ConfigurationModel", "the counts differ",
+            f"{DP}.configurationModel(inDegrees: [1, 1], outDegrees: [1, 1, 0], using: {G_ % 0})", "dcm", ([1, 1], [1, 1, 0]), 0,
+            directed=True)
+    # ---- Chung–Lu
+    for w, seed, what in (([3.0, 2.0, 2.0, 1.0, 1.0, 1.0], 0, ""), ([3.0, 2.0, 2.0, 1.0, 1.0, 1.0], 1, ""),
+                          ([1.0, 4.0, 2.0, 4.0, 1.0, 0.0, 3.0], 0, ": ties kept in index order, a zero weight"),
+                          ([5.0, 5.0], 0, ": p capped at 1, no skip draw"), ([0.0, 0.0, 0.0], 0, ": all zero, no draws"),
+                          ([], 0, ": no vertices")):
+        new_row("ChungLu", f"weights {w}{what}", f"{U}.chungLu(expectedDegrees: {w}, using: {G_ % seed})", "chunglu", (w,), seed)
+    new_row("ChungLu", "directed: both arcs of every edge, the undirected draws",
+            f"{C}.chungLu(expectedDegrees: [3.0, 2.0, 2.0, 1.0, 1.0, 1.0], using: {G_ % 0})", "chunglu",
+            ([3.0, 2.0, 2.0, 1.0, 1.0, 1.0],), 0, directed=True)
+    new_row("ChungLu", "negative weight", f"{U}.chungLu(expectedDegrees: [1.0, -1.0], using: {G_ % 0})", "chunglu", ([1.0, -1.0],), 0)
+    new_row("ChungLu", "infinite weight", f"{U}.chungLu(expectedDegrees: [1.0, .infinity], using: {G_ % 0})", "chunglu",
+            ([1.0, math.inf],), 0)
+    # ---- Holme–Kim
+    for n, m, p, seed in ((10, 2, 0.5, 0), (10, 2, 0.5, 1), (12, 3, 0.8, 0), (8, 1, 1.0, 0), (10, 2, 0.0, 0), (5, 5, 0.5, 0)):
+        new_row("HolmeKim", f"n {n}, m {m}, p {p}", f"{U}.holmeKim(vertexCount: {n}, edgesPerVertex: {m}, triangleProbability: {p}, using: {G_ % seed})",
+                "hk", (n, m, p), seed)
+    new_row("HolmeKim", "directed: new vertex → older vertex",
+            f"{C}.holmeKim(vertexCount: 10, edgesPerVertex: 2, triangleProbability: 0.5, using: {G_ % 0})", "hk", (10, 2, 0.5), 0,
+            directed=True)
+    new_row("HolmeKim", "m = 0", f"{U}.holmeKim(vertexCount: 5, edgesPerVertex: 0, triangleProbability: 0.5, using: {G_ % 0})",
+            "hk", (5, 0, 0.5), 0)
+    new_row("HolmeKim", "m > n", f"{U}.holmeKim(vertexCount: 3, edgesPerVertex: 4, triangleProbability: 0.5, using: {G_ % 0})",
+            "hk", (3, 4, 0.5), 0)
+    new_row("HolmeKim", "p > 1", f"{U}.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.5, using: {G_ % 0})",
+            "hk", (5, 2, 1.5), 0)
+    # ---- Newman–Watts–Strogatz
+    for n, k, p, seed in ((10, 2, 0.3, 0), (10, 2, 0.3, 1), (10, 4, 0.5, 0), (6, 4, 1.0, 0), (5, 0, 0.5, 0), (5, 2, 0.0, 0),
+                          (4, 4, 0.5, 0)):
+        new_row("NewmanWattsStrogatz", f"n {n}, k {k}, p {p}",
+                f"{U}.newmanWattsStrogatz(vertexCount: {n}, nearestNeighborCount: {k}, shortcutProbability: {p}, using: {G_ % seed})",
+                "nws", (n, k, p), seed)
+    new_row("NewmanWattsStrogatz", "directed: both arcs of every edge, the undirected draws",
+            f"{C}.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 2, shortcutProbability: 0.3, using: {G_ % 0})",
+            "nws", (10, 2, 0.3), 0, directed=True)
+    new_row("NewmanWattsStrogatz", "odd k", f"{U}.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 3, shortcutProbability: 0.3, using: {G_ % 0})",
+            "nws", (10, 3, 0.3), 0)
+    new_row("NewmanWattsStrogatz", "k > n", f"{U}.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 6, shortcutProbability: 0.3, using: {G_ % 0})",
+            "nws", (4, 6, 0.3), 0)
+    # ---- connected Watts–Strogatz
+    for n, k, p, tries, seed in ((10, 4, 0.5, 100, 0), (12, 2, 0.6, 100, 0), (12, 2, 0.6, 100, 3), (12, 2, 1.0, 1, 0),
+                                 (6, 6, 0.5, 100, 0), (5, 2, 0.5, 0, 0)):
+        new_row("ConnectedWattsStrogatz", f"n {n}, k {k}, p {p}, tries {tries}",
+                f"{U}.connectedWattsStrogatz(vertexCount: {n}, nearestNeighborCount: {k}, rewiringProbability: {p}, tries: {tries}, using: {G_ % seed})",
+                "cws", (n, k, p, tries), seed)
+    new_row("ConnectedWattsStrogatz", "directed: both arcs of every edge, the undirected draws",
+            f"{C}.connectedWattsStrogatz(vertexCount: 12, nearestNeighborCount: 2, rewiringProbability: 0.6, tries: 100, using: {G_ % 0})",
+            "cws", (12, 2, 0.6, 100), 0, directed=True)
+    new_row("ConnectedWattsStrogatz", "no vertices",
+            f"{U}.connectedWattsStrogatz(vertexCount: 0, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: {G_ % 0})",
+            "cws", (0, 0, 0.5, 100), 0)
+    new_row("ConnectedWattsStrogatz", "negative tries",
+            f"{U}.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: -1, using: {G_ % 0})",
+            "cws", (5, 2, 0.5, -1), 0)
+    new_row("ConnectedWattsStrogatz", "odd k with no tries",
+            f"{U}.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 3, rewiringProbability: 0.5, tries: 0, using: {G_ % 0})",
+            "cws", (5, 3, 0.5, 0), 0)
+    # ---- random k-out
+    for n, k, seed, what in ((6, 2, 0, ": a pool of 5, shuffled"), (6, 2, 1, ""), (30, 2, 0, ": a pool of 29 > 21, by rejection"),
+                             (8, 7, 0, ": every other vertex"), (5, 0, 0, ": k = 0, no draws"), (1, 0, 0, "")):
+        new_row("RandomKOut", f"n {n}, k {k}{what}", f"{C}.randomKOut(vertexCount: {n}, outDegree: {k}, using: {G_ % seed})",
+                "kout", (n, k), seed, directed=True)
+    for n, k, seed in ((6, 2, 0), (8, 3, 0)):
+        new_row("RandomKOut", f"undirected n {n}, k {k}: the arcs' pairs, each once",
+                f"{U}.randomKOut(vertexCount: {n}, outDegree: {k}, using: {G_ % seed})", "kout", (n, k), seed)
+    new_row("RandomKOut", "k = n", f"{C}.randomKOut(vertexCount: 4, outDegree: 4, using: {G_ % 0})", "kout", (4, 4), 0, directed=True)
+    new_row("RandomKOut", "k < 0", f"{C}.randomKOut(vertexCount: 4, outDegree: -1, using: {G_ % 0})", "kout", (4, -1), 0, directed=True)
+    # ---- directed scale-free
+    for args, seed, what in (((10, 0.41, 0.54, 0.05, 0.2, 0.0), 0, ": the default parameters"),
+                             ((10, 0.41, 0.54, 0.05, 0.2, 0.0), 1, ""),
+                             ((8, 0.3, 0.4, 0.3, 0.0, 0.5), 1, ": deltaIn 0, deltaOut 0.5"),
+                             ((3, 0.41, 0.54, 0.05, 0.2, 0.0), 0, ": the starting cycle, no draws")):
+        n, a, b, g, di, do = args
+        new_row("ScaleFree", f"n {n}{what}",
+                f"{DP}.scaleFree(vertexCount: {n}, alpha: {a}, beta: {b}, gamma: {g}, deltaIn: {di}, deltaOut: {do}, using: {G_ % seed})",
+                "sf", args, seed, directed=True)
+    for args, what in (((2, 0.41, 0.54, 0.05, 0.2, 0.0), "n < 3"), ((5, 0.0, 0.95, 0.05, 0.2, 0.0), "alpha = 0"),
+                       ((5, 0.5, 0.5, 0.5, 0.2, 0.0), "the probabilities sum to 1.5"), ((5, 0.41, 0.54, 0.05, -0.1, 0.0), "deltaIn < 0")):
+        n, a, b, g, di, do = args
+        new_row("ScaleFree", what,
+                f"{DP}.scaleFree(vertexCount: {n}, alpha: {a}, beta: {b}, gamma: {g}, deltaIn: {di}, deltaOut: {do}, using: {G_ % 0})",
+                "sf", args, 0, directed=True)
+    # ---- random bipartite G(a, b, m)
+    for a, b, m, seed, what in ((3, 4, 5, 0, ""), (3, 4, 5, 1, ""), (3, 4, 10, 0, ": 2m > ab, the 2 pairs left out drawn"),
+                                (3, 4, 12, 0, ": complete, no draws"), (0, 3, 0, 0, ": no left side")):
+        new_row("RandomBipartiteEdgeCount", f"G({a}, {b}, m = {m}){what}",
+                f"{U}.randomBipartite(leftCount: {a}, rightCount: {b}, edgeCount: {m}, using: {G_ % seed})", "bipm", (a, b, m), seed)
+    for a, b, m, seed in ((2, 3, 4, 0), (2, 3, 10, 0)):
+        new_row("RandomBipartiteEdgeCount", f"directed G({a}, {b}, m = {m}): one draw below(2ab) per try",
+                f"{C}.randomBipartite(leftCount: {a}, rightCount: {b}, edgeCount: {m}, using: {G_ % seed})", "bipm", (a, b, m), seed,
+                directed=True)
+    new_row("RandomBipartiteEdgeCount", "m > ab", f"{U}.randomBipartite(leftCount: 2, rightCount: 2, edgeCount: 5, using: {G_ % 0})",
+            "bipm", (2, 2, 5), 0)
+    new_row("RandomBipartiteEdgeCount", "negative side", f"{U}.randomBipartite(leftCount: -1, rightCount: 2, edgeCount: 0, using: {G_ % 0})",
+            "bipm", (-1, 2, 0), 0)
+    # ---- laws
+    S = 3000
+    counts = {}
+    for seed in range(S):
+        r = configuration_model([1, 1, 1, 1], Xoshiro256StarStar(seed))
+        key = tuple(sorted((min(u, v), max(u, v)) for u, v in r.edges))
+        counts[key] = counts.get(key, 0) + 1
+    probs = {((0, 1), (2, 3)): 1 / 3, ((0, 2), (1, 3)): 1 / 3, ((0, 3), (1, 2)): 1 / 3}
+    SPECS[len(ROWS) + 1] = dict(kind="law_cm", counts=counts, S=S)
+    stat_row("ConfigurationModel", "law: every pairing of the stubs equally likely", "degrees [1, 1, 1, 1]", chi_text(counts, probs, S))
+    counts = {}
+    for seed in range(S):
+        r = random_k_out(4, 2, Xoshiro256StarStar(seed), True)
+        key = tuple(t for u, t in r.edges if u == 0)
+        counts[key] = counts.get(key, 0) + 1
+    probs = {(1, 2): 1 / 3, (1, 3): 1 / 3, (2, 3): 1 / 3}
+    SPECS[len(ROWS) + 1] = dict(kind="law_kout", counts=counts, S=S)
+    stat_row("RandomKOut", "law: vertex 0's targets uniform over the 2-subsets of the others", "n 4, k 2",
+             chi_text(counts, probs, S))
+    w = [1.0 + (i % 7) for i in range(50)]
+    S = 200
+    tot = sum(len(chung_lu(w, Xoshiro256StarStar(seed)).edges) for seed in range(S))
+    total = sum(w)
+    ps = [min(w[u] * w[v] / total, 1) for u in range(50) for v in range(u + 1, 50)]
+    SPECS[len(ROWS) + 1] = dict(kind="law_chunglu", total=tot, S=S, mean=sum(ps), var=sum(q * (1 - q) for q in ps))
+    stat_row("ChungLu", "law: E[m] = Σ min(w_u·w_v/S, 1) over the pairs", "weights 1 + (i mod 7), n 50",
+             z_text(tot, S, sum(ps), sum(q * (1 - q) for q in ps)))
+    # ---- rows that tell the procedures' details apart
+    new_row("HavelHakimi", "Kleitman–Wang: a source with no in-degree left goes back to the out-only heap",
+            f"{C}.havelHakimi(inDegrees: [2, 2, 3, 3, 4], outDegrees: [3, 4, 2, 3, 2])", "dhh",
+            ([2, 2, 3, 3, 4], [3, 4, 2, 3, 2]), directed=True)
+    new_row("HavelHakimi", "a negative degree", f"{U}.havelHakimi(degreeSequence: [1, 1, -1])", "hh", ([1, 1, -1],))
+    new_row("ConnectedWattsStrogatz", "n 12, k 2, p 0.6: the first try disconnected, a later one connected",
+            f"{U}.connectedWattsStrogatz(vertexCount: 12, nearestNeighborCount: 2, rewiringProbability: 0.6, tries: 100, using: {G_ % 10})",
+            "cws", (12, 2, 0.6, 100), 10)
+    new_row("ConnectedWattsStrogatz", "n 12, k 2, p 1.0, tries 1: the one try disconnected, nil",
+            f"{U}.connectedWattsStrogatz(vertexCount: 12, nearestNeighborCount: 2, rewiringProbability: 1.0, tries: 1, using: {G_ % 22})",
+            "cws", (12, 2, 1.0, 1), 22)
+    new_row("RandomKOut", "n 60, k 6: a pool of 59 ≤ 21 + 4^⌈log₄ 18⌉ = 85, shuffled",
+            f"{C}.randomKOut(vertexCount: 60, outDegree: 6, using: {G_ % 0})", "kout", (60, 6), 0, directed=True)
+    new_row("HavelHakimi", "Kleitman–Wang on 16 vertices: deep heaps",
+            f"{C}.havelHakimi(inDegrees: [4, 6, 6, 3, 6, 6, 5, 7, 1, 4, 8, 10, 9, 6, 5, 6], outDegrees: [8, 7, 6, 4, 2, 8, 5, 3, 11, 8, 6, 4, 7, 3, 4, 6])", "dhh", ([4, 6, 6, 3, 6, 6, 5, 7, 1, 4, 8, 10, 9, 6, 5, 6], [8, 7, 6, 4, 2, 8, 5, 3, 11, 8, 6, 4, 7, 3, 4, 6]), directed=True)
+    new_row("ScaleFree", "n 40: the default parameters, a longer run",
+            f"{DP}.scaleFree(vertexCount: 40, alpha: 0.41, beta: 0.54, gamma: 0.05, deltaIn: 0.2, deltaOut: 0.0, using: {G_ % 0})",
+            "sf", (40, 0.41, 0.54, 0.05, 0.2, 0.0), 0, directed=True)
 
 
 HEADER = [

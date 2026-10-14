@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Erdős–Rényi, Barabási–Albert, Watts–Strogatz, random geometric, random regular, random bipartite, stochastic block model, random trees and DAGs.
+# Erdős–Rényi, Barabási–Albert, Holme–Kim, Watts–Strogatz and Newman–Watts–Strogatz, random geometric, random regular, random k-out, random bipartite, stochastic block model, Chung–Lu, configuration model, directed scale-free, random trees and DAGs; graphical degree sequences and Havel–Hakimi.
 swift_library(
     name = "RandomGraphs",
     srcs = glob(["**/*.swift"]),
@@ -15,6 +15,7 @@ swift_library(
         "//Sources/NamedGraphs",
         "//Sources/Trees",
         "//Sources/DirectedAcyclicGraphModule",
+        "//Sources/Multigraphs",
     ],
     visibility = ["//visibility:public"],
 )
@@ -31,6 +32,7 @@ docc_archive(
         "//Sources/NamedGraphs:NamedGraphsDocumentation",
         "//Sources/Trees:TreesDocumentation",
         "//Sources/DirectedAcyclicGraphModule:DirectedAcyclicGraphModuleDocumentation",
+        "//Sources/Multigraphs:MultigraphsDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

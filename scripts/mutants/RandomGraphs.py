@@ -19,6 +19,22 @@
 #   sbmrowend — with column = a the row walk's loop moves to the next row on its first pass
 #   (rest ≥ 0 = a − column), which is what the original does;
 #   bainsertion — the full sort and the insertion sort give the same order.
+# The degree sequences and the later families:
+#   rrrange — d = n takes the complement branch, whose recursive call with d = −1 traps;
+#   egbound — a sum past n(n − 1) needs a degree past n − 1, which the first run's inequality
+#   rejects (its left side is taken·d > k(n − 1), at least the right side); egdurfee — at d = k
+#   the run takes nothing, the check repeats the last one, and the next d returns; hhlowered —
+#   pushing degree-0 vertices to bucket 0 only adds rounds with no partners, since a graphical
+#   sequence's partners are always found above it; bipmside — r < 2ab, so r % ab is r − ab past ab.
+#   Removed checks that leave a trap at the same call: stubnegative (`repeatElement` with a
+#   negative count), cmodd and dcmsums (`_built`'s unpaired
+#   keys), clinfinite (the sum is infinite, which the next precondition rejects), cwstries
+#   (`0 ..< tries` with tries < 0), sfsmall (n = 2 leaves vertex 2 of the cycle out of range for
+#   `_built`).
+#   nwsorder — a shortcut leaves the visited edge's smaller end u whatever the other end, so the
+#   order of u's two edges at one offset does not change the draws' meaning;
+#   clzero — all weights 0 make ρ infinite and every p NaN, so `p > 0` ends each sweep with no
+#   draw, as the guard does.
 # Grid sizing only (the pairs found are the same; memory and time differ):
 #   rgcells (c^d may exceed n), rgbrute (the grid when 3^d > n), rgpowerend (c^d = n exactly), and
 #   rgmargin — the 2⁻²⁰ margin matters only for a pair whose rounded distance lands within 2⁻²⁰ of
@@ -38,6 +54,13 @@ RT = "RandomTree.swift"
 SB = "StochasticBlockModel.swift"
 RR = "RandomRegular.swift"
 RB = "RandomBipartite.swift"
+DS = "DegreeSequences.swift"
+CM = "ConfigurationModel.swift"
+CL = "ChungLu.swift"
+HK = "HolmeKim.swift"
+NWS = "NewmanWattsStrogatz.swift"
+KO = "RandomKOut.swift"
+SF = "ScaleFree.swift"
 
 MUTANTS = [
     # xoshiro256**: the scrambler, the linear step, the rotation.
@@ -156,10 +179,10 @@ MUTANTS = [
 
     # Watts–Strogatz.
     Mutant("wscount", WS, "    _checkCount(n)", "", mode="stmt"),
-    Mutant("wsnegative", WS, "k >= 0 && k.isMultiple(of: 2)", "k.isMultiple(of: 2)"),
-    Mutant("wsodd", WS, "k >= 0 && k.isMultiple(of: 2)", "k >= 0"),
-    Mutant("wslarge", WS, "k <= n", "true"),
-    Mutant("wsprob", WS, '    _checkProbability(p, "rewiringProbability")', "", mode="stmt"),
+    Mutant("wsnegative", WS, "k >= 0 && k.isMultiple(of: 2)", "k.isMultiple(of: 2)", nth=0),
+    Mutant("wsodd", WS, "k >= 0 && k.isMultiple(of: 2)", "k >= 0", nth=0),
+    Mutant("wslarge", WS, "k <= n", "true", nth=0),
+    Mutant("wsprob", WS, '    _checkProbability(p, "rewiringProbability")', "", mode="stmt", nth=0),
     Mutant("wscomplete", WS, "    if k == n { return nil }", "", mode="stmt"),
     Mutant("wsring", WS, "            _ = edges.insert(Swift.min(u, v), Swift.max(u, v))", "", mode="stmt"),
     Mutant("wsringfar", WS, "            far[(j - 1) * n + u] = v", "            far[(j - 1) * n + u] = (u + 1) % n", mode="stmt"),
@@ -206,7 +229,7 @@ MUTANTS = [
 
     # Both arcs of each pair (the directed symmetric families).
     Mutant("botharcsorder", EO, "_sortedBySource(n, pairs.map { DirectedEdge(from: $0.target, to: $0.source) }, pairs)", "_sortedBySource(n, pairs, pairs.map { DirectedEdge(from: $0.target, to: $0.source) })"),
-    Mutant("wsdirected", WS, "_bothArcs(n, pairs)", "pairs"),
+    Mutant("wsdirected", WS, "_bothArcs(n, pairs)", "pairs", nth=0),
     Mutant("wsdirectedcomplete", WS, "complete(vertexCount: n)", "Self(_vertexCount: n, sortedEdges: EmptyCollection(), _ConstructionToken())", nth=1),
     Mutant("rgdirected", RG, "_bothArcs(n, pairs)", "pairs"),
 
@@ -280,4 +303,133 @@ MUTANTS = [
     Mutant("sbmbetweenrow", SB, "                    x = t / b", "                    x = t % b", mode="stmt"),
     Mutant("sbmbetweencolumn", SB, "                    y = t % b", "                    y = t / b", mode="stmt"),
     Mutant("sbmsort", SB, "_sortedBySource(n, pairs, [])", "pairs"),
+    # Erdős–Gallai (Zverovich–Zverovich form).
+    Mutant("egrange", DS, "d < 0 || d >= p", "d < 0 || d > p"),
+    Mutant("egnegative", DS, "d < 0 || d >= p", "d >= p"),
+    Mutant("egparity", DS, "!sum.isMultiple(of: 2) || sum > n * (n - 1)", "sum > n * (n - 1)"),
+    Mutant("egbound", DS, "!sum.isMultiple(of: 2) || sum > n * (n - 1)", "!sum.isMultiple(of: 2)"),
+    Mutant("egaccept", DS, "4 * smallest * n >= (largest + smallest + 1) * (largest + smallest + 1)", "4 * smallest * n >= (largest + smallest) * (largest + smallest)"),
+    Mutant("egdurfee", DS, "        if d < k + 1 { return true }", "        if d < k { return true }", mode="stmt"),
+    Mutant("egrun", DS, "d < k + run ? d - k : run", "run"),
+    Mutant("egleading", DS, "            leading += taken * d", "            leading += taken * (d - 1)", mode="stmt"),
+    Mutant("egbelow", DS, "                below += counts[k + v]", "", mode="stmt"),
+    Mutant("egweighted", DS, "                weighted += (k + v) * counts[k + v]", "                weighted += (k + v + 1) * counts[k + v]", mode="stmt"),
+    Mutant("egcheck", DS, "leading > k * (n - 1) - k * below + weighted", "leading > k * n - k * below + weighted"),
+    Mutant("egcount", DS, "            counts[d] += 1", "", mode="stmt"),
+
+    # Fulkerson–Chen–Anstee.
+    Mutant("fcarangein", DS, "d < 0 || d >= n", "d < 0 || d > n", nth=0),
+    Mutant("fcarangeout", DS, "d < 0 || d >= n", "d < 0 || d > n", nth=1),
+    Mutant("fcasums", DS, "sumIn != sumOut", "false"),
+    Mutant("fcabyout", DS, "        let slot = offsets[n - 1 - a[v]]\n        offsets[n - 1 - a[v]] = slot + 1\n        order[slot] = v", "        let slot = offsets[n - 1 - a[v]]\n        offsets[n - 1 - a[v]] = slot + 1\n        order[n - 1 - slot] = v", mode="stmt"),
+    Mutant("fcacount", DS, "    for d in a { offsets[n - 1 - d + 1] += 1 }", "    for d in a { offsets[d + 1] += 1 }", mode="stmt"),
+    Mutant("nwsorder", NWS, "(side == 0 ? up : down) > u", "(side == 0 ? down : up) > u"),
+    Mutant("fcaatleast", DS, "    for d in stride(from: n - 1, through: 0, by: -1) { atLeast[d] += atLeast[d + 1] }", "", mode="stmt"),
+    Mutant("fcacoveredout", DS, "        covered -= prefixCounts[k - 1]", "", mode="stmt"),
+    Mutant("fcacoveredin", DS, "b[v] >= k", "b[v] > k"),
+    Mutant("fcacheck", DS, "left > minimumSum - covered", "left > minimumSum"),
+    Mutant("fcacounts", DS, 'precondition(outDegrees.count == n, "inDegrees.count \\(n) != outDegrees.count \\(outDegrees.count)")', "", mode="stmt", nth=0),
+
+    # Havel–Hakimi on stacks, Kleitman–Wang on heaps.
+    Mutant("hhgraphical", DS, 'precondition(isGraphical(degrees), "degreeSequence is not graphical")', "", mode="stmt"),
+    Mutant("hhstackpush", DS, "        next[v] = head[d]\n        head[d] = v", "        if head[d] < 0 { head[d] = v }", mode="stmt", nth=0),
+    Mutant("hhlowered", DS, "if k > 1 { lowered.append((k - 1, target)) }", "if k > 0 { lowered.append((k - 1, target)) }", mode="stmt"),
+    Mutant("hhorient", DS, "source < target ? DirectedEdge(from: source, to: target) : DirectedEdge(from: target, to: source)", "DirectedEdge(from: source, to: target)"),
+    Mutant("keyorder", DS, "(a.negatedOut, a.negatedIn, a.vertex) < (b.negatedOut, b.negatedIn, b.vertex)", "(a.negatedIn, a.negatedOut, a.vertex) < (b.negatedIn, b.negatedOut, b.vertex)"),
+    Mutant("keyvertex", DS, "(a.negatedOut, a.negatedIn, a.vertex) < (b.negatedOut, b.negatedIn, b.vertex)", "(a.negatedOut, a.negatedIn, -a.vertex) < (b.negatedOut, b.negatedIn, -b.vertex)"),
+    Mutant("heapsift", DS, "            if r < count, keys[r] < keys[smallest] { smallest = r }", "", mode="stmt"),
+    Mutant("heapup", DS, "            guard keys[i] < keys[parent] else { break }", "            guard keys[i] < keys[0] else { break }", mode="stmt"),
+    Mutant("kwtie", DS, "withIn.top.negatedOut > outOnly.top.negatedOut", "withIn.top.negatedOut >= outOnly.top.negatedOut"),
+    Mutant("kwlowered", DS, "source.negatedOut + 1 < 0 || source.negatedIn < 0", "source.negatedOut + 1 < 0"),
+    Mutant("kwtargetout", DS, "        if target.negatedOut < 0 { outOnly.push(_DegreeKey(negatedOut: target.negatedOut, negatedIn: 0, vertex: target.vertex)) }", "", mode="stmt"),
+    Mutant("kwsplit", DS, "            if key.negatedIn < 0 { withIn.push(key) } else { outOnly.push(key) }", "            withIn.push(key)", mode="stmt"),
+    Mutant("kwdigraphical", DS, 'precondition(isDigraphical(inDegrees: inDegrees, outDegrees: outDegrees), "the degree sequences are not digraphical")', "", mode="stmt"),
+
+    # The configuration models.
+    Mutant("stubnegative", CM, "d >= 0", "true"),
+    Mutant("stubvertex", CM, "        v += 1", "        v += 2", mode="stmt"),
+    Mutant("shufflebound", CM, "_below(i + 1, &g)", "_below(i, &g)"),
+    Mutant("shuffleend", CM, "i >= 1", "i >= 2"),
+    Mutant("cmodd", CM, "stubs.count.isMultiple(of: 2)", "true"),
+    Mutant("cmhalves", CM, "Array(stubs[half...])", "Array(stubs[..<half])"),
+    Mutant("dcmorder", CM, "        _shuffle(&sources, &generator)\n        _shuffle(&targets, &generator)", "        _shuffle(&targets, &generator)\n        _shuffle(&sources, &generator)", mode="stmt"),
+    Mutant("dcmsums", CM, "sources.count == targets.count", "true"),
+    Mutant("dcmcounts", CM, "outDegrees.count == n", "true"),
+
+    # Chung–Lu by Miller–Hagberg.
+    Mutant("clorder", CL, "weights[$0] > weights[$1] || (weights[$0] == weights[$1] && $0 < $1)", "weights[$0] > weights[$1] || (weights[$0] == weights[$1] && $0 > $1)"),
+    Mutant("clstart", CL, "u + 1", "u + 2"),
+    Mutant("clcap", CL, "Swift.min(sorted[v] * factor, 1)", "sorted[v] * factor", nth=0),
+    Mutant("clunit", CL, "p != 1", "p > 1"),
+    Mutant("clskip", CL, "                v += Int(skip)", "                v += Int(skip) + 1", mode="stmt"),
+    Mutant("clratio", CL, "_uniform01(&g) < q / p", "_uniform01(&g) < q"),
+    Mutant("clnext", CL, "                p = q", "", mode="stmt"),
+    Mutant("clnegative", CL, "w >= 0 && w.isFinite", "w.isFinite"),
+    Mutant("clinfinite", CL, "w >= 0 && w.isFinite", "w >= 0"),
+    Mutant("clzero", CL, "    guard n > 0, largest > 0 else { return [] }", "    guard n > 0 else { return [] }", mode="stmt"),
+    Mutant("clends", CL, "order[u]", "u"),
+
+    # Holme–Kim.
+    Mutant("hkrange", HK, "m >= 1 && m <= n", "m >= 1 && m < n"),
+    Mutant("hkstart", HK, "Array(0 ..< m)", "[Int](repeating: 0, count: m)"),
+    Mutant("hkdistinct", HK, "chosen[t] != s", "true"),
+    Mutant("hkascending", HK, "candidates[b - 1] > value", "candidates[b - 1] < value"),
+    Mutant("hkfirst", HK, "step > 0", "step >= 0"),
+    Mutant("hkexcludeself", HK, "                excluded.append(neighbors[target].count - 1)", "", mode="stmt"),
+    Mutant("hkexcludejoined", HK, "                    if let i = position[_SlotPair(target, x)] { excluded.append(i) }", "", mode="stmt"),
+    Mutant("hkexcludedorder", HK, "excluded[b - 1] > value", "excluded[b - 1] < value"),
+    Mutant("hkexcludedskip", HK, "                        guard e <= i else { break }", "                        guard e < i else { break }", mode="stmt"),
+    Mutant("hkposition", HK, "                position.insert(_SlotPair(w, s), neighbors[w].count)", "                position.insert(_SlotPair(w, s), neighbors[w].count + 1)", mode="stmt"),
+    Mutant("hkneighbors", HK, "            neighbors[w].append(s)", "", mode="stmt"),
+    Mutant("hkskip", HK, "                while joined[candidates[cursor]] == s { cursor += 1 }", "", mode="stmt"),
+    Mutant("hktarget", HK, "                target = w", "", mode="stmt"),
+    Mutant("hkrepeat", HK, "        repeated.append(contentsOf: repeatElement(s, count: m))", "        repeated.append(s)", mode="stmt"),
+    Mutant("hkdirected", HK, "directed ? DirectedEdge(from: s, to: w) : DirectedEdge(from: w, to: s)", "DirectedEdge(from: w, to: s)"),
+
+    # Newman–Watts–Strogatz and connected Watts–Strogatz.
+    Mutant("nwslarger", NWS, "(side == 0 ? up : down) > u", "(side == 0 ? up : down) >= 0"),
+    Mutant("nwsredraw", NWS, "w == u || edges.contains(Swift.min(u, w), Swift.max(u, w))", "w == u"),
+    Mutant("nwsfull", NWS, "degree[u] >= n - 1", "degree[u] >= n"),
+    Mutant("nwsinsert", NWS, "                _ = edges.insert(Swift.min(u, w), Swift.max(u, w))", "", mode="stmt"),
+    Mutant("nwsdegree", NWS, "                degree[u] += 1", "", mode="stmt"),
+    Mutant("nwscomplete", NWS, "    if k == n { return nil }", "", mode="stmt"),
+    Mutant("cwsconnected", WS, "    return components <= 1", "    return components <= 2", mode="stmt"),
+    Mutant("cwsunion", WS, "        parent[b] = a", "        parent[a] = a", mode="stmt"),
+    Mutant("cwsfind", WS, "        while parent[b] != b {\n            parent[b] = parent[parent[b]]\n            b = parent[b]\n        }", "", mode="stmt"),
+    Mutant("cwsvertex", WS, "n >= 1", "n >= 0"),
+    Mutant("cwstries", WS, "tries >= 0", "true"),
+    Mutant("cwsupfront", WS, "    precondition(k >= 0 && k.isMultiple(of: 2), \"nearestNeighborCount \\(k) is not even\")\n    precondition(k <= n, \"nearestNeighborCount \\(k) > vertexCount \\(n)\")\n    _checkProbability(p, \"rewiringProbability\")", "", mode="stmt"),
+
+    # Random k-out.
+    Mutant("koutrange", KO, "k >= 0 && k <= Swift.max(n - 1, 0)", "k >= 0 && k <= n"),
+    Mutant("koutpool", KO, "others <= poolLimit", "true"),
+    Mutant("koutreject", KO, "others <= poolLimit", "false"),
+    Mutant("koutpower", KO, "while power < 3 * k { power *= 4 }", "while power < 3 * k { power *= 2 }", mode="stmt"),
+    Mutant("koutskip", KO, "x < u ? x : x + 1", "x <= u ? x : x + 1"),
+    Mutant("koutmove", KO, "                pool[j] = pool[others - i - 1]", "", mode="stmt"),
+    Mutant("koutdrawn", KO, "                drawn[j] = u", "", mode="stmt"),
+    Mutant("koutmap", KO, "j < u ? j : j + 1", "j"),
+    Mutant("koutextra", KO, "        poolLimit += power", "        poolLimit += power / 2", mode="stmt"),
+    Mutant("koutsort", KO, "row[b - 1] > value", "row[b - 1] < value"),
+    Mutant("koutdedupe", KO, "pairs.last != pair", "true"),
+
+    # Directed scale-free graphs.
+    Mutant("sfbias", SF, "bias / (bias + Double(ends.count))", "bias / Double(ends.count)"),
+    Mutant("sfdelta", SF, "delta > 0", "delta >= 0"),
+    Mutant("sfalphanew", SF, "                v = count\n                count += 1\n                w = _scaleFreeChoice(targets, count, deltaIn, &generator)", "                w = _scaleFreeChoice(targets, count, deltaIn, &generator)\n                v = count\n                count += 1", mode="stmt"),
+    Mutant("sfbetasource", SF, "                v = _scaleFreeChoice(sources, count, deltaOut, &generator)\n                w = _scaleFreeChoice(targets, count, deltaIn, &generator)", "                v = _scaleFreeChoice(targets, count, deltaOut, &generator)\n                w = _scaleFreeChoice(targets, count, deltaIn, &generator)", mode="stmt"),
+    Mutant("sfbranch", SF, "r < alpha + beta", "r < beta"),
+    Mutant("sfends", SF, "[0, 1, 2]", "[1, 2, 0]", nth=1),
+    Mutant("sfsum", SF, "abs(alpha + beta + gamma - 1) < 1e-9", "true"),
+    Mutant("sfsmall", SF, "n >= 3", "n >= 2"),
+    Mutant("sfdeltain", SF, "deltaIn >= 0 && deltaIn.isFinite", "deltaIn.isFinite"),
+
+    # G(a, b, m).
+    Mutant("bipmrange", RB, "m >= 0 && m <= total", "m >= 0 && m <= cross"),
+    Mutant("bipmhalf", RB, "m <= total - m ? m : total - m", "m"),
+    Mutant("bipmside", RB, "r < cross ? r : r - cross", "r % cross"),
+    Mutant("bipmright", RB, "DirectedEdge(from: u, to: a + v)", "DirectedEdge(from: u, to: a + b - 1 - v)"),
+    Mutant("bipmswap", RB, "DirectedEdge(from: a + s % b, to: s / b)", "DirectedEdge(from: s / b, to: a + s % b)"),
+    Mutant("bipmcomplement", RB, "        for v in a ..< a + b where !chosen.contains(u, v) { pairs.append(DirectedEdge(from: u, to: v)) }", "        for v in a ..< a + b { pairs.append(DirectedEdge(from: u, to: v)) }", mode="stmt"),
+    Mutant("bipmback", RB, "            for u in 0 ..< a where !chosen.contains(v, u) { pairs.append(DirectedEdge(from: v, to: u)) }", "", mode="stmt"),
 ]

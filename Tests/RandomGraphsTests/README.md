@@ -5,6 +5,10 @@
 
 - `erdosRenyi` (G(n, p) and G(n, m)), `barabasiAlbert`, `wattsStrogatz`, `randomGeometric`,
   `stochasticBlockModel`, `randomRegular` and `randomBipartite` on the protocols;
+- the degree sequences: `isGraphical`, `isDigraphical` and `havelHakimi` (both kinds);
+- `chungLu`, `holmeKim`, `newmanWattsStrogatz`, `connectedWattsStrogatz`, `randomKOut` and
+  `randomBipartite(…edgeCount:…)` on the protocols; `Pseudograph.configurationModel`,
+  `DirectedPseudograph.configurationModel` and `DirectedPseudograph.scaleFree`;
 - `BipartiteGraph.randomBipartite`;
 - `Tree.random(vertexCount:)`;
 - `DirectedAcyclicGraph.erdosRenyi`;
@@ -85,7 +89,12 @@ call then runs in this process. RG-002 runs `Xoshiro256StarStar(state: (0, 0, 0,
 with one nonzero word.
 
 The catalog-row files are every file except `RandomGraphPropertyTests.swift`,
-`RandomGraphScenarioTests.swift` and `Performance/`. `swiftgen.py`
+`DegreeSequencePropertyTests.swift`, `LaterFamilyPropertyTests.swift`,
+`RandomGraphScenarioTests.swift` and `Performance/`. Rows RG-152 on (the degree sequences and the
+later families, `DegreeSequenceTests.swift`, `ConfigurationModelChungLuTests.swift`,
+`SmallWorldClusteringTests.swift`, `KOutScaleFreeBipartiteTests.swift` and the later trap rows) run
+on the conformers of their kind: the configuration models and the scale-free graph on the
+pseudographs, Havel–Hakimi without a generator. `swiftgen.py`
 generated them from `cases.md`; it sits next to `ref.py` and `cases.md` in
 [`Tests/Catalogs/RandomGraphs/`](../Catalogs/RandomGraphs/):
 
@@ -122,7 +131,27 @@ re-runs every row on the model, asserts that each value is the row's cell, and w
 
 **Performance** (`Performance/`, the `RandomGraphsPerformanceTests` target, under one-minute
 limits): random regular graphs at n 100 with d 90, 96 and 98 over seeds 0..<20 are simple, have
-nd/2 edges and every degree d.
+nd/2 edges and every degree d; and the degree sequences and later families at 10⁵ – 10⁶
+(`LaterFamilyLargeTests.swift`): `isGraphical` on 10⁶ degrees, Havel–Hakimi and Kleitman–Wang
+realizing 10⁵ degrees, the configuration models' exact degrees, Holme–Kim's m(n − m) edges and
+Chung–Lu at 10⁵ vertices.
+
+**Degree sequences** (`DegreeSequencePropertyTests.swift`): `isGraphical` on every sequence of
+up to six entries in −1…n against the degree sequences of every simple graph on n vertices, and
+`isDigraphical` on every pair up to four against every simple digraph; random sequences of up to
+40 against Erdős–Gallai checked at every k, pairs of up to 30 against Fulkerson–Chen–Anstee at
+every k; Havel–Hakimi and Kleitman–Wang realizing the degrees of random graphs on every conformer;
+perturbed sequences rejected.
+
+**Later families** (`LaterFamilyPropertyTests.swift`, with shrinking): the configuration model
+against its stub shuffle replayed in the test, with every degree exact (and the directed model's
+in- and out-degrees); Chung–Lu simple, sorted, the same on the conformers, both arcs directed, no
+draws for zero weights; Holme–Kim's m(n − m) edges and m older neighbors, its directed form newer →
+older on the same draws; Newman–Watts–Strogatz keeping its ring (only it at p = 0); connected
+Watts–Strogatz equal to the first connected `wattsStrogatz` on the same stream, or nil; random
+k-out's out-degree k, its undirected pairs and degree ≥ k; the scale-free graph's starting cycle
+and its one new vertex per arc that adds one; G(a, b, m)'s m crossing edges with its sides; and
+every overload without `using:`.
 
 **Properties** (swift-property-based, with shrinking):
 

@@ -1680,4 +1680,810 @@ struct RandomGraphPreconditionTests {
         let graph = UndirectedAdjacencyList<Int>.stochasticBlockModel(blockSizes: [2, 2], edgeProbabilities: [[0.5, 0.1], [0.1, 0.5]], using: &generator)
         #expect(graph.vertexCount == 4 && graph.edgeCount == 1)
     }
+
+    @Test("RG-177 the counts differ")
+    func rg177() async {
+        // isDigraphical(inDegrees: [1, 1], outDegrees: [1, 1, 0]) → **trap**: inDegrees.count 2 != outDegrees.count 3
+        await #expect(processExitsWith: .failure) {
+            _ = isDigraphical(inDegrees: [1, 1], outDegrees: [1, 1, 0])
+        }
+        // Without the fault: accepted.
+        #expect(isDigraphical(inDegrees: [1, 1], outDegrees: [1, 1]) == true)
+    }
+
+    @Test("RG-191 not graphical")
+    func rg191() async {
+        // UndirectedAdjacencyList<Int>.havelHakimi(degreeSequence: [3, 3, 1, 1]) → **trap**: degreeSequence is not graphical
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.havelHakimi(degreeSequence: [3, 3, 1, 1])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.havelHakimi(degreeSequence: [3, 3, 1, 1])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.havelHakimi(degreeSequence: [3, 3, 1, 1])
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.havelHakimi(degreeSequence: [3, 3, 2, 2])
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 5)
+    }
+
+    @Test("RG-192 not digraphical")
+    func rg192() async {
+        // CompressedSparseRow.havelHakimi(inDegrees: [2, 0], outDegrees: [0, 2]) → **trap**: the degree sequences are not digraphical
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.havelHakimi(inDegrees: [2, 0], outDegrees: [0, 2])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.havelHakimi(inDegrees: [2, 0], outDegrees: [0, 2])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.havelHakimi(inDegrees: [2, 0], outDegrees: [0, 2])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.havelHakimi(inDegrees: [2, 0], outDegrees: [0, 2])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.havelHakimi(inDegrees: [2, 0], outDegrees: [0, 2])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.havelHakimi(inDegrees: [2, 0], outDegrees: [0, 2])
+        }
+        // Without the fault: accepted.
+        let graph = CompressedSparseRow.havelHakimi(inDegrees: [1, 0], outDegrees: [0, 1])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+    }
+
+    @Test("RG-193 the counts differ")
+    func rg193() async {
+        // CompressedSparseRow.havelHakimi(inDegrees: [1, 1], outDegrees: [1, 1, 0]) → **trap**: inDegrees.count 2 != outDegrees.count 3
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.havelHakimi(inDegrees: [1, 1], outDegrees: [1, 1, 0])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.havelHakimi(inDegrees: [1, 1], outDegrees: [1, 1, 0])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.havelHakimi(inDegrees: [1, 1], outDegrees: [1, 1, 0])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.havelHakimi(inDegrees: [1, 1], outDegrees: [1, 1, 0])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.havelHakimi(inDegrees: [1, 1], outDegrees: [1, 1, 0])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.havelHakimi(inDegrees: [1, 1], outDegrees: [1, 1, 0])
+        }
+        // Without the fault: accepted.
+        let graph = CompressedSparseRow.havelHakimi(inDegrees: [1, 1], outDegrees: [1, 1])
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 2)
+    }
+
+    @Test("RG-204 odd degree sum")
+    func rg204() async {
+        // Pseudograph<Int>.configurationModel(degreeSequence: [2, 1], using: &Xoshiro256StarStar(seed: 0)) → **trap**: the degree sum 3 is odd
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.configurationModel(degreeSequence: [2, 1], using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = Pseudograph<Int>.configurationModel(degreeSequence: [2, 2], using: &generator)
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 2)
+    }
+
+    @Test("RG-205 negative degree")
+    func rg205() async {
+        // Pseudograph<Int>.configurationModel(degreeSequence: [2, -2], using: &Xoshiro256StarStar(seed: 0)) → **trap**: degreeSequence has a negative degree -2
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.configurationModel(degreeSequence: [2, -2], using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = Pseudograph<Int>.configurationModel(degreeSequence: [2, 2], using: &generator)
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 2)
+    }
+
+    @Test("RG-206 unequal sums")
+    func rg206() async {
+        // DirectedPseudograph<Int>.configurationModel(inDegrees: [1, 1], outDegrees: [1, 0], using: &Xoshiro256StarStar(seed: 0)) → **trap**: the in-degree sum 2 != the out-degree sum 1
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.configurationModel(inDegrees: [1, 1], outDegrees: [1, 0], using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = DirectedPseudograph<Int>.configurationModel(inDegrees: [1, 1], outDegrees: [1, 1], using: &generator)
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 2)
+    }
+
+    @Test("RG-207 the counts differ")
+    func rg207() async {
+        // DirectedPseudograph<Int>.configurationModel(inDegrees: [1, 1], outDegrees: [1, 1, 0], using: &Xoshiro256StarStar(seed: 0)) → **trap**: inDegrees.count 2 != outDegrees.count 3
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.configurationModel(inDegrees: [1, 1], outDegrees: [1, 1, 0], using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = DirectedPseudograph<Int>.configurationModel(inDegrees: [1, 1], outDegrees: [1, 1], using: &generator)
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 2)
+    }
+
+    @Test("RG-215 negative weight")
+    func rg215() async {
+        // UndirectedAdjacencyList<Int>.chungLu(expectedDegrees: [1.0, -1.0], using: &Xoshiro256StarStar(seed: 0)) → **trap**: expected degree -1.0 is negative or not finite
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.chungLu(expectedDegrees: [1.0, -1.0], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.chungLu(expectedDegrees: [1.0, -1.0], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.chungLu(expectedDegrees: [1.0, -1.0], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.chungLu(expectedDegrees: [1.0, -1.0], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.chungLu(expectedDegrees: [1.0, -1.0], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.chungLu(expectedDegrees: [1.0, -1.0], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.chungLu(expectedDegrees: [1.0, -1.0], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.chungLu(expectedDegrees: [1.0, -1.0], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.chungLu(expectedDegrees: [1.0, -1.0], using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.chungLu(expectedDegrees: [1.0, 1.0], using: &generator)
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+    }
+
+    @Test("RG-216 infinite weight")
+    func rg216() async {
+        // UndirectedAdjacencyList<Int>.chungLu(expectedDegrees: [1.0, .infinity], using: &Xoshiro256StarStar(seed: 0)) → **trap**: expected degree inf is negative or not finite
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.chungLu(expectedDegrees: [1.0, .infinity], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.chungLu(expectedDegrees: [1.0, .infinity], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.chungLu(expectedDegrees: [1.0, .infinity], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.chungLu(expectedDegrees: [1.0, .infinity], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.chungLu(expectedDegrees: [1.0, .infinity], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.chungLu(expectedDegrees: [1.0, .infinity], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.chungLu(expectedDegrees: [1.0, .infinity], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.chungLu(expectedDegrees: [1.0, .infinity], using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.chungLu(expectedDegrees: [1.0, .infinity], using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.chungLu(expectedDegrees: [1.0, 1e+300], using: &generator)
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+    }
+
+    @Test("RG-224 m = 0")
+    func rg224() async {
+        // UndirectedAdjacencyList<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 0, triangleProbability: 0.5, using: &Xoshiro256StarStar(seed: 0)) → **trap**: edgesPerVertex 0 is not in 1...5
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 0, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 0, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 0, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.holmeKim(vertexCount: 5, edgesPerVertex: 0, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.holmeKim(vertexCount: 5, edgesPerVertex: 0, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 0, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 0, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 0, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 0, triangleProbability: 0.5, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 1, triangleProbability: 0.5, using: &generator)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 4)
+    }
+
+    @Test("RG-225 m > n")
+    func rg225() async {
+        // UndirectedAdjacencyList<Int>.holmeKim(vertexCount: 3, edgesPerVertex: 4, triangleProbability: 0.5, using: &Xoshiro256StarStar(seed: 0)) → **trap**: edgesPerVertex 4 is not in 1...3
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.holmeKim(vertexCount: 3, edgesPerVertex: 4, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.holmeKim(vertexCount: 3, edgesPerVertex: 4, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.holmeKim(vertexCount: 3, edgesPerVertex: 4, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.holmeKim(vertexCount: 3, edgesPerVertex: 4, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.holmeKim(vertexCount: 3, edgesPerVertex: 4, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.holmeKim(vertexCount: 3, edgesPerVertex: 4, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.holmeKim(vertexCount: 3, edgesPerVertex: 4, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.holmeKim(vertexCount: 3, edgesPerVertex: 4, triangleProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.holmeKim(vertexCount: 3, edgesPerVertex: 4, triangleProbability: 0.5, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.holmeKim(vertexCount: 3, edgesPerVertex: 3, triangleProbability: 0.5, using: &generator)
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 0)
+    }
+
+    @Test("RG-226 p > 1")
+    func rg226() async {
+        // UndirectedAdjacencyList<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.5, using: &Xoshiro256StarStar(seed: 0)) → **trap**: triangleProbability 1.5 is not in 0...1
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.5, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.holmeKim(vertexCount: 5, edgesPerVertex: 2, triangleProbability: 1.0, using: &generator)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 6)
+    }
+
+    @Test("RG-235 odd k")
+    func rg235() async {
+        // UndirectedAdjacencyList<Int>.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 3, shortcutProbability: 0.3, using: &Xoshiro256StarStar(seed: 0)) → **trap**: nearestNeighborCount 3 is not even
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 3, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 3, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 3, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 3, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 3, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 3, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 3, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 3, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 3, shortcutProbability: 0.3, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.newmanWattsStrogatz(vertexCount: 10, nearestNeighborCount: 2, shortcutProbability: 0.3, using: &generator)
+        #expect(graph.vertexCount == 10 && graph.edgeCount == 12)
+    }
+
+    @Test("RG-236 k > n")
+    func rg236() async {
+        // UndirectedAdjacencyList<Int>.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 6, shortcutProbability: 0.3, using: &Xoshiro256StarStar(seed: 0)) → **trap**: nearestNeighborCount 6 > vertexCount 4
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 6, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 6, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 6, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 6, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 6, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 6, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 6, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 6, shortcutProbability: 0.3, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 6, shortcutProbability: 0.3, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.newmanWattsStrogatz(vertexCount: 4, nearestNeighborCount: 4, shortcutProbability: 0.3, using: &generator)
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 6)
+    }
+
+    @Test("RG-244 no vertices")
+    func rg244() async {
+        // UndirectedAdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 0, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: &Xoshiro256StarStar(seed: 0)) → **trap**: a connected graph needs at least 1 vertex, not 0
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 0, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.connectedWattsStrogatz(vertexCount: 0, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.connectedWattsStrogatz(vertexCount: 0, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.connectedWattsStrogatz(vertexCount: 0, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.connectedWattsStrogatz(vertexCount: 0, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 0, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.connectedWattsStrogatz(vertexCount: 0, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.connectedWattsStrogatz(vertexCount: 0, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.connectedWattsStrogatz(vertexCount: 0, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 1, nearestNeighborCount: 0, rewiringProbability: 0.5, tries: 100, using: &generator)
+        #expect(graph?.vertexCount == 1 && graph?.edgeCount == 0)
+    }
+
+    @Test("RG-245 negative tries")
+    func rg245() async {
+        // UndirectedAdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: -1, using: &Xoshiro256StarStar(seed: 0)) → **trap**: tries -1 is negative
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: -1, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        // No tries: nil, with no draws.
+        #expect(UndirectedAdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: 0, using: &generator) == nil)
+    }
+
+    @Test("RG-246 odd k with no tries")
+    func rg246() async {
+        // UndirectedAdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 3, rewiringProbability: 0.5, tries: 0, using: &Xoshiro256StarStar(seed: 0)) → **trap**: nearestNeighborCount 3 is not even
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 3, rewiringProbability: 0.5, tries: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 3, rewiringProbability: 0.5, tries: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 3, rewiringProbability: 0.5, tries: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 3, rewiringProbability: 0.5, tries: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 3, rewiringProbability: 0.5, tries: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 3, rewiringProbability: 0.5, tries: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 3, rewiringProbability: 0.5, tries: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 3, rewiringProbability: 0.5, tries: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 3, rewiringProbability: 0.5, tries: 0, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        // No tries: nil, with no draws.
+        #expect(UndirectedAdjacencyList<Int>.connectedWattsStrogatz(vertexCount: 5, nearestNeighborCount: 2, rewiringProbability: 0.5, tries: 0, using: &generator) == nil)
+    }
+
+    @Test("RG-255 k = n")
+    func rg255() async {
+        // CompressedSparseRow.randomKOut(vertexCount: 4, outDegree: 4, using: &Xoshiro256StarStar(seed: 0)) → **trap**: outDegree 4 is not in 0...3
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.randomKOut(vertexCount: 4, outDegree: 4, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.randomKOut(vertexCount: 4, outDegree: 4, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.randomKOut(vertexCount: 4, outDegree: 4, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.randomKOut(vertexCount: 4, outDegree: 4, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.randomKOut(vertexCount: 4, outDegree: 4, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.randomKOut(vertexCount: 4, outDegree: 4, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.randomKOut(vertexCount: 4, outDegree: 4, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.randomKOut(vertexCount: 4, outDegree: 4, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.randomKOut(vertexCount: 4, outDegree: 4, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.randomKOut(vertexCount: 4, outDegree: 3, using: &generator)
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 6)
+    }
+
+    @Test("RG-256 k < 0")
+    func rg256() async {
+        // CompressedSparseRow.randomKOut(vertexCount: 4, outDegree: -1, using: &Xoshiro256StarStar(seed: 0)) → **trap**: outDegree -1 is not in 0...3
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.randomKOut(vertexCount: 4, outDegree: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.randomKOut(vertexCount: 4, outDegree: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.randomKOut(vertexCount: 4, outDegree: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.randomKOut(vertexCount: 4, outDegree: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.randomKOut(vertexCount: 4, outDegree: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.randomKOut(vertexCount: 4, outDegree: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.randomKOut(vertexCount: 4, outDegree: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.randomKOut(vertexCount: 4, outDegree: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.randomKOut(vertexCount: 4, outDegree: -1, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.randomKOut(vertexCount: 4, outDegree: 0, using: &generator)
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 0)
+    }
+
+    @Test("RG-261 n < 3")
+    func rg261() async {
+        // DirectedPseudograph<Int>.scaleFree(vertexCount: 2, alpha: 0.41, beta: 0.54, gamma: 0.05, deltaIn: 0.2, deltaOut: 0.0, using: &Xoshiro256StarStar(seed: 0)) → **trap**: vertexCount 2 < 3, the starting cycle
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.scaleFree(vertexCount: 2, alpha: 0.41, beta: 0.54, gamma: 0.05, deltaIn: 0.2, deltaOut: 0.0, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = DirectedPseudograph<Int>.scaleFree(vertexCount: 3, alpha: 0.41, beta: 0.54, gamma: 0.05, deltaIn: 0.2, deltaOut: 0.0, using: &generator)
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 3)
+    }
+
+    @Test("RG-262 alpha = 0")
+    func rg262() async {
+        // DirectedPseudograph<Int>.scaleFree(vertexCount: 5, alpha: 0.0, beta: 0.95, gamma: 0.05, deltaIn: 0.2, deltaOut: 0.0, using: &Xoshiro256StarStar(seed: 0)) → **trap**: alpha, beta and gamma must be positive
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.scaleFree(vertexCount: 5, alpha: 0.0, beta: 0.95, gamma: 0.05, deltaIn: 0.2, deltaOut: 0.0, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = DirectedPseudograph<Int>.scaleFree(vertexCount: 5, alpha: 0.01, beta: 0.94, gamma: 0.05, deltaIn: 0.2, deltaOut: 0.0, using: &generator)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 19)
+    }
+
+    @Test("RG-263 the probabilities sum to 1.5")
+    func rg263() async {
+        // DirectedPseudograph<Int>.scaleFree(vertexCount: 5, alpha: 0.5, beta: 0.5, gamma: 0.5, deltaIn: 0.2, deltaOut: 0.0, using: &Xoshiro256StarStar(seed: 0)) → **trap**: alpha + beta + gamma 1.5 is not 1
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.scaleFree(vertexCount: 5, alpha: 0.5, beta: 0.5, gamma: 0.5, deltaIn: 0.2, deltaOut: 0.0, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = DirectedPseudograph<Int>.scaleFree(vertexCount: 5, alpha: 0.5, beta: 0.25, gamma: 0.25, deltaIn: 0.2, deltaOut: 0.0, using: &generator)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 7)
+    }
+
+    @Test("RG-264 deltaIn < 0")
+    func rg264() async {
+        // DirectedPseudograph<Int>.scaleFree(vertexCount: 5, alpha: 0.41, beta: 0.54, gamma: 0.05, deltaIn: -0.1, deltaOut: 0.0, using: &Xoshiro256StarStar(seed: 0)) → **trap**: deltaIn -0.1 is negative or not finite
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.scaleFree(vertexCount: 5, alpha: 0.41, beta: 0.54, gamma: 0.05, deltaIn: -0.1, deltaOut: 0.0, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = DirectedPseudograph<Int>.scaleFree(vertexCount: 5, alpha: 0.41, beta: 0.54, gamma: 0.05, deltaIn: 0.0, deltaOut: 0.0, using: &generator)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 9)
+    }
+
+    @Test("RG-272 m > ab")
+    func rg272() async {
+        // UndirectedAdjacencyList<Int>.randomBipartite(leftCount: 2, rightCount: 2, edgeCount: 5, using: &Xoshiro256StarStar(seed: 0)) → **trap**: edgeCount 5 is not in 0...4
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.randomBipartite(leftCount: 2, rightCount: 2, edgeCount: 5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.randomBipartite(leftCount: 2, rightCount: 2, edgeCount: 5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.randomBipartite(leftCount: 2, rightCount: 2, edgeCount: 5, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.randomBipartite(leftCount: 2, rightCount: 2, edgeCount: 4, using: &generator)
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 4)
+    }
+
+    @Test("RG-273 negative side")
+    func rg273() async {
+        // UndirectedAdjacencyList<Int>.randomBipartite(leftCount: -1, rightCount: 2, edgeCount: 0, using: &Xoshiro256StarStar(seed: 0)) → **trap**: leftCount -1 is negative
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.randomBipartite(leftCount: -1, rightCount: 2, edgeCount: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.randomBipartite(leftCount: -1, rightCount: 2, edgeCount: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.randomBipartite(leftCount: -1, rightCount: 2, edgeCount: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.randomBipartite(leftCount: -1, rightCount: 2, edgeCount: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.randomBipartite(leftCount: -1, rightCount: 2, edgeCount: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.randomBipartite(leftCount: -1, rightCount: 2, edgeCount: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.randomBipartite(leftCount: -1, rightCount: 2, edgeCount: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.randomBipartite(leftCount: -1, rightCount: 2, edgeCount: 0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.randomBipartite(leftCount: -1, rightCount: 2, edgeCount: 0, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.randomBipartite(leftCount: 0, rightCount: 2, edgeCount: 0, using: &generator)
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 0)
+    }
+
+    @Test("RG-278 a negative degree")
+    func rg278() async {
+        // UndirectedAdjacencyList<Int>.havelHakimi(degreeSequence: [1, 1, -1]) → **trap**: degreeSequence is not graphical
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.havelHakimi(degreeSequence: [1, 1, -1])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.havelHakimi(degreeSequence: [1, 1, -1])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.havelHakimi(degreeSequence: [1, 1, -1])
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.havelHakimi(degreeSequence: [1, 1, 0])
+        #expect(graph.vertexCount == 3 && graph.edgeCount == 1)
+    }
 }

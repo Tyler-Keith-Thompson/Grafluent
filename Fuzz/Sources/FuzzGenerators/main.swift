@@ -14,7 +14,8 @@
 // Watts–Strogatz and the block model by their counts and structure, the geometric graph against
 // the returned positions, the random DAG against the undirected G(n, p) or G(n, m) on the same
 // seed with 0..<n as its order. Every conformer must give the same edges and leave the generator
-// in the same state, and a second run with the same seed must give the same edges again.
+// in the same state, and a second run with the same seed must give the same edges again. The
+// degree-sequence tests and the later families are in LaterFamilies.swift.
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
@@ -495,8 +496,14 @@ func checkedUndirectedTree(_ tree: Tree<Int>) -> [[Int]] {
 
 runFuzzer { input in
     let seed = UInt64(input.byte()) | UInt64(input.byte()) << 8
-    if input.byte() % 8 == 0 {
+    let selector = input.byte() % 8
+    if selector == 0 {
         checkRandomTree(input.int(in: 0 ... 40), seed: seed)
+        return
+    }
+    if selector <= 2 {
+        // Degree sequences and the later families (LaterFamilies.swift).
+        laterFamilies(&input, seed: seed)
         return
     }
     runFamily(spec(&input), seed: seed)

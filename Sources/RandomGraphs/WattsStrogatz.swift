@@ -113,3 +113,118 @@ extension _DirectedGraphConstruction {
         return wattsStrogatz(vertexCount: n, nearestNeighborCount: k, rewiringProbability: p, using: &generator)
     }
 }
+
+/// Whether the pairs connect all of `0..<n`: union by size with path halving. O(n + m α(n)).
+@usableFromInline
+func _isConnected(_ n: Int, _ pairs: [DirectedEdge<Int>]) -> Bool {
+    var parent = Array(0 ..< n)
+    var size = [Int](repeating: 1, count: n)
+    var components = n
+    for pair in pairs {
+        var a = pair.source, b = pair.target
+        while parent[a] != a {
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        }
+        while parent[b] != b {
+            parent[b] = parent[parent[b]]
+            b = parent[b]
+        }
+        guard a != b else { continue }
+        if size[a] < size[b] { swap(&a, &b) }
+        parent[b] = a
+        size[a] += size[b]
+        components -= 1
+    }
+    return components <= 1
+}
+
+/// The outcome of the connected Watts–Strogatz draws.
+@usableFromInline
+enum _ConnectedDraw {
+    /// The first connected try's pairs.
+    case pairs([DirectedEdge<Int>])
+    /// k = n: the complete graph, connected, with no draws.
+    case complete
+    /// Every try was disconnected.
+    case disconnected
+}
+
+/// Watts–Strogatz draws until one is connected, at most `tries` of them.
+@inlinable
+func _connectedWattsStrogatzPairs<G: RandomNumberGenerator>(
+    _ n: Int, _ k: Int, _ p: Double, _ tries: Int, _ g: inout G
+) -> _ConnectedDraw {
+    precondition(n >= 1, "a connected graph needs at least 1 vertex, not \(n)")
+    precondition(tries >= 0, "tries \(tries) is negative")
+    // The checks every try makes, so that `tries: 0` traps as the others do.
+    precondition(k >= 0 && k.isMultiple(of: 2), "nearestNeighborCount \(k) is not even")
+    precondition(k <= n, "nearestNeighborCount \(k) > vertexCount \(n)")
+    _checkProbability(p, "rewiringProbability")
+    for _ in 0 ..< tries {
+        guard let pairs = _wattsStrogatzPairs(n, k, p, &g) else { return .complete }
+        if _isConnected(n, pairs) { return .pairs(pairs) }
+    }
+    return .disconnected
+}
+
+extension _GraphConstruction {
+    /// A connected Watts–Strogatz graph: `wattsStrogatz(vertexCount:nearestNeighborCount:
+    /// rewiringProbability:using:)` drawn again until the result is connected, up to `tries`
+    /// times, or nil when every try is disconnected. Each try continues the generator's stream, so
+    /// the result is the first connected graph of the sequence the plain factory would give.
+    ///
+    /// - Complexity: O(tries · n·k) expected.
+    /// - Precondition: `vertexCount ≥ 1`, `nearestNeighborCount` even and in `0...vertexCount`,
+    ///   `rewiringProbability` in 0...1, and `tries ≥ 0`.
+    @inlinable
+    public static func connectedWattsStrogatz(
+        vertexCount n: Int, nearestNeighborCount k: Int, rewiringProbability p: Double, tries: Int = 100,
+        using generator: inout some RandomNumberGenerator
+    ) -> Self? {
+        switch _connectedWattsStrogatzPairs(n, k, p, tries, &generator) {
+        case .pairs(let pairs): return Self(_vertexCount: n, sortedEdges: pairs.lazy.map(_undirected), _ConstructionToken())
+        case .complete: return complete(vertexCount: n)
+        case .disconnected: return nil
+        }
+    }
+
+    /// `connectedWattsStrogatz(vertexCount:nearestNeighborCount:rewiringProbability:tries:using:)`
+    /// with the system's random number generator.
+    @inlinable
+    public static func connectedWattsStrogatz(
+        vertexCount n: Int, nearestNeighborCount k: Int, rewiringProbability p: Double, tries: Int = 100
+    ) -> Self? {
+        var generator = SystemRandomNumberGenerator()
+        return connectedWattsStrogatz(vertexCount: n, nearestNeighborCount: k, rewiringProbability: p, tries: tries, using: &generator)
+    }
+}
+
+extension _DirectedGraphConstruction {
+    /// The connected Watts–Strogatz graph with both arcs for every edge. It makes the undirected
+    /// form's draws and has its edges, each as u → v and v → u, or is nil when it is.
+    ///
+    /// - Complexity: O(tries · n·k) expected.
+    /// - Precondition: as for the undirected form.
+    @inlinable
+    public static func connectedWattsStrogatz(
+        vertexCount n: Int, nearestNeighborCount k: Int, rewiringProbability p: Double, tries: Int = 100,
+        using generator: inout some RandomNumberGenerator
+    ) -> Self? {
+        switch _connectedWattsStrogatzPairs(n, k, p, tries, &generator) {
+        case .pairs(let pairs): return Self(_vertexCount: n, sortedEdges: _bothArcs(n, pairs), _ConstructionToken())
+        case .complete: return complete(vertexCount: n)
+        case .disconnected: return nil
+        }
+    }
+
+    /// `connectedWattsStrogatz(vertexCount:nearestNeighborCount:rewiringProbability:tries:using:)`
+    /// with the system's random number generator.
+    @inlinable
+    public static func connectedWattsStrogatz(
+        vertexCount n: Int, nearestNeighborCount k: Int, rewiringProbability p: Double, tries: Int = 100
+    ) -> Self? {
+        var generator = SystemRandomNumberGenerator()
+        return connectedWattsStrogatz(vertexCount: n, nearestNeighborCount: k, rewiringProbability: p, tries: tries, using: &generator)
+    }
+}
