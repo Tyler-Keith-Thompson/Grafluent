@@ -11,6 +11,8 @@
 #   forestsingle            an empty forest has no tree to build.
 #   pruferleaf              the next vertex is never the pointer's (removed) leaf.
 #   firstappear             missing a new endpoint falls back to hashing: slower, the same answer.
+#   algobspine              Algorithm B's links are labels of non-root vertices, never 1.
+#   huffmanorder            the standard library's sort keeps equal weights in offset order anyway.
 #   parentskip              skipping the parent vertex instead of its edge still finds a parallel
 #                           pair, from the parent's row.
 
@@ -129,4 +131,28 @@ MUTANTS += [
     Mutant("orderedhashcount", O, "            hasher.combine(rowLength(v))", "", mode="stmt"),
     Mutant("ordereddeeper", O, "d > previous", "d >= previous"),
     Mutant("orderedclose", O, "String(repeating: \")\", count: previous - d)", "String(repeating: \")\", count: 0)"),
+]
+
+# BinaryTree
+B = "BinaryTree.swift"
+MUTANTS += [
+    Mutant("binaryleftrepeat", B, "guard slots.updateValue(vertices.count, forKey: left) == nil else { return nil }", "slots[left] = vertices.count", mode="stmt"),
+    Mutant("binaryrightrepeat", B, "guard slots.updateValue(vertices.count, forKey: right) == nil else { return nil }", "slots[right] = vertices.count", mode="stmt"),
+    Mutant("binaryrightside", B, "side |= 2", "side = 2", mode="stmt"),
+    Mutant("binaryrenumber", B, "renumbered[numbers[i]] = side", "renumbered[i] = side", mode="stmt"),
+    Mutant("binaryhole", B, "hole >= 0 && hole <= j", "hole >= 0 && hole < j"),
+    Mutant("binaryrightslot", B, "_child(v, Int(_sides[v] & 1))", "_child(v, 0)"),
+    Mutant("binaryinorderright", B, "            v = _right(top)", "            v = -1", mode="stmt"),
+    Mutant("binaryequalsides", B, "lhs._sides[lhs._layout.preorder[i]] != rhs._sides[rhs._layout.preorder[i]]", "false"),
+    Mutant("binaryhashsides", B, "        for v in _layout.preorder { hasher.combine(_sides[v]) }", "", mode="stmt"),
+    Mutant("algobreset", B, "_left[j] = j + 1", "_left[j] = 0", mode="stmt"),
+    Mutant("algobspine", B, "_right[y] > 0", "_right[y] > 1"),
+    Mutant("algobpromote", B, "if k > 0 { _right[k] = 0 } else { _left[j] = 0 }", "if k > 0 { _right[k] = 0 }", mode="stmt"),
+    Mutant("algobsplice", B, "_right[y] = _right[j]", "_right[y] = 0", mode="stmt"),
+    Mutant("algobstart", B, "_done = n == 0", "_done = n <= 1", mode="stmt"),
+    Mutant("huffmantie", B, "weight[leaves[head]] <= joined[joinedHead]", "weight[leaves[head]] < joined[joinedHead]"),
+    Mutant("huffmanorder", B, "(weight[$0] == weight[$1] && $0 < $1)", "false"),
+    Mutant("huffmanedges", B, "ends[2 * e + 1] = children[2 * t]", "ends[2 * e + 1] = children[2 * t + 1]", mode="stmt"),
+    Mutant("huffmansides", B, "for v in n ..< count { sides[v] = 3 }", "for v in n ..< count { sides[v] = 1 }", mode="stmt"),
+    Mutant("binarytruncate", B, "for t in stack.reversed() where t == -1 { text += \")\" }", "", mode="stmt"),
 ]

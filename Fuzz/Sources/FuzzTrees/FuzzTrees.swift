@@ -10,7 +10,10 @@
 // `EdgeNotFound` off an arborescence's positions. An ordered tree grown from 0 along the arcs (each
 // vertex's targets in edge order) exists exactly when no vertex is reached twice, and its preorder,
 // postorder, children and conversions agree with a depth-first walk of those lists; rebuilt with
-// its vertices numbered in postorder it is equal, and swapping two siblings makes it unequal.
+// its vertices numbered in postorder it is equal, and swapping two siblings makes it unequal. A
+// binary tree grown from 0 (each vertex's first even-position arc its left child, first odd one its
+// right) exists exactly when no vertex is reached twice, and its traversals agree with a walk; the
+// Huffman tree of the edge endpoints as weights has the greedy merge cost.
 
 import AdjacencyListModule
 import FuzzSupport
@@ -259,6 +262,61 @@ enum FuzzTrees {
         }
     }
 
+    /// A binary tree grown from 0 along the arcs, and a Huffman tree, against walks and merges.
+    static func checkBinary(_ n: Int, _ edges: [(Int, Int)]) {
+        var left = [Int?](repeating: nil, count: n), right = [Int?](repeating: nil, count: n)
+        for (k, (a, b)) in edges.enumerated() {
+            if k % 2 == 0 { if left[a] == nil { left[a] = b } } else if right[a] == nil { right[a] = b }
+        }
+        var seen = [Bool](repeating: false, count: n), queue = [0], head = 0, repeated = false
+        seen[0] = true
+        while head < queue.count, !repeated {
+            for w in [left[queue[head]], right[queue[head]]].compactMap({ $0 }) {
+                if seen[w] { repeated = true }
+                seen[w] = true
+                queue.append(w)
+            }
+            head += 1
+        }
+        let tree = BinaryTree(root: 0) { (left[$0], right[$0]) }
+        check((tree == nil) == repeated, "BinaryTree exists \(tree != nil), expected \(!repeated)")
+        if let tree {
+            var pre: [Int] = [], inorder: [Int] = [], post: [Int] = []
+            var stack = [(0, 0)]
+            while let (v, k) = stack.last {
+                stack[stack.count - 1].1 += 1
+                switch k {
+                case 0:
+                    pre.append(v)
+                    if let l = left[v] { stack.append((l, 0)) }
+                case 1:
+                    inorder.append(v)
+                    if let r = right[v] { stack.append((r, 0)) }
+                default:
+                    post.append(v)
+                    stack.removeLast()
+                }
+            }
+            check(Array(tree.preorder) == pre && tree.inorder == inorder && tree.postorder == post, "binary traversals")
+            for v in pre {
+                check(tree.left(of: v) == left[v] && tree.right(of: v) == right[v], "left / right of \(v)")
+                check(Array(OrderedTree(tree).children(of: v)) == [left[v], right[v]].compactMap { $0 }, "ordered children of \(v)")
+            }
+            check(OrderedTree(Arborescence(tree)) == OrderedTree(tree), "binary conversions")
+        }
+        let weights = edges.map { $0.0 * 3 + $0.1 } + [n]
+        let huffman = BinaryTree.huffman(weights: weights)
+        var cost = 0
+        for (leaf, w) in weights.enumerated() { cost += w * huffman.depth(of: leaf) }
+        var pool = weights, merges = 0
+        while pool.count > 1 {
+            pool.sort()
+            merges += pool[0] + pool[1]
+            pool = [pool[0] + pool[1]] + pool.dropFirst(2)
+        }
+        check(cost == merges && huffman.vertexCount == 2 * weights.count - 1, "Huffman cost \(cost), greedy \(merges)")
+    }
+
     static func fuzz(_ input: inout FuzzInput) {
         let n = input.int(in: 1 ... 9)
         let directedFlips = input.int(below: 4)
@@ -266,6 +324,7 @@ enum FuzzTrees {
         while !input.isEmpty, edges.count < 12 { edges.append((input.int(below: n), input.int(below: n))) }
         let (labels, cyclic) = components(n, edges)
         checkOrdered(n, edges)
+        checkBinary(n, edges)
         let componentCount = Set(labels).count
         let undirected = edges.map { UndirectedEdge($0.0, $0.1) }
         let isTree = !cyclic && componentCount == 1

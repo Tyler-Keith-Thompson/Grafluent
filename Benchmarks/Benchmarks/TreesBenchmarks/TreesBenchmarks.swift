@@ -153,4 +153,44 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Trees: OrderedTree ==, 10⁶ random tree numbered two ways") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(ordered == orderedCopy) }
     }
+    // BinaryTree: every binary tree on 12 vertices (C(12) = 208 012), Huffman trees of 10⁶
+    // weights against a hand-written two-queue Huffman giving parent offsets, and inorder.
+    Benchmark("Trees: BinaryTree.allBinaryTrees(vertexCount: 12), 208 012 trees") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var count = 0
+            for tree in BinaryTree.allBinaryTrees(vertexCount: 12) { count &+= tree.vertexCount }
+            blackHole(count)
+        }
+    }
+    let huffmanWeights = (0 ..< n).map { Int((UInt64($0) &* 0x9E37_79B9_7F4A_7C15) >> 44) }
+    Benchmark("Trees: BASELINE hand-written two-queue Huffman to parent offsets, 10⁶ weights") { benchmark in
+        for _ in benchmark.scaledIterations {
+            let order = (0 ..< n).sorted { huffmanWeights[$0] < huffmanWeights[$1] || (huffmanWeights[$0] == huffmanWeights[$1] && $0 < $1) }
+            var parent = [Int](repeating: -1, count: 2 * n - 1), joined = [Int](), head = 0, joinedHead = 0
+            joined.reserveCapacity(n - 1)
+            for t in 0 ..< n - 1 {
+                var total = 0
+                for _ in 0 ..< 2 {
+                    if head < n && (joinedHead >= joined.count || huffmanWeights[order[head]] <= joined[joinedHead]) {
+                        parent[order[head]] = n + t
+                        total += huffmanWeights[order[head]]
+                        head += 1
+                    } else {
+                        parent[n + joinedHead] = n + t
+                        total += joined[joinedHead]
+                        joinedHead += 1
+                    }
+                }
+                joined.append(total)
+            }
+            blackHole(parent)
+        }
+    }
+    Benchmark("Trees: BinaryTree.huffman(weights:), 10⁶ weights") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(BinaryTree.huffman(weights: huffmanWeights)) }
+    }
+    let huffmanTree = BinaryTree.huffman(weights: huffmanWeights)
+    Benchmark("Trees: BinaryTree.inorder, 2·10⁶ − 1 vertices") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(huffmanTree.inorder) }
+    }
 }

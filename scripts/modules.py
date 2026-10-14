@@ -41,7 +41,7 @@ MODULES = [
 
     # Graph classes with invariants
     ("DirectedAcyclicGraphModule", "Structures", "DirectedAcyclicGraph: a wrapper over any MutableDirectedGraph that rejects an edge closing a cycle and keeps a topological order by Pearce–Kelly, with every read member forwarded to the base; transitive closure and reduction, longest paths (unit and weighted), d-separation, minimal d-separators and the moral graph.", ["GraphProtocols", "Walks", "StableGraphs"]),
-    ("Trees", "Structures", "Tree, RootedTree, Forest, Arborescence and OrderedTree.", ["GraphProtocols", "Walks"]),
+    ("Trees", "Structures", "Tree, RootedTree, Forest, Arborescence, OrderedTree and BinaryTree (every binary tree, Huffman trees).", ["GraphProtocols", "Walks"]),
     ("BipartiteGraphs", "Structures", "BipartiteGraph, bipartiteness, bipartitions and odd-cycle witnesses, one-mode projections (plain, shared-neighbour, overlap and collaboration weighted).", ["GraphProtocols", "Walks", "AdjacencyListModule"]),
     ("Multigraphs", "Structures", "Pseudograph, Multigraph, DirectedPseudograph and DirectedMultigraph: parallel edges, with and without self-loops.", ["GraphProtocols", "AdjacencyListModule"]),
     ("StableGraphs", "Structures", "StableDirectedGraph and StableUndirectedGraph: pseudographs whose vertex and edge positions survive removals, stored in pages freed once dead.", ["GraphProtocols"]),

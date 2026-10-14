@@ -57,6 +57,16 @@ struct OrderedTree<Vertex: Hashable>                                 // not a Gr
     // ==: same root and children in the same order (preorder and child counts); RootedTree(_:) and
     // Arborescence(_:) convert back in O(1)
 
+struct BinaryTree<Vertex: Hashable>                                  // not a Graph; positional left and right children
+    init?<E>(root:children: (Vertex) throws(E) -> (left: Vertex?, right: Vertex?)) throws(E)
+    root, vertexCount, contains, left(of:), right(of:), parent(of:), depth(of:), height,
+    preorder, inorder, postorder
+    left(checked:), right(checked:), parent(checked:), depth(checked:)   // throw VertexNotFound
+    static func allBinaryTrees(vertexCount:) -> AllBinaryTrees     // Vertex == Int; Catalan many, preorder-numbered
+    static func huffman(weights:) -> BinaryTree<Int>               // leaves 0..<n, joins n…2n − 2, lighter left
+extension OrderedTree { init(_ tree: BinaryTree<Vertex>) }           // O(1), left child first
+extension Arborescence { init(_ tree: BinaryTree<Vertex>) }          // O(1)
+
 struct Forest<Vertex: Hashable>: Graph
     init(), init?(_ graph:), init?(edges:), init?(vertices:edges:), init(_ tree: Tree<Vertex>)
     var trees: Trees                                                 // RandomAccessCollection<Tree<Vertex>>, by least vertex

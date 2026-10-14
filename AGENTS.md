@@ -285,6 +285,7 @@ isomorphism, not insertion order), except `EdgeList`, whose order is part of its
 | `Tree`, `Forest` | Undirected; connected and acyclic / acyclic | Immutable; failable initializers from unchecked input |
 | `RootedTree`, `Arborescence` | Rooted tree, undirected / directed away from the root | `parent`, `children`, `depth`, `preorder`; O(1) conversion between them |
 | `OrderedTree` | Rooted tree whose child order is part of its value (plane tree) | Not a graph; O(1) conversion to and from `RootedTree` and `Arborescence`; `treeEditDistance` (Zhang–Shasha) in TreeAlgorithms |
+| `BinaryTree` | Rooted tree with positional left and right children | Not a graph; O(1) conversion to `OrderedTree` (left first) and `Arborescence`; `inorder`; `allBinaryTrees(vertexCount:)` (Algorithm B), `huffman(weights:)` |
 | `BipartiteGraph<V>` | Undirected, simple, every edge crosses L–R | Throws `BipartitionError`; a `GraphDelegator` over `UndirectedAdjacencyList` |
 | `Pseudograph<V>` / `DirectedPseudograph<V>` | Parallel edges and self-loops | `insert(edge:)` returns the new edge's position |
 | `Multigraph<V>` / `DirectedMultigraph<V>` | Parallel edges, no self-loops | Throw `LooplessEdgeError`; `GraphDelegator`s of the pseudographs |

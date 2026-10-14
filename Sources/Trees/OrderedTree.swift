@@ -35,7 +35,7 @@ public struct OrderedTree<Vertex: Hashable> {
             }
             next += 1
         }
-        self.init(_layout: _TreeLayout.levelOrder(vertices, slots, ends))
+        self.init(_layout: _TreeLayout.levelOrder(vertices, slots, ends).layout)
     }
 
     /// The rooted tree with each vertex's children in `children(of:)` order. O(1).
@@ -148,11 +148,13 @@ extension _TreeLayout {
     /// each vertex's children consecutive and in order. The edge positions then put each parent
     /// edge before its vertex's child edges, so rows list the children in order. When the
     /// vertices are the `Int`s `0..<n` in some order, they are renumbered to their own values,
-    /// and no table is kept.
+    /// and no table is kept; `numbers` then gives each listed vertex's new number, and is nil
+    /// when the numbering is the listing's.
     @inlinable
-    package static func levelOrder(_ vertices: ContiguousArray<Vertex>, _ slots: [Vertex: Int], _ ends: [Int]) -> Self {
+    package static func levelOrder(_ vertices: ContiguousArray<Vertex>, _ slots: [Vertex: Int], _ ends: [Int]) -> (layout: Self, numbers: [Int]?) {
         let n = vertices.count
         var vertices = vertices, ends = ends, table = slots, dense = isDense(vertices)
+        var numbers: [Int]? = nil
         if !dense, Vertex.self == Int.self {
             var value = [Int](repeating: 0, count: n)
             dense = true
@@ -169,13 +171,14 @@ extension _TreeLayout {
                 for k in ends.indices { ends[k] = value[ends[k]] }
                 vertices = ContiguousArray((0 ..< n).map { unsafeBitCast($0, to: Vertex.self) })
                 table = [:]
+                numbers = value
             }
         }
         if !dense { (table, dense) = numbering(vertices, table: table) }
         guard let layout = Self(vertices: vertices, slots: table, dense: dense, ends: ends, root: dense ? ends.first ?? 0 : 0, oriented: true) else {
             preconditionFailure("A level-order listing is a tree")
         }
-        return layout
+        return (layout, numbers)
     }
 }
 
