@@ -293,7 +293,8 @@ func _leidenRefine<R: RandomNumberGenerator>(_ rows: _LouvainRows, _ community: 
 /// Leiden (Traag, Waltman and van Eck 2019) in index space: a label per vertex. Each iteration
 /// starts from the last partition and repeats the move phase, the refinement and an aggregation
 /// in which each refined community becomes a vertex (in the community the move phase gave it),
-/// until the move phase leaves every level vertex alone or the refinement merges nothing.
+/// or, when the refinement merges nothing, each community does, until the move phase leaves
+/// every level vertex alone.
 /// Iterations repeat until one moves no vertex at any level (so the partition is the one it started
 /// from), or `iterations` of them have run; then each community is split into its connected parts.
 @inlinable
@@ -330,29 +331,36 @@ func _leiden<R: RandomNumberGenerator>(_ graph: _CommunityGraph, _ weights: [Dou
             }
             if communities == k { break }
             let refined = _leidenRefine(rows, community, a: a, b: b, scale: gamma, randomness: randomness, using: &generator)
-            var label = [Int](repeating: -1, count: k)
+            // Each level vertex's vertex on the next level: its refined community's, or, when the
+            // refinement merged nothing, its community's (aggregating as Louvain does).
+            var group = [Int](repeating: -1, count: k)
             var count = 0
             for v in 0 ..< k where refined[v] == v {
-                label[v] = count
+                group[v] = count
                 count += 1
             }
-            if count == k { break }
+            if count == k {
+                group = community.map { rank[$0] }
+                count = communities
+            } else {
+                for v in 0 ..< k { group[v] = group[refined[v]] }
+            }
             var nextA = [Double](repeating: 0, count: count), nextB = nextA
             var nextCommunity = [Int](repeating: 0, count: count)
             for v in 0 ..< k {
-                let r = label[refined[v]]
+                let r = group[v]
                 nextA[r] += a[v]
                 nextB[r] += b[v]
                 nextCommunity[r] = rank[community[v]]
             }
             let pairs = level
             level = _LouvainLevel(count: count, directed: directed,
-                                  from: pairs.pairFrom.map { label[refined[$0]] }, to: pairs.pairTo.map { label[refined[$0]] }) { pairs.pairWeight[$0] }
+                                  from: pairs.pairFrom.map { group[$0] }, to: pairs.pairTo.map { group[$0] }) { pairs.pairWeight[$0] }
             rows = _LouvainRows(level)
             a = nextA
             b = nextB
             community = nextCommunity
-            for v in 0 ..< n { node[v] = label[refined[node[v]]] }
+            for v in 0 ..< n { node[v] = group[node[v]] }
         }
         // No move at any level leaves the partition as it was; a move raises the quality, so the
         // partition changed.

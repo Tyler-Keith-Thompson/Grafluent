@@ -160,8 +160,8 @@ func _codeLength(_ level: _FlowLevel, _ labels: [Int], count k: Int, vertexEntro
 }
 
 /// The greedy moves of one level: each node, in an order shuffled per sweep, moves to the
-/// neighboring module (or an empty one) that shortens the code length most, until a sweep moves
-/// none. `module` holds the starting modules, in `0..<level.count`, and ends with the found ones.
+/// neighboring module (or an empty one) that shortens the code length most, the candidates
+/// scanned in a shuffled order so that ties go to any of them, until a sweep moves none. `module` holds the starting modules, in `0..<level.count`, and ends with the found ones.
 @inlinable
 func _infomapMoves<R: RandomNumberGenerator>(_ level: _FlowLevel, _ module: inout [Int], _ generator: inout R) {
     let n = level.count
@@ -205,12 +205,22 @@ func _infomapMoves<R: RandomNumberGenerator>(_ level: _FlowLevel, _ module: inou
             let qA = exit[source], pA = flow[source]
             let qA2 = qA - ea + 2 * toSource, pA2 = pA - pa
             let fixedA = -2 * (_plogp(qA2) - _plogp(qA)) + _plogp(qA2 + pA2) - _plogp(qA + pA)
+            if size[source] > 1, let e = empty.last {
+                stamp[e] = tick
+                toModule[e] = 0
+                touched.append(e)
+            }
+            // The candidates in random order, so that the first of several equal gains is taken
+            // at random rather than always the one nearest the front of the row.
+            var c = touched.count - 1
+            while c > 0 {
+                touched.swapAt(c, Int(generator.next(upperBound: UInt(c + 1))))
+                c -= 1
+            }
             var best = 0.0, target = source
-            let candidates = touched.count + (size[source] > 1 && !empty.isEmpty ? 1 : 0)
-            for c in 0 ..< candidates {
-                let b = c < touched.count ? touched[c] : empty[empty.count - 1]
+            for b in touched {
                 guard b != source else { continue }
-                let toB = c < touched.count ? toModule[b] : 0
+                let toB = toModule[b]
                 let qB = exit[b], pB = flow[b]
                 let qB2 = qB + ea - 2 * toB, pB2 = pB + pa
                 let total = totalExit - qA - qB + qA2 + qB2

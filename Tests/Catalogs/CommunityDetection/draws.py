@@ -302,25 +302,32 @@ def leiden(n, ends, directed, weights, potts, resolution, theta, seed, iteration
             if cnt == k:
                 break
             ref = refine(rows, com, a, b, gamma, theta, g, M)
-            label = [-1] * k
+            # Each level vertex's next-level vertex: its refined community's, or its community's
+            # when the refinement merged nothing.
+            group = [-1] * k
             count = 0
             for v in range(k):
                 if ref[v] == v:
-                    label[v] = count
+                    group[v] = count
                     count += 1
             if count == k:
-                break
+                if M.get("nofallback"):
+                    break
+                group = [rank[c] for c in com]
+                count = cnt
+            else:
+                group = [group[ref[v]] for v in range(k)]
             na, nb2, nc = [0.0] * count, [0.0] * count, [0] * count
             for v in range(k):
-                r = label[ref[v]]
+                r = group[v]
                 na[r] += a[v]
                 nb2[r] += b[v]
                 nc[r] = rank[com[v]]
             pairs = lv
-            lv = level(count, directed, [label[ref[x]] for x in pairs["pf"]], [label[ref[x]] for x in pairs["pt"]], lambda i: pairs["pw"][i])
+            lv = level(count, directed, [group[x] for x in pairs["pf"]], [group[x] for x in pairs["pt"]], lambda i: pairs["pw"][i])
             rows = rows_of(lv)
             a, b, com = na, nb2, nc
-            node = [label[ref[x]] for x in node]
+            node = [group[x] for x in node]
         if not changed and not M.get("onepass"):
             break
         membership = [com[node[v]] for v in range(n)]
@@ -448,7 +455,8 @@ PINNED = [
     ("an empty community is a move's choice", "leiden", dict(n=6, ends=[(2, 5), (2, 2), (5, 5), (1, 1), (0, 4), (4, 1), (2, 3)], directed=False, w=None, potts=False, res=1.0, theta=0.01, seed=2349028542, it=2)),
     ("a move queues the mover's neighbors", "leiden", dict(n=6, ends=[(1, 3), (5, 1), (0, 1), (2, 2), (5, 1), (5, 3), (5, 3), (2, 3), (5, 5), (5, 1), (3, 3)], directed=False, w=None, potts=True, res=0.5, theta=0.5, seed=643735021, it=1)),
     ("the refinement merges only well-connected vertices into well-connected communities, and a draw can keep a vertex alone", "leiden", dict(n=9, ends=[(6, 1), (2, 4), (4, 0), (8, 0), (2, 6), (8, 1), (7, 0), (6, 6), (4, 5), (6, 6), (7, 0), (1, 7), (0, 0), (0, 1), (2, 8)], directed=False, w=None, potts=True, res=0.3, theta=5.0, seed=2812612325, it=1)),
-    ("the refinement never merges at a negative gain", "leiden", dict(n=8, ends=[(0, 4), (3, 4), (6, 6), (5, 2), (6, 3), (6, 1), (7, 0), (7, 6), (0, 7), (7, 0), (3, 7), (4, 6), (5, 2), (5, 3), (3, 7)], directed=False, w=None, potts=False, res=1.0, theta=5.0, seed=3577867184, it=2)),
+    ("a refinement that merges nothing aggregates by the communities instead", "leiden", dict(n=7, ends=[(6, 0), (0, 4), (0, 2), (0, 1), (2, 1), (0, 3), (2, 0)], directed=False, w=None, potts=False, res=1.0, theta=5.0, seed=1204001940, it=2)),
+    ("the refinement never merges at a negative gain", "leiden", dict(n=8, ends=[(5, 3), (5, 7), (3, 2), (0, 5), (4, 3), (4, 3), (4, 7), (4, 0), (2, 6), (1, 4), (7, 3), (4, 3), (5, 4), (4, 1), (0, 1)], directed=False, w=None, potts=False, res=1.0, theta=5.0, seed=2375950889, it=2)),
     ("a refined community's weight to the rest of its community follows its merges", "leiden", dict(n=7, ends=[(0, 1), (4, 0), (0, 0), (0, 0), (0, 2), (5, 3), (3, 5), (1, 3), (2, 2), (6, 4), (5, 0)], directed=False, w=[3.0, 2.0, 0.0, 2.0, 2.0, 2.0, 3.0, 2.0, 1.0, 1.0, 3.0], potts=False, res=1.0, theta=5.0, seed=1394153924, it=2)),
     ("a community whose parts tie at gain 0 is split into its connected parts", "leiden", dict(n=6, ends=[(2, 0), (0, 1), (3, 0), (4, 0)], directed=True, w=None, potts=False, res=1.0, theta=0.01, seed=105, it=None)),
     ("iterations continue while one moves a vertex", "leiden", dict(n=9, ends=[(6, 2), (5, 4), (1, 6), (5, 1), (4, 1), (4, 5), (6, 6), (1, 1), (4, 1), (2, 0), (1, 8), (6, 1), (7, 6), (1, 3), (6, 0), (8, 4), (1, 8), (5, 5), (1, 7), (6, 1), (2, 3), (1, 8), (1, 1), (8, 6), (6, 1)], directed=False, w=None, potts=True, res=1.0, theta=0.01, seed=3525521651, it=None)),
