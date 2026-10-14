@@ -127,6 +127,43 @@ struct HandWrittenGirvanNewman {
     }
 }
 
+/// The largest component of G(n, m = 5n), duplicates and loops dropped, renumbered in order.
+func giantComponent(_ n: Int, seed: UInt) -> UndirectedAdjacencyList<Int> {
+    var seen = Set<UndirectedEdge<Int>>()
+    let pairs = Inputs.randomEdges(vertexCount: n, edgeCount: 5 * n, seed: seed)
+        .map { UndirectedEdge(min($0.source, $0.target), max($0.source, $0.target)) }
+        .filter { !$0.isSelfLoop && seen.insert($0).inserted }
+    var adjacency = [[Int]](repeating: [], count: n)
+    for e in pairs {
+        adjacency[e.u].append(e.v)
+        adjacency[e.v].append(e.u)
+    }
+    var component = [Int](repeating: -1, count: n)
+    var sizes: [Int] = []
+    for s in 0 ..< n where component[s] < 0 {
+        var stack = [s]
+        component[s] = sizes.count
+        var size = 0
+        while let v = stack.popLast() {
+            size += 1
+            for w in adjacency[v] where component[w] < 0 {
+                component[w] = sizes.count
+                stack.append(w)
+            }
+        }
+        sizes.append(size)
+    }
+    let giant = sizes.indices.max { sizes[$0] < sizes[$1] }!
+    var number = [Int](repeating: -1, count: n)
+    var count = 0
+    for v in 0 ..< n where component[v] == giant {
+        number[v] = count
+        count += 1
+    }
+    let edges = pairs.filter { component[$0.u] == giant }.map { UndirectedEdge(number[$0.u], number[$0.v]) }
+    return UndirectedAdjacencyList(vertices: 0 ..< count, edges: edges)
+}
+
 let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.metrics = [.wallClock, .mallocCountTotal]
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
@@ -270,5 +307,12 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("CommunityDetection: leadingEigenvectorCommunities(), 200 cliques of 10 in a ring") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(try ring.leadingEigenvectorCommunities()) }
+    }
+    let giant = giantComponent(10_000, seed: 3)
+    Benchmark("CommunityDetection: spectralClustering(clusterCount: 8, using:), G(n, p) 10⁴ giant component") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = SeededRandomNumberGenerator(seed: 1)
+            blackHole(try giant.spectralClustering(clusterCount: 8, using: &generator))
+        }
     }
 }
