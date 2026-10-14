@@ -2,7 +2,8 @@
 // self-loops and parallel edges: a bridge is an edge whose removal adds a component, an
 // articulation point a vertex whose removal does; two edges meeting at v are in the same block
 // exactly when their far ends stay connected without v (closed under transitivity); the
-// bi-edge-connected components are the components without the bridges. Checked on a simple graph
+// bi-edge-connected components are the components without the bridges; the k-edge-connected
+// components and subgraphs (k = 1 … 4; subgraphs up to 6 vertices) by minimum cuts over vertex subsets. Checked on a simple graph
 // (UndirectedAdjacencyList), a multigraph (the undirected view of a directed AdjacencyList, whose
 // opposite arcs are parallel edges), and the multigraph as written through a conformer without
 // vertex indices. Orders are checked exactly: they are canonical.
@@ -143,6 +144,36 @@ enum FuzzUndirectedConnectivity {
             check(graph.isBiconnected == biconnected, "\(name) isBiconnected")
             check(graph.biEdgeConnectedComponents().map(Array.init) == grouped(biEdgeLabels), "\(name) biEdgeConnectedComponents")
             check(graph.isBiEdgeConnected == (n >= 2 && componentCount == 1 && bridges.isEmpty), "\(name) isBiEdgeConnected")
+
+            // k-edge-connected components and subgraphs by minimum cuts over vertex subsets.
+            func cut(_ u: Int, _ v: Int, within: Int) -> Int {
+                var best = Int.max
+                for side in 0 ..< 1 << n where side & ~within == 0 && side & (1 << u) != 0 && side & (1 << v) == 0 {
+                    var crossing = 0
+                    for (a, b) in edges where a != b && within & (1 << a) != 0 && within & (1 << b) != 0 && (side & (1 << a) != 0) != (side & (1 << b) != 0) { crossing += 1 }
+                    best = min(best, crossing)
+                }
+                return best
+            }
+            let all = (1 << n) - 1
+            for k in 1 ... 4 {
+                var classes: [[Int]] = [], placed = Set<Int>()
+                for u in 0 ..< n where !placed.contains(u) {
+                    let group = (0 ..< n).filter { $0 == u || cut(u, $0, within: all) >= k }
+                    placed.formUnion(group)
+                    classes.append(group)
+                }
+                check(graph.kEdgeConnectedComponents(k).map(Array.init) == classes, "\(name) kEdgeConnectedComponents(\(k))")
+                // Every vertex set's own cuts: only on small graphs, to keep each input fast.
+                guard n <= 6 else { continue }
+                var connected: [Int] = []
+                for set in 1 ... all {
+                    let members = (0 ..< n).filter { set & (1 << $0) != 0 }
+                    if members.allSatisfy({ a in members.allSatisfy { b in a >= b || cut(a, b, within: set) >= k } }) { connected.append(set) }
+                }
+                let subgraphs = connected.filter { set in !connected.contains { $0 != set && $0 & set == set } }.map { set in (0 ..< n).filter { set & (1 << $0) != 0 } }.sorted { $0[0] < $1[0] }
+                check(graph.kEdgeConnectedSubgraphs(k).map(Array.init) == subgraphs, "\(name) kEdgeConnectedSubgraphs(\(k))")
+            }
 
             let tree = graph.blockCutTree()
             check(tree.articulationPoints == points, "\(name) block–cut tree points")

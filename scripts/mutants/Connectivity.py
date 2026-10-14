@@ -9,6 +9,9 @@
 #   rowcheck     Drops part of the validation of `_withIncidentIndexRows`' tables: only a
 #                representation's own (underscored, untestable through the public API) rows reach
 #                it, and UndirectedAdjacencyList's are consistent by construction.
+#   ke_degree    (removed) Pruning only vertices of degree below k − 1: a vertex of degree k − 1
+#                cannot carry k edge-disjoint paths either, so its flows all stop below k and it
+#                is still a class alone. Time only.
 
 TESTS = ["ConnectivityTests"]
 
@@ -192,4 +195,15 @@ MUTANTS = [
     Mutant("ntkeeptwo", "NontrivialStronglyConnectedComponents.swift", "size[c] > 1", "size[c] > 2"),
     Mutant("ntslot", "NontrivialStronglyConnectedComponents.swift", "                    next[labels[v]] = slot &+ 1", "", mode="stmt"),
     Mutant("ntstart", "NontrivialStronglyConnectedComponents.swift", "            start = end", "", mode="stmt"),
+
+    # k-edge-connected components and subgraphs
+    Mutant("ke_residual", "EdgeConnectedComponents.swift", "flow[rows.edges[slot]] != forward", "flow[rows.edges[slot]] == 0"),
+    Mutant("ke_inside", "EdgeConnectedComponents.swift", "inside[y] == tag", "true"),
+    Mutant("ke_reset", "EdgeConnectedComponents.swift", "        for e in used { flow[e] = 0 }", "", mode="stmt"),
+    Mutant("ke_augment", "EdgeConnectedComponents.swift", "                flow[e] += x < y ? 1 : -1", "                flow[e] = x < y ? 1 : -1", mode="stmt"),
+    Mutant("ke_cap", "EdgeConnectedComponents.swift", "maximumFlow(from: s, to: t, cap: k) >= k", "maximumFlow(from: s, to: t, cap: k) >= k - 1"),
+    Mutant("ke_split", "EdgeConnectedComponents.swift", "                    if seen[v] == epoch { kept.append(v) } else { cut.append(v) }", "                    kept.append(v)", mode="stmt"),
+    Mutant("ke_k2", "EdgeConnectedComponents.swift", "        if k == 2 { return biEdgeConnectedComponents() }", "        if k == 2 { return connectedComponents() }", mode="stmt"),
+    Mutant("ke_one", "EdgeConnectedComponents.swift", "parts == 1", "parts <= 2"),
+    Mutant("ke_relabel", "EdgeConnectedComponents.swift", "        _ = _relabelByFirstAppearance(&labels, count: count)", "", mode="stmt", nth=1),
 ]

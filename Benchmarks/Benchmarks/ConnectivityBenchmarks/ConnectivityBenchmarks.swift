@@ -219,4 +219,5 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     undirectedConnectivityBenchmarks()
+    edgeConnectivityBenchmarks()
 }

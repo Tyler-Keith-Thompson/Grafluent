@@ -179,6 +179,7 @@ Randomized tests write their oracles inside the test.
 | `UndirectedConnectivityStressTests.swift` | §J: deep paths, a cycle, a doubled path, a star, a grid, K₃₀₀, a lasso and a triangle chain inside a `Task`; the real-world fixtures read as undirected graphs |
 | `UndirectedConnectivityReviewTests.swift` | §L: a conformer with edge indices but no vertex indices (file-private), `UndirectedAdjacencyList` after mutations that repack its rows, and index rows that break the laws trapping |
 | `UndirectedConnectivityConformanceTests.swift` | §K: self-loop queries, value semantics, `Sendable`, equality, index-space dispatch, generic code and existentials, digraphs through `.undirectedView`, the `Components` result type, determinism, preconditions |
+| `EdgeConnectedComponentTests.swift` | k-edge-connected components and subgraphs: two K₄s joined twice, K₂,₃ (a component that is not a subgraph), parallel edges and loops, degenerate graphs, representations through `undirectedView`, exits, and minimum cuts over every vertex subset |
 
 ## Case IDs
 
