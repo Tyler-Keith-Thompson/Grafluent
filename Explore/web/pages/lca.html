@@ -1,0 +1,25 @@
+<!-- title: Lowest common ancestor · Explore Grafluent -->
+<!-- description: The most recent ancestor two relatives share, found by climbing a family tree, with Grafluent’s RootedTree, lowestCommonAncestor and LowestCommonAncestors. -->
+<header class="sign">
+  <h1>Lowest common ancestor</h1>
+  <p class="question">Kate and Leo are cousins of some sort. Who is the most recent ancestor they share, and what kind of cousins does that make them?</p>
+</header>
+<p class="example lead">Example: five generations of a family, each person joined to their parent, with Rose at the top. (One parent per person keeps it a tree.)</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The family above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Level up, then climb together</h2>
+  <p>In a rooted tree, the <b>lowest common ancestor</b> of two vertices is the deepest vertex that is an ancestor of both, a vertex counting as its own ancestor. To find it, first bring the deeper one up to the other’s depth, one parent at a time. Then, while they differ, move both up together. They meet exactly at the lowest common ancestor. That takes as many steps as the depths, and is what <code>lowestCommonAncestor(of:_:)</code> does on a <code>RootedTree</code>.</p>
+  <p>It answers more than family questions. The number of edges between two vertices is their depths minus twice the ancestor’s depth, which is <code>distance(from:to:)</code>. In version control, the merge base of two branches is their lowest common ancestor in the commit history; in biology, it is the most recent common ancestor of two species on a tree of life.</p>
+  <p>Here the two generation counts down from the ancestor name the relationship: one each is siblings, two each is first cousins, and a difference between them is how many times “removed”.</p>
+
+  <h2><small>Where it breaks</small>Many questions, and real families</h2>
+  <p>Climbing costs the depth on every question. For many questions on one tree, <code>LowestCommonAncestors(family)</code> does O(n) work once, on the order a depth-first walk visits the tree, and then answers each question in constant time.</p>
+  <p>A real family isn’t a tree: everyone has two parents, and distant cousins marry, so the same ancestor can be reached along several lines. That is a directed acyclic graph, where two people can have several lowest common ancestors and the climb above no longer applies; <code>ancestors(of:)</code> on each and an intersection gives all the shared ones.</p>
+</section>

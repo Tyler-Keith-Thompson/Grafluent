@@ -23,6 +23,7 @@ func mountPage(_ page: String) -> Bool {
     case "euler": EulerPage.mount()
     case "giant": GiantPage.mount()
     case "huffman": HuffmanPage.mount()
+    case "lca": LCAPage.mount()
     case "planarity": PlanarityPage.mount()
     case "semirings": SemiringsPage.mount()
     case "flow": FlowPage.mount()

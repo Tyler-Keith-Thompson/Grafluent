@@ -16,6 +16,7 @@ bridges|Bridges and articulation points|Structure|Which single closure splits th
 euler|Euler tours|Structure|Crossing every bridge exactly once.|page
 mst|Minimum spanning trees|Structure|The cheapest way to connect everything.|page
 huffman|Huffman coding|Structure|Shorter codes for common letters, from a tree.|page
+lca|Lowest common ancestor|Structure|The most recent ancestor two people share.|page
 giant|The giant component|Structure|When random links suddenly join almost everyone.|page
 planarity|Planarity|Structure|Whether a network can be drawn without crossings.|page
 cliques|Cliques|Structure|Groups where everyone is connected.|page
