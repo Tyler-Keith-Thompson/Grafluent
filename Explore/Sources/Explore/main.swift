@@ -16,6 +16,7 @@ func mountPage(_ page: String) -> Bool {
     case "dijkstra": DijkstraPage.mount()
     case "astar": AStarPage.mount()
     case "kpaths": KPathsPage.mount()
+    case "bellmanford": BellmanFordPage.mount()
     case "toposort": TopologicalSortPage.mount()
     case "criticalpath": CriticalPathPage.mount()
     case "components": ComponentsPage.mount()

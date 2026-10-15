@@ -20,6 +20,7 @@ contents and the menu without a link.
 | `dfs` | `lazy.depthFirstSearch(from:)` |
 | `dijkstra` | `lazy.dijkstra(from:weight:)`, `dijkstraShortestPaths(from:weight:)`; beside its figure, `bellmanFordShortestPaths` |
 | `astar` | `lazy.aStar(from:to:weight:heuristic:)`, `aStarShortestPath(from:to:weight:heuristic:)`, `lazy.dijkstra(from:weight:)` |
+| `bellmanford` | `lazy.bellmanFord(from:weight:)` |
 | `kpaths` | `shortestSimplePaths(from:to:weight:)`, `prefix(_:)` |
 | `semirings` | `dijkstraShortestPaths(from:weight:)` over `TropicalSemiring`, `BottleneckSemiring`, `ViterbiSemiring`, `BooleanSemiring`; `dagShortestDistances(from:weight:)` over `CountingSemiring`; `topologicalSort()` |
 | `toposort` | `lazy.depthFirstSearch()`, `topologicalSort()`, `topologicalGenerations()`, `findCycle()` |
