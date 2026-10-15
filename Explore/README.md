@@ -23,6 +23,7 @@ contents and the menu without a link.
 | `kpaths` | `shortestSimplePaths(from:to:weight:)`, `prefix(_:)` |
 | `semirings` | `dijkstraShortestPaths(from:weight:)` over `TropicalSemiring`, `BottleneckSemiring`, `ViterbiSemiring`, `BooleanSemiring`; `dagShortestDistances(from:weight:)` over `CountingSemiring`; `topologicalSort()` |
 | `toposort` | `lazy.depthFirstSearch()`, `topologicalSort()`, `topologicalGenerations()`, `findCycle()` |
+| `criticalpath` | `DirectedAcyclicGraph`, `lazy.kahn()`, `longestPath(weight:)`, `Path.weight(_:)` |
 | `components` | `connectedComponents()`, `lazy.breadthFirstSearch(from:)`, `stronglyConnectedComponents()`, `condensation()`, `lazy.depthFirstSearch()` |
 | `bridges` | `bridges()`, `articulationPoints()`, `lazy.edgeDepthFirstSearch(from:)`, `connectedComponents()`; beside its figure, `biconnectedComponents()` |
 | `euler` | `degree(of:)`, `eulerianCircuit()`, `eulerianTrail()`, `incidentEdges(of:)` on a `Multigraph`; beside its figure, `hasEulerianTrail` |

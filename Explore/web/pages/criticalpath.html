@@ -1,0 +1,25 @@
+<!-- title: Critical path · Explore Grafluent -->
+<!-- description: When can the school play open? Tasks scheduled in Grafluent’s lazy.kahn() order, each as early as it can start, and the critical path from longestPath(weight:). -->
+<header class="sign">
+  <h1>Critical path</h1>
+  <p class="question">Some tasks have to wait for others. How soon can the whole project be done, and which tasks can’t slip?</p>
+</header>
+<p class="example lead">Example: putting on a school play. Each task takes some days, and an arrow means the task at its tail must be finished before the next can start. Tasks with no arrow between them can run at the same time.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The play above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>The longest path sets the pace</h2>
+  <p>The tasks and their arrows form a directed graph with no cycles: a task can’t wait for itself. Take the tasks in a <a href="toposort.html">topological order</a>, so everything a task waits for comes first, and give each the earliest start it can have: the latest finish among the tasks it waits for. One pass in that order schedules everything, in time proportional to the tasks plus the arrows.</p>
+  <p>The project’s length is then the <b>longest</b> path through the graph, counting each task’s days. The tasks on it are the <b>critical path</b>: each starts the moment the one before it ends, so a day lost on any of them is a day lost on the opening. Every other task has <b>slack</b>, found by a second pass backwards from the end: the latest it can start is the earliest any task after it must start, less its own days.</p>
+  <p>Longest paths are hard in general graphs, but easy here: without cycles, there is no way to go round and round making a path longer. <code>longestPath(weight:)</code> on a <code>DirectedAcyclicGraph</code> runs the same pass over the order it already keeps. The weight here is the days of the task an arrow leaves, so the path’s weight is the total of its tasks.</p>
+
+  <h2><small>Where it breaks</small>Durations are guesses, and people are limited</h2>
+  <p>The critical path assumes every task takes exactly its estimate. Real tasks vary, and a path with a little slack can turn critical when one of its tasks runs late; PERT treats each duration as a range and asks how likely the deadline is. It also assumes unlimited hands: if the same three people must build the set and make the costumes, those tasks can’t overlap, and scheduling with limited resources is a much harder problem.</p>
+  <p>If the arrows ever form a cycle, no order exists at all: <code>DirectedAcyclicGraph</code> refuses the edge that would close it, and <code>findCycle()</code> on a plain graph shows which tasks wait for each other.</p>
+</section>
