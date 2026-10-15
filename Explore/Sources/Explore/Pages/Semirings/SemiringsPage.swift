@@ -21,14 +21,23 @@ struct SemiringQuestion {
     var choose: String
     var noRoute: String
     var alreadyThere: String
+    /// What the value at the Server means, before any link.
+    var start: String
+    /// How the step at a place with several ways in chooses between them.
+    var keep: String
 }
 
 let semiringQuestions = [
-    SemiringQuestion(title: "Quickest", question: "How fast can data get there?", extend: "+", choose: "min", noRoute: "∞", alreadyThere: "0"),
-    SemiringQuestion(title: "Widest", question: "How much bandwidth does the best route carry?", extend: "min", choose: "max", noRoute: "0", alreadyThere: "∞"),
-    SemiringQuestion(title: "Most reliable", question: "What is the best chance every link on a route is up?", extend: "×", choose: "max", noRoute: "0", alreadyThere: "1"),
-    SemiringQuestion(title: "Reachable", question: "Can data get there at all?", extend: "and", choose: "or", noRoute: "false", alreadyThere: "true"),
-    SemiringQuestion(title: "How many routes", question: "How many different routes are there?", extend: "×", choose: "+", noRoute: "0", alreadyThere: "1"),
+    SemiringQuestion(title: "Quickest", question: "How fast can data get to each place?", extend: "+", choose: "min", noRoute: "∞", alreadyThere: "0",
+                     start: "Data at the Server has taken 0 min.", keep: "Keep the smaller"),
+    SemiringQuestion(title: "Widest", question: "How much bandwidth can a route to each place carry?", extend: "min", choose: "max", noRoute: "0", alreadyThere: "∞",
+                     start: "At the Server no link limits the bandwidth yet, so it is ∞.", keep: "Keep the larger"),
+    SemiringQuestion(title: "Most reliable", question: "What is the best chance that every link on a route is up?", extend: "×", choose: "max", noRoute: "0", alreadyThere: "1",
+                     start: "At the Server nothing can fail yet, so the chance is 1.", keep: "Keep the likelier"),
+    SemiringQuestion(title: "Reachable", question: "Can data get to each place at all?", extend: "and", choose: "or", noRoute: "false", alreadyThere: "true",
+                     start: "The Server can reach itself, so it is true.", keep: "Either one will do"),
+    SemiringQuestion(title: "How many routes", question: "How many different routes lead to each place?", extend: "×", choose: "+", noRoute: "0", alreadyThere: "1",
+                     start: "There is 1 way to be at the Server, by staying there.", keep: "Add them up"),
 ]
 
 /// One way into a place: the link, the value at its start, the link's own value, and their
@@ -145,14 +154,20 @@ func linkLabel(_ edge: DirectedEdge<String>, _ n: Int) -> String {
 func describeSemiringStep(_ step: SemiringStep, _ n: Int) -> String {
     let q = semiringQuestions[n]
     if step.place == "Server" {
-        return "Start at the Server. Being already there is worth \(q.alreadyThere): the value that extending leaves unchanged."
+        return "Start at the Server. " + q.start
     }
     let ways = step.candidates.map { c in
-        q.extend == "min" ? "from \(c.from), min(\(c.start), \(c.weight)) = \(c.extended)" : "from \(c.from), \(c.start) \(q.extend) \(c.weight) = \(c.extended)"
-    }.joined(separator: "; ")
-    let choice = step.candidates.count == 1 ? "Only one to choose from" : "Choose with \(q.choose)"
-    let later = step.waiting.isEmpty ? "" : " \(step.waiting.joined(separator: " and ")) isn’t answered yet, and anything through it can only be worse."
-    return "\(step.place): extend each way in by its link: \(ways). \(choice): \(step.value)." + later + (step.agrees ? "" : " (Grafluent says otherwise.)")
+        let sum = q.extend == "min" ? "min(\(c.start), \(c.weight)) = \(c.extended)" : "\(c.start) \(q.extend) \(c.weight) = \(c.extended)"
+        return " From \(c.from), \(sum)."
+    }.joined()
+    let later = step.waiting.isEmpty ? ""
+        : step.waiting.count == 1 ? " \(step.waiting[0]) has no answer yet, and a route through it can only be worse."
+        : " \(step.waiting.joined(separator: " and ")) have no answers yet, and a route through them can only be worse."
+    let mismatch = step.agrees ? "" : " (Grafluent says otherwise.)"
+    if step.candidates.count == 1 {
+        return "\(step.place) has one way in." + ways + later + mismatch
+    }
+    return "\(step.place) has \(step.candidates.count) ways in." + ways + " \(q.keep). That gives \(step.value)." + later + mismatch
 }
 
 @View
@@ -198,26 +213,26 @@ struct SemiringsLab {
                         span(.class("label")) { finished ? "Every place answered" : "Step \(k) of \(steps.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "\(q.question) Every route from the Server is built by two moves: extend a route by one link, and choose between two routes to the same place. Press Step to begin."
+                                "\(q.question) Press Step to answer one place at a time."
                             } else if finished {
                                 describeSemiringStep(last!, n) + " "
-                                em { "The answer for Farm: \(model.farm)." }
-                                " The same two moves answered every place; only what extend and choose mean changed."
+                                em { "Farm’s answer is \(model.farm)." }
+                                " Now try another question. The code changes in one line."
                             } else {
                                 describeSemiringStep(last!, n)
                             }
                         }
                     }
                     div(.class("panel")) {
-                        span(.class("label")) { "This question’s two moves" }
+                        span(.class("label")) { "How this question adds up a route" }
                         div(.class("stat")) {
                             div {
                                 span(.class("num")) { q.extend }
-                                "extend by a link"
+                                "along a route"
                             }
                             div {
                                 span(.class("num")) { q.choose }
-                                "choose between routes"
+                                "between two routes"
                             }
                             div {
                                 span(.class("num")) { q.noRoute }
@@ -267,8 +282,8 @@ struct SemiringsLab {
                     ])
                 p(.class("note")) {
                     selective
-                        ? "Places are answered best first, the order Dijkstra’s algorithm settles them in. Numbers on the links are the question’s values."
-                        : "Places are answered in topological order, every link pointing forward, as dagShortestDistances relaxes them. Every link counts as 1."
+                        ? "Places are answered best first, the order Dijkstra’s algorithm settles them in. The numbers on the links belong to the question."
+                        : "Places are answered in an order where every link points forward, as dagShortestDistances visits them. Each link counts as 1."
                 }
             }
         }

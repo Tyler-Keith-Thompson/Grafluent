@@ -1,24 +1,41 @@
 <!-- title: Semirings · Explore Grafluent -->
-<!-- description: One network and one shortest-path algorithm, asked five questions: quickest, widest, most reliable, reachable and how many routes, by swapping the semiring Grafluent’s dijkstraShortestPaths takes. -->
+<!-- description: One network and one shortest-path search, asked five questions in turn: quickest, widest, most reliable, reachable and how many routes, by changing the semiring Grafluent’s dijkstraShortestPaths takes. -->
 <header class="sign">
   <h1>Semirings</h1>
-  <p class="question">Quickest, widest, most reliable: can one route-finding algorithm answer them all?</p>
+  <p class="question">Which route is quickest? Which carries the most data? Which is least likely to fail? Can one route finder answer all three?</p>
 </header>
-<p class="example lead">Example: a small data network. Seven places and eleven one-way links carrying data out from a server, each link with three numbers: its delay in minutes, its bandwidth in megabits a second, and the chance it is up.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>One route finder, many questions</h2>
+  <p>Route questions come in many kinds. Some ask for the quickest route, some for the widest, some for the most reliable. A semiring lets one shortest-path search answer all of them. You choose the question by choosing the semiring. The search stays the same.</p>
+  <p>Reach for one when you have a route question that isn’t about distance. You keep the speed of Dijkstra’s algorithm, and you write no new search.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to ask a route question</h2>
+  <!-- compare
+  | Method | When to use | Needs | Cost | Weakness |
+  | *Dijkstra over a semiring | Quickest, widest, most reliable, reachable | No link makes a route better, and choosing keeps one route | O(m log n) | Can’t count routes |
+  | DAG shortest paths over a semiring | No link loops back | Nothing more | O(n + m) | Fails on a graph with a loop |
+  | [Bellman–Ford](bellmanford.html) over a semiring | Some links make a route better | Choosing keeps one route | O(nm) | Much slower |
+  | Floyd–Warshall over a semiring | The answer for every pair of places | Choosing keeps one route | O(n³) | Too slow for large graphs |
+  | A search written for one question | You will only ever ask one question | Nothing | O(m log n) | A new search to write and test each time |
+  -->
+  <p>A semiring search runs as fast as a search written by hand for the question. Its limits are the two promises under “Where it breaks” below.</p>
+</section>
+
+<p class="example lead">Example: a small data network. Seven places and eleven one-way links carry data out from a server. Each link has a delay in minutes, a bandwidth in megabits a second, and a chance of being up. Pick a question, then step through the places one at a time.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The network above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
-  <h2><small>The idea</small>A route-finder only ever does two things</h2>
-  <p>Watch <a href="dijkstra.html">Dijkstra’s algorithm</a> closely and it does only two things with the numbers on the links. It <b>extends</b> a route by one more link: 4 minutes to North, then 3 more to Mill, makes 4 + 3 = 7. And it <b>chooses</b> between two routes to the same place: 7 minutes through North or 4 through South, keep the smaller. Everything else, the queue, the order, the bookkeeping, is about doing those two moves in a sensible order.</p>
+  <h2><small>The idea</small>Two moves, with different arithmetic</h2>
+  <p>Look at Mill under Quickest. Data can arrive from North or from South. Through North it takes 4 + 3 = 7 minutes. Through South it takes 2 + 2 = 4 minutes. The quicker route wins, so Mill gets 4.</p>
+  <p>Now look at Mill under Widest. A route carries only as much as its narrowest link. Through North that is the smaller of 100 and 80, so 80. Through South it is the smaller of 40 and 30, so 30. The wider route wins, so Mill gets 80.</p>
+  <p>Both answers used the same two moves. The first move <b>extends</b> a route by one more link. The second <b>chooses</b> between two routes to the same place. Only the arithmetic changed. Quickest extends with + and chooses with min. Widest extends with min and chooses with max.</p>
 
-  <h2><small>Swap them</small>And the question changes</h2>
-  <p>Replace “add” and “keep the smaller” with other pairs and the same algorithm answers a different question. A route’s bandwidth is that of its narrowest link, so extending takes the min, and choosing keeps the wider. A route works only if every link on it is up, so extending multiplies chances, and choosing keeps the likelier.</p>
+  <h2><small>Swap them</small>Each question is a pair of moves</h2>
+  <p>Every question on this page is a pair like that.</p>
   <div class="table-scroll">
     <table class="qtable">
       <thead><tr><th>Question</th><th>Extend</th><th>Choose</th><th>No route</th><th>Already there</th></tr></thead>
@@ -31,15 +48,20 @@
       </tbody>
     </table>
   </div>
-  <p>Each row also needs two special values. <b>No route</b> is what choosing ignores: any real route beats it. <b>Already there</b> is the route of no links, which extending leaves unchanged: adding 0 minutes, or multiplying by a chance of 1.</p>
+  <p>Each row also needs two special values. <b>No route</b> loses every choice, because any real route beats it. <b>Already there</b> is the route with no links. Extending by it changes nothing, like adding 0 minutes or multiplying by a chance of 1.</p>
 
   <h2><small>Name it</small>That pair is a semiring</h2>
-  <p>A <b>semiring</b> is exactly such a pair, an extend and a choose, together with those two values, obeying the same rules as × and + do on ordinary numbers. Choosing doesn’t care about order or grouping. Extending can be grouped either way. “No route” changes nothing when chosen, and wipes out a route when extended. And extending distributes over choosing: extending the better of two routes gives the same as choosing the better of the two extensions. That last rule is what lets an algorithm decide at each place once, instead of keeping every route.</p>
-  <p>This is Grafluent’s <code>Semiring</code> protocol: <code>times(_:)</code> extends, <code>plus(_:)</code> chooses, <code>zero</code> is no route and <code>one</code> is already there. <code>TropicalSemiring</code>, <code>BottleneckSemiring</code>, <code>ViterbiSemiring</code>, <code>BooleanSemiring</code> and <code>CountingSemiring</code> are the five rows above, and the code panel changes only which one each link’s value is wrapped in.</p>
+  <p>A <b>semiring</b> is a pair of moves like these, together with the two special values. The moves follow the same rules as × and + on ordinary numbers. The order of a choice doesn’t matter. Extending by no route gives no route. And extending the better of two routes gives the same result as extending both and then choosing. That last rule lets the search decide once at each place, without keeping every route.</p>
+  <p>In Grafluent this is the <code>Semiring</code> protocol. <code>times(_:)</code> extends and <code>plus(_:)</code> chooses. <code>zero</code> is no route, and <code>one</code> is already there. The five rows above are <code>TropicalSemiring</code>, <code>BottleneckSemiring</code>, <code>ViterbiSemiring</code>, <code>BooleanSemiring</code> and <code>CountingSemiring</code>. In the code panel, only the wrapper around each link’s value changes.</p>
 
   <h2><small>Where it breaks</small>Dijkstra needs two more promises</h2>
-  <p>Dijkstra settles a place for good once nothing better can still arrive. That needs <b>extending never to make a route better</b>: no negative minutes, no link wider than infinity, no chance above 1. Grafluent checks each weight against <code>one</code>. It also needs <b>choosing to pick one of the two</b>, not blend them: min, max and or all do. Semirings like that are called <b>selective</b>, Grafluent’s <code>SelectiveSemiring</code>, and that is what <code>dijkstraShortestPaths</code> takes.</p>
-  <p>Counting routes breaks the second promise: choosing adds the two counts, so no single route wins, and a place can’t be settled until every way into it is known. That works when the links can’t loop back, a directed acyclic graph, as here: <code>dagShortestDistances</code> runs Mohri’s algorithm, visiting places in an order where every link points forward. With a loop there would be infinitely many routes to count.</p>
+  <p>Dijkstra settles a place for good once nothing better can still arrive. That needs two promises. The first is that extending never makes a route better. So there are no negative minutes, and no chance above 1. Grafluent checks each weight against <code>one</code>. The second is that choosing keeps one of the two routes. Min, max and or all do. A semiring whose choice always keeps one of the two is called <b>selective</b>. That is Grafluent’s <code>SelectiveSemiring</code>, and it is what <code>dijkstraShortestPaths</code> takes.</p>
+  <p>Counting routes breaks the second promise. Choosing adds the two counts, so no single route wins. A place can’t be settled until every way into it is known. That works when no link loops back, as in this network. <code>dagShortestDistances</code> runs Mohri’s algorithm, which visits the places in an order where every link points forward. With a loop there would be infinitely many routes to count.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The network above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

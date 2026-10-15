@@ -71,17 +71,16 @@ func stopList(_ stops: [String]) -> String { stops.joined(separator: " → ") }
 
 func describeRoute(_ n: Int, _ routes: [KRoute]) -> String {
     let route = routes[n]
-    let head = "Route \(n + 1), \(route.minutes) min: \(stopList(route.stops))."
     guard let parent = route.parent else {
-        return head + " The quickest of all, found by one shortest-path search."
+        return "Route 1 takes \(route.minutes) min. It is the quickest, found by one shortest-path search."
     }
     let turn = route.stops[route.shared - 1]
     let extra = route.minutes - routes[0].minutes
-    let slower = extra == 0 ? "It ties the quickest." : "It is \(extra) min slower than the quickest."
+    let head = extra == 0 ? "Route \(n + 1) also takes \(route.minutes) min, a tie with the quickest." : "Route \(n + 1) takes \(route.minutes) min, \(extra) more than the quickest."
     let detour = route.shared == 1
-        ? " It leaves \(turn) a different way, by \(route.stops[1]). "
-        : " It follows route \(parent + 1) as far as \(turn), then turns off to \(route.stops[route.shared]). "
-    return head + detour + slower
+        ? " It leaves \(turn) a different way, by \(route.stops[1])."
+        : " It follows route \(parent + 1) as far as \(turn), then turns off to \(route.stops[route.shared])."
+    return head + detour
 }
 
 @View
@@ -130,11 +129,11 @@ struct KPathsLab {
                             if routes.isEmpty {
                                 "There is no way from \(model.start) to \(model.goal)."
                             } else if k == 0 {
-                                "The first \(routes.count) routes from \(model.start) to \(model.goal), none visiting a place twice, quickest first. Press Step to take the next one from the sequence."
+                                "Here come the \(routes.count) quickest routes from \(model.start) to \(model.goal). Press Step for the next one."
                             } else {
                                 describeRoute(k - 1, routes)
                                 if finished {
-                                    " The sequence would go on, each route a little slower or tied, until every loop-free route is listed."
+                                    " Ask for more and the list goes on, until every route that never repeats a place is listed."
                                 }
                             }
                         }

@@ -1,24 +1,46 @@
 <!-- title: Bellman–Ford · Explore Grafluent -->
-<!-- description: Currency exchange as shortest paths, with Grafluent’s lazy.bellmanFord: rates turned into costs that may be negative, the best rate to every currency, and the trading loop that pays. -->
+<!-- description: Cheapest routes when some costs are negative, with Grafluent’s lazy.bellmanFord: the best exchange rates in a small currency market, one trade at a time, and then a trading loop that pays. -->
 <header class="sign">
   <h1>Bellman–Ford</h1>
-  <p class="question">Changing dollars into yen, is it better to go direct or through euros? And can a round of trades ever end with more money than it started?</p>
+  <p class="question">Is it better to change dollars into francs through euros or through pounds? And can a round of trades ever end with more money than it started with?</p>
 </header>
-<p class="example lead">Example: five currencies, and a quote for each trade: what one unit buys. One quote, pounds to dollars, is a little too generous.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Cheapest routes when some costs are negative</h2>
+  <p>Bellman–Ford finds the cheapest route from one starting place to every other place. It still works when some steps have a negative cost, meaning the step pays you back. It also notices a loop that gets cheaper every time you go round it. Then no cheapest route exists, and Bellman–Ford hands you the loop.</p>
+  <p>Reach for it when costs can be negative, as with exchange rates, rebates, or the energy an electric car gets back going downhill. If no cost is negative, use Dijkstra’s algorithm instead. It is much faster.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find cheapest routes</h2>
+  <!-- compare
+  | Method | When to use | Handles | Cost | Weakness |
+  | *Bellman–Ford | Some costs are negative | Negative costs, and finds a loop that pays | O(nm) | Slow on large graphs |
+  | [Dijkstra](dijkstra.html) | No cost is negative | Costs of zero or more | O(m log n) | Wrong answers when a cost is negative |
+  | [Breadth-first search](bfs.html) | Every step costs the same | Counting steps | O(n + m) | Ignores costs |
+  | Floyd–Warshall | Routes between every pair, on a small graph | Negative costs, and reports a loop that pays | O(n³) | Too slow past a few thousand places |
+  | Johnson | Routes between every pair, on a large sparse graph | Negative costs | O(nm log n) | More work than you need for one start |
+  -->
+  <p>Bellman–Ford is the safe choice when costs can be negative, and it can show you a loop that pays. It is slow, because each round may check every step again. In the table, n is the number of places and m the number of steps between them.</p>
+</section>
+
+<p class="example lead">Example: four currencies and seven quotes. Each arrow says what one unit buys. Start with fair quotes. Then make the franc-to-dollar quote a little too generous.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The market above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
-  <h2><small>The idea</small>Relax every edge, again and again</h2>
-  <p>Trading along a chain multiplies the rates, and the best chain has the largest product. Taking logarithms turns products into sums: give each trade the cost −ln(rate), and the best rate becomes the cheapest path. A rate above 1 has a negative cost, so <a href="dijkstra.html">Dijkstra’s algorithm</a> can’t be used: its proof needs every edge to cost at least nothing.</p>
-  <p>Bellman–Ford doesn’t rely on that. It keeps a best cost for every vertex and, round after round, checks each edge out of every vertex that improved last round: if going through that edge is cheaper than the target’s best so far, lower it, called <b>relaxing</b> the edge. After round k, every path of up to k edges has been tried, and a shortest path visits each vertex at most once, so n − 1 rounds always suffice. If anything still improves in round n, some loop has a negative total and keeps paying: a <b>negative cycle</b>, here an arbitrage. <code>lazy.bellmanFord(from:weight:)</code> reports each round, each edge and, at the end, the cycle itself.</p>
+  <h2><small>The idea</small>Relax every trade, again and again</h2>
+  <p>Trading along a chain multiplies the rates, and the best chain has the largest product. Logarithms turn products into sums. So give each trade the cost −ln(rate), and the best rate becomes the cheapest path. A rate above 1 gets a negative cost.</p>
+  <p>Negative costs are what break <a href="dijkstra.html">Dijkstra’s algorithm</a>. In this market it would settle francs at 0.864, by way of euros, before it looked at pounds. The route through pounds gives 0.8736, but Dijkstra never goes back to a currency it has settled.</p>
+  <p>Bellman–Ford never settles anything early. It keeps a best cost for every currency. Each round, it tries the trades out of every currency that improved in the round before. When a trade gives a cheaper way to its target, the target’s best cost drops. This is called <b>relaxing</b> the trade.</p>
+  <p>After round k, every route of up to k trades has been tried. A cheapest route visits each place at most once, so n − 1 rounds are always enough. If something still improves in round n, some loop has a negative total cost. That is a <b>negative cycle</b>, and in a market it is an arbitrage. <code>lazy.bellmanFord(from:weight:)</code> reports each round and each trade, and at the end the cycle itself.</p>
 
   <h2><small>Where it breaks</small>Slow, and real markets</h2>
-  <p>Each round can touch every edge, so the worst case is O(nm), far slower than Dijkstra. Grafluent only rescans vertices that changed, which helps a great deal in practice; with no negative weights, use Dijkstra, and on a graph without cycles, the <a href="semirings.html">topological-order</a> method takes one pass. To find shortest paths between every pair with some negative weights, Johnson’s algorithm runs Bellman–Ford once to reweight the edges and then Dijkstra from each vertex.</p>
-  <p>Real arbitrage loops are tiny and gone in moments, and trading fees usually eat them; the costs here are rounded to whole numbers, which works only because this market’s loop is comfortably above the rounding.</p>
+  <p>Each round can touch every trade, so the worst case is O(nm), far slower than Dijkstra. Grafluent only rescans the currencies that changed, which helps a great deal in practice. On a graph without cycles, the <a href="semirings.html">topological-order</a> method needs only one pass.</p>
+  <p>Real arbitrage loops are tiny and gone in moments, and trading fees usually eat them. The costs here are rounded to whole numbers. That works only because this market’s loop clears the rounding by a wide margin.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The market above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 </section>

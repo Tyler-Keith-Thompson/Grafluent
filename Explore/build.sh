@@ -81,10 +81,10 @@ for page in "$HERE"/web/pages/*.html; do
             return n
         }
         # A compare block as a table. Its first row names the columns; in each later row the first
-        # cell is the method: "[Name](page.html)" links to its page, "*Name" is this page, and
+        # cell is the method: a leading "[Name](page.html)" links to its page, "*Name" is this page, and
         # anything else is plain text. Each cell keeps its column name, so a phone can show the
         # rows as cards.
-        function compare_table(rows,   head, c, n, i, j, s, p, out) {
+        function compare_table(rows,   head, c, n, i, j, s, p, q, out) {
             n = cells(row[1], head)
             out = "<div class=\"compare\">\n<table>\n  <thead><tr>"
             for (j = 1; j <= n; j++) out = out "<th scope=\"col\">" head[j] "</th>"
@@ -96,8 +96,9 @@ for page in "$HERE"/web/pages/*.html; do
                     out = out "\n    <tr class=\"self\"><th scope=\"row\">" substr(s, 2) " <span class=\"this\">This page</span></th>"
                 } else {
                     p = index(s, "](")
-                    if (substr(s, 1, 1) == "[" && p > 0 && substr(s, length(s)) == ")")
-                        s = "<a href=\"" substr(s, p + 2, length(s) - p - 2) "\">" substr(s, 2, p - 2) "</a>"
+                    q = p > 0 ? index(substr(s, p + 2), ")") : 0
+                    if (substr(s, 1, 1) == "[" && q > 0)
+                        s = "<a href=\"" substr(s, p + 2, q - 1) "\">" substr(s, 2, p - 2) "</a>" substr(s, p + 2 + q)
                     out = out "\n    <tr><th scope=\"row\">" s "</th>"
                 }
                 for (j = 2; j <= n; j++) out = out "<td data-label=\"" head[j] "\">" c[j] "</td>"

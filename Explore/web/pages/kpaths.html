@@ -1,27 +1,45 @@
 <!-- title: k shortest paths · Explore Grafluent -->
-<!-- description: Alternative routes across a small town, quickest first, from Grafluent’s shortestSimplePaths: Yen’s algorithm as a lazy sequence, stepped one route at a time. -->
+<!-- description: Backup routes across a small town, quickest first, from Grafluent’s shortestSimplePaths: Yen’s algorithm as a lazy sequence, stepped one route at a time. -->
 <header class="sign">
   <h1>k shortest paths</h1>
   <p class="question">The quickest route is blocked. What’s the next best way across town, and the one after that?</p>
 </header>
-<p class="example lead">Example: nine places in a small town, with driving minutes on each road. The routes from Home to the Stadium come out one at a time, quickest first, none visiting a place twice.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Backup routes, best first</h2>
+  <p>When the best route is blocked, you want the next best, and then the one after that. A k shortest paths search lists the routes from one place to another, quickest first, as many as you ask for. No route visits a place twice.</p>
+  <p>Reach for it to offer a driver some alternatives, or to plan a backup link in a network. It also helps when the best route must pass an extra test, such as avoiding tolls. List the routes in order, and stop at the first one that passes.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find routes</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *k shortest paths | You want backup routes | The k quickest routes that never repeat a place, in order | Up to one shortest-path search per stop, for each route | Runners-up are often near-copies of the best |
+  | [Dijkstra](dijkstra.html) | You want the one best route | The single quickest route | O(m log n) | No second choice |
+  | All shortest paths | You want every route tied for quickest | Every route of the lowest cost, and nothing slower | One search, then each route as you take it | Says nothing about slower routes |
+  -->
+  <p>A k shortest paths search gives the true ranking, and it does no work for routes you never ask for. It gets slow when you ask for thousands of routes on a large map.</p>
+</section>
+
+<p class="example lead">Example: nine places in a small town, with driving minutes on each road. The routes from Home to the Stadium come out one at a time, quickest first.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The town above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>Every new route is a detour off an old one</h2>
-  <p>The quickest route is one <a href="dijkstra.html">Dijkstra</a> search. For the second, notice that any other route agrees with the first for a while, maybe only at Home, and then turns off somewhere. So try each stop of the first route as the turning point: keep the stretch before it, forbid the road the first route took from there, and search for the quickest way to finish without going back through the kept stretch. Each turning point gives one candidate. The cheapest candidate is the second route.</p>
-  <p>Yen’s algorithm repeats this. After route k is found, it tries every turning point along route k, forbidding at each one the next road of <em>every</em> earlier route that shares the same opening, so no route can come out twice. Candidates pile up in a priority queue, and the cheapest one is always the next route. Lawler’s refinement skips the turning points before where route k itself turned off, since those were tried already. On the map, the blue line is the earlier route a new one shares its opening with, and the yellow stretch is the detour.</p>
-  <p>In Grafluent, <code>shortestSimplePaths(from:to:weight:)</code> returns a lazy sequence: nothing past the first route is searched until you ask for it, so <code>prefix(k)</code> costs only what k routes cost. Without a weight, it counts roads instead of minutes.</p>
+  <p>The quickest route is one <a href="dijkstra.html">Dijkstra</a> search. For the second, notice that any other route agrees with the first for a while, maybe only at Home, and then turns off somewhere. So try each stop of the first route as the turning point. Keep the stretch before it, and forbid the road the first route took from there. Then search for the quickest way to finish without going back through the kept stretch. Each turning point gives one candidate. The cheapest candidate is the second route.</p>
+  <p>Yen’s algorithm repeats this. After route k is found, it tries every turning point along route k. At each one it forbids the next road of <em>every</em> earlier route that shares the same opening, so no route can come out twice. Candidates wait in a priority queue, and the cheapest one is always the next route. Lawler’s refinement skips the turning points before the place where route k itself turned off, since those were tried already. On the map, the blue line is the earlier route that a new one shares its opening with, and the yellow stretch is the detour.</p>
+  <p>In Grafluent, <code>shortestSimplePaths(from:to:weight:)</code> returns a lazy sequence. Nothing past the first route is searched until you ask for it, so <code>prefix(k)</code> costs only what k routes cost. Without a weight, it counts roads instead of minutes.</p>
 
   <h2><small>Where it breaks</small>Near-copies, and a search per stop</h2>
-  <p>The next quickest route is usually the quickest with one small wiggle: a block around the corner and back. A route planner offering alternatives wants routes that differ by more than that, and filters the list (for example, dropping routes that share most of their roads with one already shown) or penalises roads already used and searches again. Yen gives the true ranking; deciding which alternatives are worth showing is a separate choice.</p>
-  <p>Each new route costs up to one shortest-path search per stop on the route before it, so asking for thousands of routes on a large map is slow. Weights must not be negative: the searches are Dijkstra’s. And the routes are <em>simple</em>, never visiting a place twice; when repeats are allowed, Eppstein’s algorithm lists the k shortest walks much faster.</p>
+  <p>The next quickest route is usually the quickest with one small wiggle, such as a block around the corner and back. A route planner wants alternatives that differ by more than that. So it filters the list, for example dropping routes that share most of their roads with one already shown. Or it makes roads already used cost more and searches again. Yen gives the true ranking. Deciding which alternatives are worth showing is a separate choice.</p>
+  <p>Each new route costs up to one shortest-path search per stop on the route before it, so asking for thousands of routes on a large map is slow. Weights must not be negative, because the searches are Dijkstra’s. And the routes never visit a place twice. When repeats are allowed, Eppstein’s algorithm lists the k shortest walks much faster.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The town above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

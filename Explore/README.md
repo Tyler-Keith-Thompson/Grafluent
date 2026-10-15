@@ -203,9 +203,9 @@ A reader learns what an algorithm is for, and what else could do the job, before
    if the page has one.
 
 A compare table is written in the page as a block that `build.sh` turns into a table; on a phone
-each row becomes a card that keeps its column names. The first row names the columns. In each
-later row the first cell is the method: `[Name](page.html)` links to its page, `*Name` marks this
-page's own row, and plain text is a method with no page. Cells may hold inline HTML (`<code>`)
+each row becomes a card that keeps its column names. The first row names the columns. In each later
+row the first cell is the method: a leading `[Name](page.html)` links to its page, `*Name` marks
+this page's own row, and plain text is a method with no page. Cells may hold inline HTML (`<code>`)
 but no `|`, and every row has as many cells as the first.
 
 ```html
