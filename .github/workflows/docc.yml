@@ -1,7 +1,8 @@
 name: DocC
 
 # Builds one combined DocC site for every library module and publishes it to GitHub Pages
-# (the gh-pages branch) at https://tyler-keith-thompson.github.io/Grafluent/documentation/.
+# (the gh-pages branch) at https://tyler-keith-thompson.github.io/Grafluent/documentation/, with the
+# browser explorer (Explore/, Swift compiled to WebAssembly) beside it at /Grafluent/explore/.
 # Linux, not macOS: the library imports no Foundation or Darwin, and Linux runners cost less.
 #
 # The site is Bazel's //:docs (see tools/docc.bzl), built against the BuildBuddy remote cache, so
@@ -19,8 +20,68 @@ concurrency:
 permissions:
   contents: write
 
+env:
+  # The explorer's toolchain, its matching WebAssembly SDK (swift.org) and wasm-opt (binaryen).
+  WASM_SDK_URL: https://download.swift.org/swift-6.3.3-release/wasm-sdk/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE_wasm.artifactbundle.tar.gz
+  WASM_SDK_SHA256: cabfa08b73bb8ac783927ecd15fa386e99d0c139c5f232445067bcf58379cae7
+  BINARYEN_VERSION: version_133
+  BINARYEN_SHA256: 89c07ea56faf38d0fbecf36ca8ec0721756716185f265b568e133d427f299bf8
+
 jobs:
+  # The explorer is its own job so that a failure there cannot stop the documentation: the docs
+  # job runs either way, and without a new explorer build it republishes the one already live.
+  # The failed job still turns the run red.
+  explore:
+    runs-on: ubuntu-26.04-arm
+    # The WebAssembly SDK must match the compiler exactly, so this job pins the patch release.
+    container: swift:6.3.3
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install curl
+        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates curl
+      - name: Cache the WebAssembly SDK and wasm-opt
+        id: tools
+        uses: actions/cache@v6
+        with:
+          path: /opt/explore-tools
+          key: explore-tools-${{ runner.arch }}-${{ env.WASM_SDK_SHA256 }}-${{ env.BINARYEN_VERSION }}
+      - name: Download the WebAssembly SDK and wasm-opt
+        if: steps.tools.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /opt/explore-tools/bin
+          curl -fsSL -o /opt/explore-tools/wasm-sdk.artifactbundle.tar.gz "$WASM_SDK_URL"
+          echo "$WASM_SDK_SHA256  /opt/explore-tools/wasm-sdk.artifactbundle.tar.gz" | sha256sum -c -
+          curl -fsSL -o /tmp/binaryen.tar.gz \
+            "https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/binaryen-$BINARYEN_VERSION-aarch64-linux.tar.gz"
+          echo "$BINARYEN_SHA256  /tmp/binaryen.tar.gz" | sha256sum -c -
+          # Only wasm-opt is needed, not the 100 MB of the rest.
+          tar -xzf /tmp/binaryen.tar.gz -C /opt/explore-tools/bin --strip-components=2 "binaryen-$BINARYEN_VERSION/bin/wasm-opt"
+      - name: Install the WebAssembly SDK
+        run: |
+          swift sdk install /opt/explore-tools/wasm-sdk.artifactbundle.tar.gz
+          echo /opt/explore-tools/bin >> "$GITHUB_PATH"
+      - name: Restore the explorer's build
+        # Keyed on the dependency pins, the explorer's sources and the library's sources. A miss
+        # falls back to the newest build with the same pins, so only what changed recompiles.
+        uses: actions/cache@v6
+        with:
+          path: Explore/.build
+          key: explore-build-${{ runner.arch }}-${{ hashFiles('Explore/Package.resolved') }}-${{ hashFiles('Explore/Package.swift', 'Explore/Sources/**', 'Explore/Plugins/**') }}-${{ hashFiles('Package.swift', 'Sources/**/*.swift') }}
+          restore-keys: |
+            explore-build-${{ runner.arch }}-${{ hashFiles('Explore/Package.resolved') }}-${{ hashFiles('Explore/Package.swift', 'Explore/Sources/**', 'Explore/Plugins/**') }}-
+            explore-build-${{ runner.arch }}-${{ hashFiles('Explore/Package.resolved') }}-
+      - name: Build the explorer
+        run: Explore/build.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: explore
+          path: Explore/dist
+          retention-days: 1
+
   docs:
+    needs: explore
+    # Run whether or not the explorer built; not when the run was cancelled.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-26.04-arm
     # rules_swift's Linux toolchain is whatever swiftc is on the PATH; docc comes from beside it.
     container: swift:6.3
@@ -62,6 +123,18 @@ jobs:
           bazel build //:docs
           cp -RL bazel-bin/docs ./docs
           chmod -R u+w ./docs
+      - name: Add the explorer
+        if: needs.explore.result == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          name: explore
+          path: docs/explore
+      - name: Keep the published explorer
+        # The explorer did not build: publish the copy already on gh-pages rather than none.
+        if: needs.explore.result != 'success'
+        run: |
+          git fetch --depth=1 origin gh-pages && git archive FETCH_HEAD explore | tar -x -C docs \
+            || echo "::warning::No explorer published: it did not build and gh-pages has none."
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4.1.0
         with:
