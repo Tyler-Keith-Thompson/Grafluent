@@ -78,7 +78,7 @@ for f in /tmp/co/*; do cmp "$f" Tests/ColoringModuleTests/"$(basename "$f")"; do
 | Trees | — | none | `ref.py`; `extras.py` |
 | TreeAlgorithms | — | none | `ref.py`; `extra.py`, `extra2.py`, `extra3.py` |
 | Walks | — | none | `ref.py` |
-| SpanningTrees | scipy | none | `ref.py` |
+| SpanningTrees | scipy | none | `ref.py`; `cases_events.py` reproduces `cases_events.out` |
 | ShortestPaths | — | none | `cases.py`, `cases_astar.py`, `cases_bf.py`, `cases_paths.py`, `cases_search.py`, `bfcheck.py` reproduce their `.out` files; `check.py` |
 | DisjointSet | scipy | none | `cases.py` reproduces `cases.out`; `check.py`, `rules.py` |
 | PriorityQueue | none (stdlib) | none | `ref.py` reproduces `cases.out` |

@@ -30,6 +30,13 @@ extension Graph {
     func primMinimumSpanningTree<W>(from root: Vertex, weight: (Edges.Index) -> W) -> SpanningForest<Self, W>
     // The canonical forest's edges, by round.
     func boruvkaMinimumSpanningTree<W>(weight: (Edges.Index) -> W) -> SpanningForest<Self, W>
+    // Kruskal as events: examineEdge(e, weight:), then treeEdge(e, merging:into:) or
+    // nonTreeEdge(e, root:); the tree edges are kruskalMinimumSpanningTree's.
+    func kruskalEvents<W>(weight: (Edges.Index) -> W) -> KruskalEvents<Self, W>
+    // Prim as events: startVertex, examine(v, edge:weight:), examineEdge, edgeRelaxed,
+    // edgeNotRelaxed, finish; the joining edges are primMinimumSpanningTree's.
+    func primEvents<W>(weight: @escaping (Edges.Index) -> W) -> PrimEvents<Self, W>
+    func primEvents<W>(from root: Vertex, weight: @escaping (Edges.Index) -> W) -> PrimEvents<Self, W>
 }
 
 extension Forest {
@@ -72,6 +79,8 @@ extension Forest {
 - Borůvka: O(m log n) over at most ⌈log₂ n⌉ rounds, each a scan of the edges still between
   components.
 - Unweighted: O(m α(n)), with no sort.
+- `kruskalEvents`: O(m log m) to make (weighing and sorting); O(m α(n)) to iterate.
+  `primEvents`: O(m log n) to iterate; O(n) per iterator.
 
 ## Arborescences, branchings, Steiner trees and random spanning trees
 

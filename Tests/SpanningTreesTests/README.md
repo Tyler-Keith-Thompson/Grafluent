@@ -25,6 +25,9 @@ extension Graph
     func primMinimumSpanningTree(weight:) -> SpanningForest<Self, W>                         // a forest; restarts in vertices order; ties unspecified
     func primMinimumSpanningTree(from root: Vertex, weight:) -> SpanningForest<Self, W>      // root's component only
     func boruvkaMinimumSpanningTree(weight:) -> SpanningForest<Self, W>                      // canonical edge set, by round
+    func kruskalEvents(weight:) -> KruskalEvents<Self, W>                                    // lazy; Element KruskalEvent<Vertex, Edges.Index, W>
+    func primEvents(weight: @escaping (Edges.Index) -> W) -> PrimEvents<Self, W>             // lazy; Element PrimEvent<Vertex, Edges.Index, W>
+    func primEvents(from root: Vertex, weight:) -> PrimEvents<Self, W>
 
     func randomSpanningTree(using:) -> SpanningForest<Self, Int>                             // uniform (Wilson); edges in joining order
     func randomSpanningTree(weight:using:) -> SpanningForest<Self, W>                        // W: BinaryFloatingPoint; ∝ the product of the weights
@@ -104,6 +107,8 @@ optimality.
 | `ArborescencePropertyTests.swift` | §M: brute force over every choice of entering edge, unsigned weights, unrooted = best rooted, single-edge exchanges with shrinking |
 | `SteinerTreeTests.swift` | §N: NetworkX's Steiner graphs, trivial and disconnected terminals, multigraphs, zero weights, checked spellings, traps; brute force and exact cases |
 | `RandomSpanningTreeTests.swift` | §O: uniformity (K₄, a multigraph) and weighted proportions by χ², reproducibility, forests, traps |
+| `SpanningTreeEventTests.swift` | §P: Kruskal and Prim as event sequences on Wikipedia's graph and a multigraph, on every representation; trivial cases, value semantics, traps; property tests replaying the plain calls |
+| `Performance/SpanningTreeEventsRatioTests.swift` | §P: ST-265, every event against the plain call (release) |
 | `SpanningTreeConformanceTests.swift` | §J: preconditions (exit tests), value semantics, Equatable / Hashable / Sendable, existentials and generic code, weight-call counts per representation, no vertex hashing, digraphs through `.undirectedView` |
 
 ## Case IDs

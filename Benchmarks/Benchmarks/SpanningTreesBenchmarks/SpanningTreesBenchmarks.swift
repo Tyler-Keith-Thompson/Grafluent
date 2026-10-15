@@ -180,6 +180,25 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("SpanningTrees: boruvkaMinimumSpanningTree, G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(graph.boruvkaMinimumSpanningTree { weights[$0] }) }
     }
+    // ST-B08: the event sequences, pulling every event, against the plain calls above.
+    Benchmark("SpanningTrees: kruskalEvents, every event, G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for event in graph.kruskalEvents(weight: { weights[$0] }) {
+                if case .treeEdge(let e, _, _) = event { sum &+= weights[e] }
+            }
+            blackHole(sum)
+        }
+    }
+    Benchmark("SpanningTrees: primEvents, every event, G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for event in graph.primEvents(weight: { weights[$0] }) {
+                if case .examine(_, _, let w) = event { sum &+= w }
+            }
+            blackHole(sum)
+        }
+    }
     Benchmark("SpanningTrees: minimumSpanningTree (canonical), G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(graph.minimumSpanningTree { weights[$0] }) }
     }

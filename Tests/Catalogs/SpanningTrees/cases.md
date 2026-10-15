@@ -226,6 +226,32 @@ Both `steinerTree` (Mehlhorn) and `kouSteinerTree` (Kou–Markowsky–Berman) on
 | ST-245 | a zero, negative, infinite or NaN weight | trap |
 | ST-246 | PropertyBased | every draw is a spanning forest |
 
+## P. Kruskal and Prim as event sequences (ST-250 – ST-265)
+
+`kruskalEvents(weight:)` reports each non-loop edge examined in (weight, position) order, then
+`treeEdge` with the union–find roots it merges (`merging` into `into`; the larger set's root stays,
+on a tie the smaller) or `nonTreeEdge` with the shared root, stopping after n − c tree edges.
+`primEvents(weight:)` and `primEvents(from:weight:)` report the Boost Graph Library's Dijkstra
+visitor events as its Prim uses them: `startVertex`, `examine` (joined, with the edge and weight
+that gave its key), `examineEdge` for an edge to an unspanned vertex, `edgeRelaxed` or
+`edgeNotRelaxed`, and `finish`. `cases_events.py` reproduces ST-250, ST-251, ST-260 and ST-261 in
+`cases_events.out`.
+
+| ID | Case | Expected | Source |
+|---|---|---|---|
+| ST-250 | Kruskal on `WIKI` | 18 events; tree edges `[1,5,7,0,4,9]` (ST-04), non-tree 2, 8, 3; the same on `UndirectedAdjacencyList`, `ReferencePseudograph`, a conformer without indices (also with String vertices) and one with vertex indices only | (ref) `cases_events.py` |
+| ST-251 | Kruskal on a multigraph: a loop at 0, copies 0–1 weighing 4, 2, 2, a triangle 1–2–3, isolated 4, then 5–6 | 14 events; the loop never examined or weighed; the copies: tree, non-tree, non-tree | (ref) `cases_events.py` |
+| ST-252 | Kruskal, trivial | no vertices, a lone loop, isolated vertices: no events; nothing examined after n − 1 tree edges; equal weights in position order, a size tie keeping the smaller root; descriptions | — |
+| ST-253 | Kruskal, value semantics | a later insertion does not change the sequence; each iterator starts over; stopping early | — |
+| ST-254 | Kruskal, preconditions | a NaN weight traps when the sequence is made | — |
+| ST-255 | Kruskal, property | ≤ 30 edges on 8 vertices, weights −3…6, loops and parallel edges: each examined edge decided next; tree edges join two components (their roots), non-tree edges lie in one; examined in (weight, position) order; the tree edges and their sum are `kruskalMinimumSpanningTree`'s | (ref) Kruskal |
+| ST-260 | Prim on `WIKI` | 37 events; joined in the order 0, 3, 5, 1, 4, 2, 6; the same on every representation and from root 0 | (ref) `cases_events.py` |
+| ST-261 | Prim on ST-251's multigraph | 31 events; the loop skipped unweighed; copy 3 not relaxed at 2; three starts (0, 4, 5); from 5 the last 7 events, from 4 three | (ref) `cases_events.py` |
+| ST-262 | Prim, trivial and value semantics | no vertices: no events; a later insertion does not change the sequence; each iterator starts over; stopping early | — |
+| ST-263 | Prim, preconditions | a NaN examined weight, a missing root (with and without vertex indices) trap | — |
+| ST-264 | Prim, property | ST-255's graphs, on `ReferencePseudograph` and a conformer without indices, from every vertex and from a random root: the event order and keys, and the joining edges and their sum are `primMinimumSpanningTree`'s | (ref) Prim |
+| ST-265 | Ratio (release) | every event within 1.8× of `kruskalMinimumSpanningTree` and of `primMinimumSpanningTree` on G(10⁵, 5·10⁵) as `UndirectedAdjacencyList` | — |
+
 ## Counts
 
 | Section | IDs | Cases |
@@ -243,6 +269,7 @@ Both `steinerTree` (Mehlhorn) and `kouSteinerTree` (Kou–Markowsky–Berman) on
 | M. Arborescences and branchings | ST-200 – ST-218 | 17 |
 | N. Steiner trees | ST-220 – ST-230 | 12 |
 | O. Random spanning trees | ST-240 – ST-246 | 7 |
-| **Total** | | **137** |
+| P. Event sequences | ST-250 – ST-265 | 12 |
+| **Total** | | **149** |
 
-Benchmarks (not tests): ST-B01 – ST-B04; ST-B05 Edmonds against a hand-written Edmonds on flat arrays, ST-B06 Steiner trees against a hand-written multi-source Dijkstra, ST-B07 Wilson against a hand-written Wilson.
+Benchmarks (not tests): ST-B01 – ST-B04; ST-B05 Edmonds against a hand-written Edmonds on flat arrays, ST-B06 Steiner trees against a hand-written multi-source Dijkstra, ST-B07 Wilson against a hand-written Wilson, ST-B08 `kruskalEvents` and `primEvents`, pulling every event, against the plain calls on ST-B01's graph.

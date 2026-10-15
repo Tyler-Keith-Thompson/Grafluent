@@ -1,0 +1,104 @@
+--- ST-250: 18 events
+examineEdge 1 5
+treeEdge 1 3 0
+examineEdge 5 5
+treeEdge 5 4 2
+examineEdge 7 6
+treeEdge 7 5 0
+examineEdge 0 7
+treeEdge 0 1 0
+examineEdge 4 7
+treeEdge 4 2 0
+examineEdge 2 8
+nonTreeEdge 2 0
+examineEdge 8 8
+nonTreeEdge 8 0
+examineEdge 3 9
+nonTreeEdge 3 0
+examineEdge 9 9
+treeEdge 9 6 0
+--- ST-251: 14 events
+examineEdge 5 1
+treeEdge 5 3 2
+examineEdge 2 2
+treeEdge 2 1 0
+examineEdge 3 2
+nonTreeEdge 3 0
+examineEdge 4 3
+treeEdge 4 2 0
+examineEdge 6 3
+nonTreeEdge 6 0
+examineEdge 1 4
+nonTreeEdge 1 0
+examineEdge 7 7
+treeEdge 7 6 5
+--- ST-260: 37 events
+startVertex 0
+examine 0 0
+examineEdge 0 7
+edgeRelaxed 0 7
+examineEdge 1 5
+edgeRelaxed 1 5
+finish 0
+examine 3 5
+examineEdge 3 9
+edgeNotRelaxed 3 7
+examineEdge 6 15
+edgeRelaxed 6 15
+examineEdge 7 6
+edgeRelaxed 7 6
+finish 3
+examine 5 6
+examineEdge 8 8
+edgeRelaxed 8 8
+examineEdge 10 11
+edgeRelaxed 10 11
+finish 5
+examine 1 7
+examineEdge 2 8
+edgeRelaxed 2 8
+examineEdge 4 7
+edgeRelaxed 4 7
+finish 1
+examine 4 7
+examineEdge 5 5
+edgeRelaxed 5 5
+examineEdge 9 9
+edgeRelaxed 9 9
+finish 4
+examine 2 5
+finish 2
+examine 6 9
+finish 6
+--- ST-261: 31 events
+startVertex 0
+examine 0 0
+examineEdge 1 4
+edgeRelaxed 1 4
+examineEdge 2 2
+edgeRelaxed 2 2
+examineEdge 3 2
+edgeNotRelaxed 3 2
+finish 0
+examine 1 2
+examineEdge 4 3
+edgeRelaxed 4 3
+examineEdge 6 3
+edgeRelaxed 6 3
+finish 1
+examine 2 3
+examineEdge 5 1
+edgeRelaxed 5 1
+finish 2
+examine 3 1
+finish 3
+startVertex 4
+examine 4 0
+finish 4
+startVertex 5
+examine 5 0
+examineEdge 7 7
+edgeRelaxed 7 7
+finish 5
+examine 6 7
+finish 6

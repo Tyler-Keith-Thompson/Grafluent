@@ -121,6 +121,44 @@ enum FuzzSpanningTrees {
             let insideWeight = canonical(n, inside, <).map { inside[$0].2 }.reduce(0, +)
             check(rooted.weight == insideWeight, "\(name) Prim from \(root): weight \(rooted.weight), expected \(insideWeight)")
 
+            // The event sequences replay the plain calls: Kruskal's tree edges are its forest,
+            // examined in sorted order, each decided right after it is examined; Prim's joining
+            // edges are its forest, from every vertex and from the root.
+            let byPosition = Dictionary(uniqueKeysWithValues: graph.edges.indices.map { ($0, edges[rankOf($0)].2) })
+            var kruskalTree: [G.Edges.Index] = []
+            var examined: [Int] = []
+            var undecided = false
+            for event in graph.kruskalEvents(weight: { byPosition[$0]! }) {
+                switch event {
+                case .examineEdge(let p, let w):
+                    check(!undecided && w == byPosition[p]!, "\(name) Kruskal events: examineEdge(\(p), \(w)) out of turn")
+                    examined.append(rankOf(p))
+                    undecided = true
+                case .treeEdge(let p, let merging, let into):
+                    check(undecided && rankOf(p) == examined.last! && merging != into, "\(name) Kruskal events: treeEdge(\(p))")
+                    kruskalTree.append(p)
+                    undecided = false
+                case .nonTreeEdge(let p, _):
+                    check(undecided && rankOf(p) == examined.last!, "\(name) Kruskal events: nonTreeEdge(\(p))")
+                    undecided = false
+                }
+            }
+            check(!undecided && kruskalTree == kruskal.edges, "\(name) Kruskal events' tree \(kruskalTree.map(rankOf)), plain \(kruskal.edges.map(rankOf))")
+            check(examined.map { edges[$0].2 } == examined.map { edges[$0].2 }.sorted(), "\(name) Kruskal events out of weight order")
+            for (events, plain, label) in [(graph.primEvents(weight: { byPosition[$0]! }), prim, "every vertex"), (graph.primEvents(from: root, weight: { byPosition[$0]! }), rooted, "\(root)")] {
+                var joined: [G.Edges.Index] = []
+                var starts = 0
+                for event in events {
+                    if case .examine(_, let p?, let w) = event {
+                        check(w == byPosition[p]!, "\(name) Prim events from \(label): examine through \(p) at \(w)")
+                        joined.append(p)
+                    }
+                    if case .startVertex = event { starts += 1 }
+                }
+                check(joined == plain.edges, "\(name) Prim events from \(label): \(joined.map(rankOf)), plain \(plain.edges.map(rankOf))")
+                check(starts == (label == "every vertex" ? componentCount : 1), "\(name) Prim events from \(label): \(starts) trees started")
+            }
+
             let maximal = graph.maximumSpanningTree(weight: counted)
             checkCalls("maximum")
             check(maximal.edges.map(rankOf) == maximum && maximal.weight == weightOf(maximum), "\(name) maximum \(maximal.edges.map(rankOf)), canonical \(maximum)")
