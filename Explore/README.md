@@ -61,6 +61,7 @@ contents and the menu without a link.
 | `layout` | `FruchtermanReingoldLayout(_:iterations:using:)` with `Xoshiro256StarStar`, `step()`, named graphs |
 | `spectral` | `spectralLayout()`, `fiedlerVector()`, `algebraicConnectivity`, `value(of:)`, `spectralOrdering()` |
 | `layered` | `sugiyamaLayout()`, `LayeredDrawing` (`layer(of:)`, `bends(ofEdgeAt:)`, `reversedEdges`, `crossingCount`), `RootedTree`, `reingoldTilfordLayout()`, `reingoldTilfordCircularLayout()` |
+| `randomwalks` | `randomWalk(from:length:returnParameter:inOutParameter:using:)` with `Xoshiro256StarStar`, `Walk` |
 
 ## Requirements
 

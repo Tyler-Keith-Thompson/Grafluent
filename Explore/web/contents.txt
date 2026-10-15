@@ -48,3 +48,4 @@ linkprediction|Friend suggestions|Importance and shape|Who you might know, from 
 layout|Force-directed layout|Importance and shape|Drawing a graph so its shape shows.|page
 spectral|Spectral drawing|Importance and shape|Drawing and cutting a network with its eigenvectors.|page
 layered|Layered drawing|Importance and shape|Flowcharts and org charts, drawn in rows.|page
+randomwalks|Random walks and node2vec|Importance and shape|Wandering a network, near or far.|page

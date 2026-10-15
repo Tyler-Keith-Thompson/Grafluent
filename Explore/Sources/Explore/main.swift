@@ -54,6 +54,7 @@ func mountPage(_ page: String) -> Bool {
     case "betweenness": BetweennessPage.mount()
     case "linkprediction": LinkPredictionPage.mount()
     case "layout": LayoutPage.mount()
+    case "randomwalks": RandomWalksPage.mount()
     case "spectral": SpectralPage.mount()
     case "layered": LayeredPage.mount()
     default: return false

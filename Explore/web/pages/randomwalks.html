@@ -1,0 +1,27 @@
+<!-- title: Random walks and node2vec · Explore Grafluent -->
+<!-- description: A walker wanders a park of woods, a river path and a beach by Grafluent’s seeded randomWalk, with node2vec’s p and q deciding whether it doubles back, lingers or heads off. -->
+<header class="sign">
+  <h1>Random walks and node2vec</h1>
+  <p class="question">If you wander a network at random, do you explore far or stay close to home, and can you choose?</p>
+</header>
+<p class="example lead">Example: a park of fifteen places: woods round Ash, a river path, and a beach on the far side. A walker takes thirty random steps from Ash. Two dials, <b>p</b> and <b>q</b>, bias each step.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The walk above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>A walk that remembers one step</h2>
+  <p>A plain random walk takes each path out of the current place with equal chance, and forgets where it came from. Grover and Leskovec’s <b>node2vec</b> remembers one step back. Every path out of the current place leads somewhere at distance 0, 1 or 2 from the previous place, and gets a weight to match: 1/p for going straight back, 1 for a place next to the previous one, 1/q for anywhere further. With p = q = 1 it is the plain walk again.</p>
+  <p>A small q pushes the walker onward, so its walks resemble a <a href="dfs.html">depth-first search</a> and reach across the network, here from the woods to the beach. A large q keeps it circling one neighbourhood, like a <a href="bfs.html">breadth-first search</a>, so its walks describe the local structure. node2vec feeds many such walks, as if they were sentences, to a word-embedding model, and places that turn up near each other in walks get similar vectors. Choosing q chooses what “similar” means: the same neighbourhood, or the same role, such as being a bridge.</p>
+  <p><code>randomWalk(from:length:returnParameter:inOutParameter:using:)</code> takes the generator explicitly, so a seeded one gives the same walk on every platform, which is how the twenty-walk summary is repeatable.</p>
+
+  <h2><small>Where it breaks</small>One walk proves little</h2>
+  <p>Thirty steps is a small sample: two seeds with the same p and q can give very different walks, which is why the summary averages twenty. Embeddings use hundreds of walks per vertex. The bias is also only one step deep: it can’t see that the beach is far away, only whether the next place is next to the last. And on a graph with hubs, any walk keeps passing through them, which is the idea behind <a href="pagerank.html">PageRank</a> but a nuisance when hubs aren’t what you want to learn about.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>
