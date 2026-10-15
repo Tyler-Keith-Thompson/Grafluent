@@ -1,0 +1,25 @@
+<!-- title: Prefix tree · Explore Grafluent -->
+<!-- description: Autocomplete from a word list: Grafluent’s prefixTree(of:) built one word at a time, and the suggestions for whatever you type read straight off the tree. -->
+<header class="sign">
+  <h1>Prefix tree</h1>
+  <p class="question">You type “ca”. Which words could you mean, and how does the search box find them so fast?</p>
+</header>
+<p class="example lead">Example: nine short words. Each vertex of the tree is a prefix of some word, and each edge adds one letter. The words that start with what you typed all hang below one vertex.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The words above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Share the beginnings</h2>
+  <p>A <b>prefix tree</b>, or trie, stores a set of words so that words with the same beginning share it. The root is the empty prefix. Adding a word walks down from the root letter by letter, following an edge where one already exists and making a new vertex where none does; the vertex the word ends at is marked. “cart” after “car” and “card” costs one new vertex, because “car” is already there.</p>
+  <p>Looking up is the same walk. Follow the letters typed; if an edge is missing, no word starts that way. Otherwise every marked vertex below the one you reached is a word with that beginning. The walk costs the length of what you typed, however many words the list holds, and listing the suggestions costs the size of the part below.</p>
+  <p><code>prefixTree(of:)</code> builds one from any sequences of hashable symbols, not just words: lists of moves, paths in a file system, IP address bits. The tree is an <code>Arborescence</code> on vertex numbers, with the symbol of each edge and the vertex where each sequence ends.</p>
+
+  <h2><small>Where it breaks</small>Many vertices, and only exact beginnings</h2>
+  <p>One vertex per distinct prefix adds up: a large dictionary has millions, mostly in long single-file chains near the leaves. Compressed tries (radix trees) merge each chain into one edge labelled with a whole string, and a sorted array with binary search often does just as well for a fixed list.</p>
+  <p>A prefix tree also only finds words that start exactly with what was typed. A real search box ranks suggestions by how often they are chosen, and forgives typos, which needs edit-distance search or a different index altogether.</p>
+</section>
