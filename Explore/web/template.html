@@ -35,6 +35,15 @@
 </div>
 <script>
   if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the interactive parts grow in.
+  if (!location.hash) {
+    let pinned = true;
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
   document.getElementById("theme").addEventListener("click", () => {
     const root = document.documentElement;
     const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
@@ -46,7 +55,10 @@
 <script type="module">
   // Grafluent and the interface run as WebAssembly; this loads them.
   import { init } from "./index.js";
-  init().catch((error) => {
+  // The interactive parts mount after the page has laid out, and their height pushes the
+  // reader down, so return to the top once they are drawn (unless the link named a section).
+  const toTop = () => { if (!location.hash) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
     console.error("The explorer failed to start:", error);
     const app = document.getElementById("app");
     if (app) app.textContent = "The interactive part of this page could not start in this browser.";
