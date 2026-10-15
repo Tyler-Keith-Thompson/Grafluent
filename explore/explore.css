@@ -51,6 +51,8 @@ p { margin: 0; }
 a { color: var(--sign); }
 .label { font-family: var(--display); font-weight: 800; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
 code, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+/* Inline code in running text may break anywhere, so a long full name never scrolls the page sideways. */
+:not(pre) > code { overflow-wrap: anywhere; }
 
 /* Top bar */
 .topbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--display); font-weight: 600; font-size: 15px; }
@@ -79,6 +81,8 @@ code, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .narration em { font-style: normal; font-family: var(--display); font-weight: 800; }
 .empty { color: var(--muted); font-style: italic; }
 .note { font-size: 14px; color: var(--muted); }
+/* Notes and narration name methods in full; a long name may break anywhere rather than widen a narrow page. */
+p.note, .narration { overflow-wrap: anywhere; }
 
 /* The graph canvas */
 .canvas { width: 100%; height: auto; display: block; touch-action: manipulation; overflow: visible; }
@@ -282,6 +286,8 @@ figure.fig { margin: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 .fig .weight { font-family: var(--mono); font-size: 14px; fill: var(--muted); paint-order: stroke; stroke: var(--sheet); stroke-width: 4px; }
 .example.lead { max-width: 68ch; margin: 22px 0 0; font-size: 18px; }
+/* The program a page analyses, as plain text after its example. */
+.example + .listing { max-width: 68ch; margin-top: 14px; font-size: 13px; }
 .adj b { font-family: var(--display); font-weight: 800; }
 .matrix th.corner { font-family: var(--display); font-size: 11px; font-weight: 800; color: var(--muted); text-align: left; max-width: 7em; line-height: 1.2; }
 .matrix th.col.hl, .matrix tr.hl th { color: var(--ink); background: color-mix(in srgb, var(--signal) 35%, var(--sheet)); border-radius: 4px; }
@@ -387,6 +393,7 @@ figure.fig { margin: 0; }
 .dot.pal0 { background: var(--p0); border-color: var(--p0); }
 .dot.pal1 { background: var(--p1); border-color: var(--p1); }
 .dot.pal2 { background: var(--p2); border-color: var(--p2); }
+.dot.pal3 { background: var(--p3); border-color: var(--p3); }
 .qrow .fate { font-weight: 600; font-size: 13px; color: var(--muted); margin-left: .6em; }
 .qrow.top .fate { color: var(--signal-ink); }
 .node.current[class*="pal"] circle { stroke: var(--danger); stroke-width: 4; }
@@ -451,3 +458,8 @@ figure.fig { margin: 0; }
 .node.excluded .badge { fill: var(--muted); }
 .dot.excluded { background: var(--paper); border-color: var(--muted); border-style: dashed; }
 .dot.selected { border-color: var(--signal); border-width: 3px; }
+
+/* Paste a graph */
+.paste-text { width: 100%; min-height: 220px; font-family: var(--mono); font-size: 13px; line-height: 1.5; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); resize: vertical; }
+.paste-error { margin-top: 18px; padding: 16px; display: grid; gap: 10px; border-left: 4px solid var(--danger); }
+.paste-line { font-size: 13px; padding: 10px 12px; }

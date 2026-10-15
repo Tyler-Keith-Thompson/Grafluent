@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travelling salesman · Explore Grafluent</title>
+<meta name="description" content="Eleven towns and the shortest round trip through them: Grafluent’s nearest-neighbour, 2-opt, simulated annealing and Christofides tours against the exact one, and 2-opt’s swaps step by step.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="tsp">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html" aria-current="page">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="chordal.html">Chordal graphs</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="linkprediction.html">Friend suggestions</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Travelling salesman</h1>
+  <p class="question">What is the shortest round trip that visits every town once and comes home?</p>
+</header>
+<p class="example lead">Example: eleven towns, every pair joined by a straight road. There are 1,814,400 different round trips through them. Quick rules of thumb get close to the shortest; finding the shortest itself gets out of hand fast as towns are added.</p>
+
+<h2 class="labhead"><small>Try it</small>Five ways to plan the trip</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="Tours of eleven towns"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 440" role="img" aria-label="Eleven towns with the 2-opt tour drawn; click a town to start from it"><g class="edge tree" data-edge="0"><path d="M86.3,126.8 L173.7,63.2" class="hit" /><path d="M86.3,126.8 L173.7,63.2" class="stroke" /></g><g class="edge tree" data-edge="1"><path d="M191.8,67.2 L278.2,222.8" class="hit" /><path d="M191.8,67.2 L278.2,222.8" class="stroke" /></g><g class="edge tree" data-edge="2"><path d="M287.1,221.2 L302.9,118.8" class="hit" /><path d="M287.1,221.2 L302.9,118.8" class="stroke" /></g><g class="edge tree" data-edge="3"><path d="M317.9,99.5 L422.1,55.5" class="hit" /><path d="M317.9,99.5 L422.1,55.5" class="stroke" /></g><g class="edge tree" data-edge="4"><path d="M447.5,56.3 L572.5,118.7" class="hit" /><path d="M447.5,56.3 L572.5,118.7" class="stroke" /></g><g class="edge tree" data-edge="5"><path d="M577.0,136.5 L503.0,243.5" class="hit" /><path d="M577.0,136.5 L503.0,243.5" class="stroke" /></g><g class="edge tree" data-edge="6"><path d="M503.1,266.4 L586.9,383.6" class="hit" /><path d="M503.1,266.4 L586.9,383.6" class="stroke" /></g><g class="edge tree" data-edge="7"><path d="M581.4,391.6 L408.6,348.4" class="hit" /><path d="M581.4,391.6 L408.6,348.4" class="stroke" /></g><g class="edge tree" data-edge="8"><path d="M382.1,350.5 L267.9,399.5" class="hit" /><path d="M382.1,350.5 L267.9,399.5" class="stroke" /></g><g class="edge tree" data-edge="9"><path d="M242.8,398.1 L127.2,331.9" class="hit" /><path d="M242.8,398.1 L127.2,331.9" class="stroke" /></g><g class="edge tree" data-edge="10"><path d="M112.1,311.3 L77.9,148.7" class="hit" /><path d="M112.1,311.3 L77.9,148.7" class="stroke" /></g><g class="node visited source clickable" data-node="0" tabindex="0" role="button" aria-label="Start from Ashby"><circle cx="75.0" cy="135.0" r="12.0" /><text x="75.0" y="165.0" text-anchor="middle" class="name">Ashby</text></g><g class="node visited clickable" data-node="1" tabindex="0" role="button" aria-label="Start from Brook"><circle cx="185.0" cy="55.0" r="12.0" /><text x="185.0" y="85.0" text-anchor="middle" class="name">Brook</text></g><g class="node visited clickable" data-node="2" tabindex="0" role="button" aria-label="Start from Carlow"><circle cx="305.0" cy="105.0" r="12.0" /><text x="305.0" y="135.0" text-anchor="middle" class="name">Carlow</text></g><g class="node visited clickable" data-node="3" tabindex="0" role="button" aria-label="Start from Dunmore"><circle cx="435.0" cy="50.0" r="12.0" /><text x="435.0" y="80.0" text-anchor="middle" class="name">Dunmore</text></g><g class="node visited clickable" data-node="4" tabindex="0" role="button" aria-label="Start from Elmsford"><circle cx="585.0" cy="125.0" r="12.0" /><text x="585.0" y="155.0" text-anchor="middle" class="name">Elmsford</text></g><g class="node visited clickable" data-node="5" tabindex="0" role="button" aria-label="Start from Fenwick"><circle cx="495.0" cy="255.0" r="12.0" /><text x="495.0" y="285.0" text-anchor="middle" class="name">Fenwick</text></g><g class="node visited clickable" data-node="6" tabindex="0" role="button" aria-label="Start from Glenby"><circle cx="595.0" cy="395.0" r="12.0" /><text x="595.0" y="425.0" text-anchor="middle" class="name">Glenby</text></g><g class="node visited clickable" data-node="7" tabindex="0" role="button" aria-label="Start from Harlow"><circle cx="395.0" cy="345.0" r="12.0" /><text x="395.0" y="375.0" text-anchor="middle" class="name">Harlow</text></g><g class="node visited clickable" data-node="8" tabindex="0" role="button" aria-label="Start from Ivybridge"><circle cx="255.0" cy="405.0" r="12.0" /><text x="255.0" y="435.0" text-anchor="middle" class="name">Ivybridge</text></g><g class="node visited clickable" data-node="9" tabindex="0" role="button" aria-label="Start from Kelso"><circle cx="115.0" cy="325.0" r="12.0" /><text x="115.0" y="355.0" text-anchor="middle" class="name">Kelso</text></g><g class="node visited clickable" data-node="10" tabindex="0" role="button" aria-label="Start from Lynton"><circle cx="285.0" cy="235.0" r="12.0" /><text x="285.0" y="265.0" text-anchor="middle" class="name">Lynton</text></g></svg><div class="legend"><span><i class="dot source"></i>where the tour starts</span><span><i class="line tree"></i>the tour</span></div><p class="note">Every pair of towns has a straight road. Click a town to start the nearest-neighbour tour, and the tours improved from it, there.</p></div><div class="side"><div class="panel" aria-live="polite"><span class="label">2-opt: 364 km</span><p class="narration">Start from the nearest-neighbour tour and keep swapping two roads for two shorter ones, by turning a stretch of the tour around, until no swap helps.</p><label class="field" for="tsp-method">Show <select id="tsp-method"><option value="0">Nearest neighbour</option><option value="1" selected>2-opt</option><option value="2">Simulated annealing</option><option value="3">Christofides</option><option value="4">Shortest</option></select></label></div><div class="panel"><span class="label">Every tour from Ashby</span><div class="queue"><div class="qrow plain"><span>Nearest neighbour</span><span class="num">418 km · +16%</span></div><div class="qrow top"><span>2-opt</span><span class="num">364 km · +1%</span></div><div class="qrow plain"><span>Simulated annealing</span><span class="num">359 km · shortest</span></div><div class="qrow plain"><span>Christofides</span><span class="num">412 km · +15%</span></div><div class="qrow plain"><span>Shortest</span><span class="num">359 km · shortest</span></div></div></div></div></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The towns above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">RandomGraphs</span>
+<span class="k">import</span> <span class="t">Tours</span>
+<span class="k">import</span> <span class="t">Walks</span>
+
+<span class="c">// Each town and where it is, in km east and south of the map's corner.</span>
+<span class="k">let</span> towns: [(name: <span class="t">String</span>, x: <span class="t">Double</span>, y: <span class="t">Double</span>)] = [
+    (<span class="s">"Ashby"</span>, <span class="n">10</span>, <span class="n">22</span>), (<span class="s">"Brook"</span>, <span class="n">32</span>, <span class="n">6</span>), (<span class="s">"Carlow"</span>, <span class="n">56</span>, <span class="n">16</span>), (<span class="s">"Dunmore"</span>, <span class="n">82</span>, <span class="n">5</span>),
+    (<span class="s">"Elmsford"</span>, <span class="n">112</span>, <span class="n">20</span>), (<span class="s">"Fenwick"</span>, <span class="n">94</span>, <span class="n">46</span>), (<span class="s">"Glenby"</span>, <span class="n">114</span>, <span class="n">74</span>), (<span class="s">"Harlow"</span>, <span class="n">74</span>, <span class="n">64</span>),
+    (<span class="s">"Ivybridge"</span>, <span class="n">46</span>, <span class="n">76</span>), (<span class="s">"Kelso"</span>, <span class="n">18</span>, <span class="n">60</span>), (<span class="s">"Lynton"</span>, <span class="n">52</span>, <span class="n">42</span>),
+]
+
+<span class="c">// Every pair of towns, joined by a straight road of its length in whole km.</span>
+<span class="k">let</span> roadList = towns.indices.flatMap { i <span class="k">in</span> towns[(i + <span class="n">1</span>)...].map { <span class="t">UndirectedEdge</span>(towns[i].name, $<span class="n">0</span>.name) } }
+<span class="k">let</span> tourMap = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> road <span class="k">in</span> roadList { road }
+}
+<span class="k">let</span> km = tourMap.edges.map { road <span class="k">in</span>
+    <span class="k">let</span> a = towns.first { $<span class="n">0</span>.name == road.u }!, b = towns.first { $<span class="n">0</span>.name == road.v }!
+    <span class="k">return</span> <span class="t">Int</span>(((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)).squareRoot().rounded())
+}
+
+<span class="k">let</span> start = <span class="s">"Ashby"</span>
+
+<span class="k">let</span> greedy = tourMap.nearestNeighborTour(from: start) { km[$<span class="n">0</span>] }!
+
+<span class="k">let</span> improved = tourMap.twoOptTour(improving: greedy) { km[$<span class="n">0</span>] }!
+
+<span class="k">var</span> generator = <span class="t">Xoshiro256StarStar</span>(seed: <span class="n">1</span>)
+<span class="k">let</span> annealed = tourMap.simulatedAnnealingTour(
+    improving: greedy, move: .relocate, temperature: <span class="n">50</span>, maximumIterations: <span class="n">200</span>, innerIterations: <span class="n">500</span>, weight: { km[$<span class="n">0</span>] }, using: &amp;generator)!
+<span class="k">let</span> christofides = tourMap.christofidesTour { km[$<span class="n">0</span>] }!
+<span class="k">let</span> shortest = tourMap.shortestTour { km[$<span class="n">0</span>] }!
+
+<span class="k">let</span> tour = improved
+
+<span class="k">let</span> length = tour.weight { km[$<span class="n">0</span>] }  <span class="c">// 364</span>
+</span></pre>
+</section>
+
+<h2 class="labhead"><small>Step through</small>Build greedily, then untangle</h2>
+<div id="steps" data-loading aria-busy="true"><div><section class="lab" aria-label="Building and improving a tour"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 440" role="img" aria-label="The towns, with the tour built so far"><g class="node visited source current clickable" data-node="0" tabindex="0" role="button" aria-label="Start from Ashby"><circle cx="75.0" cy="135.0" r="12.0" /><text x="75.0" y="165.0" text-anchor="middle" class="name">Ashby</text></g><g class="node  clickable" data-node="1" tabindex="0" role="button" aria-label="Start from Brook"><circle cx="185.0" cy="55.0" r="12.0" /><text x="185.0" y="85.0" text-anchor="middle" class="name">Brook</text></g><g class="node  clickable" data-node="2" tabindex="0" role="button" aria-label="Start from Carlow"><circle cx="305.0" cy="105.0" r="12.0" /><text x="305.0" y="135.0" text-anchor="middle" class="name">Carlow</text></g><g class="node  clickable" data-node="3" tabindex="0" role="button" aria-label="Start from Dunmore"><circle cx="435.0" cy="50.0" r="12.0" /><text x="435.0" y="80.0" text-anchor="middle" class="name">Dunmore</text></g><g class="node  clickable" data-node="4" tabindex="0" role="button" aria-label="Start from Elmsford"><circle cx="585.0" cy="125.0" r="12.0" /><text x="585.0" y="155.0" text-anchor="middle" class="name">Elmsford</text></g><g class="node  clickable" data-node="5" tabindex="0" role="button" aria-label="Start from Fenwick"><circle cx="495.0" cy="255.0" r="12.0" /><text x="495.0" y="285.0" text-anchor="middle" class="name">Fenwick</text></g><g class="node  clickable" data-node="6" tabindex="0" role="button" aria-label="Start from Glenby"><circle cx="595.0" cy="395.0" r="12.0" /><text x="595.0" y="425.0" text-anchor="middle" class="name">Glenby</text></g><g class="node  clickable" data-node="7" tabindex="0" role="button" aria-label="Start from Harlow"><circle cx="395.0" cy="345.0" r="12.0" /><text x="395.0" y="375.0" text-anchor="middle" class="name">Harlow</text></g><g class="node  clickable" data-node="8" tabindex="0" role="button" aria-label="Start from Ivybridge"><circle cx="255.0" cy="405.0" r="12.0" /><text x="255.0" y="435.0" text-anchor="middle" class="name">Ivybridge</text></g><g class="node  clickable" data-node="9" tabindex="0" role="button" aria-label="Start from Kelso"><circle cx="115.0" cy="325.0" r="12.0" /><text x="115.0" y="355.0" text-anchor="middle" class="name">Kelso</text></g><g class="node  clickable" data-node="10" tabindex="0" role="button" aria-label="Start from Lynton"><circle cx="285.0" cy="235.0" r="12.0" /><text x="285.0" y="265.0" text-anchor="middle" class="name">Lynton</text></g></svg><div class="legend"><span><i class="dot visited"></i>visited</span><span><i class="line active"></i>the road just added</span><span><i class="line faint"></i>the roads just swapped out</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Step 0 of 14</span><p class="narration">Start at Ashby. First build a tour greedily, one nearest town at a time; then improve it with 2-opt, one swap of two roads at a time. Press Step to begin.</p></div><div class="panel"><span class="label">Driven so far</span><p class="narration"><b class="num">0 km</b></p><p class="note">The shortest tour is 359 km.</p></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button><span class="spacer"></span><label class="field" for="tsp-start">Start at <select id="tsp-start"><option value="0" selected>Ashby</option><option value="1">Brook</option><option value="2">Carlow</option><option value="3">Dunmore</option><option value="4">Elmsford</option><option value="5">Fenwick</option><option value="6">Glenby</option><option value="7">Harlow</option><option value="8">Ivybridge</option><option value="9">Kelso</option><option value="10">Lynton</option></select></label></div><div class="timeline-scroll"><svg class="timeline" width="394" viewBox="0 0 394 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="386" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="7.5" class="m-blue" /><title>From Ashby, the nearest town not yet visited is Brook, 27 km.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="7.333333333333333" class="m-blue" /><title>From Brook, the nearest town not yet visited is Carlow, 26 km.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="7.333333333333333" class="m-blue" /><title>From Carlow, the nearest town not yet visited is Lynton, 26 km.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="8.166666666666668" class="m-blue" /><title>From Lynton, the nearest town not yet visited is Harlow, 31 km.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="7.5" class="m-blue" /><title>From Harlow, the nearest town not yet visited is Fenwick, 27 km.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="8.333333333333332" class="m-blue" /><title>From Fenwick, the nearest town not yet visited is Elmsford, 32 km.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="8.666666666666668" class="m-blue" /><title>From Elmsford, the nearest town not yet visited is Dunmore, 34 km.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="15.666666666666666" class="m-blue" /><title>From Dunmore, the nearest town not yet visited is Glenby, 76 km.</title></g><g class="marble future" data-step="8"><circle cx="230" cy="32" r="14.333333333333334" class="m-blue" /><title>From Glenby, the nearest town not yet visited is Ivybridge, 68 km.</title></g><g class="marble future" data-step="9"><circle cx="256" cy="32" r="8.333333333333332" class="m-blue" /><title>From Ivybridge, the nearest town not yet visited is Kelso, 32 km.</title></g><g class="marble future" data-step="10"><circle cx="282" cy="32" r="9.5" class="m-hollow" /><title>Every town is visited. Drive home to Ashby, 39 km: the nearest-neighbour tour is 418 km.</title></g><g class="marble future" data-step="11"><circle cx="308" cy="32" r="8.0" class="m-violet" /><text x="308" y="36" text-anchor="middle">18</text><title>Swap Lynton–Harlow and Dunmore–Glenby for Lynton–Dunmore and Harlow–Glenby, turning the stretch between them around. That saves 18 km: 400 km.</title></g><g class="marble future" data-step="12"><circle cx="334" cy="32" r="8.0" class="m-violet" /><text x="334" y="36" text-anchor="middle">31</text><title>Swap Fenwick–Harlow and Glenby–Ivybridge for Fenwick–Glenby and Harlow–Ivybridge, turning the stretch between them around. That saves 31 km: 369 km.</title></g><g class="marble future" data-step="13"><circle cx="360" cy="32" r="8.0" class="m-violet" /><text x="360" y="36" text-anchor="middle">5</text><title>Swap Brook–Carlow and Lynton–Dunmore for Brook–Lynton and Carlow–Dunmore, turning the stretch between them around. That saves 5 km: 364 km.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-tour" class="scrub" type="range" min="0" max="14" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="5.0" class="m-blue" /></svg>nearest town added; bigger for farther</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="5.0" class="m-hollow" /></svg>the road home</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-violet" /></svg>a 2-opt swap, with the km it saves</span></div><p class="note">The first steps replay nearestNeighborTour(from:)’s tour. The swaps are made by the page, the way twoOptTour(improving:) describes its rounds, since the library reports only the finished tour; the last step is checked against it.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The steps above, in Grafluent</h2>
+  <pre id="code-steps" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">RandomGraphs</span>
+<span class="k">import</span> <span class="t">Tours</span>
+<span class="k">import</span> <span class="t">Walks</span>
+
+<span class="c">// Each town and where it is, in km east and south of the map's corner.</span>
+<span class="k">let</span> towns: [(name: <span class="t">String</span>, x: <span class="t">Double</span>, y: <span class="t">Double</span>)] = [
+    (<span class="s">"Ashby"</span>, <span class="n">10</span>, <span class="n">22</span>), (<span class="s">"Brook"</span>, <span class="n">32</span>, <span class="n">6</span>), (<span class="s">"Carlow"</span>, <span class="n">56</span>, <span class="n">16</span>), (<span class="s">"Dunmore"</span>, <span class="n">82</span>, <span class="n">5</span>),
+    (<span class="s">"Elmsford"</span>, <span class="n">112</span>, <span class="n">20</span>), (<span class="s">"Fenwick"</span>, <span class="n">94</span>, <span class="n">46</span>), (<span class="s">"Glenby"</span>, <span class="n">114</span>, <span class="n">74</span>), (<span class="s">"Harlow"</span>, <span class="n">74</span>, <span class="n">64</span>),
+    (<span class="s">"Ivybridge"</span>, <span class="n">46</span>, <span class="n">76</span>), (<span class="s">"Kelso"</span>, <span class="n">18</span>, <span class="n">60</span>), (<span class="s">"Lynton"</span>, <span class="n">52</span>, <span class="n">42</span>),
+]
+
+<span class="c">// Every pair of towns, joined by a straight road of its length in whole km.</span>
+<span class="k">let</span> roadList = towns.indices.flatMap { i <span class="k">in</span> towns[(i + <span class="n">1</span>)...].map { <span class="t">UndirectedEdge</span>(towns[i].name, $<span class="n">0</span>.name) } }
+<span class="k">let</span> tourMap = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> road <span class="k">in</span> roadList { road }
+}
+<span class="k">let</span> km = tourMap.edges.map { road <span class="k">in</span>
+    <span class="k">let</span> a = towns.first { $<span class="n">0</span>.name == road.u }!, b = towns.first { $<span class="n">0</span>.name == road.v }!
+    <span class="k">return</span> <span class="t">Int</span>(((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)).squareRoot().rounded())
+}
+
+<span class="k">let</span> start = <span class="s">"Ashby"</span>
+
+<span class="k">let</span> greedy = tourMap.nearestNeighborTour(from: start) { km[$<span class="n">0</span>] }!
+
+<span class="k">let</span> improved = tourMap.twoOptTour(improving: greedy) { km[$<span class="n">0</span>] }!
+
+<span class="k">let</span> tour = improved
+
+<span class="k">let</span> length = tour.weight { km[$<span class="n">0</span>] }  <span class="c">// 364  (from 418)</span>
+</span></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>A good tour fast, then a better one</h2>
+  <p><b>Nearest neighbour</b> is what most people do by hand: always go to the closest town you haven’t been to. It takes a moment, and it usually lands within a quarter or so of the shortest. Its weakness is the end, when the only towns left are far apart and the road home is long.</p>
+  <p><b>2-opt</b> repairs a tour. Two roads that cross can always be swapped for two that don’t, and the swap is shorter: take two roads A–B and C–D, replace them with A–C and B–D, and turn the stretch from B to C around so the tour still joins up. Repeat while any swap saves distance. The result has no crossings and is usually within a few percent of the shortest. <b>Simulated annealing</b> makes random changes instead, and sometimes accepts one that makes the tour longer, less often as it “cools”, so it can get out of a tour that no single change improves.</p>
+  <p><b>Christofides’</b> method comes with a promise: on straight-line distances it is never more than one and a half times the shortest. It joins the towns by a <a href="mst.html">minimum spanning tree</a>, pairs up the towns where the tree has an odd number of roads, walks the result as an <a href="euler.html">Euler circuit</a>, and skips towns it has already seen. The shortest tour itself comes from <code>shortestTour(weight:)</code>, Held and Karp’s dynamic programming: the best way to visit each subset of towns ending at each town, built up from smaller subsets.</p>
+
+  <h2><small>Where it breaks</small>Twice as many towns, a thousand times the work</h2>
+  <p>Held–Karp’s table has an entry for every subset of towns, so each town added doubles it. Eleven towns are instant; twenty need tens of megabytes; thirty would need more memory than any computer has. No known method finds the shortest tour quickly for every map: the problem is NP-hard. That is why the heuristics matter, and why the good ones, run on thousands of towns, are judged by how close they get rather than by whether they are exact.</p>
+  <p>The heuristics also lean on the map being sensible. Christofides’ promise needs the triangle inequality, that going direct is never longer than going through a third town. With one-way streets, tolls or ferries that break it, the guarantee is gone, though the tour is still a tour.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Christofides</b><span class="how">kris-TOF-ih-deez</span><span class="ipa">/krɪˈstɒfɪdiːz/</span><span class="what">Nicos Christofides: a tour never more than 1.5 times the shortest, from a spanning tree and a matching</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="postman.html"><span>Previous</span>Chinese postman</a><a class="next" href="hamiltonian.html"><span>Next</span>Hamiltonian cycles</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

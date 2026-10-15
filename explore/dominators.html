@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dominators · Explore Grafluent</title>
+<meta name="description" content="Click a block of a small function’s control flow to see which blocks every path to it must pass, with Grafluent’s dominatorTree and postDominatorTree, then check the answer by taking out one block at a time.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="dominators">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="dominators.html" aria-current="page">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="chordal.html">Chordal graphs</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="linkprediction.html">Friend suggestions</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Dominators</h1>
+  <div class="say"><span>Say it</span><b>LENG-ow-er TAR-jun</b><span class="ipa">/ˈlɛŋaʊ̯ɐ ˈtɑːrdʒən/</span></div>
+  <p class="question">Which parts of a program are sure to have run by the time it reaches a given line?</p>
+</header>
+<p class="example lead">Example: a function that adds up the numbers in a file, line by line, warning about lines that aren’t numbers and giving up after too many. Each <b>block</b> is a run of code with no jumps in it; the arrows are the jumps. A block <b>dominates</b> another when every path from the entry to the second passes through the first.</p>
+<pre class="listing" aria-label="The function, with each line’s block">func total(of lines: [String]) throws -> Int {
+    var sum = 0, bad = 0, count = 0            // entry
+    for line in lines {                        // loop
+        if let n = Int(line) {                 // check
+            sum += n                           // add
+        } else {
+            bad += 1                           // warn
+            if bad > 3 { throw TooManyBad() }  // give up
+        }
+        count += 1                             // next
+    }
+    return sum                                 // done
+}                                              // exit</pre>
+
+<h2 class="labhead"><small>Try it</small>What must run before this block?</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="Dominators of a block"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 500" role="img" aria-label="A function’s control flow: nine blocks and the jumps between them; click a block to see what dominates it"><g class="edge " data-edge="0"><path d="M110.0,60.0 L110.0,119.0" class="hit" /><path d="M110.0,60.0 L110.0,119.0" class="stroke" /><polygon points="110.0,119.0 104.5,108.0 115.5,108.0" class="head" /></g><g class="edge " data-edge="1"><path d="M128.4,147.8 L280.6,211.9" class="hit" /><path d="M128.4,147.8 L280.6,211.9" class="stroke" /><polygon points="280.6,211.9 268.4,212.7 272.6,202.5" class="head" /></g><g class="edge " data-edge="2"><path d="M130.0,140.0 L539.0,140.0" class="hit" /><path d="M130.0,140.0 L539.0,140.0" class="stroke" /><polygon points="539.0,140.0 528.0,145.5 528.0,134.5" class="head" /></g><g class="edge " data-edge="3"><path d="M287.0,235.2 L223.7,309.1" class="hit" /><path d="M287.0,235.2 L223.7,309.1" class="stroke" /><polygon points="223.7,309.1 226.6,297.1 235.0,304.3" class="head" /></g><g class="edge " data-edge="4"><path d="M314.5,233.8 L394.8,310.5" class="hit" /><path d="M314.5,233.8 L394.8,310.5" class="stroke" /><polygon points="394.8,310.5 383.1,306.9 390.7,298.9" class="head" /></g><g class="edge " data-edge="5"><path d="M223.0,340.2 L286.3,414.1" class="hit" /><path d="M223.0,340.2 L286.3,414.1" class="stroke" /><polygon points="286.3,414.1 275.0,409.3 283.4,402.1" class="head" /></g><g class="edge " data-edge="6"><path d="M395.5,338.8 L315.2,415.5" class="hit" /><path d="M395.5,338.8 L315.2,415.5" class="stroke" /><polygon points="315.2,415.5 319.3,403.9 326.9,411.9" class="head" /></g><g class="edge " data-edge="7"><path d="M422.1,340.9 L477.3,413.3" class="hit" /><path d="M422.1,340.9 L477.3,413.3" class="stroke" /><polygon points="477.3,413.3 466.2,407.9 475.0,401.2" class="head" /></g><g class="edge " data-edge="8"><path d="M281.5,422.5 Q104.6,350.8 109.5,161.0" class="hit" /><path d="M281.5,422.5 Q104.6,350.8 109.5,161.0" class="stroke" /><polygon points="109.5,161.0 114.7,172.1 103.7,171.8" class="head" /></g><g class="edge " data-edge="9"><path d="M561.8,159.9 L588.1,449.1" class="hit" /><path d="M561.8,159.9 L588.1,449.1" class="stroke" /><polygon points="588.1,449.1 581.6,438.6 592.6,437.6" class="head" /></g><g class="edge " data-edge="10"><path d="M508.6,437.4 L570.5,462.2" class="hit" /><path d="M508.6,437.4 L570.5,462.2" class="stroke" /><polygon points="570.5,462.2 558.2,463.2 562.3,453.0" class="head" /></g><g class="node frontier source clickable" data-node="0" tabindex="0" role="button" aria-label="Ask about entry"><circle cx="110.0" cy="40.0" r="18.0" /><text x="110.0" y="76.0" text-anchor="middle" class="name">entry</text></g><g class="node frontier clickable" data-node="1" tabindex="0" role="button" aria-label="Ask about loop"><circle cx="110.0" cy="140.0" r="18.0" /><text x="110.0" y="176.0" text-anchor="middle" class="name">loop</text></g><g class="node  clickable" data-node="2" tabindex="0" role="button" aria-label="Ask about check"><circle cx="300.0" cy="220.0" r="18.0" /><text x="300.0" y="256.0" text-anchor="middle" class="name">check</text></g><g class="node  clickable" data-node="3" tabindex="0" role="button" aria-label="Ask about add"><circle cx="210.0" cy="325.0" r="18.0" /><text x="210.0" y="361.0" text-anchor="middle" class="name">add</text></g><g class="node  clickable" data-node="4" tabindex="0" role="button" aria-label="Ask about warn"><circle cx="410.0" cy="325.0" r="18.0" /><text x="410.0" y="361.0" text-anchor="middle" class="name">warn</text></g><g class="node  clickable" data-node="5" tabindex="0" role="button" aria-label="Ask about next"><circle cx="300.0" cy="430.0" r="18.0" /><text x="300.0" y="466.0" text-anchor="middle" class="name">next</text></g><g class="node  clickable" data-node="6" tabindex="0" role="button" aria-label="Ask about give up"><circle cx="490.0" cy="430.0" r="18.0" /><text x="490.0" y="466.0" text-anchor="middle" class="name">give up</text></g><g class="node  clickable" data-node="7" tabindex="0" role="button" aria-label="Ask about done"><circle cx="560.0" cy="140.0" r="18.0" /><text x="560.0" y="176.0" text-anchor="middle" class="name">done</text></g><g class="node visited selected clickable" data-node="8" tabindex="0" role="button" aria-label="Ask about exit"><circle cx="590.0" cy="470.0" r="18.0" /><text x="590.0" y="506.0" text-anchor="middle" class="name">exit</text></g></svg><div class="legend"><span><i class="dot selected"></i>the block asked about</span><span><i class="dot frontier"></i>every path from the entry to it passes here</span></div><p class="note">Click any block, here or in the tree.</p></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Dominators of exit</span><p class="narration">Every path from the entry to exit runs through <em>entry and loop</em>. The nearest, loop, is its immediate dominator, its parent in the tree. Not done, and not give up: the exit is reached through either, so neither is unavoidable.</p></div><div class="panel"><span class="label">Dominator tree, from the entry</span><svg class="canvas" viewBox="0 0 420 330" role="img" aria-label="The dominator tree: each block under its immediate dominator"><g class="edge route" data-edge="0"><path d="M270.0,45.0 L270.0,79.0" class="hit" /><path d="M270.0,45.0 L270.0,79.0" class="stroke" /><polygon points="270.0,79.0 264.5,68.0 275.5,68.0" class="head" /></g><g class="edge " data-edge="1"><path d="M256.2,101.0 L134.7,153.6" class="hit" /><path d="M256.2,101.0 L134.7,153.6" class="stroke" /><polygon points="134.7,153.6 142.6,144.2 147.0,154.3" class="head" /></g><g class="edge " data-edge="2"><path d="M107.8,168.8 L43.0,215.6" class="hit" /><path d="M107.8,168.8 L43.0,215.6" class="stroke" /><polygon points="43.0,215.6 48.7,204.7 55.1,213.7" class="head" /></g><g class="edge " data-edge="3"><path d="M120.0,175.0 L120.0,209.0" class="hit" /><path d="M120.0,175.0 L120.0,209.0" class="stroke" /><polygon points="120.0,209.0 114.5,198.0 125.5,198.0" class="head" /></g><g class="edge " data-edge="4"><path d="M132.2,168.8 L197.0,215.6" class="hit" /><path d="M132.2,168.8 L197.0,215.6" class="stroke" /><polygon points="197.0,215.6 184.9,213.7 191.3,204.7" class="head" /></g><g class="edge " data-edge="5"><path d="M120.0,240.0 L120.0,274.0" class="hit" /><path d="M120.0,240.0 L120.0,274.0" class="stroke" /><polygon points="120.0,274.0 114.5,263.0 125.5,263.0" class="head" /></g><g class="edge " data-edge="6"><path d="M276.3,108.6 L293.3,145.5" class="hit" /><path d="M276.3,108.6 L293.3,145.5" class="stroke" /><polygon points="293.3,145.5 283.7,137.8 293.7,133.2" class="head" /></g><g class="edge route" data-edge="7"><path d="M283.2,102.1 L375.9,152.4" class="hit" /><path d="M283.2,102.1 L375.9,152.4" class="stroke" /><polygon points="375.9,152.4 363.6,152.0 368.9,142.3" class="head" /></g><g class="node frontier clickable" data-node="0" tabindex="0" role="button" aria-label="Ask about entry"><circle cx="270.0" cy="30.0" r="13.0" /><text x="270.0" y="61.0" text-anchor="middle" class="name">entry</text></g><g class="node frontier clickable" data-node="1" tabindex="0" role="button" aria-label="Ask about loop"><circle cx="270.0" cy="95.0" r="13.0" /><text x="270.0" y="126.0" text-anchor="middle" class="name">loop</text></g><g class="node  clickable" data-node="2" tabindex="0" role="button" aria-label="Ask about check"><circle cx="120.0" cy="160.0" r="13.0" /><text x="120.0" y="191.0" text-anchor="middle" class="name">check</text></g><g class="node  clickable" data-node="3" tabindex="0" role="button" aria-label="Ask about add"><circle cx="30.0" cy="225.0" r="13.0" /><text x="30.0" y="256.0" text-anchor="middle" class="name">add</text></g><g class="node  clickable" data-node="4" tabindex="0" role="button" aria-label="Ask about warn"><circle cx="120.0" cy="225.0" r="13.0" /><text x="120.0" y="256.0" text-anchor="middle" class="name">warn</text></g><g class="node  clickable" data-node="5" tabindex="0" role="button" aria-label="Ask about next"><circle cx="210.0" cy="225.0" r="13.0" /><text x="210.0" y="256.0" text-anchor="middle" class="name">next</text></g><g class="node  clickable" data-node="6" tabindex="0" role="button" aria-label="Ask about give up"><circle cx="120.0" cy="290.0" r="13.0" /><text x="120.0" y="321.0" text-anchor="middle" class="name">give up</text></g><g class="node  clickable" data-node="7" tabindex="0" role="button" aria-label="Ask about done"><circle cx="300.0" cy="160.0" r="13.0" /><text x="300.0" y="191.0" text-anchor="middle" class="name">done</text></g><g class="node visited selected clickable" data-node="8" tabindex="0" role="button" aria-label="Ask about exit"><circle cx="390.0" cy="160.0" r="13.0" /><text x="390.0" y="191.0" text-anchor="middle" class="name">exit</text></g></svg><p class="note">A block’s ancestors are what must run before it.</p></div><div class="panel"><label class="field" for="dominators-mode">Ask <select id="dominators-mode"><option value="0" selected>what must run before</option><option value="1">what must run after</option></select></label></div></div></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The function above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">Connectivity</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">Traversal</span>
+
+<span class="c">// Each block of the function, and where it can jump next.</span>
+<span class="k">let</span> jumps = [
+    <span class="t">DirectedEdge</span>(from: <span class="s">"entry"</span>, to: <span class="s">"loop"</span>),
+    <span class="t">DirectedEdge</span>(from: <span class="s">"loop"</span>, to: <span class="s">"check"</span>),    <span class="c">// another line to read</span>
+    <span class="t">DirectedEdge</span>(from: <span class="s">"loop"</span>, to: <span class="s">"done"</span>),     <span class="c">// no more lines</span>
+    <span class="t">DirectedEdge</span>(from: <span class="s">"check"</span>, to: <span class="s">"add"</span>),     <span class="c">// the line is a number</span>
+    <span class="t">DirectedEdge</span>(from: <span class="s">"check"</span>, to: <span class="s">"warn"</span>),    <span class="c">// it isn’t</span>
+    <span class="t">DirectedEdge</span>(from: <span class="s">"add"</span>, to: <span class="s">"next"</span>),
+    <span class="t">DirectedEdge</span>(from: <span class="s">"warn"</span>, to: <span class="s">"next"</span>),
+    <span class="t">DirectedEdge</span>(from: <span class="s">"warn"</span>, to: <span class="s">"give up"</span>),  <span class="c">// too many bad lines</span>
+    <span class="t">DirectedEdge</span>(from: <span class="s">"next"</span>, to: <span class="s">"loop"</span>),
+    <span class="t">DirectedEdge</span>(from: <span class="s">"done"</span>, to: <span class="s">"exit"</span>),
+    <span class="t">DirectedEdge</span>(from: <span class="s">"give up"</span>, to: <span class="s">"exit"</span>),
+]
+
+<span class="k">let</span> program = <span class="t">AdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> jump <span class="k">in</span> jumps { jump }
+}
+
+<span class="k">let</span> tree = program.dominatorTree(root: <span class="s">"entry"</span>)
+
+<span class="k">let</span> block = <span class="s">"exit"</span>
+
+<span class="k">let</span> chain = tree.dominators(of: block)  <span class="c">// ["exit", "loop", "entry"]</span>
+<span class="k">let</span> parent = tree.immediateDominator(of: block)  <span class="c">// "loop"</span>
+<span class="k">let</span> below = <span class="t">Array</span>(tree.children(of: block))  <span class="c">// []</span>
+</span></pre>
+</section>
+
+<h2 class="labhead"><small>Step through</small>Take out one block at a time</h2>
+<div id="closing" data-loading aria-busy="true"><div><section class="lab" aria-label="Take out one block at a time"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 500" role="img" aria-label="The same function, with one block taken out and the blocks the entry no longer reaches marked"><g class="edge " data-edge="0"><path d="M110.0,60.0 L110.0,119.0" class="hit" /><path d="M110.0,60.0 L110.0,119.0" class="stroke" /><polygon points="110.0,119.0 104.5,108.0 115.5,108.0" class="head" /></g><g class="edge " data-edge="1"><path d="M128.4,147.8 L280.6,211.9" class="hit" /><path d="M128.4,147.8 L280.6,211.9" class="stroke" /><polygon points="280.6,211.9 268.4,212.7 272.6,202.5" class="head" /></g><g class="edge " data-edge="2"><path d="M130.0,140.0 L539.0,140.0" class="hit" /><path d="M130.0,140.0 L539.0,140.0" class="stroke" /><polygon points="539.0,140.0 528.0,145.5 528.0,134.5" class="head" /></g><g class="edge " data-edge="3"><path d="M287.0,235.2 L223.7,309.1" class="hit" /><path d="M287.0,235.2 L223.7,309.1" class="stroke" /><polygon points="223.7,309.1 226.6,297.1 235.0,304.3" class="head" /></g><g class="edge " data-edge="4"><path d="M314.5,233.8 L394.8,310.5" class="hit" /><path d="M314.5,233.8 L394.8,310.5" class="stroke" /><polygon points="394.8,310.5 383.1,306.9 390.7,298.9" class="head" /></g><g class="edge " data-edge="5"><path d="M223.0,340.2 L286.3,414.1" class="hit" /><path d="M223.0,340.2 L286.3,414.1" class="stroke" /><polygon points="286.3,414.1 275.0,409.3 283.4,402.1" class="head" /></g><g class="edge " data-edge="6"><path d="M395.5,338.8 L315.2,415.5" class="hit" /><path d="M395.5,338.8 L315.2,415.5" class="stroke" /><polygon points="315.2,415.5 319.3,403.9 326.9,411.9" class="head" /></g><g class="edge " data-edge="7"><path d="M422.1,340.9 L477.3,413.3" class="hit" /><path d="M422.1,340.9 L477.3,413.3" class="stroke" /><polygon points="477.3,413.3 466.2,407.9 475.0,401.2" class="head" /></g><g class="edge " data-edge="8"><path d="M281.5,422.5 Q104.6,350.8 109.5,161.0" class="hit" /><path d="M281.5,422.5 Q104.6,350.8 109.5,161.0" class="stroke" /><polygon points="109.5,161.0 114.7,172.1 103.7,171.8" class="head" /></g><g class="edge " data-edge="9"><path d="M561.8,159.9 L588.1,449.1" class="hit" /><path d="M561.8,159.9 L588.1,449.1" class="stroke" /><polygon points="588.1,449.1 581.6,438.6 592.6,437.6" class="head" /></g><g class="edge " data-edge="10"><path d="M508.6,437.4 L570.5,462.2" class="hit" /><path d="M508.6,437.4 L570.5,462.2" class="stroke" /><polygon points="570.5,462.2 558.2,463.2 562.3,453.0" class="head" /></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="entry"><circle cx="110.0" cy="40.0" r="18.0" /><text x="110.0" y="76.0" text-anchor="middle" class="name">entry</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="loop"><circle cx="110.0" cy="140.0" r="18.0" /><text x="110.0" y="176.0" text-anchor="middle" class="name">loop</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="check"><circle cx="300.0" cy="220.0" r="18.0" /><text x="300.0" y="256.0" text-anchor="middle" class="name">check</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="add"><circle cx="210.0" cy="325.0" r="18.0" /><text x="210.0" y="361.0" text-anchor="middle" class="name">add</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="warn"><circle cx="410.0" cy="325.0" r="18.0" /><text x="410.0" y="361.0" text-anchor="middle" class="name">warn</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="next"><circle cx="300.0" cy="430.0" r="18.0" /><text x="300.0" y="466.0" text-anchor="middle" class="name">next</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="give up"><circle cx="490.0" cy="430.0" r="18.0" /><text x="490.0" y="466.0" text-anchor="middle" class="name">give up</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="done"><circle cx="560.0" cy="140.0" r="18.0" /><text x="560.0" y="176.0" text-anchor="middle" class="name">done</text></g><g class="node " data-node="8" tabindex="-1" role="presentation" aria-label="exit"><circle cx="590.0" cy="470.0" r="18.0" /><text x="590.0" y="506.0" text-anchor="middle" class="name">exit</text></g></svg><div class="legend"><span><i class="dot visited"></i>still reached from the entry</span><span><i class="dot cut"></i>cut off: the block taken out dominates it</span><span><i class="line faint"></i>jumps into or out of the block taken out</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Block 0 of 8</span><p class="narration">A block dominates another when every path from the entry to it runs through the first. So take each block out in turn and search from the entry: whatever it no longer reaches, that block dominates. The entry dominates everything. Press Step to begin.</p></div><div class="panel"><span class="label">Dominators found so far</span><div class="queue"><div class="qrow plain"><span>entry</span><span class="num">entry</span></div><div class="qrow plain"><span>loop</span><span class="num">entry</span></div><div class="qrow plain"><span>check</span><span class="num">entry</span></div><div class="qrow plain"><span>add</span><span class="num">entry</span></div><div class="qrow plain"><span>warn</span><span class="num">entry</span></div><div class="qrow plain"><span>next</span><span class="num">entry</span></div><div class="qrow plain"><span>give up</span><span class="num">entry</span></div><div class="qrow plain"><span>done</span><span class="num">entry</span></div><div class="qrow plain"><span>exit</span><span class="num">entry</span></div></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="12.0" class="m-red" /><text x="22" y="36" text-anchor="middle">7</text><title>Take out loop. The entry can no longer reach check, done, add, warn, next, give up and exit: every path to them ran through loop, so loop dominates them.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="9.0" class="m-red" /><text x="48" y="36" text-anchor="middle">4</text><title>Take out check. The entry can no longer reach add, warn, next and give up: every path to them ran through check, so check dominates them.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="6.0" class="m-hollow" /><title>Take out add. Everything else is still reachable from the entry, so add dominates only itself.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="6.0" class="m-red" /><text x="100" y="36" text-anchor="middle">1</text><title>Take out warn. The entry can no longer reach give up: every path to it ran through warn, so warn dominates it.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="6.0" class="m-hollow" /><title>Take out next. Everything else is still reachable from the entry, so next dominates only itself.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="6.0" class="m-hollow" /><title>Take out give up. Everything else is still reachable from the entry, so give up dominates only itself.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="6.0" class="m-hollow" /><title>Take out done. Everything else is still reachable from the entry, so done dominates only itself.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="6.0" class="m-hollow" /><title>Take out exit. Everything else is still reachable from the entry, so exit dominates only itself.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-closing" class="scrub" type="range" min="0" max="8" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-red" /></svg>a block taken out cuts others off, with how many</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-hollow" /></svg>it cuts off nothing else</span></div><p class="note">This timeline is the definition, checked by the page: each step removes one block and runs lazy.breadthFirstSearch(from:) from the entry. dominatorTree(root:) reaches the same answer in one pass and reports no steps.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The check above, in Grafluent</h2>
+  <pre id="code-closing" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">Connectivity</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">Traversal</span>
+
+<span class="c">// Each block of the function, and where it can jump next.</span>
+<span class="k">let</span> jumps = [
+    <span class="t">DirectedEdge</span>(from: <span class="s">"entry"</span>, to: <span class="s">"loop"</span>),
+    <span class="t">DirectedEdge</span>(from: <span class="s">"loop"</span>, to: <span class="s">"check"</span>),    <span class="c">// another line to read</span>
+    <span class="t">DirectedEdge</span>(from: <span class="s">"loop"</span>, to: <span class="s">"done"</span>),     <span class="c">// no more lines</span>
+    <span class="t">DirectedEdge</span>(from: <span class="s">"check"</span>, to: <span class="s">"add"</span>),     <span class="c">// the line is a number</span>
+    <span class="t">DirectedEdge</span>(from: <span class="s">"check"</span>, to: <span class="s">"warn"</span>),    <span class="c">// it isn’t</span>
+    <span class="t">DirectedEdge</span>(from: <span class="s">"add"</span>, to: <span class="s">"next"</span>),
+    <span class="t">DirectedEdge</span>(from: <span class="s">"warn"</span>, to: <span class="s">"next"</span>),
+    <span class="t">DirectedEdge</span>(from: <span class="s">"warn"</span>, to: <span class="s">"give up"</span>),  <span class="c">// too many bad lines</span>
+    <span class="t">DirectedEdge</span>(from: <span class="s">"next"</span>, to: <span class="s">"loop"</span>),
+    <span class="t">DirectedEdge</span>(from: <span class="s">"done"</span>, to: <span class="s">"exit"</span>),
+    <span class="t">DirectedEdge</span>(from: <span class="s">"give up"</span>, to: <span class="s">"exit"</span>),
+]
+
+<span class="k">let</span> program = <span class="t">AdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> jump <span class="k">in</span> jumps { jump }
+}
+
+<span class="k">let</span> block = <span class="s">"loop"</span>
+
+<span class="k">var</span> closed = program
+closed.remove(block)
+<span class="k">var</span> reached: [<span class="t">String</span>] = []
+<span class="k">for</span> <span class="k">case</span> .discover(<span class="k">let</span> v) <span class="k">in</span> closed.lazy.breadthFirstSearch(from: <span class="s">"entry"</span>) {
+    reached.append(v)
+}
+<span class="k">let</span> cutOff = program.vertices.filter { !reached.contains($<span class="n">0</span>) }  <span class="c">// ["loop", "check", "done", "add", "warn", "next", "give up", "exit"]</span>
+</span></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>The blocks you can’t get around</h2>
+  <p>Each block has a chain of dominators running back to the entry, and the nearest one is its <b>immediate dominator</b>. Every block but the entry has exactly one, so drawing each block under its immediate dominator gives a tree: the <b>dominator tree</b>. A block’s ancestors in that tree are exactly the blocks that dominate it, which is why <code>dominates(_:_:)</code> answers in constant time once the tree is built.</p>
+  <p>The check in the second lab follows the definition: take a block out, search from the entry, and whatever is cut off is what that block dominates. That is one search per block. Lengauer and Tarjan get every immediate dominator from a single depth-first search. Each block first gets a <b>semidominator</b>: the earliest block in the search’s order with a path to it that detours only through later blocks. One more pass over the search tree turns semidominators into immediate dominators. Grafluent’s <code>dominatorTree(root:)</code> runs that algorithm, in time close to linear in the number of jumps.</p>
+  <p>Turn every arrow around and ask from the exit instead, and you get <b>post-dominators</b>: the blocks sure to run after a given one, from <code>postDominatorTree(exit:)</code>. Compilers use both. A loop’s head dominates its body, which is how loops are found; and the <b>dominance frontier</b>, where one block’s dominance stops, is where a variable assigned in two branches needs a merge, which <code>dominanceFrontiers(root:)</code> lists.</p>
+
+  <h2><small>Where it breaks</small>Code nothing reaches, and code that never ends</h2>
+  <p>A block the entry can’t reach has no dominators at all: “every path passes through” is vacuous when there is no path. Grafluent answers <code>nil</code> from <code>dominators(of:)</code> for such a block, rather than an empty list, so dead code can’t be mistaken for code with no requirements. Post-dominators have the same gap from the other end: a block that loops forever, or a function with two exits, never reaches the one exit you named. Give every exit a jump to one shared exit block first.</p>
+  <p>Dominance is about the jumps as drawn, not about the values that choose between them. Here <code>give up</code> only ever follows several warnings, but the graph sees one arrow from <code>warn</code> and no count. What dominators promise holds on every path through the graph, which is why a compiler can rely on them; facts that depend on the data are beyond them.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Lengauer–Tarjan</b><span class="how">LENG-ow-er TAR-jun</span><span class="ipa">/ˈlɛŋaʊ̯ɐ ˈtɑːrdʒən/</span><span class="what">Thomas Lengauer and Robert Tarjan: every immediate dominator from one depth-first search</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="bridges.html"><span>Previous</span>Bridges and articulation points</a><a class="next" href="euler.html"><span>Next</span>Euler tours</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

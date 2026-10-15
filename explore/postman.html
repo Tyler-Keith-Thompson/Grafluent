@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chinese postman · Explore Grafluent</title>
+<meta name="description" content="A snowplough must clear every street and come home: Grafluent’s chinesePostmanTour finds the shortest round, and shows which streets it drives twice and why.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="postman">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html" aria-current="page">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="chordal.html">Chordal graphs</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="linkprediction.html">Friend suggestions</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Chinese postman</h1>
+  <p class="question">A snowplough has to clear every street on the estate and get back to the depot. Which streets should it drive twice, so the whole round is as short as it can be?</p>
+</header>
+<p class="example lead">Example: seven junctions and nine streets, with the minutes each takes to clear. If every junction had an even number of streets, one <a href="euler.html">Euler circuit</a> would drive each street exactly once. Four of them don’t.</p>
+
+<h2 class="labhead"><small>Try it</small>Which streets twice?</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="The snowplough’s round"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 440" role="img" aria-label="An estate of seven junctions and nine streets, minutes on each; the streets driven twice have a second, curved copy"><g class="edge  clickable" data-edge="0"><path d="M84.8,208.1 L205.2,111.9" class="hit" /><path d="M84.8,208.1 L205.2,111.9" class="stroke" /><text x="153.12103561820751" y="175.1512945227594" text-anchor="middle" class="weight">3</text></g><g class="edge  clickable" data-edge="1"><path d="M84.8,231.9 L205.2,328.1" class="hit" /><path d="M84.8,231.9 L205.2,328.1" class="stroke" /><text x="136.87896438179249" y="295.1512945227594" text-anchor="middle" class="weight">4</text></g><g class="edge tree clickable" data-edge="2"><path d="M220.0,119.0 L220.0,321.0" class="hit" /><path d="M220.0,119.0 L220.0,321.0" class="stroke" /><text x="207.0" y="225.0" text-anchor="middle" class="weight">2</text></g><g class="edge  clickable" data-edge="3"><path d="M239.0,100.0 L371.0,100.0" class="hit" /><path d="M239.0,100.0 L371.0,100.0" class="stroke" /><text x="305.0" y="118.0" text-anchor="middle" class="weight">5</text></g><g class="edge  clickable" data-edge="4"><path d="M239.0,340.0 L371.0,340.0" class="hit" /><path d="M239.0,340.0 L371.0,340.0" class="stroke" /><text x="305.0" y="358.0" text-anchor="middle" class="weight">6</text></g><g class="edge tree clickable" data-edge="5"><path d="M390.0,119.0 L390.0,321.0" class="hit" /><path d="M390.0,119.0 L390.0,321.0" class="stroke" /><text x="377.0" y="225.0" text-anchor="middle" class="weight">2</text></g><g class="edge  clickable" data-edge="6"><path d="M408.7,103.1 L551.3,126.9" class="hit" /><path d="M408.7,103.1 L551.3,126.9" class="stroke" /><text x="477.86281316503033" y="132.82312100981787" text-anchor="middle" class="weight">4</text></g><g class="edge  clickable" data-edge="7"><path d="M409.0,338.9 L551.0,331.1" class="hit" /><path d="M409.0,338.9 L551.0,331.1" class="stroke" /><text x="480.7211102550928" y="352.97998459167036" text-anchor="middle" class="weight">3</text></g><g class="edge  clickable" data-edge="8"><path d="M570.0,149.0 L570.0,311.0" class="hit" /><path d="M570.0,149.0 L570.0,311.0" class="stroke" /><text x="557.0" y="235.0" text-anchor="middle" class="weight">2</text></g><g class="edge route clickable" data-edge="9"><path d="M224.3,118.5 Q248.0,220.0 224.3,321.5" class="hit" /><path d="M224.3,118.5 Q248.0,220.0 224.3,321.5" class="stroke" /></g><g class="edge route clickable" data-edge="10"><path d="M394.3,118.5 Q418.0,220.0 394.3,321.5" class="hit" /><path d="M394.3,118.5 Q418.0,220.0 394.3,321.5" class="stroke" /></g><g class="node  source" data-node="0" tabindex="-1" role="presentation" aria-label="Depot"><circle cx="70.0" cy="220.0" r="17.0" /><text x="70.0" y="255.0" text-anchor="middle" class="name">Depot</text></g><g class="node frontier" data-node="1" tabindex="-1" role="presentation" aria-label="Church"><circle cx="220.0" cy="100.0" r="17.0" /><text x="220.0" y="135.0" text-anchor="middle" class="name">Church</text></g><g class="node frontier" data-node="2" tabindex="-1" role="presentation" aria-label="School"><circle cx="220.0" cy="340.0" r="17.0" /><text x="220.0" y="375.0" text-anchor="middle" class="name">School</text></g><g class="node frontier" data-node="3" tabindex="-1" role="presentation" aria-label="Park"><circle cx="390.0" cy="100.0" r="17.0" /><text x="390.0" y="135.0" text-anchor="middle" class="name">Park</text></g><g class="node frontier" data-node="4" tabindex="-1" role="presentation" aria-label="Market"><circle cx="390.0" cy="340.0" r="17.0" /><text x="390.0" y="375.0" text-anchor="middle" class="name">Market</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Bridge"><circle cx="570.0" cy="130.0" r="17.0" /><text x="570.0" y="165.0" text-anchor="middle" class="name">Bridge</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Mill"><circle cx="570.0" cy="330.0" r="17.0" /><text x="570.0" y="365.0" text-anchor="middle" class="name">Mill</text></g></svg><div class="legend"><span><i class="dot frontier"></i>an odd number of streets</span><span><i class="line route"></i>driven a second time</span></div><p class="note">Click a street to add a minute to it, up to 9 and then back to 1. The numbers are minutes to clear each street.</p></div><div class="side"><div class="panel" aria-live="polite"><span class="label">35 minutes</span><p class="narration">Clearing every street once takes 31 minutes. But Church, School, Park and Market each have an odd number of streets, and a round that comes back to the depot leaves every junction as often as it arrives. So some streets must be driven twice: <em>Church–School and Park–Market</em>, 4 minutes more.</p></div><div class="panel"><span class="label">Pairing the odd junctions</span><div class="queue"><div class="qrow top"><span>Church–School and Park–Market</span><span class="num">+4 min</span></div><div class="qrow plain"><span>Church–Park and School–Market</span><span class="num">+11 min</span></div><div class="qrow plain"><span>Church–Market and School–Park</span><span class="num">+14 min</span></div></div><p class="note">Each pair is joined by its quickest route, driven twice. The cheapest pairing wins.</p></div></div></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The estate above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">ShortestPaths</span>
+<span class="k">import</span> <span class="t">Tours</span>
+
+<span class="k">let</span> streets = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Depot"</span>, <span class="s">"Church"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Depot"</span>, <span class="s">"School"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Church"</span>, <span class="s">"School"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Church"</span>, <span class="s">"Park"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"School"</span>, <span class="s">"Market"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Park"</span>, <span class="s">"Market"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Park"</span>, <span class="s">"Bridge"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Market"</span>, <span class="s">"Mill"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Bridge"</span>, <span class="s">"Mill"</span>),
+]
+
+<span class="k">let</span> estate = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> street <span class="k">in</span> streets { street }
+}
+
+<span class="k">let</span> minutes = [<span class="n">3</span>, <span class="n">4</span>, <span class="n">2</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">2</span>, <span class="n">4</span>, <span class="n">3</span>, <span class="n">2</span>]
+
+<span class="k">let</span> odd = estate.vertices.filter { estate.degree(of: $<span class="n">0</span>) % <span class="n">2</span> == <span class="n">1</span> }  <span class="c">// ["Church", "School", "Park", "Market"]</span>
+<span class="k">let</span> quickest = odd.map { a <span class="k">in</span> estate.dijkstraShortestPaths(from: a) { minutes[$<span class="n">0</span>] } }
+<span class="k">let</span> distance = quickest.map { tree <span class="k">in</span> odd.map { tree.distance(to: $<span class="n">0</span>)! } }  <span class="c">// [[0, 2, 5, 7], [2, 0, 7, 6], [5, 7, 0, 2], [7, 6, 2, 0]]</span>
+
+<span class="k">let</span> tour = estate.chinesePostmanTour { minutes[$<span class="n">0</span>] }!
+<span class="k">let</span> total = tour.weight  <span class="c">// 35</span>
+<span class="k">let</span> twice = tour.duplicatedEdges.map { estate.edges[$<span class="n">0</span>] }  <span class="c">// [Church–School, Park–Market]</span>
+<span class="k">let</span> route = tour.walk.vertices  <span class="c">// ["Depot", "Church", "School", "Market", "Park", "Bridge", "Mill", "Market", "Park", "Church", "School", "Depot"]</span>
+</span></pre>
+</section>
+
+<h2 class="labhead"><small>Step through</small>Follow the plough</h2>
+<div id="plough" data-loading aria-busy="true"><div><section class="lab" aria-label="The plough’s round, street by street"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 440" role="img" aria-label="The plough driving its round: cleared streets marked, the plough at its junction"><g class="edge " data-edge="0"><path d="M84.8,208.1 L205.2,111.9" class="hit" /><path d="M84.8,208.1 L205.2,111.9" class="stroke" /><text x="153.12103561820751" y="175.1512945227594" text-anchor="middle" class="weight">3</text></g><g class="edge " data-edge="1"><path d="M84.8,231.9 L205.2,328.1" class="hit" /><path d="M84.8,231.9 L205.2,328.1" class="stroke" /><text x="136.87896438179249" y="295.1512945227594" text-anchor="middle" class="weight">4</text></g><g class="edge " data-edge="2"><path d="M220.0,119.0 L220.0,321.0" class="hit" /><path d="M220.0,119.0 L220.0,321.0" class="stroke" /><text x="207.0" y="225.0" text-anchor="middle" class="weight">2</text></g><g class="edge " data-edge="3"><path d="M239.0,100.0 L371.0,100.0" class="hit" /><path d="M239.0,100.0 L371.0,100.0" class="stroke" /><text x="305.0" y="118.0" text-anchor="middle" class="weight">5</text></g><g class="edge " data-edge="4"><path d="M239.0,340.0 L371.0,340.0" class="hit" /><path d="M239.0,340.0 L371.0,340.0" class="stroke" /><text x="305.0" y="358.0" text-anchor="middle" class="weight">6</text></g><g class="edge " data-edge="5"><path d="M390.0,119.0 L390.0,321.0" class="hit" /><path d="M390.0,119.0 L390.0,321.0" class="stroke" /><text x="377.0" y="225.0" text-anchor="middle" class="weight">2</text></g><g class="edge " data-edge="6"><path d="M408.7,103.1 L551.3,126.9" class="hit" /><path d="M408.7,103.1 L551.3,126.9" class="stroke" /><text x="477.86281316503033" y="132.82312100981787" text-anchor="middle" class="weight">4</text></g><g class="edge " data-edge="7"><path d="M409.0,338.9 L551.0,331.1" class="hit" /><path d="M409.0,338.9 L551.0,331.1" class="stroke" /><text x="480.7211102550928" y="352.97998459167036" text-anchor="middle" class="weight">3</text></g><g class="edge " data-edge="8"><path d="M570.0,149.0 L570.0,311.0" class="hit" /><path d="M570.0,149.0 L570.0,311.0" class="stroke" /><text x="557.0" y="235.0" text-anchor="middle" class="weight">2</text></g><g class="edge faint" data-edge="9"><path d="M224.3,118.5 Q248.0,220.0 224.3,321.5" class="hit" /><path d="M224.3,118.5 Q248.0,220.0 224.3,321.5" class="stroke" /></g><g class="edge faint" data-edge="10"><path d="M394.3,118.5 Q418.0,220.0 394.3,321.5" class="hit" /><path d="M394.3,118.5 Q418.0,220.0 394.3,321.5" class="stroke" /></g><g class="node visited current source" data-node="0" tabindex="-1" role="presentation" aria-label="Depot"><circle cx="70.0" cy="220.0" r="17.0" /><text x="70.0" y="255.0" text-anchor="middle" class="name">Depot</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Church"><circle cx="220.0" cy="100.0" r="17.0" /><text x="220.0" y="135.0" text-anchor="middle" class="name">Church</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="School"><circle cx="220.0" cy="340.0" r="17.0" /><text x="220.0" y="375.0" text-anchor="middle" class="name">School</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Park"><circle cx="390.0" cy="100.0" r="17.0" /><text x="390.0" y="135.0" text-anchor="middle" class="name">Park</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Market"><circle cx="390.0" cy="340.0" r="17.0" /><text x="390.0" y="375.0" text-anchor="middle" class="name">Market</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Bridge"><circle cx="570.0" cy="130.0" r="17.0" /><text x="570.0" y="165.0" text-anchor="middle" class="name">Bridge</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Mill"><circle cx="570.0" cy="330.0" r="17.0" /><text x="570.0" y="365.0" text-anchor="middle" class="name">Mill</text></g></svg><div class="legend"><span><i class="dot visited"></i>the plough</span><span><i class="line tree"></i>cleared</span><span><i class="line route"></i>driven again</span><span><i class="line faint"></i>still to drive again</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Street 0 of 11</span><p class="narration">The plough leaves the depot and must drive every street at least once, then come home. Press Step to follow it.</p></div><div class="panel"><span class="label">Cleared so far</span><div class="chips"><p class="empty">Nothing yet</p></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="316" viewBox="0 0 316 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="308" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="7.0" class="m-blue" /><title>Drive from Depot to Church, 3 minutes, clearing it. 3 minutes so far.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="6.0" class="m-blue" /><title>Drive from Church to School, 2 minutes, clearing it. 5 minutes so far.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="10.0" class="m-blue" /><title>Drive from School to Market, 6 minutes, clearing it. 11 minutes so far.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="6.0" class="m-blue" /><title>Drive from Market to Park, 2 minutes, clearing it. 13 minutes so far.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="8.0" class="m-blue" /><title>Drive from Park to Bridge, 4 minutes, clearing it. 17 minutes so far.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="6.0" class="m-blue" /><title>Drive from Bridge to Mill, 2 minutes, clearing it. 19 minutes so far.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="7.0" class="m-blue" /><title>Drive from Mill to Market, 3 minutes, clearing it. 22 minutes so far.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="6.0" class="m-red" /><title>Drive from Market to Park, 2 minutes, along a street already cleared: one of the duplicated streets. 24 minutes so far.</title></g><g class="marble future" data-step="8"><circle cx="230" cy="32" r="9.0" class="m-blue" /><title>Drive from Park to Church, 5 minutes, clearing it. 29 minutes so far.</title></g><g class="marble future" data-step="9"><circle cx="256" cy="32" r="6.0" class="m-red" /><title>Drive from Church to School, 2 minutes, along a street already cleared: one of the duplicated streets. 31 minutes so far.</title></g><g class="marble future" data-step="10"><circle cx="282" cy="32" r="8.0" class="m-blue" /><title>Drive from School to Depot, 4 minutes, clearing it. 35 minutes so far.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-plough" class="scrub" type="range" min="0" max="11" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-blue" /></svg>a street cleared; bigger for longer</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-red" /></svg>a street driven again</span></div><p class="note">The steps replay tour.walk, the finished round chinesePostmanTour returns; the algorithm itself reports no steps. Change a street’s minutes in the first lab and the round changes here too.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The round above, in Grafluent</h2>
+  <pre id="code-plough" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">ShortestPaths</span>
+<span class="k">import</span> <span class="t">Tours</span>
+
+<span class="k">let</span> streets = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Depot"</span>, <span class="s">"Church"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Depot"</span>, <span class="s">"School"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Church"</span>, <span class="s">"School"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Church"</span>, <span class="s">"Park"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"School"</span>, <span class="s">"Market"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Park"</span>, <span class="s">"Market"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Park"</span>, <span class="s">"Bridge"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Market"</span>, <span class="s">"Mill"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Bridge"</span>, <span class="s">"Mill"</span>),
+]
+
+<span class="k">let</span> estate = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> street <span class="k">in</span> streets { street }
+}
+
+<span class="k">let</span> minutes = [<span class="n">3</span>, <span class="n">4</span>, <span class="n">2</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">2</span>, <span class="n">4</span>, <span class="n">3</span>, <span class="n">2</span>]
+
+<span class="k">let</span> tour = estate.chinesePostmanTour { minutes[$<span class="n">0</span>] }!
+<span class="k">let</span> total = tour.weight  <span class="c">// 35</span>
+<span class="k">let</span> twice = tour.duplicatedEdges.map { estate.edges[$<span class="n">0</span>] }  <span class="c">// [Church–School, Park–Market]</span>
+<span class="k">let</span> route = tour.walk.vertices  <span class="c">// ["Depot", "Church", "School", "Market", "Park", "Bridge", "Mill", "Market", "Park", "Church", "School", "Depot"]</span>
+</span></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Fix the odd junctions, as cheaply as possible</h2>
+  <p>A round that ends where it started leaves every junction as many times as it arrives, so it uses an even number of street-ends at each one. At a junction with an odd number of streets, one street must be driven an extra time. Driving a street twice is the same as adding a copy of it to the map, so the question becomes: which copies, adding up to the fewest minutes, make every junction even?</p>
+  <p>There is always an even number of odd junctions, since every street has two ends. Pair them up, and for each pair, copy the streets on the quickest route between them: that makes both ends even and leaves every junction in between even too. The best answer is the pairing whose routes add up to the least, a <b>minimum-weight perfect matching</b> on the odd junctions with the quickest times between them as weights. With the copies added, an Euler circuit drives the round. This is Edmonds and Johnson’s algorithm, and <code>chinesePostmanTour(weight:)</code> runs it: <a href="dijkstra.html">Dijkstra</a> from each odd junction, the blossom algorithm for the matching, then Hierholzer’s circuit.</p>
+  <p>With four odd junctions there are only three pairings, listed in the first lab. With twenty there are over 650 million, which is why the matching is found by an algorithm and not by listing them.</p>
+
+  <h2><small>Where it breaks</small>One-way streets, and only some streets</h2>
+  <p>If streets are one-way, the parity argument becomes one of balance: each junction needs as many ways in as out. Grafluent’s <code>chinesePostmanTour</code> on a directed graph solves that with a <a href="mincostflow.html">minimum-cost flow</a> instead of a matching, and it answers <code>nil</code> when some street can’t be reached and left again. Mix one-way and two-way streets, though, and the problem becomes NP-hard, as it does when only some streets need clearing (the <b>rural postman</b> problem). Then the practical answers are heuristics.</p>
+  <p>The shortest round also isn’t always the best one in practice: a real plough also cares about turns, especially U-turns, and about which streets are cleared first. Those are extra costs the graph doesn’t carry.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Guan Meigu</b><span class="how">GWAHN may-GOO</span><span class="what">Mei-Ko Kwan, who posed the postman problem in 1960; Guan is the family name</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="euler.html"><span>Previous</span>Euler tours</a><a class="next" href="tsp.html"><span>Next</span>Travelling salesman</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>
