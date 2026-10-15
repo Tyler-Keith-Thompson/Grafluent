@@ -1,0 +1,24 @@
+<!-- title: Huffman coding · Explore Grafluent -->
+<!-- description: Type a sentence and watch Grafluent’s BinaryTree.huffman(weights:) join the two lightest letters at each step, then read each letter’s bit code off the tree. -->
+<header class="sign">
+  <h1>Huffman coding</h1>
+  <p class="question">If common letters got shorter codes, how short could a sentence get?</p>
+</header>
+<p class="example lead">Example: “she sells sea shells”, or anything you type. Stored as plain text, every letter takes 8 bits. A Huffman code gives each letter its own string of bits, short for common letters and long for rare ones.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The sentence above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Codes are paths in a tree</h2>
+  <p>Variable-length codes have a catch: with “e” as 0 and “s” as 01, does 01 mean “s”, or “e” and then something starting with 1? The fix is a <b>prefix-free</b> code, where no code word starts another. Such codes are exactly the leaves of a binary tree: go left for 0, right for 1, and stop at a letter. A letter’s code length is its depth, so the coded sentence costs the sum of count × depth over the letters.</p>
+  <p>Huffman’s insight, from 1952, is to build the cheapest such tree from the bottom. The two rarest letters can always sit deepest, side by side, in some best tree. So join them under a new node whose weight is their total count, treat that node as one letter, and repeat. Each join adds one bit to every letter beneath it, and it always lands on the two lightest, which is why no prefix-free code is shorter. With the letters sorted once, two queues make every join constant time.</p>
+
+  <h2><small>Where it breaks</small>Whole bits, one letter at a time</h2>
+  <p>Each letter gets at least one whole bit. Text that is almost all one letter, such as “aaaaaaab”, still needs a bit a letter, though it carries far less information than that; arithmetic coding can spend fractions of a bit. Huffman also looks at letters one at a time, so it can’t notice that “sea” and “shells” repeat: that is what dictionary methods such as LZ77 do, and formats like gzip run those first and Huffman after.</p>
+  <p>The tree, or the counts, must also travel with the message so it can be decoded, which costs more than it saves on a short sentence like this one. Shannon’s entropy sets the limit no code can beat; Huffman always comes within one bit a letter of it.</p>
+</section>
