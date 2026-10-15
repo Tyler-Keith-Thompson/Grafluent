@@ -233,7 +233,7 @@ struct PriorityQueueLargeInputTests {
         await Task {
             let n = 1_000_000
             var q = IndexedPriorityQueue<Int>(indexBound: n)
-            for i in 0 ..< n { q.insert(i, priority: (i * 7919) % n) }
+            for i in 0 ..< n { q.insert(i, priority: Int(Int64(i) * 7919 % Int64(n))) }
             #expect(q.count == n)
             // 17 679 is the inverse of 7919 modulo 10⁶.
             var indices: [Int] = []
@@ -249,7 +249,7 @@ struct PriorityQueueLargeInputTests {
             #expect(indices.last == 982_321)
             #expect(priorities.last == 999_999)
             #expect(priorities == Array(0 ..< n))
-            #expect(indices == (0 ..< n).map { ($0 * 17679) % n })
+            #expect(indices == (0 ..< n).map { Int(Int64($0) * 17679 % Int64(n)) })
         }.value
     }
 
