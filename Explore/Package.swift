@@ -44,8 +44,6 @@ let package = Package(
                 .product(name: "Planarity", package: "Grafluent"),
                 .product(name: "Semirings", package: "Grafluent"),
                 .product(name: "Flows", package: "Grafluent"),
-                .product(name: "CommunityDetection", package: "Grafluent"),
-                .product(name: "Cliques", package: "Grafluent"),
             ],
             plugins: ["Snippets"]
         ),

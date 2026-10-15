@@ -20,6 +20,7 @@ contents and the menu without a link.
 | `dfs` | `depthFirstSearch(from:)` |
 | `dijkstra` | `dijkstraSearch(from:weight:)`, `dijkstraShortestPaths(from:weight:)`; beside its figure, `bellmanFordShortestPaths` |
 | `astar` | `aStarSearch(from:to:weight:heuristic:)`, `aStarShortestPath(from:to:weight:heuristic:)`, `dijkstraSearch(from:weight:)` |
+| `semirings` | `dijkstraShortestPaths(from:weight:)` over `TropicalSemiring`, `BottleneckSemiring`, `ViterbiSemiring`, `BooleanSemiring`; `dagShortestDistances(from:weight:)` over `CountingSemiring`; `topologicalSort()` |
 | `toposort` | `depthFirstSearch()`, `topologicalSort()`, `topologicalGenerations()`, `findCycle()` |
 | `components` | `connectedComponents()`, `breadthFirstSearch(from:)`, `stronglyConnectedComponents()`, `condensation()`, `depthFirstSearch()` |
 | `bridges` | `bridges()`, `articulationPoints()`, `edgeDepthFirstSearch(from:)`, `connectedComponents()`; beside its figure, `biconnectedComponents()` |

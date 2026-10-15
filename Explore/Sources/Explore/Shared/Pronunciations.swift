@@ -20,6 +20,8 @@ enum Names {
     static let kuratowski = Pronunciation(name: "Kuratowski", say: "koo-rah-TOV-skee", ipa: "/kuraˈtɔfskʲi/", what: "Kazimierz Kuratowski: non-planar exactly when K₅ or K₃,₃ is hidden inside")
     static let wagner = Pronunciation(name: "Wagner", say: "VAHG-ner", ipa: "/ˈvaːɡnɐ/", what: "Klaus Wagner: the same test with contractions, by minors")
     static let deFraysseix = Pronunciation(name: "de Fraysseix", say: "duh fray-SEX", ipa: "/də fʁɛsɛks/", what: "Hubert de Fraysseix: the left-right planarity test, and drawing on a grid")
+    static let mohri = Pronunciation(name: "Mohri", say: "moh-REE", ipa: "/moˈriː/", what: "Mehryar Mohri: one shortest-distance algorithm for every semiring")
+    static let viterbi = Pronunciation(name: "Viterbi", say: "vih-TUR-bee", ipa: "/vɪˈtɜːrbi/", what: "Andrew Viterbi: the most likely path, by multiplying and keeping the best")
     static let konig = Pronunciation(name: "Kőnig", say: "KUR-nig", ipa: "/ˈkøːniɡ/", what: "In two-sided graphs, biggest matching = smallest cover")
     static let hierholzer = Pronunciation(name: "Hierholzer", say: "HEER-holt-ser", ipa: "/ˈhiːɐ̯hɔlt͡sɐ/", what: "A walk that uses every road exactly once")
     static let euler = Pronunciation(name: "Euler", say: "OY-ler", ipa: "/ˈɔɪlər/", what: "Leonhard Euler, who settled the Königsberg bridges in 1736")
