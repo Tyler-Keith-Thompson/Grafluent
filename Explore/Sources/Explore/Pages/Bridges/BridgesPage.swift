@@ -298,7 +298,7 @@ struct LowLinkLab {
                                 em { "low-link" }
                                 ": the earliest time it, or anything reached from it, can get back to. Press Step to begin."
                             } else if finished {
-                                "Every place is left. A road is a bridge when nothing past it can get back without it; a place is an articulation point when a branch below it can’t get back above it."
+                                describeLowLink(last!, before: before, after: state) + " Every place is left. A road is a bridge when nothing past it can get back without it; a place is an articulation point when a branch below it can’t get back above it."
                                 matches
                                     ? " The same answer as village.bridges() and village.articulationPoints()."
                                     : " This disagrees with village.bridges() and village.articulationPoints()."

@@ -200,9 +200,9 @@ struct SemiringsLab {
                             if k == 0 {
                                 "\(q.question) Every route from the Server is built by two moves: extend a route by one link, and choose between two routes to the same place. Press Step to begin."
                             } else if finished {
-                                "Farm: "
-                                em { model.farm }
-                                ". The same two moves answered every place; only what extend and choose mean changed."
+                                describeSemiringStep(last!, n) + " "
+                                em { "The answer for Farm: \(model.farm)." }
+                                " The same two moves answered every place; only what extend and choose mean changed."
                             } else {
                                 describeSemiringStep(last!, n)
                             }

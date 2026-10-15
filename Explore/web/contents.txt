@@ -18,7 +18,7 @@ giant|The giant component|Structure|When random links suddenly join almost every
 planarity|Planarity|Structure|Whether a network can be drawn without crossings.|page
 cliques|Cliques|Structure|Groups where everyone is connected.|soon
 communities|Communities|Structure|Where a network splits into groups.|soon
-flow|Maximum flow|Assignment|How much a network of pipes can carry.|soon
+flow|Maximum flow|Assignment|How much a network of pipes can carry.|page
 matching|Bipartite matching|Assignment|Filling as many jobs as possible.|page
 coloring|Graph coloring|Assignment|Scheduling without clashes.|page
 pagerank|PageRank|Importance and shape|Which pages matter most.|page

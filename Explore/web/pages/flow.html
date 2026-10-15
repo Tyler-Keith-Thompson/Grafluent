@@ -1,0 +1,27 @@
+<!-- title: Maximum flow · Explore Grafluent -->
+<!-- description: Water from a reservoir to a town, one augmenting path at a time, with Grafluent’s edmondsKarpEvents: bottlenecks, pushes, a cancellation that reroutes, and the minimum cut. -->
+<header class="sign">
+  <h1>Maximum flow</h1>
+  <p class="question">How much water can a network of pipes carry from the reservoir to the town?</p>
+</header>
+<p class="example lead">Example: a reservoir, a town, two pumps, a junction and a tank, joined by one-way pipes. Each pipe is labelled with the water it carries over the most it can carry.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The waterworks above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Send what fits, and let water flow backwards</h2>
+  <p>Find any route from the reservoir to the town on which every pipe still has room, send as much as its tightest pipe allows, and repeat. That alone can get stuck on a poor first choice: here the first route uses the pipe from the North pump to the Junction, which the South pump needed. The fix is to allow a route to run <em>backwards</em> along a pipe that already carries water. Doing so cancels some of that water, and the North pump sends it by another pipe instead. The network of remaining room, with those backward options included, is the <b>residual network</b>.</p>
+  <p>When no route through the residual network reaches the town, the flow is as large as it can be. The places the reservoir can still reach and the places it can’t are split by a set of full pipes, a <b>minimum cut</b>: every route to the town crosses it, so no flow can exceed its total, and this flow equals it. That is the max-flow min-cut theorem, and the cut is often the more useful answer: the bottleneck worth widening.</p>
+  <p><b>Edmonds–Karp</b> always picks a route with the fewest pipes, found by <a href="bfs.html">breadth-first search</a>. That choice bounds the work at O(n m²) whatever the capacities.</p>
+
+  <h2><small>Where it breaks</small>Choose routes carelessly and it crawls</h2>
+  <p>Without the fewest-pipes rule, the same idea (Ford and Fulkerson’s) can pick routes so badly that it needs as many rounds as the flow is large, and with irrational capacities it may never finish. On big networks even Edmonds–Karp is slow; <code>maximumFlow(from:to:capacity:)</code> uses push–relabel, and Dinic’s algorithm sends many shortest routes at once. When every pipe also has a cost per unit, the question becomes the cheapest way to send a given amount: a minimum-cost flow.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

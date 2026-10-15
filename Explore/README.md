@@ -29,6 +29,7 @@ contents and the menu without a link.
 | `huffman` | `BinaryTree.huffman(weights:)`, `parent(of:)`, `left(of:)`, `depth(of:)`, `inorder` |
 | `giant` | `erdosRenyi(vertexCount:edgeCount:using:)` with `Xoshiro256StarStar`, `connectedComponents()`, `fruchtermanReingoldLayout(iterations:weight:using:)` |
 | `planarity` | `isPlanar`, `findKuratowskiSubgraph()`, `planarLayout()`, `planarEmbedding()` |
+| `flow` | `edmondsKarpEvents(from:to:capacity:)`, `edmondsKarpMaximumFlow(from:to:capacity:)`, `minimumCut` |
 | `matching` | `bipartition(left:)`, `maximumBipartiteMatching(bipartition:)` |
 | `coloring` | `greedyColoring(order:)`, `greedyColoring(strategy:)`, `chromaticNumber()`, `minimumColoring()` |
 | `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |

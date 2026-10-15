@@ -440,3 +440,6 @@ figure.fig { margin: 0; }
 .qtable td.op { font-family: var(--mono); font-weight: 600; }
 .table-scroll { overflow-x: auto; }
 .marble .m-hollow + text { fill: var(--ink); }
+.line.cancel { border-color: var(--danger); border-top-style: dotted; }
+.edge.cancel .stroke { stroke: var(--danger); stroke-width: 6; stroke-dasharray: 2 7; }
+.edge.cancel .head, .edge.bridge .head { fill: var(--danger); }

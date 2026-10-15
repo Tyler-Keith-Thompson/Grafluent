@@ -23,6 +23,7 @@ func mountPage(_ page: String) -> Bool {
     case "huffman": HuffmanPage.mount()
     case "planarity": PlanarityPage.mount()
     case "semirings": SemiringsPage.mount()
+    case "flow": FlowPage.mount()
     case "mst": MSTPage.mount()
     case "matching": MatchingPage.mount()
     case "coloring": ColoringPage.mount()
