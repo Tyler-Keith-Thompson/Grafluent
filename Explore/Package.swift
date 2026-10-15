@@ -28,6 +28,7 @@ let package = Package(
                 .product(name: "LabeledGraphs", package: "Grafluent"),
                 .product(name: "Traversal", package: "Grafluent"),
                 .product(name: "ShortestPaths", package: "Grafluent"),
+                .product(name: "SpanningTrees", package: "Grafluent"),
                 .product(name: "Connectivity", package: "Grafluent"),
                 .product(name: "BipartiteGraphs", package: "Grafluent"),
                 .product(name: "MatchingModule", package: "Grafluent"),

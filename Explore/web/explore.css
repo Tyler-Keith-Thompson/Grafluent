@@ -377,3 +377,13 @@ figure.fig { margin: 0; }
   .grid .place { font-size: 18px; }
   .grid .axis-label { font-size: 18px; }
 }
+/* Kruskal's sorted cables: laid, skipped, or never needed. */
+.qrow.cable { background: color-mix(in srgb, var(--road) 14%, var(--sheet)); }
+.qrow.cable.top { background: var(--signal); color: var(--signal-ink); }
+.qrow.cable.laid { background: color-mix(in srgb, var(--sign) 18%, var(--sheet)); }
+.qrow.cable.skipped { background: color-mix(in srgb, var(--danger) 14%, var(--sheet)); }
+.qrow.cable.later { color: var(--muted); background: transparent; border: 1px dashed var(--rule); }
+.dot.pal1 { background: var(--p1); border-color: var(--p1); }
+.qrow .fate { font-weight: 600; font-size: 13px; color: var(--muted); margin-left: .6em; }
+.qrow.top .fate { color: var(--signal-ink); }
+.node.current[class*="pal"] circle { stroke: var(--danger); stroke-width: 4; }

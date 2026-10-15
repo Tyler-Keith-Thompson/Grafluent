@@ -1,0 +1,30 @@
+<!-- title: Minimum spanning trees · Explore Grafluent -->
+<!-- description: Cable six houses as cheaply as possible with Grafluent’s kruskalEvents and primEvents, step by step, in your browser. -->
+<header class="sign">
+  <h1>Minimum spanning trees</h1>
+  <div class="say"><span>Say it</span><b>KRUSS-kul</b><span class="ipa">/ˈkrʌskəl/</span><span>and</span><b>PRIM</b><span class="ipa">/prɪm/</span></div>
+  <p class="question">What’s the cheapest set of cables that connects every house?</p>
+</header>
+
+<p class="example lead">Example: six houses and the cost of laying cable between each pair that can be connected.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The six houses, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Two ways to the same cheapest network</h2>
+  <p><b>Kruskal</b> sorts every possible cable from cheapest to dearest and lays each one unless it would only join two houses that are already connected. <b>Prim</b> grows a single network outward from one house, always adding the cheapest cable that reaches a house not yet connected. Different routes, same total cost.</p>
+  <p>Either way the result is a <b>spanning tree</b>: every house is connected, and there are no loops, so six houses need exactly five cables. A loop would mean one cable could be removed without disconnecting anyone, which is money wasted.</p>
+  <p>Kruskal keeps track of who is already connected with a union–find structure, which answers “same group?” almost instantly. Prim keeps a queue of the houses waiting to join, each with the cheapest price on offer so far, just as Dijkstra keeps its frontier.</p>
+
+  <h2><small>Where it breaks</small>Cheapest isn’t shortest</h2>
+  <p>The cheapest network isn’t the one with the shortest routes. The trip between two houses can be long and winding. If travel time matters, that’s a shortest-path problem.</p>
+  <p>Here a direct Dev–Eli cable would cost 5, and it isn’t in the network: a signal from Dev to Eli goes through Ada and Ben, three cables instead of one.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

@@ -22,6 +22,7 @@ contents and the menu without a link.
 | `astar` | `aStarSearch(from:to:weight:heuristic:)`, `aStarShortestPath(from:to:weight:heuristic:)`, `dijkstraSearch(from:weight:)` |
 | `toposort` | `depthFirstSearch()`, `topologicalSort()`, `topologicalGenerations()`, `findCycle()` |
 | `components` | `connectedComponents()`, `breadthFirstSearch(from:)`, `stronglyConnectedComponents()`, `condensation()`, `depthFirstSearch()` |
+| `mst` | `kruskalEvents(weight:)`, `primEvents(from:weight:)`, `kruskalMinimumSpanningTree(weight:)`, `primMinimumSpanningTree(from:weight:)` |
 | `matching` | `bipartition(left:)`, `maximumBipartiteMatching(bipartition:)` |
 | `coloring` | `greedyColoring(order:)`, `greedyColoring(strategy:)`, `chromaticNumber()`, `minimumColoring()` |
 | `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |
