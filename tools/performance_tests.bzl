@@ -33,6 +33,7 @@ PERFORMANCE_TEST_PACKAGES = [
     "Tests/SpectralGraphTheoryTests",
     "Tests/StableGraphsTests",
     "Tests/ToursTests",
+    "Tests/TraversalTests",
     "Tests/TreeAlgorithmsTests",
     "Tests/TreesTests",
 ]

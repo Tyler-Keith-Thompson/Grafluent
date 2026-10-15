@@ -213,6 +213,33 @@ enum FuzzTraversal {
         let directed = AdjacencyList(vertices: 0 ..< n, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
         checkDirected(directed, "AdjacencyList", source: source, targets: targets, maxLength: maxLength, seed: seed)
         checkDirected(PlainDigraph(vertices: Array((0 ..< n).reversed()), edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }), "PlainDigraph", source: source, targets: targets, maxLength: maxLength, seed: seed)
+        // Kahn's events: in-degrees count down to each ready event, every vertex is ready once
+        // before it is emitted, and the emitted order is topologicalGenerations() joined.
+        // An adjacency list keeps the first copy of each pair, in order, so its positions are these.
+        var firstCopies = Set<DirectedEdge<Int>>()
+        let simple = pairs.filter { firstCopies.insert(DirectedEdge(from: $0.0, to: $0.1)).inserted }
+        func checkKahn<G: DirectedGraph<Int>>(_ graph: G, _ pairs: [(Int, Int)], _ name: String) where G.Edges.Index == Int {
+            var inDegree = [Int](repeating: 0, count: n)
+            for (_, v) in pairs { inDegree[v] += 1 }
+            var ready = Set<Int>(), emitted: [Int] = [], current = -1
+            for event in graph.kahnEvents() {
+                switch event {
+                case .ready(let v): check(inDegree[v] == 0 && ready.insert(v).inserted, "\(name): ready \(v)")
+                case .emit(let v):
+                    check(ready.contains(v) && !emitted.contains(v), "\(name): emit \(v)")
+                    emitted.append(v)
+                    current = v
+                case .removeEdge(let e, let d):
+                    check(pairs[e].0 == current, "\(name): edge \(e) not out of \(current)")
+                    inDegree[pairs[e].1] -= 1
+                    check(d == inDegree[pairs[e].1], "\(name): edge \(e) leaves \(d)")
+                }
+            }
+            let generations = graph.topologicalGenerations()
+            check((generations == nil) == (emitted.count < n) && (generations.map { $0.flatMap { $0 } == emitted } ?? true), "\(name): Kahn emitted \(emitted), generations \(String(describing: generations))")
+        }
+        checkKahn(AdjacencyList(vertices: 0 ..< n, edges: simple.map { DirectedEdge(from: $0.0, to: $0.1) }), simple, "Kahn on AdjacencyList")
+        checkKahn(PlainDigraph(vertices: Array(0 ..< n), edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }), pairs, "Kahn on PlainDigraph")
 
         var list = UndirectedAdjacencyList(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         for k in 0 ..< removals where list.edgeCount > 0 { _ = list.remove(edge: Array(list.edges)[k % list.edgeCount]) }

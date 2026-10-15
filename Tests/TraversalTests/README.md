@@ -25,6 +25,8 @@ extension DirectedGraph
     func hasPath(from:to:) -> Bool
     func topologicalSort() -> [Vertex]?                            // DFS reverse postorder; nil on a cycle
     func topologicalGenerations() -> [[Vertex]]?                   // Kahn's algorithm
+    func kahnEvents() -> KahnEvents<Self>                           // lazy; Element KahnEvent<Vertex, Edges.Index>:
+                                                                    // ready(v), emit(v), removeEdge(e, inDegree:)
     func lexicographicalTopologicalSort(by:) -> [Vertex]?          // and without `by:` for Comparable vertices
     func findCycle() -> Cycle<Vertex, Edges.Index>?                // the first back edge's cycle
     func findCycle(from:) -> Cycle<Vertex, Edges.Index>?           // only cycles reachable from roots
@@ -89,6 +91,8 @@ readable afterwards. `Connectivity`, `Flows` and `ShortestPaths` build on it.
 | `SearchTreeTests.swift` | `breadthFirstTree` and `depthFirstTree` as `Arborescence`: pinned trees, discovery order and tree edges against the searches on every fixture, depth limits, `String` vertices and `Int` vertices out of order, the preconditions |
 | `SearchOrderTests.swift` | Layers, breadth-first trees, preorder and postorder, depth-limited orders, pruning, early exit |
 | `TopologicalAndReachabilityTests.swift` | The three topological sorts, cycle witnesses, descendants and ancestors, `hasPath`, bidirectional search, iterative deepening, and the closure-based searches |
+| `KahnEventsTests.swift` | TR-280 – TR-283: Kahn's sort as events on a traced DAG (parallel copy, isolated vertex) on five representations, cycles and loops, value semantics, a property test replaying `topologicalGenerations()` |
+| `Performance/KahnEventsRatioTests.swift` | TR-284: every event within 1.8× of `topologicalGenerations()` on AdjacencyList and CompressedSparseRow (release) |
 | `SearchReferenceTests.swift` | Transcripts on random graphs against a reference written in the test (recursive DFS, queue BFS), pulled and pushed, with and without vertex indices, with spread-out Int and String vertices, after vertex removals; topological, cycle and reachability answers against a reachability reference; `forEach` errors; deep closure searches; `findCycle(from:)` |
 | `TraversalWalkReviewTests.swift` | `findCycle` and `bidirectionalShortestPath` without vertex indices, over parallel edges (with steps found by the backward search, WK-1217, and by the forward one, WK-1405), and through a directed view's self-loop (WK-1216 – WK-1219) |
 | `TraversalWalkTests.swift` | `findCycle` and `bidirectionalShortestPath` as `Cycle` and `Path`, rotation, parallel copies, self-loops, cycles of a graph or of its undirected view |

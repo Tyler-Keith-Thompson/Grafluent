@@ -142,6 +142,16 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Traversal: topologicalSort of a 1M-vertex path") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(path.topologicalSort()) }
     }
+    Benchmark("Traversal: topologicalGenerations of a 1M-vertex path") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(path.topologicalGenerations()) }
+    }
+    Benchmark("Traversal: kahnEvents, every event, of a 1M-vertex path") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var emitted = 0
+            for case .emit in path.kahnEvents() { emitted &+= 1 }
+            blackHole(emitted)
+        }
+    }
 
     // TR-B05: the explicit stack on a deep graph.
     Benchmark("Traversal: depth-first preorder of a 1M-vertex path") { benchmark in

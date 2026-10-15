@@ -290,4 +290,11 @@ MUTANTS = [
     Mutant("mcs_top", "ChordalOrderings.swift", "                                        if d + 1 > top { top = d + 1 }", "", mode="stmt"),
     Mutant("mcs_start", "ChordalOrderings.swift", "start ?? bucket[top]", "bucket[top]"),
     Mutant("mcs_visited", "ChordalOrderings.swift", "d >= 0", "true"),
+    # Kahn's topological sort as an event sequence
+    Mutant("ke_indegree", "KahnEvents.swift", "inDegree[rows.edge(atSlot: k, shift: shift).target] += 1", "", mode="stmt"),
+    Mutant("ke_sources", "KahnEvents.swift", "inDegree[$0] == 0", "inDegree[$0] <= 1"),
+    Mutant("ke_ready", "KahnEvents.swift", "if inDegree[w] == 0 { queue.append(w) }", "", mode="stmt"),
+    Mutant("ke_count", "KahnEvents.swift", "inDegree[w] -= 1", "", mode="stmt"),
+    Mutant("ke_fifo", "KahnEvents.swift", "queue[head]", "queue[queue.count - 1]"),
+    Mutant("ke_iterindegree", "KahnEvents.swift", "while let (_, w) = rows.next(in: &row) { inDegree[w] += 1 }", "", mode="stmt"),
 ]
