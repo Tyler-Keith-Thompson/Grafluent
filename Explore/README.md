@@ -27,6 +27,7 @@ contents and the menu without a link.
 | `mst` | `kruskalEvents(weight:)`, `primEvents(from:weight:)`, `kruskalMinimumSpanningTree(weight:)`, `primMinimumSpanningTree(from:weight:)` |
 | `huffman` | `BinaryTree.huffman(weights:)`, `parent(of:)`, `left(of:)`, `depth(of:)`, `inorder` |
 | `giant` | `erdosRenyi(vertexCount:edgeCount:using:)` with `Xoshiro256StarStar`, `connectedComponents()`, `fruchtermanReingoldLayout(iterations:weight:using:)` |
+| `planarity` | `isPlanar`, `findKuratowskiSubgraph()`, `planarLayout()`, `planarEmbedding()` |
 | `matching` | `bipartition(left:)`, `maximumBipartiteMatching(bipartition:)` |
 | `coloring` | `greedyColoring(order:)`, `greedyColoring(strategy:)`, `chromaticNumber()`, `minimumColoring()` |
 | `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |

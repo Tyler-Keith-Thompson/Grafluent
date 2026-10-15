@@ -1,0 +1,30 @@
+<!-- title: Planarity · Explore Grafluent -->
+<!-- description: The three-utilities puzzle, five fully connected towns and a cube, tested link by link with Grafluent’s isPlanar, findKuratowskiSubgraph and planarLayout. -->
+<header class="sign">
+  <h1>Planarity</h1>
+  <div class="say"><span>Say it</span><b>koo-rah-TOV-skee</b><span class="ipa">/kuraˈtɔfskʲi/</span></div>
+  <p class="question">Can three houses each get water, gas and power without any two pipes crossing?</p>
+</header>
+<p class="example lead">Example: the three-utilities puzzle. Three houses, three utilities, and a pipe from every house to every utility, nine in all, on flat ground. Then five towns with a road between every pair, and a cube, whose usual drawing has crossings it doesn’t need.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The graph above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Two small graphs are behind every failure</h2>
+  <p>A graph is <b>planar</b> when it can be drawn on paper with no two edges crossing. The drawing you start with doesn’t matter: the cube looks tangled as first drawn, yet <code>planarLayout()</code> finds it a drawing with none. What matters is whether <em>some</em> drawing exists.</p>
+  <p>The puzzle has no solution. Its graph is K₃,₃: three vertices each joined to the same other three. Five towns all joined to each other make K₅. In 1930 Kuratowski proved these two are the only obstacles: a graph is planar exactly when it contains no copy of either, even one stretched out with extra stops along its paths. So a “no” always comes with a proof you can check by eye, and <code>findKuratowskiSubgraph()</code> returns it, red above.</p>
+  <p>A planar drawing splits the paper into <b>faces</b>, the outside counting as one. For a connected planar graph, Euler’s formula ties them together: vertices − edges + faces = 2. Since every face needs at least three edges round it, a simple planar graph has at most 3n − 6 edges, which already rules out K₅: 10 is more than 3 × 5 − 6 = 9.</p>
+  <p>Testing takes time proportional to the size of the graph. <code>isPlanar</code> and <code>planarEmbedding()</code> run de Fraysseix and Rosenstiehl’s left-right test, built on depth-first search; <code>findKuratowskiSubgraph()</code> runs Boyer and Myrvold’s edge addition, which keeps the proof when it fails.</p>
+
+  <h2><small>Where it breaks</small>Planar isn’t the same as easy to read</h2>
+  <p>A planar layout avoids crossings but can squeeze vertices close together and stretch edges out, as the cube’s does. For a drawing that shows a graph’s shape, crossings and all, use a <a href="layout.html">force-directed layout</a>. And when a graph isn’t planar, the fewest crossings any drawing can have is a much harder question: there is no fast method for it.</p>
+  <p>Circuit boards and maps care about planarity directly. For many other problems it is a gift: every planar graph can be <a href="coloring.html">coloured</a> with four colours, the four-colour theorem, and many hard problems get easier on planar graphs.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>
