@@ -10,32 +10,7 @@ import GraphProtocols
 @inlinable
 public func stableMatching(proposerPreferences: [[Int]], reviewerPreferences: [[Int]]) -> StableMatching {
     let p = proposerPreferences.count, r = reviewerPreferences.count
-    var total = 0
-    for list in reviewerPreferences { total += list.count }
-    // Each reviewer's rank of each proposer it lists (−1: not listed): a dense table when it is at
-    // most a few times the input, otherwise a dictionary keyed reviewer · p + proposer.
-    // r · p ≤ budget as a comparison, r ≤ ⌊budget / p⌋, which cannot overflow at either `Int` width.
-    let dense = p == 0 || r <= (8 * total + (1 << 20)) / p
-    var table = dense ? [Int](repeating: -1, count: r * p) : []
-    // Keyed in 64 bits: r · p can pass a 32-bit `Int` (the sparse case is the large one).
-    var sparse: [Int64: Int] = [:]
-    var stamp = [Int](repeating: -1, count: max(p, r))
-    for (reviewer, list) in reviewerPreferences.enumerated() {
-        for (k, proposer) in list.enumerated() {
-            precondition(proposer >= 0 && proposer < p, "Proposer \(proposer) is out of range")
-            precondition(stamp[proposer] != reviewer, "Reviewer \(reviewer) lists proposer \(proposer) twice")
-            stamp[proposer] = reviewer
-            if dense { table[reviewer * p + proposer] = k } else { sparse[Int64(reviewer) * Int64(p) + Int64(proposer)] = k }
-        }
-    }
-    for k in stamp.indices { stamp[k] = -1 }
-    for (proposer, list) in proposerPreferences.enumerated() {
-        for reviewer in list {
-            precondition(reviewer >= 0 && reviewer < r, "Reviewer \(reviewer) is out of range")
-            precondition(stamp[reviewer] != proposer, "Proposer \(proposer) lists reviewer \(reviewer) twice")
-            stamp[reviewer] = proposer
-        }
-    }
+    let ranks = _StableMatchingRanks(proposerPreferences: proposerPreferences, reviewerPreferences: reviewerPreferences)
     var next = [Int](repeating: 0, count: p)
     var held = [Int](repeating: -1, count: r)
     var free = Array((0 ..< p).reversed())
@@ -44,14 +19,14 @@ public func stableMatching(proposerPreferences: [[Int]], reviewerPreferences: [[
         while next[proposer] < list.count {
             let reviewer = list[next[proposer]]
             next[proposer] += 1
-            let mine = dense ? table[reviewer * p + proposer] : sparse[Int64(reviewer) * Int64(p) + Int64(proposer)] ?? -1
+            let mine = ranks.rank(of: proposer, by: reviewer)
             if mine < 0 { continue }
             let current = held[reviewer]
             if current < 0 {
                 held[reviewer] = proposer
                 break
             }
-            let theirs = dense ? table[reviewer * p + current] : sparse[Int64(reviewer) * Int64(p) + Int64(current)]!
+            let theirs = ranks.rank(of: current, by: reviewer)
             if mine < theirs {
                 held[reviewer] = proposer
                 free.append(current)
@@ -119,5 +94,60 @@ public struct StableMatching: Hashable, Sendable, CustomStringConvertible {
     /// `{0–2, 1–0}`: each matched proposer with its reviewer, by proposer.
     public var description: String {
         "{" + _proposerMates.enumerated().filter { $0.element >= 0 }.map { "\($0.offset)–\($0.element)" }.joined(separator: ", ") + "}"
+    }
+}
+
+/// Each reviewer's rank of each proposer it lists, checked against both sides' lists: the table
+/// `stableMatching` and `galeShapley` read.
+@frozen
+@usableFromInline
+struct _StableMatchingRanks: Sendable {
+    @usableFromInline let proposers: Int
+    @usableFromInline let dense: Bool
+    @usableFromInline let table: [Int]
+    @usableFromInline let sparse: [Int64: Int]
+
+    /// - Precondition: every index is in range, and no index appears twice in one list.
+    @inlinable
+    init(proposerPreferences: [[Int]], reviewerPreferences: [[Int]]) {
+        let p = proposerPreferences.count, r = reviewerPreferences.count
+        proposers = p
+        var total = 0
+        for list in reviewerPreferences { total += list.count }
+        // Each reviewer's rank of each proposer it lists (−1: not listed): a dense table when it is
+        // at most a few times the input, otherwise a dictionary keyed reviewer · p + proposer.
+        // r · p ≤ budget as a comparison, r ≤ ⌊budget / p⌋, which cannot overflow at either `Int`
+        // width.
+        let dense = p == 0 || r <= (8 * total + (1 << 20)) / p
+        var table = dense ? [Int](repeating: -1, count: r * p) : []
+        // Keyed in 64 bits: r · p can pass a 32-bit `Int` (the sparse case is the large one).
+        var sparse: [Int64: Int] = [:]
+        var stamp = [Int](repeating: -1, count: max(p, r))
+        for (reviewer, list) in reviewerPreferences.enumerated() {
+            for (k, proposer) in list.enumerated() {
+                precondition(proposer >= 0 && proposer < p, "Proposer \(proposer) is out of range")
+                precondition(stamp[proposer] != reviewer, "Reviewer \(reviewer) lists proposer \(proposer) twice")
+                stamp[proposer] = reviewer
+                if dense { table[reviewer * p + proposer] = k } else { sparse[Int64(reviewer) * Int64(p) + Int64(proposer)] = k }
+            }
+        }
+        for k in stamp.indices { stamp[k] = -1 }
+        for (proposer, list) in proposerPreferences.enumerated() {
+            for reviewer in list {
+                precondition(reviewer >= 0 && reviewer < r, "Reviewer \(reviewer) is out of range")
+                precondition(stamp[reviewer] != proposer, "Proposer \(proposer) lists reviewer \(reviewer) twice")
+                stamp[reviewer] = proposer
+            }
+        }
+        self.dense = dense
+        self.table = table
+        self.sparse = sparse
+    }
+
+    /// `reviewer`'s rank of `proposer`, 0 best, or -1 when it does not list `proposer`.
+    @inlinable
+    @inline(__always)
+    func rank(of proposer: Int, by reviewer: Int) -> Int {
+        dense ? table[reviewer * proposers + proposer] : sparse[Int64(reviewer) * Int64(proposers) + Int64(proposer)] ?? -1
     }
 }

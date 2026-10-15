@@ -195,7 +195,8 @@ lists each catalog's scripts and Python pins (run through `uv`).
   `lazy.breadthFirstSearch`, `lazy.depthFirstSearch` (vertex pairs),
   `lazy.edgeBreadthFirstSearch`, `lazy.edgeDepthFirstSearch` (edge positions), `lazy.dijkstra`,
   `lazy.aStar`, `lazy.bellmanFord`, `lazy.kruskal`, `lazy.prim`, `lazy.edmondsKarp`, `lazy.louvain`,
-  `lazy.bronKerbosch`, `lazy.kahn`, `lazy.hopcroftKarp`. Events favour useful state over speed;
+  `lazy.bronKerbosch`, `lazy.kahn`, `lazy.hopcroftKarp`. With no graph to take `lazy` from, the
+  stepper is a function of the input named the same way: `galeShapley(proposerPreferences:…)`. Events favour useful state over speed;
   their ratio tests only bound a pathological slowdown (3× the plain call).
 - Results are dedicated types (`ShortestPathTree`, `Components`, `Matching`, `Flow`), not tuples.
   Walk-like results are `Walk`, `Trail`, `Path`, `Circuit`, `Cycle` (vertices plus edge positions).

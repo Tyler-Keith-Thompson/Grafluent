@@ -106,6 +106,12 @@ MUTANTS = [
     Mutant("stableacceptable", "StableMatching.swift", "if mine < 0 { continue }", "", mode="stmt"),
     Mutant("stableprefer", "StableMatching.swift", "mine < theirs", "mine > theirs"),
     Mutant("stabledisplaced", "StableMatching.swift", "                free.append(current)", "", mode="stmt"),
+    Mutant("gsacceptable", "GaleShapleyEvents.swift", "mine < 0", "false"),
+    Mutant("gsprefer", "GaleShapleyEvents.swift", "mine < base.ranks.rank(of: holding, by: reviewer)", "mine > base.ranks.rank(of: holding, by: reviewer)"),
+    Mutant("gsdisplaced", "GaleShapleyEvents.swift", "free.append(holding)", "", mode="stmt"),
+    Mutant("gsstay", "GaleShapleyEvents.swift", "current = -1", "", mode="stmt", nth=1),
+    Mutant("gsorder", "GaleShapleyEvents.swift", "Array((0 ..< p).reversed())", "Array(0 ..< p)"),
+    Mutant("gsrank", "StableMatching.swift", "table[reviewer * proposers + proposer]", "table[reviewer * proposers + proposer] + 1"),
 
     # The checked: spellings
     Mutant("checkedmate", "Matching.swift", "        guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=0),

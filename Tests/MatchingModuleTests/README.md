@@ -36,6 +36,8 @@ extension Graph {
 extension BipartiteGraph { maximumBipartiteMatching(), lazy.hopcroftKarp(), minimumWeightFullMatching(weight:) }
 func linearSumAssignment(rowCount:columnCount:maximize:cost:) -> LinearSumAssignment<W>?   // rows, columns, cost
 func stableMatching(proposerPreferences:reviewerPreferences:) -> StableMatching            // mate(ofProposer:), mate(ofReviewer:)
+func galeShapley(proposerPreferences:reviewerPreferences:) -> GaleShapleyEvents            // lazy; Element GaleShapleyEvent:
+                                                    // propose, accept, reject, tradeUp(reviewer:from:to:), exhausted
 ```
 
 ## Conventions
@@ -52,6 +54,7 @@ func stableMatching(proposerPreferences:reviewerPreferences:) -> StableMatching 
 | `minimumWeightMatching` | `maximumWeightMatching` on (1 + greatest non-loop weight) − w with `maximumCardinality`, on the same graph and rows | MA-022, MA-023, MA-157 – MA-165 |
 | Full matching, assignment | api.md's shortest augmenting path procedure (reversed column scan, an unassigned column preferred among equal costs, tall matrices transposed); nil when infeasible; the empty matching when a side is empty | MA-166 – MA-212 |
 | `stableMatching` | The proposer-optimal stable matching; a pair is acceptable only when each lists the other | MA-213 – MA-228 |
+| `galeShapley` | `stableMatching`'s proposals and answers, in order; replayed, its matching | MA-1105 – MA-1107 |
 | Checks | Definitions on positions: a repeat, a loop or a shared end is not a matching; loops ignored for maximality; an isolated vertex rules out perfection | MA-035 – MA-051 |
 | Representations through `.undirectedView` | Rows are successors, then predecessors; matrix positions are row-major cells | `MatchingRepresentationTests.swift` |
 
