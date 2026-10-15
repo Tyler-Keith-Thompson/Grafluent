@@ -174,4 +174,13 @@ MUTANTS = [
     Mutant("td_valid_connected", "TreeDecomposition.swift", "guard count == bags.count else { return false }", "", mode="stmt"),
     Mutant("td_valid_edges", "TreeDecomposition.swift", "guard shared else { return false }", "", mode="stmt"),
     Mutant("td_valid_dup", "TreeDecomposition.swift", "if holding[v].last != b { holding[v].append(b) }", "holding[v].append(b)", mode="stmt"),
+    # Bron–Kerbosch as an event sequence
+    Mutant("bk_enter", "MaximalCliques.swift", "observer.enter(self, at: child)", "", mode="stmt"),
+    Mutant("bk_leave", "MaximalCliques.swift", "observer.leave()", "", mode="stmt", nth=2),
+    Mutant("bk_pivot", "MaximalCliques.swift", "observer.pivot(self, choosePivot(at: child))", "choosePivot(at: child)", mode="stmt"),
+    Mutant("bk_alone", "MaximalCliques.swift", "observer.enterAlone(v, excluded: xVertices.count)", "", mode="stmt"),
+    Mutant("bkr_x0", "BronKerboschEvents.swift", "for k in 0 ..< search.xWords { excluded &+= frames[base + 2 * pWords + k].nonzeroBitCount }", "", mode="stmt"),
+    Mutant("bkr_xp", "BronKerboschEvents.swift", "excluded &+= frames[base + pWords + k].nonzeroBitCount", "", mode="stmt"),
+    Mutant("bkr_added", "BronKerboschEvents.swift", "search.clique.count == 1 ? search.clique[0] : search.pVertices[search.clique[search.clique.count - 1]]", "search.clique[0]"),
+    Mutant("bkr_pivotx", "BronKerboschEvents.swift", "member < p ? search.pVertices[member] : search.xVertices[member - p]", "search.pVertices[min(member, p - 1)]"),
 ]

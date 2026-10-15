@@ -45,7 +45,7 @@ for f in /tmp/co/*; do cmp "$f" Tests/ColoringModuleTests/"$(basename "$f")"; do
 |---|---|---|---|
 | BipartiteGraphs | — | `swiftgen.py` | `ref.py` |
 | Centrality | scipy | `gen.py` (all 11 files, including the precondition file) | `ref.py` |
-| Cliques | — | `gen.py` | `ref.py`; `conf_vals.py` prints the conformance literals |
+| Cliques | — | `gen.py` | `ref.py`; `conf_vals.py` prints the conformance literals; `cases_events.py` reproduces `cases_events.out` |
 | ColoringModule | rustworkx | `swiftgen.py` | `ref.py --stress` |
 | CommunityDetection | scipy, igraph | `swiftgen.py` | `ref.py`; `gen.py && ref.py --fill` rebuilds `cases.md` from `cases.head.md` (overwrites it); `draws.py` writes `LeidenDrawTests.swift`; `cases_events.py` reproduces `cases_events.out` |
 | Connectivity/undirected | — | `gen_tests.py` (§A – §G) | `ref.py`; `gen_collapsed.py` prints CN-341's rows |

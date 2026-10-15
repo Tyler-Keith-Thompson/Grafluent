@@ -1,5 +1,34 @@
 import GraphProtocols
 
+/// What the maximal-clique search tells its caller about each Bron–Kerbosch call: nothing for
+/// `MaximalCliques`, which specializes the calls away, and the calls themselves for
+/// `BronKerboschEvents`.
+@usableFromInline
+protocol _BronKerboschObserver {
+    /// A call starts on the frame at `base` of `search`'s frames; its R is `search.clique`.
+    mutating func enter(_ search: _MaximalCliqueSearch, at base: Int)
+    /// The outer call for `v`, whose P is empty and whose X has `excluded` vertices.
+    mutating func enterAlone(_ v: Int, excluded: Int)
+    /// The current call's pivot: member `member` of P ∪ X (P's first).
+    mutating func pivot(_ search: _MaximalCliqueSearch, _ member: Int)
+    /// A maximal clique, as vertex numbers in ascending order.
+    mutating func report(_ clique: [Int])
+    /// The current call returns.
+    mutating func leave()
+}
+
+/// The observer of `MaximalCliques`.
+@frozen
+@usableFromInline
+struct _BronKerboschSilence: _BronKerboschObserver {
+    @inlinable init() {}
+    @inlinable @inline(__always) func enter(_ search: _MaximalCliqueSearch, at base: Int) {}
+    @inlinable @inline(__always) func enterAlone(_ v: Int, excluded: Int) {}
+    @inlinable @inline(__always) func pivot(_ search: _MaximalCliqueSearch, _ member: Int) {}
+    @inlinable @inline(__always) func report(_ clique: [Int]) {}
+    @inlinable @inline(__always) func leave() {}
+}
+
 /// Eppstein–Löffler–Strash's enumeration of maximal cliques, resumable after each clique: for each
 /// vertex v in degeneracy order, Bron–Kerbosch with Tomita's pivot from R = {v}, P = v's neighbors
 /// after it (at most `degeneracy`), X = those before it, so every maximal clique is found once,
@@ -68,12 +97,19 @@ struct _MaximalCliqueSearch: Sendable {
     /// Advances to the next maximal clique, left in `found`; false when done.
     @inlinable
     mutating func next() -> Bool {
+        var silence = _BronKerboschSilence()
+        return next(observer: &silence)
+    }
+
+    /// Advances to the next maximal clique, telling `observer` of every call on the way.
+    @inlinable
+    mutating func next(observer: inout some _BronKerboschObserver) -> Bool {
         while true {
-            if !current.isEmpty, step() { return true }
+            if !current.isEmpty, step(observer: &observer) { return true }
             guard outer < order.count else { return false }
             let v = order[outer]
             outer += 1
-            if start(v) { return true }
+            if start(v, observer: &observer) { return true }
         }
     }
 
@@ -92,7 +128,7 @@ struct _MaximalCliqueSearch: Sendable {
 
     /// Sets up the subproblem of `v`; true when `[v]` alone is a maximal clique (left in `found`).
     @inlinable
-    mutating func start(_ v: Int) -> Bool {
+    mutating func start(_ v: Int, observer: inout some _BronKerboschObserver) -> Bool {
         for u in pVertices { localP[u] = -1 }
         for u in xVertices { localX[u] = -1 }
         pVertices.removeAll(keepingCapacity: true)
@@ -100,8 +136,14 @@ struct _MaximalCliqueSearch: Sendable {
         for k in laterOffsets[v] ..< laterOffsets[v + 1] { pVertices.append(later[k]) }
         for k in rows.offsets[v] ..< rows.offsets[v + 1] where rank[rows.targets[k]] < rank[v] { xVertices.append(rows.targets[k]) }
         if pVertices.isEmpty {
-            guard xVertices.isEmpty else { return false }
+            observer.enterAlone(v, excluded: xVertices.count)
+            guard xVertices.isEmpty else {
+                observer.leave()
+                return false
+            }
             found = [v]
+            observer.report(found)
+            observer.leave()
             return true
         }
         pVertices.sort()
@@ -134,15 +176,18 @@ struct _MaximalCliqueSearch: Sendable {
         frames.append(contentsOf: repeatElement(0, count: frameSize))
         for i in 0 ..< p { frames[i >> 6] |= 1 << UInt64(i & 63) }
         for i in 0 ..< x { frames[2 * pWords + i >> 6] |= 1 << UInt64(i & 63) }
-        choosePivot(at: 0)
+        observer.enter(self, at: 0)
+        observer.pivot(self, choosePivot(at: 0))
         current.append(-1)
         return false
     }
 
     /// Fills the branch set of the frame at `base`: P minus the neighbors of the pivot, the member
-    /// of P ∪ X with most neighbors in P, ties to the least vertex index.
+    /// of P ∪ X with most neighbors in P, ties to the least vertex index. Returns the pivot's member
+    /// number (P's first, then X's).
     @inlinable
-    mutating func choosePivot(at base: Int) {
+    @discardableResult
+    mutating func choosePivot(at base: Int) -> Int {
         let p = pVertices.count
         var best = -1, bestScore = -1, bestVertex = Int.max
         // Members of P and of X ∩ P (both over P's bits), then of X ∩ X₀.
@@ -179,12 +224,13 @@ struct _MaximalCliqueSearch: Sendable {
             }
         }
         for k in 0 ..< pWords { frames[base + 2 * pWords + xWords + k] = frames[base + k] & ~rowsP[best * pWords + k] }
+        return best
     }
 
     /// Runs the search until it reports a clique (left in `found`); false when this subproblem is
     /// done.
     @inlinable
-    mutating func step() -> Bool {
+    mutating func step(observer: inout some _BronKerboschObserver) -> Bool {
         let size = frameSize
         while let top = current.last {
             let base = frames.count - size
@@ -208,6 +254,7 @@ struct _MaximalCliqueSearch: Sendable {
             guard w >= 0 else {
                 frames.removeLast(size)
                 current.removeLast()
+                observer.leave()
                 continue
             }
             current[current.count - 1] = w
@@ -229,6 +276,7 @@ struct _MaximalCliqueSearch: Sendable {
                 frames[child + 2 * pWords + k] = xk
                 if xk != 0 { xEmpty = false }
             }
+            observer.enter(self, at: child)
             if pEmpty {
                 frames.removeLast(size)
                 // A leaf: maximal exactly when nothing excluded extends it.
@@ -237,11 +285,14 @@ struct _MaximalCliqueSearch: Sendable {
                     found.append(clique[0])
                     for local in clique.dropFirst() { found.append(pVertices[local]) }
                     found.sort()
+                    observer.report(found)
+                    observer.leave()
                     return true
                 }
+                observer.leave()
                 continue
             }
-            choosePivot(at: child)
+            observer.pivot(self, choosePivot(at: child))
             current.append(-1)
         }
         return false

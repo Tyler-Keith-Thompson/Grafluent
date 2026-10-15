@@ -17,6 +17,8 @@ representations the package does not have: rows reversed or shuffled, no indices
 ```swift
 extension Graph {
     func maximalCliques() -> MaximalCliques<Self>        // lazy; each clique in `vertices` order
+    func bronKerboschEvents() -> BronKerboschEvents<Self> // lazy; Element BronKerboschEvent<Vertex>: call(adding:candidates:excluded:),
+                                                          // pivot, maximalClique, backtrack
     func maximumClique() -> [Vertex]                     // a largest clique, the search's; [] when empty
     func lexicographicallyFirstMaximumClique() -> [Vertex]   // the least largest, by index; [] when empty
     func cliqueNumber() -> Int                           // ω; 0 when empty
@@ -79,6 +81,8 @@ tests write their oracles inside each test.
 | `DigraphUndirectedTests.swift` | 15 | §F: a reciprocal pair, both orientations of a triangle, a triangle with a reciprocal pendant, through `digraph.undirectedView` |
 | `CliqueRepresentationTests.swift` | 181 | Every undirected catalog graph of §A – §E on `UndirectedAdjacencyList` and `AdjacencyList.undirectedView`, and on 0..<n on `CompressedSparseRow` (symmetric, via a file-private conformer) and `AdjacencyMatrix.undirectedView`. Seven graphs on conformers without indices, with vertex indices only, and with rows reversed. Karate and CQ-122 with `Collider` vertices. Every entry point in each test |
 | `CliquePropertyTests.swift` | 10 | PropertyBased, shrinking, multigraphs with loops and shuffled rows. Maximal cliques against every vertex subset. The maximum clique against every clique, also on dense graphs of 6 – 12 vertices, and on two graphs that pin the maximum clique's witness pass (a stale witness, the last vertex taken without a search). Core numbers, `kCore`, `kShell` and the ordering's defining property against peeling. The exact ordering against api.md's BZ replayed on the simple rows. Triangles, clustering, transitivity and average against vertex triples. `graph.directedView.undirectedView`. 14-vertex simple graphs on `UndirectedAdjacencyList` |
+| `BronKerboschEventsTests.swift` | 3 | CQ-1100 – CQ-1102: Bron–Kerbosch as events on a traced graph (`cases_events.py`), trivial cases and value semantics, seeded dense graphs and a property test against a recursive model and `maximalCliques()` |
+| `Performance/BronKerboschEventsRatioTests.swift` | 1 | CQ-1103: every event within 1.8× of `maximalCliques()` (release) |
 | `Performance/CliqueStressTests.swift` | 6 | §G inside a `Task` with a one-minute limit: the 10⁵ path and star, a 300 × 300 grid, K₁₂₀, moon(8) (6 561 cliques), lcg(2000, 20000, 7) |
 | `CliqueConformanceTests.swift` | 6 | `Sendable` across a `Task` (sequence, iterator, both values). Value semantics after mutating the graph. Iterators that start over, and a copied iterator that resumes on its own. Laziness on a row-counting conformer, and a lazy filter by size. Not a `Collection`. Generic and existential code. No hashing on `UndirectedAdjacencyList` |
 | `CliquePreconditionTests.swift` | 8 | Exit tests: non-vertices on the graph, on both values and through a view (CQ-068, CQ-466); `kCore(-1)` and `kShell(-1)` (CQ-069); every `ofIndex:` member at n and at −1 |
@@ -108,6 +112,7 @@ conformance that the catalog does not list.
 | CQ-401 – CQ-465 | E. Triangles and clustering | `TriangleClusteringTests.swift`; again in `CliqueRepresentationTests.swift` |
 | CQ-466 | E. Not a vertex | `CliquePreconditionTests.swift` |
 | CQ-501 – CQ-515 | F. Directed graphs through `undirectedView` | `DigraphUndirectedTests.swift` |
+| CQ-1100 – CQ-1103 | Bron–Kerbosch as events (not in `cases.md`; CQ-1100 traced by `cases_events.py` into `cases_events.out`) | `BronKerboschEventsTests.swift`, `Performance/BronKerboschEventsRatioTests.swift` |
 | CQ-601 – CQ-633 | G. Large shapes | `Performance/CliqueStressTests.swift`, one test per graph (its rows named as a range) |
 
 ## Not tested

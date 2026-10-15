@@ -218,6 +218,14 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Cliques: maximalCliques() counted, G(2000, 2·10⁴)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(dense.maximalCliques().reduce(0) { n, _ in n + 1 }) }
     }
+    // Every event of the Bron–Kerbosch search, against the plain call above.
+    Benchmark("Cliques: bronKerboschEvents() counted, G(2000, 2·10⁴)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var cliques = 0
+            for case .maximalClique in dense.bronKerboschEvents() { cliques &+= 1 }
+            blackHole(cliques)
+        }
+    }
     Benchmark("Cliques: cliqueNumber(), G(10⁵, 5·10⁵)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(sparse.cliqueNumber()) }
     }
