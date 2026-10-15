@@ -203,7 +203,7 @@ MUTANTS = [
 
     # Mermaid.
     Mutant("mdstylelink", MD, "next < n && _isMermaidID(text[next])", "next < n"),
-    Mutant("mdbudget", MD, "try budget.spend(sources.count &* targets.count, at: link.offset)", "", mode="stmt"),
+    Mutant("mdbudget", MD, "try budget.spend(links, at: link.offset)", "", mode="stmt"),
     Mutant("mdbudgetunit", MD, "budget = _ExpansionBudget(inputCount: n, perByte: 1)", "budget = _ExpansionBudget(inputCount: n, perByte: 16)", mode="stmt"),
 
     # Writers: distinct IDs, keys by scalars.

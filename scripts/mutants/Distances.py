@@ -48,7 +48,7 @@ MUTANTS = [
     Mutant("leasttotal", "Extrema.swift", "if least.map({ t < $0 }) ?? true { least = t }", "if least.map({ t > $0 }) ?? true { least = t }", mode="stmt"),
     Mutant("wienerhalf", "Extrema.swift", "undirected ? total / 2 : total", "total"),
     Mutant("wienerweightedhalf", "Extrema.swift", "undirected ? s + 1 : 0", "0", nth=0),
-    Mutant("pairs", "Extrema.swift", "undirected ? n * (n - 1) / 2 : n * (n - 1)", "n * (n - 1)"),
+    Mutant("pairs", "Extrema.swift", "Double(n) * Double(n - 1) / (undirected ? 2 : 1)", "Double(n) * Double(n - 1)"),
 
     # Measures
     Mutant("pathstart", "Measures.swift", "bounds.lower.firstIndex(of: bounds.maxLower)!", "bounds.lower.lastIndex(of: bounds.maxLower)!"),

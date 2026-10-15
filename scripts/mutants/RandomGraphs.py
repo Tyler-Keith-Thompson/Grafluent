@@ -89,7 +89,7 @@ MUTANTS = [
     # The two draws and the probability check.
     Mutant("uniformscale", D, "Double(g.next() >> 11) * 0x1p-53", "Double(g.next() >> 11) * 0x1p-52"),
     Mutant("uniformbits", D, "Double(g.next() >> 11) * 0x1p-53", "Double(g.next() & 0x1F_FFFF_FFFF_FFFF) * 0x1p-53"),
-    Mutant("belowbits", D, "n.leadingZeroBitCount", "(n - 1).leadingZeroBitCount", nth=1),
+    Mutant("belowbits", D, "n.leadingZeroBitCount", "(n - 1).leadingZeroBitCount", nth=0),
     Mutant("belowshift", D, "Int(truncatingIfNeeded: g.next() >> shift)", "Int(truncatingIfNeeded: g.next() >> (shift + 1))"),
     Mutant("belowaccept", D, "r < n", "r <= n"),
     Mutant("problow", D, "p >= 0 && p <= 1", "p <= 1"),
@@ -308,7 +308,7 @@ MUTANTS = [
     Mutant("egnegative", DS, "d < 0 || d >= p", "d >= p"),
     Mutant("egparity", DS, "!sum.isMultiple(of: 2) || sum > n64 * (n64 - 1)", "sum > n64 * (n64 - 1)"),
     Mutant("egbound", DS, "!sum.isMultiple(of: 2) || sum > n64 * (n64 - 1)", "!sum.isMultiple(of: 2)"),
-    Mutant("egaccept", DS, "let span = Int64(largest + smallest + 1)", "let span = Int64(largest + smallest)"),
+    Mutant("egaccept", DS, "Int64(largest + smallest + 1)", "Int64(largest + smallest)"),
     Mutant("egdurfee", DS, "        if d < k + 1 { return true }", "        if d < k { return true }", mode="stmt"),
     Mutant("egrun", DS, "d < k + run ? d - k : run", "run"),
     Mutant("egleading", DS, "            leading += Int64(taken) * Int64(d)", "            leading += Int64(taken) * Int64(d - 1)", mode="stmt"),
