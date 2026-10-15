@@ -189,6 +189,14 @@ lists each catalog's scripts and Python pins (run through `uv`).
   `inducedSubgraphView(on:)`, `cartesianProductView`). The materialized form shares the root:
   `transposed()`. Reversing every edge is "transposed", never "reversed" (which is the
   standard library's sequence reversal).
+- Step-by-step algorithms live under `graph.lazy` (`LazyDirectedGraphView` / `LazyGraphView` in
+  GraphProtocols; each algorithm module extends them), as `Sequence.lazy` does for `map`. Each
+  member is named for the algorithm whose steps it reports and returns a sequence of `…Event`s:
+  `lazy.breadthFirstSearch`, `lazy.depthFirstSearch` (vertex pairs),
+  `lazy.edgeBreadthFirstSearch`, `lazy.edgeDepthFirstSearch` (edge positions), `lazy.dijkstra`,
+  `lazy.aStar`, `lazy.kruskal`, `lazy.prim`, `lazy.edmondsKarp`, `lazy.louvain`,
+  `lazy.bronKerbosch`, `lazy.kahn`, `lazy.hopcroftKarp`. Events favour useful state over speed;
+  their ratio tests only bound a pathological slowdown (3× the plain call).
 - Results are dedicated types (`ShortestPathTree`, `Components`, `Matching`, `Flow`), not tuples.
   Walk-like results are `Walk`, `Trail`, `Path`, `Circuit`, `Cycle` (vertices plus edge positions).
 - Materializing operations and generators are static factories on a target the caller picks:
@@ -242,6 +250,7 @@ lists each catalog's scripts and Python pins (run through `uv`).
 | `transposedView`, `transposed()` | Every edge reversed (converse, transpose) |
 | `undirectedView` | Directions dropped (underlying graph) |
 | `descendants(of:)`, `ancestors(of:)` | Reachable from / reaching v |
+| `graph.lazy.…` | An algorithm run step by step, as a sequence of its events (BGL's visitor events) |
 | `parent`, `children`, `root`, `depth(of:)`, `height` | Rooted-tree relations; depth counts edges to the root |
 | `Arborescence` | Directed rooted tree, edges away from the root (out-tree) |
 | `Branching`, `minimumSpanningArborescence` | Forest of arborescences; optimum branching / arborescence (Edmonds) |

@@ -46,7 +46,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("UndirectedAdjacencyList: breadthFirstSearch through directed, pushed with forEach") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            graph.directedView.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
+            graph.directedView.lazy.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
             blackHole(discovered)
         }
     }
@@ -323,7 +323,7 @@ let benchmarks: @Sendable () -> Void = {
         Benchmark("UndirectedAdjacencyList layout: breadthFirstSearch through directed, built by \(name)") { benchmark in
             for _ in benchmark.scaledIterations {
                 var discovered = 0
-                graph.directedView.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
+                graph.directedView.lazy.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
                 blackHole(discovered)
             }
         }

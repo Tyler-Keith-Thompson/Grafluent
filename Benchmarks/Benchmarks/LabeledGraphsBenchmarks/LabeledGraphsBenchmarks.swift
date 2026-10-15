@@ -122,14 +122,14 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("LabeledGraphs: BASELINE breadthFirstSearch events on CompressedSparseRow") { benchmark in
         for _ in benchmark.scaledIterations {
             var count = 0
-            for _ in csr.breadthFirstSearch(from: 0) { count &+= 1 }
+            for _ in csr.lazy.breadthFirstSearch(from: 0) { count &+= 1 }
             blackHole(count)
         }
     }
     Benchmark("LabeledGraphs: breadthFirstSearch events on LabeledGraph<String, CompressedSparseRow>") { benchmark in
         for _ in benchmark.scaledIterations {
             var count = 0
-            for _ in labeled.breadthFirstSearch(from: "v0") { count &+= 1 }
+            for _ in labeled.lazy.breadthFirstSearch(from: "v0") { count &+= 1 }
             blackHole(count)
         }
     }

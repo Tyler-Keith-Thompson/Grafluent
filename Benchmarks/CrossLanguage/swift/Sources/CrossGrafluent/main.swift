@@ -131,14 +131,14 @@ func main() {
         let list = AdjacencyList(vertices: 0 ..< n, edges: directedEdges)
         let csr = CompressedSparseRow(vertexCount: n, edges: directedEdges)
         if algorithm == "bfs" {
-            let (a, t1) = measure(repeats) { var c = 0; list.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { c += 1 } }; return c }
+            let (a, t1) = measure(repeats) { var c = 0; list.lazy.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { c += 1 } }; return c }
             report("AdjacencyList", "\(a)", t1)
-            let (b, t2) = measure(repeats) { var c = 0; csr.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { c += 1 } }; return c }
+            let (b, t2) = measure(repeats) { var c = 0; csr.lazy.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { c += 1 } }; return c }
             report("CompressedSparseRow", "\(b)", t2)
         } else {
-            let (a, t1) = measure(repeats) { var c = 0; list.depthFirstSearch(from: 0).forEach { if case .discover = $0 { c += 1 } }; return c }
+            let (a, t1) = measure(repeats) { var c = 0; list.lazy.depthFirstSearch(from: 0).forEach { if case .discover = $0 { c += 1 } }; return c }
             report("AdjacencyList", "\(a)", t1)
-            let (b, t2) = measure(repeats) { var c = 0; csr.depthFirstSearch(from: 0).forEach { if case .discover = $0 { c += 1 } }; return c }
+            let (b, t2) = measure(repeats) { var c = 0; csr.lazy.depthFirstSearch(from: 0).forEach { if case .discover = $0 { c += 1 } }; return c }
             report("CompressedSparseRow", "\(b)", t2)
         }
 
