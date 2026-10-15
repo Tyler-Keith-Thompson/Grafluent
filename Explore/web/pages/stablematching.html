@@ -1,0 +1,24 @@
+<!-- title: Stable matching · Explore Grafluent -->
+<!-- description: Four students and four tutors paired by Gale and Shapley’s deferred acceptance, Grafluent’s galeShapley events step by step, and why the side that asks does better. -->
+<header class="sign">
+  <h1>Stable matching</h1>
+  <p class="question">Each student ranks the tutors and each tutor ranks the students. How do you pair them so that no student and tutor would both rather be together?</p>
+</header>
+<p class="example lead">Example: four students and four tutors, each with a full ranking of the other side. Switch who asks to see a different, equally stable answer.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The rankings above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Ask, hold, trade up</h2>
+  <p>A matching is <b>unstable</b> if some student and tutor who aren’t paired both prefer each other to their partners: they would break away. Gale and Shapley showed in 1962 that a stable matching always exists, and found one by <b>deferred acceptance</b>. Every free member of the asking side asks the best partner who hasn’t turned them down yet. Whoever is asked holds on to the best offer so far, turning the rest down, and trades up whenever someone better asks. Nobody accepts for good until the end.</p>
+  <p>Each asker works down their list and never asks anyone twice, so it ends after at most n² offers. And it is stable: if a student prefers some tutor to their final partner, they asked that tutor first and were turned down, which only happens for someone the tutor liked more.</p>
+  <p>Who asks matters. When students ask, every student gets the best tutor they could have in <em>any</em> stable matching, and every tutor the worst. Swap the sides and the reverse holds. Here, with students asking, Ada gets her third choice; with tutors asking, her last. That is why medical residency matches let the applicants propose.</p>
+
+  <h2><small>Where it breaks</small>Lying, ties and roommates</h2>
+  <p>The asking side can never gain by lying about its rankings, but the answering side sometimes can. With ties in the rankings or incomplete lists, stable matchings can differ in size, and finding the largest is NP-hard. And when there aren’t two sides, as with pairing roommates from one group, a stable matching may not exist at all; Irving’s algorithm finds one when it does. When what matters is pairing as many as possible rather than respecting preferences, use <a href="matching.html">maximum matching</a> instead.</p>
+</section>

@@ -43,6 +43,7 @@ contents and the menu without a link.
 | `mincut` | `minimumCut(capacity:)`, `gomoryHuTree(capacity:)`, `minimumCut(between:and:)` |
 | `mincostflow` | `minimumCostFlow(supply:capacity:cost:)` |
 | `matching` | `bipartition(left:)`, `maximumBipartiteMatching(bipartition:)` |
+| `stablematching` | `galeShapley(proposerPreferences:reviewerPreferences:)`, `stableMatching(proposerPreferences:reviewerPreferences:)` |
 | `coloring` | `greedyColoring(order:)`, `greedyColoring(strategy:)`, `chromaticNumber()`, `minimumColoring()` |
 | `edgecoloring` | `edgeColoring()`, `colorClasses`, `isEdgeColoring(_:)` |
 | `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |

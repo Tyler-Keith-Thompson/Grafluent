@@ -30,6 +30,7 @@ flow|Maximum flow|Assignment|How much a network of pipes can carry.|page
 mincut|Minimum cut|Assignment|The fewest links to cut to split a network.|page
 mincostflow|Minimum-cost flow|Assignment|Shipping from warehouses to shops at least cost.|page
 matching|Bipartite matching|Assignment|Filling as many jobs as possible.|page
+stablematching|Stable matching|Assignment|Pairing two sides so nobody would rather swap.|page
 coloring|Graph coloring|Assignment|Scheduling without clashes.|page
 edgecoloring|Edge coloring|Assignment|A round-robin schedule in the fewest rounds.|page
 pagerank|PageRank|Importance and shape|Which pages matter most.|page
