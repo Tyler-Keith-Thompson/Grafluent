@@ -296,7 +296,7 @@ enum FuzzFlows {
             var path: [Int] = []
             var bottleneck = 0
             var at = s
-            for event in graph.edmondsKarpEvents(from: labels[s], to: labels[t], capacity: capacity) {
+            for event in graph.lazy.edmondsKarp(from: labels[s], to: labels[t], capacity: capacity) {
                 switch event {
                 case .augmentingPath(let edges, let c):
                     check(path.isEmpty && at == (total == 0 ? s : t) && c > 0 && !edges.isEmpty, "events: path \(edges) at \(c): \(context)")

@@ -1,4 +1,4 @@
-// The Edmonds–Karp algorithm as an event sequence (`edmondsKarpEvents`): CLRS's network and a
+// The Edmonds–Karp algorithm as an event sequence (`lazy.edmondsKarp`): CLRS's network and a
 // network whose second path cancels flow, on several representations, the trivial cases, value
 // semantics, the preconditions, and a property test replaying the events against
 // `edmondsKarpMaximumFlow`. Case IDs (FL-9nn) are listed in README.md; the traced rows come from
@@ -36,7 +36,7 @@ struct EdmondsKarpEventsTests {
         ]
         func check<G: DirectedGraph<Int>>(_ graph: G) where G.Edges.Index == Int {
             var asked: [Int] = []
-            let events = graph.edmondsKarpEvents(from: 0, to: 5) { asked.append($0); return raw[$0].2 }
+            let events = graph.lazy.edmondsKarp(from: 0, to: 5) { asked.append($0); return raw[$0].2 }
             #expect(asked == Array(0 ..< 9), "\(G.self)")
             #expect(Array(events) == expected, "\(G.self)")
             let flow = graph.edmondsKarpMaximumFlow(from: 0, to: 5) { raw[$0].2 }
@@ -68,9 +68,9 @@ struct EdmondsKarpEventsTests {
         ]
         var asked: [Int] = []
         let graph = DirectedPseudograph(vertices: 0 ..< 6, edges: edges)
-        #expect(Array(graph.edmondsKarpEvents(from: 0, to: 5) { asked.append($0); return raw[$0].2 }) == expected)
+        #expect(Array(graph.lazy.edmondsKarp(from: 0, to: 5) { asked.append($0); return raw[$0].2 }) == expected)
         #expect(asked == [0, 2, 3, 4, 5, 6, 7, 8])
-        #expect(Array(UnindexedDigraph(vertices: Array(0 ..< 6), edges: edges).edmondsKarpEvents(from: 0, to: 5) { raw[$0].2 }) == expected)
+        #expect(Array(UnindexedDigraph(vertices: Array(0 ..< 6), edges: edges).lazy.edmondsKarp(from: 0, to: 5) { raw[$0].2 }) == expected)
         let flow = graph.edmondsKarpMaximumFlow(from: 0, to: 5) { raw[$0].2 }
         #expect(raw.indices.map { flow.flow(ofEdgeAt: $0) } == [1, 0, 0, 1, 1, 1, 1, 1, 0])
         #expect(expected[7].description == "cancel(2, 1)")
@@ -79,11 +79,11 @@ struct EdmondsKarpEventsTests {
     @Test("FL-902 no augmenting path: no events; zero capacities; Double capacities")
     func trivial() {
         let apart = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 1, to: 2)])
-        #expect(Array(apart.edmondsKarpEvents(from: 0, to: 2) { _ in 4 }).isEmpty)
+        #expect(Array(apart.lazy.edmondsKarp(from: 0, to: 2) { _ in 4 }).isEmpty)
         let zero = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
-        #expect(Array(zero.edmondsKarpEvents(from: 0, to: 1) { _ in 0 }).isEmpty)
+        #expect(Array(zero.lazy.edmondsKarp(from: 0, to: 1) { _ in 0 }).isEmpty)
         let named = AdjacencyList(vertices: ["s", "a", "t"], edges: [DirectedEdge(from: "s", to: "a"), DirectedEdge(from: "a", to: "t")])
-        let events = Array(named.edmondsKarpEvents(from: "s", to: "t") { [1.5, 0.5][$0] })
+        let events = Array(named.lazy.edmondsKarp(from: "s", to: "t") { [1.5, 0.5][$0] })
         #expect(events == [.augmentingPath([0, 1], bottleneck: 0.5), .push(0, amount: 0.5), .push(1, amount: 0.5)])
         #expect(Set(events).count == 3)
     }
@@ -92,7 +92,7 @@ struct EdmondsKarpEventsTests {
     func valueSemantics() {
         var graph = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
         var capacities = [3, 2]
-        let events = graph.edmondsKarpEvents(from: 0, to: 2) { capacities[$0] }
+        let events = graph.lazy.edmondsKarp(from: 0, to: 2) { capacities[$0] }
         capacities = [0, 0]
         _ = graph.insert(edge: DirectedEdge(from: 0, to: 2))
         let first = Array(events)
@@ -108,27 +108,27 @@ struct EdmondsKarpEventsTests {
     func preconditions() async {
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.edmondsKarpEvents(from: 0, to: 0) { _ in 1 }
+            _ = graph.lazy.edmondsKarp(from: 0, to: 0) { _ in 1 }
         }
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.edmondsKarpEvents(from: 0, to: 7) { _ in 1 }
+            _ = graph.lazy.edmondsKarp(from: 0, to: 7) { _ in 1 }
         }
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.edmondsKarpEvents(from: 0, to: 1) { _ in -1 }
+            _ = graph.lazy.edmondsKarp(from: 0, to: 1) { _ in -1 }
         }
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.edmondsKarpEvents(from: 0, to: 1) { _ in Double.nan }
+            _ = graph.lazy.edmondsKarp(from: 0, to: 1) { _ in Double.nan }
         }
         await #expect(processExitsWith: .failure) {
             let graph = DirectedPseudograph(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 1)])
-            _ = graph.edmondsKarpEvents(from: 0, to: 1) { _ in Int.max }
+            _ = graph.lazy.edmondsKarp(from: 0, to: 1) { _ in Int.max }
         }
         // Edges into the source do not count toward its sum.
         let graph = DirectedPseudograph(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0), DirectedEdge(from: 0, to: 0)])
-        #expect(Array(graph.edmondsKarpEvents(from: 0, to: 1) { _ in Int.max }) == [.augmentingPath([0], bottleneck: .max), .push(0, amount: .max)])
+        #expect(Array(graph.lazy.edmondsKarp(from: 0, to: 1) { _ in Int.max }) == [.augmentingPath([0], bottleneck: .max), .push(0, amount: .max)])
     }
 
     @Test("FL-905 property: pushes less cancellations are edmondsKarpMaximumFlow's flows; bottlenecks add up to its value; paths are residual s–t paths", .tags(.randomized))
@@ -144,7 +144,7 @@ struct EdmondsKarpEventsTests {
                 var pending: [Int] = []
                 var bottleneck = 0
                 var at = 0
-                for event in graph.edmondsKarpEvents(from: 0, to: 6, capacity: { raw[$0].2 }) {
+                for event in graph.lazy.edmondsKarp(from: 0, to: 6, capacity: { raw[$0].2 }) {
                     switch event {
                     case .augmentingPath(let path, let c):
                         #expect(pending.isEmpty && c > 0 && !path.isEmpty, "\(name)")

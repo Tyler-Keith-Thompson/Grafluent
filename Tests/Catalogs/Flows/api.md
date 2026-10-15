@@ -89,7 +89,7 @@ extension DirectedGraph {
     /// Edmonds–Karp as a lazy sequence of events (directed only): each augmenting path with its
     /// bottleneck, then `push` or `cancel` on each of its edges from the source end. The pushes
     /// less the cancellations are `edmondsKarpMaximumFlow`'s flows. O(n m²) to iterate.
-    public func edmondsKarpEvents<C: Comparable & AdditiveArithmetic>(
+    public func lazy.edmondsKarp<C: Comparable & AdditiveArithmetic>(
         from source: Vertex, to sink: Vertex, capacity: (Edges.Index) -> C) -> EdmondsKarpEvents<Self, C>
 
     /// Dinic's blocking flows with current-arc pointers. O(n² m); O(m √n) on unit networks;

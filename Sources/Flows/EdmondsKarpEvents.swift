@@ -191,23 +191,33 @@ public struct EdmondsKarpEvents<G: DirectedGraph, C: Comparable & AdditiveArithm
     }
 }
 
-extension DirectedGraph {
+extension LazyDirectedGraphView {
     /// The Edmonds–Karp algorithm from `source` to `sink`, as a sequence of events: each shortest
     /// augmenting path with its bottleneck, then the flow pushed or cancelled on each of its edges.
     /// See `EdmondsKarpEvent` for the order.
     ///
     /// The flows sent are those of `edmondsKarpMaximumFlow(from:to:capacity:)`. `capacity` is
     /// called once per non-loop edge, in position order, while the sequence is made, and is not
-    /// kept. Self-loops carry no flow and never appear.
+    /// kept. Base-loops carry no flow and never appear.
     ///
     /// - Complexity: O(n + m) to make the sequence and each iterator; O(n m²) to iterate every
     ///   event.
     /// - Precondition: `source` and `sink` are distinct vertices; every capacity is at least zero,
     ///   not NaN and finite; the capacities out of `source` sum without overflow.
     @inlinable
+    public func edmondsKarp<C: Comparable & AdditiveArithmetic>(
+        from source: Base.Vertex, to sink: Base.Vertex, capacity: (Base.Edges.Index) -> C
+    ) -> EdmondsKarpEvents<Base, C> {
+        EdmondsKarpEvents(graph: base, source: source, sink: sink, capacity: capacity)
+    }
+}
+
+extension DirectedGraph {
+    /// `lazy.edmondsKarp(from:to:capacity:)`.
+    @inlinable
     public func edmondsKarpEvents<C: Comparable & AdditiveArithmetic>(
         from source: Vertex, to sink: Vertex, capacity: (Edges.Index) -> C
     ) -> EdmondsKarpEvents<Self, C> {
-        EdmondsKarpEvents(graph: self, source: source, sink: sink, capacity: capacity)
+        lazy.edmondsKarp(from: source, to: sink, capacity: capacity)
     }
 }

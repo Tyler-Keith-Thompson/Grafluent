@@ -164,7 +164,7 @@ let benchmarks: @Sendable () -> Void = {
         Benchmark("Flows: edmondsKarpEvents, every event, \(name)", configuration: .init(maxDuration: .seconds(5), maxIterations: 3)) { benchmark in
             for _ in benchmark.scaledIterations {
                 var sent = 0
-                for event in graph.edmondsKarpEvents(from: s, to: t, capacity: { capacities[$0] }) {
+                for event in graph.lazy.edmondsKarp(from: s, to: t, capacity: { capacities[$0] }) {
                     if case .augmentingPath(_, let c) = event { sent &+= Int(c) }
                 }
                 blackHole(sent)

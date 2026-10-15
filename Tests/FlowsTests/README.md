@@ -22,7 +22,7 @@ extension DirectedGraph {   // and the same on Graph, results over `DirectedView
     func maximumFlow<C>(from:to:capacity:) -> Flow<Self, C>              // C: Comparable & AdditiveArithmetic
     func maximumFlowValue<C>(from:to:capacity:) -> C
     func edmondsKarpMaximumFlow<C>(from:to:capacity:) -> Flow<Self, C>   // per-edge flow pinned
-    func edmondsKarpEvents<C>(from:to:capacity:) -> EdmondsKarpEvents<Self, C>   // DirectedGraph only; lazy;
+    func lazy.edmondsKarp<C>(from:to:capacity:) -> EdmondsKarpEvents<Self, C>   // DirectedGraph only; lazy;
         // Element EdmondsKarpEvent<Edges.Index, C>: augmentingPath(edges, bottleneck:), push(e, amount:), cancel(e, amount:)
     func dinicMaximumFlow<C>(from:to:dynamicTrees: Bool = false, capacity:) -> Flow<Self, C>
     func boykovKolmogorovMaximumFlow<C>(from:to:capacity:) -> Flow<Self, C>
