@@ -1,0 +1,37 @@
+<!-- title: Travelling salesman · Explore Grafluent -->
+<!-- description: Eleven towns and the shortest round trip through them: Grafluent’s nearest-neighbour, 2-opt, simulated annealing and Christofides tours against the exact one, and 2-opt’s swaps step by step. -->
+<header class="sign">
+  <h1>Travelling salesman</h1>
+  <p class="question">What is the shortest round trip that visits every town once and comes home?</p>
+</header>
+<p class="example lead">Example: eleven towns, every pair joined by a straight road. There are 1,814,400 different round trips through them. Quick rules of thumb get close to the shortest; finding the shortest itself gets out of hand fast as towns are added.</p>
+
+<h2 class="labhead"><small>Try it</small>Five ways to plan the trip</h2>
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The towns above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<h2 class="labhead"><small>Step through</small>Build greedily, then untangle</h2>
+<div id="steps"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The steps above, in Grafluent</h2>
+  <pre id="code-steps" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>A good tour fast, then a better one</h2>
+  <p><b>Nearest neighbour</b> is what most people do by hand: always go to the closest town you haven’t been to. It takes a moment, and it usually lands within a quarter or so of the shortest. Its weakness is the end, when the only towns left are far apart and the road home is long.</p>
+  <p><b>2-opt</b> repairs a tour. Two roads that cross can always be swapped for two that don’t, and the swap is shorter: take two roads A–B and C–D, replace them with A–C and B–D, and turn the stretch from B to C around so the tour still joins up. Repeat while any swap saves distance. The result has no crossings and is usually within a few percent of the shortest. <b>Simulated annealing</b> makes random changes instead, and sometimes accepts one that makes the tour longer, less often as it “cools”, so it can get out of a tour that no single change improves.</p>
+  <p><b>Christofides’</b> method comes with a promise: on straight-line distances it is never more than one and a half times the shortest. It joins the towns by a <a href="mst.html">minimum spanning tree</a>, pairs up the towns where the tree has an odd number of roads, walks the result as an <a href="euler.html">Euler circuit</a>, and skips towns it has already seen. The shortest tour itself comes from <code>shortestTour(weight:)</code>, Held and Karp’s dynamic programming: the best way to visit each subset of towns ending at each town, built up from smaller subsets.</p>
+
+  <h2><small>Where it breaks</small>Twice as many towns, a thousand times the work</h2>
+  <p>Held–Karp’s table has an entry for every subset of towns, so each town added doubles it. Eleven towns are instant; twenty need tens of megabytes; thirty would need more memory than any computer has. No known method finds the shortest tour quickly for every map: the problem is NP-hard. That is why the heuristics matter, and why the good ones, run on thousands of towns, are judged by how close they get rather than by whether they are exact.</p>
+  <p>The heuristics also lean on the map being sensible. Christofides’ promise needs the triangle inequality, that going direct is never longer than going through a third town. With one-way streets, tolls or ferries that break it, the guarantee is gone, though the tour is still a tour.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>
