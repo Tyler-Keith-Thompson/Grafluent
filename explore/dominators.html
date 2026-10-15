@@ -39,7 +39,7 @@
   </nav>
 <header class="sign">
   <h1>Dominators</h1>
-  <div class="say"><span>Say it</span><b>LENG-ow-er TAR-jun</b><span class="ipa">/ˈlɛŋaʊ̯ɐ ˈtɑːrdʒən/</span></div>
+  <div class="say"><span>Say it</span><b>LENG-ow-er</b><span class="ipa">/ˈlɛŋaʊ̯ɐ/</span></div>
   <p class="question">Which parts of a program are sure to have run by the time it reaches a given line?</p>
 </header>
 <p class="example lead">Example: a function that adds up the numbers in a file, line by line, warning about lines that aren’t numbers and giving up after too many. Each <b>block</b> is a run of code with no jumps in it; the arrows are the jumps. A block <b>dominates</b> another when every path from the entry to the second passes through the first.</p>
@@ -148,7 +148,7 @@ closed.remove(block)
   <p>Dominance is about the jumps as drawn, not about the values that choose between them. Here <code>give up</code> only ever follows several warnings, but the graph sees one arrow from <code>warn</code> and no count. What dominators promise holds on every path through the graph, which is why a compiler can rely on them; facts that depend on the data are beyond them.</p>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
-  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Lengauer–Tarjan</b><span class="how">LENG-ow-er TAR-jun</span><span class="ipa">/ˈlɛŋaʊ̯ɐ ˈtɑːrdʒən/</span><span class="what">Thomas Lengauer and Robert Tarjan: every immediate dominator from one depth-first search</span></div></div></div>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Lengauer</b><span class="how">LENG-ow-er</span><span class="ipa">/ˈlɛŋaʊ̯ɐ/</span><span class="what">Thomas Lengauer: every immediate dominator from one depth-first search, with Robert Tarjan</span></div></div></div>
 </section>
 <nav class="pager" aria-label="Pages"><a class="prev" href="bridges.html"><span>Previous</span>Bridges and articulation points</a><a class="next" href="euler.html"><span>Next</span>Euler tours</a></nav>
 </div>
