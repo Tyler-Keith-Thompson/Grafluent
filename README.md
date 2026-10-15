@@ -5,7 +5,14 @@ types, graph classes that enforce their invariants, and a broad set of graph alg
 shortest paths and connectivity to flows, matching, isomorphism and layout.
 
 [Documentation](https://tyler-keith-thompson.github.io/Grafluent/documentation/) ·
-[Explore](https://tyler-keith-thompson.github.io/Grafluent/explore/), interactive pages that run Grafluent in the browser
+[Explore](https://tyler-keith-thompson.github.io/Grafluent/explore/)
+
+## Explore graph algorithms
+
+[Explore Grafluent](https://tyler-keith-thompson.github.io/Grafluent/explore/) is a set of
+interactive pages that run the library in your browser, compiled to WebAssembly. Each page takes
+one algorithm, such as breadth-first search, Dijkstra, A*, minimum spanning trees or PageRank, and
+lets you step through it on a small example you can edit, beside the Swift code that runs it.
 
 ## Why Grafluent
 
