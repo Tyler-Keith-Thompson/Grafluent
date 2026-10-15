@@ -25,9 +25,9 @@ extension Graph
     func primMinimumSpanningTree(weight:) -> SpanningForest<Self, W>                         // a forest; restarts in vertices order; ties unspecified
     func primMinimumSpanningTree(from root: Vertex, weight:) -> SpanningForest<Self, W>      // root's component only
     func boruvkaMinimumSpanningTree(weight:) -> SpanningForest<Self, W>                      // canonical edge set, by round
-    func kruskalEvents(weight:) -> KruskalEvents<Self, W>                                    // lazy; Element KruskalEvent<Vertex, Edges.Index, W>
-    func primEvents(weight: @escaping (Edges.Index) -> W) -> PrimEvents<Self, W>             // lazy; Element PrimEvent<Vertex, Edges.Index, W>
-    func primEvents(from root: Vertex, weight:) -> PrimEvents<Self, W>
+    func lazy.kruskal(weight:) -> KruskalEvents<Self, W>                                    // lazy; Element KruskalEvent<Vertex, Edges.Index, W>
+    func lazy.prim(weight: @escaping (Edges.Index) -> W) -> PrimEvents<Self, W>             // lazy; Element PrimEvent<Vertex, Edges.Index, W>
+    func lazy.prim(from root: Vertex, weight:) -> PrimEvents<Self, W>
 
     func randomSpanningTree(using:) -> SpanningForest<Self, Int>                             // uniform (Wilson); edges in joining order
     func randomSpanningTree(weight:using:) -> SpanningForest<Self, W>                        // W: BinaryFloatingPoint; ∝ the product of the weights

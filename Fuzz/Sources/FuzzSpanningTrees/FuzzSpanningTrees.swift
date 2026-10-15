@@ -128,7 +128,7 @@ enum FuzzSpanningTrees {
             var kruskalTree: [G.Edges.Index] = []
             var examined: [Int] = []
             var undecided = false
-            for event in graph.kruskalEvents(weight: { byPosition[$0]! }) {
+            for event in graph.lazy.kruskal(weight: { byPosition[$0]! }) {
                 switch event {
                 case .examineEdge(let p, let w):
                     check(!undecided && w == byPosition[p]!, "\(name) Kruskal events: examineEdge(\(p), \(w)) out of turn")
@@ -145,7 +145,7 @@ enum FuzzSpanningTrees {
             }
             check(!undecided && kruskalTree == kruskal.edges, "\(name) Kruskal events' tree \(kruskalTree.map(rankOf)), plain \(kruskal.edges.map(rankOf))")
             check(examined.map { edges[$0].2 } == examined.map { edges[$0].2 }.sorted(), "\(name) Kruskal events out of weight order")
-            for (events, plain, label) in [(graph.primEvents(weight: { byPosition[$0]! }), prim, "every vertex"), (graph.primEvents(from: root, weight: { byPosition[$0]! }), rooted, "\(root)")] {
+            for (events, plain, label) in [(graph.lazy.prim(weight: { byPosition[$0]! }), prim, "every vertex"), (graph.lazy.prim(from: root, weight: { byPosition[$0]! }), rooted, "\(root)")] {
                 var joined: [G.Edges.Index] = []
                 var starts = 0
                 for event in events {

@@ -184,7 +184,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("SpanningTrees: kruskalEvents, every event, G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations {
             var sum = 0
-            for event in graph.kruskalEvents(weight: { weights[$0] }) {
+            for event in graph.lazy.kruskal(weight: { weights[$0] }) {
                 if case .treeEdge(let e, _, _) = event { sum &+= weights[e] }
             }
             blackHole(sum)
@@ -193,7 +193,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("SpanningTrees: primEvents, every event, G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations {
             var sum = 0
-            for event in graph.primEvents(weight: { weights[$0] }) {
+            for event in graph.lazy.prim(weight: { weights[$0] }) {
                 if case .examine(_, _, let w) = event { sum &+= w }
             }
             blackHole(sum)

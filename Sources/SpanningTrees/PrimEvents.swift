@@ -198,7 +198,7 @@ public struct PrimEvents<G: Graph, W: Comparable & AdditiveArithmetic>: Sequence
     }
 }
 
-extension Graph {
+extension LazyGraphView {
     /// Prim's algorithm over every component, as a sequence of events: each tree started, each
     /// vertex examined as it joins, each edge to an unspanned vertex examined and relaxed or not,
     /// and each vertex finished. See `PrimEvent` for the order.
@@ -211,10 +211,10 @@ extension Graph {
     ///   expected to make the sequence when the graph has no vertex indices.
     /// - Precondition: while iterating, no examined weight is NaN.
     @inlinable
-    public func primEvents<W: Comparable & AdditiveArithmetic>(
-        weight: @escaping (Edges.Index) -> W
-    ) -> PrimEvents<Self, W> {
-        PrimEvents(graph: self, root: nil, weight: weight)
+    public func prim<W: Comparable & AdditiveArithmetic>(
+        weight: @escaping (Base.Edges.Index) -> W
+    ) -> PrimEvents<Base, W> {
+        PrimEvents(graph: base, root: nil, weight: weight)
     }
 
     /// Prim's algorithm over `root`'s component, from `root`, as a sequence of events.
@@ -222,11 +222,29 @@ extension Graph {
     /// The edges of the `examine` events, in order, are
     /// `primMinimumSpanningTree(from:weight:).edges`.
     ///
-    /// - Precondition: `contains(root)`; weights as for `primEvents(weight:)`.
+    /// - Precondition: `contains(root)`; weights as for `prim(weight:)`.
+    @inlinable
+    public func prim<W: Comparable & AdditiveArithmetic>(
+        from root: Base.Vertex, weight: @escaping (Base.Edges.Index) -> W
+    ) -> PrimEvents<Base, W> {
+        PrimEvents(graph: base, root: root, weight: weight)
+    }
+}
+
+extension Graph {
+    /// `lazy.prim(weight:)`.
+    @inlinable
+    public func primEvents<W: Comparable & AdditiveArithmetic>(
+        weight: @escaping (Edges.Index) -> W
+    ) -> PrimEvents<Self, W> {
+        lazy.prim(weight: weight)
+    }
+
+    /// `lazy.prim(from:weight:)`.
     @inlinable
     public func primEvents<W: Comparable & AdditiveArithmetic>(
         from root: Vertex, weight: @escaping (Edges.Index) -> W
     ) -> PrimEvents<Self, W> {
-        PrimEvents(graph: self, root: root, weight: weight)
+        lazy.prim(from: root, weight: weight)
     }
 }

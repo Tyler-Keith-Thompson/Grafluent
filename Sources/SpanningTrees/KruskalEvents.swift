@@ -113,22 +113,32 @@ public struct KruskalEvents<G: Graph, W: Comparable & AdditiveArithmetic>: Seque
     }
 }
 
-extension Graph {
+extension LazyGraphView {
     /// Kruskal's algorithm as a sequence of events: each edge examined in sorted order, then
     /// taken as a tree edge or skipped as a non-tree edge, with the union–find roots of the
     /// components involved. See `KruskalEvent` for the order.
     ///
     /// The tree edges, in the order reported, are `kruskalMinimumSpanningTree(weight:).edges`.
-    /// `weight` is called once for each edge that is not a self-loop, while the sequence is made,
+    /// `weight` is called once for each edge that is not a base-loop, while the sequence is made,
     /// and is not kept.
     ///
     /// - Complexity: O(m log m) to make the sequence; O(m α(n)) to iterate every event; O(n) to
     ///   make each iterator.
     /// - Precondition: no weight is NaN.
     @inlinable
+    public func kruskal<W: Comparable & AdditiveArithmetic>(
+        weight: (Base.Edges.Index) -> W
+    ) -> KruskalEvents<Base, W> {
+        KruskalEvents(graph: base, weight: weight)
+    }
+}
+
+extension Graph {
+    /// `lazy.kruskal(weight:)`.
+    @inlinable
     public func kruskalEvents<W: Comparable & AdditiveArithmetic>(
         weight: (Edges.Index) -> W
     ) -> KruskalEvents<Self, W> {
-        KruskalEvents(graph: self, weight: weight)
+        lazy.kruskal(weight: weight)
     }
 }

@@ -1,4 +1,4 @@
-// Kruskal's and Prim's algorithms as event sequences (`kruskalEvents`, `primEvents`): Wikipedia's
+// Kruskal's and Prim's algorithms as event sequences (`lazy.kruskal`, `lazy.prim`): Wikipedia's
 // graph and a multigraph traced by hand on several representations, the trivial cases, early
 // stopping and value semantics, the preconditions, and property tests replaying the events
 // against `kruskalMinimumSpanningTree` and `primMinimumSpanningTree`. Case IDs (ST-nn) refer to
@@ -64,10 +64,10 @@ struct SpanningTreeEventTests {
         ]
         let edges = wiki.map { UndirectedEdge($0.0, $0.1) }
         let list = UndirectedAdjacencyList(vertices: 0 ..< 7, edges: edges)
-        #expect(Array(list.kruskalEvents { wiki[$0].2 }) == expected)
-        #expect(Array(ReferencePseudograph(vertices: 0 ..< 7, edges: edges).kruskalEvents { wiki[$0].2 }) == expected)
-        #expect(Array(PlainGraph(vertices: Array(0 ..< 7), edges: edges).kruskalEvents { wiki[$0].2 }) == expected)
-        #expect(Array(VertexIndexedGraph(vertices: Array(0 ..< 7), edges: edges).kruskalEvents { wiki[$0].2 }) == expected)
+        #expect(Array(list.lazy.kruskal { wiki[$0].2 }) == expected)
+        #expect(Array(ReferencePseudograph(vertices: 0 ..< 7, edges: edges).lazy.kruskal { wiki[$0].2 }) == expected)
+        #expect(Array(PlainGraph(vertices: Array(0 ..< 7), edges: edges).lazy.kruskal { wiki[$0].2 }) == expected)
+        #expect(Array(VertexIndexedGraph(vertices: Array(0 ..< 7), edges: edges).lazy.kruskal { wiki[$0].2 }) == expected)
         // String vertices without indices: roots are named by their vertices.
         let names = ["a", "b", "c", "d", "e", "f", "g"]
         let named = PlainGraph(vertices: names, edges: wiki.map { UndirectedEdge(names[$0.0], names[$0.1]) })
@@ -78,7 +78,7 @@ struct SpanningTreeEventTests {
             case .nonTreeEdge(let e, let r): .nonTreeEdge(e, root: names[r])
             }
         }
-        #expect(Array(named.kruskalEvents { wiki[$0].2 }) == renamed)
+        #expect(Array(named.lazy.kruskal { wiki[$0].2 }) == renamed)
         let treeEdges = expected.compactMap { event -> Int? in if case .treeEdge(let e, _, _) = event { e } else { nil } }
         #expect(treeEdges == list.kruskalMinimumSpanningTree { wiki[$0].2 }.edges)
         #expect(expected.map(\.description).prefix(4) == ["examineEdge(1, 5)", "treeEdge(1, 3 → 0)", "examineEdge(5, 5)", "treeEdge(5, 4 → 2)"])
@@ -99,26 +99,26 @@ struct SpanningTreeEventTests {
         ]
         let edges = raw.map { UndirectedEdge($0.0, $0.1) }
         var weighed: [Int] = []
-        let events = Array(ReferencePseudograph(vertices: 0 ..< 7, edges: edges).kruskalEvents { weighed.append($0); return raw[$0].2 })
+        let events = Array(ReferencePseudograph(vertices: 0 ..< 7, edges: edges).lazy.kruskal { weighed.append($0); return raw[$0].2 })
         #expect(events == expected)
         #expect(weighed.sorted() == [1, 2, 3, 4, 5, 6, 7], "the self-loop is never weighed")
-        #expect(Array(PlainGraph(vertices: Array(0 ..< 7), edges: edges).kruskalEvents { raw[$0].2 }) == expected)
+        #expect(Array(PlainGraph(vertices: Array(0 ..< 7), edges: edges).lazy.kruskal { raw[$0].2 }) == expected)
     }
 
     @Test("ST-252 Kruskal, trivial: no vertices, one vertex with a loop, a tree whose last edge ends the run")
     func kruskalTrivial() {
         let empty = UndirectedAdjacencyList<Int>(vertices: [])
-        #expect(Array(empty.kruskalEvents { _ in 1 }).isEmpty)
+        #expect(Array(empty.lazy.kruskal { _ in 1 }).isEmpty)
         let loop = ReferencePseudograph(vertices: [0], edges: [UndirectedEdge(0, 0)])
-        #expect(Array(loop.kruskalEvents { _ in 1 }).isEmpty)
+        #expect(Array(loop.lazy.kruskal { _ in 1 }).isEmpty)
         let isolated = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [])
-        #expect(Array(isolated.kruskalEvents { _ in 1 }).isEmpty)
+        #expect(Array(isolated.lazy.kruskal { _ in 1 }).isEmpty)
         // A path 0–1 (weight 1) plus a heavier 1–0 copy: after n − 1 = 1 tree edge nothing more is examined.
         let pair = ReferencePseudograph(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 0)])
-        #expect(Array(pair.kruskalEvents { [1, 5][$0] }) == [.examineEdge(0, weight: 1), .treeEdge(0, merging: 1, into: 0)])
+        #expect(Array(pair.lazy.kruskal { [1, 5][$0] }) == [.examineEdge(0, weight: 1), .treeEdge(0, merging: 1, into: 0)])
         // Equal weights: position order; the tie in set sizes keeps the smaller root.
         let triangle = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(1, 2), UndirectedEdge(0, 1), UndirectedEdge(0, 2)])
-        #expect(Array(triangle.kruskalEvents { _ in 0.5 }) == [
+        #expect(Array(triangle.lazy.kruskal { _ in 0.5 }) == [
             .examineEdge(0, weight: 0.5), .treeEdge(0, merging: 2, into: 1),
             .examineEdge(1, weight: 0.5), .treeEdge(1, merging: 0, into: 1),
         ])
@@ -128,7 +128,7 @@ struct SpanningTreeEventTests {
     func kruskalValueSemantics() {
         var graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
         let weights = [2, 1, 0]
-        let events = graph.kruskalEvents { weights[$0] }
+        let events = graph.lazy.kruskal { weights[$0] }
         _ = graph.insert(edge: UndirectedEdge(0, 2))
         let first = Array(events)
         #expect(first == [.examineEdge(1, weight: 1), .treeEdge(1, merging: 2, into: 1), .examineEdge(0, weight: 2), .treeEdge(0, merging: 0, into: 1)])
@@ -142,7 +142,7 @@ struct SpanningTreeEventTests {
     func kruskalPreconditions() async {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
-            _ = graph.kruskalEvents { _ in Double.nan }
+            _ = graph.lazy.kruskal { _ in Double.nan }
         }
     }
 
@@ -152,7 +152,7 @@ struct SpanningTreeEventTests {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7), Gen.int(in: -3 ... 6)).array(of: 0 ... 30)
         await propertyCheck(count: 300, input: edges) { raw in
             let graph = ReferencePseudograph(vertices: 0 ..< 8, edges: raw.map { UndirectedEdge($0.0, $0.1) })
-            let events = Array(graph.kruskalEvents { raw[$0].2 })
+            let events = Array(graph.lazy.kruskal { raw[$0].2 })
             let forest = graph.kruskalMinimumSpanningTree { raw[$0].2 }
             // The components of the edges taken so far, by a union–find with no ranks.
             var parent = Array(0 ..< 8)
@@ -218,11 +218,11 @@ struct SpanningTreeEventTests {
         ]
         let edges = wiki.map { UndirectedEdge($0.0, $0.1) }
         let list = UndirectedAdjacencyList(vertices: 0 ..< 7, edges: edges)
-        #expect(Array(list.primEvents { wiki[$0].2 }) == expected)
-        #expect(Array(ReferencePseudograph(vertices: 0 ..< 7, edges: edges).primEvents { wiki[$0].2 }) == expected)
-        #expect(Array(PlainGraph(vertices: Array(0 ..< 7), edges: edges).primEvents { wiki[$0].2 }) == expected)
-        #expect(Array(VertexIndexedGraph(vertices: Array(0 ..< 7), edges: edges).primEvents { wiki[$0].2 }) == expected)
-        #expect(Array(list.primEvents(from: 0) { wiki[$0].2 }) == expected)
+        #expect(Array(list.lazy.prim { wiki[$0].2 }) == expected)
+        #expect(Array(ReferencePseudograph(vertices: 0 ..< 7, edges: edges).lazy.prim { wiki[$0].2 }) == expected)
+        #expect(Array(PlainGraph(vertices: Array(0 ..< 7), edges: edges).lazy.prim { wiki[$0].2 }) == expected)
+        #expect(Array(VertexIndexedGraph(vertices: Array(0 ..< 7), edges: edges).lazy.prim { wiki[$0].2 }) == expected)
+        #expect(Array(list.lazy.prim(from: 0) { wiki[$0].2 }) == expected)
         let joined = expected.compactMap { event -> Int? in if case .examine(_, let e?, _) = event { e } else { nil } }
         #expect(joined == list.primMinimumSpanningTree { wiki[$0].2 }.edges)
         #expect(expected.prefix(3).map(\.description) == ["startVertex(0)", "examine(0)", "examineEdge(0, 7)"])
@@ -250,19 +250,19 @@ struct SpanningTreeEventTests {
         let edges = raw.map { UndirectedEdge($0.0, $0.1) }
         var weighed: [Int] = []
         let graph = ReferencePseudograph(vertices: 0 ..< 7, edges: edges)
-        #expect(Array(graph.primEvents { weighed.append($0); return raw[$0].2 }) == expected)
+        #expect(Array(graph.lazy.prim { weighed.append($0); return raw[$0].2 }) == expected)
         #expect(weighed.sorted() == [1, 2, 3, 4, 5, 6, 7], "the self-loop is never weighed")
-        #expect(Array(PlainGraph(vertices: Array(0 ..< 7), edges: edges).primEvents { raw[$0].2 }) == expected)
+        #expect(Array(PlainGraph(vertices: Array(0 ..< 7), edges: edges).lazy.prim { raw[$0].2 }) == expected)
         // From 5: that component only.
-        #expect(Array(graph.primEvents(from: 5) { raw[$0].2 }) == Array(expected.suffix(7)))
-        #expect(Array(PlainGraph(vertices: Array(0 ..< 7), edges: edges).primEvents(from: 4) { raw[$0].2 }) == [.startVertex(4), .examine(4, edge: nil, weight: 0), .finish(4)])
+        #expect(Array(graph.lazy.prim(from: 5) { raw[$0].2 }) == Array(expected.suffix(7)))
+        #expect(Array(PlainGraph(vertices: Array(0 ..< 7), edges: edges).lazy.prim(from: 4) { raw[$0].2 }) == [.startVertex(4), .examine(4, edge: nil, weight: 0), .finish(4)])
     }
 
     @Test("ST-262 Prim, trivial and value semantics: no vertices; a later insertion changes nothing; each iterator starts over; stopping early")
     func primTrivial() {
-        #expect(Array(UndirectedAdjacencyList<Int>(vertices: []).primEvents { _ in 1 }).isEmpty)
+        #expect(Array(UndirectedAdjacencyList<Int>(vertices: []).lazy.prim { _ in 1 }).isEmpty)
         var graph = UndirectedAdjacencyList(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
-        let events = graph.primEvents { _ in 3.5 }
+        let events = graph.lazy.prim { _ in 3.5 }
         _ = graph.insert(edge: UndirectedEdge(1, 1))
         let first = Array(events)
         #expect(first == [
@@ -277,21 +277,21 @@ struct SpanningTreeEventTests {
     func primPreconditions() async {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
-            for _ in graph.primEvents(weight: { _ in Double.nan }) {}
+            for _ in graph.lazy.prim(weight: { _ in Double.nan }) {}
         }
         // The edge traps as it is examined, before it reaches the queue.
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
-            var events = graph.primEvents(weight: { _ in Double.nan }).makeIterator()
+            var events = graph.lazy.prim(weight: { _ in Double.nan }).makeIterator()
             for _ in 0 ..< 3 { _ = events.next() }
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
-            _ = graph.primEvents(from: 7) { _ in 1 }
+            _ = graph.lazy.prim(from: 7) { _ in 1 }
         }
         await #expect(processExitsWith: .failure) {
             let graph = PlainGraph(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
-            _ = graph.primEvents(from: 7) { _ in 1 }
+            _ = graph.lazy.prim(from: 7) { _ in 1 }
         }
     }
 
@@ -303,7 +303,7 @@ struct SpanningTreeEventTests {
             let edgeList = raw.map { UndirectedEdge($0.0, $0.1) }
             func check<G: Graph<Int>>(_ graph: G, _ name: String) where G.Edges.Index == Int {
                 for from in [nil, root] {
-                    let events = from.map { Array(graph.primEvents(from: $0) { raw[$0].2 }) } ?? Array(graph.primEvents { raw[$0].2 })
+                    let events = from.map { Array(graph.lazy.prim(from: $0) { raw[$0].2 }) } ?? Array(graph.lazy.prim { raw[$0].2 })
                     let forest = from.map { graph.primMinimumSpanningTree(from: $0) { raw[$0].2 } } ?? graph.primMinimumSpanningTree { raw[$0].2 }
                     var spanned = Set<Int>()
                     var key: [Int: (edge: Int, weight: Int)] = [:]

@@ -228,10 +228,10 @@ Both `steinerTree` (Mehlhorn) and `kouSteinerTree` (Kou–Markowsky–Berman) on
 
 ## P. Kruskal and Prim as event sequences (ST-250 – ST-265)
 
-`kruskalEvents(weight:)` reports each non-loop edge examined in (weight, position) order, then
+`lazy.kruskal(weight:)` reports each non-loop edge examined in (weight, position) order, then
 `treeEdge` with the union–find roots it merges (`merging` into `into`; the larger set's root stays,
 on a tie the smaller) or `nonTreeEdge` with the shared root, stopping after n − c tree edges.
-`primEvents(weight:)` and `primEvents(from:weight:)` report the Boost Graph Library's Dijkstra
+`lazy.prim(weight:)` and `lazy.prim(from:weight:)` report the Boost Graph Library's Dijkstra
 visitor events as its Prim uses them: `startVertex`, `examine` (joined, with the edge and weight
 that gave its key), `examineEdge` for an edge to an unspanned vertex, `edgeRelaxed` or
 `edgeNotRelaxed`, and `finish`. `cases_events.py` reproduces ST-250, ST-251, ST-260 and ST-261 in
@@ -272,4 +272,4 @@ that gave its key), `examineEdge` for an edge to an unspanned vertex, `edgeRelax
 | P. Event sequences | ST-250 – ST-265 | 12 |
 | **Total** | | **149** |
 
-Benchmarks (not tests): ST-B01 – ST-B04; ST-B05 Edmonds against a hand-written Edmonds on flat arrays, ST-B06 Steiner trees against a hand-written multi-source Dijkstra, ST-B07 Wilson against a hand-written Wilson, ST-B08 `kruskalEvents` and `primEvents`, pulling every event, against the plain calls on ST-B01's graph.
+Benchmarks (not tests): ST-B01 – ST-B04; ST-B05 Edmonds against a hand-written Edmonds on flat arrays, ST-B06 Steiner trees against a hand-written multi-source Dijkstra, ST-B07 Wilson against a hand-written Wilson, ST-B08 `lazy.kruskal` and `lazy.prim`, pulling every event, against the plain calls on ST-B01's graph.
