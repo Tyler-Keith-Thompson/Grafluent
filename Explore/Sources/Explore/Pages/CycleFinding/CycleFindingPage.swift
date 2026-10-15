@@ -40,20 +40,20 @@ final class CycleFindingModel {
                 t = a; h = b
                 let text = phase == 1
                     ? "The tortoise steps to \(pageName(a)), the hare two pages to \(pageName(b))."
-                    : phase == 2 ? "Both step one page: the tortoise to \(pageName(a)), the hare to \(pageName(b))." : "The hare walks the loop alone, to \(pageName(b))."
+                    : phase == 2 ? "Both step one page. The tortoise goes to \(pageName(a)), and the hare to \(pageName(b))." : "The hare walks the loop alone, to \(pageName(b))."
                 return RunnerStep(tortoise: t, hare: h, kind: "step", text: text, root: root, length: length)
             case .meet(let v):
                 phase = 2
-                let s = RunnerStep(tortoise: t, hare: h, kind: "meet", text: "They meet at \(pageName(v)): the hare has lapped the tortoise, so both are on the loop. Now the tortoise goes back to A.", root: root, length: length)
+                let s = RunnerStep(tortoise: t, hare: h, kind: "meet", text: "They meet at \(pageName(v)). The hare has lapped the tortoise, so both are on the loop. Now the tortoise goes back to A.", root: root, length: length)
                 t = 0
                 return s
             case .root(let v, let tail):
                 phase = 3
                 root = v
-                return RunnerStep(tortoise: t, hare: h, kind: "root", text: "Moving one page each, they meet at \(pageName(v)): the first page of the loop, \(tail) clicks from A.", root: root, length: length)
+                return RunnerStep(tortoise: t, hare: h, kind: "root", text: "Moving one page each, they meet at \(pageName(v)). That is the first page of the loop, \(tail) clicks from A.", root: root, length: length)
             case .cycle(let n):
                 length = n
-                return RunnerStep(tortoise: t, hare: h, kind: "cycle", text: "The hare is back at \(pageName(root ?? 0)) after \(n) steps: the loop is \(n) pages long.", root: root, length: length)
+                return RunnerStep(tortoise: t, hare: h, kind: "cycle", text: "The hare is back at \(pageName(root ?? 0)) after \(n) steps. So the loop is \(n) pages long.", root: root, length: length)
             }
         }
         t = 0; h = 0; root = nil; length = nil
@@ -63,20 +63,20 @@ final class CycleFindingModel {
                 let waits = a == t
                 t = a; h = b
                 let text = waits
-                    ? "The hare steps to \(pageName(b)); the tortoise waits at \(pageName(a))."
-                    : "Both step one page: the tortoise to \(pageName(a)), the hare to \(pageName(b))."
+                    ? "The hare steps to \(pageName(b)). The tortoise waits at \(pageName(a))."
+                    : "Both step one page. The tortoise goes to \(pageName(a)), and the hare to \(pageName(b))."
                 return RunnerStep(tortoise: t, hare: h, kind: "step", text: text, root: root, length: length)
             case .teleport(let v, let power):
                 t = v
-                return RunnerStep(tortoise: t, hare: h, kind: "teleport", text: "No meeting yet: the tortoise jumps to the hare at \(pageName(v)), and the hare may now run \(power) steps before the next jump.", root: root, length: length)
+                return RunnerStep(tortoise: t, hare: h, kind: "teleport", text: "No meeting yet. The tortoise jumps to the hare at \(pageName(v)). The hare may now run \(power) steps before the next jump.", root: root, length: length)
             case .cycle(let n):
                 length = n
-                let s = RunnerStep(tortoise: t, hare: h, kind: "cycle", text: "The hare reaches the waiting tortoise after \(n) steps: the loop is \(n) pages long. Now both start again at A, and the hare goes \(n) pages ahead.", root: root, length: length)
+                let s = RunnerStep(tortoise: t, hare: h, kind: "cycle", text: "The hare reaches the waiting tortoise after \(n) steps. So the loop is \(n) pages long. Now both start again at A, with the hare \(n) pages ahead.", root: root, length: length)
                 t = 0
                 return s
             case .root(let v, let tail):
                 root = v
-                return RunnerStep(tortoise: t, hare: h, kind: "root", text: "Staying \(length ?? 0) apart, they meet at \(pageName(v)): the first page of the loop, \(tail) clicks from A.", root: root, length: length)
+                return RunnerStep(tortoise: t, hare: h, kind: "root", text: "Staying \(length ?? 0) apart, they meet at \(pageName(v)). That is the first page of the loop, \(tail) clicks from A.", root: root, length: length)
             }
         }
         playback.reset(count: floydSteps.count)
@@ -130,8 +130,8 @@ struct CycleFindingLab {
                         p(.class("narration")) {
                             if k == 0 {
                                 model.brent
-                                    ? "Brent’s way: the hare runs ahead while the tortoise waits, and whenever the hare has run a power of two steps, the tortoise jumps to it. Press Step."
-                                    : "Floyd’s way: start both runners at A. Each turn the tortoise clicks Next once and the hare twice. If the pages loop, the hare must catch the tortoise. Press Step."
+                                    ? "Brent’s way. The hare runs ahead while the tortoise waits. Each time the hare has run a power of two steps, the tortoise jumps to it. Press Step."
+                                    : "Floyd’s way. Both runners start at A. Each turn the tortoise clicks Next once and the hare twice. If the pages loop, the hare must catch the tortoise. Press Step."
                             } else {
                                 now.text
                             }
@@ -149,7 +149,7 @@ struct CycleFindingLab {
                                 "pages in the loop"
                             }
                         }
-                        p(.class("note")) { "Two bookmarks are all either method keeps, however long the list: no record of the pages seen." }
+                        p(.class("note")) { "Either method keeps just two bookmarks, however long the list. It keeps no record of the pages seen." }
                     }
                 }
             }
@@ -180,7 +180,7 @@ struct CycleFindingLab {
                         (Marble(kind: "m-blue", radius: 6), "they meet"),
                         (Marble(kind: "m-red", radius: 6), "the loop’s start or length"),
                     ])
-                p(.class("note")) { "The events are lazy.floydCycleDetection(from:)’s or lazy.brentCycleDetection(from:)’s." }
+                p(.class("note")) { "The events come from lazy.floydCycleDetection(from:) or lazy.brentCycleDetection(from:)." }
             }
         }
     }

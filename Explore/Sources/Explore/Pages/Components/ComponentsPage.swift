@@ -151,7 +151,7 @@ struct IslandsLab {
             div(.class("panel stage")) {
                 GraphCanvas(label: "Eight islands joined by two-way bridges", width: 660, height: 350, nodes: nodes, edges: edges,
                             onEdge: { componentsModel.toggleBridge($0) })
-                p(.class("note")) { "Click a bridge to close it, or a dashed one to open it. Same colour, same component." }
+                p(.class("note")) { "Click a bridge to close it, or a dashed one to open it. Islands of the same colour are in the same component." }
             }
             div(.class("side")) {
                 div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
@@ -163,12 +163,12 @@ struct IslandsLab {
                                     ? "You can walk from any island to any other."
                                     : "You can walk between any two islands of the same colour, and never between colours."
                             } else if last.starts {
-                                "\(last.island) hasn’t been reached, so start a new breadth-first search there: component \(last.search + 1)."
+                                "\(last.island) hasn’t been reached yet. Start a new breadth-first search there, for component \(last.search + 1)."
                             } else {
                                 "The search from component \(last.search + 1)’s start crosses a bridge to \(last.island)."
                             }
                         } else {
-                            "Take the first island and walk everywhere its bridges lead. Everything reached is one component; then start again from an island not yet reached."
+                            "Take the first island and walk everywhere its bridges lead. Everything you reach is one component. Then start again from an island not yet reached."
                         }
                     }
                     div(.class("chips")) {
@@ -233,7 +233,7 @@ struct StreetsLab {
             div(.class("panel stage")) {
                 GraphCanvas(label: "Nine street corners joined by one-way streets", width: 640, height: 410,
                             nodes: nodes, edges: edges, onEdge: { componentsModel.flip($0) })
-                p(.class("note")) { "Click a street to turn it around. Same colour, same neighbourhood; grey dashed streets run between neighbourhoods." }
+                p(.class("note")) { "Click a street to turn it around. Corners of the same colour are in the same neighbourhood. Grey dashed streets run between neighbourhoods." }
             }
             div(.class("side")) {
                 div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
@@ -252,9 +252,9 @@ struct StreetsLab {
                     }
                 }
                 div(.class("panel")) {
-                    span(.class("label")) { "The condensation: each neighbourhood squeezed to a dot" }
+                    span(.class("label")) { "The condensation, each neighbourhood squeezed to a dot" }
                     GraphCanvas(label: "The condensation: one vertex per strongly connected component", width: 600, height: 380, nodes: dots, edges: links)
-                    p(.class("note")) { "It never has a cycle: a cycle between neighbourhoods would make them one neighbourhood." }
+                    p(.class("note")) { "It never has a cycle. A cycle between neighbourhoods would make them one neighbourhood." }
                 }
             }
         }
@@ -295,9 +295,9 @@ func streetText(_ event: DepthFirstSearchEvent<String>, completes: Bool) -> Stri
     case .discover(let v): return "Drive into \(v) for the first time."
     case .finish(let v):
         return completes
-            ? "Back out of \(v), the first corner entered in its neighbourhood: every corner reachable from it that can also get back to it is now known. One neighbourhood complete."
-            : "Back out of \(v): every street out of it has been driven."
-    case .treeEdge(let e): return "Drive \(e.source) → \(e.target), a corner not yet visited."
+            ? "Back out of \(v), the first corner entered in its neighbourhood. That neighbourhood is now complete."
+            : "Every street out of \(v) has been driven. Back out of \(v)."
+    case .treeEdge(let e): return "Drive \(e.source) → \(e.target), to a corner not yet visited."
     case .backEdge(let e), .forwardEdge(let e), .crossEdge(let e): return "The street \(e.source) → \(e.target) leads somewhere already visited."
     }
 }

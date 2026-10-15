@@ -5,24 +5,44 @@
   <p class="question">If you only care about one destination, can you skip the rest of town?</p>
 </header>
 
-<p class="example lead">Example: a grid of city blocks with a few walls, walking from Home to a café across town. Click blocks to put up or take down walls.</p>
+<section class="prose purpose">
+  <h2><small>What it’s for</small>The quickest route to one goal</h2>
+  <p>A* finds the quickest route from a start to one goal. It needs a guess of how far each place is from the goal. With a good guess, it looks at far fewer places than Dijkstra’s algorithm does.</p>
+  <p>Reach for it on maps, game levels and puzzles, where you know roughly where the goal is. Straight-line distance is the usual guess. When you need routes to every place, use Dijkstra instead.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to reach one goal</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *A* | One goal, and a guess that never overestimates | The quickest route | O(m log n) at worst, often far less | Only as good as its guess |
+  | [Dijkstra](dijkstra.html) | Routes to every place, or no good guess | The quickest route to every place | O(m log n) | Explores in every direction |
+  | Greedy best-first search | Any route will do, fast | A route, often not the quickest | Often very little | Can wander into long routes |
+  | [Breadth-first search](bfs.html) | Every step costs the same | The route with the fewest steps | O(n + m) | Ignores costs |
+  -->
+  <p>A* gives the same answer as Dijkstra and usually does much less work. It needs a guess that never says a place is further than it is. In the table, n is the number of places and m the number of streets.</p>
+</section>
+
+<p class="example lead">Example: a grid of city blocks with a few walls. You walk from Home to a café across town. Click blocks to put up or take down walls.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The city grid, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>Dijkstra with a sense of direction</h2>
-  <p>A* is Dijkstra with a sense of direction. Alongside the distance walked so far, it adds a guess of the distance still to go, here the straight-line distance to the café. Places that point the right way get settled first, so the search reaches the café after exploring a fraction of the grid. Switch between A* and Dijkstra on the grid and watch the explored region: Dijkstra’s is a circle, spreading evenly in every direction until the edges of the grid cut it off; A*’s is a narrow teardrop pointed at the café.</p>
-  <p>The straight line is a good guess because no walk can beat it: walls only make the walk longer. A guess that never overestimates is called <b>admissible</b>, and with one A* still finds the shortest route. It just stops looking at blocks that point away from the café.</p>
-  <p>The guess sits in <code>heuristic:</code>, a closure from a block to a number. Pass one that always returns zero and A* is exactly Dijkstra.</p>
+  <p>Dijkstra ranks each place by the distance walked so far. A* adds a guess of the distance still to go. Here the guess is the straight-line distance to the café. Places that point the right way get settled first. So the search reaches the café after exploring only part of the grid.</p>
+  <p>Switch between A* and Dijkstra and watch the explored region. Dijkstra’s spreads evenly in every direction, like a circle, until the edges of the grid cut it off. A*’s is a narrow teardrop pointed at the café.</p>
+  <p>The straight line is a good guess because no walk can beat it. Walls only make the walk longer. A guess that never overestimates is called <b>admissible</b>. With one, A* still finds the shortest route. It just skips blocks that point away from the café.</p>
+  <p>The guess goes in <code>heuristic:</code>, a closure from a block to a number. Pass one that always returns zero, and A* is exactly Dijkstra.</p>
 
   <h2><small>Where it breaks</small>A guess that says “far” about somewhere close</h2>
-  <p>The guess must never overestimate. A guess that says “far” about a place that is actually close can make A* settle on a longer route. Press <b>Overestimate ×3</b> and every guess is tripled: A* now rushes straight at the café, hugs the wall, and settles for a walk longer than the shortest. With some walls it also settles a block too early and finds a shorter way to it later; the block is then opened again, a red marble on the timeline. Reopening repairs the blocks it reaches, but once the café itself is settled the search is over.</p>
-  <p>Grafluent doesn’t check the guess, because it can’t know the true distances in advance. Overestimating on purpose is a known trade: fewer blocks settled, a route that may be a little longer.</p>
+  <p>The guess must never overestimate. If it says “far” about a place that is actually close, A* can settle on a longer route. Press <b>Overestimate ×3</b> to triple every guess. A* now rushes straight at the café and hugs the wall. It settles for a walk longer than the shortest.</p>
+  <p>With some walls it also settles a block too early, and later finds a shorter way to it. Then the block is opened again, shown as a red marble on the timeline. Reopening repairs the blocks it reaches. But once the café itself is settled, the search is over.</p>
+  <p>Grafluent doesn’t check the guess, because it can’t know the true distances in advance. Some programs overestimate on purpose. They settle fewer blocks and accept a route that may be a little longer.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The city grid, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

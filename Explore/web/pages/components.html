@@ -5,7 +5,13 @@
   <div class="say"><span>Say it</span><b>koh-suh-RAH-joo</b><span class="ipa">/koːsəˈɾaːdʒu/</span></div>
   <p class="question">Which parts of a graph can reach each other?</p>
 </header>
-<p class="example lead">Example: islands and bridges for the undirected case; a set of one-way streets for the directed case.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Which parts hang together</h2>
+  <p>Components split a graph into groups that can reach each other. Reach for them to find the separate pieces of a network, to check that a road map has no stranded towns, or to find the groups of web pages that all link round to each other.</p>
+</section>
+
+<p class="example lead">Example: islands joined by bridges, for the undirected case. Then one-way streets, for the directed case.</p>
 
 <h2 class="labhead"><small>Undirected</small>Islands and two-way bridges</h2>
 <div id="islands"></div>
@@ -24,13 +30,27 @@
 
 <section class="prose">
   <h2><small>The idea</small>Who can get to whom</h2>
-  <p>With two-way bridges, two islands are in the same component if you can walk from one to the other. With one-way streets it is stricter: a <b>strongly connected component</b> is a neighbourhood where you can get from any corner to any other and back again. Tarjan’s and Kosaraju’s algorithms find them all in a single pass or two. Grafluent uses Tarjan’s, one depth-first search, in Pearce’s low-memory form.</p>
-  <p>Shrink each strongly connected component to a dot and what’s left, the <b>condensation</b>, has no cycles, which tells you the order traffic can flow between neighbourhoods.</p>
+  <p>With two-way bridges, two islands are in the same component if you can walk from one to the other. One search from an island finds its whole component.</p>
+  <p>With one-way streets the rule is stricter. A <b>strongly connected component</b> is a neighbourhood where you can get from any corner to any other and back again. Tarjan’s and Kosaraju’s algorithms find them all. Grafluent uses Tarjan’s, which needs one depth-first search, in Pearce’s low-memory form.</p>
+  <p>Shrink each strongly connected component to a dot. What’s left is the <b>condensation</b>, and it has no cycles. It shows the order in which traffic can flow between neighbourhoods.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find components</h2>
+  <!-- compare
+  | Method | When to use | Graph | Cost | Weakness |
+  | *Breadth-first search from each new start (<code>connectedComponents()</code>) | The graph is undirected and known in full | Undirected | O(n + m) | Starts again when edges are added |
+  | *Tarjan (<code>stronglyConnectedComponents()</code>) | The graph is directed | Directed | O(n + m), one search | Harder to follow |
+  | Kosaraju | The graph is directed, and you want simple code | Directed | O(n + m), two searches | Needs the graph with every edge reversed |
+  | Union–find (<code>DisjointSet</code>) | Edges arrive one at a time | Undirected | Nearly O(1) per edge | Can’t remove an edge |
+  -->
+  <p>All of them run in time in proportion to the graph. In the table, n is the number of vertices and m the number of edges.</p>
 
   <h2><small>Where it breaks</small>Whether, not how well</h2>
-  <p>Components only say whether a route exists. To know how good it is, use a shortest-path page such as <a href="dijkstra.html">Dijkstra’s algorithm</a>.</p>
+  <p>Components only say whether a route exists. To know how good a route is, use a shortest-path search such as <a href="dijkstra.html">Dijkstra’s algorithm</a>.</p>
+</section>
 
-
+<section class="prose in-swift">
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>
 </section>

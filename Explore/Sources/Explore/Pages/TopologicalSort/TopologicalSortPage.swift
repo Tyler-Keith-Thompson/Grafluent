@@ -81,9 +81,9 @@ struct DressingSnapshot {
 func dressingText(_ event: DepthFirstSearchEvent<String>) -> String {
     switch event {
     case .discover(let v): return "Look at \(v): what has to wait for it?"
-    case .finish(let v): return "Everything that waits for \(v) is already placed, so \(v) goes in front of them."
-    case .treeEdge(let e): return "\(e.target) waits for \(e.source); look at it next."
-    case .backEdge(let e): return "\(e.target) waits for \(e.source), but \(e.target) is still being looked at: the rules go round in a circle."
+    case .finish(let v): return "Everything that waits for \(v) is already placed. So \(v) goes in front of them."
+    case .treeEdge(let e): return "\(e.target) waits for \(e.source). Look at \(e.target) next."
+    case .backEdge(let e): return "\(e.target) waits for \(e.source), but \(e.target) is still being looked at. The rules go round in a circle."
     case .forwardEdge(let e), .crossEdge(let e): return "\(e.target) waits for \(e.source), and it is already placed. Nothing to do."
     }
 }
@@ -139,9 +139,9 @@ struct TopologicalSortLab {
                                 }, nodeAction: "Pick")
                     p(.class("note")) {
                         if let selected = model.selected {
-                            "\(buildSteps[selected].name) is picked: click what must go on after it. Click it again to let go."
+                            "\(buildSteps[selected].name) is picked. Click what must go on after it, or click \(buildSteps[selected].name) again to let go."
                         } else {
-                            "An arrow a → b means a goes on before b. Click one item, then another, to add a rule; click an arrow to remove it."
+                            "An arrow a → b means a goes on before b. Click one item, then another, to add a rule. Click an arrow to remove it."
                         }
                     }
                 }
@@ -150,11 +150,11 @@ struct TopologicalSortLab {
                         span(.class("label")) { done ? (result.order == nil ? "No order exists" : "One valid order") : "Event \(k) of \(result.events.count)" }
                         if done, result.order == nil {
                             p(.class("narration")) {
-                                "These wait for each other in a circle: "
+                                "These wait for each other in a circle, "
                                 em { (cycle + [cycle.first ?? ""]).joined(separator: " → ") }
-                                ". None of them can go first, so "
+                                ". None of them can go first. So "
                                 code { "topologicalSort()" }
-                                " returns nil and "
+                                " returns nil, and "
                                 code { "findCycle()" }
                                 " hands back the circle as proof."
                             }
@@ -163,7 +163,7 @@ struct TopologicalSortLab {
                                 if let last = snapshot.last {
                                     done ? "Every item is placed. Read the list from the top." : dressingText(last)
                                 } else {
-                                    "A depth-first search looks at each item in turn. An item goes on the list once everything that waits for it is on the list, in front of them."
+                                    "A depth-first search looks at each item in turn. An item goes on the list once everything that waits for it is on the list."
                                 }
                             }
                             ol(.class("steps")) {
@@ -172,7 +172,7 @@ struct TopologicalSortLab {
                         }
                     }
                     div(.class("panel")) {
-                        span(.class("label")) { "Waves: what could go on at the same time" }
+                        span(.class("label")) { "Waves, what could go on together" }
                         if let waves = result.waves {
                             div(.class("gens")) {
                                 for (n, wave) in waves.enumerated() {
@@ -183,7 +183,7 @@ struct TopologicalSortLab {
                                 }
                             }
                         } else {
-                            p(.class("empty")) { "None: the circle never gets started." }
+                            p(.class("empty")) { "None. The circle never gets started." }
                         }
                     }
                 }
@@ -214,7 +214,7 @@ struct TopologicalSortLab {
                         (Marble(kind: "m-grey", radius: 3.5), "follow a rule"),
                         (Marble(kind: "m-red", radius: 5), "a rule that closes a circle"),
                     ])
-                p(.class("note")) { "The timeline is the depth-first search that topologicalSort() runs: an item is placed when it is finished. Press Play to watch it from the start." }
+                p(.class("note")) { "The timeline is the depth-first search that topologicalSort() runs. An item is placed when it is finished. Press Play to watch it from the start." }
             }
         }
     }

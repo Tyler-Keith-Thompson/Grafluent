@@ -68,12 +68,12 @@ let criticalPathModel = CriticalPathModel()
 func describePlanEvent(_ event: PlayKahnEvent, after: PlanState) -> String {
     switch event {
     case .ready(let v):
-        return "\(v) has nothing left to wait for: it is ready."
+        return "\(v) has nothing left to wait for. It is ready."
     case .emit(let v):
         let start = after.earliest[v]!
         return v == "Opening night"
-            ? "Opening night is scheduled: everything before it is done by day \(start)."
-            : "Schedule \(v): it starts on day \(start), when the last thing it waits for is done, and takes \(days[v]!) days, until day \(start + days[v]!)."
+            ? "Opening night is scheduled. Everything before it is done by day \(start)."
+            : "Schedule \(v). It starts on day \(start), when the last thing it waits for is done. It takes \(days[v]!) days, until day \(start + days[v]!)."
     case .removeEdge(let e, let left):
         let edge = play.edges[e]
         let finish = after.earliest[edge.source]! + days[edge.source]!
@@ -127,11 +127,11 @@ struct CriticalPathLab {
                         span(.class("label")) { finished ? "Scheduled" : k == 0 ? "\(model.events.count) events to come" : "Event \(k) of \(model.events.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Each circle is a task with its length in days; an arrow means the task at its tail must finish first. Take the tasks in an order where everything a task waits for comes before it, and start each as soon as it can. Press Step."
+                                "Each circle is a task with its length in days. An arrow means the task at its tail must finish first. Press Step to start each task as early as it can."
                             } else if finished {
-                                "The play can open on day \(model.length), and no sooner: "
+                                "The play can open on day \(model.length), and no sooner. The tasks "
                                 em { model.critical.dropLast().joined(separator: " → ") }
-                                " runs back to back with no gap. That is the critical path, the longest path through the tasks. A day lost on any of them delays the opening; the other tasks have slack."
+                                " run back to back with no gap. They are the critical path. A day lost on any of them delays the opening."
                             } else {
                                 describePlanEvent(last!, after: state)
                             }
@@ -152,7 +152,7 @@ struct CriticalPathLab {
                                 }
                             }
                         }
-                        p(.class("note")) { finished ? "Bars run from day 0 to day \(model.length). The last column is each task’s slack: the days it can slip without moving the opening." : "Bars run from day 0 to day \(model.length)." }
+                        p(.class("note")) { finished ? "Bars run from day 0 to day \(model.length). The last column is each task’s slack, the days it can slip without moving the opening." : "Bars run from day 0 to day \(model.length)." }
                     }
                 }
             }
@@ -175,7 +175,7 @@ struct CriticalPathLab {
                         (Marble(kind: "m-blue", radius: 6), "a task is scheduled"),
                         (Marble(kind: "m-grey", radius: 3.5), "its finish is passed on"),
                     ])
-                p(.class("note")) { "The events are lazy.kahn()’s. The start days are worked out from them as they come: each finish passed on can only push a later task’s start back." }
+                p(.class("note")) { "The events come from lazy.kahn(). Each start day is worked out as they come. A finish passed on can only push a later task’s start back." }
             }
         }
     }

@@ -4,23 +4,41 @@
   <h1>Topological sort</h1>
   <p class="question">In what order can you do tasks that depend on each other?</p>
 </header>
-<p class="example lead">Example: getting dressed. Socks before shoes, shirt before tie, trousers before belt. Add a new rule and watch the order update.</p>
+<p class="example lead">Example: getting dressed. Socks go on before shoes, a shirt before a tie, and trousers before a belt. Add a new rule and watch the order update.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The wardrobe above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
+<section class="prose purpose">
+  <h2><small>What it’s for</small>An order that keeps every rule</h2>
+  <p>A topological sort puts tasks in an order where each one comes after everything it depends on. Reach for it to order the steps of a build, the courses in a degree, or the cells of a spreadsheet. If the rules go round in a circle, no order exists, and the sort tells you so.</p>
 </section>
 
 <section class="prose">
   <h2><small>The idea</small>Do whatever has nothing left to wait for</h2>
-  <p>Draw an arrow from each task to anything that has to wait for it. A valid order lists every task before everything its arrows point to. One way to find it, Kahn’s: repeatedly take any task with no arrows coming in, write it down, and remove it, which may free up others. Each round of that frees a <b>wave</b> of tasks that could all happen at the same time.</p>
-  <p>Grafluent’s <code>topologicalSort()</code> uses the other classic way: a depth-first search, listing each task once everything after it is finished, then reading the list backwards.</p>
+  <p>Draw an arrow from each task to anything that has to wait for it. A valid order lists every task before everything its arrows point to.</p>
+  <p>Kahn’s algorithm is one way to find it. Take any task with no arrows coming in. Write it down and remove it. That may free up other tasks. Each round frees a <b>wave</b> of tasks that could all happen at the same time.</p>
+  <p>Grafluent’s <code>topologicalSort()</code> uses the other classic way, a depth-first search. It lists each task once everything after it is finished. Then it reads the list backwards.</p>
+</section>
 
+<section class="prose compared">
+  <h2><small>Compared with</small>Two ways to sort, and waves</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *Depth-first search (<code>topologicalSort()</code>) | You want one valid order | One order, or <code>nil</code> with a cycle to show | O(n + m) | Says nothing about what can run at once |
+  | [Kahn’s algorithm](criticalpath.html) (<code>lazy.kahn()</code>) | You want to take tasks one at a time as they become free | One order, built from the front | O(n + m) | With a cycle, it stops and leaves some tasks out |
+  | Waves (<code>topologicalGenerations()</code>) | You want to run tasks in parallel | Groups of tasks that can run at the same time | O(n + m) | Groups, not a single list |
+  -->
+  <p>All three take time in proportion to the tasks and rules. In the table, n is the number of tasks and m the number of rules.</p>
+</section>
+
+<section class="prose">
   <h2><small>Where it breaks</small>Rules that go round in a circle</h2>
-  <p>Add “shoes before socks” and there is no valid order at all: the rules go round in a circle. <code>topologicalSort()</code> returns <code>nil</code>, and <code>findCycle()</code> hands back the circle, so you can see which rule to drop.</p>
+  <p>Add “shoes before socks”, and there is no valid order at all. The rules go round in a circle. <code>topologicalSort()</code> returns <code>nil</code>. <code>findCycle()</code> hands back the circle, so you can see which rule to drop.</p>
+</section>
 
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The wardrobe above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

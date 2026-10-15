@@ -4,21 +4,42 @@
   <h1>Tortoise and hare</h1>
   <p class="question">Keep clicking “Next” and the pages start repeating. Where does the loop begin, and how long is it, if you may only keep two bookmarks?</p>
 </header>
-<p class="example lead">Example: twelve pages, each with one “Next” link. Every page leads somewhere, so from A you must eventually come round again: a tail, then a loop.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Find a loop without remembering the way</h2>
+  <p>Some sequences go on by one rule, where each value decides the next. Sooner or later such a sequence may start to repeat. The tortoise and hare methods find where the repeating starts and how long the loop is. They remember only two positions, however long the sequence runs.</p>
+  <p>Reach for them when the sequence is too long to store, such as the output of a random number generator. When everything fits in memory, simply marking each value you have seen is easier.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find the loop</h2>
+  <!-- compare
+  | Method | When to use | Memory | Steps | Weakness |
+  | *Floyd’s tortoise and hare | The sequence is too long to store | Two positions | A few times the tail plus the loop | More steps than Brent’s |
+  | *Brent’s method | Each step is expensive | Two positions | Usually about a third fewer than Floyd’s | A little harder to follow |
+  | Mark each value seen | Everything fits in memory | One mark for every value | The tail plus the loop, once | Memory grows with the sequence |
+  | <code>cycleDecomposition()</code> | You want every loop in the whole graph | One mark for every vertex | O(n) | Needs the whole graph in memory |
+  -->
+  <p>Both tortoise and hare methods use constant memory. That is their point. In the table, n is the number of pages.</p>
+</section>
+
+<p class="example lead">Example: twelve pages, each with one “Next” link. Every page leads somewhere, so from A you must come round again sooner or later. The walk is a tail, then a loop.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The pages above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>A faster runner laps a slower one</h2>
-  <p>A graph in which every vertex has exactly one way out is a <b>functional graph</b>: it is a function from the vertices to themselves, here “the page Next opens”. Walking it from any start traces a shape like the letter ρ: a tail of μ steps, then a loop of λ pages forever. Remembering every page seen would find the loop, but needs memory for all of them.</p>
-  <p><b>Floyd’s</b> method keeps two positions. The tortoise moves one step a turn, the hare two. Once both are on the loop, the hare gains one step a turn, so it must land on the tortoise. Then a little arithmetic shows the start is as far from the loop’s first page as the meeting point is, going forward: send the tortoise back to the start, move both one step at a time, and they meet exactly at the loop’s first page, after μ steps. One more lap from there gives λ.</p>
-  <p><b>Brent’s</b> method moves only the hare. The tortoise waits, and each time the hare has run a power of two steps without meeting it, the tortoise jumps to the hare and the allowance doubles. When the hare comes back to the waiting tortoise, the steps since the jump are λ. Then a second pass with the two λ apart finds μ. It makes fewer moves than Floyd’s, typically a third fewer, which matters when each step is expensive.</p>
+  <p>In a <b>functional graph</b> every vertex has exactly one way out. It is a function from the vertices to themselves, here “the page Next opens”. Walking it from any start traces a shape like the Greek letter ρ. There is a tail of μ steps, then a loop of λ pages forever.</p>
+  <p><b>Floyd’s</b> method keeps two positions. The tortoise moves one step a turn, and the hare moves two. Once both are on the loop, the hare gains one step a turn. So it must land on the tortoise.</p>
+  <p>Next, send the tortoise back to the start. A little arithmetic shows that the start and the meeting point are the same distance from the loop’s first page. So move both one step at a time. They meet at the loop’s first page, after μ steps. One more lap from there gives λ.</p>
+  <p><b>Brent’s</b> method moves only the hare. The tortoise waits. Each time the hare has run a power of two steps without meeting it, the tortoise jumps to the hare, and the allowance doubles. When the hare comes back to the waiting tortoise, the steps since the jump are λ. A second pass, with the two runners λ apart, finds μ.</p>
 
   <h2><small>Where it breaks</small>When memory isn’t the problem</h2>
-  <p>Both use constant memory, which is their point: they find loops in sequences far too long to store, such as a pseudo-random generator or Pollard’s method for factoring numbers. When the graph is small and in memory, it is simpler to mark pages as you go, and <code>cycleDecomposition()</code> finds every loop of a <code>FunctionalGraph</code> at once in O(n). Neither method applies to graphs where a vertex has several ways out; for those, a cycle is found by <a href="dfs.html">depth-first search</a>.</p>
+  <p>Both methods find loops in sequences far too long to store. Pollard’s method for factoring numbers relies on this. When the graph is small and in memory, marking pages as you go is simpler. <code>cycleDecomposition()</code> finds every loop of a <code>FunctionalGraph</code> at once, in O(n).</p>
+  <p>Neither method works when a vertex has several ways out. For those graphs, a <a href="dfs.html">depth-first search</a> finds a cycle.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The pages above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 </section>

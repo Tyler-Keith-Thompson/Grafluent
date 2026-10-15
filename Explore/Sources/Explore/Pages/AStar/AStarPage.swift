@@ -212,23 +212,23 @@ func describe(_ step: CityStep, dijkstra: Bool) -> String {
     case .settle(let b, let walked, let guess):
         if b == cityHome {
             return dijkstra
-                ? "Start at Home. Dijkstra has no sense of direction: a block’s only number is the distance walked to it."
+                ? "Start at Home. Dijkstra has no sense of direction. A block’s only number is the distance walked to it."
                 : "Start at Home. Nothing walked yet, and the straight line to the café is \(oneDecimal(guess)) blocks."
         }
         if b == cityCafé {
             return "Settle the café, \(oneDecimal(walked)) blocks walked. The search stops here."
         }
         return dijkstra
-            ? "Settle \(blockName(b)): walked \(oneDecimal(walked)), the least of any open block."
-            : "Settle \(blockName(b)): walked \(oneDecimal(walked)) + guess \(oneDecimal(guess)) = \(oneDecimal(walked + guess)), the least of any open block."
+            ? "Settle \(blockName(b)). Its \(oneDecimal(walked)) walked is the least of any open block."
+            : "Settle \(blockName(b)). Walked \(oneDecimal(walked)) plus guess \(oneDecimal(guess)) makes \(oneDecimal(walked + guess)), the least of any open block."
     case .estimate(let b, let from, let walked, let guess):
         return dijkstra
-            ? "From \(blockName(from)), reach \(blockName(b)): walked \(oneDecimal(walked))."
-            : "From \(blockName(from)), reach \(blockName(b)): walked \(oneDecimal(walked)), guess \(oneDecimal(guess)) to go, \(oneDecimal(walked + guess)) in all."
+            ? "Reach \(blockName(b)) from \(blockName(from)), with \(oneDecimal(walked)) walked."
+            : "Reach \(blockName(b)) from \(blockName(from)). Walked \(oneDecimal(walked)) plus guess \(oneDecimal(guess)) makes \(oneDecimal(walked + guess))."
     case .relax(let b, let from, let walked, let previous):
-        return "Through \(blockName(from)), \(blockName(b)) is closer: \(oneDecimal(walked)) walked instead of \(oneDecimal(previous))."
+        return "Through \(blockName(from)), \(blockName(b)) is closer. It takes \(oneDecimal(walked)) walked instead of \(oneDecimal(previous))."
     case .reopen(let b, let from, let walked, let previous):
-        return "Through \(blockName(from)), \(blockName(b)) is closer: \(oneDecimal(walked)) instead of \(oneDecimal(previous)), though it was already settled. The inflated guess settled it too soon, so it is opened again."
+        return "Through \(blockName(from)), \(blockName(b)) is closer, \(oneDecimal(walked)) instead of \(oneDecimal(previous)). But it was already settled. The inflated guess settled it too soon, so it is opened again."
     }
 }
 
@@ -325,20 +325,20 @@ struct AStarLab {
                         p(.class("narration")) {
                             if k == 0 {
                                 dijkstra
-                                    ? "Dijkstra on the same grid: no guesses, so it spreads out evenly from Home until the café is settled. Press Step to begin."
-                                    : "Each block shows its straight-line distance to the café: the guess A* adds to the distance walked. Press Step to begin."
+                                    ? "Dijkstra on the same grid. It has no guesses, so it spreads out evenly from Home. Press Step to begin."
+                                    : "Each block shows its straight-line distance to the café. A* adds that guess to the distance walked. Press Step to begin."
                             } else if finished {
                                 if reached {
                                     "The café is reached. The red line is the route, \(twoDecimals(state.walked[cityCafé]!)) blocks. "
                                     if dijkstra {
-                                        "Dijkstra settled \(settled) blocks to get there; A* settles \(model.aStarSettled)."
+                                        "Dijkstra settled \(settled) blocks to get there. A* settles \(model.aStarSettled)."
                                     } else if model.overestimates, let shortest = model.shortest, state.walked[cityCafé]! > shortest + 1e-9 {
-                                        "But the shortest walk is \(twoDecimals(shortest)): a guess that overestimates lets A* settle for a longer route."
+                                        "But the shortest walk is \(twoDecimals(shortest)). A guess that overestimates lets A* settle for a longer route."
                                     } else {
-                                        "A* settled \(settled) blocks; Dijkstra, on the same grid, settles \(model.dijkstraSettled)."
+                                        "A* settled \(settled) blocks. Dijkstra settles \(model.dijkstraSettled) on the same grid."
                                     }
                                 } else {
-                                    "The walls cut the café off: every block Home can reach is settled, and none of them is the café."
+                                    "The walls cut the café off. Every block Home can reach is settled, and none of them is the café."
                                 }
                             } else {
                                 describe(last!, dijkstra: dijkstra)
@@ -427,7 +427,7 @@ struct AStarLab {
                         (Marble(kind: "m-green", radius: 4), "a shorter way to an open block"),
                         (Marble(kind: "m-red", radius: 5), "a settled block is opened again"),
                     ])
-                p(.class("note")) { "Click a block to put up or take down a wall. The small number in a block is its straight-line distance to the café, the guess; checks that change nothing are left off the timeline." }
+                p(.class("note")) { "Click a block to put up or take down a wall. The small number in a block is its guess, the straight-line distance to the café. Checks that change nothing are left off the timeline." }
             }
         }
     }
