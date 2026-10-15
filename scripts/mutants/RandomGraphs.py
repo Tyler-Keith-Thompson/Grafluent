@@ -306,15 +306,15 @@ MUTANTS = [
     # Erdős–Gallai (Zverovich–Zverovich form).
     Mutant("egrange", DS, "d < 0 || d >= p", "d < 0 || d > p"),
     Mutant("egnegative", DS, "d < 0 || d >= p", "d >= p"),
-    Mutant("egparity", DS, "!sum.isMultiple(of: 2) || sum > n * (n - 1)", "sum > n * (n - 1)"),
-    Mutant("egbound", DS, "!sum.isMultiple(of: 2) || sum > n * (n - 1)", "!sum.isMultiple(of: 2)"),
-    Mutant("egaccept", DS, "4 * smallest * n >= (largest + smallest + 1) * (largest + smallest + 1)", "4 * smallest * n >= (largest + smallest) * (largest + smallest)"),
+    Mutant("egparity", DS, "!sum.isMultiple(of: 2) || sum > n64 * (n64 - 1)", "sum > n64 * (n64 - 1)"),
+    Mutant("egbound", DS, "!sum.isMultiple(of: 2) || sum > n64 * (n64 - 1)", "!sum.isMultiple(of: 2)"),
+    Mutant("egaccept", DS, "let span = Int64(largest + smallest + 1)", "let span = Int64(largest + smallest)"),
     Mutant("egdurfee", DS, "        if d < k + 1 { return true }", "        if d < k { return true }", mode="stmt"),
     Mutant("egrun", DS, "d < k + run ? d - k : run", "run"),
-    Mutant("egleading", DS, "            leading += taken * d", "            leading += taken * (d - 1)", mode="stmt"),
+    Mutant("egleading", DS, "            leading += Int64(taken) * Int64(d)", "            leading += Int64(taken) * Int64(d - 1)", mode="stmt"),
     Mutant("egbelow", DS, "                below += counts[k + v]", "", mode="stmt"),
-    Mutant("egweighted", DS, "                weighted += (k + v) * counts[k + v]", "                weighted += (k + v + 1) * counts[k + v]", mode="stmt"),
-    Mutant("egcheck", DS, "leading > k * (n - 1) - k * below + weighted", "leading > k * n - k * below + weighted"),
+    Mutant("egweighted", DS, "                weighted += Int64(k + v) * Int64(counts[k + v])", "                weighted += Int64(k + v + 1) * Int64(counts[k + v])", mode="stmt"),
+    Mutant("egcheck", DS, "leading > Int64(k) * Int64(n - 1) - Int64(k) * Int64(below) + weighted", "leading > Int64(k) * Int64(n) - Int64(k) * Int64(below) + weighted"),
     Mutant("egcount", DS, "            counts[d] += 1", "", mode="stmt"),
 
     # Fulkerson–Chen–Anstee.
@@ -327,7 +327,7 @@ MUTANTS = [
     Mutant("fcaatleast", DS, "    for d in stride(from: n - 1, through: 0, by: -1) { atLeast[d] += atLeast[d + 1] }", "", mode="stmt"),
     Mutant("fcacoveredout", DS, "        covered -= prefixCounts[k - 1]", "", mode="stmt"),
     Mutant("fcacoveredin", DS, "b[v] >= k", "b[v] > k"),
-    Mutant("fcacheck", DS, "left > minimumSum - covered", "left > minimumSum"),
+    Mutant("fcacheck", DS, "left > minimumSum - Int64(covered)", "left > minimumSum"),
     Mutant("fcacounts", DS, 'precondition(outDegrees.count == n, "inDegrees.count \\(n) != outDegrees.count \\(outDegrees.count)")', "", mode="stmt", nth=0),
 
     # Havel–Hakimi on stacks, Kleitman–Wang on heaps.

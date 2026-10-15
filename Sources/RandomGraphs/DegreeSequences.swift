@@ -25,37 +25,42 @@ public func isGraphical(_ degreeSequence: some Collection<Int>) -> Bool {
     let p = degreeSequence.count
     // The number of vertices of each nonzero degree.
     var counts = [Int](repeating: 0, count: p)
-    var largest = 0, smallest = p, sum = 0, n = 0
+    // The sums and products in `Int64`: they grow as p², past a 32-bit `Int` at p ≈ 46,000,
+    // while p itself stays below 2³¹ (a p-element array fits in memory).
+    var largest = 0, smallest = p, n = 0
+    var sum: Int64 = 0
     for d in degreeSequence {
         if d < 0 || d >= p { return false }
         if d > 0 {
             largest = Swift.max(largest, d)
             smallest = Swift.min(smallest, d)
-            sum += d
+            sum += Int64(d)
             n += 1
             counts[d] += 1
         }
     }
-    // n ≤ p, and an array of p elements fits in memory, so n(n − 1) fits in `Int`.
-    if !sum.isMultiple(of: 2) || sum > n * (n - 1) { return false }
+    let n64 = Int64(n)
+    if !sum.isMultiple(of: 2) || sum > n64 * (n64 - 1) { return false }
     // Zverovich–Zverovich: a sequence with 4·dmin·n ≥ (dmax + dmin + 1)² is graphical.
-    if n == 0 || 4 * smallest * n >= (largest + smallest + 1) * (largest + smallest + 1) { return true }
+    let span = Int64(largest + smallest + 1)
+    if n == 0 || 4 * Int64(smallest) * n64 >= span * span { return true }
     // Erdős–Gallai at each run end up to the Durfee number: Σᵢ≤ₖ dᵢ ≤ k(k − 1) + Σᵢ>ₖ min(dᵢ, k),
     // with the right side as k(n − 1) − k·Σⱼ<ₖ nⱼ + Σⱼ<ₖ j·nⱼ for nⱼ the vertices of degree j.
-    var k = 0, leading = 0, below = 0, weighted = 0
+    var k = 0, below = 0
+    var leading: Int64 = 0, weighted: Int64 = 0
     var d = largest
     while d >= smallest {
         if d < k + 1 { return true }
         let run = counts[d]
         if run > 0 {
             let taken = d < k + run ? d - k : run
-            leading += taken * d
+            leading += Int64(taken) * Int64(d)
             for v in 0 ..< taken {
                 below += counts[k + v]
-                weighted += (k + v) * counts[k + v]
+                weighted += Int64(k + v) * Int64(counts[k + v])
             }
             k += taken
-            if leading > k * (n - 1) - k * below + weighted { return false }
+            if leading > Int64(k) * Int64(n - 1) - Int64(k) * Int64(below) + weighted { return false }
         }
         d -= 1
     }
@@ -88,16 +93,17 @@ public func isDigraphical(inDegrees: some Collection<Int>, outDegrees: some Coll
     var a = [Int](), b = [Int]()
     a.reserveCapacity(n)
     b.reserveCapacity(n)
-    var sumIn = 0, sumOut = 0
+    // The sums in `Int64`: they grow as n², past a 32-bit `Int` at n ≈ 46,000.
+    var sumIn: Int64 = 0, sumOut: Int64 = 0
     for d in inDegrees {
         if d < 0 || d >= n { return false }
         b.append(d)
-        sumIn += d
+        sumIn += Int64(d)
     }
     for d in outDegrees {
         if d < 0 || d >= n { return false }
         a.append(d)
-        sumOut += d
+        sumOut += Int64(d)
     }
     if sumIn != sumOut { return false }
     if n == 0 { return true }
@@ -117,15 +123,15 @@ public func isDigraphical(inDegrees: some Collection<Int>, outDegrees: some Coll
     for d in b { atLeast[d] += 1 }
     for d in stride(from: n - 1, through: 0, by: -1) { atLeast[d] += atLeast[d + 1] }
     var prefixCounts = [Int](repeating: 0, count: n)
-    var left = 0, minimumSum = 0, covered = 0
+    var left: Int64 = 0, minimumSum: Int64 = 0, covered = 0
     for k in 1 ... n {
         let v = order[k - 1]
-        left += a[v]
-        minimumSum += atLeast[k]
+        left += Int64(a[v])
+        minimumSum += Int64(atLeast[k])
         covered -= prefixCounts[k - 1]
         if b[v] >= k { covered += 1 }
         prefixCounts[b[v]] += 1
-        if left > minimumSum - covered { return false }
+        if left > minimumSum - Int64(covered) { return false }
     }
     return true
 }

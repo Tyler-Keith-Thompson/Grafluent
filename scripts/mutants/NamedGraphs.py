@@ -129,7 +129,7 @@ MUTANTS = [
 
     # Hypercubes.
     Mutant("cubenegative", LA, "d >= 0", "true", nth=1),
-    Mutant("cubelarge", LA, "d <= 62", "d <= 63"),
+    Mutant("cubelarge", LA, "d <= Int.bitWidth - 2", "d <= Int.bitWidth - 1"),
     Mutant("cubeoverflow", LA, '    precondition(_productFits(d, directed ? n : n / 2), "edge count overflows Int")', "", mode="stmt"),
     Mutant("cubedown", LA, "                bit -= 1", "                bit -= 2", mode="stmt"),
     Mutant("cubedownset", LA, "v >> bit & 1 == 1", "v >> bit & 1 != 1"),

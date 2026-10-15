@@ -10,7 +10,7 @@ import Trees
 @usableFromInline
 func _binomialTreePairs(_ k: Int) -> (vertexCount: Int, pairs: [DirectedEdge<Int>]) {
     precondition(k >= 0, "order \(k) is negative")
-    precondition(k <= 62, "2^\(k) vertices overflow Int")
+    precondition(k <= Int.bitWidth - 2, "2^\(k) vertices overflow Int")
     let n = 1 << k
     var pairs: [DirectedEdge<Int>] = []
     pairs.reserveCapacity(n - 1)

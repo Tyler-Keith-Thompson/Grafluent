@@ -77,7 +77,7 @@ func _gridPairs(_ dimensions: [Int], periodic: Bool, directed: Bool) -> (vertexC
 @usableFromInline
 func _hypercubePairs(_ d: Int, directed: Bool) -> (vertexCount: Int, pairs: [DirectedEdge<Int>]) {
     precondition(d >= 0, "dimension \(d) is negative")
-    precondition(d <= 62, "2^\(d) vertices overflow Int")
+    precondition(d <= Int.bitWidth - 2, "2^\(d) vertices overflow Int")
     let n = 1 << d
     // d · 2^(d − 1) edges, twice that as arcs.
     precondition(_productFits(d, directed ? n : n / 2), "edge count overflows Int")

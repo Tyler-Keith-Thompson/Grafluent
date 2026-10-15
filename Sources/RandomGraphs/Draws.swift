@@ -4,6 +4,8 @@ import Darwin
 import Glibc
 #elseif canImport(Musl)
 import Musl
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 // A swift.org toolchain reading a newer macOS SDK (the fuzz build) gets a Darwin without libm's
 // functions; the SDK's math module has them.
@@ -30,8 +32,8 @@ func _uniform01<G: RandomNumberGenerator>(_ g: inout G) -> Double {
 @inlinable
 @inline(__always)
 func _below<G: RandomNumberGenerator>(_ n: Int, _ g: inout G) -> Int {
-    // 64 − k, where k = 64 − n.leadingZeroBitCount.
-    let shift = UInt64(truncatingIfNeeded: n.leadingZeroBitCount)
+    // 64 − k, where k is the bit length of n, at either `Int` width.
+    let shift = UInt64(truncatingIfNeeded: n.leadingZeroBitCount &+ (64 &- Int.bitWidth))
     while true {
         let r = Int(truncatingIfNeeded: g.next() >> shift)
         if r < n { return r }
