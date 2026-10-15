@@ -69,6 +69,7 @@ struct SemiringPreconditionTests {
         #expect((CountingSemiring<Int>(Int.max - 1) ⊕ CountingSemiring<Int>(1)).value == Int.max)
     }
 
+    #if _pointerBitWidth(_64)
     @Test("SR-215 ⊗ overflow traps (CountingSemiring<Int>: a = 4294967296, b = 2147483648)")
     func sr215() async {
         // a ⊗ b → **trap** (overflow)
@@ -86,6 +87,7 @@ struct SemiringPreconditionTests {
         // One less: the largest product that fits.
         #expect((CountingSemiring<Int>(4294967296) ⊗ CountingSemiring<Int>(2147483647)).value == 9223372032559808512)
     }
+    #endif
 
     @Test("SR-223 a negative examined weight traps (TropicalSemiring<Int>)")
     func sr223() async throws {
@@ -133,6 +135,7 @@ struct SemiringPreconditionTests {
         #expect((0 ..< 4).map { reference.distance(to: $0)?.value } == [0.0, -2.0, 2.0, -4.0])
     }
 
+    #if _pointerBitWidth(_64)
     @Test("SR-273 the sum overflows: traps (TropicalSemiring<Int>)")
     func sr273() async {
         // dijkstraShortestPaths(from: 0) → **trap** (overflow)
@@ -147,7 +150,9 @@ struct SemiringPreconditionTests {
         let tree = graph.dijkstraShortestPaths(from: 1) { TropicalSemiring(w[$0]) }
         #expect((0 ..< 3).map { tree.distance(to: $0)?.value } == [nil, 0, 4611686018427387904])
     }
+    #endif
 
+    #if _pointerBitWidth(_64)
     @Test("SR-335 2^63 overflows: traps (CountingSemiring<Int>)")
     func sr335() async throws {
         // dagShortestDistances(from: 0) → **trap** (overflow)
@@ -173,7 +178,9 @@ struct SemiringPreconditionTests {
         #expect(distances.distance(to: 126).value == 4611686018427387904)
         #expect(distances.distance(to: 0).value == 0 && distances.distance(to: 2).value == 1)
     }
+    #endif
 
+    #if _pointerBitWidth(_64)
     @Test("SR-337 C(68,34) overflows: traps (CountingSemiring<Int>)")
     func sr337() async throws {
         // dagShortestDistances(from: 0) → **trap** (overflow)
@@ -205,6 +212,7 @@ struct SemiringPreconditionTests {
         #expect(distances.distance(to: 1224).value == 7219428434016265740)
         #expect(distances.distance(to: 0).value == 0 && distances.distance(to: 36).value == 1)
     }
+    #endif
 
     @Test("SR-414 overflow traps at the width (TropicalSemiring<Int8>: a = Int8.max - 7, b = 8)")
     func sr414() async {

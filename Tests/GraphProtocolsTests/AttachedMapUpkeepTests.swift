@@ -437,7 +437,8 @@ struct AttachedMapUpkeepTests {
         stamp.advance(owning: &empty)
         #expect(stamp.generation._lineage != once._lineage)
         // advance(owning:) makes a shared array unique first: a new lineage.
-        var owned = ContiguousArray([1, 2, 3])
+        // Built at run time: a literal's storage can be a static object, never unique (as on wasm32).
+        var owned = ContiguousArray(1 ... 3)
         var ownedStamp = _GenerationStamp()
         ownedStamp.advance(writing: owned)
         ownedStamp.advance(owning: &owned)

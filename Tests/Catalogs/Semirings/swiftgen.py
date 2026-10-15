@@ -663,11 +663,24 @@ def phase2_test(n):
 FLOAT16_GUARD = "#if !((os(macOS) || targetEnvironment(macCatalyst)) && arch(x86_64))"
 
 
+WIDE_GUARD = "#if _pointerBitWidth(_64)"
+INTEGER_LITERAL = re.compile(r"(?<![\w.])(\d[\d_]*)(?![\w.])")
+
+
+def past_int32(lines):
+    """Whether the code (not the comments) of `lines` spells an integer literal past Int32."""
+    code = " ".join(line.split("//")[0] for line in lines)
+    return any(int(m.group(1).replace("_", "")) > 2**31 - 1 for m in INTEGER_LITERAL.finditer(code))
+
+
 def test_for(n):
     lines = test_body(n)
     if "Float16" in sname(n):
         # Float16 is unavailable on Intel Macs.
         return ["    " + FLOAT16_GUARD] + lines + ["    #endif"]
+    if re.search(r"<U?Int>", sname(n)) and past_int32(lines):
+        # Values past Int32 need a 64-bit Int (not arm64_32 or wasm32).
+        return ["    " + WIDE_GUARD] + lines + ["    #endif"]
     return lines
 
 

@@ -8,7 +8,8 @@
 /// idempotent (`a ⊕ a == 2a`), and not `Comparable`, so only `dagShortestDistances` takes it.
 ///
 /// Over `Int` both operations trap on overflow, like every sum in ShortestPaths, because a
-/// saturated or wrapped count would be silently wrong. 2⁶² paths fit. `Double` rounds past 2⁵³.
+/// saturated or wrapped count would be silently wrong. `Int.max` paths fit: 2⁶³ − 1, or 2³¹ − 1 where
+/// `Int` is 32 bits. `Double` rounds past 2⁵³.
 /// For exact large counts, use any `Numeric & Hashable` big-integer type.
 ///
 ///     dag.dagShortestDistances(from: s) { _ in CountingSemiring(1) }

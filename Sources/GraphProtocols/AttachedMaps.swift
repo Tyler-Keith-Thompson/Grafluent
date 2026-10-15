@@ -260,8 +260,8 @@ package class _DenseMapBuffer: _AnyMapBuffer {
     @usableFromInline package final let isTrivial: Bool
     /// The default value, one initialized value.
     @usableFromInline package final let defaultAddress: UnsafeRawPointer
-    /// The default value's bytes, when it is 8 bytes of trivial value (else 0): what the inline
-    /// append stores, with no load through `defaultAddress`.
+    /// The default value's bytes, when it is 8 bytes of trivial value, or 4 where `Int` is 4 bytes
+    /// (else 0): what the inline append stores, with no load through `defaultAddress`.
     @usableFromInline package final let _defaultWord: UInt64
 
     @inlinable
@@ -272,7 +272,9 @@ package class _DenseMapBuffer: _AnyMapBuffer {
         self.stride = stride
         self.isTrivial = isTrivial
         self.defaultAddress = defaultAddress
-        _defaultWord = isTrivial && stride == 8 ? defaultAddress.load(as: UInt64.self) : 0
+        _defaultWord = !isTrivial ? 0
+            : stride == 8 ? defaultAddress.load(as: UInt64.self)
+            : stride == 4 && MemoryLayout<Int>.stride == 4 ? UInt64(defaultAddress.load(as: UInt32.self)) : 0
         super.init(witnesses: witnesses, isDense: true)
     }
 
@@ -290,6 +292,9 @@ package class _DenseMapBuffer: _AnyMapBuffer {
             target.copyMemory(from: source, byteCount: 8)
         } else if stride == 16 {
             target.copyMemory(from: source, byteCount: 16)
+        } else if MemoryLayout<Int>.stride == 4 && stride == 4 {
+            // `Int` where it is 4 bytes; folded away where it is 8.
+            target.copyMemory(from: source, byteCount: 4)
         } else {
             _copyOther(stride, to: target, from: source)
         }
@@ -471,9 +476,9 @@ package final class _MapTable: @unchecked Sendable {
     @usableFromInline package let entries: UnsafeMutableBufferPointer<_AttachedMap>
     /// Whether every map is dense with trivial values: the upkeep's fast paths, with no closure.
     @usableFromInline package let _allTrivialDense: Bool
-    /// Whether there is exactly one map, dense, of trivial 8-byte values (`Double`, `Int`): the
-    /// common case, which the upkeep of a graph that owns the table moves with one load and one
-    /// store (`_fastBuffer`).
+    /// Whether there is exactly one map, dense, of trivial 8-byte values (`Double`, `Int`), or of
+    /// 4-byte values where `Int` is 4 bytes: the common case, which the upkeep of a graph that
+    /// owns the table moves with one load and one store (`_fastBuffer`).
     @usableFromInline package let _singleWord: Bool
     /// Whether some map's values hold references (see `_AttachedMap.releases`).
     @usableFromInline package let _releases: Bool
@@ -508,7 +513,8 @@ package final class _MapTable: @unchecked Sendable {
         // A table lists at least one map (`_replacing` makes none for zero).
         self.entries = entries
         _allTrivialDense = allTrivialDense
-        let singleWord = count == 1 && allTrivialDense && unsafeDowncast(entries[0].buffer, to: _DenseMapBuffer.self).stride == 8
+        let singleStride = count == 1 && allTrivialDense ? unsafeDowncast(entries[0].buffer, to: _DenseMapBuffer.self).stride : 0
+        let singleWord = singleStride == 8 || (MemoryLayout<Int>.stride == 4 && singleStride == 4)
         _singleWord = singleWord
         _releases = releases
         _someMayBeShared = Atomic(someMayBeShared)
@@ -638,6 +644,8 @@ package final class _MapTable: @unchecked Sendable {
                     target.copyMemory(from: source, byteCount: 8)
                 } else if stride == 16 {
                     target.copyMemory(from: source, byteCount: 16)
+                } else if MemoryLayout<Int>.stride == 4 && stride == 4 {
+                    target.copyMemory(from: source, byteCount: 4)
                 } else {
                     return _swapRemoveSlow(at: offset, from: k)
                 }
@@ -666,7 +674,11 @@ package final class _MapTable: @unchecked Sendable {
             unowned(unsafe) let buffer = Self._buffer(at: address)
             let c = buffer.count
             if _fastPath(c != buffer.capacity) {
-                (buffer.base + c &* 8).storeBytes(of: buffer._defaultWord, as: UInt64.self)
+                if MemoryLayout<Int>.stride == 8 || buffer.stride == 8 {
+                    (buffer.base + c &* 8).storeBytes(of: buffer._defaultWord, as: UInt64.self)
+                } else {
+                    (buffer.base + c &* 4).storeBytes(of: UInt32(truncatingIfNeeded: buffer._defaultWord), as: UInt32.self)
+                }
                 buffer.count = c &+ 1
                 return
             }
@@ -684,7 +696,11 @@ package final class _MapTable: @unchecked Sendable {
             let count = buffer.count
             if _fastPath(UInt(bitPattern: offset) < UInt(bitPattern: count)) {
                 let base = buffer.base, last = count &- 1
-                (base + offset &* 8).storeBytes(of: (base + last &* 8).load(as: UInt64.self), as: UInt64.self)
+                if MemoryLayout<Int>.stride == 8 || buffer.stride == 8 {
+                    (base + offset &* 8).storeBytes(of: (base + last &* 8).load(as: UInt64.self), as: UInt64.self)
+                } else {
+                    (base + offset &* 4).storeBytes(of: (base + last &* 4).load(as: UInt32.self), as: UInt32.self)
+                }
                 buffer.count = last
                 return
             }
@@ -706,6 +722,8 @@ package final class _MapTable: @unchecked Sendable {
                 target.copyMemory(from: source, byteCount: 8)
             } else if stride == 16 {
                 target.copyMemory(from: source, byteCount: 16)
+            } else if MemoryLayout<Int>.stride == 4 && stride == 4 {
+                target.copyMemory(from: source, byteCount: 4)
             } else {
                 return _appendDefaultsSlow(count: 1, from: k)
             }
@@ -912,6 +930,8 @@ package struct _AttachedMaps: Sendable {
                 target.copyMemory(from: source, byteCount: 8)
             } else if stride == 16 {
                 target.copyMemory(from: source, byteCount: 16)
+            } else if MemoryLayout<Int>.stride == 4 && stride == 4 {
+                target.copyMemory(from: source, byteCount: 4)
             } else {
                 return table._resetSlow(at: offset, from: k)
             }
@@ -983,7 +1003,11 @@ package struct _AttachedMaps: Sendable {
             unowned(unsafe) let buffer = _MapTable._buffer(at: address)
             let c = buffer.count
             if _fastPath(c != buffer.capacity) {
-                (buffer.base + c &* 8).storeBytes(of: buffer._defaultWord, as: UInt64.self)
+                if MemoryLayout<Int>.stride == 8 || buffer.stride == 8 {
+                    (buffer.base + c &* 8).storeBytes(of: buffer._defaultWord, as: UInt64.self)
+                } else {
+                    (buffer.base + c &* 4).storeBytes(of: UInt32(truncatingIfNeeded: buffer._defaultWord), as: UInt32.self)
+                }
                 buffer.count = c &+ 1
                 return
             }

@@ -45,6 +45,7 @@ struct SemiringArithmeticTests {
         #expect(a.times(b).value == Int.min && b.times(a).value == Int.min)
     }
 
+    #if _pointerBitWidth(_64)
     @Test("SR-216 the largest product that fits (CountingSemiring<Int>: a = 4294967296, b = 2147483647)")
     func sr216() {
         // a ⊗ b → 9223372032559808512
@@ -53,6 +54,7 @@ struct SemiringArithmeticTests {
         #expect((a ⊗ b).value == 9223372032559808512)
         #expect(a.times(b).value == 9223372032559808512 && b.times(a).value == 9223372032559808512)
     }
+    #endif
 
     @Test("SR-217 Double counts round instead (CountingSemiring<Double>: a = 9007199254740992.0, b = 1.0)")
     func sr217() {

@@ -12,6 +12,7 @@ import Testing
 
 @Suite("Semirings: zero, one and the types")
 struct SemiringTypeTests {
+    #if _pointerBitWidth(_64)
     @Test("SR-001 zero and one (TropicalSemiring<Int>)")
     func sr001() {
         // (.zero, .one) → (Int.max, 0)
@@ -25,6 +26,7 @@ struct SemiringTypeTests {
         // Hashable: equal values hash alike.
         #expect(Set([TropicalSemiring<Int>.zero, TropicalSemiring<Int>(Int.max), TropicalSemiring<Int>.one]).count == 2)
     }
+    #endif
 
     @Test("SR-002 zero and one (TropicalSemiring<Double>)")
     func sr002() {
@@ -40,6 +42,7 @@ struct SemiringTypeTests {
         #expect(Set([TropicalSemiring<Double>.zero, TropicalSemiring<Double>(Double.infinity), TropicalSemiring<Double>.one]).count == 2)
     }
 
+    #if _pointerBitWidth(_64)
     @Test("SR-003 zero and one (BottleneckSemiring<Int>)")
     func sr003() {
         // (.zero, .one) → (Int.min, Int.max)
@@ -53,6 +56,7 @@ struct SemiringTypeTests {
         // Hashable: equal values hash alike.
         #expect(Set([BottleneckSemiring<Int>.zero, BottleneckSemiring<Int>(Int.min), BottleneckSemiring<Int>.one]).count == 2)
     }
+    #endif
 
     @Test("SR-004 zero and one (BottleneckSemiring<Double>)")
     func sr004() {
@@ -144,6 +148,7 @@ struct SemiringTypeTests {
         #expect([distances.distance(to: 0).value, distances.distance(to: 1).value] == [1, 1])
     }
 
+    #if _pointerBitWidth(_64)
     @Test("SR-356 zero and one (BottleneckSemiring<UInt>)")
     func sr356() {
         // (.zero, .one) → (0, UInt.max)
@@ -157,6 +162,7 @@ struct SemiringTypeTests {
         // Hashable: equal values hash alike.
         #expect(Set([BottleneckSemiring<UInt>.zero, BottleneckSemiring<UInt>(0), BottleneckSemiring<UInt>.one]).count == 2)
     }
+    #endif
 
     @Test("SR-357 zero and one (TropicalSemiring<UInt8>)")
     func sr357() {
@@ -216,6 +222,7 @@ struct SemiringTypeTests {
     }
     #endif
 
+    #if _pointerBitWidth(_64)
     @Test("SR-459 zero and one (MaxPlusSemiring<Int>)")
     func sr459() {
         // (.zero, .one) → (Int.min, 0)
@@ -229,6 +236,7 @@ struct SemiringTypeTests {
         // Hashable: equal values hash alike.
         #expect(Set([MaxPlusSemiring<Int>.zero, MaxPlusSemiring<Int>(Int.min), MaxPlusSemiring<Int>.one]).count == 2)
     }
+    #endif
 
     @Test("SR-495 zero and one (MaxPlusSemiring<Double>)")
     func sr495() {

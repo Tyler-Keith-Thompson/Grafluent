@@ -517,6 +517,7 @@ struct SemiringDAGTests {
         #expect(distances.sources == [0])
     }
 
+    #if _pointerBitWidth(_64)
     @Test("SR-334 the largest diamond chain that fits: 2^62 (CountingSemiring<Int>)")
     func sr334() throws {
         // dagShortestDistances(from: 0) → [1, 1, 2, 2, 4, 4, 8, 8, 16, 16, 32, 32, 64, 64, 128, 128, 256, 256, 512, 512, 1024, 1024, 2048, 2048, 4096, 4096, 8192, 8192, 16384, 16384, 32768, 32768, 65536, 65536, 131072, 131072, 262144, 262144, …
@@ -545,7 +546,9 @@ struct SemiringDAGTests {
         #expect((0 ..< 125).map { distances.distance(toIndex: $0).value } == expected)
         #expect(distances.sources == [0])
     }
+    #endif
 
+    #if _pointerBitWidth(_64)
     @Test("SR-336 C(66,33) fits (CountingSemiring<Int>)")
     func sr336() throws {
         // dagShortestDistances(from: 0) → [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27 …
@@ -663,6 +666,7 @@ struct SemiringDAGTests {
         #expect((0 ..< 1156).map { distances.distance(toIndex: $0).value } == expected)
         #expect(distances.sources == [0])
     }
+    #endif
 
     @Test("SR-550 longest paths: the critical path (MaxPlusSemiring<Int>)")
     func sr550() throws {
