@@ -31,7 +31,7 @@ typealias HousePrimEvent = PrimEvent<String, UndirectedAdjacencyList<String>.Edg
 /// Every event of Kruskal's algorithm on the houses.
 func kruskalCabling() -> [HouseKruskalEvent] {
     // snippet: mst-kruskal
-    let kruskal = Array(houses.kruskalEvents { cableCost[houses.edges[$0]]! })  // →
+    let kruskal = Array(houses.lazy.kruskal { cableCost[houses.edges[$0]]! })  // →
     // snippet end
     return kruskal
 }
@@ -39,7 +39,7 @@ func kruskalCabling() -> [HouseKruskalEvent] {
 /// Every event of Prim's algorithm on the houses, from `start`.
 func primCabling(from start: String) -> [HousePrimEvent] {
     // snippet: mst-prim
-    let prim = Array(houses.primEvents(from: start) { cableCost[houses.edges[$0]]! })  // →
+    let prim = Array(houses.lazy.prim(from: start) { cableCost[houses.edges[$0]]! })  // →
     // snippet end
     return prim
 }

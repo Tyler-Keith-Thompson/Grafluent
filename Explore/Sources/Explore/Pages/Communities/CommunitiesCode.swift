@@ -28,7 +28,7 @@ typealias SchoolLouvainEvent = LouvainEvent<DirectedView<UndirectedAdjacencyList
 /// Every event of Louvain on the school, its communities, and their modularity.
 func schoolCommunities() -> (events: [SchoolLouvainEvent], clubs: [[String]], score: Double) {
     // snippet: communities-louvain
-    let events = Array(school.louvainEvents())     // →
+    let events = Array(school.lazy.louvain())     // →
     let clubs = school.louvainCommunities()        // →
     let score = school.modularity(of: clubs)       // →
     // snippet end

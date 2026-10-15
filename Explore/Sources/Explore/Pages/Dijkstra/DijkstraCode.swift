@@ -32,8 +32,8 @@ typealias TownSearchEvent = DijkstraSearchEvent<String, DirectedView<UndirectedA
 
 /// Every event of Dijkstra's search from `start`, for the timeline.
 func townSearch(from start: String) -> [TownSearchEvent] {
-    // snippet: dijkstra-search
-    let events = Array(town.dijkstraSearch(from: start) { minutes[town.edges[$0]]! })  // →
+    // snippet: dijkstra-events
+    let events = Array(town.lazy.dijkstra(from: start) { minutes[town.edges[$0]]! })  // →
     // snippet end
     return events
 }

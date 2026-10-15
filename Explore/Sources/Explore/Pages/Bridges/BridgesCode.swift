@@ -31,7 +31,7 @@ typealias VillageSearchEvent = EdgeDepthFirstSearchEvent<String, UndirectedAdjac
 /// Every event of a depth-first search of the village from `start`, each road by its position.
 func villageSearch(from start: String) -> [VillageSearchEvent] {
     // snippet: bridges-search
-    let events = Array(village.edgeDepthFirstSearch(from: start))  // →
+    let events = Array(village.lazy.edgeDepthFirstSearch(from: start))  // →
     // snippet end
     return events
 }

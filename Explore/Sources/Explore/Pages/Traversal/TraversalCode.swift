@@ -48,7 +48,7 @@ let office = AdjacencyList<String> {
 /// Every event of a breadth-first search of the friends from `start`.
 func newsBreadthFirst(from start: String) -> [BreadthFirstSearchEvent<String>] {
     // snippet: traversal-bfs
-    let events = Array(friends.breadthFirstSearch(from: start))  // →
+    let events = Array(friends.lazy.breadthFirstSearch(from: start))  // →
     // snippet end
     return events
 }
@@ -56,7 +56,7 @@ func newsBreadthFirst(from start: String) -> [BreadthFirstSearchEvent<String>] {
 /// Every event of a depth-first search of the office from `start`.
 func officeDepthFirst(from start: String) -> [DepthFirstSearchEvent<String>] {
     // snippet: traversal-dfs
-    let events = Array(office.depthFirstSearch(from: start))  // →
+    let events = Array(office.lazy.depthFirstSearch(from: start))  // →
     // snippet end
     return events
 }

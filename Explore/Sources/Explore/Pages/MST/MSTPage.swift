@@ -73,15 +73,15 @@ struct PrimSnapshot {
 final class MSTModel {
     var showsPrim = false
     var start = houseIndex["Ada"]!
-    var kruskalEvents: [HouseKruskalEvent] = []
-    var primEvents: [HousePrimEvent] = []
+    var kruskalLog: [HouseKruskalEvent] = []
+    var primLog: [HousePrimEvent] = []
     var kruskalSteps: [KruskalStep] = []
     var primSteps: [PrimStep] = []
     @ReactiveIgnored let playback = Playback()
 
     init() {
-        kruskalEvents = kruskalCabling()
-        kruskalSteps = MSTModel.timeline(kruskalEvents)
+        kruskalLog = kruskalCabling()
+        kruskalSteps = MSTModel.timeline(kruskalLog)
         startPrim(at: start)
         show(prim: false)
     }
@@ -96,8 +96,8 @@ final class MSTModel {
     /// Runs Grafluent's Prim from `house`.
     func startPrim(at house: Int) {
         start = house
-        primEvents = primCabling(from: housePlaces[house].name)
-        primSteps = MSTModel.timeline(primEvents)
+        primLog = primCabling(from: housePlaces[house].name)
+        primSteps = MSTModel.timeline(primLog)
         if showsPrim { playback.reset(count: primSteps.count) }
     }
 
@@ -452,8 +452,8 @@ struct MSTCodePanel {
                 .mstKruskal, .mstPrim, .mstTotals,
             ],
             results: [
-                "\(model.kruskalEvents.count) events",
-                "\(model.primEvents.count) events",
+                "\(model.kruskalLog.count) events",
+                "\(model.primLog.count) events",
                 "\(totals.kruskal)",
                 "\(totals.prim)",
             ])

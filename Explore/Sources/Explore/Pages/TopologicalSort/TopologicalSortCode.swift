@@ -18,7 +18,7 @@ func plan(clothes: [String], rules: [(String, String)]) -> BuildPlan {
         for item in clothes { item }
         for (first, then) in rules { DirectedEdge(from: first, to: then) }
     }
-    let events = Array(wardrobe.depthFirstSearch())     // →
+    let events = Array(wardrobe.lazy.depthFirstSearch())     // →
     let order = wardrobe.topologicalSort()              // →
     let waves = wardrobe.topologicalGenerations()          // →
     let cycle = wardrobe.findCycle().map(Array.init)       // →

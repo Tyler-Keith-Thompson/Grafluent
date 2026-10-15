@@ -20,7 +20,7 @@ func waterworksFlow(_ pipes: [(pipe: DirectedEdge<String>, capacity: Int)])
     let capacity = Dictionary(uniqueKeysWithValues: pipes.map { ($0.pipe, $0.capacity) })
     // snippet end
     // snippet: flow-run
-    let events = Array(waterworks.edmondsKarpEvents(from: "Reservoir", to: "Town") { capacity[waterworks.edges[$0]]! })  // →
+    let events = Array(waterworks.lazy.edmondsKarp(from: "Reservoir", to: "Town") { capacity[waterworks.edges[$0]]! })  // →
     let flow = waterworks.edmondsKarpMaximumFlow(from: "Reservoir", to: "Town") { capacity[waterworks.edges[$0]]! }
     let most = flow.value                                                       // →
     let cut = flow.minimumCut.edges.map { waterworks.edges[$0] }                // →

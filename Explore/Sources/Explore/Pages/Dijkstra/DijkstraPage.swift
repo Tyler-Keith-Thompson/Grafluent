@@ -302,7 +302,7 @@ struct DijkstraCodePanel {
             snippets: [
                 .dijkstraImports, .dijkstraTown,
                 Snippet(lines: ["let start = \"\(start)\"", "let goal = \"\(goal)\""]),
-                .dijkstraSearch, .dijkstraWalk,
+                .dijkstraEvents, .dijkstraWalk,
             ],
             results: [
                 "\(model.events.count) events",

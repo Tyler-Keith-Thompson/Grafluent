@@ -21,7 +21,7 @@ func islandGroups(islands names: [String], bridges: [(String, String)]) -> (grou
     var reached = Set<String>()
     var searches: [[BreadthFirstSearchEvent<String>]] = []
     for island in names where !reached.contains(island) {
-        let search = Array(islands.directedView.breadthFirstSearch(from: island))
+        let search = Array(islands.directedView.lazy.breadthFirstSearch(from: island))
         for case .discover(let found) in search { reached.insert(found) }
         searches.append(search)
     }
@@ -39,7 +39,7 @@ func neighbourhoods(corners: [String], oneWay: [(String, String)]) -> (groups: [
     let neighbourhoods = streets.stronglyConnectedComponents()  // →
     let condensation = streets.condensation()
     let links = condensation.graph.edgeCount                     // →
-    let events = Array(streets.depthFirstSearch())               // →
+    let events = Array(streets.lazy.depthFirstSearch())               // →
     // snippet end
     _ = links
     return (neighbourhoods.map(Array.init), condensation.graph, events)

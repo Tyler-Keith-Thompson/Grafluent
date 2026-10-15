@@ -23,7 +23,7 @@ let party = UndirectedAdjacencyList<String> {
 /// Every event of Bron–Kerbosch on the party, the maximal cliques and the largest.
 func partyCliques() -> (events: [BronKerboschEvent<String>], cliques: [[String]], largest: [String]) {
     // snippet: cliques-search
-    let events = Array(party.bronKerboschEvents())       // →
+    let events = Array(party.lazy.bronKerbosch())       // →
     let cliques = Array(party.maximalCliques())          // →
     let largest = party.maximumClique()                   // →
     // snippet end

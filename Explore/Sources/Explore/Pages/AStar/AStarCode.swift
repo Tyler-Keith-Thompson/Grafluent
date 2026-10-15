@@ -61,7 +61,7 @@ func cityRun(from home: Block, to café: Block, walls: Set<Block>, overestimate:
     // snippet end
 
     // snippet: astar-search
-    let events = Array(city.aStarSearch(from: home, to: café) { street in
+    let events = Array(city.lazy.aStar(from: home, to: café) { street in
         city.edges[street].u.distance(to: city.edges[street].v)
     } heuristic: { block in
         overestimate * block.distance(to: café)
@@ -70,7 +70,7 @@ func cityRun(from home: Block, to café: Block, walls: Set<Block>, overestimate:
 
     // snippet: astar-dijkstra
     var dijkstra: [DijkstraSearchEvent<Block, DirectedView<UndirectedAdjacencyList<Block>>.Edges.Index, Double>] = []
-    for event in city.dijkstraSearch(from: home, weight: { city.edges[$0].u.distance(to: city.edges[$0].v) }) {
+    for event in city.lazy.dijkstra(from: home, weight: { city.edges[$0].u.distance(to: city.edges[$0].v) }) {
         dijkstra.append(event)
         if case .examine(café, _) = event { break }  // Stop once the café is settled.
     }

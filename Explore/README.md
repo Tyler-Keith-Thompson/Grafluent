@@ -16,24 +16,24 @@ contents and the menu without a link.
 |---|---|
 | `basics` | `neighbors(of:)`, `successors(of:)`, `predecessors(of:)`; beside its figures, `dijkstraShortestPaths`, `Walk`, `Path`, `Cycle`, `Pseudograph`, `Multigraph` |
 | `representations` | `AdjacencyList`, `LabeledGraph<_, AdjacencyMatrix>`, `LabeledGraph<_, CompressedSparseRow>` |
-| `bfs` | `breadthFirstSearch(from:)` |
-| `dfs` | `depthFirstSearch(from:)` |
-| `dijkstra` | `dijkstraSearch(from:weight:)`, `dijkstraShortestPaths(from:weight:)`; beside its figure, `bellmanFordShortestPaths` |
-| `astar` | `aStarSearch(from:to:weight:heuristic:)`, `aStarShortestPath(from:to:weight:heuristic:)`, `dijkstraSearch(from:weight:)` |
+| `bfs` | `lazy.breadthFirstSearch(from:)` |
+| `dfs` | `lazy.depthFirstSearch(from:)` |
+| `dijkstra` | `lazy.dijkstra(from:weight:)`, `dijkstraShortestPaths(from:weight:)`; beside its figure, `bellmanFordShortestPaths` |
+| `astar` | `lazy.aStar(from:to:weight:heuristic:)`, `aStarShortestPath(from:to:weight:heuristic:)`, `lazy.dijkstra(from:weight:)` |
 | `kpaths` | `shortestSimplePaths(from:to:weight:)`, `prefix(_:)` |
 | `semirings` | `dijkstraShortestPaths(from:weight:)` over `TropicalSemiring`, `BottleneckSemiring`, `ViterbiSemiring`, `BooleanSemiring`; `dagShortestDistances(from:weight:)` over `CountingSemiring`; `topologicalSort()` |
-| `toposort` | `depthFirstSearch()`, `topologicalSort()`, `topologicalGenerations()`, `findCycle()` |
-| `components` | `connectedComponents()`, `breadthFirstSearch(from:)`, `stronglyConnectedComponents()`, `condensation()`, `depthFirstSearch()` |
-| `bridges` | `bridges()`, `articulationPoints()`, `edgeDepthFirstSearch(from:)`, `connectedComponents()`; beside its figure, `biconnectedComponents()` |
+| `toposort` | `lazy.depthFirstSearch()`, `topologicalSort()`, `topologicalGenerations()`, `findCycle()` |
+| `components` | `connectedComponents()`, `lazy.breadthFirstSearch(from:)`, `stronglyConnectedComponents()`, `condensation()`, `lazy.depthFirstSearch()` |
+| `bridges` | `bridges()`, `articulationPoints()`, `lazy.edgeDepthFirstSearch(from:)`, `connectedComponents()`; beside its figure, `biconnectedComponents()` |
 | `euler` | `degree(of:)`, `eulerianCircuit()`, `eulerianTrail()`, `incidentEdges(of:)` on a `Multigraph`; beside its figure, `hasEulerianTrail` |
-| `mst` | `kruskalEvents(weight:)`, `primEvents(from:weight:)`, `kruskalMinimumSpanningTree(weight:)`, `primMinimumSpanningTree(from:weight:)` |
+| `mst` | `lazy.kruskal(weight:)`, `lazy.prim(from:weight:)`, `kruskalMinimumSpanningTree(weight:)`, `primMinimumSpanningTree(from:weight:)` |
 | `huffman` | `BinaryTree.huffman(weights:)`, `parent(of:)`, `left(of:)`, `depth(of:)`, `inorder` |
 | `giant` | `erdosRenyi(vertexCount:edgeCount:using:)` with `Xoshiro256StarStar`, `connectedComponents()`, `fruchtermanReingoldLayout(iterations:weight:using:)` |
 | `planarity` | `isPlanar`, `findKuratowskiSubgraph()`, `planarLayout()`, `planarEmbedding()` |
-| `cliques` | `bronKerboschEvents()`, `maximalCliques()`, `maximumClique()` |
-| `communities` | `louvainEvents()`, `louvainCommunities()`, `modularity(of:)` |
+| `cliques` | `lazy.bronKerbosch()`, `maximalCliques()`, `maximumClique()` |
+| `communities` | `lazy.louvain()`, `louvainCommunities()`, `modularity(of:)` |
 | `girvannewman` | `girvanNewmanCommunities()`, `edgeBetweennessCentrality(normalized:)`, `connectedComponents()`, `modularity(of:)` |
-| `flow` | `edmondsKarpEvents(from:to:capacity:)`, `edmondsKarpMaximumFlow(from:to:capacity:)`, `minimumCut` |
+| `flow` | `lazy.edmondsKarp(from:to:capacity:)`, `edmondsKarpMaximumFlow(from:to:capacity:)`, `minimumCut` |
 | `matching` | `bipartition(left:)`, `maximumBipartiteMatching(bipartition:)` |
 | `coloring` | `greedyColoring(order:)`, `greedyColoring(strategy:)`, `chromaticNumber()`, `minimumColoring()` |
 | `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |
@@ -145,7 +145,7 @@ page builds: they bind the names the snippets use.
 
 ## Adding a page
 
-For a stepper such as `kruskalSearch`, `primSearch`, `aStarSearch` or `bronKerboschSearch`:
+For a stepper such as `lazy.kruskal`, `lazy.prim`, `lazy.aStar` or `lazy.bronKerbosch`:
 
 1. Add the module to the `Explore` target's dependencies in `Package.swift` if it is not there.
 2. `Sources/Explore/Pages/MST/MSTCode.swift`: the example graph and a function that collects the
