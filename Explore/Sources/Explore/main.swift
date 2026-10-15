@@ -26,6 +26,7 @@ func mountPage(_ page: String) -> Bool {
     case "semirings": SemiringsPage.mount()
     case "flow": FlowPage.mount()
     case "mincut": MinCutPage.mount()
+    case "mincostflow": MinCostFlowPage.mount()
     case "cliques": CliquesPage.mount()
     case "communities": CommunitiesPage.mount()
     case "girvannewman": GirvanNewmanPage.mount()
