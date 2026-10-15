@@ -27,9 +27,9 @@
     <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
       <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
         <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
-        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="toposort.html">Topological sort</a></div>
-        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="giant.html">The giant component</a><i>Cliques (soon)</i><i>Communities (soon)</i></div>
-        <div class="mgroup"><span>Assignment</span><i>Maximum flow (soon)</i><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
         <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html" aria-current="page">PageRank</a><a href="layout.html">Force-directed layout</a></div>
       </nav>
     </details>
@@ -38,7 +38,6 @@
   </nav>
 <header class="sign">
   <h1>PageRank</h1>
-  <div class="say"><span>Named after Larry</span><b>Page</b><span class="ipa">/peɪdʒ/</span></div>
   <p class="question">Which pages on a web matter most?</p>
 </header>
 <p class="example lead">Example: six web pages linking to each other. Add a link and see the ranks shift.</p>
@@ -107,7 +106,7 @@
 
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
-  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Page</b><span class="how">PAYJ</span><span class="ipa">/peɪdʒ/</span><span class="what">Larry Page, the Page in PageRank</span></div><div class="name"><b>Brin</b><span class="how">BRIN</span><span class="ipa">/brɪn/</span><span class="what">Sergey Brin, PageRank’s co-author</span></div><div class="name"><b>Markov</b><span class="how">MAR-koff</span><span class="ipa">/ˈmarkəf/</span><span class="what">Chains of random steps; PageRank is one’s long-run average</span></div><div class="name"><b>Kleinberg</b><span class="how">KLINE-burg</span><span class="ipa">/ˈklaɪnbɜːrɡ/</span><span class="what">Hubs and authorities, PageRank’s two-score cousin</span></div></div></div>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Kleinberg</b><span class="how">KLINE-burg</span><span class="ipa">/ˈklaɪnbɜːrɡ/</span><span class="what">Hubs and authorities, PageRank’s two-score cousin</span></div></div></div>
 </section>
 <nav class="pager" aria-label="Pages"><a class="prev" href="coloring.html"><span>Previous</span>Graph coloring</a><a class="next" href="layout.html"><span>Next</span>Force-directed layout</a></nav>
 </div>

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Communities · Explore Grafluent</title>
+<meta name="description" content="Watch Grafluent’s louvainEvents split a school’s friendships into groups, each move raising the modularity, then merge the groups and carry on.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="communities">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html" aria-current="page">Communities</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Communities</h1>
+  <div class="say"><span>Say it</span><b>loo-VAN</b><span class="ipa">/luvɛ̃/</span></div>
+  <p class="question">Where does a network naturally split into groups?</p>
+</header>
+<p class="example lead">Example: twelve students and who is friends with whom. Three clubs mostly keep to themselves, with a few friendships across. Nobody tells the algorithm about the clubs.</p>
+
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="A school's friendships"><div class="panel stage"><svg class="canvas" viewBox="0 0 680 420" role="img" aria-label="Twelve students and their friendships, coloured by group"><g class="edge faint" data-edge="0"><path d="M88.2,84.4 L181.8,55.6" class="hit" /><path d="M88.2,84.4 L181.8,55.6" class="stroke" /></g><g class="edge faint" data-edge="1"><path d="M85.5,101.0 L194.5,179.0" class="hit" /><path d="M85.5,101.0 L194.5,179.0" class="stroke" /></g><g class="edge faint" data-edge="2"><path d="M71.4,109.0 L78.6,211.0" class="hit" /><path d="M71.4,109.0 L78.6,211.0" class="stroke" /></g><g class="edge faint" data-edge="3"><path d="M201.4,69.0 L208.6,171.0" class="hit" /><path d="M201.4,69.0 L208.6,171.0" class="stroke" /></g><g class="edge faint" data-edge="4"><path d="M189.5,65.8 L90.5,214.2" class="hit" /><path d="M189.5,65.8 L90.5,214.2" class="stroke" /></g><g class="edge faint" data-edge="5"><path d="M191.8,195.6 L98.2,224.4" class="hit" /><path d="M191.8,195.6 L98.2,224.4" class="stroke" /></g><g class="edge faint" data-edge="6"><path d="M187.7,346.8 L282.3,383.2" class="hit" /><path d="M187.7,346.8 L282.3,383.2" class="stroke" /></g><g class="edge faint" data-edge="7"><path d="M188.1,334.3 L311.9,295.7" class="hit" /><path d="M188.1,334.3 L311.9,295.7" class="stroke" /></g><g class="edge faint" data-edge="8"><path d="M305.5,371.8 L324.5,308.2" class="hit" /><path d="M305.5,371.8 L324.5,308.2" class="stroke" /></g><g class="edge faint" data-edge="9"><path d="M318.5,385.7 L411.5,364.3" class="hit" /><path d="M318.5,385.7 L411.5,364.3" class="stroke" /></g><g class="edge faint" data-edge="10"><path d="M345.6,300.9 L414.4,349.1" class="hit" /><path d="M345.6,300.9 L414.4,349.1" class="stroke" /></g><g class="edge faint" data-edge="11"><path d="M517.5,257.3 L602.5,292.7" class="hit" /><path d="M517.5,257.3 L602.5,292.7" class="stroke" /></g><g class="edge faint" data-edge="12"><path d="M492.7,232.5 L457.3,147.5" class="hit" /><path d="M492.7,232.5 L457.3,147.5" class="stroke" /></g><g class="edge faint" data-edge="13"><path d="M606.6,286.6 L463.4,143.4" class="hit" /><path d="M606.6,286.6 L463.4,143.4" class="stroke" /></g><g class="edge faint" data-edge="14"><path d="M617.5,281.2 L602.5,168.8" class="hit" /><path d="M617.5,281.2 L602.5,168.8" class="stroke" /></g><g class="edge faint" data-edge="15"><path d="M468.8,132.5 L581.2,147.5" class="hit" /><path d="M468.8,132.5 L581.2,147.5" class="stroke" /></g><g class="edge faint" data-edge="16"><path d="M513.4,236.6 L586.6,163.4" class="hit" /><path d="M513.4,236.6 L586.6,163.4" class="stroke" /></g><g class="edge faint" data-edge="17"><path d="M92.0,244.7 L158.0,325.3" class="hit" /><path d="M92.0,244.7 L158.0,325.3" class="stroke" /></g><g class="edge faint" data-edge="18"><path d="M440.2,344.0 L489.8,266.0" class="hit" /><path d="M440.2,344.0 L489.8,266.0" class="stroke" /></g><g class="edge faint" data-edge="19"><path d="M228.4,185.4 L431.6,134.6" class="hit" /><path d="M228.4,185.4 L431.6,134.6" class="stroke" /></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="Ada"><circle cx="70.0" cy="90.0" r="17.0" /><text x="70.0" y="125.0" text-anchor="middle" class="name">Ada</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Bo"><circle cx="200.0" cy="50.0" r="17.0" /><text x="200.0" y="85.0" text-anchor="middle" class="name">Bo</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="Cal"><circle cx="210.0" cy="190.0" r="17.0" /><text x="210.0" y="225.0" text-anchor="middle" class="name">Cal</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Dot"><circle cx="80.0" cy="230.0" r="17.0" /><text x="80.0" y="265.0" text-anchor="middle" class="name">Dot</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Eve"><circle cx="170.0" cy="340.0" r="17.0" /><text x="170.0" y="375.0" text-anchor="middle" class="name">Eve</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Finn"><circle cx="300.0" cy="390.0" r="17.0" /><text x="300.0" y="425.0" text-anchor="middle" class="name">Finn</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Gia"><circle cx="330.0" cy="290.0" r="17.0" /><text x="330.0" y="325.0" text-anchor="middle" class="name">Gia</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="Hugo"><circle cx="430.0" cy="360.0" r="17.0" /><text x="430.0" y="395.0" text-anchor="middle" class="name">Hugo</text></g><g class="node " data-node="8" tabindex="-1" role="presentation" aria-label="Ivy"><circle cx="500.0" cy="250.0" r="17.0" /><text x="500.0" y="285.0" text-anchor="middle" class="name">Ivy</text></g><g class="node " data-node="9" tabindex="-1" role="presentation" aria-label="Jay"><circle cx="620.0" cy="300.0" r="17.0" /><text x="620.0" y="335.0" text-anchor="middle" class="name">Jay</text></g><g class="node " data-node="10" tabindex="-1" role="presentation" aria-label="Kim"><circle cx="450.0" cy="130.0" r="17.0" /><text x="450.0" y="165.0" text-anchor="middle" class="name">Kim</text></g><g class="node " data-node="11" tabindex="-1" role="presentation" aria-label="Leo"><circle cx="600.0" cy="150.0" r="17.0" /><text x="600.0" y="185.0" text-anchor="middle" class="name">Leo</text></g></svg><div class="legend"><span><i class="dot pal1"></i>a colour per group</span><span><i class="line"></i>a friendship inside a group</span><span><i class="line faint"></i>a friendship between groups</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Step 0 of 11, level 1</span><p class="narration">Everyone starts in a group of their own. Modularity scores a split: friendships inside groups, against what chance would put there. One at a time, each student moves to the friend’s group that raises it most, or stays put. Press Step to begin.</p></div><div class="panel"><span class="label">Modularity</span><div class="stat"><div class="good"><span class="num">−0.085</span>now</div><div><span class="num">12</span>groups</div></div><svg class="chart" viewBox="0 0 300 140" role="img" aria-label="Modularity after each step"><line x1="48" y1="105.125" x2="290" y2="105.125" class="axis" /><text x="44" y="109.125" text-anchor="end" class="tick">0</text><text x="44" y="19" text-anchor="end" class="tick">0.515</text><path d="M48,120 L70,113 L92,100 L114,83 L136,76 L158,63 L180,51 L202,45 L224,32 L246,15 L268,15 L290,15" class="ghost-line" /><path d="M48,120" class="value-line" /><circle cx="48.0" cy="120.0" r="4" class="value-dot" /></svg></div><div class="panel"><span class="label">Groups of two or more</span><div class="chips"></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="316" viewBox="0 0 316 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="308" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="9.0" class="m-blue" /><text x="22" y="36" text-anchor="middle">A</text><title>Ada moves to the group with Bo, the move that raises modularity most: by 0.039, to −0.046.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="9.0" class="m-blue" /><text x="48" y="36" text-anchor="middle">C</text><title>Cal moves to the group with Ada and Bo, the move that raises modularity most: by 0.070, to 0.024.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="9.0" class="m-blue" /><text x="74" y="36" text-anchor="middle">D</text><title>Dot moves to the group with Ada, Bo and Cal, the move that raises modularity most: by 0.100, to 0.124.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="9.0" class="m-blue" /><text x="100" y="36" text-anchor="middle">E</text><title>Eve moves to the group with Gia, the move that raises modularity most: by 0.039, to 0.163.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="9.0" class="m-blue" /><text x="126" y="36" text-anchor="middle">F</text><title>Finn moves to the group with Eve and Gia, the move that raises modularity most: by 0.078, to 0.240.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="9.0" class="m-blue" /><text x="152" y="36" text-anchor="middle">H</text><title>Hugo moves to the group with Eve, Finn and Gia, the move that raises modularity most: by 0.066, to 0.306.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="9.0" class="m-blue" /><text x="178" y="36" text-anchor="middle">I</text><title>Ivy moves to the group with Leo, the move that raises modularity most: by 0.035, to 0.341.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="9.0" class="m-blue" /><text x="204" y="36" text-anchor="middle">J</text><title>Jay moves to the group with Ivy and Leo, the move that raises modularity most: by 0.074, to 0.415.</title></g><g class="marble future" data-step="8"><circle cx="230" cy="32" r="9.0" class="m-blue" /><text x="230" y="36" text-anchor="middle">K</text><title>Kim moves to the group with Ivy, Jay and Leo, the move that raises modularity most: by 0.100, to 0.515.</title></g><g class="marble future" data-step="9"><circle cx="256" cy="32" r="10.0" class="m-green" /><text x="256" y="36" text-anchor="middle">✓</text><title>A full pass moves nobody: level 1 is finished with 3 groups and modularity 0.515.</title></g><g class="marble future" data-step="10"><circle cx="282" cy="32" r="9.0" class="m-hollow" /><title>Merge each group into a single dot, with the friendships between groups as weighted links: 3 dots. Now try moving whole groups.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-communities" class="scrub" type="range" min="0" max="11" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-blue" /></svg>a student moves</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-violet" /></svg>a whole group moves</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-green" /></svg>a level is finished</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-hollow" /></svg>groups merged into dots</span></div><p class="note">Grey dashed lines are friendships between groups; a good split has few of them.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The school above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">CommunityDetection</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+
+<span class="k">let</span> friendships = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ada"</span>, <span class="s">"Bo"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Ada"</span>, <span class="s">"Cal"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Ada"</span>, <span class="s">"Dot"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Bo"</span>, <span class="s">"Cal"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Bo"</span>, <span class="s">"Dot"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Cal"</span>, <span class="s">"Dot"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Eve"</span>, <span class="s">"Finn"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Eve"</span>, <span class="s">"Gia"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Finn"</span>, <span class="s">"Gia"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Finn"</span>, <span class="s">"Hugo"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Gia"</span>, <span class="s">"Hugo"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ivy"</span>, <span class="s">"Jay"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Ivy"</span>, <span class="s">"Kim"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Jay"</span>, <span class="s">"Kim"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Jay"</span>, <span class="s">"Leo"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Kim"</span>, <span class="s">"Leo"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Ivy"</span>, <span class="s">"Leo"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Dot"</span>, <span class="s">"Eve"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Hugo"</span>, <span class="s">"Ivy"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Cal"</span>, <span class="s">"Kim"</span>),
+]
+
+<span class="k">let</span> school = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> pair <span class="k">in</span> friendships { pair }
+}
+
+<span class="k">let</span> events = <span class="t">Array</span>(school.louvainEvents())  <span class="c">// 11 events</span>
+<span class="k">let</span> clubs = school.louvainCommunities()  <span class="c">// [Ada, Bo, Cal, Dot], [Eve, Finn, Gia, Hugo], [Ivy, Jay, Kim, Leo]</span>
+<span class="k">let</span> score = school.modularity(of: clubs)  <span class="c">// 0.515</span>
+</span></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>More friendships inside groups than chance would give</h2>
+  <p>A good split puts most friendships inside groups and few between them. But “most” needs a yardstick: put everyone in one group and every friendship is inside it. <b>Modularity</b> compares each group with chance: the share of friendships inside it, less the share you would expect if the same people kept their numbers of friends but chose them at random. It is 0 for a split no better than chance, and higher the clearer the groups.</p>
+  <p>The <b>Louvain</b> method raises modularity greedily. Everyone starts alone. Take each student in turn and move them to the neighbouring group that raises modularity most, if any does, and keep sweeping until a full pass moves nobody. Then merge each group into a single dot, the friendships between groups becoming weighted links, and do the same with whole groups. It stops when merging no longer helps. Each sweep takes time proportional to the number of friendships, so it runs on networks with millions of them.</p>
+
+  <h2><small>Where it breaks</small>Modularity has a blind spot</h2>
+  <p>In a big network, modularity can’t see groups below a certain size, which depends on the size of the whole network: two small, tight groups may come out merged. Raising the <code>resolution</code> parameter favours smaller groups. Louvain can also produce a group that isn’t connected inside, after its middle member moves away; the Leiden method, <code>leidenCommunities</code>, adds a refinement step that rules that out. And the greedy moves depend on the order students are visited, so the answer is a good split, not always the best one.</p>
+  <p>If what you want is groups where literally everyone knows everyone, that’s a different question: <a href="cliques.html">cliques</a>.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Louvain</b><span class="how">loo-VAN</span><span class="ipa">/luvɛ̃/</span><span class="what">Communities by repeatedly merging what raises modularity</span></div><div class="name"><b>Leiden</b><span class="how">LIE-den</span><span class="ipa">/ˈlɛidə(n)/</span><span class="what">Louvain with a refinement step, so every group is connected</span></div><div class="name"><b>Blondel</b><span class="how">blon-DEL</span><span class="ipa">/blɔ̃dɛl/</span><span class="what">Vincent Blondel, first author of the Louvain method</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="cliques.html"><span>Previous</span>Cliques</a><a class="next" href="flow.html"><span>Next</span>Maximum flow</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

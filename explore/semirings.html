@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semirings · Explore Grafluent</title>
+<meta name="description" content="One network and one shortest-path algorithm, asked five questions: quickest, widest, most reliable, reachable and how many routes, by swapping the semiring Grafluent’s dijkstraShortestPaths takes.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="semirings">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="semirings.html" aria-current="page">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Semirings</h1>
+  <p class="question">Quickest, widest, most reliable: can one route-finding algorithm answer them all?</p>
+</header>
+<p class="example lead">Example: a small data network. Seven places and eleven one-way links carrying data out from a server, each link with three numbers: its delay in minutes, its bandwidth in megabits a second, and the chance it is up.</p>
+
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="One network, five questions"><div class="panel stage"><svg class="canvas" viewBox="0 0 680 400" role="img" aria-label="A network of seven places joined by one-way links, labelled for the question: Quickest"><g class="edge " data-edge="0"><path d="M74.8,188.1 L194.4,92.5" class="hit" /><path d="M74.8,188.1 L194.4,92.5" class="stroke" /><polygon points="194.4,92.5 189.2,103.7 182.4,95.1" class="head" /><text x="143.12103561820751" y="155.1512945227594" text-anchor="middle" class="weight">4 min</text></g><g class="edge " data-edge="1"><path d="M74.8,211.9 L194.4,307.5" class="hit" /><path d="M74.8,211.9 L194.4,307.5" class="stroke" /><polygon points="194.4,307.5 182.4,304.9 189.2,296.3" class="head" /><text x="126.87896438179249" y="275.1512945227594" text-anchor="middle" class="weight">2 min</text></g><g class="edge " data-edge="2"><path d="M223.4,93.4 L315.9,185.9" class="hit" /><path d="M223.4,93.4 L315.9,185.9" class="stroke" /><polygon points="315.9,185.9 304.2,182.0 312.0,174.2" class="head" /><text x="260.80761184457486" y="154.1923881554251" text-anchor="middle" class="weight">3 min</text></g><g class="edge " data-edge="3"><path d="M223.4,306.6 L315.9,214.1" class="hit" /><path d="M223.4,306.6 L315.9,214.1" class="stroke" /><polygon points="315.9,214.1 312.0,225.8 304.2,218.0" class="head" /><text x="279.19238815542514" y="274.19238815542514" text-anchor="middle" class="weight">2 min</text></g><g class="edge " data-edge="4"><path d="M227.9,86.4 Q386.6,143.4 443.2,301.2" class="hit" /><path d="M227.9,86.4 Q386.6,143.4 443.2,301.2" class="stroke" /><polygon points="443.2,301.2 434.3,292.7 444.7,289.0" class="head" /><text x="367.47665940288704" y="167.523340597113" text-anchor="middle" class="weight">7 min</text></g><g class="edge " data-edge="5"><path d="M229.0,320.0 L430.0,320.0" class="hit" /><path d="M229.0,320.0 L430.0,320.0" class="stroke" /><polygon points="430.0,320.0 419.0,325.5 419.0,314.5" class="head" /><text x="330.0" y="338.0" text-anchor="middle" class="weight">6 min</text></g><g class="edge " data-edge="6"><path d="M343.4,213.4 L435.9,305.9" class="hit" /><path d="M343.4,213.4 L435.9,305.9" class="stroke" /><polygon points="435.9,305.9 424.2,302.0 432.0,294.2" class="head" /><text x="380.80761184457486" y="274.19238815542514" text-anchor="middle" class="weight">1 min</text></g><g class="edge " data-edge="7"><path d="M344.4,187.6 L454.8,93.0" class="hit" /><path d="M344.4,187.6 L454.8,93.0" class="stroke" /><polygon points="454.8,93.0 450.0,104.4 442.9,96.0" class="head" /><text x="408.46028785492757" y="154.87033583074884" text-anchor="middle" class="weight">5 min</text></g><g class="edge " data-edge="8"><path d="M451.6,301.1 L468.3,99.9" class="hit" /><path d="M451.6,301.1 L468.3,99.9" class="stroke" /><polygon points="468.3,99.9 472.9,111.3 461.9,110.4" class="head" /><text x="472.95509485718344" y="206.07959123809863" text-anchor="middle" class="weight">2 min</text></g><g class="edge " data-edge="9"><path d="M465.5,309.0 L603.7,211.5" class="hit" /><path d="M465.5,309.0 L603.7,211.5" class="stroke" /><polygon points="603.7,211.5 597.8,222.4 591.5,213.4" class="head" /><text x="542.4968815687826" y="275.6205822224419" text-anchor="middle" class="weight">6 min</text></g><g class="edge " data-edge="10"><path d="M484.8,91.9 L604.4,187.5" class="hit" /><path d="M484.8,91.9 L604.4,187.5" class="stroke" /><polygon points="604.4,187.5 592.4,184.9 599.2,176.3" class="head" /><text x="536.8789643817925" y="155.1512945227594" text-anchor="middle" class="weight">3 min</text></g><g class="node  source" data-node="0" tabindex="-1" role="presentation" aria-label="Server"><circle cx="60.0" cy="200.0" r="17.0" /><text x="60.0" y="235.0" text-anchor="middle" class="name">Server</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="North"><circle cx="210.0" cy="80.0" r="17.0" /><text x="210.0" y="115.0" text-anchor="middle" class="name">North</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="South"><circle cx="210.0" cy="320.0" r="17.0" /><text x="210.0" y="355.0" text-anchor="middle" class="name">South</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Mill"><circle cx="330.0" cy="200.0" r="17.0" /><text x="330.0" y="235.0" text-anchor="middle" class="name">Mill</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Bank"><circle cx="450.0" cy="320.0" r="17.0" /><text x="450.0" y="355.0" text-anchor="middle" class="name">Bank</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Dock"><circle cx="470.0" cy="80.0" r="17.0" /><text x="470.0" y="115.0" text-anchor="middle" class="name">Dock</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Farm"><circle cx="620.0" cy="200.0" r="17.0" /><text x="620.0" y="235.0" text-anchor="middle" class="name">Farm</text></g></svg><div class="legend"><span><i class="dot visited"></i>answered, with its value</span><span><i class="line active"></i>the ways in being compared</span><span><i class="line tree"></i>the link each best route arrives by</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Step 0 of 7</span><p class="narration">How fast can data get there? Every route from the Server is built by two moves: extend a route by one link, and choose between two routes to the same place. Press Step to begin.</p></div><div class="panel"><span class="label">This question’s two moves</span><div class="stat"><div><span class="num">+</span>extend by a link</div><div><span class="num">min</span>choose between routes</div><div><span class="num">∞</span>no route</div><div><span class="num">0</span>already there</div></div></div><div class="panel"><span class="label">Answered, best first</span><div class="chips"><p class="empty">None yet</p></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><div class="segmented many" role="group" aria-label="Question"><button type="button" class="on">Quickest</button><button type="button" class="">Widest</button><button type="button" class="">Most reliable</button><button type="button" class="">Reachable</button><button type="button" class="">How many routes</button></div></div><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="11.0" class="m-hollow" /><text x="22" y="36" text-anchor="middle">S</text><title>Start at the Server. Being already there is worth 0: the value that extending leaves unchanged.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="11.0" class="m-hollow" /><text x="48" y="36" text-anchor="middle">S</text><title>South: extend each way in by its link: from Server, 0 min + 2 min = 2 min. Only one to choose from: 2 min.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="11.0" class="m-hollow" /><text x="74" y="36" text-anchor="middle">N</text><title>North: extend each way in by its link: from Server, 0 min + 4 min = 4 min. Only one to choose from: 4 min.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="11.0" class="m-blue" /><text x="100" y="36" text-anchor="middle">M</text><title>Mill: extend each way in by its link: from North, 4 min + 3 min = 7 min; from South, 2 min + 2 min = 4 min. Choose with min: 4 min.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="11.0" class="m-blue" /><text x="126" y="36" text-anchor="middle">B</text><title>Bank: extend each way in by its link: from North, 4 min + 7 min = 11 min; from South, 2 min + 6 min = 8 min; from Mill, 4 min + 1 min = 5 min. Choose with min: 5 min.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="11.0" class="m-blue" /><text x="152" y="36" text-anchor="middle">D</text><title>Dock: extend each way in by its link: from Mill, 4 min + 5 min = 9 min; from Bank, 5 min + 2 min = 7 min. Choose with min: 7 min.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="11.0" class="m-blue" /><text x="178" y="36" text-anchor="middle">F</text><title>Farm: extend each way in by its link: from Bank, 5 min + 6 min = 11 min; from Dock, 7 min + 3 min = 10 min. Choose with min: 10 min.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-semirings" class="scrub" type="range" min="0" max="7" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-blue" /></svg>a place with several ways in: choose</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-hollow" /></svg>a place with one way in, or the start</span></div><p class="note">Places are answered best first, the order Dijkstra’s algorithm settles them in. Numbers on the links are the question’s values.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The network above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">Semirings</span>
+<span class="k">import</span> <span class="t">ShortestPaths</span>
+
+<span class="k">let</span> connections = [
+    (edge: <span class="t">DirectedEdge</span>(from: <span class="s">"Server"</span>, to: <span class="s">"North"</span>), minutes: <span class="n">4</span>, megabits: <span class="n">100</span>, up: <span class="n">0.99</span>),
+    (edge: <span class="t">DirectedEdge</span>(from: <span class="s">"Server"</span>, to: <span class="s">"South"</span>), minutes: <span class="n">2</span>, megabits: <span class="n">40</span>, up: <span class="n">0.95</span>),
+    (edge: <span class="t">DirectedEdge</span>(from: <span class="s">"North"</span>, to: <span class="s">"Mill"</span>), minutes: <span class="n">3</span>, megabits: <span class="n">80</span>, up: <span class="n">0.98</span>),
+    (edge: <span class="t">DirectedEdge</span>(from: <span class="s">"South"</span>, to: <span class="s">"Mill"</span>), minutes: <span class="n">2</span>, megabits: <span class="n">30</span>, up: <span class="n">0.90</span>),
+    (edge: <span class="t">DirectedEdge</span>(from: <span class="s">"North"</span>, to: <span class="s">"Bank"</span>), minutes: <span class="n">7</span>, megabits: <span class="n">90</span>, up: <span class="n">0.97</span>),
+    (edge: <span class="t">DirectedEdge</span>(from: <span class="s">"South"</span>, to: <span class="s">"Bank"</span>), minutes: <span class="n">6</span>, megabits: <span class="n">60</span>, up: <span class="n">0.99</span>),
+    (edge: <span class="t">DirectedEdge</span>(from: <span class="s">"Mill"</span>, to: <span class="s">"Bank"</span>), minutes: <span class="n">1</span>, megabits: <span class="n">50</span>, up: <span class="n">0.95</span>),
+    (edge: <span class="t">DirectedEdge</span>(from: <span class="s">"Mill"</span>, to: <span class="s">"Dock"</span>), minutes: <span class="n">5</span>, megabits: <span class="n">70</span>, up: <span class="n">0.90</span>),
+    (edge: <span class="t">DirectedEdge</span>(from: <span class="s">"Bank"</span>, to: <span class="s">"Dock"</span>), minutes: <span class="n">2</span>, megabits: <span class="n">100</span>, up: <span class="n">0.99</span>),
+    (edge: <span class="t">DirectedEdge</span>(from: <span class="s">"Bank"</span>, to: <span class="s">"Farm"</span>), minutes: <span class="n">6</span>, megabits: <span class="n">20</span>, up: <span class="n">0.80</span>),
+    (edge: <span class="t">DirectedEdge</span>(from: <span class="s">"Dock"</span>, to: <span class="s">"Farm"</span>), minutes: <span class="n">3</span>, megabits: <span class="n">60</span>, up: <span class="n">0.97</span>),
+]
+
+<span class="k">let</span> network = <span class="t">AdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> connection <span class="k">in</span> connections { connection.edge }
+}
+<span class="k">let</span> link = <span class="t">Dictionary</span>(uniqueKeysWithValues: connections.map { ($<span class="n">0</span>.edge, $<span class="n">0</span>) })
+
+<span class="k">let</span> best = network.dijkstraShortestPaths(from: <span class="s">"Server"</span>) { <span class="t">TropicalSemiring</span>(link[network.edges[$<span class="n">0</span>]]!.minutes) }
+<span class="k">let</span> farm = best.distance(to: <span class="s">"Farm"</span>)  <span class="c">// 10 min</span>
+</span></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>A route-finder only ever does two things</h2>
+  <p>Watch <a href="dijkstra.html">Dijkstra’s algorithm</a> closely and it does only two things with the numbers on the links. It <b>extends</b> a route by one more link: 4 minutes to North, then 3 more to Mill, makes 4 + 3 = 7. And it <b>chooses</b> between two routes to the same place: 7 minutes through North or 4 through South, keep the smaller. Everything else, the queue, the order, the bookkeeping, is about doing those two moves in a sensible order.</p>
+
+  <h2><small>Swap them</small>And the question changes</h2>
+  <p>Replace “add” and “keep the smaller” with other pairs and the same algorithm answers a different question. A route’s bandwidth is that of its narrowest link, so extending takes the min, and choosing keeps the wider. A route works only if every link on it is up, so extending multiplies chances, and choosing keeps the likelier.</p>
+  <div class="table-scroll">
+    <table class="qtable">
+      <thead><tr><th>Question</th><th>Extend</th><th>Choose</th><th>No route</th><th>Already there</th></tr></thead>
+      <tbody>
+        <tr><td>Quickest</td><td class="op">+</td><td class="op">min</td><td class="op">∞</td><td class="op">0</td></tr>
+        <tr><td>Widest</td><td class="op">min</td><td class="op">max</td><td class="op">0</td><td class="op">∞</td></tr>
+        <tr><td>Most reliable</td><td class="op">×</td><td class="op">max</td><td class="op">0</td><td class="op">1</td></tr>
+        <tr><td>Reachable</td><td class="op">and</td><td class="op">or</td><td class="op">false</td><td class="op">true</td></tr>
+        <tr><td>How many routes</td><td class="op">×</td><td class="op">+</td><td class="op">0</td><td class="op">1</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Each row also needs two special values. <b>No route</b> is what choosing ignores: any real route beats it. <b>Already there</b> is the route of no links, which extending leaves unchanged: adding 0 minutes, or multiplying by a chance of 1.</p>
+
+  <h2><small>Name it</small>That pair is a semiring</h2>
+  <p>A <b>semiring</b> is exactly such a pair, an extend and a choose, together with those two values, obeying the same rules as × and + do on ordinary numbers. Choosing doesn’t care about order or grouping. Extending can be grouped either way. “No route” changes nothing when chosen, and wipes out a route when extended. And extending distributes over choosing: extending the better of two routes gives the same as choosing the better of the two extensions. That last rule is what lets an algorithm decide at each place once, instead of keeping every route.</p>
+  <p>This is Grafluent’s <code>Semiring</code> protocol: <code>times(_:)</code> extends, <code>plus(_:)</code> chooses, <code>zero</code> is no route and <code>one</code> is already there. <code>TropicalSemiring</code>, <code>BottleneckSemiring</code>, <code>ViterbiSemiring</code>, <code>BooleanSemiring</code> and <code>CountingSemiring</code> are the five rows above, and the code panel changes only which one each link’s value is wrapped in.</p>
+
+  <h2><small>Where it breaks</small>Dijkstra needs two more promises</h2>
+  <p>Dijkstra settles a place for good once nothing better can still arrive. That needs <b>extending never to make a route better</b>: no negative minutes, no link wider than infinity, no chance above 1. Grafluent checks each weight against <code>one</code>. It also needs <b>choosing to pick one of the two</b>, not blend them: min, max and or all do. Semirings like that are called <b>selective</b>, Grafluent’s <code>SelectiveSemiring</code>, and that is what <code>dijkstraShortestPaths</code> takes.</p>
+  <p>Counting routes breaks the second promise: choosing adds the two counts, so no single route wins, and a place can’t be settled until every way into it is known. That works when the links can’t loop back, a directed acyclic graph, as here: <code>dagShortestDistances</code> runs Mohri’s algorithm, visiting places in an order where every link points forward. With a loop there would be infinitely many routes to count.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Dijkstra</b><span class="how">DIKE-struh</span><span class="ipa">/ˈdɛikstra/</span><span class="what">Shortest paths when no edge is negative</span></div><div class="name"><b>Mohri</b><span class="how">moh-REE</span><span class="ipa">/moˈriː/</span><span class="what">Mehryar Mohri: one shortest-distance algorithm for every semiring</span></div><div class="name"><b>Viterbi</b><span class="how">vih-TUR-bee</span><span class="ipa">/vɪˈtɜːrbi/</span><span class="what">Andrew Viterbi: the most likely path, by multiplying and keeping the best</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="astar.html"><span>Previous</span>A* search</a><a class="next" href="toposort.html"><span>Next</span>Topological sort</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

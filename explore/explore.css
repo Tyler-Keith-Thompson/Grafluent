@@ -423,3 +423,28 @@ figure.fig { margin: 0; }
 .chart .ghost-line { fill: none; stroke: var(--rule); stroke-width: 2; }
 .chart .value-line { fill: none; stroke: var(--sign); stroke-width: 2.5; stroke-linejoin: round; }
 .chart .value-dot { fill: var(--signal); stroke: var(--ink); stroke-width: 1.5; }
+/* Huffman coding: vertices not made yet, and the sentence box. */
+.node.hidden { opacity: 0; }
+.huffman-input { margin-top: 26px; }
+.huffman-input .field { width: 100%; font-size: 15px; }
+.huffman-input input { flex: 1 1 16em; min-width: 0; font-family: var(--mono); font-size: 17px; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 8px; background: var(--sheet); color: var(--ink); }
+.huffman-input + .lab { margin-top: 14px; }
+/* Semirings: five questions in one segmented control, wrapping on a phone. */
+.segmented.many { display: flex; flex-wrap: wrap; width: 100%; }
+.segmented.many button { flex: 1 1 auto; }
+.segmented.many button { border-left: 0; border-right: 2px solid var(--ink); }
+.segmented.many button:last-child { border-right: 0; }
+.qtable { border-collapse: collapse; font-size: 16px; width: 100%; }
+.qtable th, .qtable td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--rule); }
+.qtable th { font-family: var(--display); font-weight: 800; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.qtable td.op { font-family: var(--mono); font-weight: 600; }
+.table-scroll { overflow-x: auto; }
+.marble .m-hollow + text { fill: var(--ink); }
+.line.cancel { border-color: var(--danger); border-top-style: dotted; }
+.edge.cancel .stroke { stroke: var(--danger); stroke-width: 6; stroke-dasharray: 2 7; }
+.edge.cancel .head, .edge.bridge .head { fill: var(--danger); }
+/* Cliques: the vertices already tried, and the pivot. */
+.node.excluded circle { fill: var(--paper); stroke: var(--muted); stroke-dasharray: 4 3; }
+.node.excluded .badge { fill: var(--muted); }
+.dot.excluded { background: var(--paper); border-color: var(--muted); border-style: dashed; }
+.dot.selected { border-color: var(--signal); border-width: 3px; }

@@ -27,9 +27,9 @@
     <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
       <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
         <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
-        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="toposort.html">Topological sort</a></div>
-        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="giant.html">The giant component</a><i>Cliques (soon)</i><i>Communities (soon)</i></div>
-        <div class="mgroup"><span>Assignment</span><i>Maximum flow (soon)</i><a href="matching.html">Bipartite matching</a><a href="coloring.html" aria-current="page">Graph coloring</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html" aria-current="page">Graph coloring</a></div>
         <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
       </nav>
     </details>
@@ -38,7 +38,6 @@
   </nav>
 <header class="sign">
   <h1>Graph coloring</h1>
-  <div class="say"><span>Say it</span><b>KUH-ler-ing</b><span>; the fewest colours is the</span><b>kroh-MAT-ik</b><span>number</span></div>
   <p class="question">What’s the fewest exam slots so that no student has two exams at once?</p>
 </header>
 <p class="example lead">Example: eight exams, with a line between any two that share a student.</p>
@@ -91,7 +90,7 @@
 
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
-  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Welsh–Powell</b><span class="how">WELSH POW-ul</span><span class="what">Greedy colouring, busiest vertex first</span></div><div class="name"><b>Brélaz</b><span class="how">bray-LAH</span><span class="ipa">/bʁe.la/</span><span class="what">DSATUR: colour the most constrained vertex next</span></div><div class="name"><b>Brooks</b><span class="how">BROOKS</span><span class="ipa">/brʊks/</span><span class="what">Never more colours than the largest degree, with two exceptions</span></div><div class="name"><b>Kőnig</b><span class="how">KUR-nig</span><span class="ipa">/ˈkøːniɡ/</span><span class="what">In two-sided graphs, biggest matching = smallest cover</span></div></div></div>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Brélaz</b><span class="how">bray-LAH</span><span class="ipa">/bʁe.la/</span><span class="what">DSATUR: colour the most constrained vertex next</span></div><div class="name"><b>Kőnig</b><span class="how">KUR-nig</span><span class="ipa">/ˈkøːniɡ/</span><span class="what">In two-sided graphs, biggest matching = smallest cover</span></div></div></div>
 </section>
 <nav class="pager" aria-label="Pages"><a class="prev" href="matching.html"><span>Previous</span>Bipartite matching</a><a class="next" href="pagerank.html"><span>Next</span>PageRank</a></nav>
 </div>

@@ -27,9 +27,9 @@
     <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
       <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
         <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
-        <div class="mgroup"><span>Getting around</span><a href="bfs.html" aria-current="page">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="toposort.html">Topological sort</a></div>
-        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="giant.html">The giant component</a><i>Cliques (soon)</i><i>Communities (soon)</i></div>
-        <div class="mgroup"><span>Assignment</span><i>Maximum flow (soon)</i><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html" aria-current="page">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
         <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
       </nav>
     </details>
@@ -38,7 +38,6 @@
   </nav>
 <header class="sign">
   <h1>Breadth-first search</h1>
-  <div class="say"><span>Say it</span><b>BREDTH-first</b><span class="ipa">/ˈbrɛdθ fɜːrst/</span></div>
   <p class="question">Starting from one vertex, how do you visit everything you can reach, nearest first?</p>
 </header>
 <p class="example lead">Example: news spreading through nine friends. Each friend is a vertex; an arrow from one to another means the first messages the second, so the graph is directed. Ana hears first. This page uses the words from <a href="basics.html">Graph basics</a>: vertex, edge, directed.</p>
@@ -87,7 +86,7 @@
 
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
-  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Moore</b><span class="how">MOOR</span><span class="ipa">/mʊər/</span><span class="what">Breadth-first search, for the shortest way out of a maze</span></div><div class="name"><b>Dijkstra</b><span class="how">DIKE-struh</span><span class="ipa">/ˈdɛikstra/</span><span class="what">Shortest paths when no edge is negative</span></div></div></div>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Dijkstra</b><span class="how">DIKE-struh</span><span class="ipa">/ˈdɛikstra/</span><span class="what">Shortest paths when no edge is negative</span></div></div></div>
 </section>
 <nav class="pager" aria-label="Pages"><a class="prev" href="representations.html"><span>Previous</span>Storing a graph</a><a class="next" href="dfs.html"><span>Next</span>Depth-first search</a></nav>
 </div>

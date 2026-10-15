@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maximum flow · Explore Grafluent</title>
+<meta name="description" content="Water from a reservoir to a town, one augmenting path at a time, with Grafluent’s edmondsKarpEvents: bottlenecks, pushes, a cancellation that reroutes, and the minimum cut.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="flow">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html" aria-current="page">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Maximum flow</h1>
+  <p class="question">How much water can a network of pipes carry from the reservoir to the town?</p>
+</header>
+<p class="example lead">Example: a reservoir, a town, two pumps, a junction and a tank, joined by one-way pipes. Each pipe is labelled with the water it carries over the most it can carry.</p>
+
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="The waterworks"><div class="panel stage"><svg class="canvas" viewBox="0 0 680 400" role="img" aria-label="A reservoir and a town joined by pumps and pipes, each labelled flow over capacity"><g class="edge  clickable" data-edge="0"><path d="M76.0,188.0 L203.2,92.6" class="hit" /><path d="M76.0,188.0 L203.2,92.6" class="stroke" /><polygon points="203.2,92.6 197.7,103.6 191.1,94.8" class="head" /><text x="147.8" y="155.4" text-anchor="middle" class="weight">0/2</text></g><g class="edge  clickable" data-edge="1"><path d="M76.0,212.0 L203.2,307.4" class="hit" /><path d="M76.0,212.0 L203.2,307.4" class="stroke" /><polygon points="203.2,307.4 191.1,305.2 197.7,296.4" class="head" /><text x="132.2" y="275.4" text-anchor="middle" class="weight">0/2</text></g><g class="edge  clickable" data-edge="2"><path d="M236.2,91.7 L383.0,197.7" class="hit" /><path d="M236.2,91.7 L383.0,197.7" class="stroke" /><polygon points="383.0,197.7 370.8,195.7 377.3,186.8" class="head" /><text x="302.3886228000233" y="160.53882996919845" text-anchor="middle" class="weight">0/2</text></g><g class="edge  clickable" data-edge="3"><path d="M240.0,79.2 L449.0,70.8" class="hit" /><path d="M240.0,79.2 L449.0,70.8" class="stroke" /><polygon points="449.0,70.8 438.2,76.8 437.8,65.8" class="head" /><text x="345.5195844985353" y="92.98961246338327" text-anchor="middle" class="weight">0/2</text></g><g class="edge  clickable" data-edge="4"><path d="M237.1,309.6 L382.1,221.0" class="hit" /><path d="M237.1,309.6 L382.1,221.0" class="stroke" /><polygon points="382.1,221.0 375.6,231.4 369.8,222.0" class="head" /><text x="316.7788501229017" y="281.09266383747547" text-anchor="middle" class="weight">0/2</text></g><g class="edge  clickable" data-edge="5"><path d="M420.0,209.1 L599.0,201.0" class="hit" /><path d="M420.0,209.1 L599.0,201.0" class="stroke" /><polygon points="599.0,201.0 588.3,206.9 587.8,196.0" class="head" /><text x="510.5902995919424" y="222.9865910227339" text-anchor="middle" class="weight">0/2</text></g><g class="edge  clickable" data-edge="6"><path d="M485.1,83.1 L604.1,186.2" class="hit" /><path d="M485.1,83.1 L604.1,186.2" class="stroke" /><polygon points="604.1,186.2 592.2,183.2 599.4,174.9" class="head" /><text x="536.4859030005681" y="149.82395807626762" text-anchor="middle" class="weight">0/2</text></g><g class="node visited source" data-node="0" tabindex="-1" role="presentation" aria-label="Reservoir"><circle cx="60.0" cy="200.0" r="18.0" /><text x="60.0" y="236.0" text-anchor="middle" class="name">Reservoir</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="North pump"><circle cx="220.0" cy="80.0" r="18.0" /><text x="220.0" y="116.0" text-anchor="middle" class="name">North pump</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="South pump"><circle cx="220.0" cy="320.0" r="18.0" /><text x="220.0" y="356.0" text-anchor="middle" class="name">South pump</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Junction"><circle cx="400.0" cy="210.0" r="18.0" /><text x="400.0" y="246.0" text-anchor="middle" class="name">Junction</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Tank"><circle cx="470.0" cy="70.0" r="18.0" /><text x="470.0" y="106.0" text-anchor="middle" class="name">Tank</text></g><g class="node frontier" data-node="5" tabindex="-1" role="presentation" aria-label="Town"><circle cx="620.0" cy="200.0" r="18.0" /><text x="620.0" y="236.0" text-anchor="middle" class="name">Town</text></g></svg><div class="legend"><span><i class="line tree"></i>carrying water</span><span><i class="line active"></i>the route being used</span><span><i class="line cancel"></i>water cancelled, to reroute</span><span><i class="line bridge"></i>the minimum cut</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Event 0 of 10</span><p class="narration">Nothing flows yet. Each pipe is labelled with its flow over how much it can carry. Find a route from the Reservoir to the Town with room to spare, send what fits, and repeat. Press Step to begin.</p></div><div class="panel"><span class="label">Water reaching the Town</span><div class="stat"><div class="good"><span class="num">0</span>arriving now</div><div><span class="num">?</span>the most possible</div></div></div><div class="panel"><span class="label">Routes found</span><div class="queue"><p class="empty">None yet</p></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="11.0" class="m-blue" /><text x="22" y="36" text-anchor="middle">+2</text><title>The shortest route with room to spare: Reservoir → North pump → Junction → Town, 3 pipes. Its tightest spot leaves room for 2.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="6.0" class="m-ring" /><title>Send 2 more along Reservoir → North pump.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="6.0" class="m-ring" /><title>Send 2 more along North pump → Junction.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="6.0" class="m-ring" /><title>Send 2 more along Junction → Town.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="11.0" class="m-blue" /><text x="126" y="36" text-anchor="middle">+2</text><title>The shortest route with room to spare: Reservoir → South pump → Junction → North pump → Tank → Town, 5 pipes. Its tightest spot leaves room for 2.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="6.0" class="m-ring" /><title>Send 2 more along Reservoir → South pump.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="6.0" class="m-ring" /><title>Send 2 more along South pump → Junction.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="8.0" class="m-red" /><title>This route runs backwards through North pump → Junction: cancel 2 of the water already sent there, and reroute it.</title></g><g class="marble future" data-step="8"><circle cx="230" cy="32" r="6.0" class="m-ring" /><title>Send 2 more along North pump → Tank.</title></g><g class="marble future" data-step="9"><circle cx="256" cy="32" r="6.0" class="m-ring" /><title>Send 2 more along Tank → Town.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-flow" class="scrub" type="range" min="0" max="10" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-blue" /></svg>a route with room, and what it carries</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="5.0" class="m-ring" /></svg>water sent along a pipe</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="5.0" class="m-red" /></svg>water cancelled, to reroute</span></div><p class="note">Click a pipe to make it carry one more, up to 5, then 0 again.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The waterworks above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">Flows</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+
+<span class="k">let</span> pipes = [
+    (pipe: <span class="t">DirectedEdge</span>(from: <span class="s">"Reservoir"</span>, to: <span class="s">"North pump"</span>), capacity: <span class="n">2</span>),
+    (pipe: <span class="t">DirectedEdge</span>(from: <span class="s">"Reservoir"</span>, to: <span class="s">"South pump"</span>), capacity: <span class="n">2</span>),
+    (pipe: <span class="t">DirectedEdge</span>(from: <span class="s">"North pump"</span>, to: <span class="s">"Junction"</span>), capacity: <span class="n">2</span>),
+    (pipe: <span class="t">DirectedEdge</span>(from: <span class="s">"North pump"</span>, to: <span class="s">"Tank"</span>), capacity: <span class="n">2</span>),
+    (pipe: <span class="t">DirectedEdge</span>(from: <span class="s">"South pump"</span>, to: <span class="s">"Junction"</span>), capacity: <span class="n">2</span>),
+    (pipe: <span class="t">DirectedEdge</span>(from: <span class="s">"Junction"</span>, to: <span class="s">"Town"</span>), capacity: <span class="n">2</span>),
+    (pipe: <span class="t">DirectedEdge</span>(from: <span class="s">"Tank"</span>, to: <span class="s">"Town"</span>), capacity: <span class="n">2</span>),
+]
+
+<span class="k">let</span> waterworks = <span class="t">AdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> p <span class="k">in</span> pipes { p.pipe }
+}
+<span class="k">let</span> capacity = <span class="t">Dictionary</span>(uniqueKeysWithValues: pipes.map { ($<span class="n">0</span>.pipe, $<span class="n">0</span>.capacity) })
+
+<span class="k">let</span> events = <span class="t">Array</span>(waterworks.edmondsKarpEvents(from: <span class="s">"Reservoir"</span>, to: <span class="s">"Town"</span>) { capacity[waterworks.edges[$<span class="n">0</span>]]! })  <span class="c">// 10 events: augmentingPath([0, 2, 5], 2), push(0, 2), …</span>
+<span class="k">let</span> flow = waterworks.edmondsKarpMaximumFlow(from: <span class="s">"Reservoir"</span>, to: <span class="s">"Town"</span>) { capacity[waterworks.edges[$<span class="n">0</span>]]! }
+<span class="k">let</span> most = flow.value  <span class="c">// 4</span>
+<span class="k">let</span> cut = flow.minimumCut.edges.map { waterworks.edges[$<span class="n">0</span>] }  <span class="c">// [Junction → Town, Tank → Town]</span>
+</span></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Send what fits, and let water flow backwards</h2>
+  <p>Find any route from the reservoir to the town on which every pipe still has room, send as much as its tightest pipe allows, and repeat. That alone can get stuck on a poor first choice: here the first route uses the pipe from the North pump to the Junction, which the South pump needed. The fix is to allow a route to run <em>backwards</em> along a pipe that already carries water. Doing so cancels some of that water, and the North pump sends it by another pipe instead. The network of remaining room, with those backward options included, is the <b>residual network</b>.</p>
+  <p>When no route through the residual network reaches the town, the flow is as large as it can be. The places the reservoir can still reach and the places it can’t are split by a set of full pipes, a <b>minimum cut</b>: every route to the town crosses it, so no flow can exceed its total, and this flow equals it. That is the max-flow min-cut theorem, and the cut is often the more useful answer: the bottleneck worth widening.</p>
+  <p><b>Edmonds–Karp</b> always picks a route with the fewest pipes, found by <a href="bfs.html">breadth-first search</a>. That choice bounds the work at O(n m²) whatever the capacities.</p>
+
+  <h2><small>Where it breaks</small>Choose routes carelessly and it crawls</h2>
+  <p>Without the fewest-pipes rule, the same idea (Ford and Fulkerson’s) can pick routes so badly that it needs as many rounds as the flow is large, and with irrational capacities it may never finish. On big networks even Edmonds–Karp is slow; <code>maximumFlow(from:to:capacity:)</code> uses push–relabel, and Dinic’s algorithm sends many shortest routes at once. When every pipe also has a cost per unit, the question becomes the cheapest way to send a given amount: a minimum-cost flow.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Dinic</b><span class="how">DEE-nits</span><span class="ipa">/ˈdinit͡s/</span><span class="what">Yefim Dinitz: many shortest routes at once, in layers</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="communities.html"><span>Previous</span>Communities</a><a class="next" href="matching.html"><span>Next</span>Bipartite matching</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

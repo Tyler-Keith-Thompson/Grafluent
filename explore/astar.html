@@ -27,9 +27,9 @@
     <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
       <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
         <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
-        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html" aria-current="page">A* search</a><a href="toposort.html">Topological sort</a></div>
-        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="giant.html">The giant component</a><i>Cliques (soon)</i><i>Communities (soon)</i></div>
-        <div class="mgroup"><span>Assignment</span><i>Maximum flow (soon)</i><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html" aria-current="page">A* search</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
         <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
       </nav>
     </details>
@@ -38,7 +38,6 @@
   </nav>
 <header class="sign">
   <h1>A* search</h1>
-  <div class="say"><span>Say it</span><b>A-star</b></div>
   <p class="question">If you only care about one destination, can you skip the rest of town?</p>
 </header>
 
@@ -130,9 +129,9 @@
   <p>Grafluent doesn’t check the guess, because it can’t know the true distances in advance. Overestimating on purpose is a known trade: fewer blocks settled, a route that may be a little longer.</p>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
-  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>A*</b><span class="how">A-star</span><span class="what">Dijkstra with a sense of direction</span></div><div class="name"><b>Dijkstra</b><span class="how">DIKE-struh</span><span class="ipa">/ˈdɛikstra/</span><span class="what">Shortest paths when no edge is negative</span></div></div></div>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Dijkstra</b><span class="how">DIKE-struh</span><span class="ipa">/ˈdɛikstra/</span><span class="what">Shortest paths when no edge is negative</span></div></div></div>
 </section>
-<nav class="pager" aria-label="Pages"><a class="prev" href="dijkstra.html"><span>Previous</span>Dijkstra’s algorithm</a><a class="next" href="toposort.html"><span>Next</span>Topological sort</a></nav>
+<nav class="pager" aria-label="Pages"><a class="prev" href="dijkstra.html"><span>Previous</span>Dijkstra’s algorithm</a><a class="next" href="semirings.html"><span>Next</span>Semirings</a></nav>
 </div>
 <script>
   if (!location.hash) window.scrollTo(0, 0);
