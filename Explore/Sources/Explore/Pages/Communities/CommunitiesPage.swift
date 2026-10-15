@@ -279,6 +279,6 @@ enum CommunitiesPage {
     static func mount() {
         mountView(CommunitiesLab(), in: "app")
         mountView(CommunitiesCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.louvain, Names.leiden, Names.blondel]), in: "names")
+        mountView(NamesStrip(names: [Names.louvain, Names.leiden]), in: "names")
     }
 }

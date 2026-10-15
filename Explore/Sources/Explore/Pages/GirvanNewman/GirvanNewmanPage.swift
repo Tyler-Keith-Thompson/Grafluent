@@ -205,7 +205,7 @@ enum GirvanNewmanPage {
     static func mount() {
         mountView(GirvanNewmanLab(), in: "app")
         mountView(GirvanNewmanCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.girvan, Names.louvain]), in: "names")
+        mountView(NamesStrip(names: [Names.louvain]), in: "names")
     }
 }
 

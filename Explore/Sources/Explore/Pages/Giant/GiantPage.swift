@@ -249,6 +249,6 @@ enum GiantPage {
     static func mount() {
         mountView(GiantLab(), in: "app")
         mountView(GiantCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.erdosRenyi, Names.barabasiAlbert, Names.wattsStrogatz]), in: "names")
+        mountView(NamesStrip(names: [Names.erdosRenyi, Names.barabasi]), in: "names")
     }
 }

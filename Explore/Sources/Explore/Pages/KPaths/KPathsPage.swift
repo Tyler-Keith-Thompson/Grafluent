@@ -220,6 +220,6 @@ enum KPathsPage {
     static func mount() {
         mountView(KPathsLab(), in: "app")
         mountView(KPathsCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.yen, Names.dijkstra]), in: "names")
+        mountView(NamesStrip(names: [Names.dijkstra]), in: "names")
     }
 }

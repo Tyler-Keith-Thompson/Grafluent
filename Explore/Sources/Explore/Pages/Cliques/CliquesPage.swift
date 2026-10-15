@@ -233,6 +233,6 @@ enum CliquesPage {
     static func mount() {
         mountView(CliquesLab(), in: "app")
         mountView(CliquesCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.bronKerbosch, Names.tomita]), in: "names")
+        mountView(NamesStrip(names: [Names.bronKerbosch]), in: "names")
     }
 }

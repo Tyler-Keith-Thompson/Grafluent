@@ -325,6 +325,6 @@ enum DominatorsPage {
         mountView(DominatorsCodePanel(), in: "code")
         mountView(ClosingLab(), in: "closing")
         mountView(ClosingCodePanel(), in: "code-closing")
-        mountView(NamesStrip(names: [Names.lengauerTarjan]), in: "names")
+        mountView(NamesStrip(names: [Names.lengauer]), in: "names")
     }
 }

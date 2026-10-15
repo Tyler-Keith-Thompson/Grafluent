@@ -317,6 +317,6 @@ enum DepthFirstPage {
     static func mount() {
         mountView(TraversalLab(model: depthFirstModel), in: "app")
         mountView(TraversalCodePanel(model: depthFirstModel), in: "code")
-        mountView(NamesStrip(names: [Names.tremaux, Names.tarjan]), in: "names")
+        mountView(NamesStrip(names: [Names.tremaux]), in: "names")
     }
 }

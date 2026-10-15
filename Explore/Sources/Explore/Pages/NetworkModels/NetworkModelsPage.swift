@@ -290,6 +290,6 @@ enum NetworkModelsPage {
         mountView(RichCodePanel(), in: "code")
         mountView(SmallWorldLab(), in: "smallworld")
         mountView(SmallWorldCodePanel(), in: "code-smallworld")
-        mountView(NamesStrip(names: [Names.barabasiAlbert, Names.wattsStrogatz]), in: "names")
+        mountView(NamesStrip(names: [Names.barabasi]), in: "names")
     }
 }

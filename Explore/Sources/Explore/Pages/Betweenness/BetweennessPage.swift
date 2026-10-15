@@ -214,6 +214,5 @@ enum BetweennessPage {
     static func mount() {
         mountView(BetweennessLab(), in: "app")
         mountView(BetweennessCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.brandes]), in: "names")
     }
 }

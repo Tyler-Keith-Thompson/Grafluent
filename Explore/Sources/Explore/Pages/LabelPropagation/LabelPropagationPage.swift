@@ -291,6 +291,5 @@ enum LabelPropagationPage {
         mountView(RumourCodePanel(), in: "code")
         mountView(RumourStepLab(), in: "sweeps")
         mountView(RumourStepCodePanel(), in: "code-sweeps")
-        mountView(NamesStrip(names: [Names.raghavan]), in: "names")
     }
 }
