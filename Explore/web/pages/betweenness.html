@@ -4,22 +4,42 @@
   <h1>Betweenness</h1>
   <p class="question">When news travels the shortest way through an office, who does it keep passing through?</p>
 </header>
-<p class="example lead">Example: nine people in an office, and a line between each pair who talk. Two teams, and a few people who talk to both.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Finding the go-betweens</h2>
+  <p>Betweenness scores each person by how often they sit on the shortest route between two others. A high score marks a broker. Take that person out, and many pairs need a longer route, or can’t reach each other at all.</p>
+  <p>Reach for it to find bottlenecks: the router most traffic crosses, the airport between two regions, the one person who links two teams. The same count for links finds the busiest link.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to say who matters</h2>
+  <!-- compare
+  | Method | When to use | Rewards | Cost | Weakness |
+  | *Betweenness | You want the brokers and bottlenecks | Being on many shortest routes | O(nm) | Assumes everything moves by shortest routes |
+  | Degree centrality | A quick first look | Many direct links | O(n + m) | Misses a broker with only a few links |
+  | Closeness centrality | Who can reach everyone fastest | Short distances to everyone | O(nm) | Scores bunch together on small, dense networks |
+  | [PageRank](pagerank.html) | Influence flows along links like votes | Links from people who score high | O(m) a round | Says nothing about who joins two groups |
+  | Current-flow betweenness | Things spread by wandering, not by shortest routes | Being on many random walks | About O(n³) | Much slower |
+  -->
+  <p>Betweenness is the measure for brokers. It costs one search per person, so on a very large network you estimate it from a sample. In the table, n is the number of people and m the number of links.</p>
+</section>
+
+<p class="example lead">Example: nine people in an office, and a line between each pair who talk. There are two teams, and a few people talk to both.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The office above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>Count the shortest paths through you</h2>
-  <p>For every pair of people, look at the shortest chains of conversations between them. If there is one, everyone in its middle gets a point. If there are several equally short ones, the point is split between them: with two shortest paths, each counts a half. A person’s <b>betweenness</b> is their total over all pairs. Someone with a high score is a broker: take them out and many pairs need a longer chain, or can’t reach each other at all.</p>
-  <p>The same count for links is <b>edge betweenness</b>: every shortest path gives its links a share, the pair’s own direct link included. The link with the most is the one most traffic would cross. Removing such links one at a time is how <a href="girvannewman.html">Girvan–Newman</a> splits a network into communities.</p>
-  <p>Counting pair by pair, as the page does, repeats a lot of work. Brandes’ algorithm gets every score from one <a href="bfs.html">breadth-first search</a> per person: it counts the shortest paths from that person to everyone, then walks back from the farthest, passing each person’s share to whoever came before them. That is O(nm) for n people and m links, and it is what <code>betweennessCentrality()</code> runs. By default the scores are divided by the number of pairs, so they lie between 0 and 1; <code>normalized: false</code> gives the raw counts shown here.</p>
+  <p>For every pair of people, look at the shortest chains of conversations between them. If there is one, everyone in its middle gets a point. If there are several equally short ones, the point is split between them. With two shortest paths, each counts a half. A person’s <b>betweenness</b> is their total over all pairs.</p>
+  <p>The same count for links is <b>edge betweenness</b>. Every shortest path gives each of its links a share, including a pair’s own direct link. The link with the most is the one most traffic would cross. Removing such links one at a time is how <a href="girvannewman.html">Girvan–Newman</a> splits a network into communities.</p>
+  <p>Counting pair by pair, as this page does, repeats a lot of work. Brandes’ algorithm gets every score from one <a href="bfs.html">breadth-first search</a> per person. It counts the shortest paths from that person to everyone. Then it walks back from the farthest, and each person passes their share to whoever came before them. That takes O(nm) time, and it is what <code>betweennessCentrality()</code> runs. By default the scores are divided by the number of pairs, so they lie between 0 and 1. With <code>normalized: false</code> you get the raw counts shown here.</p>
 
   <h2><small>Where it breaks</small>Shortest isn’t how everything travels</h2>
-  <p>Betweenness assumes things move along shortest paths and nowhere else. Gossip, infections and money often wander, and a person on many second-shortest paths scores nothing. If influence spreads more like a random walk, <a href="pagerank.html">PageRank</a> or a random-walk betweenness may fit better.</p>
-  <p>On a large network, one search per person is too many. With <code>pivots:</code> or <code>pivotCount:</code>, <code>betweennessCentrality</code> searches from a sample of people and scales up, which estimates the scores well when the sample is random and big enough. With weights, pass <code>weight:</code> and paths are shortest by total weight; ties then need exactly equal sums.</p>
+  <p>Betweenness assumes things move along shortest paths and nowhere else. Gossip, infections and money often wander. A person on many second-shortest paths scores nothing. If influence spreads more like a random walk, <a href="pagerank.html">PageRank</a> or current-flow betweenness may fit better.</p>
+  <p>On a large network, one search per person is too many. With <code>pivots:</code> or <code>pivotCount:</code>, <code>betweennessCentrality</code> searches from a sample of people and scales up. The estimate is good when the sample is random and big enough. To weigh the links, pass <code>weight:</code>. Paths are then shortest by total weight, and two paths tie only when their sums are exactly equal.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The office above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 </section>

@@ -151,7 +151,7 @@ struct LayoutLab {
                     layoutModel.dragging = nil
                     layoutModel.release(v)
                 }
-                p(.class("note")) { "Drag any vertex; the springs pull the rest after it." }
+                p(.class("note")) { "Drag any vertex. The springs pull the rest after it." }
             }
             div(.class("side")) {
                 div(.class("panel"), .custom(name: "aria-live", value: "off")) {
@@ -160,7 +160,7 @@ struct LayoutLab {
                         div { span(.class("num")) { "\(k)" }; "steps" }
                         div { span(.class("num")) { fourPlaces(temperature) }; "temperature" }
                     }
-                    p(.class("note")) { "\(graph.vertexCount) vertices, \(graph.edgeCount) edges. The temperature caps how far a vertex may move in one step; it falls every step until the drawing comes to rest." }
+                    p(.class("note")) { "\(graph.vertexCount) vertices and \(graph.edgeCount) edges. The temperature is how far a vertex may move in one step. It falls every step, until the drawing comes to rest." }
                 }
                 div(.class("panel")) {
                     label(.class("field"), .for("family")) {

@@ -5,22 +5,41 @@
   <div class="say"><span>Say it</span><b>FROOK-ter-mun RINE-gold</b><span class="ipa">/ˈfruːktərmən ˈraɪnɡoʊld/</span></div>
   <p class="question">How do you draw a graph so its shape is easy to see?</p>
 </header>
-<p class="example lead">Example: a tangle of twenty vertices that untangles itself as you watch. Drag any vertex and the rest respond.</p>
+<p class="example lead">Example: the twenty corners of a dodecahedron, dropped at random. They untangle as you watch. Pick another graph, or drag any vertex and the rest respond.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The drawing above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
+<section class="prose purpose">
+  <h2><small>What it’s for</small>A picture of a graph’s shape</h2>
+  <p>A graph is only a list of links, so it has no picture of its own. A force-directed layout gives every vertex a place. Linked vertices end up close, and the rest spread out. Groups, symmetries and long chains then show at a glance.</p>
+  <p>Reach for it when you have a small or medium graph and no better idea of how it should look. It knows nothing about direction or rank, only about links.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to draw a graph</h2>
+  <!-- compare
+  | Method | When to use | Places vertices by | Cost a step | Weakness |
+  | *Fruchterman–Reingold | Any small graph, to see its shape | Springs on the edges, and a push between every pair | O(n² + m), or O(n log n + m) with Barnes–Hut | A new start gives a new picture |
+  | ForceAtlas2 | Large networks with hubs | Forces that grow with degree, so hubs spread apart | O(n² + m), or O(n log n + m) with Barnes–Hut | Needs tuning to look its best |
+  | Stress majorization | Distances on the page should match distances in the graph | How many steps apart each pair is | O(n²), after finding every distance | Finding every distance is slow on a big graph |
+  | [Spectral layout](spectral.html) | A quick drawing with no randomness | Eigenvectors of the graph | One eigenvector solve, no steps | Can pile a whole region onto one spot |
+  | [Layered drawing](layered.html) | Arrows with a direction, such as a flowchart | Rows, every arrow pointing down | Several phases, no steps | Only suits graphs with a direction |
+  -->
+  <p>Fruchterman–Reingold is the general-purpose choice. It works on anything and needs no tuning, but it is slow on big graphs and gives a new picture for each new start. In the table, n is the number of vertices and m the number of edges.</p>
 </section>
 
 <section class="prose">
   <h2><small>The idea</small>Springs and magnets</h2>
-  <p>Treat edges as springs that pull their ends together, and every pair of vertices as magnets that push apart. Let the system settle and connected groups cluster, while unrelated parts drift away from each other. Fruchterman–Reingold cools the motion over time so the picture comes to rest: each step may move a vertex at most the current <b>temperature</b>, and the temperature falls with every step.</p>
+  <p>Treat each edge as a spring that pulls its ends together. Treat every pair of vertices as magnets that push apart. Let the system settle. Connected groups cluster, and unrelated parts drift away from each other.</p>
+  <p>Fruchterman–Reingold cools the motion over time, so the picture comes to rest. In each step a vertex may move at most the current <b>temperature</b>, and the temperature falls with every step.</p>
 
   <h2><small>Where it breaks</small>Hairballs</h2>
-  <p>Large graphs turn into a hairball no matter how they’re drawn. Past a few hundred vertices, it is better to find communities first and draw those. The forces also only see edges, never what the vertices mean: a drawing can look like it has clusters that aren’t really there.</p>
+  <p>Large graphs turn into a hairball however they are drawn. Past a few hundred vertices, it is better to find communities first and draw those. The forces also see only edges, never what the vertices mean. A drawing can look like it has clusters that aren’t really there.</p>
+</section>
 
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The drawing above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

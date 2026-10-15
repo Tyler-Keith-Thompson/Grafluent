@@ -104,9 +104,9 @@ struct PageRankLab {
                                 }, nodeAction: "Pick")
                     p(.class("note")) {
                         if let selected = model.selected {
-                            "\(webPages[selected]) is picked: click another page to add or remove a link to it."
+                            "\(webPages[selected]) is picked. Click another page to add a link to it, or to remove one."
                         } else {
-                            "Bigger circle, higher rank. Click one page and then another to add a link; click an arrow to remove it."
+                            "A bigger circle means a higher rank. Click one page and then another to add a link. Click an arrow to remove it."
                         }
                     }
                 }
@@ -130,7 +130,7 @@ struct PageRankLab {
                             }
                         }
                         p(.class("note")) {
-                            "Bars: PageRank, which adds up to 1. Black ticks: the share of the surfer’s \(k) visits so far on each page. The longer the surfer goes, the closer the ticks come to the bars."
+                            "The bars are the PageRank scores, which add up to 1. Each black tick is the share of the surfer’s \(k) visits so far spent on that page. The longer the surfer goes, the closer the ticks come to the bars."
                         }
                     }
                     div(.class("panel")) {
@@ -180,7 +180,7 @@ struct PageRankLab {
                             : Marble(kind: "m-blue", radius: 9, letter: String(visit.page.prefix(1)), title: "Follow a link to \(visit.page).")
                     },
                     legend: [(Marble(kind: "m-blue", radius: 6), "follow a link"), (Marble(kind: "m-ring", radius: 5), "jump to a random page")])
-                p(.class("note")) { "A random surfer, step by step: Grafluent’s randomWalk follows the links, and the surfer jumps whenever the damping coin says stop." }
+                p(.class("note")) { "Each marble is one page the surfer visits. Grafluent’s randomWalk follows the links, and the surfer jumps whenever the damping coin says stop." }
             }
         }
     }

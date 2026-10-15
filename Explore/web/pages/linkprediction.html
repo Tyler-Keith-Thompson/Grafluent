@@ -5,23 +5,42 @@
   <div class="say"><span>Say it</span><b>ah-DAH-mitch</b><span class="ipa">/aˈdaːmit͡ʃ/</span></div>
   <p class="question">Ana has three friends. Of the people she hasn’t met, who is she most likely to get on with?</p>
 </header>
-<p class="example lead">Example: nine people and a line between each pair of friends. Ben knows almost everyone; Dee knows only two people.</p>
+<p class="example lead">Example: nine people and a line between each pair of friends. Ben knows almost everyone. Dee knows only two people.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The friends above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Guessing the next link</h2>
+  <p>Two people with a friend in common are likely to become friends. Guessing which missing links will appear is called <b>link prediction</b>. The simplest scores look only at the friends two people share.</p>
+  <p>Reach for these scores to suggest people you may know, to recommend a paper that cites the same work, or to spot a link a dataset is missing. They are cheap, so you can score every pair that is two steps apart.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to score a pair</h2>
+  <!-- compare
+  | Score | When to use | Counts | Weakness |
+  | Common neighbours | A quick first guess | Friends in common | Favours people who know a lot of others |
+  | *Jaccard coefficient | People’s friend counts differ a lot | The share of their friends they have in common | A friend who knows everybody counts as much as any other |
+  | *Adamic–Adar index | Some friends know far more people than others | Friends in common, each worth 1 / ln(its friend count) | Grows with the number of friends in common, so it has no fixed top |
+  | Resource allocation index | Hubs should count for even less | Friends in common, each worth 1 / its friend count | Close to Adamic–Adar on most networks |
+  | Preferential attachment | Popular people tend to meet popular people | The product of their friend counts | Ignores whether they have anyone in common |
+  -->
+  <p>All of these are local, so they score a pair in the time it takes to read two lists of friends. None of them can suggest someone three steps away.</p>
 </section>
 
 <section class="prose">
   <h2><small>The idea</small>Friends of friends, weighed</h2>
-  <p>Networks close triangles: two people with a friend in common are likely to become friends. Guessing which missing links will appear is <b>link prediction</b>, and the simplest scores count shared neighbours.</p>
-  <p>The <b>Jaccard coefficient</b> divides the friends two people share by all the friends either has, so it is between 0 and 1 and doesn’t favour people who simply know a lot of others. The <b>Adamic–Adar index</b> adds up the shared friends, but weighs each by 1 / ln(its number of friends). A shared friend who knows only two people is a strong hint; one who knows everybody is weak, since they connect almost everyone. That is why Adamic–Adar ranks Ivy, met through Cy and Dee, above Eli, met through Cy and the very popular Ben, while Jaccard calls them even.</p>
-  <p>Each score is local, looking only at the two people’s friends, so <code>jaccardCoefficients(of:)</code> and <code>adamicAdarIndices(of:)</code> score many pairs cheaply.</p>
+  <p>The <b>Jaccard coefficient</b> divides the friends two people share by all the friends either one has. It lies between 0 and 1. It doesn’t favour people who simply know a lot of others.</p>
+  <p>The <b>Adamic–Adar index</b> adds up the shared friends, but weighs each one by 1 / ln(its number of friends). A shared friend who knows only two people is a strong hint. One who knows everybody is a weak hint, because they connect almost everyone. So Adamic–Adar ranks Ivy, met through Cy and Dee, above Eli, met through Cy and the very popular Ben. Jaccard calls them even.</p>
+  <p>Each score looks only at the two people’s friends. So <code>jaccardCoefficients(of:)</code> and <code>adamicAdarIndices(of:)</code> score many pairs cheaply.</p>
 
   <h2><small>Where it breaks</small>Only two steps away</h2>
-  <p>Both scores are zero for anyone without a friend in common, so they can never suggest someone three steps away, and a newcomer with no friends gets no suggestions at all. Scores that count longer paths, such as the Katz index or random walks with restart, reach further at more cost. Real recommenders also use what the network doesn’t show: where people live, work or went to school, and which suggestions were accepted before.</p>
+  <p>Both scores are 0 for anyone without a friend in common. So they never suggest someone three steps away, and a newcomer with no friends gets no suggestions at all. Scores that count longer paths, such as the Katz index or random walks with restart, reach further at more cost. Real recommenders also use what the network doesn’t show, such as where people live, work or went to school, and which suggestions were accepted before.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The friends above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

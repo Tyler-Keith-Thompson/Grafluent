@@ -78,13 +78,14 @@ func shareText(_ x: Double) -> String {
 func describePair(_ pair: OfficePair) -> String {
     let a = officeSeats[pair.a].name, b = officeSeats[pair.b].name
     let hops = pair.paths[0].links.count
-    if hops == 1 { return "\(a) and \(b) talk directly. Nobody is in between, so nobody gets credit." }
+    if hops == 1 { return "\(a) and \(b) talk directly. Nobody is in between." }
     let routes = pair.paths.map { $0.people.joined(separator: " → ") }
-    let credits = pair.brokers.map { "\(officeSeats[$0.person].name) +\(shareText($0.share))" }.joined(separator: ", ")
+    let credits = guestList(pair.brokers.map { "\(officeSeats[$0.person].name) \(shareText($0.share))" })
     if pair.paths.count == 1 {
-        return "\(a) to \(b): one shortest path, \(routes[0]). Each person in the middle gets 1: \(credits)."
+        let middle = pair.brokers.map { officeSeats[$0.person].name }
+        return "The shortest way from \(a) to \(b) is \(routes[0]). " + (middle.count == 1 ? "\(middle[0]) is in the middle and gets 1." : "\(guestList(middle)) are in the middle, and each gets 1.")
     }
-    return "\(a) to \(b): \(pair.paths.count) shortest paths, \(routes.joined(separator: "; ")). Each path counts 1/\(pair.paths.count): \(credits)."
+    return "\(a) and \(b) have \(pair.paths.count) shortest ways, \(guestList(routes)). Each way counts 1/\(pair.paths.count). That gives \(credits)."
 }
 
 @View
@@ -129,9 +130,9 @@ struct BetweennessLab {
                         span(.class("label")) { finished ? "All \(model.pairs.count) pairs counted" : k == 0 ? "\(model.pairs.count) pairs to count" : "Pair \(k) of \(model.pairs.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Take every pair of people, find every shortest chain of conversations between them, and give each person in the middle a share. A person’s total is their betweenness. Press Step for the first pair."
+                                "For each pair of people, find the shortest chains of conversations between them. Everyone in the middle of a chain gets a share of a point. A person’s total is their betweenness. Press Step for the first pair."
                             } else if finished {
-                                "Every pair is counted. \(officeSeats[ranked[0]].name) scores highest, \(shareText(state.people[ranked[0]])): the go-between for most of the office. The busiest link, in red, is \(model.busiest.u)–\(model.busiest.v), with \(shareText(model.grafluentLinks[busiestLink])). "
+                                "Every pair is counted. \(officeSeats[ranked[0]].name) scores highest, with \(shareText(state.people[ranked[0]])). Most news in the office passes through \(officeSeats[ranked[0]].name). The busiest link is \(model.busiest.u)–\(model.busiest.v), with \(shareText(model.grafluentLinks[busiestLink])). "
                                 "These totals are exactly what "
                                 code { "betweennessCentrality" }
                                 " and "
@@ -183,7 +184,7 @@ struct BetweennessLab {
                         (Marble(kind: "m-violet", radius: 6), "several, with how many share the credit"),
                         (Marble(kind: "m-grey", radius: 3.5), "the pair talk directly"),
                     ])
-                p(.class("note")) { "Each step is one pair, with its shortest paths from shortestSimplePaths. Brandes’ algorithm reaches the same totals with one search per person instead of one per pair. Numbers on the links are edge betweenness so far." }
+                p(.class("note")) { "Each step is one pair, with its shortest paths from shortestSimplePaths. The numbers on the links are edge betweenness so far." }
             }
         }
     }

@@ -41,12 +41,22 @@ final class LinkPredictionModel {
 
 let linkPredictionModel = LinkPredictionModel()
 
-func describeCandidate(_ s: FriendScore, person: String) -> String {
-    guard !s.shared.isEmpty else { return "\(s.candidate) shares no friends with \(person): both scores are 0." }
-    let mine = pals.degree(of: person), theirs = pals.degree(of: s.candidate)
-    let union = mine + theirs - s.shared.count
-    let parts = s.shared.map { "1/ln \(pals.degree(of: $0)) for \($0)" }.joined(separator: " + ")
-    return "\(person) and \(s.candidate) share \(guestList(s.shared)). Jaccard: \(s.shared.count) shared of \(union) friends between them, \(signedTwoPlaces(s.jaccard)). Adamic–Adar: \(parts) = \(signedTwoPlaces(s.adamicAdar))."
+/// 1 / ln d, what a shared friend with d friends adds to the Adamic–Adar index, for the friend
+/// counts this network has.
+func inverseLogarithm(_ d: Int) -> Double {
+    [2: 1.442695, 3: 0.910239, 4: 0.721348, 5: 0.621335, 6: 0.558111, 7: 0.513898, 8: 0.480898][d] ?? 0
+}
+
+func describeCandidate(_ s: FriendScore, person: String, byAdamicAdar: Bool) -> String {
+    guard !s.shared.isEmpty else { return "\(s.candidate) shares no friends with \(person), so the score is 0." }
+    let count = s.shared.count == 1 ? "one friend" : "\(s.shared.count) friends"
+    let head = "\(person) and \(s.candidate) share \(count), \(guestList(s.shared))."
+    if byAdamicAdar {
+        let parts = s.shared.map { "\($0) knows \(pals.degree(of: $0)) people and adds \(signedTwoPlaces(inverseLogarithm(pals.degree(of: $0))))." }.joined(separator: " ")
+        return head + " " + parts + " Adamic–Adar gives \(signedTwoPlaces(s.adamicAdar))."
+    }
+    let union = pals.degree(of: person) + pals.degree(of: s.candidate) - s.shared.count
+    return head + " Between them they know \(union) people. Jaccard gives \(s.shared.count) ÷ \(union) = \(signedTwoPlaces(s.jaccard))."
 }
 
 @View
@@ -97,10 +107,10 @@ struct LinkPredictionLab {
                             } else if finished, let top {
                                 "Suggest \(top.candidate) first. "
                                 model.byAdamicAdar
-                                    ? "Adamic–Adar counts a shared friend for more when that friend has few friends: an introduction through someone who knows everybody says little."
-                                    : "Jaccard is the share of all their friends that they have in common, every shared friend counting the same."
+                                    ? "Adamic–Adar counts a shared friend for more when that friend has few friends. An introduction through someone who knows everybody says little."
+                                    : "Jaccard is the share of all their friends that they have in common. Every shared friend counts the same."
                             } else if let current {
-                                describeCandidate(current, person: model.person)
+                                describeCandidate(current, person: model.person, byAdamicAdar: model.byAdamicAdar)
                             }
                         }
                     }
@@ -111,7 +121,7 @@ struct LinkPredictionLab {
                             for (j, s) in ranked.enumerated() {
                                 div(.class(j == 0 && finished ? "qrow top" : "qrow")) {
                                     span { s.candidate }
-                                    span(.class("num")) { "J \(signedTwoPlaces(s.jaccard))  AA \(signedTwoPlaces(s.adamicAdar))" }
+                                    span(.class("num")) { signedTwoPlaces(model.byAdamicAdar ? s.adamicAdar : s.jaccard) }
                                 }
                             }
                         }
@@ -133,8 +143,8 @@ struct LinkPredictionLab {
                     playback: playback,
                     marbles: model.scores.map { s in
                         s.shared.isEmpty
-                            ? Marble(kind: "m-grey", radius: 4, title: describeCandidate(s, person: model.person))
-                            : Marble(kind: "m-pal2", radius: 9, letter: "\(s.shared.count)", title: describeCandidate(s, person: model.person))
+                            ? Marble(kind: "m-grey", radius: 4, title: describeCandidate(s, person: model.person, byAdamicAdar: model.byAdamicAdar))
+                            : Marble(kind: "m-pal2", radius: 9, letter: "\(s.shared.count)", title: describeCandidate(s, person: model.person, byAdamicAdar: model.byAdamicAdar))
                     },
                     legend: [
                         (Marble(kind: "m-pal2", radius: 6), "a candidate, with the friends shared"),
