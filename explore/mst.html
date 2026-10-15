@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minimum spanning trees · Explore Grafluent</title>
+<meta name="description" content="Cable six houses as cheaply as possible with Grafluent’s kruskalEvents and primEvents, step by step, in your browser.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="mst">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="mst.html" aria-current="page">Minimum spanning trees</a><i>Cliques (soon)</i><i>Communities (soon)</i></div>
+        <div class="mgroup"><span>Assignment</span><i>Maximum flow (soon)</i><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Minimum spanning trees</h1>
+  <div class="say"><span>Say it</span><b>KRUSS-kul</b><span class="ipa">/ˈkrʌskəl/</span><span>and</span><b>PRIM</b><span class="ipa">/prɪm/</span></div>
+  <p class="question">What’s the cheapest set of cables that connects every house?</p>
+</header>
+
+<p class="example lead">Example: six houses and the cost of laying cable between each pair that can be connected.</p>
+
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="Interactive map"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 430" role="img" aria-label="Six houses joined by possible cables, each labelled with its cost"><g class="edge " data-edge="0"><path d="M109.5,105.8 L300.5,64.2" class="hit" /><path d="M109.5,105.8 L300.5,64.2" class="stroke" /><text x="207.76158537630357" y="102.70329273099641" text-anchor="middle" class="weight">4</text></g><g class="edge " data-edge="1"><path d="M90.8,130.0 L99.2,330.0" class="hit" /><path d="M90.8,130.0 L99.2,330.0" class="stroke" /><text x="82.01127004979942" y="235.54119708125836" text-anchor="middle" class="weight">3</text></g><g class="edge " data-edge="2"><path d="M107.3,120.1 L312.7,239.9" class="hit" /><path d="M107.3,120.1 L312.7,239.9" class="stroke" /><text x="203.44967666818687" y="196.22912571167964" text-anchor="middle" class="weight">6</text></g><g class="edge " data-edge="3"><path d="M339.7,63.3 L540.3,96.7" class="hit" /><path d="M339.7,63.3 L540.3,96.7" class="stroke" /><text x="437.86281316503033" y="97.82312100981787" text-anchor="middle" class="weight">8</text></g><g class="edge " data-edge="4"><path d="M321.1,80.0 L328.9,230.0" class="hit" /><path d="M321.1,80.0 L328.9,230.0" class="stroke" /><text x="312.01796821867737" y="160.68326483059593" text-anchor="middle" class="weight">2</text></g><g class="edge " data-edge="5"><path d="M559.2,120.0 L550.8,340.0" class="hit" /><path d="M559.2,120.0 L550.8,340.0" class="stroke" /><text x="542.009604729793" y="234.50036941268434" text-anchor="middle" class="weight">1</text></g><g class="edge " data-edge="6"><path d="M118.3,342.0 L311.7,258.0" class="hit" /><path d="M118.3,342.0 L311.7,258.0" class="stroke" /><text x="220.18343944838784" y="316.92191073129203" text-anchor="middle" class="weight">5</text></g><g class="edge " data-edge="7"><path d="M120.0,350.4 L530.0,359.6" class="hit" /><path d="M120.0,350.4 L530.0,359.6" class="stroke" /><text x="324.7111824152931" y="372.9967913118109" text-anchor="middle" class="weight">9</text></g><g class="edge " data-edge="8"><path d="M347.9,258.9 L532.1,351.1" class="hit" /><path d="M347.9,258.9 L532.1,351.1" class="stroke" /><text x="434.18622325850055" y="321.6275534829989" text-anchor="middle" class="weight">7</text></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="Start Prim at Ada"><circle cx="90.0" cy="110.0" r="18.0" /><text x="90.0" y="146.0" text-anchor="middle" class="name">Ada</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Start Prim at Ben"><circle cx="320.0" cy="60.0" r="18.0" /><text x="320.0" y="96.0" text-anchor="middle" class="name">Ben</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="Start Prim at Cleo"><circle cx="560.0" cy="100.0" r="18.0" /><text x="560.0" y="136.0" text-anchor="middle" class="name">Cleo</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Start Prim at Dev"><circle cx="100.0" cy="350.0" r="18.0" /><text x="100.0" y="386.0" text-anchor="middle" class="name">Dev</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Start Prim at Eli"><circle cx="330.0" cy="250.0" r="18.0" /><text x="330.0" y="286.0" text-anchor="middle" class="name">Eli</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Start Prim at Fay"><circle cx="550.0" cy="360.0" r="18.0" /><text x="550.0" y="396.0" text-anchor="middle" class="name">Fay</text></g></svg><div class="legend"><span><i class="line"></i>a cable that could be laid</span><span><i class="line tree"></i>laid</span><span><i class="line faint"></i>skipped or not needed</span><span><i class="dot pal1"></i>a colour per group of connected houses</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Step 0 of 14</span><p class="narration">Kruskal reads every cable from cheapest to dearest and lays each one that joins two separate groups. Every house starts in a group of its own. Press Step to begin.</p></div><div class="panel"><span class="label">Cables, cheapest first</span><div class="queue"><div class="qrow cable"><span>Cleo–Fay</span><span class="num">1</span></div><div class="qrow cable"><span>Ben–Eli</span><span class="num">2</span></div><div class="qrow cable"><span>Ada–Dev</span><span class="num">3</span></div><div class="qrow cable"><span>Ada–Ben</span><span class="num">4</span></div><div class="qrow cable"><span>Dev–Eli</span><span class="num">5</span></div><div class="qrow cable"><span>Ada–Eli</span><span class="num">6</span></div><div class="qrow cable"><span>Eli–Fay</span><span class="num">7</span></div><div class="qrow cable"><span>Ben–Cleo</span><span class="num">8</span></div><div class="qrow cable"><span>Dev–Fay</span><span class="num">9</span></div></div></div><div class="panel"><span class="label">Cable laid so far</span><div class="stat"><div class="good"><span class="num">0</span>Kruskal</div><div><span class="num">17</span>Prim’s total</div></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button><span class="spacer"></span><div class="segmented" role="group" aria-label="Algorithm"><button type="button" class="on">Kruskal</button><button type="button" class="">Prim</button></div></div><div class="timeline-scroll"><svg class="timeline" width="394" viewBox="0 0 394 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="386" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="4.0" class="m-grey" /><title>Next cheapest: Cleo–Fay, cost 1. Cleo’s group is Cleo; Fay’s is Fay.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="9.0" class="m-blue" /><title>Lay Cleo–Fay: it joins two groups into one, Cleo and Fay.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="4.0" class="m-grey" /><title>Next cheapest: Ben–Eli, cost 2. Ben’s group is Ben; Eli’s is Eli.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="9.0" class="m-blue" /><title>Lay Ben–Eli: it joins two groups into one, Ben and Eli.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="4.0" class="m-grey" /><title>Next cheapest: Ada–Dev, cost 3. Ada’s group is Ada; Dev’s is Dev.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="9.0" class="m-blue" /><title>Lay Ada–Dev: it joins two groups into one, Ada and Dev.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="4.0" class="m-grey" /><title>Next cheapest: Ada–Ben, cost 4. Ada’s group is Ada and Dev; Ben’s is Ben and Eli.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="9.0" class="m-blue" /><title>Lay Ada–Ben: it joins two groups into one, Ada, Ben, Dev and Eli.</title></g><g class="marble future" data-step="8"><circle cx="230" cy="32" r="4.0" class="m-grey" /><title>Next cheapest: Dev–Eli, cost 5. Both are already in one group: Ada, Ben, Dev and Eli.</title></g><g class="marble future" data-step="9"><circle cx="256" cy="32" r="7.0" class="m-red" /><title>Skip Dev–Eli: its houses are already connected, so it would only close a loop.</title></g><g class="marble future" data-step="10"><circle cx="282" cy="32" r="4.0" class="m-grey" /><title>Next cheapest: Ada–Eli, cost 6. Both are already in one group: Ada, Ben, Dev and Eli.</title></g><g class="marble future" data-step="11"><circle cx="308" cy="32" r="7.0" class="m-red" /><title>Skip Ada–Eli: its houses are already connected, so it would only close a loop.</title></g><g class="marble future" data-step="12"><circle cx="334" cy="32" r="4.0" class="m-grey" /><title>Next cheapest: Eli–Fay, cost 7. Eli’s group is Ada, Ben, Dev and Eli; Fay’s is Cleo and Fay.</title></g><g class="marble future" data-step="13"><circle cx="360" cy="32" r="9.0" class="m-blue" /><title>Lay Eli–Fay: it joins two groups into one, Ada, Ben, Cleo, Dev, Eli and Fay.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub" class="scrub" type="range" min="0" max="14" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="3.5" class="m-grey" /></svg>the next cheapest cable is read</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-blue" /></svg>it joins two groups: laid</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="5.0" class="m-red" /></svg>its houses are already connected: skipped</span></div><p class="note">Numbers on the lines are what each cable costs. Houses of one colour are already connected to each other.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The six houses, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">SpanningTrees</span>
+
+<span class="k">let</span> cableCost: [<span class="t">UndirectedEdge</span>&lt;<span class="t">String</span>&gt;: <span class="t">Int</span>] = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ada"</span>, <span class="s">"Ben"</span>): <span class="n">4</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ada"</span>, <span class="s">"Dev"</span>): <span class="n">3</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ada"</span>, <span class="s">"Eli"</span>): <span class="n">6</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ben"</span>, <span class="s">"Eli"</span>): <span class="n">2</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ben"</span>, <span class="s">"Cleo"</span>): <span class="n">8</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Cleo"</span>, <span class="s">"Fay"</span>): <span class="n">1</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Dev"</span>, <span class="s">"Eli"</span>): <span class="n">5</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Eli"</span>, <span class="s">"Fay"</span>): <span class="n">7</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Dev"</span>, <span class="s">"Fay"</span>): <span class="n">9</span>,
+]
+
+<span class="k">let</span> houses = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> cable <span class="k">in</span> cableCost.keys.sorted() { cable }
+}
+
+<span class="k">let</span> start = <span class="s">"Ada"</span>
+
+<span class="k">let</span> kruskal = <span class="t">Array</span>(houses.kruskalEvents { cableCost[houses.edges[$<span class="n">0</span>]]! })  <span class="c">// 14 events</span>
+
+<span class="k">let</span> prim = <span class="t">Array</span>(houses.primEvents(from: start) { cableCost[houses.edges[$<span class="n">0</span>]]! })  <span class="c">// 31 events</span>
+
+<span class="k">let</span> byKruskal = houses.kruskalMinimumSpanningTree { cableCost[houses.edges[$<span class="n">0</span>]]! }.weight  <span class="c">// 17</span>
+<span class="k">let</span> byPrim = houses.primMinimumSpanningTree(from: start) { cableCost[houses.edges[$<span class="n">0</span>]]! }.weight  <span class="c">// 17</span>
+</span></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Two ways to the same cheapest network</h2>
+  <p><b>Kruskal</b> sorts every possible cable from cheapest to dearest and lays each one unless it would only join two houses that are already connected. <b>Prim</b> grows a single network outward from one house, always adding the cheapest cable that reaches a house not yet connected. Different routes, same total cost.</p>
+  <p>Either way the result is a <b>spanning tree</b>: every house is connected, and there are no loops, so six houses need exactly five cables. A loop would mean one cable could be removed without disconnecting anyone, which is money wasted.</p>
+  <p>Kruskal keeps track of who is already connected with a union–find structure, which answers “same group?” almost instantly. Prim keeps a queue of the houses waiting to join, each with the cheapest price on offer so far, just as Dijkstra keeps its frontier.</p>
+
+  <h2><small>Where it breaks</small>Cheapest isn’t shortest</h2>
+  <p>The cheapest network isn’t the one with the shortest routes. The trip between two houses can be long and winding. If travel time matters, that’s a shortest-path problem.</p>
+  <p>Here a direct Dev–Eli cable would cost 5, and it isn’t in the network: a signal from Dev to Eli goes through Ada and Ben, three cables instead of one.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Kruskal</b><span class="how">KRUSS-kul</span><span class="ipa">/ˈkrʌskəl/</span><span class="what">Cheapest network that connects everything</span></div><div class="name"><b>Prim</b><span class="how">PRIM</span><span class="ipa">/prɪm/</span><span class="what">The same network, grown from one place</span></div><div class="name"><b>Borůvka</b><span class="how">BOR-oof-kah</span><span class="ipa">/ˈboruːfka/</span><span class="what">The same network, grown in parallel</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="bridges.html"><span>Previous</span>Bridges and articulation points</a><a class="next" href="matching.html"><span>Next</span>Bipartite matching</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

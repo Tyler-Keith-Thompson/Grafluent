@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Explore Grafluent</title>
+<meta name="description" content="Watch graph algorithms think. Every page runs the real Grafluent library in your browser, one step at a time.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+</head>
+<body data-page="index">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./" aria-current="page">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="mst.html">Minimum spanning trees</a><i>Cliques (soon)</i><i>Communities (soon)</i></div>
+        <div class="mgroup"><span>Assignment</span><i>Maximum flow (soon)</i><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Explore Grafluent</h1>
+  <p class="question">Watch graph algorithms think. Every page runs the real library in your browser, one step at a time.</p>
+</header>
+
+<section class="intro">
+  <p>A graph is a way to describe anything made of connected parts. The parts, called <b>vertices</b>, might be cities, people, web pages or the tasks in a build. The connections, called <b>edges</b>, might be roads, friendships, links or dependencies between tasks. Once a problem is drawn that way, a few dozen well-studied algorithms answer most of the questions people ask about it: the quickest route, the right order, the weakest point, the groups that hang together.</p>
+  <p>Those algorithms mostly carry the names of the people who found them, and many of those names are hard to say. Each page tells you how to pronounce the name and what question the algorithm answers, then lets you watch it work, step by step, on a small example you can change. Every page runs the real Grafluent library in your browser, so what you see is exactly what your code would do.</p>
+  <h3>How every page works</h3>
+  <ul>
+    <li>A small graph you can click and edit.</li>
+    <li>Step, play, go back, or drag the timeline. Each marble on the timeline is one thing the algorithm did.</li>
+    <li><em>The idea</em>: why it works, in a paragraph.</li>
+    <li><em>Where it breaks</em>: the input that fools it, and what to use instead.</li>
+    <li><em>In Swift</em>: the exact code the page is running.</li>
+  </ul>
+  <p>New to graphs? Start with <a href="basics.html">Graph basics</a>.</p>
+</section>
+
+<nav class="contents" id="contents" aria-label="Contents">
+  <h2>Contents</h2>
+  <section class="group">
+    <h3>Start here</h3>
+    <ol>
+      <li><a href="basics.html"><b>Graph basics</b><span>Vertices, edges, direction and weight, with pictures.</span></a></li>
+      <li><a href="representations.html"><b>Storing a graph</b><span>Adjacency lists, matrices and compressed rows.</span></a></li>
+    </ol>
+  </section>
+  <section class="group">
+    <h3>Getting around</h3>
+    <ol>
+      <li><a href="bfs.html"><b>Breadth-first search</b><span>Visiting everything reachable, ring by ring.</span></a></li>
+      <li><a href="dfs.html"><b>Depth-first search</b><span>Visiting everything reachable, one corridor at a time.</span></a></li>
+      <li><a href="dijkstra.html"><b>Dijkstra’s algorithm</b><span>The quickest route to everywhere.</span></a></li>
+      <li><a href="astar.html"><b>A* search</b><span>The quickest route to one place, aimed at the goal.</span></a></li>
+      <li><a href="toposort.html"><b>Topological sort</b><span>An order for tasks with dependencies.</span></a></li>
+    </ol>
+  </section>
+  <section class="group">
+    <h3>Structure</h3>
+    <ol>
+      <li><a href="components.html"><b>Connected components</b><span>Which parts can reach each other.</span></a></li>
+      <li><a href="bridges.html"><b>Bridges and articulation points</b><span>Which single closure splits the network.</span></a></li>
+      <li><a href="mst.html"><b>Minimum spanning trees</b><span>The cheapest way to connect everything.</span></a></li>
+      <li><div class="soon"><b>Cliques</b><span>Groups where everyone is connected.</span><i>Coming soon</i></div></li>
+      <li><div class="soon"><b>Communities</b><span>Where a network splits into groups.</span><i>Coming soon</i></div></li>
+    </ol>
+  </section>
+  <section class="group">
+    <h3>Assignment</h3>
+    <ol>
+      <li><div class="soon"><b>Maximum flow</b><span>How much a network of pipes can carry.</span><i>Coming soon</i></div></li>
+      <li><a href="matching.html"><b>Bipartite matching</b><span>Filling as many jobs as possible.</span></a></li>
+      <li><a href="coloring.html"><b>Graph coloring</b><span>Scheduling without clashes.</span></a></li>
+    </ol>
+  </section>
+  <section class="group">
+    <h3>Importance and shape</h3>
+    <ol>
+      <li><a href="pagerank.html"><b>PageRank</b><span>Which pages matter most.</span></a></li>
+      <li><a href="layout.html"><b>Force-directed layout</b><span>Drawing a graph so its shape shows.</span></a></li>
+    </ol>
+  </section>
+</nav>
+
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+</body>
+</html>

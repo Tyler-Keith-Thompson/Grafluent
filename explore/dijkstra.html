@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dijkstra’s algorithm · Explore Grafluent</title>
+<meta name="description" content="Watch Grafluent’s dijkstraSearch settle a small town one place at a time, in your browser.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="dijkstra">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html" aria-current="page">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="mst.html">Minimum spanning trees</a><i>Cliques (soon)</i><i>Communities (soon)</i></div>
+        <div class="mgroup"><span>Assignment</span><i>Maximum flow (soon)</i><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+    <header class="sign">
+      <h1>Dijkstra’s algorithm</h1>
+      <div class="say"><span>Say it</span><b>DIKE-struh</b><span class="ipa">/ˈdɛikstra/</span></div>
+      <p class="question">What’s the quickest walk from your front door to every other place in town, when no street takes less than no time at all?</p>
+    </header>
+  
+    <p class="example lead">Example: eight places in a small town, with walking minutes on each street.</p>
+
+  <div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="Interactive map"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 520" role="img" aria-label="Map of a small town: places joined by streets labelled with walking minutes"><g class="edge " data-edge="0"><path d="M91.3,278.7 L198.7,171.3" class="hit" /><path d="M91.3,278.7 L198.7,171.3" class="stroke" /><text x="154.1923881554251" y="239.1923881554251" text-anchor="middle" class="weight">4</text></g><g class="edge " data-edge="1"><path d="M211.5,175.9 L228.5,354.1" class="hit" /><path d="M211.5,175.9 L228.5,354.1" class="stroke" /><text x="207.05855885627864" y="271.23251820416397" text-anchor="middle" class="weight">3</text></g><g class="edge " data-edge="2"><path d="M224.8,153.9 L365.2,96.1" class="hit" /><path d="M224.8,153.9 L365.2,96.1" class="stroke" /><text x="299.9497474683058" y="142.02081528017132" text-anchor="middle" class="weight">7</text></g><g class="edge " data-edge="3"><path d="M403.3,271.1 L526.7,188.9" class="hit" /><path d="M403.3,271.1 L526.7,188.9" class="stroke" /><text x="472.211102550928" y="245.81665382639196" text-anchor="middle" class="weight">3</text></g><g class="edge " data-edge="4"><path d="M393.9,97.8 L526.1,172.2" class="hit" /><path d="M393.9,97.8 L526.1,172.2" class="stroke" /><text x="453.6266038847767" y="151.33048198261915" text-anchor="middle" class="weight">6</text></g><g class="edge " data-edge="5"><path d="M541.5,195.9 L558.5,374.1" class="hit" /><path d="M541.5,195.9 L558.5,374.1" class="stroke" /><text x="537.0585588562786" y="291.23251820416397" text-anchor="middle" class="weight">5</text></g><g class="edge " data-edge="6"><path d="M94.1,297.5 L215.9,362.5" class="hit" /><path d="M94.1,297.5 L215.9,362.5" class="stroke" /><text x="148.88235294117646" y="346.47058823529414" text-anchor="middle" class="weight">6</text></g><g class="edge " data-edge="7"><path d="M388.1,295.9 L371.9,434.1" class="hit" /><path d="M388.1,295.9 L371.9,434.1" class="stroke" /><text x="367.0890421438026" y="368.48106378162385" text-anchor="middle" class="weight">7</text></g><g class="edge " data-edge="8"><path d="M243.9,362.2 L376.1,287.8" class="hit" /><path d="M243.9,362.2 L376.1,287.8" class="stroke" /><text x="316.3733961152233" y="341.3304819826191" text-anchor="middle" class="weight">5</text></g><g class="edge " data-edge="9"><path d="M380.8,106.0 L389.2,264.0" class="hit" /><path d="M380.8,106.0 L389.2,264.0" class="stroke" /><text x="372.01796821867737" y="190.68326483059593" text-anchor="middle" class="weight">4</text></g><g class="edge " data-edge="10"><path d="M403.4,288.7 L546.6,381.3" class="hit" /><path d="M403.4,288.7 L546.6,381.3" class="stroke" /><text x="467.93773338395545" y="350.914412042978" text-anchor="middle" class="weight">8</text></g><g class="edge " data-edge="11"><path d="M243.9,377.9 L356.1,442.1" class="hit" /><path d="M243.9,377.9 L356.1,442.1" class="stroke" /><text x="293.55019380136116" y="426.287160847618" text-anchor="middle" class="weight">6</text></g><g class="edge " data-edge="12"><path d="M385.3,445.2 L544.7,394.8" class="hit" /><path d="M385.3,445.2 L544.7,394.8" class="stroke" /><text x="468.9147077831823" y="437.39657464674383" text-anchor="middle" class="weight">4</text></g><g class="node frontier source clickable" data-node="0" tabindex="0" role="button" aria-label="Start at Home"><circle cx="80.0" cy="290.0" r="14.0" /><text x="80.0" y="322.0" text-anchor="middle" class="name">Home</text><text x="80.0" y="339.0" text-anchor="middle" class="note">0 min</text></g><g class="node  clickable" data-node="1" tabindex="0" role="button" aria-label="Start at Bakery"><circle cx="210.0" cy="160.0" r="14.0" /><text x="210.0" y="192.0" text-anchor="middle" class="name">Bakery</text></g><g class="node  clickable" data-node="2" tabindex="0" role="button" aria-label="Start at Park"><circle cx="230.0" cy="370.0" r="14.0" /><text x="230.0" y="402.0" text-anchor="middle" class="name">Park</text></g><g class="node  clickable" data-node="3" tabindex="0" role="button" aria-label="Start at School"><circle cx="380.0" cy="90.0" r="14.0" /><text x="380.0" y="122.0" text-anchor="middle" class="name">School</text></g><g class="node  clickable" data-node="4" tabindex="0" role="button" aria-label="Start at Library"><circle cx="390.0" cy="280.0" r="14.0" /><text x="390.0" y="312.0" text-anchor="middle" class="name">Library</text></g><g class="node  clickable" data-node="5" tabindex="0" role="button" aria-label="Start at Café"><circle cx="540.0" cy="180.0" r="14.0" /><text x="540.0" y="212.0" text-anchor="middle" class="name">Café</text></g><g class="node  clickable" data-node="6" tabindex="0" role="button" aria-label="Start at Market"><circle cx="370.0" cy="450.0" r="14.0" /><text x="370.0" y="482.0" text-anchor="middle" class="name">Market</text></g><g class="node  clickable" data-node="7" tabindex="0" role="button" aria-label="Start at Station"><circle cx="560.0" cy="390.0" r="14.0" /><text x="560.0" y="422.0" text-anchor="middle" class="name">Station</text></g></svg><div class="legend"><span><i class="dot"></i>not reached yet</span><span><i class="dot frontier"></i>frontier: a best guess so far</span><span><i class="dot visited"></i>settled: the quickest is known</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Step 0 of 21</span><p class="narration">Every place starts unknown except Home, which takes no time to reach. Press Step to begin.</p></div><div class="panel"><span class="label">Frontier, quickest first</span><div class="queue"><div class="qrow top"><span>Home · next</span><span class="num">0 min</span></div></div></div><div class="panel"><span class="label">Settled</span><div class="chips"><p class="empty">None yet</p></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button><span class="spacer"></span><label class="field" for="source">Start at <select id="source"><option value="0" selected>Home</option><option value="1">Bakery</option><option value="2">Park</option><option value="3">School</option><option value="4">Library</option><option value="5">Café</option><option value="6">Market</option><option value="7">Station</option></select></label><label class="field" for="target">Show the walk to <select id="target"><option value="-1">none</option><option value="0">Home</option><option value="1">Bakery</option><option value="2">Park</option><option value="3">School</option><option value="4">Library</option><option value="5">Café</option><option value="6">Market</option><option value="7" selected>Station</option></select></label></div><div class="timeline-scroll"><svg class="timeline" width="576" viewBox="0 0 576 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="568" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="11.0" class="m-blue" /><text x="22" y="36" text-anchor="middle">H</text><title>Start at Home. It takes 0 minutes to be where you already are, so it is settled first.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="7.0" class="m-ring" /><title>Check Home → Bakery: 0 + 4 = 4 min, which beats ∞. Bakery’s guess drops to 4 min.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="7.0" class="m-ring" /><title>Check Home → Park: 0 + 6 = 6 min, which beats ∞. Park’s guess drops to 6 min.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="11.0" class="m-blue" /><text x="100" y="36" text-anchor="middle">B</text><title>Bakery has the smallest guess on the frontier, 4 min. Nothing quicker can still arrive, so it is settled.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="4.0" class="m-grey" /><title>Check Bakery → Park: 4 + 3 = 7 min, which doesn’t beat 6 min. Nothing changes.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="7.0" class="m-ring" /><title>Check Bakery → School: 4 + 7 = 11 min, which beats ∞. School’s guess drops to 11 min.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="11.0" class="m-blue" /><text x="178" y="36" text-anchor="middle">P</text><title>Park has the smallest guess on the frontier, 6 min. Nothing quicker can still arrive, so it is settled.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="7.0" class="m-ring" /><title>Check Park → Library: 6 + 5 = 11 min, which beats ∞. Library’s guess drops to 11 min.</title></g><g class="marble future" data-step="8"><circle cx="230" cy="32" r="7.0" class="m-ring" /><title>Check Park → Market: 6 + 6 = 12 min, which beats ∞. Market’s guess drops to 12 min.</title></g><g class="marble future" data-step="9"><circle cx="256" cy="32" r="11.0" class="m-blue" /><text x="256" y="36" text-anchor="middle">S</text><title>School has the smallest guess on the frontier, 11 min. Nothing quicker can still arrive, so it is settled.</title></g><g class="marble future" data-step="10"><circle cx="282" cy="32" r="7.0" class="m-ring" /><title>Check School → Café: 11 + 6 = 17 min, which beats ∞. Café’s guess drops to 17 min.</title></g><g class="marble future" data-step="11"><circle cx="308" cy="32" r="4.0" class="m-grey" /><title>Check School → Library: 11 + 4 = 15 min, which doesn’t beat 11 min. Nothing changes.</title></g><g class="marble future" data-step="12"><circle cx="334" cy="32" r="11.0" class="m-blue" /><text x="334" y="36" text-anchor="middle">L</text><title>Library has the smallest guess on the frontier, 11 min. Nothing quicker can still arrive, so it is settled.</title></g><g class="marble future" data-step="13"><circle cx="360" cy="32" r="7.0" class="m-ring" /><title>Check Library → Café: 11 + 3 = 14 min, which beats 17 min. Café’s guess drops to 14 min.</title></g><g class="marble future" data-step="14"><circle cx="386" cy="32" r="4.0" class="m-grey" /><title>Check Library → Market: 11 + 7 = 18 min, which doesn’t beat 12 min. Nothing changes.</title></g><g class="marble future" data-step="15"><circle cx="412" cy="32" r="7.0" class="m-ring" /><title>Check Library → Station: 11 + 8 = 19 min, which beats ∞. Station’s guess drops to 19 min.</title></g><g class="marble future" data-step="16"><circle cx="438" cy="32" r="11.0" class="m-blue" /><text x="438" y="36" text-anchor="middle">M</text><title>Market has the smallest guess on the frontier, 12 min. Nothing quicker can still arrive, so it is settled.</title></g><g class="marble future" data-step="17"><circle cx="464" cy="32" r="7.0" class="m-ring" /><title>Check Market → Station: 12 + 4 = 16 min, which beats 19 min. Station’s guess drops to 16 min.</title></g><g class="marble future" data-step="18"><circle cx="490" cy="32" r="11.0" class="m-blue" /><text x="490" y="36" text-anchor="middle">C</text><title>Café has the smallest guess on the frontier, 14 min. Nothing quicker can still arrive, so it is settled.</title></g><g class="marble future" data-step="19"><circle cx="516" cy="32" r="4.0" class="m-grey" /><title>Check Café → Station: 14 + 5 = 19 min, which doesn’t beat 16 min. Nothing changes.</title></g><g class="marble future" data-step="20"><circle cx="542" cy="32" r="11.0" class="m-blue" /><text x="542" y="36" text-anchor="middle">S</text><title>Station has the smallest guess on the frontier, 16 min. Nothing quicker can still arrive, so it is settled.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub" class="scrub" type="range" min="0" max="21" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-blue" /></svg>a place is settled</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="5.0" class="m-ring" /></svg>a street gives a quicker guess</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="3.5" class="m-grey" /></svg>a street is checked, not quicker</span></div><p class="note">Click any place to start from it. Numbers on the streets are walking minutes.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The town above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">ShortestPaths</span>
+
+<span class="k">let</span> minutes: [<span class="t">UndirectedEdge</span>&lt;<span class="t">String</span>&gt;: <span class="t">Int</span>] = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Home"</span>, <span class="s">"Bakery"</span>): <span class="n">4</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Home"</span>, <span class="s">"Park"</span>): <span class="n">6</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Bakery"</span>, <span class="s">"Park"</span>): <span class="n">3</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Bakery"</span>, <span class="s">"School"</span>): <span class="n">7</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Park"</span>, <span class="s">"Library"</span>): <span class="n">5</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"School"</span>, <span class="s">"Library"</span>): <span class="n">4</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"School"</span>, <span class="s">"Café"</span>): <span class="n">6</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Library"</span>, <span class="s">"Café"</span>): <span class="n">3</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Library"</span>, <span class="s">"Station"</span>): <span class="n">8</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Café"</span>, <span class="s">"Station"</span>): <span class="n">5</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Park"</span>, <span class="s">"Market"</span>): <span class="n">6</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Market"</span>, <span class="s">"Station"</span>): <span class="n">4</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Library"</span>, <span class="s">"Market"</span>): <span class="n">7</span>,
+]
+
+<span class="k">let</span> town = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> street <span class="k">in</span> minutes.keys.sorted() { street }
+}
+
+<span class="k">let</span> start = <span class="s">"Home"</span>
+<span class="k">let</span> goal = <span class="s">"Station"</span>
+
+<span class="k">let</span> events = <span class="t">Array</span>(town.dijkstraSearch(from: start) { minutes[town.edges[$<span class="n">0</span>]]! })  <span class="c">// 63 events</span>
+
+<span class="k">let</span> walks = town.dijkstraShortestPaths(from: start) { minutes[town.edges[$<span class="n">0</span>]]! }
+<span class="k">let</span> distance = walks.distance(to: goal)  <span class="c">// 16</span>
+<span class="k">let</span> stops = walks.path(to: goal).map(<span class="t">Array</span>.init)  <span class="c">// ["Home", "Park", "Market", "Station"]</span>
+</span></pre>
+</section>
+  
+    <section class="prose">
+      <h2><small>The idea</small>Always settle the nearest unsettled place</h2>
+      <p>Keep a best guess for every place: zero minutes for where you are, infinity for everywhere else. Then repeat one move: take the frontier place with the smallest guess, call it settled, and check each street out of it. If walking through it gets you to a neighbour sooner, lower that neighbour’s guess.</p>
+      <p>Why can the smallest guess be trusted? Any other walk to that place would have to leave the settled region through some frontier place, and every frontier place is already at least that far. Streets only add time, so a detour can’t come back quicker. That one sentence is the whole proof, and it is also where the algorithm breaks.</p>
+  
+      <h2><small>Where it breaks</small>A street that gives you time back</h2>
+      <p>Give one edge a negative weight, like a shortcut that somehow saves three minutes, and the argument above fails: a detour can now come back quicker. Here Dijkstra settles A at 2 before it ever looks at B, so the cheaper route S → B → A, costing 4 − 3 = 1, arrives too late.</p>
+      <div class="fig">
+        <svg viewBox="0 0 520 210" role="img" aria-label="Three-vertex graph: S to A costs 2, S to B costs 4, B to A costs minus 3">
+          <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--road)"/></marker>
+                <marker id="arrd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--danger)"/></marker></defs>
+          <line x1="92" y1="105" x2="232" y2="42" stroke="var(--road)" stroke-width="3" marker-end="url(#arr)"/>
+          <line x1="92" y1="115" x2="402" y2="168" stroke="var(--road)" stroke-width="3" marker-end="url(#arr)"/>
+          <line x1="412" y1="150" x2="268" y2="46" stroke="var(--danger)" stroke-width="3" marker-end="url(#arrd)"/>
+          <text x="148" y="62" class="weight" style="font-size:15px">2</text>
+          <text x="232" y="162" class="weight" style="font-size:15px">4</text>
+          <text x="350" y="88" class="weight" style="font-size:15px;fill:var(--danger)">−3</text>
+          <g class="node visited"><circle cx="72" cy="110" r="20"/><text x="66" y="115" style="fill:var(--sign-ink);stroke:none">S</text></g>
+          <g class="node visited"><circle cx="250" cy="34" r="20"/><text x="244" y="39" style="fill:var(--sign-ink);stroke:none">A</text></g>
+          <g class="node visited"><circle cx="430" cy="172" r="20"/><text x="424" y="177" style="fill:var(--sign-ink);stroke:none">B</text></g>
+        </svg>
+        <div class="verdict">
+          <div class="bad">Dijkstra’s answer for A<span class="num">2</span>settled before B was looked at</div>
+          <div class="good">The true cheapest<span class="num">1</span>S → B → A, 4 − 3</div>
+        </div>
+        <pre class="figcode" id="fig-negative" data-loading aria-busy="true" aria-label="Swift code for this figure"><span><span class="k">let</span> cost: [<span class="t">DirectedEdge</span>&lt;<span class="t">String</span>&gt;: <span class="t">Int</span>] = [
+    <span class="t">DirectedEdge</span>(from: <span class="s">"S"</span>, to: <span class="s">"A"</span>): <span class="n">2</span>,
+    <span class="t">DirectedEdge</span>(from: <span class="s">"S"</span>, to: <span class="s">"B"</span>): <span class="n">4</span>,
+    <span class="t">DirectedEdge</span>(from: <span class="s">"B"</span>, to: <span class="s">"A"</span>): -<span class="n">3</span>,
+]
+<span class="k">let</span> graph = <span class="t">AdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> edge <span class="k">in</span> cost.keys { edge }
+}
+<span class="k">let</span> routes = graph.bellmanFordShortestPaths(from: <span class="s">"S"</span>) { cost[graph.edges[$<span class="n">0</span>]]! }
+<span class="k">let</span> toA = routes?.distance(to: <span class="s">"A"</span>)  <span class="c">// 1</span>
+<span class="k">let</span> stops = routes?.path(to: <span class="s">"A"</span>).map(<span class="t">Array</span>.init)  <span class="c">// ["S", "B", "A"]</span>
+</span></pre>
+      </div>
+      <p>Grafluent refuses to give that wrong answer: <code>dijkstraShortestPaths</code> stops with a precondition failure on a negative weight. Use <code>bellmanFordShortestPaths</code> instead. It is slower because it keeps re-checking every edge, and that is exactly what lets it handle negative weights.</p>
+  
+  
+      <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+    <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Dijkstra</b><span class="how">DIKE-struh</span><span class="ipa">/ˈdɛikstra/</span><span class="what">Shortest paths when no edge is negative</span></div><div class="name"><b>Bellman–Ford</b><span class="how">BELL-mun FORD</span><span class="what">Shortest paths that allow negative edges</span></div><div class="name"><b>A*</b><span class="how">A-star</span><span class="what">Dijkstra with a sense of direction</span></div><div class="name"><b>Kruskal</b><span class="how">KRUSS-kul</span><span class="ipa">/ˈkrʌskəl/</span><span class="what">Cheapest network that connects everything</span></div><div class="name"><b>Borůvka</b><span class="how">BOR-oof-kah</span><span class="ipa">/ˈboruːfka/</span><span class="what">The same network, grown in parallel</span></div><div class="name"><b>Erdős–Rényi</b><span class="how">AIR-dersh RAY-nyee</span><span class="ipa">/ˈɛrdøːʃ ˈreːɲi/</span><span class="what">Random graphs, one coin flip per pair</span></div><div class="name"><b>Kőnig</b><span class="how">KUR-nig</span><span class="ipa">/ˈkøːniɡ/</span><span class="what">In two-sided graphs, biggest matching = smallest cover</span></div><div class="name"><b>Hierholzer</b><span class="how">HEER-holt-ser</span><span class="ipa">/ˈhiːɐ̯hɔlt͡sɐ/</span><span class="what">A walk that uses every road exactly once</span></div><div class="name"><b>Tarjan</b><span class="how">TAR-jun</span><span class="ipa">/ˈtɑːrdʒən/</span><span class="what">Strongly connected pieces in one depth-first pass</span></div></div></div>
+  </section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="dfs.html"><span>Previous</span>Depth-first search</a><a class="next" href="astar.html"><span>Next</span>A* search</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>
