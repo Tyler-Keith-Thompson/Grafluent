@@ -25,10 +25,10 @@
     <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
       <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./" aria-current="page">Contents</a>
         <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
-        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a></div>
-        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a><a href="girvannewman.html">Girvan–Newman</a></div>
-        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="layout.html">Force-directed layout</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="girvannewman.html">Girvan–Newman</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="linkprediction.html">Friend suggestions</a><a href="layout.html">Force-directed layout</a></div>
       </nav>
     </details>
     <a href="../documentation/">Docs</a>
@@ -69,10 +69,12 @@
       <li><a href="dfs.html"><b>Depth-first search</b><span>Visiting everything reachable, one corridor at a time.</span></a></li>
       <li><a href="dijkstra.html"><b>Dijkstra’s algorithm</b><span>The quickest route to everywhere.</span></a></li>
       <li><a href="astar.html"><b>A* search</b><span>The quickest route to one place, aimed at the goal.</span></a></li>
+      <li><a href="bellmanford.html"><b>Bellman–Ford</b><span>Shortest paths with negative weights, and loops that pay.</span></a></li>
       <li><a href="kpaths.html"><b>k shortest paths</b><span>Alternative routes, quickest first.</span></a></li>
       <li><a href="semirings.html"><b>Semirings</b><span>One shortest-path algorithm, many questions.</span></a></li>
       <li><a href="toposort.html"><b>Topological sort</b><span>An order for tasks with dependencies.</span></a></li>
       <li><a href="criticalpath.html"><b>Critical path</b><span>How soon a project can finish, and what can’t slip.</span></a></li>
+      <li><a href="cyclefinding.html"><b>Tortoise and hare</b><span>Finding a loop with only two bookmarks.</span></a></li>
     </ol>
   </section>
   <section class="group">
@@ -83,9 +85,13 @@
       <li><a href="euler.html"><b>Euler tours</b><span>Crossing every bridge exactly once.</span></a></li>
       <li><a href="mst.html"><b>Minimum spanning trees</b><span>The cheapest way to connect everything.</span></a></li>
       <li><a href="huffman.html"><b>Huffman coding</b><span>Shorter codes for common letters, from a tree.</span></a></li>
+      <li><a href="lca.html"><b>Lowest common ancestor</b><span>The most recent ancestor two people share.</span></a></li>
+      <li><a href="prefixtree.html"><b>Prefix tree</b><span>Autocomplete from a list of words.</span></a></li>
       <li><a href="giant.html"><b>The giant component</b><span>When random links suddenly join almost everyone.</span></a></li>
+      <li><a href="networkmodels.html"><b>Network growth models</b><span>Hubs from the rich getting richer; small worlds from a few shortcuts.</span></a></li>
       <li><a href="planarity.html"><b>Planarity</b><span>Whether a network can be drawn without crossings.</span></a></li>
       <li><a href="cliques.html"><b>Cliques</b><span>Groups where everyone is connected.</span></a></li>
+      <li><a href="isomorphism.html"><b>Isomorphism</b><span>Whether two drawings are the same graph.</span></a></li>
       <li><a href="communities.html"><b>Communities</b><span>Where a network splits into groups.</span></a></li>
       <li><a href="girvannewman.html"><b>Girvan–Newman</b><span>Communities by cutting the busiest links.</span></a></li>
     </ol>
@@ -97,6 +103,7 @@
       <li><a href="mincut.html"><b>Minimum cut</b><span>The fewest links to cut to split a network.</span></a></li>
       <li><a href="mincostflow.html"><b>Minimum-cost flow</b><span>Shipping from warehouses to shops at least cost.</span></a></li>
       <li><a href="matching.html"><b>Bipartite matching</b><span>Filling as many jobs as possible.</span></a></li>
+      <li><a href="stablematching.html"><b>Stable matching</b><span>Pairing two sides so nobody would rather swap.</span></a></li>
       <li><a href="coloring.html"><b>Graph coloring</b><span>Scheduling without clashes.</span></a></li>
       <li><a href="edgecoloring.html"><b>Edge coloring</b><span>A round-robin schedule in the fewest rounds.</span></a></li>
     </ol>
@@ -106,6 +113,7 @@
     <ol>
       <li><a href="pagerank.html"><b>PageRank</b><span>Which pages matter most.</span></a></li>
       <li><a href="betweenness.html"><b>Betweenness</b><span>Who sits on the most shortest paths.</span></a></li>
+      <li><a href="linkprediction.html"><b>Friend suggestions</b><span>Who you might know, from the friends you share.</span></a></li>
       <li><a href="layout.html"><b>Force-directed layout</b><span>Drawing a graph so its shape shows.</span></a></li>
     </ol>
   </section>
