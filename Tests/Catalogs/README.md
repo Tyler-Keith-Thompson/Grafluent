@@ -54,7 +54,7 @@ for f in /tmp/co/*; do cmp "$f" Tests/ColoringModuleTests/"$(basename "$f")"; do
 | Cycles | igraph (for `ref.py`) | `gen.py` (also assembles `CycleRepresentationTests.swift`) | `ref.py` (about 2 minutes) |
 | DirectedAcyclicGraph | rustworkx | `swiftgen.py` | `ref.py --stress`; `timings.py` |
 | Distances | scipy | `gen.py` | `ref.py` (reads `../TreeAlgorithms/cases.md`) |
-| Flows | igraph, rustworkx | `swiftgen.py` | `ref.py --stress` |
+| Flows | igraph, rustworkx | `swiftgen.py` | `ref.py --stress`; `cases_events.py` reproduces `cases_events.out` |
 | FunctionalGraphs | — | `swiftgen.py` | `ref.py --stress` |
 | GraphDrawing | igraph, numpy, scipy | `swiftgen.py` | `ref.py --stress` |
 | GraphFormats | scipy, pydot | `swiftgen.py` | `ref.py --stress` |

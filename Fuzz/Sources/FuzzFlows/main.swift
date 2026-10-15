@@ -287,6 +287,42 @@ enum FuzzFlows {
             check((0 ..< n).allSatisfy { reach[$0] == sink.contains(labels[$0]) }, "\(name) residual sink side \(reach) against the cut \(cut): \(context)")
         }
 
+        // The Edmonds–Karp events: each path a residual s–t walk sent at its bottleneck, every
+        // edge within its capacity at every step, and the totals Edmonds–Karp's flow and value.
+        do {
+            let plain = flows[1].1
+            var sent = [Int](repeating: 0, count: net.m)
+            var total = 0
+            var path: [Int] = []
+            var bottleneck = 0
+            var at = s
+            for event in graph.edmondsKarpEvents(from: labels[s], to: labels[t], capacity: capacity) {
+                switch event {
+                case .augmentingPath(let edges, let c):
+                    check(path.isEmpty && at == (total == 0 ? s : t) && c > 0 && !edges.isEmpty, "events: path \(edges) at \(c): \(context)")
+                    path = edges
+                    bottleneck = c
+                    total += c
+                    at = s
+                case .push(let k, let c):
+                    check(path.first == k && c == bottleneck && ends[k].0 == at, "events: push \(k): \(context)")
+                    sent[k] += c
+                    check(sent[k] <= caps[k], "events: edge \(k) over capacity: \(context)")
+                    at = ends[k].1
+                    path.removeFirst()
+                case .cancel(let k, let c):
+                    check(path.first == k && c == bottleneck && ends[k].1 == at, "events: cancel \(k): \(context)")
+                    sent[k] -= c
+                    check(sent[k] >= 0, "events: edge \(k) below zero: \(context)")
+                    at = ends[k].0
+                    path.removeFirst()
+                }
+                if path.isEmpty { check(at == t, "events: a path ends at \(at): \(context)") }
+            }
+            check(path.isEmpty && total == plain.value, "events: value \(total), Edmonds–Karp \(plain.value): \(context)")
+            check(sent == (0 ..< net.m).map { plain.flow(ofEdgeAt: $0) }, "events: flows \(sent): \(context)")
+        }
+
         // Dyadic doubles: the same values scaled.
         let quarter = graph.maximumFlowValue(from: labels[s], to: labels[t]) { Double(caps[$0]) / 4 }
         check(quarter == Double(value) / 4, "Double value \(quarter), expected \(Double(value) / 4): \(context)")

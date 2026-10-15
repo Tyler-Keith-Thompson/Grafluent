@@ -160,6 +160,16 @@ let benchmarks: @Sendable () -> Void = {
         Benchmark("Flows: edmondsKarpMaximumFlow, \(name)", configuration: .init(maxDuration: .seconds(5), maxIterations: 3)) { benchmark in
             for _ in benchmark.scaledIterations { blackHole(graph.edmondsKarpMaximumFlow(from: s, to: t) { capacities[$0] }) }
         }
+        // Every event of the lazy Edmonds–Karp, against the plain call above.
+        Benchmark("Flows: edmondsKarpEvents, every event, \(name)", configuration: .init(maxDuration: .seconds(5), maxIterations: 3)) { benchmark in
+            for _ in benchmark.scaledIterations {
+                var sent = 0
+                for event in graph.edmondsKarpEvents(from: s, to: t, capacity: { capacities[$0] }) {
+                    if case .augmentingPath(_, let c) = event { sent &+= Int(c) }
+                }
+                blackHole(sent)
+            }
+        }
     }
     // A chain of 10⁴ arcs fanning out to 10⁴ unit paths into the sink: every augmenting path runs
     // the whole chain, which the dynamic trees push along in O(log n).

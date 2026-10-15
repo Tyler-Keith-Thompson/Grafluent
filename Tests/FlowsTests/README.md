@@ -22,6 +22,8 @@ extension DirectedGraph {   // and the same on Graph, results over `DirectedView
     func maximumFlow<C>(from:to:capacity:) -> Flow<Self, C>              // C: Comparable & AdditiveArithmetic
     func maximumFlowValue<C>(from:to:capacity:) -> C
     func edmondsKarpMaximumFlow<C>(from:to:capacity:) -> Flow<Self, C>   // per-edge flow pinned
+    func edmondsKarpEvents<C>(from:to:capacity:) -> EdmondsKarpEvents<Self, C>   // DirectedGraph only; lazy;
+        // Element EdmondsKarpEvent<Edges.Index, C>: augmentingPath(edges, bottleneck:), push(e, amount:), cancel(e, amount:)
     func dinicMaximumFlow<C>(from:to:dynamicTrees: Bool = false, capacity:) -> Flow<Self, C>
     func boykovKolmogorovMaximumFlow<C>(from:to:capacity:) -> Flow<Self, C>
     func cutSize(of:) -> Int; func cutSize<W>(of:weight:) -> W; volume(of:) / volume(of:weight:)
@@ -179,6 +181,8 @@ expansion beside the capacity closures fails SIL verification ("function type mi
 | `FlowsConformanceTests.swift` | 19 | Equality of the four results, `Sendable`, descriptions, each result's own copy of the graph, generic code, `Collider` and `String` vertices, Int32, UInt16 and Float capacities, an undirected graph against its `directedView` view, self-loops never asked, zero costs, Gomory–Hu lookups both ways, parallel edges kept apart, `flowMap`, the signed undirected flow, cut sides from index zero, unsigned minimum-cost capacities |
 | `FlowsPropertyTests.swift` | 10 | PropertyBased with shrinking: directed and undirected maximum flows against brute force and Edmonds–Karp written out; floating capacities (eighths exact, integral Doubles integral); medium layered networks past push–relabel's global-relabel threshold, with gaps; global cuts against brute force, the cut's validity, the components rule and the least cyclic pair, in Int and Double; medium clustered global cuts (20 – 60 vertices) against the least maximum flow from the first vertex; Gomory–Hu against Gusfield written out and brute force; minimum-cost flow against a successive-shortest-path oracle; minimum-cost maximum flow; connectivity and disjoint paths by Menger |
 | `Performance/FlowsStressTests.swift` | 11 | Inside a `Task` with a one-minute limit; see above |
+| `EdmondsKarpEventsTests.swift` | 6 | FL-900 – FL-905: CLRS's network and a cancelling one traced on five representations, trivial cases, value semantics, traps, a property test replaying `edmondsKarpMaximumFlow` |
+| `Performance/EdmondsKarpEventsRatioTests.swift` | 1 | FL-906: every event within 1.8× of `edmondsKarpMaximumFlow` (release) |
 | `Performance/DinicDynamicTreesRatioTests.swift` | 1 | A chain of 10⁴ arcs fanning out to 10⁴ unit paths: the dynamic trees within 0.25× the plain Dinic's time (optimized builds) |
 | `UndirectedCapacityRangeTests.swift` | 5 | Int8 and UInt8 undirected capacities where twice a capacity overflows |
 | `FlowsStableGraphTests.swift` | 2 | `StableDirectedGraph` with edge holes, vertex holes and both, against the compacting `DirectedPseudograph` |
@@ -208,6 +212,7 @@ scale that the catalog does not list.
 | FL-308 – FL-318, FL-490 | MinimumCostMaximumFlow | `MinimumCostMaximumFlowTests.swift` |
 | FL-320 – FL-484, by group | VertexConnectivity, MinimumVertexCut, EdgeConnectivity | `VertexConnectivityTests.swift`, `MinimumVertexCutTests.swift`, `EdgeConnectivityTests.swift` |
 | FL-502 – FL-523, FL-530, FL-531 | EdgeDisjointPaths, VertexDisjointPaths | `DisjointPathsTests.swift` |
+| FL-900 – FL-906 | Edmonds–Karp as events (not in `cases.md`; FL-900 and FL-901 traced by `cases_events.py` into `cases_events.out`) | `EdmondsKarpEventsTests.swift`, `Performance/EdmondsKarpEventsRatioTests.swift` |
 | every row but the traps | Every non-trap row again | the twelve `…RepresentationTests.swift` files, one per section |
 
 ## Further behaviour checked

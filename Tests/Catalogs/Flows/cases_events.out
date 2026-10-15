@@ -1,0 +1,25 @@
+--- FL-900: 13 events, value 23
+augmentingPath [0, 3, 7] 12
+push 0 12
+push 3 12
+push 7 12
+augmentingPath [1, 5, 8] 4
+push 1 4
+push 5 4
+push 8 4
+augmentingPath [1, 5, 6, 7] 7
+push 1 7
+push 5 7
+push 6 7
+push 7 7
+--- FL-901: 10 events, value 2
+augmentingPath [0, 2, 3] 1
+push 0 1
+push 2 1
+push 3 1
+augmentingPath [4, 5, 2, 6, 7] 1
+push 4 1
+push 5 1
+cancel 2 1
+push 6 1
+push 7 1
