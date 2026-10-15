@@ -51,6 +51,8 @@ p { margin: 0; }
 a { color: var(--sign); }
 .label { font-family: var(--display); font-weight: 800; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
 code, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+/* Inline code in running text may break anywhere, so a long full name never scrolls the page sideways. */
+:not(pre) > code { overflow-wrap: anywhere; }
 
 /* Top bar */
 .topbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--display); font-weight: 600; font-size: 15px; }
