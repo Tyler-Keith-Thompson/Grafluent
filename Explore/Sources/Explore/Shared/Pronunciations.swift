@@ -16,7 +16,7 @@ enum Names {
     static let kruskal = Pronunciation(name: "Kruskal", say: "KRUSS-kul", ipa: "/ˈkrʌskəl/", what: "Cheapest network that connects everything")
     static let prim = Pronunciation(name: "Prim", say: "PRIM", ipa: "/prɪm/", what: "The same network, grown from one place")
     static let boruvka = Pronunciation(name: "Borůvka", say: "BOR-oof-kah", ipa: "/ˈboruːfka/", what: "The same network, grown in parallel")
-    static let hart = Pronunciation(name: "A*", say: "AY-star", what: "Dijkstra with a sense of direction")
+    static let hart = Pronunciation(name: "A*", say: "A-star", what: "Dijkstra with a sense of direction")
     static let erdosRenyi = Pronunciation(name: "Erdős–Rényi", say: "AIR-dersh RAY-nyee", ipa: "/ˈɛrdøːʃ ˈreːɲi/", what: "Random graphs, one coin flip per pair")
     static let konig = Pronunciation(name: "Kőnig", say: "KUR-nig", ipa: "/ˈkøːniɡ/", what: "In two-sided graphs, biggest matching = smallest cover")
     static let hierholzer = Pronunciation(name: "Hierholzer", say: "HEER-holt-ser", ipa: "/ˈhiːɐ̯hɔlt͡sɐ/", what: "A walk that uses every road exactly once")

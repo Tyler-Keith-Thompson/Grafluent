@@ -1,0 +1,30 @@
+<!-- title: A* search · Explore Grafluent -->
+<!-- description: Watch Grafluent’s aStarSearch aim for a café across a grid of city blocks, and compare the blocks it settles with Dijkstra’s, in your browser. -->
+<header class="sign">
+  <h1>A* search</h1>
+  <div class="say"><span>Say it</span><b>A-star</b></div>
+  <p class="question">If you only care about one destination, can you skip the rest of town?</p>
+</header>
+
+<p class="example lead">Example: a grid of city blocks with a few walls, walking from Home to a café across town. Click blocks to put up or take down walls.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The city grid, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Dijkstra with a sense of direction</h2>
+  <p>A* is Dijkstra with a sense of direction. Alongside the distance walked so far, it adds a guess of the distance still to go, here the straight-line distance to the café. Places that point the right way get settled first, so the search reaches the café after exploring a fraction of the grid. Switch between A* and Dijkstra on the grid and watch the explored region: Dijkstra’s is a circle, spreading evenly in every direction until the edges of the grid cut it off; A*’s is a narrow teardrop pointed at the café.</p>
+  <p>The straight line is a good guess because no walk can beat it: walls only make the walk longer. A guess that never overestimates is called <b>admissible</b>, and with one A* still finds the shortest route. It just stops looking at blocks that point away from the café.</p>
+  <p>The guess sits in <code>heuristic:</code>, a closure from a block to a number. Pass one that always returns zero and A* is exactly Dijkstra.</p>
+
+  <h2><small>Where it breaks</small>A guess that says “far” about somewhere close</h2>
+  <p>The guess must never overestimate. A guess that says “far” about a place that is actually close can make A* settle on a longer route. Press <b>Overestimate ×3</b> and every guess is tripled: A* now rushes straight at the café, hugs the wall, and settles for a walk longer than the shortest. With some walls it also settles a block too early and finds a shorter way to it later; the block is then opened again, a red marble on the timeline. Reopening repairs the blocks it reaches, but once the café itself is settled the search is over.</p>
+  <p>Grafluent doesn’t check the guess, because it can’t know the true distances in advance. Overestimating on purpose is a known trade: fewer blocks settled, a route that may be a little longer.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

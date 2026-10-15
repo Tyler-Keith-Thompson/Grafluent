@@ -19,6 +19,7 @@ contents and the menu without a link.
 | `bfs` | `breadthFirstSearch(from:)` |
 | `dfs` | `depthFirstSearch(from:)` |
 | `dijkstra` | `dijkstraSearch(from:weight:)`, `dijkstraShortestPaths(from:weight:)`; beside its figure, `bellmanFordShortestPaths` |
+| `astar` | `aStarSearch(from:to:weight:heuristic:)`, `aStarShortestPath(from:to:weight:heuristic:)`, `dijkstraSearch(from:weight:)` |
 | `toposort` | `depthFirstSearch()`, `topologicalSort()`, `topologicalGenerations()`, `findCycle()` |
 | `components` | `connectedComponents()`, `breadthFirstSearch(from:)`, `stronglyConnectedComponents()`, `condensation()`, `depthFirstSearch()` |
 | `matching` | `bipartition(left:)`, `maximumBipartiteMatching(bipartition:)` |

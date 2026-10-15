@@ -354,3 +354,26 @@ figure.fig { margin: 0; }
 .bar .track { position: relative; }
 .bar .visits { position: absolute; top: -3px; width: 3px; height: 20px; margin-left: -1.5px; background: var(--ink); border-radius: 2px; transition: left .12s; }
 .bar .track { overflow: visible; }
+/* The A* page's city grid: blocks as squares, walls filled in, the guess in each corner. */
+.grid { width: 100%; height: auto; display: block; touch-action: manipulation; }
+.grid .cell rect { fill: var(--sheet); stroke: var(--rule); stroke-width: 1.5; cursor: pointer; transition: fill .2s, stroke .2s; }
+.grid .cell:hover rect { stroke: var(--ink); }
+.grid .cell.open rect { fill: var(--signal); stroke: color-mix(in srgb, var(--signal) 55%, var(--ink)); }
+.grid .cell.closed rect { fill: color-mix(in srgb, var(--sign) 80%, var(--sheet)); stroke: var(--sign); }
+.grid .cell.wall rect { fill: color-mix(in srgb, var(--ink) 72%, var(--sheet)); stroke: color-mix(in srgb, var(--ink) 72%, var(--sheet)); }
+.grid .cell.fixed rect { cursor: default; stroke: var(--ink); stroke-width: 3; }
+.grid .cell.current rect { stroke: var(--danger); stroke-width: 4; }
+.grid text { pointer-events: none; }
+.grid .h { font-family: var(--mono); font-size: 12px; fill: var(--muted); }
+.grid .open .h { fill: var(--signal-ink); }
+.grid .closed .h, .grid .closed .place { fill: var(--sign-ink); }
+.grid .place { font-family: var(--display); font-weight: 900; font-size: 13px; fill: var(--ink); }
+.grid .open .place { fill: var(--signal-ink); }
+.grid .axis-label { font-family: var(--display); font-weight: 800; font-size: 13px; fill: var(--muted); }
+.grid .route-line { fill: none; stroke: var(--danger); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .8; }
+.dot.wall { background: color-mix(in srgb, var(--ink) 72%, var(--sheet)); border-color: color-mix(in srgb, var(--ink) 72%, var(--sheet)); border-radius: 3px; }
+@media (max-width: 600px) {
+  .grid .h { font-size: 17px; }
+  .grid .place { font-size: 18px; }
+  .grid .axis-label { font-size: 18px; }
+}
