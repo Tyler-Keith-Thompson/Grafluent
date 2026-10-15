@@ -1,0 +1,75 @@
+<!-- title: Graph basics · Explore Grafluent -->
+<!-- description: Vertices, edges, direction and weight: what a graph is, with a small one to click on. -->
+<header class="sign">
+  <h1>Graph basics</h1>
+  <p class="question">What exactly is a graph, and which kinds will you meet on these pages?</p>
+</header>
+<section class="prose first">
+  <p>A graph has two parts. <b>Vertices</b> are the objects you care about: cities, people, web pages, tasks in a build. <b>Edges</b> are the relationships between pairs of them: a road, a friendship, a link, a dependency. Graph theory calls the objects vertices; many libraries and papers call them nodes. They mean the same thing.</p>
+</section>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The graph above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+<h2><small>Direction</small>Undirected and directed</h2>
+<p>In an <b>undirected</b> graph an edge works both ways, like a friendship or a two-way street. In a <b>directed</b> graph each edge has a start and an end, drawn as an arrow, like a one-way street, a link from one page to another, or “compile before test”. Grafluent keeps the two as separate kinds of graph, so an algorithm that only makes sense for one can’t be handed the other by mistake.</p>
+<figure class="fig three">
+  <div class="trace"><svg viewBox="0 0 240 120" role="img" aria-label="Undirected edge between A and B">
+    <line class="e" x1="50" y1="60" x2="190" y2="60"/>
+    <g class="v"><circle cx="50" cy="60" r="20"/><text x="50" y="66">A</text></g>
+    <g class="v"><circle cx="190" cy="60" r="20"/><text x="190" y="66">B</text></g>
+  </svg><b>Undirected</b><span>A and B are connected, both ways.</span></div>
+  <div class="trace"><svg viewBox="0 0 240 120" role="img" aria-label="Directed edge from A to B">
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker></defs>
+    <line class="e" x1="50" y1="60" x2="166" y2="60" marker-end="url(#ah)"/>
+    <g class="v"><circle cx="50" cy="60" r="20"/><text x="50" y="66">A</text></g>
+    <g class="v"><circle cx="190" cy="60" r="20"/><text x="190" y="66">B</text></g>
+  </svg><b>Directed</b><span>A points to B. B doesn’t point back.</span></div>
+  <pre class="figcode" id="fig-direction" aria-label="Swift code for this figure"></pre>
+</figure>
+<h2><small>Weights</small>Numbers on the edges</h2>
+<p>Often an edge carries a number: minutes to walk a street, the cost of a cable, how much a pipe can carry. That number is the edge’s <b>weight</b>. A graph with them is a <b>weighted</b> graph. Grafluent never stores weights inside the graph itself. You keep them wherever suits you and pass the algorithm a way to look each one up, so the same graph can be measured in minutes on one page and in kilometres on the next.</p>
+<figure class="fig">
+  <svg viewBox="0 0 520 150" role="img" aria-label="Three vertices with weighted edges 4, 3 and 9">
+    <line class="e" x1="70" y1="110" x2="260" y2="35"/><line class="e" x1="260" y1="35" x2="450" y2="110"/><line class="e" x1="70" y1="110" x2="450" y2="110"/>
+    <text class="w" x="150" y="62">4</text><text class="w" x="365" y="62">3</text><text class="w" x="260" y="135">9</text>
+    <g class="v"><circle cx="70" cy="110" r="20"/><text x="70" y="116">A</text></g>
+    <g class="v"><circle cx="260" cy="35" r="20"/><text x="260" y="41">B</text></g>
+    <g class="v"><circle cx="450" cy="110" r="20"/><text x="450" y="116">C</text></g>
+  </svg>
+  <figcaption>Going A → B → C costs 4 + 3 = 7, which beats the direct edge’s 9. Most of these pages are about finding answers like that.</figcaption>
+  <pre class="figcode" id="fig-weights" aria-label="Swift code for this figure"></pre>
+</figure>
+<h2><small>Walks, paths and cycles</small>Routes, and routes that come back</h2>
+<p>A <b>walk</b> is any route you can trace along edges, one after another. It may pass the same vertex or edge more than once. A <b>path</b> is a walk that never visits a vertex twice. A <b>cycle</b> is a walk that ends where it started and repeats no other vertex on the way.</p>
+<figure class="fig three">
+  <div class="trace"><svg viewBox="0 0 200 175" role="img" aria-label="A walk"><line class="e" x1="30" y1="100" x2="100" y2="45"/><line class="e" x1="100" y1="45" x2="170" y2="100"/><line class="e" x1="170" y1="100" x2="100" y2="150"/><line class="e" x1="100" y1="45" x2="100" y2="150"/><line class="e" x1="30" y1="100" x2="100" y2="150"/><line class="e" x1="30" y1="25" x2="100" y2="45"/><line class="hl" x1="30" y1="100" x2="100" y2="45"/><text class="step" x="74.0" y="67.5">1</text><line class="hl" x1="100" y1="45" x2="170" y2="100"/><text class="step" x="144.0" y="67.5">2</text><line class="hl" x1="175" y1="105" x2="105" y2="50"/><text class="step" x="149.0" y="72.5">3</text><line class="hl" x1="100" y1="45" x2="100" y2="150"/><text class="step" x="109.0" y="92.5">4</text><g class="v on"><circle cx="30" cy="100" r="15"/><text x="30" y="105">A</text></g><g class="v on"><circle cx="100" cy="45" r="15"/><text x="100" y="50">B</text></g><g class="v on"><circle cx="170" cy="100" r="15"/><text x="170" y="105">C</text></g><g class="v on"><circle cx="100" cy="150" r="15"/><text x="100" y="155">D</text></g><g class="v"><circle cx="30" cy="25" r="15"/><text x="30" y="30">E</text></g></svg><b>Walk</b><span>A → B → C → B → D. It passes B twice, which a walk may do.</span></div>
+  <div class="trace"><svg viewBox="0 0 200 175" role="img" aria-label="A path"><line class="e" x1="30" y1="100" x2="100" y2="45"/><line class="e" x1="100" y1="45" x2="170" y2="100"/><line class="e" x1="170" y1="100" x2="100" y2="150"/><line class="e" x1="100" y1="45" x2="100" y2="150"/><line class="e" x1="30" y1="100" x2="100" y2="150"/><line class="e" x1="30" y1="25" x2="100" y2="45"/><line class="hl" x1="30" y1="100" x2="100" y2="45"/><text class="step" x="74.0" y="67.5">1</text><line class="hl" x1="100" y1="45" x2="100" y2="150"/><text class="step" x="109.0" y="92.5">2</text><g class="v on"><circle cx="30" cy="100" r="15"/><text x="30" y="105">A</text></g><g class="v on"><circle cx="100" cy="45" r="15"/><text x="100" y="50">B</text></g><g class="v"><circle cx="170" cy="100" r="15"/><text x="170" y="105">C</text></g><g class="v on"><circle cx="100" cy="150" r="15"/><text x="100" y="155">D</text></g><g class="v"><circle cx="30" cy="25" r="15"/><text x="30" y="30">E</text></g></svg><b>Path</b><span>A → B → D. No vertex repeats.</span></div>
+  <div class="trace"><svg viewBox="0 0 200 175" role="img" aria-label="A cycle"><line class="e" x1="30" y1="100" x2="100" y2="45"/><line class="e" x1="100" y1="45" x2="170" y2="100"/><line class="e" x1="170" y1="100" x2="100" y2="150"/><line class="e" x1="100" y1="45" x2="100" y2="150"/><line class="e" x1="30" y1="100" x2="100" y2="150"/><line class="e" x1="30" y1="25" x2="100" y2="45"/><line class="hl" x1="100" y1="45" x2="170" y2="100"/><text class="step" x="144.0" y="67.5">1</text><line class="hl" x1="170" y1="100" x2="100" y2="150"/><text class="step" x="144.0" y="120.0">2</text><line class="hl" x1="100" y1="150" x2="100" y2="45"/><text class="step" x="109.0" y="92.5">3</text><g class="v"><circle cx="30" cy="100" r="15"/><text x="30" y="105">A</text></g><g class="v on"><circle cx="100" cy="45" r="15"/><text x="100" y="50">B</text></g><g class="v on"><circle cx="170" cy="100" r="15"/><text x="170" y="105">C</text></g><g class="v on"><circle cx="100" cy="150" r="15"/><text x="100" y="155">D</text></g><g class="v"><circle cx="30" cy="25" r="15"/><text x="30" y="30">E</text></g></svg><b>Cycle</b><span>B → C → D → B. Back to the start, nothing else repeated.</span></div>
+  <figcaption>The same five-vertex graph three times, with a walk, a path and a cycle traced in colour. The numbers give the order of the steps.</figcaption>
+  <pre class="figcode" id="fig-walks" aria-label="Swift code for this figure"></pre>
+</figure>
+<p>Cycles matter a lot. A road network is full of them, while tasks with dependencies must have none, or no order could ever finish them. Grafluent has a type for each: <code>Walk</code>, <code>Path</code> and <code>Cycle</code>. An algorithm that returns a route returns the type that says exactly what it guarantees.</p>
+<h2><small>Two more you’ll see</small>Self-loops and parallel edges</h2>
+<p>A <b>self-loop</b> is an edge from a vertex to itself, like a road that leaves a town and comes back. <b>Parallel edges</b> are two or more edges between the same pair, like a highway and a back road between the same two towns. A graph that allows them is called a <b>multigraph</b>. Grafluent tells parallel edges apart by their position in the graph, so each can have its own weight.</p>
+<figure class="fig three">
+  <div class="trace"><svg viewBox="0 0 240 150" role="img" aria-label="A vertex with a self-loop">
+    <path class="e" d="M108 90 C 50 10, 190 10, 132 90" fill="none"/>
+    <g class="v"><circle cx="120" cy="105" r="20"/><text x="120" y="111">A</text></g>
+  </svg><b>Self-loop</b><span>An edge from A back to A.</span></div>
+  <div class="trace"><svg viewBox="0 0 240 150" role="img" aria-label="Two towns joined by two parallel roads weighted 12 and 20">
+    <path class="e" d="M50 75 Q 120 15, 190 75" fill="none"/><path class="e" d="M50 75 Q 120 135, 190 75" fill="none"/>
+    <text class="w" x="120" y="38">12</text><text class="w" x="120" y="126">20</text>
+    <g class="v"><circle cx="50" cy="75" r="20"/><text x="50" y="81">A</text></g>
+    <g class="v"><circle cx="190" cy="75" r="20"/><text x="190" y="81">B</text></g>
+  </svg><b>Parallel edges</b><span>A 12-minute highway and a 20-minute back road, both between A and B.</span></div>
+  <pre class="figcode" id="fig-loops" aria-label="Swift code for this figure"></pre>
+</figure>
+  <p>Try them in the graph near the top of the page: pick a vertex to see its neighbours, switch between undirected and directed, and show the weights.</p>
+
+</section>

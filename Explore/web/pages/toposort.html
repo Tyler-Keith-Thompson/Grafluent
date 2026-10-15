@@ -1,0 +1,28 @@
+<!-- title: Topological sort · Explore Grafluent -->
+<!-- description: Find an order for getting dressed with Grafluent’s topologicalSort, and see the cycle findCycle reports when the rules can’t all be kept. -->
+<header class="sign">
+  <h1>Topological sort</h1>
+  <div class="say"><span>Say it</span><b>top-uh-LOJ-ih-kul</b><span class="ipa">/ˌtɒpəˈlɒdʒɪkəl/</span></div>
+  <p class="question">In what order can you do tasks that depend on each other?</p>
+</header>
+<p class="example lead">Example: getting dressed. Socks before shoes, shirt before tie, trousers before belt. Add a new rule and watch the order update.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The wardrobe above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Do whatever has nothing left to wait for</h2>
+  <p>Draw an arrow from each task to anything that has to wait for it. A valid order lists every task before everything its arrows point to. One way to find it, Kahn’s: repeatedly take any task with no arrows coming in, write it down, and remove it, which may free up others. Each round of that frees a <b>wave</b> of tasks that could all happen at the same time.</p>
+  <p>Grafluent’s <code>topologicalSort()</code> uses the other classic way: a depth-first search, listing each task once everything after it is finished, then reading the list backwards.</p>
+
+  <h2><small>Where it breaks</small>Rules that go round in a circle</h2>
+  <p>Add “shoes before socks” and there is no valid order at all: the rules go round in a circle. <code>topologicalSort()</code> returns <code>nil</code>, and <code>findCycle()</code> hands back the circle, so you can see which rule to drop.</p>
+
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

@@ -1,0 +1,28 @@
+<!-- title: Depth-first search · Explore Grafluent -->
+<!-- description: Watch Grafluent’s depthFirstSearch explore an office building, with every edge it meets coloured as a tree, back, forward or cross edge. -->
+<header class="sign">
+  <h1>Depth-first search</h1>
+  <div class="say"><span>Say it</span><b>DEPTH-first</b><span class="ipa">/ˈdɛpθ fɜːrst/</span></div>
+  <p class="question">Starting from one vertex, how do you visit everything you can reach, one corridor at a time?</p>
+</header>
+<p class="example lead">Example: a small office building. Rooms are vertices, doors are edges, and you start at reception. The doors are one-way, like fire doors that only open from one side, so the graph is directed.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The building above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>As deep as it goes, then back up</h2>
+  <p><b>Depth-first</b> follows one corridor as far as it goes, then backs up to the last junction and tries the next way. It is the natural way to explore a maze. It keeps the rooms it has entered but not yet finished in a <b>stack</b>: the newest is always next, which is the path from reception to where you stand.</p>
+  <p>Its order of “entered” and “finished” reveals a graph’s structure. Each edge it meets is coloured by what it means: a new room (a <b>tree edge</b>), a door back to a room still being explored (a <b>back edge</b>, the sign of a cycle), a door to a room already finished further down the same corridor (a <b>forward edge</b>), and a door into a branch already finished (a <b>cross edge</b>). <a href="toposort.html">Topological sort</a> and <a href="components.html">strongly connected components</a> are both built on these times.</p>
+
+  <h2><small>Where it breaks</small>Deep is not near</h2>
+  <p>The first route depth-first finds to a room can be a long way round. For the route with the fewest doors, use <a href="bfs.html">breadth-first search</a>; once doors have different lengths, <a href="dijkstra.html">Dijkstra’s algorithm</a>.</p>
+
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

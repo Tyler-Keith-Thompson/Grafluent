@@ -1,0 +1,50 @@
+<!-- title: Dijkstra’s algorithm · Explore Grafluent -->
+<!-- description: Watch Grafluent’s dijkstraSearch settle a small town one place at a time, in your browser. -->
+    <header class="sign">
+      <h1>Dijkstra’s algorithm</h1>
+      <div class="say"><span>Say it</span><b>DIKE-struh</b><span class="ipa">/ˈdɛikstra/</span></div>
+      <p class="question">What’s the quickest walk from your front door to every other place in town, when no street takes less than no time at all?</p>
+    </header>
+  
+    <p class="example lead">Example: eight places in a small town, with walking minutes on each street.</p>
+
+  <div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The town above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+  
+    <section class="prose">
+      <h2><small>The idea</small>Always settle the nearest unsettled place</h2>
+      <p>Keep a best guess for every place: zero minutes for where you are, infinity for everywhere else. Then repeat one move: take the frontier place with the smallest guess, call it settled, and check each street out of it. If walking through it gets you to a neighbour sooner, lower that neighbour’s guess.</p>
+      <p>Why can the smallest guess be trusted? Any other walk to that place would have to leave the settled region through some frontier place, and every frontier place is already at least that far. Streets only add time, so a detour can’t come back quicker. That one sentence is the whole proof, and it is also where the algorithm breaks.</p>
+  
+      <h2><small>Where it breaks</small>A street that gives you time back</h2>
+      <p>Give one edge a negative weight, like a shortcut that somehow saves three minutes, and the argument above fails: a detour can now come back quicker. Here Dijkstra settles A at 2 before it ever looks at B, so the cheaper route S → B → A, costing 4 − 3 = 1, arrives too late.</p>
+      <div class="fig">
+        <svg viewBox="0 0 520 210" role="img" aria-label="Three-vertex graph: S to A costs 2, S to B costs 4, B to A costs minus 3">
+          <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--road)"/></marker>
+                <marker id="arrd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--danger)"/></marker></defs>
+          <line x1="92" y1="105" x2="232" y2="42" stroke="var(--road)" stroke-width="3" marker-end="url(#arr)"/>
+          <line x1="92" y1="115" x2="402" y2="168" stroke="var(--road)" stroke-width="3" marker-end="url(#arr)"/>
+          <line x1="412" y1="150" x2="268" y2="46" stroke="var(--danger)" stroke-width="3" marker-end="url(#arrd)"/>
+          <text x="148" y="62" class="weight" style="font-size:15px">2</text>
+          <text x="232" y="162" class="weight" style="font-size:15px">4</text>
+          <text x="350" y="88" class="weight" style="font-size:15px;fill:var(--danger)">−3</text>
+          <g class="node visited"><circle cx="72" cy="110" r="20"/><text x="66" y="115" style="fill:var(--sign-ink);stroke:none">S</text></g>
+          <g class="node visited"><circle cx="250" cy="34" r="20"/><text x="244" y="39" style="fill:var(--sign-ink);stroke:none">A</text></g>
+          <g class="node visited"><circle cx="430" cy="172" r="20"/><text x="424" y="177" style="fill:var(--sign-ink);stroke:none">B</text></g>
+        </svg>
+        <div class="verdict">
+          <div class="bad">Dijkstra’s answer for A<span class="num">2</span>settled before B was looked at</div>
+          <div class="good">The true cheapest<span class="num">1</span>S → B → A, 4 − 3</div>
+        </div>
+        <pre class="figcode" id="fig-negative" aria-label="Swift code for this figure"></pre>
+      </div>
+      <p>Grafluent refuses to give that wrong answer: <code>dijkstraShortestPaths</code> stops with a precondition failure on a negative weight. Use <code>bellmanFordShortestPaths</code> instead. It is slower because it keeps re-checking every edge, and that is exactly what lets it handle negative weights.</p>
+  
+  
+      <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+    <div id="names"></div>
+  </section>

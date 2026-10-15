@@ -1,0 +1,19 @@
+# The site's reading order: slug|title|group|summary|status. A `page` row is web/pages/<slug>.html,
+# listed in the contents with a link and joined to its neighbours by previous/next links; a
+# `soon` row is listed without a link until its page exists.
+basics|Graph basics|Start here|Vertices, edges, direction and weight, with pictures.|page
+representations|Storing a graph|Start here|Adjacency lists, matrices and compressed rows.|page
+bfs|Breadth-first search|Getting around|Visiting everything reachable, ring by ring.|page
+dfs|Depth-first search|Getting around|Visiting everything reachable, one corridor at a time.|page
+dijkstra|Dijkstra’s algorithm|Getting around|The quickest route to everywhere.|page
+astar|A* search|Getting around|The quickest route to one place, aimed at the goal.|soon
+toposort|Topological sort|Getting around|An order for tasks with dependencies.|page
+components|Connected components|Structure|Which parts can reach each other.|page
+mst|Minimum spanning trees|Structure|The cheapest way to connect everything.|soon
+cliques|Cliques|Structure|Groups where everyone is connected.|soon
+communities|Communities|Structure|Where a network splits into groups.|soon
+flow|Maximum flow|Assignment|How much a network of pipes can carry.|soon
+matching|Bipartite matching|Assignment|Filling as many jobs as possible.|page
+coloring|Graph coloring|Assignment|Scheduling without clashes.|page
+pagerank|PageRank|Importance and shape|Which pages matter most.|page
+layout|Force-directed layout|Importance and shape|Drawing a graph so its shape shows.|page

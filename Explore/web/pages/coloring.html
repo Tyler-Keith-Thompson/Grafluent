@@ -1,0 +1,27 @@
+<!-- title: Graph coloring · Explore Grafluent -->
+<!-- description: Schedule exams without clashes: Grafluent’s greedyColoring against chromaticNumber and minimumColoring. -->
+<header class="sign">
+  <h1>Graph coloring</h1>
+  <div class="say"><span>Say it</span><b>KUH-ler-ing</b><span>; the fewest colours is the</span><b>kroh-MAT-ik</b><span>number</span></div>
+  <p class="question">What’s the fewest exam slots so that no student has two exams at once?</p>
+</header>
+<p class="example lead">Example: eight exams, with a line between any two that share a student.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The timetable above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>A colour per time slot</h2>
+  <p>Give each exam a colour, one colour per time slot, so that no two exams joined by a line share a colour. Greedy coloring goes through the exams one by one and gives each the first colour its neighbours aren’t using. It’s quick and usually good. Finding the true minimum, the <b>chromatic number</b>, means a search that can be slow, and the page lets you compare the two.</p>
+
+  <h2><small>Where it breaks</small>A bad order</h2>
+  <p>Greedy’s answer depends on the order it goes in. Here, in alphabetical order, it needs four slots, twice as many as the two that are enough. The exams fall into two groups, and each exam clashes with every exam in the other group except one partner. Alphabetical order keeps reaching a partner pair together, and gives the pair a slot of its own. Choosing the most constrained exam next (DSATUR) finds two slots: on a two-sided graph like this one it always does.</p>
+
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

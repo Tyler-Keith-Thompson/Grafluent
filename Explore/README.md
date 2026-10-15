@@ -1,13 +1,30 @@
 # Explore
 
-An interactive page for Dijkstra's algorithm that runs Grafluent itself in the browser. The town
-graph is built with the result builder, `dijkstraSearch` produces the event timeline, and every
-control (step, play, back, scrub, start place, destination, the places and the timeline marbles)
-changes Swift state. The interface is written with
-[ElementaryUI](https://github.com/elementary-swift/elementary-ui) and compiled with the rest to
-WebAssembly.
+Interactive pages that run Grafluent itself in the browser: each builds a small graph with the
+result builder, runs the real algorithm on it, and draws what happened. The interface is written
+with [ElementaryUI](https://github.com/elementary-swift/elementary-ui) and compiled with the rest
+to WebAssembly. The published site is at <https://tyler-keith-thompson.github.io/Grafluent/explore/>.
 
 This is a separate SwiftPM package; Bazel ignores it.
+
+## Pages
+
+`web/contents.txt` is the reading order. Each `page` row has a page; `soon` rows are listed in the
+contents and the menu without a link.
+
+| Page | Runs |
+|---|---|
+| `basics` | `neighbors(of:)`, `successors(of:)`, `predecessors(of:)`; beside its figures, `dijkstraShortestPaths`, `Walk`, `Path`, `Cycle`, `Pseudograph`, `Multigraph` |
+| `representations` | `AdjacencyList`, `LabeledGraph<_, AdjacencyMatrix>`, `LabeledGraph<_, CompressedSparseRow>` |
+| `bfs` | `breadthFirstSearch(from:)` |
+| `dfs` | `depthFirstSearch(from:)` |
+| `dijkstra` | `dijkstraSearch(from:weight:)`, `dijkstraShortestPaths(from:weight:)`; beside its figure, `bellmanFordShortestPaths` |
+| `toposort` | `depthFirstSearch()`, `topologicalSort()`, `topologicalGenerations()`, `findCycle()` |
+| `components` | `connectedComponents()`, `breadthFirstSearch(from:)`, `stronglyConnectedComponents()`, `condensation()`, `depthFirstSearch()` |
+| `matching` | `bipartition(left:)`, `maximumBipartiteMatching(bipartition:)` |
+| `coloring` | `greedyColoring(order:)`, `greedyColoring(strategy:)`, `chromaticNumber()`, `minimumColoring()` |
+| `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |
+| `layout` | `FruchtermanReingoldLayout`, `step()`, named graphs |
 
 ## Requirements
 
@@ -24,21 +41,24 @@ This is a separate SwiftPM package; Bazel ignores it.
 - `wasm-opt` from binaryen (`brew install binaryen`) to optimize the binary. The build still
   works without it, with a larger `.wasm`.
 
+Without swiftly, `build.sh` uses the `swift` on `PATH`, which must be 6.3.3 (CI does this in the
+`swift:6.3.3` container).
+
 ## Build
 
 ```sh
 just explore
 ```
 
-This builds release WebAssembly at `-Osize`, strips it and runs `wasm-opt -Oz`, and writes
-`Explore/dist/`: `index.html`, `dijkstra.css`, `Explore.wasm`, the JavaScriptKit glue
-(`index.js`, `instantiate.js`, `runtime.js`, `bridge-js.js`, `platforms/browser.js`) and the
-vendored WASI shim (`vendor/browser_wasi_shim/`). Every URL is relative, so `dist/` works from
-any directory, such as `/Grafluent/explore/` on GitHub Pages. Nothing is loaded from another
-host except the Google Fonts stylesheet.
+This builds release WebAssembly at `-Osize`, strips it, runs `wasm-opt -Oz`, and writes
+`Explore/dist/`: one `<page>.html` per page and `index.html`, `explore.css`, `Explore.wasm`, the
+JavaScriptKit glue (`index.js`, `instantiate.js`, `runtime.js`, `bridge-js.js`,
+`platforms/browser.js`) and the vendored WASI shim (`vendor/browser_wasi_shim/`). Every URL is
+relative, so `dist/` works from any directory, such as `/Grafluent/explore/` on GitHub Pages.
+Nothing is loaded from another host except the Google Fonts stylesheet.
 
-If the swift.org toolchain crashes compiling a package manifest against a newer Xcode's macOS
-SDK, point the build at an older Xcode: `EXPLORE_XCODE=/Applications/Xcode-26.2.0.app just explore`.
+If the swift.org toolchain crashes compiling a package manifest against a newer Xcode's macOS SDK,
+point the build at an older Xcode: `EXPLORE_XCODE=/Applications/Xcode-26.2.0.app just explore`.
 `GRAFLUENT_EXPLORE_SWIFT` and `GRAFLUENT_EXPLORE_SDK` choose another toolchain version and SDK.
 
 ## Serve
@@ -47,19 +67,75 @@ SDK, point the build at an older Xcode: `EXPLORE_XCODE=/Applications/Xcode-26.2.
 cd Explore/dist && python3 -m http.server 8000
 ```
 
-Then open <http://localhost:8000/>. The page must be served over HTTP; browsers do not load
+Then open <http://localhost:8000/>. The pages must be served over HTTP; browsers do not load
 WebAssembly modules from `file://` URLs.
+
+## One WebAssembly module for the whole site
+
+Every page loads the same `Explore.wasm`; `<body data-page="…">` tells `main.swift` which views to
+mount. Most of the module is the Swift runtime, ElementaryUI and JavaScriptKit, which every page
+needs, so one module per page would repeat them:
+
+| | Raw | gzip -9 |
+|---|---|---|
+| The whole site, one module | 8.4 MB | 3.0 MB |
+| The Dijkstra page alone | 6.7 MB | 2.4 MB |
+
+With one module the browser downloads and compiles it once and every later page reuses it from the
+cache. The index page loads no WebAssembly.
 
 ## Layout
 
 | Path | Holds |
 |---|---|
-| `Sources/Explore/Town.swift` | The town: minutes per street and the graph, the code the page shows |
-| `Sources/Explore/Explorer.swift` | The shared state, and the timeline read from `dijkstraSearch` |
-| `Sources/Explore/Views.swift` | The map, panels, controls and the code panel |
-| `Sources/Explore/DOMEvents.swift` | Click and key handlers for the places and marbles inside the SVGs |
-| `web/` | The page, its stylesheet and the vendored WASI shim (MIT or Apache-2.0) |
+| `Sources/Explore/main.swift` | Mounts the page named by `data-page` |
+| `Sources/Explore/Shared/` | `GraphCanvas`, `Timeline` and `Marble`, `Playback` and `PlaybackButtons`, `CodePanel` and `Snippet`, `NamesStrip` and the `Names` pronunciations, DOM event glue |
+| `Sources/Explore/Pages/<Page>/<Page>Code.swift` | The Grafluent code the page runs, with its `// snippet:` regions |
+| `Sources/Explore/Pages/<Page>/<Page>Page.swift` | The page's model (`@Reactive`) and views |
+| `Sources/Explore/Figures/` | The samples beside the static figures in the pages' prose, mounted on `<pre class="figcode" id="fig-…">` |
+| `Sources/SnippetExtractor/`, `Plugins/Snippets/` | The build plugin that turns `// snippet:` regions into `Snippet` constants |
+| `web/template.html` | The shell every page is poured into: head, top bar and menu, pager, loader |
+| `web/pages/<page>.html` | A page's masthead and prose, with `#app`, `#code` and `#names` mount points |
+| `web/contents.txt` | Reading order, groups and summaries: the index, the menu and previous/next links |
+| `web/explore.css` | The one stylesheet, light and dark |
 | `build.sh` | What `just explore` runs |
+
+### The code panel is the code that runs
+
+A page's Grafluent code lives in `<Page>Code.swift` between `// snippet: name` and
+`// snippet end` lines. The Snippets plugin copies each region, dedented, into a constant
+(`snippet: dijkstra-walk` becomes `Snippet.dijkstraWalk`), and the page passes those constants to
+`CodePanel`. So the displayed text is the compiled text, and a snippet that stops compiling stops
+the build. A line ending in `// →` gets a result the page computed, in order. The values a page
+passes in (the start vertex, the edges someone drew) are shown as `let` lines in a `Snippet` the
+page builds: they bind the names the snippets use.
+
+## Adding a page
+
+For a stepper such as `kruskalSearch`, `primSearch`, `aStarSearch` or `bronKerboschSearch`:
+
+1. Add the module to the `Explore` target's dependencies in `Package.swift` if it is not there.
+2. `Sources/Explore/Pages/MST/MSTCode.swift`: the example graph and a function that collects the
+   stepper's events into an array, each inside `// snippet:` regions, as in `DijkstraCode.swift`.
+3. `Sources/Explore/Pages/MST/MSTPage.swift`: a `@Reactive` model holding the events and a
+   `Playback` (`playback.reset(count:)` after each run); a view that reads `playback.k` and draws
+   the state after that many events with `GraphCanvas`, `PlaybackButtons` and a `Timeline` of one
+   `Marble` per event; a `CodePanel` view; and `enum MSTPage { static func mount() }` mounting
+   them on `#app`, `#code` and `#names`. `DijkstraPage.swift` is the model to copy.
+4. Pronunciations go in `Shared/Pronunciations.swift` (`Names.kruskal` and others are there).
+5. `web/pages/mst.html`: the title and description comments, the masthead with its "Say it", the
+   example, `<div id="app">`, and the prose with `<pre id="code">` and `<div id="names">`.
+6. In `web/contents.txt`, change the row's status from `soon` to `page`; add a `case "mst":` to
+   `main.swift`.
+
+Every algorithm page has the playback buttons, the scrubber and the marble timeline, and every
+graph drawn on a page has the Swift that builds it beside it: the page's `CodePanel` for the live
+graph, and for a static figure in the prose a `<pre class="figcode" id="fig-…">` filled from a
+`// snippet:` region in `Sources/Explore/Figures/FigureCode.swift` (add its line to
+`mountFigureSamples()` in `Figures.swift`).
+
+`just explore`, then check the page loads with no console errors, works at 400 px wide, and reads
+in both themes.
 
 ## Versions
 
@@ -68,6 +144,7 @@ WebAssembly modules from `file://` URLs.
 - JavaScriptKit 0.58.0, the version ElementaryUI 0.7.0 allows.
 - swift-collections 1.6, which ElementaryUI 0.7.0 was written against.
 - `@bjorn3/browser_wasi_shim` 0.3.0, the version JavaScriptKit's packager targets.
+- binaryen `version_133` in CI.
 
 The app uses the full WebAssembly SDK, not the Embedded Swift one: Grafluent uses existential
 types, which Embedded Swift does not support.

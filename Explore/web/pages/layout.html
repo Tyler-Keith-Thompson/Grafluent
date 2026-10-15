@@ -1,0 +1,27 @@
+<!-- title: Force-directed layout · Explore Grafluent -->
+<!-- description: Watch Grafluent’s FruchtermanReingoldLayout untangle a graph one step() at a time, and drag vertices to disturb it. -->
+<header class="sign">
+  <h1>Force-directed layout</h1>
+  <div class="say"><span>Say it</span><b>FROOK-ter-mun RINE-gold</b><span class="ipa">/ˈfruːktərmən ˈraɪnɡoʊld/</span></div>
+  <p class="question">How do you draw a graph so its shape is easy to see?</p>
+</header>
+<p class="example lead">Example: a tangle of twenty vertices that untangles itself as you watch. Drag any vertex and the rest respond.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The drawing above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Springs and magnets</h2>
+  <p>Treat edges as springs that pull their ends together, and every pair of vertices as magnets that push apart. Let the system settle and connected groups cluster, while unrelated parts drift away from each other. Fruchterman–Reingold cools the motion over time so the picture comes to rest: each step may move a vertex at most the current <b>temperature</b>, and the temperature falls with every step.</p>
+
+  <h2><small>Where it breaks</small>Hairballs</h2>
+  <p>Large graphs turn into a hairball no matter how they’re drawn. Past a few hundred vertices, it is better to find communities first and draw those. The forces also only see edges, never what the vertices mean: a drawing can look like it has clusters that aren’t really there.</p>
+
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

@@ -1,0 +1,28 @@
+<!-- title: PageRank · Explore Grafluent -->
+<!-- description: Rank six web pages with Grafluent’s pageRank, and watch the damping factor change the ranks. -->
+<header class="sign">
+  <h1>PageRank</h1>
+  <div class="say"><span>Named after Larry</span><b>Page</b><span class="ipa">/peɪdʒ/</span></div>
+  <p class="question">Which pages on a web matter most?</p>
+</header>
+<p class="example lead">Example: six web pages linking to each other. Add a link and see the ranks shift.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The web above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>A bored random surfer</h2>
+  <p>Imagine someone browsing at random: they follow a link, and every so often they get bored and jump to any page at all. Over a long session, the share of time they spend on each page is its rank. A link from an important page is worth more than one from an obscure page. The <b>damping factor</b> sets how often they keep clicking instead of jumping, usually 85%.</p>
+  <p>Grafluent computes it by power iteration: start everyone equal, pass each page’s rank along its links, and repeat until nothing moves by more than the tolerance. A page with no links out shares its rank with every page.</p>
+
+  <h2><small>Where it breaks</small>Pages that hoard rank</h2>
+  <p>A tight cluster of pages that only link to each other can soak up rank. The random jump keeps that in check, and turning the damping all the way up shows what happens without it: the surfer can get stuck going round, and the scores may never settle.</p>
+
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

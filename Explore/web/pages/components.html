@@ -1,0 +1,36 @@
+<!-- title: Connected components · Explore Grafluent -->
+<!-- description: Islands and bridges, then one-way streets: Grafluent’s connectedComponents, stronglyConnectedComponents and condensation, live. -->
+<header class="sign">
+  <h1>Connected components</h1>
+  <div class="say"><span>Say it</span><b>TAR-jun</b><span class="ipa">/ˈtɑːrdʒən/</span><span>and</span><b>koh-suh-RAH-joo</b><span class="ipa">/koːsəˈɾaːdʒu/</span></div>
+  <p class="question">Which parts of a graph can reach each other?</p>
+</header>
+<p class="example lead">Example: islands and bridges for the undirected case; a set of one-way streets for the directed case.</p>
+
+<h2 class="labhead"><small>Undirected</small>Islands and two-way bridges</h2>
+<div id="islands"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The islands above, in Grafluent</h2>
+  <pre id="code-islands" aria-label="Swift code"></pre>
+</section>
+<h2 class="labhead"><small>Directed</small>One-way streets</h2>
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The streets above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Who can get to whom</h2>
+  <p>With two-way bridges, two islands are in the same component if you can walk from one to the other. With one-way streets it is stricter: a <b>strongly connected component</b> is a neighbourhood where you can get from any corner to any other and back again. Tarjan’s and Kosaraju’s algorithms find them all in a single pass or two. Grafluent uses Tarjan’s, one depth-first search, in Pearce’s low-memory form.</p>
+  <p>Shrink each strongly connected component to a dot and what’s left, the <b>condensation</b>, has no cycles, which tells you the order traffic can flow between neighbourhoods.</p>
+
+  <h2><small>Where it breaks</small>Whether, not how well</h2>
+  <p>Components only say whether a route exists. To know how good it is, use a shortest-path page such as <a href="dijkstra.html">Dijkstra’s algorithm</a>.</p>
+
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

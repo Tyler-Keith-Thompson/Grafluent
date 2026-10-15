@@ -1,0 +1,28 @@
+<!-- title: Breadth-first search · Explore Grafluent -->
+<!-- description: Watch Grafluent’s breadthFirstSearch spread news through a group of friends, one ring at a time. -->
+<header class="sign">
+  <h1>Breadth-first search</h1>
+  <div class="say"><span>Say it</span><b>BREDTH-first</b><span class="ipa">/ˈbrɛdθ fɜːrst/</span></div>
+  <p class="question">Starting from one vertex, how do you visit everything you can reach, nearest first?</p>
+</header>
+<p class="example lead">Example: news spreading through nine friends. Each friend is a vertex; an arrow from one to another means the first messages the second, so the graph is directed. Ana hears first. This page uses the words from <a href="basics.html">Graph basics</a>: vertex, edge, directed.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The friends above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Ring by ring</h2>
+  <p><b>Breadth-first</b> explores in rings. Visit every vertex one edge away, then every vertex two edges away, and so on. It keeps the vertices it has discovered but not yet finished in a <b>queue</b>: the oldest is always next, so nobody two rings out is reached before everybody one ring out.</p>
+  <p>Because it goes ring by ring, the first time it reaches a vertex is along a route with the fewest edges. The blue <b>tree edges</b> record those routes: follow them back from anyone to the start. The other edges, <b>non-tree edges</b>, lead to someone already reached.</p>
+
+  <h2><small>Where it breaks</small>Edges are not distances</h2>
+  <p>Breadth-first counts edges, not distance. Once edges have different lengths, like corridors or roads, fewest edges is no longer shortest, and you want <a href="dijkstra.html">Dijkstra’s algorithm</a>. To explore one route as deep as it goes first, use <a href="dfs.html">depth-first search</a>.</p>
+
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

@@ -1,0 +1,36 @@
+<!-- title: Storing a graph · Explore Grafluent -->
+<!-- description: One small graph as an adjacency list, an adjacency matrix and compressed sparse row, all updating live as you edit it. -->
+<header class="sign">
+  <h1>Storing a graph</h1>
+  <p class="question">How does a computer keep a graph in memory, and why does it matter which way?</p>
+</header>
+<p class="example lead">One example runs through this page: four friends and who follows whom. Ana follows Ben and Cy, Ben follows Cy, Cy follows Ana, and Dee follows Cy. That’s a directed graph with four vertices and five edges. Add or remove a follow and watch all three forms change together.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The friends above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>Adjacency list</small>A row of neighbours per vertex</h2>
+  <p>For each vertex, keep a list of the vertices its edges point to. To ask “who does Ana follow?”, look up Ana’s list. Its size grows with the number of edges actually present, so it suits big graphs where each vertex has only a few neighbours, which is most real ones. Adding and removing edges is cheap. Grafluent’s <code>AdjacencyList</code> also keeps each vertex’s incoming edges, so “who follows Cy?” is just as quick.</p>
+
+  <h2><small>Adjacency matrix</small>A square for every pair</h2>
+  <p>Make a grid with one row and one column per vertex. Put a 1 in row <i>r</i>, column <i>c</i> when there is an edge from <i>r</i> to <i>c</i>, and a 0 otherwise. <b>Rows say who follows; columns say who is followed.</b> To read it, pick a row and go across: Ana’s row has 1s under Ben and Cy, because Ana follows them. To find who follows Cy, read down Cy’s column instead. For an undirected graph the grid is symmetric, a mirror image across its diagonal, because every edge counts both ways: switch to friends above to see it.</p>
+  <p>The matrix answers “is there an edge from <i>r</i> to <i>c</i>?” in one look-up, however big the graph. The price is space: it needs a square for every pair of vertices, edge or no edge. Four friends need 16 squares; a million need a trillion, almost all of them 0. Grafluent’s <code>AdjacencyMatrix</code> stores each square as one bit.</p>
+
+  <h2><small>Compressed sparse row</small>Two plain arrays</h2>
+  <p>Take the adjacency list and pack every row end to end into one array of <b>targets</b>. A second, shorter array of <b>offsets</b> records where each vertex’s run starts. Ana’s run starts at 0 and Ben’s at 2, so Ana’s targets are positions 0 and 1. The last offset marks the end, so a vertex’s run always ends where the next one starts.</p>
+  <p>Two plain arrays are as compact as a graph gets, and walking them is about the fastest thing a processor can do. The trade-off is that you can’t add an edge without rebuilding the whole thing.</p>
+
+  <h2><small>When to use which</small>One answer, three speeds</h2>
+  <ul>
+    <li><b>Adjacency list</b> (<code>AdjacencyList</code>): the default. Use it for any graph that changes.</li>
+    <li><b>Adjacency matrix</b> (<code>AdjacencyMatrix</code>): small graphs, or ones where most pairs are connected, and anything that asks “are these two connected?” over and over.</li>
+    <li><b>Compressed sparse row</b> (<code>CompressedSparseRow</code>): a large graph you build once and then analyse many times.</li>
+  </ul>
+  <p>The matrix and CSR number their vertices 0, 1, 2…; a <code>LabeledGraph</code> puts names on those numbers, which is how this page keeps “Ana” and “Ben”. Every algorithm on this site runs on all three forms. The answer is the same; only the speed and memory differ.</p>
+
+</section>

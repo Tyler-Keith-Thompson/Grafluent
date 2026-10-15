@@ -1,0 +1,28 @@
+<!-- title: Bipartite matching · Explore Grafluent -->
+<!-- description: Fill as many jobs as possible with Grafluent’s maximumBipartiteMatching, Hopcroft–Karp, on applicants you can retrain. -->
+<header class="sign">
+  <h1>Bipartite matching</h1>
+  <div class="say"><span>Say it</span><b>HOP-kroft KARP</b><span class="ipa">/ˈhɒpkrɒft ˈkɑːrp/</span></div>
+  <p class="question">How do you fill as many jobs as possible when each applicant only fits some of them?</p>
+</header>
+<p class="example lead">Example: five applicants, five jobs, and lines for who is qualified for what. A graph whose vertices split into two sides, with every edge crossing between them, is <b>bipartite</b>.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The hiring above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Chains of swaps</h2>
+  <p>Start by pairing people up any way that works. When someone is left out, look for a chain: they take a job held by someone who can move to another job, who frees up another, and so on, ending at an empty job. Swapping along that chain fills one more job without leaving anyone out. Hopcroft–Karp finds many such chains at once, which is what makes it fast.</p>
+  <p>When no chain exists, the matching is the largest possible. Hall’s theorem says when everyone can be placed: every group of applicants must, between them, fit at least as many jobs as there are people in the group. Two people who can only drive, and one driving job, break it.</p>
+
+  <h2><small>Where it breaks</small>When some pairings are better</h2>
+  <p>Matching only counts pairs. If some pairings are better than others, use the weighted version, the assignment problem: <code>linearSumAssignment</code>, or <code>maximumWeightMatching</code>. For a graph that isn’t bipartite, <code>maximumMatching()</code> uses Edmonds’ blossom algorithm.</p>
+
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

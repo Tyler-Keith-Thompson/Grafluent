@@ -4,7 +4,8 @@ Grafluent is a generic graph library for Swift. It provides graph representation
 types, graph classes that enforce their invariants, and a broad set of graph algorithms, from
 shortest paths and connectivity to flows, matching, isomorphism and layout.
 
-[Documentation](https://tyler-keith-thompson.github.io/Grafluent/documentation/)
+[Documentation](https://tyler-keith-thompson.github.io/Grafluent/documentation/) ·
+[Explore](https://tyler-keith-thompson.github.io/Grafluent/explore/), interactive pages that run Grafluent in the browser
 
 ## Why Grafluent
 
