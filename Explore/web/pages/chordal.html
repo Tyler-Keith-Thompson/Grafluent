@@ -1,0 +1,34 @@
+<!-- title: Chordal graphs · Explore Grafluent -->
+<!-- description: Take friendships away until a loop loses its shortcut: Grafluent’s isChordal, perfectEliminationOrdering and findHole, and the maximum cardinality search that decides it, step by step. -->
+<header class="sign">
+  <h1>Chordal graphs</h1>
+  <p class="question">Does every loop of four or more friends have a shortcut through it?</p>
+</header>
+<p class="example lead">Example: eight friends. Go round a loop of friends, each friends with the next. A <b>chord</b> is a friendship between two of them who aren’t next to each other on the loop, a shortcut across it. A graph is <b>chordal</b> when every loop of four or more has one; a loop without one is a <b>hole</b>.</p>
+
+<h2 class="labhead"><small>Try it</small>Make a hole</h2>
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The friends above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<h2 class="labhead"><small>Step through</small>Visit, then take away</h2>
+<div id="steps"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The orders above, in Grafluent</h2>
+  <pre id="code-steps" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Taking people away one at a time</h2>
+  <p>Checking every loop would take forever: there can be exponentially many. Chordal graphs have another description that is quick to check. A vertex is <b>simplicial</b> when its neighbours all know each other. Every chordal graph has one; take it away and what is left is still chordal, so it has another, and so on. The order this gives is a <b>perfect elimination ordering</b>, and a graph has one exactly when it is chordal.</p>
+  <p>Finding the order is the clever part. Tarjan and Yannakakis showed that a <b>maximum cardinality search</b>, always visiting next the vertex with the most visited neighbours, visits a chordal graph in the reverse of a perfect elimination ordering. So one search and one check decide the question in time proportional to vertices plus edges: <code>isChordal</code>. Rose, Tarjan and Lueker’s lexicographic breadth-first search, <code>lexicographicBreadthFirstSearch()</code>, works the same way with a finer tie-break, and is the starting point for recognising other families of graphs.</p>
+  <p>Chordal graphs are worth recognising because hard problems turn easy on them. Following a perfect elimination ordering gives the largest clique, a colouring with the fewest colours and the largest independent set, each in linear time. They come up in practice too: sparse matrix factorisation adds “fill-in” edges to make a matrix’s graph chordal, and interval graphs, the overlaps of time slots, are always chordal.</p>
+
+  <h2><small>Where it breaks</small>A hole is the proof</h2>
+  <p>When the test fails, it says no but not why. <code>findHole()</code> supplies the why: a loop of four or more with no shortcut, a witness anyone can check by eye. Finding it is slower than the yes-or-no test, since it searches around the vertices where the test failed.</p>
+  <p>Making a graph chordal by adding the fewest edges, the <b>minimum fill-in</b> problem, is NP-hard. Any elimination order gives some chordal completion, which is why sparse solvers spend effort choosing a good order rather than the best one.</p>
+</section>
