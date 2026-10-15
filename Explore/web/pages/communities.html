@@ -1,0 +1,28 @@
+<!-- title: Communities · Explore Grafluent -->
+<!-- description: Watch Grafluent’s louvainEvents split a school’s friendships into groups, each move raising the modularity, then merge the groups and carry on. -->
+<header class="sign">
+  <h1>Communities</h1>
+  <div class="say"><span>Say it</span><b>loo-VAN</b><span class="ipa">/luvɛ̃/</span></div>
+  <p class="question">Where does a network naturally split into groups?</p>
+</header>
+<p class="example lead">Example: twelve students and who is friends with whom. Three clubs mostly keep to themselves, with a few friendships across. Nobody tells the algorithm about the clubs.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The school above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>More friendships inside groups than chance would give</h2>
+  <p>A good split puts most friendships inside groups and few between them. But “most” needs a yardstick: put everyone in one group and every friendship is inside it. <b>Modularity</b> compares each group with chance: the share of friendships inside it, less the share you would expect if the same people kept their numbers of friends but chose them at random. It is 0 for a split no better than chance, and higher the clearer the groups.</p>
+  <p>The <b>Louvain</b> method raises modularity greedily. Everyone starts alone. Take each student in turn and move them to the neighbouring group that raises modularity most, if any does, and keep sweeping until a full pass moves nobody. Then merge each group into a single dot, the friendships between groups becoming weighted links, and do the same with whole groups. It stops when merging no longer helps. Each sweep takes time proportional to the number of friendships, so it runs on networks with millions of them.</p>
+
+  <h2><small>Where it breaks</small>Modularity has a blind spot</h2>
+  <p>In a big network, modularity can’t see groups below a certain size, which depends on the size of the whole network: two small, tight groups may come out merged. Raising the <code>resolution</code> parameter favours smaller groups. Louvain can also produce a group that isn’t connected inside, after its middle member moves away; the Leiden method, <code>leidenCommunities</code>, adds a refinement step that rules that out. And the greedy moves depend on the order students are visited, so the answer is a good split, not always the best one.</p>
+  <p>If what you want is groups where literally everyone knows everyone, that’s a different question: <a href="cliques.html">cliques</a>.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

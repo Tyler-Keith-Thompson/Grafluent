@@ -24,6 +24,8 @@ enum Names {
     static let viterbi = Pronunciation(name: "Viterbi", say: "vih-TUR-bee", ipa: "/vɪˈtɜːrbi/", what: "Andrew Viterbi: the most likely path, by multiplying and keeping the best")
     static let dinic = Pronunciation(name: "Dinic", say: "DEE-nits", ipa: "/ˈdinit͡s/", what: "Yefim Dinitz: many shortest routes at once, in layers")
     static let tomita = Pronunciation(name: "Tomita", say: "toh-MEE-tah", ipa: "/tomita/", what: "Etsuji Tomita: the pivot that keeps the search near its best case")
+    static let leiden = Pronunciation(name: "Leiden", say: "LIE-den", ipa: "/ˈlɛidə(n)/", what: "Louvain with a refinement step, so every group is connected")
+    static let blondel = Pronunciation(name: "Blondel", say: "blon-DEL", ipa: "/blɔ̃dɛl/", what: "Vincent Blondel, first author of the Louvain method")
     static let konig = Pronunciation(name: "Kőnig", say: "KUR-nig", ipa: "/ˈkøːniɡ/", what: "In two-sided graphs, biggest matching = smallest cover")
     static let hierholzer = Pronunciation(name: "Hierholzer", say: "HEER-holt-ser", ipa: "/ˈhiːɐ̯hɔlt͡sɐ/", what: "A walk that uses every road exactly once")
     static let euler = Pronunciation(name: "Euler", say: "OY-ler", ipa: "/ˈɔɪlər/", what: "Leonhard Euler, who settled the Königsberg bridges in 1736")

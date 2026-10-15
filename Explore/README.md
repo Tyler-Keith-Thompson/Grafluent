@@ -30,6 +30,7 @@ contents and the menu without a link.
 | `giant` | `erdosRenyi(vertexCount:edgeCount:using:)` with `Xoshiro256StarStar`, `connectedComponents()`, `fruchtermanReingoldLayout(iterations:weight:using:)` |
 | `planarity` | `isPlanar`, `findKuratowskiSubgraph()`, `planarLayout()`, `planarEmbedding()` |
 | `cliques` | `bronKerboschEvents()`, `maximalCliques()`, `maximumClique()` |
+| `communities` | `louvainEvents()`, `louvainCommunities()`, `modularity(of:)` |
 | `flow` | `edmondsKarpEvents(from:to:capacity:)`, `edmondsKarpMaximumFlow(from:to:capacity:)`, `minimumCut` |
 | `matching` | `bipartition(left:)`, `maximumBipartiteMatching(bipartition:)` |
 | `coloring` | `greedyColoring(order:)`, `greedyColoring(strategy:)`, `chromaticNumber()`, `minimumColoring()` |
