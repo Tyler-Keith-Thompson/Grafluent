@@ -44,6 +44,7 @@ enum Names {
     static let yen = Pronunciation(name: "Yen", say: "YEN", ipa: "/jɛn/", what: "Jin Y. Yen: the k shortest loop-free routes, each a detour off one found before")
     static let brandes = Pronunciation(name: "Brandes", say: "BRAN-dess", ipa: "/ˈbrandəs/", what: "Ulrik Brandes: every betweenness score from one search per vertex")
     static let girvan = Pronunciation(name: "Girvan", say: "GUR-vun", ipa: "/ˈɡɜːrvən/", what: "Michelle Girvan: communities by cutting the busiest links")
+    static let vizing = Pronunciation(name: "Vizing", say: "vee-ZING", ipa: "/viˈzinɡ/", what: "Vadim Vizing: every simple graph’s edges in Δ or Δ + 1 colours")
     static let bronKerbosch = Pronunciation(name: "Bron–Kerbosch", say: "BRON KER-boss", ipa: "/ˈbrɔn ˈkɛrbɔs/", what: "Every maximal clique, by backtracking")
 }
 

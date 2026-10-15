@@ -1,0 +1,29 @@
+<!-- title: Edge coloring · Explore Grafluent -->
+<!-- description: A round-robin tournament scheduled by colouring the matches, with Grafluent’s edgeColoring() and the circle method checked by isEdgeColoring, one round at a time. -->
+<header class="sign">
+  <h1>Edge coloring</h1>
+  <div class="say"><span>Say it</span><b>vee-ZING</b><span class="ipa">/viˈzinɡ/</span></div>
+  <p class="question">Every team plays every other once, and nobody plays twice on the same day. How few days does the tournament need?</p>
+</header>
+<p class="example lead">Example: a small league where each team plays each other team once. A line is a match; a round is a set of matches with no team in two of them.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The league above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Colour the edges so no two at a vertex match</h2>
+  <p>An <b>edge colouring</b> gives every edge a colour so that the edges at any one vertex all differ. Each colour is then a set of edges with no vertex in common, a <a href="matching.html">matching</a>, and here each matching is a round of games that can be played side by side. The fewest colours is the graph’s <b>chromatic index</b>.</p>
+  <p>A vertex with Δ edges needs Δ different colours round it, so Δ is a lower bound. Vizing proved in 1964 that Δ + 1 is always enough for a simple graph. So there are only two possible answers, and <code>edgeColoring()</code> always reaches one of them: it runs Misra and Gries’s version of Vizing’s proof, colouring edges one by one and, when an edge is stuck, rotating a fan of colours round one end and swapping two colours along a path to free one up.</p>
+  <p>For the league, Δ is the number of other teams, n − 1. With an even number of teams, n − 1 rounds is possible: the circle method seats the teams round a table, keeps one seat fixed, turns the rest one place each round, and has facing seats play. With an odd number, each round leaves a team out, so n rounds are needed, and the circle method adds an empty seat for the bye. <code>isEdgeColoring(_:)</code> checks any colouring you bring.</p>
+
+  <h2><small>Where it breaks</small>Δ or Δ + 1 is a hard question</h2>
+  <p>Vizing’s method promises Δ + 1 and sometimes gives it when Δ would do: switch to an even number of teams and compare its schedule with the circle method’s. That isn’t carelessness. Deciding whether a graph needs Δ or Δ + 1 colours is NP-complete in general, so no fast method always finds the smaller. On a <em>bipartite</em> graph, such as home teams against visiting teams, Kőnig’s theorem says Δ is always enough, and <code>bipartiteEdgeColoring()</code> finds it. For graphs with parallel edges, <code>greedyEdgeColoring()</code> works on anything, with at most 2Δ − 1 colours.</p>
+  <p>Real fixtures have more rules than this: home and away games, travel, rest days. Those are usually solved with constraint or integer programming, starting from a colouring like this one.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

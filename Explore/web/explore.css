@@ -126,6 +126,7 @@ code, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .edge.pal0 .head { fill: var(--p0); } .edge.pal1 .head { fill: var(--p1); } .edge.pal2 .head { fill: var(--p2); } .edge.pal3 .head { fill: var(--p3); }
 .edge.pal4 .head { fill: var(--p4); } .edge.pal5 .head { fill: var(--p5); } .edge.pal6 .head { fill: var(--p6); } .edge.pal7 .head { fill: var(--p7); }
 .edge[class*="pal"] .stroke { stroke-width: 5; }
+.edge.past .stroke { stroke-width: 2.5; opacity: .45; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 2px 4px; font-family: var(--display); font-size: 13px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
