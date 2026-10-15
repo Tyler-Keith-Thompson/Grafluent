@@ -3,6 +3,7 @@ import AdjacencyListModule
 import GraphDrawing
 import GraphProtocols
 import NamedGraphs
+import RandomGraphs
 // snippet end
 
 typealias LayoutGraph = UndirectedAdjacencyList<Int>
@@ -18,10 +19,11 @@ let families: [(name: String, graph: UndirectedAdjacencyList<Int>)] = [
 ]
 // snippet end
 
-/// A new layout of family `choice`, from random positions.
-func startLayout(_ choice: Int) -> FruchtermanReingoldLayout<LayoutGraph> {
+/// A new layout of family `choice`, from random positions drawn from `seed`.
+func startLayout(_ choice: Int, seed: UInt64) -> FruchtermanReingoldLayout<LayoutGraph> {
     // snippet: layout-start
-    var layout = FruchtermanReingoldLayout(families[choice].graph, iterations: 200)
+    var generator = Xoshiro256StarStar(seed: seed)
+    var layout = FruchtermanReingoldLayout(families[choice].graph, iterations: 200, using: &generator)
     // snippet end
     return layout
 }

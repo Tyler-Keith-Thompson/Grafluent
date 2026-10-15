@@ -121,8 +121,8 @@ struct PageRankLab {
                                     div(.class(scores[v] == top ? "bar top" : "bar")) {
                                         span { webPages[v] }
                                         span(.class("track")) {
-                                            span(.class("fill"), .style("width:\(Int((scores[v] * 200).rounded()))%; display:block")) {}
-                                            span(.class("visits"), .style("left:\(k == 0 ? 0 : Int((Double(counts[v]) / Double(k) * 200).rounded()))%")) {}
+                                            span(.class("fill"), .style("width: \(Int((scores[v] * 200).rounded()))%; display: block;")) {}
+                                            span(.class("visits"), .style("left: \(k == 0 ? 0 : Int((Double(counts[v]) / Double(k) * 200).rounded()))%;")) {}
                                         }
                                         span(.class("num")) { threePlaces(scores[v]) }
                                     }

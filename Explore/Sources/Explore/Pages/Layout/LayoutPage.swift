@@ -40,6 +40,9 @@ struct LayoutFrame {
 @Reactive
 final class LayoutModel {
     var choice = 0
+    /// The seed of the random start: the same on the build machine and in the browser, so the
+    /// first frame is the one the browser plays from. Only Draw again changes it.
+    var seed: UInt64 = 1
     /// Every drawing of the current run, the start first.
     var frames: [(drawing: Drawing<Int>, temperature: Double)] = []
     /// The vertex being dragged, and the frame its view-box coordinates are read in.
@@ -51,12 +54,18 @@ final class LayoutModel {
 
     init() { restart() }
 
-    /// A new run from random positions, played from the start.
+    /// A new run from the random start that `seed` gives, played from the start.
     func restart() {
-        frames = trajectory(of: startLayout(choice))
+        frames = trajectory(of: startLayout(choice, seed: seed))
         viewFrame = LayoutFrame(fitting: frames.map(\.drawing))
         playback.reset(count: frames.count - 1)
         playback.play()
+    }
+
+    /// A new run from the next seed's random start.
+    func drawAgain() {
+        seed += 1
+        restart()
     }
 
     func choose(_ n: Int) {
@@ -172,8 +181,8 @@ struct LayoutLab {
             div(.class("buttons")) {
                 PlaybackButtons(playback: playback)
                 span(.class("spacer")) {}
-                button(.type(.button)) { "Shuffle" }
-                    .onClick { layoutModel.restart() }
+                button(.type(.button)) { "Draw again" }
+                    .onClick { layoutModel.drawAgain() }
             }
             Timeline(
                 playback: playback,
@@ -191,7 +200,7 @@ struct LayoutCodePanel {
     var body: some View {
         let model = layoutModel
         CodePanel(
-            snippets: [.layoutImports, .layoutFamilies, Snippet(lines: ["let choice = \(model.choice)  // \(families[model.choice].name)"]), .layoutStart, .layoutStep, .layoutDrag],
+            snippets: [.layoutImports, .layoutFamilies, Snippet(lines: ["let choice = \(model.choice)  // \(families[model.choice].name)", "let seed: UInt64 = \(model.seed)"]), .layoutStart, .layoutStep, .layoutDrag],
             results: [])
     }
 }

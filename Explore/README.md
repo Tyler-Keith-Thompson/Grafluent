@@ -50,7 +50,7 @@ contents and the menu without a link.
 | `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |
 | `betweenness` | `betweennessCentrality(normalized:)`, `edgeBetweennessCentrality(normalized:)`, `shortestSimplePaths(from:to:)` |
 | `linkprediction` | `jaccardCoefficient(of:and:)`, `adamicAdarIndex(of:and:)` |
-| `layout` | `FruchtermanReingoldLayout`, `step()`, named graphs |
+| `layout` | `FruchtermanReingoldLayout(_:iterations:using:)` with `Xoshiro256StarStar`, `step()`, named graphs |
 
 ## Requirements
 
@@ -110,8 +110,8 @@ and its controls take no pointer and pulse.
 So the first frame matches what the browser mounts, a page's initial state must not depend on
 the platform: no iteration over a `Dictionary` or `Set` (hash order changes on every run), and
 random draws through `next()` rather than `Int.random` or `randomElement`, which differ between
-64-bit and 32-bit `Int`. The layout page starts from random positions, so its first frame is one
-random start and the browser runs from another. ElementaryUI renders its event handlers only
+64-bit and 32-bit `Int`. Pages that draw at random (the giant component, the layout page) seed a
+`Xoshiro256StarStar`, so the build machine and the browser draw the same start. ElementaryUI renders its event handlers only
 into a live DOM; `FirstFrames.swift` gives the elements stand-ins that drop them on the build
 machine.
 

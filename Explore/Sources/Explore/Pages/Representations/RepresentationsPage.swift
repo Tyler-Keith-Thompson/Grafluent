@@ -128,15 +128,17 @@ struct RepresentationsLab {
                         " Click a square to flip it."
                     }
                     table(.class("matrix")) {
-                        tr {
-                            th(.class("corner")) { undirected ? "" : "follows ↓ · followed →" }
-                            for v in 0 ..< n { th(.class(v == selected ? "col hl" : "col")) { friendNames[v] } }
-                        }
-                        for r in 0 ..< n {
-                            tr(.class(r == selected ? "hl" : "")) {
-                                th { friendNames[r] }
-                                for c in 0 ..< n {
-                                    MatrixCell(row: r, column: c, on: forms.matrix.base[r, c], highlighted: c == selected)
+                        tbody {
+                            tr {
+                                th(.class("corner")) { undirected ? "" : "follows ↓ · followed →" }
+                                for v in 0 ..< n { th(.class(v == selected ? "col hl" : "col")) { friendNames[v] } }
+                            }
+                            for r in 0 ..< n {
+                                tr(.class(r == selected ? "hl" : "")) {
+                                    th { friendNames[r] }
+                                    for c in 0 ..< n {
+                                        MatrixCell(row: r, column: c, on: forms.matrix.base[r, c], highlighted: c == selected)
+                                    }
                                 }
                             }
                         }
