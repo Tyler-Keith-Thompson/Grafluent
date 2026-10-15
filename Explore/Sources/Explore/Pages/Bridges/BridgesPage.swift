@@ -184,33 +184,33 @@ func describeLowLink(_ step: LowLinkStep, before: LowLinkSnapshot, after: LowLin
     case .arrive(let v):
         let t = after.time[v]!
         return t == 1
-            ? "Start at \(name(v)): time 1. A place’s low-link is the earliest time it can get back to; for now, its own."
+            ? "Start at \(name(v)), at time 1. Its low-link is its own time for now."
             : "Arrive at \(name(v)) at time \(t). Its low-link starts at \(t), its own time."
     case .tree(let road, _, let to):
-        return "\(roadName(road)) leads somewhere new: walk on to \(name(to))."
+        return "\(roadName(road)) leads somewhere new. Walk on to \(name(to))."
     case .back(let road, let from, let to):
         let was = before.low[from]!, now = after.low[from]!
         return now < was
-            ? "\(roadName(road)) leads back to \(name(to)), already on the path at time \(before.time[to]!): a second way round. \(name(from))’s low-link drops from \(was) to \(now)."
+            ? "\(roadName(road)) leads back to \(name(to)), which is on the path at time \(before.time[to]!). So \(name(from))’s low-link drops from \(was) to \(now)."
             : "\(roadName(road)) leads back to \(name(to)), time \(before.time[to]!). \(name(from)) already reaches back to \(was), so nothing changes."
     case .leave(let v):
         let low = after.low[v]!
         guard let p = before.parent[v] else {
             let branches = before.children(of: v)
             return branches.count > 1
-                ? "Back at \(name(v)), where the search began. It sent \(branches.count) separate branches out (\(placeList(branches.map(name)))), and none of them reached another except through \(name(v)): \(name(v)) is an articulation point."
-                : "Back at \(name(v)), where the search began, after one branch. Taking \(name(v)) away would leave that branch whole, so it is not an articulation point."
+                ? "Back at \(name(v)), where the search began. It had to set out \(branches.count) separate times, to \(placeList(branches.map(name))). So \(name(v)) is an articulation point."
+                : "Back at \(name(v)), where the search began. It set out only once, so \(name(v)) is not an articulation point."
         }
         let pt = before.time[p]!
         let road = roadName(before.via[v]!)
         if low > pt {
-            return "Leave \(name(v)) with low-link \(low), later than \(name(p))’s time \(pt). Nothing from \(name(v)) on gets back to \(name(p)) except by \(road): that road is a bridge"
-                + (before.parent[p] != nil ? ", and \(name(p)) is an articulation point." : ".")
+            return "Leave \(name(v)) with low-link \(low), later than \(name(p))’s time \(pt). So \(road) is the only way back, and it is a bridge."
+                + (before.parent[p] != nil ? " \(name(p)) is an articulation point." : "")
         } else if low == pt {
-            return "Leave \(name(v)) with low-link \(low), exactly \(name(p))’s time. It gets back to \(name(p)) another way, so \(road) is no bridge, but no further"
-                + (before.parent[p] != nil ? ": without \(name(p)) it would be cut off, so \(name(p)) is an articulation point." : ".")
+            return "Leave \(name(v)) with low-link \(low), the same as \(name(p))’s time. It can get back to \(name(p)) another way, so \(road) is not a bridge."
+                + (before.parent[p] != nil ? " But it gets no further, so \(name(p)) is an articulation point." : "")
         }
-        return "Leave \(name(v)) with low-link \(low), earlier than \(name(p))’s time \(pt): there is a way round past \(name(p)). \(name(p))’s low-link becomes \(after.low[p]!)."
+        return "Leave \(name(v)) with low-link \(low), earlier than \(name(p))’s time \(pt). There is a way round \(name(p)), so \(name(p))’s low-link becomes \(after.low[p]!)."
     }
 }
 
@@ -292,13 +292,13 @@ struct LowLinkLab {
                         span(.class("label")) { finished ? "Done after \(steps.count) events" : "Event \(k) of \(steps.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "A depth-first search numbers each place in the order it first arrives: its "
+                                "A depth-first search gives each place a "
                                 em { "time" }
-                                ". Each place also keeps a "
+                                ", the order it first arrives there. Each place also keeps a "
                                 em { "low-link" }
-                                ": the earliest time it, or anything reached from it, can get back to. Press Step to begin."
+                                ", the earliest time it can get back to. Press Step to begin."
                             } else if finished {
-                                describeLowLink(last!, before: before, after: state) + " Every place is left. A road is a bridge when nothing past it can get back without it; a place is an articulation point when a branch below it can’t get back above it."
+                                describeLowLink(last!, before: before, after: state) + " Every place is left."
                                 matches
                                     ? " The same answer as village.bridges() and village.articulationPoints()."
                                     : " This disagrees with village.bridges() and village.articulationPoints()."
@@ -404,7 +404,7 @@ struct ClosureLab {
                                 ". "
                                 model.closedRoad != nil ? "That road is a bridge." : "That place is an articulation point."
                             } else {
-                                "With \(closed) closed, everyone left can still reach everyone else: there is another way round."
+                                "With \(closed) closed, everyone left can still reach everyone else. There is another way round."
                             }
                         }
                     }

@@ -4,7 +4,14 @@
   <h1>Bridges and articulation points</h1>
   <p class="question">Which single road closure splits the town?</p>
 </header>
-<p class="example lead">Example: a village of nine places and ten two-way roads. A road whose closure cuts the village in two is a <b>bridge</b>; a place whose closure does the same is an <b>articulation point</b>, or cut vertex.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>The weak spots in a network</h2>
+  <p>A <b>bridge</b> is a road whose closure cuts a network in two. An <b>articulation point</b>, or cut vertex, is a place whose closure does the same. Finding them shows where one failure would cut someone off.</p>
+  <p>Reach for them to check a road map, a power grid or a computer network for single points of failure. One depth-first search finds every one of them.</p>
+</section>
+
+<p class="example lead">Example: a village of nine places and ten two-way roads. First close a road or a place yourself. Then step through the search that finds them all.</p>
 
 <h2 class="labhead"><small>Try it</small>Close a road or a place</h2>
 <div id="app"></div>
@@ -24,17 +31,18 @@
 
 <section class="prose">
   <h2><small>The idea</small>Can you get back without the road you came by?</h2>
-  <p>Trying every closure in turn means one connectivity check per road: slow on a big network. A single <a href="dfs.html">depth-first search</a> answers for every road at once. The search numbers each place by when it first arrives there, its <b>time</b>. The roads it walks to new places form a tree; every other road leads back to a place already on the current path, a <b>back road</b>.</p>
-  <p>Each place also keeps a <b>low-link</b>: the earliest time that it, or anything the search reached from it, can get back to with one back road. When the search leaves a place, its low-link is final, and one comparison with its parent decides everything:</p>
+  <p>You could try every closure in turn. That means one connectivity check per road, which is slow on a big network. A single <a href="dfs.html">depth-first search</a> answers for every road at once.</p>
+  <p>The search numbers each place by when it first arrives there. That number is the place’s <b>time</b>. The roads the search walks to new places form a tree. Every other road leads back to a place already on the current path. These are <b>back roads</b>.</p>
+  <p>Each place also keeps a <b>low-link</b>. It is the earliest time that the place, or anything the search reached from it, can get back to with one back road. When the search leaves a place, its low-link is final. Then one comparison with its parent decides everything.</p>
   <ul>
-    <li>If the low-link is <em>later</em> than the parent’s time, nothing below gets back to the parent except along the tree road between them. That road is a <b>bridge</b>.</li>
-    <li>If it is <em>no earlier</em> than the parent’s time, the branch below can’t get above the parent, so the parent is an <b>articulation point</b>. The start is the exception: it is one when the search had to set out from it more than once.</li>
+    <li>Say the low-link is <em>later</em> than the parent’s time. Then nothing below gets back to the parent except by the tree road between them. That road is a <b>bridge</b>.</li>
+    <li>Say the low-link is <em>no earlier</em> than the parent’s time. Then the branch below can’t get above the parent, so the parent is an <b>articulation point</b>. The start is the exception. It is one only when the search had to set out from it more than once.</li>
   </ul>
-  <p>Each road is looked at once from each end, so the whole thing takes time proportional to the number of places plus roads. Grafluent’s <code>bridges()</code> and <code>articulationPoints()</code> run this search over flat rows; the timeline above rebuilds the times and low-links from <code>lazy.edgeDepthFirstSearch</code>’s events.</p>
+  <p>Each road is looked at once from each end. So the whole search takes time in proportion to the places plus the roads. Grafluent’s <code>bridges()</code> and <code>articulationPoints()</code> run this search. The step-through lab rebuilds the times and low-links from the events of <code>lazy.edgeDepthFirstSearch</code>.</p>
 
   <h2><small>Where it breaks</small>Loops have no bridges, and that’s the point</h2>
-  <p>Inside the loop of Mill, Church, Square and School, or the triangle of Station, Market and Harbour, no single closure cuts anyone off: there is always another way round. Such a part is <b>two-edge-connected</b>, and <code>biEdgeConnectedComponents()</code> lists them. So the cure for a fragile network is a loop: one new road from Farm to Church, and Mill–Farm stops being a bridge.</p>
-  <p>Places are a different question from roads. Two triangles that share one corner have no bridge at all, yet taking away the shared corner splits them. Each triangle is a <b>block</b>, a biconnected component, and the corner is in both.</p>
+  <p>Mill, Church, Square and School form a loop. Station, Market and Harbour form a triangle. Inside either one, no single closure cuts anyone off, because there is always another way round. Such a part is <b>two-edge-connected</b>, and <code>biEdgeConnectedComponents()</code> lists them. So the cure for a fragile network is a loop. Add one new road from Farm to Church, and Mill–Farm stops being a bridge.</p>
+  <p>Places are a different question from roads. Two triangles that share one corner have no bridge at all. Yet taking away the shared corner splits them. Each triangle is a <b>block</b>, or biconnected component, and the corner is in both.</p>
   <figure class="fig">
     <svg viewBox="0 0 520 210" role="img" aria-label="Two triangles, A B C and C D E, sharing the vertex C">
       <line class="e" x1="70" y1="40" x2="70" y2="170"/><line class="e" x1="70" y1="40" x2="260" y2="105"/><line class="e" x1="70" y1="170" x2="260" y2="105"/>
@@ -48,8 +56,10 @@
     <figcaption>A bow tie: no road is a bridge, but C is an articulation point, the one place in both blocks.</figcaption>
     <pre class="figcode" id="fig-bowtie" aria-label="Swift code for this figure"></pre>
   </figure>
-  <p>For a network that must survive any one failure, ask for no articulation point: <code>isBiconnected</code>. For any <em>two</em> failures, the question becomes one of <a href="flow.html">flow</a>: how many separate routes join each pair.</p>
+  <p>A network that must survive any one failure needs no articulation point, which <code>isBiconnected</code> checks. To survive any <em>two</em> failures, you need to count the separate routes that join each pair. That is a question of <a href="flow.html">flow</a>.</p>
+</section>
 
+<section class="prose in-swift">
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>
 </section>

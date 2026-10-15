@@ -148,20 +148,20 @@ struct DominatorsLab {
                         p(.class("narration")) {
                             if post {
                                 if chain.count <= 1 {
-                                    "\(block) is the exit: every path ends here, so it post-dominates every block that can reach it."
+                                    "\(block) is the exit. Every path ends here, so it post-dominates every block that can reach it."
                                 } else {
                                     "Every path from \(block) to the exit runs through "
                                     em { blockList(chain.dropFirst().map { $0 }) }
-                                    ". The nearest, \(parent!), is its immediate post-dominator: once \(block) runs, \(parent!) is sure to run after it."
+                                    ". The nearest, \(parent!), is its immediate post-dominator. Once \(block) runs, \(parent!) is sure to run after it."
                                 }
                             } else if chain.count <= 1 {
                                 "\(block) is the entry. Every block is reached through it, so it dominates them all."
                             } else {
                                 "Every path from the entry to \(block) runs through "
                                 em { blockList(chain.dropFirst().reversed().map { $0 }) }
-                                ". The nearest, \(parent!), is its immediate dominator, its parent in the tree."
-                                if block == "exit" { " Not done, and not give up: the exit is reached through either, so neither is unavoidable." }
-                                if block == "next" { " Not add, and not warn: next is reached through either, so neither is unavoidable." }
+                                ". The nearest, \(parent!), is its immediate dominator and its parent in the tree."
+                                if block == "exit" { " The exit can be reached through done or through give up, so neither one is unavoidable." }
+                                if block == "next" { " Next can be reached through add or through warn, so neither one is unavoidable." }
                             }
                         }
                     }
@@ -216,7 +216,7 @@ func describeClosing(_ step: ClosingStep) -> String {
     let others = step.cutOff.filter { $0 != step.block }.map { programBlocks[$0].name }
     return others.isEmpty
         ? "Take out \(name). Everything else is still reachable from the entry, so \(name) dominates only itself."
-        : "Take out \(name). The entry can no longer reach \(blockList(others)): every path to \(others.count == 1 ? "it" : "them") ran through \(name), so \(name) dominates \(others.count == 1 ? "it" : "them")."
+        : "Take out \(name). The entry can no longer reach \(blockList(others)). Every path to \(others.count == 1 ? "it" : "them") ran through \(name), so \(name) dominates \(others.count == 1 ? "it" : "them")."
 }
 
 /// The check by definition: take out each block in turn and see what the entry stops reaching.
@@ -260,7 +260,7 @@ struct ClosingLab {
                         span(.class("label")) { finished ? "Done after \(steps.count) blocks" : "Block \(k) of \(steps.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "A block dominates another when every path from the entry to it runs through the first. So take each block out in turn and search from the entry: whatever it no longer reaches, that block dominates. The entry dominates everything. Press Step to begin."
+                                "Take each block out in turn and search from the entry. Whatever the entry no longer reaches, that block dominates. Press Step to begin."
                             } else if finished {
                                 describeClosing(last!) + " Every block has been taken out once."
                                 agrees

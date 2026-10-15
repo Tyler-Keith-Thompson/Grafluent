@@ -4,7 +4,13 @@
   <h1>Chinese postman</h1>
   <p class="question">A snowplough has to clear every street on the estate and get back to the depot. Which streets should it drive twice, so the whole round is as short as it can be?</p>
 </header>
-<p class="example lead">Example: seven junctions and nine streets, with the minutes each takes to clear. If every junction had an even number of streets, one <a href="euler.html">Euler circuit</a> would drive each street exactly once. Four of them don’t.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>The shortest round over every street</h2>
+  <p>The Chinese postman problem asks for the shortest round that covers every street at least once and comes home. It is named for Guan Meigu, the Chinese mathematician who first studied it. A postman, a snowplough and a street sweeper all face it. When an <a href="euler.html">Euler circuit</a> exists, it is the answer, and no street is driven twice. When none exists, the solver picks which streets to repeat so the extra time is as small as it can be.</p>
+</section>
+
+<p class="example lead">Example: seven junctions and nine streets, with the minutes each takes to clear. If every junction had an even number of streets, one Euler circuit would drive each street exactly once. Four of them don’t.</p>
 
 <h2 class="labhead"><small>Try it</small>Which streets twice?</h2>
 <div id="app"></div>
@@ -24,14 +30,18 @@
 
 <section class="prose">
   <h2><small>The idea</small>Fix the odd junctions, as cheaply as possible</h2>
-  <p>A round that ends where it started leaves every junction as many times as it arrives, so it uses an even number of street-ends at each one. At a junction with an odd number of streets, one street must be driven an extra time. Driving a street twice is the same as adding a copy of it to the map, so the question becomes: which copies, adding up to the fewest minutes, make every junction even?</p>
-  <p>There is always an even number of odd junctions, since every street has two ends. Pair them up, and for each pair, copy the streets on the quickest route between them: that makes both ends even and leaves every junction in between even too. The best answer is the pairing whose routes add up to the least, a <b>minimum-weight perfect matching</b> on the odd junctions with the quickest times between them as weights. With the copies added, an Euler circuit drives the round. This is Edmonds and Johnson’s algorithm, and <code>chinesePostmanTour(weight:)</code> runs it: <a href="dijkstra.html">Dijkstra</a> from each odd junction, the blossom algorithm for the matching, then Hierholzer’s circuit.</p>
-  <p>With four odd junctions there are only three pairings, listed in the first lab. With twenty there are over 650 million, which is why the matching is found by an algorithm and not by listing them.</p>
+  <p>A round that ends where it started leaves every junction as often as it arrives. So it uses an even number of street-ends at each one. At a junction with an odd number of streets, one street must be driven an extra time. Driving a street twice is the same as adding a copy of it to the map. So the question becomes this. Which copies make every junction even, for the fewest added minutes?</p>
+  <p>There is always an even number of odd junctions, since every street has two ends. Pair them up. For each pair, copy the streets on the quickest route between them. That makes both ends even, and every junction in between stays even. The best answer is the pairing whose routes add up to the least. This is a <b>minimum-weight perfect matching</b> on the odd junctions, weighted by the quickest times between them. With the copies added, an Euler circuit drives the round.</p>
+  <p>This is Edmonds and Johnson’s algorithm, and <code>chinesePostmanTour(weight:)</code> runs it. It runs <a href="dijkstra.html">Dijkstra</a> from each odd junction, the blossom algorithm for the matching, and then Hierholzer’s circuit.</p>
+  <p>With four odd junctions there are only three pairings, and the first lab lists them. With twenty there are over 650 million. That is why the matching is found by an algorithm, and not by listing pairings.</p>
 
   <h2><small>Where it breaks</small>One-way streets, and only some streets</h2>
-  <p>If streets are one-way, the parity argument becomes one of balance: each junction needs as many ways in as out. Grafluent’s <code>chinesePostmanTour</code> on a directed graph solves that with a <a href="mincostflow.html">minimum-cost flow</a> instead of a matching, and it answers <code>nil</code> when some street can’t be reached and left again. Mix one-way and two-way streets, though, and the problem becomes NP-hard, as it does when only some streets need clearing (the <b>rural postman</b> problem). Then the practical answers are heuristics.</p>
-  <p>The shortest round also isn’t always the best one in practice: a real plough also cares about turns, especially U-turns, and about which streets are cleared first. Those are extra costs the graph doesn’t carry.</p>
+  <p>On one-way streets, each junction needs as many ways in as out. Grafluent’s <code>chinesePostmanTour</code> on a directed graph solves that with a <a href="mincostflow.html">minimum-cost flow</a> in place of a matching. It returns <code>nil</code> when some street can’t be reached and left again.</p>
+  <p>Mix one-way and two-way streets, and the problem becomes NP-hard. The same happens when only some streets need clearing, which is the <b>rural postman</b> problem. Then the practical answers are heuristics.</p>
+  <p>The shortest round isn’t always the best one in practice. A real plough also cares about turns, especially U-turns, and about which streets are cleared first. The graph doesn’t carry those costs.</p>
+</section>
 
+<section class="prose in-swift">
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>
 </section>

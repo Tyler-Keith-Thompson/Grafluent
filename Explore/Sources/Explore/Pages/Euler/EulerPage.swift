@@ -163,15 +163,15 @@ func describeEuler(_ step: EulerStep, _ model: EulerModel) -> String {
     switch step {
     case .count(let place, let degree):
         return degree % 2 == 1
-            ? "\(name(place)) has \(degree) \(s.road)s: odd. Each visit uses one \(s.road) in and one out, so one is left over. Only the start or the end of a walk can be odd."
-            : "\(name(place)) has \(degree) \(s.road)s: even. Every \(s.road) in can be paired with one out."
+            ? "\(name(place)) has \(degree) \(s.road)s, an odd number. Each visit uses one \(s.road) in and one out, so one is left over. Only the start or the end of a walk can be odd."
+            : "\(name(place)) has \(degree) \(s.road)s, an even number. Every \(s.road) in can be paired with one out."
     case .walk(let road, let from, let to, let detour):
         return detour
-            ? "\(name(from)) still has an unused \(s.road): set off on a detour along \(bridgeName(road, in: model.city)) to \(name(to)). The loop it makes is stitched into the tour right here."
+            ? "\(name(from)) still has an unused \(s.road). Set off on a detour along \(bridgeName(road, in: model.city)) to \(name(to)). The loop it makes is stitched into the tour here."
             : "From \(name(from)), take the first unused \(s.road), \(bridgeName(road, in: model.city)), to \(name(to))."
     case .stuck(let place, let road, let slot):
-        guard let road else { return "Back at \(name(place)) with nothing left to walk: the tour is complete." }
-        return "Stuck at \(name(place)): every \(s.road) here is used. Back up over \(bridgeName(road, in: model.city)); it becomes \(s.road) \(slot) of \(model.city.edgeCount), as the tour fills in from its end."
+        guard let road else { return "Back at \(name(place)) with nothing left to walk. The tour is complete." }
+        return "Stuck at \(name(place)), because every \(s.road) here is used. Back up over \(bridgeName(road, in: model.city)). It becomes \(s.road) \(slot) of \(model.city.edgeCount) in the tour."
     }
 }
 
@@ -248,21 +248,21 @@ struct EulerLab {
                             if k == 0 {
                                 "Can you walk across every \(s.road) exactly once? First count the \(s.road)s at each place. Press Step to begin."
                             } else if finished && model.trail == nil {
-                                "\(oddCount) places have an odd count. A walk can start at one odd place and finish at another, but that covers only two. The rest would each strand a \(s.road): no walk crosses every \(s.road) once, and eulerianTrail() returns nil."
+                                "\(oddCount) places have an odd count. A walk can start at one odd place and end at another, but that covers only two. Each of the rest would strand a \(s.road). So no walk crosses every \(s.road) once, and eulerianTrail() returns nil."
                             } else if finished {
                                 if let circuit = model.circuit {
-                                    "Every \(s.road) is in the tour, and it ends where it began: "
+                                    "Every \(s.road) is in the tour, and it ends where it began. "
                                     em { tourText(circuit.vertices + [circuit.vertices[0]]) }
                                     "."
                                 } else if let trail = model.trail {
-                                    "Two odd places, so no closed tour, but a walk from one to the other: "
+                                    "With two odd places there is no closed tour. But there is a walk from one to the other. "
                                     em { tourText(trail.vertices) }
                                     "."
                                 }
                                 model.agrees ? " The same as Grafluent’s answer." : " This differs from Grafluent’s answer."
                             } else if countingDone {
                                 describeEuler(last!, model)
-                                oddCount == 0 ? " No odd places: a closed tour exists. Now find it." : oddCount == 2 ? " Two odd places: a walk exists, from one to the other. Now find it." : ""
+                                oddCount == 0 ? " No place is odd, so a closed tour exists. Now find it." : oddCount == 2 ? " Two places are odd, so a walk from one to the other exists. Now find it." : ""
                             } else {
                                 describeEuler(last!, model)
                             }
@@ -313,14 +313,14 @@ struct EulerLab {
                         (Marble(kind: "m-red", radius: 6), "odd count"),
                         (Marble(kind: "m-ring", radius: 5), "walk on"),
                         (Marble(kind: "m-violet", radius: 5), "start a detour"),
-                        (Marble(kind: "m-blue", radius: 6), "stuck: back up, a \(s.road) joins the tour"),
+                        (Marble(kind: "m-blue", radius: 6), "stuck, so back up and a \(s.road) joins the tour"),
                     ])
                 p(.class("note")) {
-                    "In each circle, once counted: how many \(s.road)s meet there. The walk follows the rule "
+                    "Once counted, each circle shows how many \(s.road)s meet there. The walk follows the rule that "
                     code { "eulerianCircuit()" }
-                    " documents: the first unused \(s.road) in "
+                    " documents. It takes the first unused \(s.road) in "
                     code { "incidentEdges" }
-                    " order, backing up when stuck."
+                    " order, and backs up when stuck."
                 }
             }
         }

@@ -125,9 +125,9 @@ struct PostmanLab {
                     div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
                         span(.class("label")) { "\(tour.weight) minutes" }
                         p(.class("narration")) {
-                            "Clearing every street once takes \(total) minutes. But \(blockList(odd)) each have an odd number of streets, and a round that comes back to the depot leaves every junction as often as it arrives. So some streets must be driven twice: "
+                            "Clearing every street once takes \(total) minutes. But \(blockList(odd)) each have an odd number of streets. So some streets must be driven twice. The cheapest choice is "
                             em { blockList(tour.duplicatedEdges.map(streetName)) }
-                            ", \(tour.weight - total) minutes more."
+                            ", for \(tour.weight - total) minutes more."
                         }
                     }
                     div(.class("panel")) {
@@ -176,7 +176,7 @@ func describePlough(_ step: PloughStep, minutes: [Int]) -> String {
     let from = junctionSpots[step.from].name, to = junctionSpots[step.to].name
     let drive = "Drive from \(from) to \(to), \(minutes[step.street]) minute\(minutes[step.street] == 1 ? "" : "s")"
     return step.again
-        ? drive + ", along a street already cleared: one of the duplicated streets. \(step.clock) minutes so far."
+        ? drive + ", along a street already cleared. This is one of the streets driven twice. \(step.clock) minutes so far."
         : drive + ", clearing it. \(step.clock) minutes so far."
 }
 
@@ -226,15 +226,6 @@ struct PloughLab {
                                 describePlough(last!, minutes: model.minutes) + " Every street is cleared, \(twice.count) of them twice, and the plough is home."
                             } else {
                                 describePlough(last!, minutes: model.minutes)
-                            }
-                        }
-                    }
-                    div(.class("panel")) {
-                        span(.class("label")) { "Cleared so far" }
-                        div(.class("chips")) {
-                            if cleared.isEmpty { p(.class("empty")) { "Nothing yet" } }
-                            for p in estate.edges.indices where cleared.contains(p) {
-                                span(.class(twice.contains(p) ? "chip bad" : "chip")) { streetName(p) + (twice.contains(p) ? " ×2" : "") }
                             }
                         }
                     }

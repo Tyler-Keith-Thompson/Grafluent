@@ -5,7 +5,25 @@
   <div class="say"><span>Say it</span><b>LENG-ow-er</b><span class="ipa">/ˈlɛŋaʊ̯ɐ/</span></div>
   <p class="question">Which parts of a program are sure to have run by the time it reaches a given line?</p>
 </header>
-<p class="example lead">Example: a function that adds up the numbers in a file, line by line, warning about lines that aren’t numbers and giving up after too many. Each <b>block</b> is a run of code with no jumps in it; the arrows are the jumps. A block <b>dominates</b> another when every path from the entry to the second passes through the first.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>What every path must pass through</h2>
+  <p>A block <b>dominates</b> another when every path from the entry to the second passes through the first. Dominators tell you what is sure to have happened before a point is reached. Post-dominators tell you what is sure to happen after it.</p>
+  <p>Compilers rely on them. They use dominators to find loops, to decide where values need merging, and to move code safely. The same idea finds the single points every route must pass in any network with one entry.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find dominators</h2>
+  <!-- compare
+  | Method | When to use | Cost | Weakness |
+  | *Lengauer–Tarjan (<code>dominatorTree(root:)</code>) | Any graph, including large ones | Close to linear in the jumps | Harder to follow |
+  | Iterative dataflow (Cooper, Harvey and Kennedy) | The small control-flow graphs of most functions | Quadratic at worst, fast in practice | Can be slow on large, tangled graphs |
+  | Take out one block at a time | Checking an answer on a small graph | One search per block | Far too slow on large graphs |
+  -->
+  <p>All three give the same tree. Lengauer–Tarjan has the best bound. The second lab on this page runs the slowest method, because it follows the definition.</p>
+</section>
+
+<p class="example lead">Example: a function that adds up the numbers in a file, line by line. It warns about lines that aren’t numbers, and gives up after too many. Each <b>block</b> is a run of code with no jumps in it. The arrows are the jumps.</p>
 <pre class="listing" aria-label="The function, with each line’s block">func total(of lines: [String]) throws -> Int {
     var sum = 0, bad = 0, count = 0            // entry
     for line in lines {                        // loop
@@ -38,14 +56,18 @@
 
 <section class="prose">
   <h2><small>The idea</small>The blocks you can’t get around</h2>
-  <p>Each block has a chain of dominators running back to the entry, and the nearest one is its <b>immediate dominator</b>. Every block but the entry has exactly one, so drawing each block under its immediate dominator gives a tree: the <b>dominator tree</b>. A block’s ancestors in that tree are exactly the blocks that dominate it, which is why <code>dominates(_:_:)</code> answers in constant time once the tree is built.</p>
-  <p>The check in the second lab follows the definition: take a block out, search from the entry, and whatever is cut off is what that block dominates. That is one search per block. Lengauer and Tarjan get every immediate dominator from a single depth-first search. Each block first gets a <b>semidominator</b>: the earliest block in the search’s order with a path to it that detours only through later blocks. One more pass over the search tree turns semidominators into immediate dominators. Grafluent’s <code>dominatorTree(root:)</code> runs that algorithm, in time close to linear in the number of jumps.</p>
-  <p>Turn every arrow around and ask from the exit instead, and you get <b>post-dominators</b>: the blocks sure to run after a given one, from <code>postDominatorTree(exit:)</code>. Compilers use both. A loop’s head dominates its body, which is how loops are found; and the <b>dominance frontier</b>, where one block’s dominance stops, is where a variable assigned in two branches needs a merge, which <code>dominanceFrontiers(root:)</code> lists.</p>
+  <p>Each block has a chain of dominators running back to the entry. The nearest one is its <b>immediate dominator</b>. Every block except the entry has exactly one. So drawing each block under its immediate dominator gives a tree, the <b>dominator tree</b>. A block’s ancestors in that tree are exactly the blocks that dominate it. That is why <code>dominates(_:_:)</code> answers in constant time once the tree is built.</p>
+  <p>The second lab follows the definition. Take a block out and search from the entry. Whatever is cut off is what that block dominates. That costs one search per block.</p>
+  <p>Lengauer and Tarjan get every immediate dominator from a single depth-first search. First each block gets a <b>semidominator</b>. That is the earliest block, in the search’s order, with a path to it that detours only through later blocks. One more pass over the search tree turns semidominators into immediate dominators. Grafluent’s <code>dominatorTree(root:)</code> runs this algorithm.</p>
+  <p>Turn every arrow around and start from the exit instead. Then you get <b>post-dominators</b>, the blocks sure to run after a given one. <code>postDominatorTree(exit:)</code> finds them. A loop’s head dominates its body, which is how compilers find loops. The <b>dominance frontier</b> is where one block’s dominance stops. A variable assigned in two branches needs a merge there. <code>dominanceFrontiers(root:)</code> lists these frontiers.</p>
 
   <h2><small>Where it breaks</small>Code nothing reaches, and code that never ends</h2>
-  <p>A block the entry can’t reach has no dominators at all: “every path passes through” is vacuous when there is no path. Grafluent answers <code>nil</code> from <code>dominators(of:)</code> for such a block, rather than an empty list, so dead code can’t be mistaken for code with no requirements. Post-dominators have the same gap from the other end: a block that loops forever, or a function with two exits, never reaches the one exit you named. Give every exit a jump to one shared exit block first.</p>
-  <p>Dominance is about the jumps as drawn, not about the values that choose between them. Here <code>give up</code> only ever follows several warnings, but the graph sees one arrow from <code>warn</code> and no count. What dominators promise holds on every path through the graph, which is why a compiler can rely on them; facts that depend on the data are beyond them.</p>
+  <p>A block the entry can’t reach has no dominators at all. “Every path passes through” means nothing when there is no path. So <code>dominators(of:)</code> returns <code>nil</code> for such a block, and not an empty list. That way dead code can’t be mistaken for code with no requirements.</p>
+  <p>Post-dominators have the same gap from the other end. A block that loops forever never reaches the exit. In a function with two exits, some paths never reach the exit you named. Give every exit a jump to one shared exit block first.</p>
+  <p>Dominance is about the jumps as drawn. It ignores the values that choose between them. Here <code>give up</code> only ever follows several warnings. But the graph sees one arrow from <code>warn</code>, and no count. What dominators promise holds on every path through the graph, so a compiler can rely on them. Facts that depend on the data are beyond them.</p>
+</section>
 
+<section class="prose in-swift">
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>
 </section>

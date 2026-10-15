@@ -5,7 +5,14 @@
   <div class="say"><span>Say it</span><b>OY-ler</b><span class="ipa">/ˈɔɪlər/</span><span>and</span><b>HEER-holt-ser</b><span class="ipa">/ˈhiːɐ̯hɔlt͡sɐ/</span></div>
   <p class="question">Can you walk across every bridge in town exactly once?</p>
 </header>
-<p class="example lead">Example: Königsberg in 1736, four pieces of land joined by seven bridges, two of them doubled. Each piece of land is a vertex and each bridge an edge, so two bridges between the same banks are two separate edges: a <b>multigraph</b>. Then the same city with an eighth bridge, and a small town where a tour exists.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Every edge, exactly once</h2>
+  <p>An Euler tour is a walk that uses every edge of a graph exactly once. Counting the edges at each place tells you at once whether a tour exists. When one does, Hierholzer’s algorithm finds it in time in proportion to the edges.</p>
+  <p>Reach for it to plan a route that must cover every street, such as for a snowplough or a street sweeper. It also draws a figure without lifting the pen, and it rebuilds a DNA sequence from overlapping fragments.</p>
+</section>
+
+<p class="example lead">Example: Königsberg in 1736, with four pieces of land joined by seven bridges. Each piece of land is a vertex and each bridge an edge. Two pairs of banks are joined by two bridges each. Those are separate edges, so the graph is a <b>multigraph</b>. Then try the same city with an eighth bridge, and a small town where a tour exists.</p>
 
 <div id="app"></div>
 
@@ -16,7 +23,7 @@
 
 <section class="prose">
   <h2><small>The idea</small>Count the bridges at each place</h2>
-  <p>The people of Königsberg tried for years to cross all seven bridges in one walk, never crossing one twice. Euler showed in 1736 that they never would, without trying a single route. Every time a walk arrives at a piece of land over one bridge, it leaves over another, so the bridges at a place are used in pairs. The only places allowed a bridge left over are where the walk starts and where it ends.</p>
+  <p>The people of Königsberg tried for years to cross all seven bridges in one walk, never crossing one twice. In 1736 Euler showed that they never would, without trying a single route. Each time a walk arrives at a piece of land over one bridge, it leaves over another. So the bridges at a place are used in pairs. Only the places where the walk starts and ends may have a bridge left over.</p>
   <figure class="fig">
     <svg viewBox="0 0 520 280" role="img" aria-label="Map of Königsberg: a river with two branches, the island Kneiphof in it, Lomse between the branches, the north and south banks, and seven bridges">
       <rect x="0" y="78" width="520" height="124" style="fill:color-mix(in srgb, var(--sign) 22%, var(--sheet))"/>
@@ -33,15 +40,26 @@
       <text class="cap" x="190" y="145" text-anchor="middle">Kneiphof</text>
       <text class="cap" x="430" y="145" text-anchor="middle">Lomse</text>
     </svg>
-    <figcaption>The city: the river Pregel, its island Kneiphof, Lomse between its two branches, and seven bridges. Every piece of land has an odd number of them: 3, 5, 3, 3.</figcaption>
+    <figcaption>The city, with the river Pregel, its island Kneiphof, Lomse between its two branches, and seven bridges. Every piece of land has an odd number of bridges, 3, 5, 3 and 3.</figcaption>
     <pre class="figcode" id="fig-konigsberg" aria-label="Swift code for this figure"></pre>
   </figure>
-  <p>So a walk over every bridge exactly once needs at most two places with an odd count. With none, the walk can end where it began: an <b>Eulerian circuit</b>. With exactly two, it must start at one and end at the other: an <b>Eulerian trail</b>. Königsberg has four, so neither exists. Add an eighth bridge between the two banks and only Kneiphof and Lomse stay odd: now a walk exists, from one to the other.</p>
-  <p>Counting proves a tour impossible. Finding one when the counts allow it is Hierholzer’s part, published in 1873. Walk from the start, always over an unused bridge. Because every other place has its bridges in pairs, you can only get stuck back at the start. If bridges are left over, some place on the walk still has one: walk a second loop from there and stitch it into the first at that place. Grafluent runs the stack form of this: back up whenever stuck, writing each bridge you back over into the tour from its end. The detours are stitched in automatically, and every bridge is handled twice at most, so it takes time proportional to the number of bridges.</p>
+  <p>So a walk over every bridge exactly once needs at most two places with an odd count. With none, the walk can end where it began. That is an <b>Eulerian circuit</b>. With exactly two, it must start at one and end at the other. That is an <b>Eulerian trail</b>. Königsberg has four odd places, so neither exists. Add an eighth bridge between the two banks, and only Kneiphof and Lomse stay odd. Now a walk exists, from one to the other.</p>
+  <p>Counting proves a tour impossible. Finding one when the counts allow it is Hierholzer’s part, published in 1873. Walk from the start, always over an unused bridge. Every other place has its bridges in pairs, so you can only get stuck back at the start. If bridges are left over, some place on the walk still has one. Walk a second loop from there, and stitch it into the first at that place.</p>
+  <p>Grafluent runs the stack form of this. Whenever it gets stuck, it backs up, and each bridge it backs over joins the tour from its end. The detours are stitched in without extra work. Each bridge is handled at most twice, so the time is in proportion to the number of bridges.</p>
+</section>
 
-  <h2><small>When to use something else</small>Every place once is a different, much harder question</h2>
-  <p>An Euler tour uses every <em>edge</em> once. A walk through every <em>place</em> exactly once is a Hamiltonian cycle, and there is no counting trick for it: no fast method is known at all, and <code>hamiltonianCycle()</code> searches. If a delivery round must cover every street but no tour exists, some streets have to be walked twice; <code>chinesePostmanTour(weight:)</code> finds the cheapest way to do that. On one-way streets the rule becomes: as many streets in as out at every place, as <code>isEulerian</code> on a directed graph checks.</p>
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to cover a graph</h2>
+  <!-- compare
+  | Method | Covers | Exists when | Cost | Weakness |
+  | *Euler tour (<code>eulerianCircuit()</code>, <code>eulerianTrail()</code>) | Every edge, once | No more than two places have an odd count | O(m) | Often no tour exists |
+  | [Chinese postman](postman.html) (<code>chinesePostmanTour(weight:)</code>) | Every edge, at least once | Always, if the graph is connected | O(n³) | Some edges are walked twice |
+  | [Hamiltonian cycle](hamiltonian.html) (<code>hamiltonianCycle()</code>) | Every place, once | No simple test is known | Exponential at worst | Slow on large graphs |
+  -->
+  <p>An Euler tour is the cheapest to find, but a graph often has none. Then a delivery round that must cover every street has to walk some of them twice. On one-way streets the rule changes. Every place needs as many streets in as out, which <code>isEulerian</code> checks on a directed graph.</p>
+</section>
 
+<section class="prose in-swift">
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>
 </section>

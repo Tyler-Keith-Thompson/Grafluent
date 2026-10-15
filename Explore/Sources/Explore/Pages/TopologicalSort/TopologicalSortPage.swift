@@ -80,7 +80,7 @@ struct DressingSnapshot {
 /// The sentence for one event of the search.
 func dressingText(_ event: DepthFirstSearchEvent<String>) -> String {
     switch event {
-    case .discover(let v): return "Look at \(v): what has to wait for it?"
+    case .discover(let v): return "Look at \(v). What has to wait for it?"
     case .finish(let v): return "Everything that waits for \(v) is already placed. So \(v) goes in front of them."
     case .treeEdge(let e): return "\(e.target) waits for \(e.source). Look at \(e.target) next."
     case .backEdge(let e): return "\(e.target) waits for \(e.source), but \(e.target) is still being looked at. The rules go round in a circle."
