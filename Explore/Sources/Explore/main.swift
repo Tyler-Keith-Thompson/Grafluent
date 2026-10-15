@@ -53,6 +53,7 @@ func mountPage(_ page: String) -> Bool {
     case "linkprediction": LinkPredictionPage.mount()
     case "layout": LayoutPage.mount()
     case "spectral": SpectralPage.mount()
+    case "layered": LayeredPage.mount()
     default: return false
     }
     mountFigureSamples()

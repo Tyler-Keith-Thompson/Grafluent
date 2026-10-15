@@ -45,3 +45,4 @@ betweenness|Betweenness|Importance and shape|Who sits on the most shortest paths
 linkprediction|Friend suggestions|Importance and shape|Who you might know, from the friends you share.|page
 layout|Force-directed layout|Importance and shape|Drawing a graph so its shape shows.|page
 spectral|Spectral drawing|Importance and shape|Drawing and cutting a network with its eigenvectors.|page
+layered|Layered drawing|Importance and shape|Flowcharts and org charts, drawn in rows.|page

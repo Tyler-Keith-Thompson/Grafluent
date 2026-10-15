@@ -107,8 +107,9 @@ struct EdgeShape {
             let l = max((ux * ux + uy * uy).squareRoot(), 1)
             return (px + ux / l * r, py + uy / l * r)
         }
-        let start = toward(cx, cy, from: a.x, a.y, by: a.radius + 2)
-        let end = toward(cx, cy, from: b.x, b.y, by: b.radius + (edge.directed ? 3 : 2))
+        // A node of radius 0 is a bend point: the edge runs right up to it.
+        let start = toward(cx, cy, from: a.x, a.y, by: a.radius == 0 ? 0 : a.radius + 2)
+        let end = toward(cx, cy, from: b.x, b.y, by: b.radius == 0 ? 0 : b.radius + (edge.directed ? 3 : 2))
         func f(_ v: Double) -> String { String(Double(Int((v * 10).rounded())) / 10) }
         path = edge.bend == 0
             ? "M\(f(start.0)),\(f(start.1)) L\(f(end.0)),\(f(end.1))"

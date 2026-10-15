@@ -58,6 +58,7 @@ contents and the menu without a link.
 | `linkprediction` | `jaccardCoefficient(of:and:)`, `adamicAdarIndex(of:and:)` |
 | `layout` | `FruchtermanReingoldLayout(_:iterations:using:)` with `Xoshiro256StarStar`, `step()`, named graphs |
 | `spectral` | `spectralLayout()`, `fiedlerVector()`, `algebraicConnectivity`, `value(of:)`, `spectralOrdering()` |
+| `layered` | `sugiyamaLayout()`, `LayeredDrawing` (`layer(of:)`, `bends(ofEdgeAt:)`, `reversedEdges`, `crossingCount`), `RootedTree`, `reingoldTilfordLayout()`, `reingoldTilfordCircularLayout()` |
 
 ## Requirements
 
