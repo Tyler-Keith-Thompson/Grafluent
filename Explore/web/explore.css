@@ -384,6 +384,7 @@ figure.fig { margin: 0; }
 .qrow.cable.laid { background: color-mix(in srgb, var(--sign) 18%, var(--sheet)); }
 .qrow.cable.skipped { background: color-mix(in srgb, var(--danger) 14%, var(--sheet)); }
 .qrow.cable.later { color: var(--muted); background: transparent; border: 1px dashed var(--rule); }
+.dot.pal0 { background: var(--p0); border-color: var(--p0); }
 .dot.pal1 { background: var(--p1); border-color: var(--p1); }
 .qrow .fate { font-weight: 600; font-size: 13px; color: var(--muted); margin-left: .6em; }
 .qrow.top .fate { color: var(--signal-ink); }

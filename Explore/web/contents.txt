@@ -21,6 +21,7 @@ cliques|Cliques|Structure|Groups where everyone is connected.|page
 communities|Communities|Structure|Where a network splits into groups.|page
 girvannewman|Girvan–Newman|Structure|Communities by cutting the busiest links.|page
 flow|Maximum flow|Assignment|How much a network of pipes can carry.|page
+mincut|Minimum cut|Assignment|The fewest links to cut to split a network.|page
 matching|Bipartite matching|Assignment|Filling as many jobs as possible.|page
 coloring|Graph coloring|Assignment|Scheduling without clashes.|page
 edgecoloring|Edge coloring|Assignment|A round-robin schedule in the fewest rounds.|page

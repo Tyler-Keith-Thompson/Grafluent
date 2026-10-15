@@ -1,0 +1,29 @@
+<!-- title: Minimum cut · Explore Grafluent -->
+<!-- description: The fewest cables to cut to split an office network in two, with Grafluent’s minimumCut(capacity:) and a Gomory–Hu tree built one pair at a time. -->
+<header class="sign">
+  <h1>Minimum cut</h1>
+  <div class="say"><span>Say it</span><b>nah-gah-MOH-chee ee-bah-RAH-kee</b><span class="ipa">/naɡamotɕi ibaɾaki/</span></div>
+  <p class="question">What’s the fewest cables you’d have to cut to split a network in two?</p>
+</header>
+<p class="example lead">Example: eight offices joined by data links, each labelled with the number of cables in it. Cutting a link means cutting all its cables.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The network above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>The weakest place to split</h2>
+  <p>A <b>cut</b> splits the vertices into two non-empty groups; its value is the total capacity of the edges between them, here the cables. A <b>minimum cut</b> is the cheapest such split. It is how fragile the network is: the least an attacker, a digger or a storm has to break to cut someone off. Often it just isolates the most weakly connected office; here it is the few links between two clusters.</p>
+  <p>To keep two particular offices apart, the cheapest cut equals the most data that can flow between them, the max-flow min-cut theorem from <a href="flow.html">maximum flow</a>. Gomory and Hu showed that n − 1 such flows answer every pair at once: they fit in a tree on the same offices, and the fewest cables between any two is the lightest edge on their tree path. The timeline builds that tree one edge at a time, by Gusfield’s method, as <code>gomoryHuTree(capacity:)</code> does, so the cheapest cut overall is its lightest edge.</p>
+  <p>When no pair is given, <code>minimumCut(capacity:)</code> finds the cheapest split directly, without any flows: Nagamochi and Ibaraki’s method orders the vertices by how tightly each is tied to those before it, and merges any two whose tie is at least the best cut seen so far, since a cheaper cut can’t separate them. That runs in O(nm log n).</p>
+
+  <h2><small>Where it breaks</small>Cheapest isn’t always the split you want</h2>
+  <p>The minimum cut loves to cut off one poorly connected vertex. That is right for measuring fragility, and wrong for finding two balanced halves: a split into roughly equal sides with few edges between them is a different, much harder problem (balanced partitioning), and <a href="communities.html">community detection</a> is usually what people mean by it.</p>
+  <p>Capacities must not be negative. On a directed network, <code>minimumCut(capacity:)</code> counts only the edges leaving one side, and uses Hao and Orlin’s method instead; to separate two given vertices, use <code>minimumCut(from:to:capacity:)</code>.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

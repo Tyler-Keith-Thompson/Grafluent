@@ -34,6 +34,7 @@ contents and the menu without a link.
 | `communities` | `lazy.louvain()`, `louvainCommunities()`, `modularity(of:)` |
 | `girvannewman` | `girvanNewmanCommunities()`, `edgeBetweennessCentrality(normalized:)`, `connectedComponents()`, `modularity(of:)` |
 | `flow` | `lazy.edmondsKarp(from:to:capacity:)`, `edmondsKarpMaximumFlow(from:to:capacity:)`, `minimumCut` |
+| `mincut` | `minimumCut(capacity:)`, `gomoryHuTree(capacity:)`, `minimumCut(between:and:)` |
 | `matching` | `bipartition(left:)`, `maximumBipartiteMatching(bipartition:)` |
 | `coloring` | `greedyColoring(order:)`, `greedyColoring(strategy:)`, `chromaticNumber()`, `minimumColoring()` |
 | `edgecoloring` | `edgeColoring()`, `colorClasses`, `isEdgeColoring(_:)` |
