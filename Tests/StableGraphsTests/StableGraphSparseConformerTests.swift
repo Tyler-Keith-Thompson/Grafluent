@@ -54,11 +54,11 @@ struct StableGraphSparseConformerTests {
         let compacted = DirectedPseudograph<Int>(graph)
         #expect(wrapped.stronglyConnectedComponents().map { Array($0) } == graph.stronglyConnectedComponents().map { Array($0) })
         #expect(wrapped.weaklyConnectedComponents().map { Array($0) } == compacted.weaklyConnectedComponents().map { Array($0) })
-        #expect(Array(wrapped.depthFirstSearch()) == Array(graph.depthFirstSearch()))
+        #expect(Array(wrapped.lazy.depthFirstSearch()) == Array(graph.lazy.depthFirstSearch()))
         for vertex in graph.vertices {
             #expect(wrapped.descendants(of: vertex) == compacted.descendants(of: vertex))
             #expect(wrapped.ancestors(of: vertex) == compacted.ancestors(of: vertex))
-            #expect(Array(wrapped.breadthFirstSearch(from: vertex)) == Array(graph.breadthFirstSearch(from: vertex)))
+            #expect(Array(wrapped.lazy.breadthFirstSearch(from: vertex)) == Array(graph.lazy.breadthFirstSearch(from: vertex)))
             let dominators = wrapped.dominatorTree(root: vertex)
             let copyDominators = compacted.dominatorTree(root: vertex)
             let post = wrapped.postDominatorTree(exit: vertex)

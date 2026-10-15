@@ -42,7 +42,7 @@ struct SearchTreeTests {
             let tree = graph.breadthFirstTree(from: source)
             var discovered: [Int] = []
             var treeEdges: [DirectedEdge<Int>] = []
-            for event in graph.breadthFirstSearch(from: source) {
+            for event in graph.lazy.breadthFirstSearch(from: source) {
                 switch event {
                 case .discover(let v): discovered.append(v)
                 case .treeEdge(let e): treeEdges.append(e)
@@ -71,7 +71,7 @@ struct SearchTreeTests {
             let tree = graph.depthFirstTree(from: source)
             var discovered: [Int] = []
             var treeEdges: [DirectedEdge<Int>] = []
-            for event in graph.depthFirstSearch(from: source) {
+            for event in graph.lazy.depthFirstSearch(from: source) {
                 switch event {
                 case .discover(let v): discovered.append(v)
                 case .treeEdge(let e): treeEdges.append(e)
@@ -134,7 +134,7 @@ struct SearchTreeTests {
         let source = "a"
         let tree = graph.breadthFirstTree(from: source)
         var discovered: [String] = []
-        for case .discover(let v) in graph.breadthFirstSearch(from: source) { discovered.append(v) }
+        for case .discover(let v) in graph.lazy.breadthFirstSearch(from: source) { discovered.append(v) }
         #expect(Array(tree.vertices) == discovered)
         for v in discovered where v != source { #expect(graph.successors(of: tree.parent(of: v)!).contains(v)) }
         let dfs = graph.depthFirstTree(from: source)

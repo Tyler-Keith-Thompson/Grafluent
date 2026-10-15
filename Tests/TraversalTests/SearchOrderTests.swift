@@ -36,14 +36,14 @@ struct BreadthFirstLayerTests {
         #expect(graph.breadthFirstLayers(from: [0]) == [[0], [1], [2, 3], [4]])
         #expect(graph.breadthFirstLayers(from: [0, 0]) == [[0], [1], [2, 3], [4]])
         // TR-14: a repeated source is ignored by the search, too.
-        #expect(Array(graph.breadthFirstSearch(from: [0, 0])) == Array(graph.breadthFirstSearch(from: 0)))
+        #expect(Array(graph.lazy.breadthFirstSearch(from: [0, 0])) == Array(graph.lazy.breadthFirstSearch(from: 0)))
     }
 
     @Test("TR-15 no sources: no events and no layers")
     func noSources() {
         let graph = AdjacencyList(edges: DirectedFixture<Int>.house.edges)
-        #expect(Array(graph.breadthFirstSearch(from: [Int]())).isEmpty)
-        #expect(Array(graph.depthFirstSearch(from: [Int]())).isEmpty)
+        #expect(Array(graph.lazy.breadthFirstSearch(from: [Int]())).isEmpty)
+        #expect(Array(graph.lazy.depthFirstSearch(from: [Int]())).isEmpty)
         #expect(graph.breadthFirstLayers(from: [Int]()) == [])
     }
 
@@ -82,7 +82,7 @@ struct BreadthFirstLayerTests {
     func parents() {
         func parents<G: DirectedGraph>(_ g: G, from source: G.Vertex) -> [G.Vertex: G.Vertex] {
             var parent: [G.Vertex: G.Vertex] = [:]
-            for case .treeEdge(let edge) in g.breadthFirstSearch(from: source) { parent[edge.target] = edge.source }
+            for case .treeEdge(let edge) in g.lazy.breadthFirstSearch(from: source) { parent[edge.target] = edge.source }
             return parent
         }
         let house = DirectedFixture<Int>.house
@@ -116,7 +116,7 @@ struct BreadthFirstLayerTests {
         for source in graph.vertices {
             var depth = [source: 0]
             var discovered: [Int] = []
-            for event in graph.breadthFirstSearch(from: source) {
+            for event in graph.lazy.breadthFirstSearch(from: source) {
                 switch event {
                 case .discover(let v): discovered.append(v)
                 case .treeEdge(let edge): depth[edge.target] = depth[edge.source]! + 1
@@ -152,16 +152,16 @@ struct DepthFirstOrderTests {
             g += [DirectedEdge(from: a, to: b), DirectedEdge(from: b, to: a)]
         }
         let graph = CompressedSparseRow(vertexCount: 5, edges: g)
-        #expect(Array(graph.depthFirstSearch(from: 0).preorder) == [0, 1, 2, 4, 3])
-        #expect(Array(graph.depthFirstSearch(from: 0).postorder) == [4, 2, 3, 1, 0])
-        #expect(Array(graph.depthFirstSearch(from: 1).preorder) == [1, 0, 3, 4, 2])
+        #expect(Array(graph.lazy.depthFirstSearch(from: 0).preorder) == [0, 1, 2, 4, 3])
+        #expect(Array(graph.lazy.depthFirstSearch(from: 0).postorder) == [4, 2, 3, 1, 0])
+        #expect(Array(graph.lazy.depthFirstSearch(from: 1).preorder) == [1, 0, 3, 4, 2])
         var d: [DirectedEdge<Int>] = []
         for (a, b) in [(0, 1), (2, 3)] { d += [DirectedEdge(from: a, to: b), DirectedEdge(from: b, to: a)] }
         let disconnected = AdjacencyMatrix(vertexCount: 4, edges: d)
-        #expect(Array(disconnected.depthFirstSearch().preorder) == [0, 1, 2, 3])
-        #expect(Array(disconnected.depthFirstSearch().postorder) == [1, 0, 3, 2])
-        #expect(Array(disconnected.depthFirstSearch(from: 2).preorder) == [2, 3])
-        #expect(Array(disconnected.depthFirstSearch(from: 0).postorder) == [1, 0])
+        #expect(Array(disconnected.lazy.depthFirstSearch().preorder) == [0, 1, 2, 3])
+        #expect(Array(disconnected.lazy.depthFirstSearch().postorder) == [1, 0, 3, 2])
+        #expect(Array(disconnected.lazy.depthFirstSearch(from: 2).preorder) == [2, 3])
+        #expect(Array(disconnected.lazy.depthFirstSearch(from: 0).postorder) == [1, 0])
     }
 
     @Test("TR-54 / TR-55 tree edges match NetworkX's dfs_edges, in ascending and descending successor order")
@@ -174,16 +174,16 @@ struct DepthFirstOrderTests {
             g += [DirectedEdge(from: a, to: b), DirectedEdge(from: b, to: a)]
         }
         let ascending = AdjacencyMatrix(vertexCount: 5, edges: g)
-        #expect(treeEdges(ascending.depthFirstSearch(from: 0)) == [
+        #expect(treeEdges(ascending.lazy.depthFirstSearch(from: 0)) == [
             DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 4), DirectedEdge(from: 1, to: 3),
         ])
         let descending = ReferenceDirectedMultigraph(edges: g.sorted { ($0.source, $1.target) < ($1.source, $0.target) })
-        #expect(treeEdges(descending.depthFirstSearch(from: 0)) == [
+        #expect(treeEdges(descending.lazy.depthFirstSearch(from: 0)) == [
             DirectedEdge(from: 0, to: 4), DirectedEdge(from: 4, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 1, to: 3),
         ])
         // Depth-first successors from 1.
         var successors: [Int: [Int]] = [:]
-        for edge in treeEdges(ascending.depthFirstSearch(from: 1)) { successors[edge.source, default: []].append(edge.target) }
+        for edge in treeEdges(ascending.lazy.depthFirstSearch(from: 1)) { successors[edge.source, default: []].append(edge.target) }
         #expect(successors == [1: [0], 0: [3, 4], 4: [2]])
     }
 
@@ -191,18 +191,18 @@ struct DepthFirstOrderTests {
     func jgraphtIterator() {
         let pairs = [("1", "2"), ("1", "3"), ("2", "4"), ("3", "5"), ("3", "6"), ("5", "6"), ("5", "7"), ("6", "1"), ("7", "8"), ("7", "9"), ("8", "2"), ("9", "4")]
         let graph = ReferenceDirectedMultigraph(vertices: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "orphan"], edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(Array(graph.depthFirstSearch().preorder) == ["1", "2", "4", "3", "5", "6", "7", "8", "9", "orphan"])
-        #expect(Array(graph.depthFirstSearch().postorder) == ["4", "2", "6", "8", "9", "7", "5", "3", "1", "orphan"])
+        #expect(Array(graph.lazy.depthFirstSearch().preorder) == ["1", "2", "4", "3", "5", "6", "7", "8", "9", "orphan"])
+        #expect(Array(graph.lazy.depthFirstSearch().postorder) == ["4", "2", "6", "8", "9", "7", "5", "3", "1", "orphan"])
         // With the edges written in reverse, the preorder follows the reversed successor lists.
         let reversed = ReferenceDirectedMultigraph(vertices: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "orphan"], edges: pairs.reversed().map { DirectedEdge(from: $0.0, to: $0.1) })
-        #expect(Array(reversed.depthFirstSearch().preorder) == ["1", "3", "6", "5", "7", "9", "4", "8", "2", "orphan"])
+        #expect(Array(reversed.lazy.depthFirstSearch().preorder) == ["1", "3", "6", "5", "7", "9", "4", "8", "2", "orphan"])
     }
 
     @Test("TR-61 JGraphT's bug 1169182 graph")
     func jgraphtBug() {
         let pairs = [("A", "B"), ("B", "C"), ("C", "D"), ("C", "E"), ("C", "F"), ("C", "G"), ("C", "J"), ("D", "H"), ("E", "H"), ("F", "I"), ("G", "I"), ("H", "J"), ("I", "C"), ("J", "K"), ("K", "L")]
         let graph = ReferenceDirectedMultigraph(edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let search = graph.depthFirstSearch(from: "A")
+        let search = graph.lazy.depthFirstSearch(from: "A")
         #expect(search.preorder.joined() == "ABCDHJKLEFIG")
         #expect(search.postorder.joined() == "LKJHDEIFGCBA")
         var counts = [0, 0, 0, 0]
@@ -222,7 +222,7 @@ struct DepthFirstOrderTests {
 
     @Test("TR-64 preorder and postorder are the discover and finish events", .tags(.fixture), arguments: DirectedFixture<Int>.zeroBased)
     func ordersMatchEvents(_ fixture: DirectedFixture<Int>) {
-        let search = CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges).depthFirstSearch()
+        let search = CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges).lazy.depthFirstSearch()
         #expect(Array(search.preorder) == search.compactMap { if case .discover(let v) = $0 { v } else { nil } })
         #expect(Array(search.postorder) == search.compactMap { if case .finish(let v) = $0 { v } else { nil } })
         #expect(Set(search.preorder) == Set(0 ..< fixture.vertexCount))
@@ -238,21 +238,21 @@ struct SearchControlTests {
             edges += [DirectedEdge(from: a, to: b), DirectedEdge(from: b, to: a)]
         }
         let graph = AdjacencyMatrix(vertexCount: 11, edges: edges)
-        #expect(Array(graph.depthFirstSearch(from: 0, depthLimit: 2).preorder) == [0, 1, 2])
+        #expect(Array(graph.lazy.depthFirstSearch(from: 0, depthLimit: 2).preorder) == [0, 1, 2])
         // Every discovered vertex finishes, including the ones at the limit.
-        #expect(Array(graph.depthFirstSearch(from: 0, depthLimit: 2).postorder) == [2, 1, 0])
-        #expect(Array(graph.depthFirstSearch(from: 3, depthLimit: 3).preorder) == [3, 2, 1, 0, 7, 8, 4, 5, 6])
-        #expect(Array(graph.depthFirstSearch(from: 3, depthLimit: 3).postorder) == [0, 1, 8, 7, 2, 6, 5, 4, 3])
+        #expect(Array(graph.lazy.depthFirstSearch(from: 0, depthLimit: 2).postorder) == [2, 1, 0])
+        #expect(Array(graph.lazy.depthFirstSearch(from: 3, depthLimit: 3).preorder) == [3, 2, 1, 0, 7, 8, 4, 5, 6])
+        #expect(Array(graph.lazy.depthFirstSearch(from: 3, depthLimit: 3).postorder) == [0, 1, 8, 7, 2, 6, 5, 4, 3])
         func treeEdges(_ search: DepthFirstSearch<AdjacencyMatrix>) -> [DirectedEdge<Int>] {
             search.compactMap { if case .treeEdge(let edge) = $0 { edge } else { nil } }
         }
-        #expect(treeEdges(graph.depthFirstSearch(from: 9, depthLimit: 4)) == [
+        #expect(treeEdges(graph.lazy.depthFirstSearch(from: 9, depthLimit: 4)) == [
             DirectedEdge(from: 9, to: 8), DirectedEdge(from: 8, to: 7), DirectedEdge(from: 7, to: 2),
             DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 9, to: 10),
         ])
-        #expect(treeEdges(graph.depthFirstSearch(from: 3, depthLimit: 1)) == [DirectedEdge(from: 3, to: 2), DirectedEdge(from: 3, to: 4)])
+        #expect(treeEdges(graph.lazy.depthFirstSearch(from: 3, depthLimit: 1)) == [DirectedEdge(from: 3, to: 2), DirectedEdge(from: 3, to: 4)])
         var predecessors: [Int: Int] = [:]
-        for edge in treeEdges(graph.depthFirstSearch(from: 0, depthLimit: 3)) { predecessors[edge.target] = edge.source }
+        for edge in treeEdges(graph.lazy.depthFirstSearch(from: 0, depthLimit: 3)) { predecessors[edge.target] = edge.source }
         #expect(predecessors == [1: 0, 2: 1, 3: 2, 7: 2])
     }
 
@@ -261,10 +261,10 @@ struct SearchControlTests {
         let graph = CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges)
         for limit in [nil, 0, 1, 2, 3] as [Int?] {
             for source in graph.vertices {
-                let depthFirst = graph.depthFirstSearch(from: source, depthLimit: limit)
+                let depthFirst = graph.lazy.depthFirstSearch(from: source, depthLimit: limit)
                 #expect(Set(depthFirst.preorder) == Set(depthFirst.postorder))
                 #expect(Array(depthFirst.preorder).count == Array(depthFirst.postorder).count)
-                let breadthFirst = graph.breadthFirstSearch(from: source, depthLimit: limit)
+                let breadthFirst = graph.lazy.breadthFirstSearch(from: source, depthLimit: limit)
                 let discovered = breadthFirst.compactMap { if case .discover(let v) = $0 { v } else { nil } }
                 let finished = breadthFirst.compactMap { if case .finish(let v) = $0 { v } else { nil } }
                 #expect(discovered == finished)
@@ -276,7 +276,7 @@ struct SearchControlTests {
     func depthFirstPrune() {
         let edges = [(0, 5), (0, 2), (0, 3), (0, 1), (1, 3), (2, 3), (2, 4), (4, 0), (4, 5)].map { DirectedEdge(from: $0.0, to: $0.1) }
         let graph = CompressedSparseRow(vertexCount: 6, edges: edges)
-        var search = graph.depthFirstSearch(from: 0).makeIterator()
+        var search = graph.lazy.depthFirstSearch(from: 0).makeIterator()
         var events: [String] = []
         while let event = search.next() {
             events.append(event.description)
@@ -284,7 +284,7 @@ struct SearchControlTests {
         }
         // Pruning 2 means 4 is never seen.
         #expect(events.joined(separator: " ") == "discover(0) treeEdge(0→1) discover(1) treeEdge(1→3) discover(3) finish(3) finish(1) treeEdge(0→2) discover(2) finish(2) forwardEdge(0→3) treeEdge(0→5) discover(5) finish(5) finish(0)")
-        var root = graph.depthFirstSearch(from: 0).makeIterator()
+        var root = graph.lazy.depthFirstSearch(from: 0).makeIterator()
         var rootEvents: [String] = []
         while let event = root.next() {
             rootEvents.append(event.description)
@@ -297,7 +297,7 @@ struct SearchControlTests {
     func breadthFirstPrune() {
         let edges = [(0, 5), (0, 2), (0, 3), (0, 1), (1, 3), (2, 3), (2, 4), (4, 0), (4, 5)].map { DirectedEdge(from: $0.0, to: $0.1) }
         let graph = AdjacencyMatrix(vertexCount: 6, edges: edges)
-        var search = graph.breadthFirstSearch(from: 0).makeIterator()
+        var search = graph.lazy.breadthFirstSearch(from: 0).makeIterator()
         var events: [String] = []
         while let event = search.next() {
             events.append(event.description)
@@ -312,7 +312,7 @@ struct SearchControlTests {
         let graph = CompressedSparseRow(vertexCount: 6, edges: edges)
         var parent: [Int: Int] = [:]
         var consumed: [String] = []
-        for event in graph.depthFirstSearch(from: 0) {
+        for event in graph.lazy.depthFirstSearch(from: 0) {
             consumed.append(event.description)
             if case .treeEdge(let edge) = event {
                 parent[edge.target] = edge.source
@@ -328,25 +328,25 @@ struct SearchControlTests {
     @Test("TR-172 prune applies only right after a discover event", .tags(.precondition))
     func pruneOutsideADiscovery() async {
         await #expect(processExitsWith: .failure) {
-            var search = AdjacencyList(edges: DirectedFixture<Int>.house.edges).depthFirstSearch(from: 5).makeIterator()
+            var search = AdjacencyList(edges: DirectedFixture<Int>.house.edges).lazy.depthFirstSearch(from: 5).makeIterator()
             search.prune()
         }
         await #expect(processExitsWith: .failure) {
-            var search = AdjacencyList(edges: DirectedFixture<Int>.house.edges).depthFirstSearch(from: 5).makeIterator()
+            var search = AdjacencyList(edges: DirectedFixture<Int>.house.edges).lazy.depthFirstSearch(from: 5).makeIterator()
             _ = search.next()
             _ = search.next()
             // The last event was a tree edge.
             search.prune()
         }
         await #expect(processExitsWith: .failure) {
-            var search = CompressedSparseRow(vertexCount: 1).breadthFirstSearch(from: 0).makeIterator()
+            var search = CompressedSparseRow(vertexCount: 1).lazy.breadthFirstSearch(from: 0).makeIterator()
             _ = search.next()
             _ = search.next()
             // The last event was finish(0).
             search.prune()
         }
         await #expect(processExitsWith: .failure) {
-            var search = CompressedSparseRow(vertexCount: 1).breadthFirstSearch(from: 0).makeIterator()
+            var search = CompressedSparseRow(vertexCount: 1).lazy.breadthFirstSearch(from: 0).makeIterator()
             while search.next() != nil {}
             search.prune()
         }
@@ -356,7 +356,7 @@ struct SearchControlTests {
     func pruneJustDiscovered() {
         // In a probe, pruning after finish(0) used to prune vertex 2 instead.
         let graph = CompressedSparseRow(vertexCount: 4, edges: [(0, 1), (1, 2), (2, 3)].map { DirectedEdge(from: $0.0, to: $0.1) })
-        var search = graph.depthFirstSearch(from: 0).makeIterator()
+        var search = graph.lazy.depthFirstSearch(from: 0).makeIterator()
         var events: [String] = []
         while let event = search.next() {
             events.append(event.description)

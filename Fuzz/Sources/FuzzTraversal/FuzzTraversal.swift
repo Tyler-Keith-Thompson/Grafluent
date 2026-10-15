@@ -222,7 +222,7 @@ enum FuzzTraversal {
             var inDegree = [Int](repeating: 0, count: n)
             for (_, v) in pairs { inDegree[v] += 1 }
             var ready = Set<Int>(), emitted: [Int] = [], current = -1
-            for event in graph.kahnEvents() {
+            for event in graph.lazy.kahn() {
                 switch event {
                 case .ready(let v): check(inDegree[v] == 0 && ready.insert(v).inserted, "\(name): ready \(v)")
                 case .emit(let v):

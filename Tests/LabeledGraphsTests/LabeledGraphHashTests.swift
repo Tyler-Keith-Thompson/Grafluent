@@ -166,15 +166,15 @@ struct LabeledGraphHashTests {
             #expect(hashes { _ = graph.stronglyConnectedComponents() } == 0)
         }
         // The whole-graph depth-first search takes its roots in index order: no lookup at all.
-        #expect(hashes { _ = Array(sparse.depthFirstSearch()) } == 0)
-        #expect(hashes { _ = Array(full.depthFirstSearch()) } == 0)
-        #expect(hashes { _ = Array(matrix.depthFirstSearch()) } == 0)
-        #expect(hashes { full.depthFirstSearch().forEach { _ in } } == 0)
+        #expect(hashes { _ = Array(sparse.lazy.depthFirstSearch()) } == 0)
+        #expect(hashes { _ = Array(full.lazy.depthFirstSearch()) } == 0)
+        #expect(hashes { _ = Array(matrix.lazy.depthFirstSearch()) } == 0)
+        #expect(hashes { full.lazy.depthFirstSearch().forEach { _ in } } == 0)
         #expect(hashes { _ = matrix.topologicalSort() } == 0)
         #expect(hashes { _ = matrix.stronglyConnectedComponents() } == 0)
         // One source: a constant number of lookups, the same on the sparse and the dense graph.
         let searches: [(LabeledGraph<Counted, CompressedSparseRow>) -> Void] = [
-            { _ = Array($0.breadthFirstSearch(from: source)) },
+            { _ = Array($0.lazy.breadthFirstSearch(from: source)) },
             { _ = $0.breadthFirstLayers(from: source) },
             { _ = $0.shortestPaths(from: source).distance(toIndex: n - 1) },
             { _ = $0.dijkstraShortestPaths(from: source) { _ in 1 }.distance(toIndex: n - 1) },

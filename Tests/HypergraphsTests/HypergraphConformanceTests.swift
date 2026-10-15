@@ -54,8 +54,8 @@ struct HypergraphConformanceTests {
         #expect(view.articulationPoints() == copy.articulationPoints())
         // Traversal, through the directed reading.
         for source in view.vertices {
-            #expect(Array(view.directedView.breadthFirstSearch(from: source)) == Array(copy.directedView.breadthFirstSearch(from: source)))
-            #expect(Array(view.directedView.depthFirstSearch(from: source)) == Array(copy.directedView.depthFirstSearch(from: source)))
+            #expect(Array(view.directedView.lazy.breadthFirstSearch(from: source)) == Array(copy.directedView.lazy.breadthFirstSearch(from: source)))
+            #expect(Array(view.directedView.lazy.depthFirstSearch(from: source)) == Array(copy.directedView.lazy.depthFirstSearch(from: source)))
             #expect(view.directedView.descendants(of: source) == copy.directedView.descendants(of: source))
         }
         // ShortestPaths, with a weight per incidence (an edge position of the view).
@@ -118,8 +118,8 @@ struct HypergraphConformanceTests {
         #expect(view.topologicalSort() == copy.topologicalSort())
         let weight = (0 ..< view.edgeCount).map { ($0 &* 5 + seed) % 7 + 1 }
         for source in view.vertices {
-            #expect(Array(view.breadthFirstSearch(from: source)) == Array(copy.breadthFirstSearch(from: source)))
-            #expect(Array(view.depthFirstSearch(from: source)) == Array(copy.depthFirstSearch(from: source)))
+            #expect(Array(view.lazy.breadthFirstSearch(from: source)) == Array(copy.lazy.breadthFirstSearch(from: source)))
+            #expect(Array(view.lazy.depthFirstSearch(from: source)) == Array(copy.lazy.depthFirstSearch(from: source)))
             #expect(view.descendants(of: source) == copy.descendants(of: source))
             #expect(view.ancestors(of: source) == copy.ancestors(of: source))
             let tree = view.dijkstraShortestPaths(from: source) { weight[$0] }

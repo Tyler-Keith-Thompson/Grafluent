@@ -8,7 +8,7 @@ extension DirectedGraph {
     ///
     /// Vertices are listed in discovery order, `source` first, and edge positions follow them:
     /// edge k leads to the vertex at offset k + 1, so `edges` lists the tree edges in the
-    /// order `breadthFirstSearch(from:)` reports them. O(n + m) over the reached part; the
+    /// order `lazy.breadthFirstSearch(from:)` reports them. O(n + m) over the reached part; the
     /// vertices are hashed once, into the arborescence's lookup table, unless they come out as
     /// the `Int`s `0..<k` in order.
     ///
@@ -34,7 +34,7 @@ extension DirectedGraph {
     ///
     /// Vertices are listed in discovery order (preorder), `source` first, and edge positions
     /// follow them: edge k leads to the vertex at offset k + 1, so `edges` lists the tree
-    /// edges in the order `depthFirstSearch(from:)` reports them. O(n + m) over the reached part;
+    /// edges in the order `lazy.depthFirstSearch(from:)` reports them. O(n + m) over the reached part;
     /// the vertices are hashed once, into the arborescence's lookup table, unless they come out
     /// as the `Int`s `0..<k` in order.
     ///

@@ -55,7 +55,7 @@ struct ProductConformanceTests {
                 #expect(copy.predecessors(of: v).sorted() == product.predecessors(of: v).sorted(), "\(context)")
             }
             let weight = (0 ..< product.edgeCount).map { Int(UInt64($0) &* 2_654_435_761 % 7) + 1 }
-            #expect(Array(product.depthFirstSearch()) == Array(copy.depthFirstSearch()), "\(context)")
+            #expect(Array(product.lazy.depthFirstSearch()) == Array(copy.lazy.depthFirstSearch()), "\(context)")
             #expect(product.topologicalSort() == copy.topologicalSort(), "\(context)")
             #expect(product.stronglyConnectedComponents().map { Array($0) } == copy.stronglyConnectedComponents().map { Array($0) }, "\(context)")
             #expect(product.weaklyConnectedComponents().map { Array($0) } == copy.weaklyConnectedComponents().map { Array($0) }, "\(context)")
@@ -63,8 +63,8 @@ struct ProductConformanceTests {
             #expect(Array(product.condensation().graph.edges) == Array(copy.condensation().graph.edges), "\(context)")
             #expect(product.isStronglyConnected == copy.isStronglyConnected, "\(context)")
             for source in product.vertices {
-                #expect(Array(product.breadthFirstSearch(from: source)) == Array(copy.breadthFirstSearch(from: source)), "\(context)")
-                #expect(Array(product.depthFirstSearch(from: source)) == Array(copy.depthFirstSearch(from: source)), "\(context)")
+                #expect(Array(product.lazy.breadthFirstSearch(from: source)) == Array(copy.lazy.breadthFirstSearch(from: source)), "\(context)")
+                #expect(Array(product.lazy.depthFirstSearch(from: source)) == Array(copy.lazy.depthFirstSearch(from: source)), "\(context)")
                 #expect(product.breadthFirstLayers(from: source) == copy.breadthFirstLayers(from: source), "\(context)")
                 #expect(product.descendants(of: source) == copy.descendants(of: source), "\(context)")
                 #expect(product.ancestors(of: source) == copy.ancestors(of: source), "\(context)")
@@ -108,10 +108,10 @@ struct ProductConformanceTests {
                 for w in product.successors(of: v) { _ = copy.insert(edge: DirectedEdge(from: v, to: w)) }
             }
             #expect(copy.edgeCount == product.edgeCount, "\(context)")
-            #expect(Array(product.depthFirstSearch()) == Array(copy.depthFirstSearch()), "\(context)")
+            #expect(Array(product.lazy.depthFirstSearch()) == Array(copy.lazy.depthFirstSearch()), "\(context)")
             #expect(product.stronglyConnectedComponents().map { Array($0) } == copy.stronglyConnectedComponents().map { Array($0) }, "\(context)")
             for source in product.vertices {
-                #expect(Array(product.breadthFirstSearch(from: source)) == Array(copy.breadthFirstSearch(from: source)), "\(context)")
+                #expect(Array(product.lazy.breadthFirstSearch(from: source)) == Array(copy.lazy.breadthFirstSearch(from: source)), "\(context)")
                 #expect(product.descendants(of: source) == copy.descendants(of: source), "\(context)")
                 let hops = product.shortestPaths(from: source), copyHops = copy.shortestPaths(from: source)
                 for target in product.vertices {

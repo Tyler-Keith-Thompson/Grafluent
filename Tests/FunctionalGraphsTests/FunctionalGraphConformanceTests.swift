@@ -39,14 +39,14 @@ struct FunctionalGraphConformanceTests {
         #expect(graph.findCycle()?.edges.map { graph.source(ofEdgeAt: $0) } == pseudograph.findCycle()?.edges.map { pseudograph.source(ofEdgeAt: $0) })
         for s in 0 ..< n {
             #expect(graph.breadthFirstLayers(from: s) == pseudograph.breadthFirstLayers(from: s), "seed \(seed), source \(s)")
-            #expect(graph.breadthFirstSearch(from: s).map { "\($0)" } == pseudograph.breadthFirstSearch(from: s).map { "\($0)" }, "seed \(seed), source \(s)")
-            #expect(graph.depthFirstSearch(from: s).map { "\($0)" } == pseudograph.depthFirstSearch(from: s).map { "\($0)" }, "seed \(seed), source \(s)")
+            #expect(graph.lazy.breadthFirstSearch(from: s).map { "\($0)" } == pseudograph.lazy.breadthFirstSearch(from: s).map { "\($0)" }, "seed \(seed), source \(s)")
+            #expect(graph.lazy.depthFirstSearch(from: s).map { "\($0)" } == pseudograph.lazy.depthFirstSearch(from: s).map { "\($0)" }, "seed \(seed), source \(s)")
             #expect(graph.descendants(of: s) == pseudograph.descendants(of: s), "seed \(seed), source \(s)")
             for t in 0 ..< n where (s + t) % 5 == 0 {
                 #expect(graph.hasPath(from: s, to: t) == pseudograph.hasPath(from: s, to: t), "seed \(seed), \(s) → \(t)")
             }
         }
-        #expect(graph.depthFirstSearch().map { "\($0)" } == pseudograph.depthFirstSearch().map { "\($0)" })
+        #expect(graph.lazy.depthFirstSearch().map { "\($0)" } == pseudograph.lazy.depthFirstSearch().map { "\($0)" })
     }
 
     @Test("Connectivity and the decomposition agree with the pseudograph", arguments: 0 ..< 40)

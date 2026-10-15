@@ -1,4 +1,4 @@
-// Kahn's topological sort as an event sequence (`kahnEvents`): a hand-traced DAG with a parallel
+// Kahn's topological sort as an event sequence (`lazy.kahn()`): a hand-traced DAG with a parallel
 // copy and an isolated vertex on every representation, a cycle and a self-loop, the empty graph,
 // value semantics, and a property test replaying the events against `topologicalGenerations()`.
 // Case IDs (TR-nnn) refer to README.md.
@@ -39,8 +39,8 @@ struct KahnEventsTests {
             .emit(4),
         ]
         func check<G: DirectedGraph<Int>>(_ graph: G) where G.Edges.Index == Int {
-            #expect(Array(graph.kahnEvents()) == expected, "\(G.self)")
-            let emitted = graph.kahnEvents().compactMap { event -> Int? in if case .emit(let v) = event { v } else { nil } }
+            #expect(Array(graph.lazy.kahn()) == expected, "\(G.self)")
+            let emitted = graph.lazy.kahn().compactMap { event -> Int? in if case .emit(let v) = event { v } else { nil } }
             #expect(emitted == graph.topologicalGenerations()?.flatMap { $0 }, "\(G.self)")
         }
         check(DirectedPseudograph(vertices: 0 ..< 6, edges: edges))
@@ -57,25 +57,25 @@ struct KahnEventsTests {
             .emit(5), .emit(1), .removeEdge(2, inDegree: 1), .emit(2), .removeEdge(3, inDegree: 0), .ready(3),
             .emit(3), .removeEdge(4, inDegree: 0), .ready(4), .emit(4),
         ]
-        #expect(Array(AdjacencyList(vertices: 0 ..< 6, edges: simple).kahnEvents()) == simpleExpected)
-        #expect(Array(CompressedSparseRow(vertexCount: 6, edges: simple).kahnEvents()) == simpleExpected)
+        #expect(Array(AdjacencyList(vertices: 0 ..< 6, edges: simple).lazy.kahn()) == simpleExpected)
+        #expect(Array(CompressedSparseRow(vertexCount: 6, edges: simple).lazy.kahn()) == simpleExpected)
         #expect(expected[3].description == "removeEdge(0, 0)" && expected[2].description == "emit(0)" && expected[0].description == "ready(0)")
     }
 
     @Test("TR-281 a cycle or a self-loop stops the sort short; no vertices: no events", .tags(.selfLoops))
     func cycles() {
         let cycle = AdjacencyList(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 1), DirectedEdge(from: 2, to: 3)])
-        #expect(Array(cycle.kahnEvents()) == [.ready(0), .emit(0), .removeEdge(0, inDegree: 1)])
+        #expect(Array(cycle.lazy.kahn()) == [.ready(0), .emit(0), .removeEdge(0, inDegree: 1)])
         #expect(cycle.topologicalGenerations() == nil)
         let loop = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 0), DirectedEdge(from: 0, to: 1)])
-        #expect(Array(loop.kahnEvents()).isEmpty)
-        #expect(Array(AdjacencyList<Int>(vertices: []).kahnEvents()).isEmpty)
+        #expect(Array(loop.lazy.kahn()).isEmpty)
+        #expect(Array(AdjacencyList<Int>(vertices: []).lazy.kahn()).isEmpty)
     }
 
     @Test("TR-282 value semantics: a later insertion does not change the events; each iterator starts over; stopping early; String vertices")
     func valueSemantics() {
         var graph = AdjacencyList(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-        let events = graph.kahnEvents()
+        let events = graph.lazy.kahn()
         _ = graph.insert(edge: DirectedEdge(from: "b", to: "a"))
         let first = Array(events)
         #expect(first == [.ready("a"), .emit("a"), .removeEdge(0, inDegree: 0), .ready("b"), .emit("b")])
@@ -99,7 +99,7 @@ struct KahnEventsTests {
                 for (_, v) in pairs { inDegree[v] += 1 }
                 var ready = Set<Int>(), emitted: [Int] = []
                 var current = -1
-                for event in graph.kahnEvents() {
+                for event in graph.lazy.kahn() {
                     switch event {
                     case .ready(let v):
                         #expect(inDegree[v] == 0 && ready.insert(v).inserted, "\(name)")

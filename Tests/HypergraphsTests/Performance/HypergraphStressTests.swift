@@ -37,7 +37,7 @@ struct HypergraphStressTests {
             let view = hypergraph.incidenceGraphView
             #expect(view.vertexCount == n + m + 20 && view.edgeCount == sizes)
             #expect(view.connectedComponents().count == 20)
-            let reached = view.directedView.breadthFirstSearch(from: 0).reduce(0) { count, event in
+            let reached = view.directedView.lazy.breadthFirstSearch(from: 0).reduce(0) { count, event in
                 if case .discover = event { return count + 1 }
                 return count
             }

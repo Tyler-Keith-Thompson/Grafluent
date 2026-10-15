@@ -14,7 +14,7 @@ enum DepthFirstSearchEvent<Vertex>: discover, treeEdge, backEdge, forwardEdge, c
 struct BreadthFirstSearch<Graph>: Sequence      // Iterator.prune(); forEach (push)
 struct DepthFirstSearch<Graph>: Sequence        // Iterator.prune(); forEach (push); preorder, postorder
 
-extension DirectedGraph
+extension LazyDirectedGraphView                                // graph.lazy
     func breadthFirstSearch(from: Vertex | some Sequence<Vertex>, depthLimit: Int? = nil)
     func depthFirstSearch(from: Vertex | some Sequence<Vertex>, depthLimit: Int? = nil)
     func depthFirstSearch(depthLimit: Int? = nil)                 // the whole graph
@@ -25,8 +25,6 @@ extension DirectedGraph
     func hasPath(from:to:) -> Bool
     func topologicalSort() -> [Vertex]?                            // DFS reverse postorder; nil on a cycle
     func topologicalGenerations() -> [[Vertex]]?                   // Kahn's algorithm
-    func kahnEvents() -> KahnEvents<Self>                           // lazy; Element KahnEvent<Vertex, Edges.Index>:
-                                                                    // ready(v), emit(v), removeEdge(e, inDegree:)
     func lexicographicalTopologicalSort(by:) -> [Vertex]?          // and without `by:` for Comparable vertices
     func findCycle() -> Cycle<Vertex, Edges.Index>?                // the first back edge's cycle
     func findCycle(from:) -> Cycle<Vertex, Edges.Index>?           // only cycles reachable from roots
@@ -42,10 +40,13 @@ enum EdgeDepthFirstSearchEvent<Vertex, Edge>: discover, treeEdge, backEdge, forw
 struct EdgeBreadthFirstSearch<Graph>, EdgeDepthFirstSearch<Graph>: Sequence                  // Iterator.prune(); forEach (push)
 struct UndirectedEdgeBreadthFirstSearch<Graph>, UndirectedEdgeDepthFirstSearch<Graph>: Sequence  // the same
 
-extension DirectedGraph, Graph
+extension LazyDirectedGraphView, LazyGraphView                 // graph.lazy
     func edgeBreadthFirstSearch(from: Vertex | some Sequence<Vertex>, depthLimit: Int? = nil)
     func edgeDepthFirstSearch(from: Vertex | some Sequence<Vertex>, depthLimit: Int? = nil)
     func edgeDepthFirstSearch(depthLimit: Int? = nil)             // the whole graph
+extension LazyDirectedGraphView
+    func kahn() -> KahnEvents<Base>                                 // Element KahnEvent<Vertex, Edges.Index>:
+                                                                    // ready(v), emit(v), removeEdge(e, inDegree:)
 
 extension DirectedGraph, Graph
     func allSimplePaths(from: Vertex, to: Vertex | some Sequence<Vertex>, maxLength: Int = .max)   // lazy Paths
@@ -76,7 +77,7 @@ readable afterwards. `Connectivity`, `Flows` and `ShortestPaths` build on it.
 | Recursion | None: depth-first search and iterative deepening keep their own stacks, so a 100 000-vertex path does not overflow |
 | Iterative deepening | Only over a successor closure. On a stored graph, breadth-first or bidirectional search is never worse, and iterative deepening is exponential on graphs with many routes |
 | Events | Exactly these cases, no `finishEdge` |
-| Edge-position searches | `edgeBreadthFirstSearch` / `edgeDepthFirstSearch` report edges by position. Directed, the events are the endpoint search's, read through `source(ofEdgeAt:)` and `target(ofEdgeAt:)`. Undirected, each edge once, at the first row that reaches it: the tree edge is not reported again from below, a parallel edge to the parent is a back (non-tree) edge, a self-loop is reported once |
+| Edge-position searches | `lazy.edgeBreadthFirstSearch` / `lazy.edgeDepthFirstSearch` report edges by position. Directed, the events are the endpoint search's, read through `source(ofEdgeAt:)` and `target(ofEdgeAt:)`. Undirected, each edge once, at the first row that reaches it: the tree edge is not reported again from below, a parallel edge to the parent is a back (non-tree) edge, a self-loop is reported once |
 | Free functions | `breadthFirstSearch(from:successors:)` and friends are hidden by the methods of the same name inside a `DirectedGraph` extension; call them as `Traversal.breadthFirstSearch` there |
 | Per-vertex state | Arrays indexed in index space (`successorIndices`) when the graph has vertex indices; dictionaries otherwise |
 | Cycles | Topological sorts return `nil`; `findCycle()` returns the witness, a Walks `Cycle` rotated to start at the back edge's target, its edges the search's tree edges and back edge (the first out-edge between consecutive vertices; WK-1202, WK-1203, WK-1214, WK-1215) |

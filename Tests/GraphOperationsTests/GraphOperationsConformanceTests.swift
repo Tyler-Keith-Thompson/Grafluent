@@ -51,7 +51,7 @@ struct GraphOperationsConformanceTests {
             #expect(view.edges.map { $0 } == copy.edges.map { $0 }, "\(what)")
             #expect(view.edgeCount == copy.edgeCount && view.vertexCount == copy.vertexCount, "\(what)")
             #expect(view.topologicalSort() == copy.topologicalSort(), "\(what)")
-            #expect(Array(view.depthFirstSearch()) == Array(copy.depthFirstSearch()), "\(what)")
+            #expect(Array(view.lazy.depthFirstSearch()) == Array(copy.lazy.depthFirstSearch()), "\(what)")
             #expect(view.findCycle()?.vertices == copy.findCycle()?.vertices, "\(what)")
             #expect(view.findCycle()?.edges.map { ordinal[$0]! } == copy.findCycle()?.edges, "\(what)")
             #expect(view.stronglyConnectedComponents().map { Array($0) } == copy.stronglyConnectedComponents().map { Array($0) }, "\(what)")
@@ -61,8 +61,8 @@ struct GraphOperationsConformanceTests {
             #expect(view.attractingComponents().map { Array($0) } == copy.attractingComponents().map { Array($0) }, "\(what)")
             #expect(view.isStronglyConnected == copy.isStronglyConnected, "\(what)")
             for source in view.vertices {
-                #expect(Array(view.breadthFirstSearch(from: source)) == Array(copy.breadthFirstSearch(from: source)), "\(what) from \(source)")
-                #expect(Array(view.depthFirstSearch(from: source)) == Array(copy.depthFirstSearch(from: source)), "\(what) from \(source)")
+                #expect(Array(view.lazy.breadthFirstSearch(from: source)) == Array(copy.lazy.breadthFirstSearch(from: source)), "\(what) from \(source)")
+                #expect(Array(view.lazy.depthFirstSearch(from: source)) == Array(copy.lazy.depthFirstSearch(from: source)), "\(what) from \(source)")
                 #expect(view.breadthFirstLayers(from: source) == copy.breadthFirstLayers(from: source), "\(what) from \(source)")
                 #expect(view.descendants(of: source) == copy.descendants(of: source), "\(what) from \(source)")
                 #expect(view.ancestors(of: source) == copy.ancestors(of: source), "\(what) from \(source)")
@@ -138,8 +138,8 @@ struct GraphOperationsConformanceTests {
             #expect(view.articulationPoints() == copy.articulationPoints(), "\(what)")
             #expect(view.biEdgeConnectedComponents().map { Array($0) } == copy.biEdgeConnectedComponents().map { Array($0) }, "\(what)")
             for source in view.vertices {
-                #expect(Array(view.directedView.breadthFirstSearch(from: source)) == Array(copy.directedView.breadthFirstSearch(from: source)), "\(what) from \(source)")
-                #expect(Array(view.directedView.depthFirstSearch(from: source)) == Array(copy.directedView.depthFirstSearch(from: source)), "\(what) from \(source)")
+                #expect(Array(view.directedView.lazy.breadthFirstSearch(from: source)) == Array(copy.directedView.lazy.breadthFirstSearch(from: source)), "\(what) from \(source)")
+                #expect(Array(view.directedView.lazy.depthFirstSearch(from: source)) == Array(copy.directedView.lazy.depthFirstSearch(from: source)), "\(what) from \(source)")
                 #expect(view.directedView.descendants(of: source) == copy.directedView.descendants(of: source), "\(what) from \(source)")
                 let tree = view.dijkstraShortestPaths(from: source) { weight[ordinal[$0]!] }
                 let copyTree = copy.dijkstraShortestPaths(from: source) { weight[$0] }
@@ -268,8 +268,8 @@ struct GraphOperationsConformanceTests {
             #expect(view.stronglyConnectedComponents().map { Array($0) } == copy.stronglyConnectedComponents().map { Array($0) }, "\(what)")
             #expect(view.weaklyConnectedComponents().map { Array($0) } == copy.weaklyConnectedComponents().map { Array($0) }, "\(what)")
             for source in view.vertices {
-                #expect(Array(view.breadthFirstSearch(from: source)) == Array(copy.breadthFirstSearch(from: source)), "\(what) from \(source)")
-                #expect(Array(view.depthFirstSearch(from: source)) == Array(copy.depthFirstSearch(from: source)), "\(what) from \(source)")
+                #expect(Array(view.lazy.breadthFirstSearch(from: source)) == Array(copy.lazy.breadthFirstSearch(from: source)), "\(what) from \(source)")
+                #expect(Array(view.lazy.depthFirstSearch(from: source)) == Array(copy.lazy.depthFirstSearch(from: source)), "\(what) from \(source)")
                 let tree = view.dijkstraShortestPaths(from: source) { ordinal[$0]! % 4 + 1 }
                 let copyTree = copy.dijkstraShortestPaths(from: source) { $0 % 4 + 1 }
                 for target in view.vertices {

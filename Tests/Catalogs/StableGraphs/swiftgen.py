@@ -294,7 +294,7 @@ def call_lines(port, spec, op, t, ind="        "):
         return r, [ind + "#expect(graph.outDegree(of: %s) == %d)" % (v, r[0]), ind + "#expect(graph.inDegree(of: %s) == %d)" % (v, r[1]),
                    ind + "#expect(graph.degree(of: %s) == %d)" % (v, r[2])]
     if k == "bfs":
-        return r, [ind + "let discovered = graph.breadthFirstSearch(from: %s).compactMap { event -> %s? in" % (lit(op[1]), t),
+        return r, [ind + "let discovered = graph.lazy.breadthFirstSearch(from: %s).compactMap { event -> %s? in" % (lit(op[1]), t),
                    ind + "    if case .discover(let vertex) = event { return vertex }",
                    ind + "    return nil", ind + "}", ind + "#expect(discovered == %s)" % arr(r, t)]
     if k == "numbering":

@@ -37,11 +37,11 @@ struct LabeledGraphStressTests {
             #expect(graph.topologicalSort() == base.topologicalSort()?.map { labels[$0] })
             #expect(graph.weaklyConnectedComponents().count == 1)
             #expect(graph.stronglyConnectedComponents().count == n)
-            let discovered = graph.breadthFirstSearch(from: "v0").compactMap { event -> String? in
+            let discovered = graph.lazy.breadthFirstSearch(from: "v0").compactMap { event -> String? in
                 if case .discover(let v) = event { return v }
                 return nil
             }
-            let baseDiscovered = base.breadthFirstSearch(from: 0).compactMap { event -> Int? in
+            let baseDiscovered = base.lazy.breadthFirstSearch(from: 0).compactMap { event -> Int? in
                 if case .discover(let v) = event { return v }
                 return nil
             }

@@ -54,7 +54,7 @@ struct LabeledGraphConformanceTests {
         #expect(graph.edges.map { $0 } == base.edges.map { DirectedEdge(from: labels[$0.source], to: labels[$0.target]) })
         #expect(graph.topologicalSort() == base.topologicalSort()?.map { labels[$0] })
         #expect(graph.topologicalGenerations() == base.topologicalGenerations()?.map { $0.map { labels[$0] } })
-        #expect(Array(graph.depthFirstSearch()) == base.depthFirstSearch().map(dfs))
+        #expect(Array(graph.lazy.depthFirstSearch()) == base.lazy.depthFirstSearch().map(dfs))
         #expect(graph.weaklyConnectedComponents().map { Array($0) } == base.weaklyConnectedComponents().map { $0.map { labels[$0] } })
         #expect(graph.stronglyConnectedComponents().map { Array($0) } == base.stronglyConnectedComponents().map { $0.map { labels[$0] } })
         #expect(graph.condensation().components.map { Array($0) } == base.condensation().components.map { $0.map { labels[$0] } })
@@ -65,8 +65,8 @@ struct LabeledGraphConformanceTests {
         #expect(graph.findCycle()?.edges == base.findCycle()?.edges)
         let weight = (0 ..< graph.edgeCount).map { Int(UInt64($0) &* 2_654_435_761 % 9) + 1 }
         for (i, source) in labels.enumerated() {
-            #expect(Array(graph.breadthFirstSearch(from: source)) == base.breadthFirstSearch(from: i).map(bfs))
-            #expect(Array(graph.depthFirstSearch(from: source)) == base.depthFirstSearch(from: i).map(dfs))
+            #expect(Array(graph.lazy.breadthFirstSearch(from: source)) == base.lazy.breadthFirstSearch(from: i).map(bfs))
+            #expect(Array(graph.lazy.depthFirstSearch(from: source)) == base.lazy.depthFirstSearch(from: i).map(dfs))
             #expect(graph.breadthFirstLayers(from: source) == base.breadthFirstLayers(from: i).map { $0.map { labels[$0] } })
             #expect(graph.descendants(of: source) == Set(base.descendants(of: i).map { labels[$0] }))
             let tree = graph.dijkstraShortestPaths(from: source) { weight[$0] }
@@ -115,7 +115,7 @@ struct LabeledGraphConformanceTests {
         #expect(graph.condensation().components.map { Array($0) } == base.condensation().components.map { $0.map { labels[$0] } })
         let weight: (AdjacencyMatrix.Edges.Index) -> Int = { ($0.source * 7 + $0.target * 3) % 5 + 1 }
         for (i, source) in labels.enumerated() {
-            #expect(Array(graph.breadthFirstSearch(from: source)) == base.breadthFirstSearch(from: i).map(bfs))
+            #expect(Array(graph.lazy.breadthFirstSearch(from: source)) == base.lazy.breadthFirstSearch(from: i).map(bfs))
             #expect(graph.descendants(of: source) == Set(base.descendants(of: i).map { labels[$0] }))
             #expect(graph.ancestors(of: source) == Set(base.ancestors(of: i).map { labels[$0] }))
             let tree = graph.dijkstraShortestPaths(from: source, weight: weight)

@@ -237,29 +237,49 @@ public struct DepthFirstSearch<G: DirectedGraph>: Sequence {
 extension DepthFirstSearch: Sendable where G: Sendable, G.Vertex: Sendable {}
 extension DepthFirstSearch.Iterator: Sendable where G: Sendable, G.Vertex: Sendable, G.Vertices.Iterator: Sendable, G.SuccessorIndices.Iterator: Sendable, G.Successors.Iterator: Sendable {}
 
-extension DirectedGraph {
+extension LazyDirectedGraphView {
     /// A depth-first search from `source`.
     ///
     /// - Parameter depthLimit: When given, vertices at this depth are discovered and finished but
     ///   their out-edges are not reported.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
-    public func depthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> DepthFirstSearch<Self> {
-        DepthFirstSearch(graph: self, roots: [source], depthLimit: depthLimit)
+    public func depthFirstSearch(from source: Base.Vertex, depthLimit: Int? = nil) -> DepthFirstSearch<Base> {
+        DepthFirstSearch(graph: base, roots: [source], depthLimit: depthLimit)
     }
 
     /// A depth-first search from each of `roots` in turn, skipping a root already reached.
     ///
     /// - Precondition: every root is a vertex; `depthLimit` is not negative.
     @inlinable
-    public func depthFirstSearch(from roots: some Sequence<Vertex>, depthLimit: Int? = nil) -> DepthFirstSearch<Self> {
-        DepthFirstSearch(graph: self, roots: Array(roots), depthLimit: depthLimit)
+    public func depthFirstSearch(from roots: some Sequence<Base.Vertex>, depthLimit: Int? = nil) -> DepthFirstSearch<Base> {
+        DepthFirstSearch(graph: base, roots: Array(roots), depthLimit: depthLimit)
     }
 
     /// A depth-first search of the whole graph: each vertex not yet reached, in `vertices` order,
     /// starts a new tree.
     @inlinable
+    public func depthFirstSearch(depthLimit: Int? = nil) -> DepthFirstSearch<Base> {
+        DepthFirstSearch(graph: base, roots: nil, depthLimit: depthLimit)
+    }
+}
+
+extension DirectedGraph {
+    /// `lazy.depthFirstSearch(from:depthLimit:)`.
+    @inlinable
+    public func depthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> DepthFirstSearch<Self> {
+        lazy.depthFirstSearch(from: source, depthLimit: depthLimit)
+    }
+
+    /// `lazy.depthFirstSearch(from:depthLimit:)`.
+    @inlinable
+    public func depthFirstSearch(from roots: some Sequence<Vertex>, depthLimit: Int? = nil) -> DepthFirstSearch<Self> {
+        lazy.depthFirstSearch(from: roots, depthLimit: depthLimit)
+    }
+
+    /// `lazy.depthFirstSearch(depthLimit:)`.
+    @inlinable
     public func depthFirstSearch(depthLimit: Int? = nil) -> DepthFirstSearch<Self> {
-        DepthFirstSearch(graph: self, roots: nil, depthLimit: depthLimit)
+        lazy.depthFirstSearch(depthLimit: depthLimit)
     }
 }

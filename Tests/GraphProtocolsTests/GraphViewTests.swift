@@ -148,7 +148,7 @@ struct GraphViewTests {
     @Test("UG-C04 Traversal's breadth-first search runs on an undirected graph through the directed view")
     func traversalThroughView() {
         var distance: [Int: Int] = [0: 0]
-        for case .treeEdge(let arc) in UndirectedAdjacencyList(edges: UndirectedFixture<Int>.petersen.edges).directedView.breadthFirstSearch(from: 0) {
+        for case .treeEdge(let arc) in UndirectedAdjacencyList(edges: UndirectedFixture<Int>.petersen.edges).directedView.lazy.breadthFirstSearch(from: 0) {
             distance[arc.target] = distance[arc.source]! + 1
         }
         #expect(distance == [0: 0, 1: 1, 4: 1, 5: 1, 2: 2, 3: 2, 6: 2, 7: 2, 8: 2, 9: 2])

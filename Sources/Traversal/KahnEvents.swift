@@ -133,7 +133,7 @@ public struct KahnEvents<G: DirectedGraph>: Sequence {
     }
 }
 
-extension DirectedGraph {
+extension LazyDirectedGraphView {
     /// Kahn's topological sort as a sequence of events: each vertex ready, each emitted in order,
     /// and each edge removed with its target's in-edges left. See `KahnEvent` for the order.
     ///
@@ -142,5 +142,11 @@ extension DirectedGraph {
     ///
     /// - Complexity: O(n + m) to make the sequence and to iterate every event.
     @inlinable
-    public func kahnEvents() -> KahnEvents<Self> { KahnEvents(self) }
+    public func kahn() -> KahnEvents<Base> { KahnEvents(base) }
+}
+
+extension DirectedGraph {
+    /// `lazy.kahn()`.
+    @inlinable
+    public func kahnEvents() -> KahnEvents<Self> { lazy.kahn() }
 }

@@ -56,14 +56,14 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Traversal: breadthFirstSearch events on CompressedSparseRow, pushed with forEach") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            sparse.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
+            sparse.lazy.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
             blackHole(discovered)
         }
     }
     Benchmark("Traversal: depthFirstSearch events on CompressedSparseRow, pushed with forEach") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            sparse.depthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
+            sparse.lazy.depthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
             blackHole(discovered)
         }
     }
@@ -92,14 +92,14 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Traversal: breadthFirstSearch on AdjacencyList<String>, pushed with forEach") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            named.breadthFirstSearch(from: "v0").forEach { if case .discover = $0 { discovered += 1 } }
+            named.lazy.breadthFirstSearch(from: "v0").forEach { if case .discover = $0 { discovered += 1 } }
             blackHole(discovered)
         }
     }
     Benchmark("Traversal: breadthFirstSearch events on CompressedSparseRow, pulled with for-in") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            for case .discover in sparse.breadthFirstSearch(from: 0) { discovered += 1 }
+            for case .discover in sparse.lazy.breadthFirstSearch(from: 0) { discovered += 1 }
             blackHole(discovered)
         }
     }
@@ -118,7 +118,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Traversal: depthFirstSearch events on CompressedSparseRow, pulled with for-in") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            for case .discover in sparse.depthFirstSearch(from: 0) { discovered += 1 }
+            for case .discover in sparse.lazy.depthFirstSearch(from: 0) { discovered += 1 }
             blackHole(discovered)
         }
     }
@@ -127,14 +127,14 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Traversal: breadthFirstSearch on AdjacencyList, with successorIndices") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            for case .discover in list.breadthFirstSearch(from: 0) { discovered += 1 }
+            for case .discover in list.lazy.breadthFirstSearch(from: 0) { discovered += 1 }
             blackHole(discovered)
         }
     }
     Benchmark("Traversal: breadthFirstSearch on AdjacencyList, mapping each neighbor to its index") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            for case .discover in listWithoutIndices.breadthFirstSearch(from: 0) { discovered += 1 }
+            for case .discover in listWithoutIndices.lazy.breadthFirstSearch(from: 0) { discovered += 1 }
             blackHole(discovered)
         }
     }
@@ -148,7 +148,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Traversal: kahnEvents, every event, of a 1M-vertex path") { benchmark in
         for _ in benchmark.scaledIterations {
             var emitted = 0
-            for case .emit in path.kahnEvents() { emitted &+= 1 }
+            for case .emit in path.lazy.kahn() { emitted &+= 1 }
             blackHole(emitted)
         }
     }
@@ -157,7 +157,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Traversal: depth-first preorder of a 1M-vertex path") { benchmark in
         for _ in benchmark.scaledIterations {
             var count = 0
-            for _ in path.depthFirstSearch(from: 0).preorder { count += 1 }
+            for _ in path.lazy.depthFirstSearch(from: 0).preorder { count += 1 }
             blackHole(count)
         }
     }
@@ -255,28 +255,28 @@ let benchmarks: @Sendable () -> Void = {
         Benchmark("Traversal: edgeBreadthFirstSearch on \(name), pulled with for-in") { benchmark in
             for _ in benchmark.scaledIterations {
                 var positions = 0
-                for case .treeEdge(let e) in g.edgeBreadthFirstSearch(from: 0) { positions &+= e }
+                for case .treeEdge(let e) in g.lazy.edgeBreadthFirstSearch(from: 0) { positions &+= e }
                 blackHole(positions)
             }
         }
         Benchmark("Traversal: edgeBreadthFirstSearch on \(name), pushed with forEach") { benchmark in
             for _ in benchmark.scaledIterations {
                 var positions = 0
-                g.edgeBreadthFirstSearch(from: 0).forEach { if case .treeEdge(let e) = $0 { positions &+= e } }
+                g.lazy.edgeBreadthFirstSearch(from: 0).forEach { if case .treeEdge(let e) = $0 { positions &+= e } }
                 blackHole(positions)
             }
         }
         Benchmark("Traversal: edgeDepthFirstSearch on \(name), pulled with for-in") { benchmark in
             for _ in benchmark.scaledIterations {
                 var positions = 0
-                for case .treeEdge(let e) in g.edgeDepthFirstSearch(from: 0) { positions &+= e }
+                for case .treeEdge(let e) in g.lazy.edgeDepthFirstSearch(from: 0) { positions &+= e }
                 blackHole(positions)
             }
         }
         Benchmark("Traversal: edgeDepthFirstSearch on \(name), pushed with forEach") { benchmark in
             for _ in benchmark.scaledIterations {
                 var positions = 0
-                g.edgeDepthFirstSearch(from: 0).forEach { if case .treeEdge(let e) = $0 { positions &+= e } }
+                g.lazy.edgeDepthFirstSearch(from: 0).forEach { if case .treeEdge(let e) = $0 { positions &+= e } }
                 blackHole(positions)
             }
         }
@@ -286,21 +286,21 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Traversal: depthFirstSearch on AdjacencyList, pulled with for-in") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            for case .discover in list.depthFirstSearch(from: 0) { discovered += 1 }
+            for case .discover in list.lazy.depthFirstSearch(from: 0) { discovered += 1 }
             blackHole(discovered)
         }
     }
     Benchmark("Traversal: depthFirstSearch on AdjacencyList, pushed with forEach") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            list.depthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
+            list.lazy.depthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
             blackHole(discovered)
         }
     }
     Benchmark("Traversal: breadthFirstSearch on AdjacencyList, pushed with forEach") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            list.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
+            list.lazy.breadthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
             blackHole(discovered)
         }
     }
@@ -308,28 +308,28 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Traversal: edgeDepthFirstSearch on UndirectedAdjacencyList, pulled with for-in") { benchmark in
         for _ in benchmark.scaledIterations {
             var positions = 0
-            for case .treeEdge(let e) in undirected.edgeDepthFirstSearch(from: 0) { positions &+= e }
+            for case .treeEdge(let e) in undirected.lazy.edgeDepthFirstSearch(from: 0) { positions &+= e }
             blackHole(positions)
         }
     }
     Benchmark("Traversal: edgeDepthFirstSearch on UndirectedAdjacencyList, pushed with forEach") { benchmark in
         for _ in benchmark.scaledIterations {
             var positions = 0
-            undirected.edgeDepthFirstSearch(from: 0).forEach { if case .treeEdge(let e) = $0 { positions &+= e } }
+            undirected.lazy.edgeDepthFirstSearch(from: 0).forEach { if case .treeEdge(let e) = $0 { positions &+= e } }
             blackHole(positions)
         }
     }
     Benchmark("Traversal: depthFirstSearch on the directedView of UndirectedAdjacencyList, pulled with for-in") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            for case .discover in undirected.directedView.depthFirstSearch(from: 0) { discovered += 1 }
+            for case .discover in undirected.directedView.lazy.depthFirstSearch(from: 0) { discovered += 1 }
             blackHole(discovered)
         }
     }
     Benchmark("Traversal: depthFirstSearch on the directedView of UndirectedAdjacencyList, pushed with forEach") { benchmark in
         for _ in benchmark.scaledIterations {
             var discovered = 0
-            undirected.directedView.depthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
+            undirected.directedView.lazy.depthFirstSearch(from: 0).forEach { if case .discover = $0 { discovered += 1 } }
             blackHole(discovered)
         }
     }

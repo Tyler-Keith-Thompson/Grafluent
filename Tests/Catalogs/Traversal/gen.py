@@ -21,20 +21,20 @@ def fixture_test(id, title, fixture, call, compact, kind, vc=None):
         let expected = "{expand(compact)}"
         let matrix = AdjacencyMatrix(vertexCount: {vc}, edges: edges)
         let sparse = CompressedSparseRow(vertexCount: {vc}, edges: edges)
-        #expect(matrix.{call}.map(\\.description).joined(separator: " ") == expected)
-        #expect(sparse.{call}.map(\\.description).joined(separator: " ") == expected)''', kind))
+        #expect(matrix.lazy.{call}.map(\\.description).joined(separator: " ") == expected)
+        #expect(sparse.lazy.{call}.map(\\.description).joined(separator: " ") == expected)''', kind))
 def inline_test(id,title,n,edges,call,compact,kind,comment=None):
     c=f'        // {comment}\n' if comment else ''
     tests.append((id,title,f'''{c}        let edges = {edges_swift(edges)}
         let expected = "{expand(compact)}"
         let matrix = AdjacencyMatrix(vertexCount: {n}, edges: edges)
         let sparse = CompressedSparseRow(vertexCount: {n}, edges: edges)
-        #expect(matrix.{call}.map(\\.description).joined(separator: " ") == expected)
-        #expect(sparse.{call}.map(\\.description).joined(separator: " ") == expected)''',kind))
+        #expect(matrix.lazy.{call}.map(\\.description).joined(separator: " ") == expected)
+        #expect(sparse.lazy.{call}.map(\\.description).joined(separator: " ") == expected)''',kind))
 def multi_test(id,title,build,call,compact,kind,comment=None):
     c=f'        // {comment}\n' if comment else ''
     tests.append((id,title,f'''{c}        let graph = {build}
-        #expect(graph.{call}.map(\\.description).joined(separator: " ") == "{expand(compact)}")''',kind))
+        #expect(graph.lazy.{call}.map(\\.description).joined(separator: " ") == "{expand(compact)}")''',kind))
 B='bfs'; Dk='dfs'
 # A. BFS
 fixture_test('TR-01','a single vertex is discovered and finished','trivial','breadthFirstSearch(from: 0)','D0 X0',B, vc='1')
@@ -149,7 +149,7 @@ def edge_search_test(row):
     labels = []
     if 'from' in args: labels.append(f"from: {args['from']}")
     if 'depthLimit' in args: labels.append(f"depthLimit: {args['depthLimit']}")
-    call = f"edge{'DepthFirst' if search == 'dfs' else 'BreadthFirst'}Search({', '.join(labels)})"
+    call = f"lazy.edge{'DepthFirst' if search == 'dfs' else 'BreadthFirst'}Search({', '.join(labels)})"
     expected = edgeref.described(edgeref.transcript(row))
     body = f'        let graph = {host}({listed}edges: {written})\n'
     if 'prune' in args:

@@ -607,7 +607,7 @@ def show_op(op):
            "source": "source(ofEdgeAt: {})", "edgeAt": "edges[{}]", "vertexAtIndex": "vertex(atIndex: {})",
            "vertexIndex": "vertexIndex(of: {})", "edgeIndex": "edgeIndex(of: {})", "vertexAt": "vertices[{}]",
            "edgesIndicesContains": "edges.indices.contains({})", "verticesIndicesContains": "vertices.indices.contains({})",
-           "contains": "contains({})", "degrees": "degrees({})", "bfs": "breadthFirstSearch(from: {})"}
+           "contains": "contains({})", "degrees": "degrees({})", "bfs": "lazy.breadthFirstSearch(from: {})"}
     if k in two: return two[k].format(fmt(op[1]), fmt(op[2]))
     if k in one: return one[k].format(fmt(op[1]))
     return {"removeAll": "removeAll()", "removeAllEdges": "removeAllEdges()",

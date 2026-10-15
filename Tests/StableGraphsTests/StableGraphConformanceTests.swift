@@ -50,10 +50,10 @@ struct StableGraphConformanceTests {
             #expect(g.attractingComponents().map { Array($0) } == compacted.attractingComponents().map { Array($0) })
             #expect(g.isStronglyConnected == compacted.isStronglyConnected)
             #expect(g.topologicalSort() == compacted.topologicalSort())
-            #expect(Array(g.depthFirstSearch()) == Array(compacted.depthFirstSearch()))
+            #expect(Array(g.lazy.depthFirstSearch()) == Array(compacted.lazy.depthFirstSearch()))
             let weight = (0 ..< g.edges.endIndex).map { Int(UInt64($0) &* 2_654_435_761 % 9) + 1 }
             for source in g.vertices {
-                #expect(Array(g.breadthFirstSearch(from: source)) == Array(compacted.breadthFirstSearch(from: source)))
+                #expect(Array(g.lazy.breadthFirstSearch(from: source)) == Array(compacted.lazy.breadthFirstSearch(from: source)))
                 #expect(g.breadthFirstLayers(from: source) == compacted.breadthFirstLayers(from: source))
                 #expect(g.descendants(of: source) == compacted.descendants(of: source))
                 #expect(g.ancestors(of: source) == compacted.ancestors(of: source))

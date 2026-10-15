@@ -30,7 +30,7 @@ public func breadthFirstSearch<Vertex: Hashable, Successors: Sequence<Vertex>>(
     depthLimit: Int? = nil,
     successors: @escaping (Vertex) -> Successors
 ) -> some Sequence<BreadthFirstSearchEvent<Vertex>> {
-    _SuccessorFunctionGraph(successors).breadthFirstSearch(from: sources, depthLimit: depthLimit)
+    _SuccessorFunctionGraph(successors).lazy.breadthFirstSearch(from: sources, depthLimit: depthLimit)
 }
 
 /// A depth-first search over `successors`, from each of `sources` in turn. Lazy: on an infinite
@@ -41,7 +41,7 @@ public func depthFirstSearch<Vertex: Hashable, Successors: Sequence<Vertex>>(
     depthLimit: Int? = nil,
     successors: @escaping (Vertex) -> Successors
 ) -> some Sequence<DepthFirstSearchEvent<Vertex>> {
-    _SuccessorFunctionGraph(successors).depthFirstSearch(from: sources, depthLimit: depthLimit)
+    _SuccessorFunctionGraph(successors).lazy.depthFirstSearch(from: sources, depthLimit: depthLimit)
 }
 
 /// The states reachable from `roots` in topological order: the reverse of a depth-first postorder
@@ -53,7 +53,7 @@ public func topologicalSort<Vertex: Hashable, Successors: Sequence<Vertex>>(
 ) -> [Vertex]? {
     withoutActuallyEscaping(successors) { successors in
         var order: [Vertex] = []
-        for event in _SuccessorFunctionGraph(successors).depthFirstSearch(from: roots) {
+        for event in _SuccessorFunctionGraph(successors).lazy.depthFirstSearch(from: roots) {
             switch event {
             case .finish(let v): order.append(v)
             case .backEdge: return nil

@@ -27,11 +27,11 @@ struct ImplicitGraphConformanceTests {
         let pseudograph = DirectedPseudograph<Int>(vertices: 0 ..< n, edges: (0 ..< n).flatMap { v in rows[v].map { DirectedEdge(from: v, to: $0) } })
         #expect(graph.topologicalSort() == pseudograph.topologicalSort(), "seed \(seed)")
         #expect(graph.findCycle()?.vertices == pseudograph.findCycle()?.vertices, "seed \(seed)")
-        #expect(graph.depthFirstSearch().map { "\($0)" } == pseudograph.depthFirstSearch().map { "\($0)" }, "seed \(seed)")
+        #expect(graph.lazy.depthFirstSearch().map { "\($0)" } == pseudograph.lazy.depthFirstSearch().map { "\($0)" }, "seed \(seed)")
         for s in 0 ..< n {
             #expect(graph.breadthFirstLayers(from: s) == pseudograph.breadthFirstLayers(from: s), "seed \(seed), source \(s)")
-            #expect(graph.breadthFirstSearch(from: s).map { "\($0)" } == pseudograph.breadthFirstSearch(from: s).map { "\($0)" }, "seed \(seed), source \(s)")
-            #expect(graph.depthFirstSearch(from: s).map { "\($0)" } == pseudograph.depthFirstSearch(from: s).map { "\($0)" }, "seed \(seed), source \(s)")
+            #expect(graph.lazy.breadthFirstSearch(from: s).map { "\($0)" } == pseudograph.lazy.breadthFirstSearch(from: s).map { "\($0)" }, "seed \(seed), source \(s)")
+            #expect(graph.lazy.depthFirstSearch(from: s).map { "\($0)" } == pseudograph.lazy.depthFirstSearch(from: s).map { "\($0)" }, "seed \(seed), source \(s)")
             #expect(graph.descendants(of: s) == pseudograph.descendants(of: s), "seed \(seed), source \(s)")
             for t in 0 ..< n where (s + 2 * t) % 7 == 0 {
                 #expect(graph.hasPath(from: s, to: t) == pseudograph.hasPath(from: s, to: t), "seed \(seed), \(s) → \(t)")

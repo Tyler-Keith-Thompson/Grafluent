@@ -77,8 +77,8 @@ Undirected test graphs are written inline as symmetric edge lists (both directio
 | TR-11 | Same cycle with 0→2, 1→5, 2→5 and no loop | `D0 T0→1 D1 T0→2 D2 X0 N1→2 T1→5 D5 X1 T2→3 D3 N2→5 X2 X5 T3→4 D4 X3 N4→0 X4` (ref). NetworkX labels: 1→2 `level`, 2→5 `forward`, 4→0 `reverse` (nx) | nx-Tbfs:101-118 |
 | TR-12 | Multi-source: every source is discovered before any edge | symmetric K₃ from [0, 1] → `D0 D1 N0→1 T0→2 D2 X0 N1→0 N1→2 X1 N2→0 N2→1 X2`. NetworkX: `[(0,1,"level"), (0,2,"tree"), (1,2,"forward")]` | nx-bfs:526-530 (doctest); bgl-bfs:68-73 |
 | TR-13 | Multi-source on a DAG | `house` from [3, 4] → `D3 D4 T3→2 D2 N3→4 X3 T4→0 D0 T4→1 D1 X4 N2→1 X2 X0 N1→0 X1` (ref) | — |
-| TR-14 | Repeated sources are ignored | `breadthFirstSearch(from: [0, 0])` == `breadthFirstSearch(from: 0)` on TR-09's graph | nx-Tbfs:60-68 (`[0, 0]`) |
-| TR-15 | Empty sources: an empty sequence | `breadthFirstSearch(from: [Int]())` on `house` → `[]` | — |
+| TR-14 | Repeated sources are ignored | `lazy.breadthFirstSearch(from: [0, 0])` == `lazy.breadthFirstSearch(from: 0)` on TR-09's graph | nx-Tbfs:60-68 (`[0, 0]`) |
+| TR-15 | Empty sources: an empty sequence | `lazy.breadthFirstSearch(from: [Int]())` on `house` → `[]` | — |
 | TR-16 | Discovery order, ascending successors | NetworkX `bfs_edges` sorted DiGraph 0→1, 0→2, 1→4, 1→3, 2→5 → tree edges `[(0,1), (0,2), (1,3), (1,4), (2,5)]`. With successors in descending order (a Multigraph whose edges are written descending) → `[(0,2), (0,1), (2,5), (1,4), (1,3)]` | nx-Tbfs:43-50 |
 | TR-17 | BFS over predecessors equals NetworkX `reverse=True` | DiGraph 0→1, 1→2, 1→3, 2→4, 3→4. BFS from 4 on the reversed edge list → tree edges `[(4,2), (4,3), (2,1), (1,0)]` (nx) | nx-Tbfs:37-41 |
 | TR-18 | String vertices on the Multigraph (written order is ascending here) | `petgraphDAG` from "a" → `Da Ta→b Db Ta→d Dd Xa Tb→c Dc Tb→e De Xb Nd→b Nd→e Td→f Df Xd Nc→e Xc Te→g Dg Xe Nf→e Nf→g Xf Xg` (ref) | petgraph tests/graph.rs DAG |
@@ -116,7 +116,7 @@ All on `AdjacencyMatrix` and `CompressedSparseRow` unless stated.
 | TR-38 | All four classes in one search | `petgraphEdgesDirected` from 0 → `D0 T0→1 D1 T1→3 D3 X3 X1 T0→2 D2 C2→3 T2→4 D4 B4→0 X4 X2 F0→3 T0→5 D5 X5 X0` (ref) | petgraph fixture |
 | TR-39 | petgraph `dfs_visit` graph (0→5, 0→2, 0→3, 0→1, 1→3, 2→3, 2→4, 4→0, 4→5) | from 0 → `D0 T0→1 D1 T1→3 D3 X3 X1 T0→2 D2 C2→3 T2→4 D4 B4→0 T4→5 D5 X5 X4 X2 F0→3 F0→5 X0`. CLRS times (1-based): d = `0:1, 1:2, 3:3, 2:6, 4:7, 5:8`; f = `3:4, 1:5, 5:9, 4:10, 2:11, 0:12` (ref) | pg-T:2200-2297 |
 | TR-40 | NetworkX `TestDFS` graph, symmetric 0–1, 1–2, 1–3, 2–4, 3–0, 0–4, from 0 | `D0 T0→1 D1 B1→0 T1→2 D2 B2→1 T2→4 D4 B4→0 B4→2 X4 X2 T1→3 D3 B3→0 B3→1 X3 X1 F0→3 F0→4 X0`. Back and forward edges are exactly NetworkX's `nontree` labels in the same positions (nx-Tdfs:67-90) | nx-Tdfs:67-90 |
-| TR-41 | Disconnected, whole graph | NetworkX D = 0–1, 2–3 (symmetric), `depthFirstSearch()` → `D0 T0→1 D1 B1→0 X1 X0 D2 T2→3 D3 B3→2 X3 X2` (cf. nx-Tdfs:139-154) | nx-Tdfs:139-154 |
+| TR-41 | Disconnected, whole graph | NetworkX D = 0–1, 2–3 (symmetric), `lazy.depthFirstSearch()` → `D0 T0→1 D1 B1→0 X1 X0 D2 T2→3 D3 B3→2 X3 X2` (cf. nx-Tdfs:139-154) | nx-Tdfs:139-154 |
 | TR-42 | Reciprocal edge and triangle | `triangleWithReciprocalEdge` from 1 → `D1 T1→2 D2 B2→1 T2→3 D3 B3→1 X3 X2 X1` (ref) | JGraphT fixture |
 | TR-43 | Directed cycle: exactly one back edge, closing the cycle | `directedCycle4` from 1 → `D1 T1→2 D2 T2→3 D3 T3→4 D4 B4→1 X4 X3 X2 X1` | JGraphT fixture |
 | TR-44 | DAG with forward and cross edges | `neo4jDirected` from 0 → `D0 T0→1 D1 T1→2 D2 T2→4 D4 X4 X2 T1→3 D3 C3→4 X3 X1 F0→2 X0` (ref) | neo4j fixture |
@@ -297,7 +297,7 @@ Random graphs: `SeededRandomNumberGenerator` (`GF:Tests/GrafluentTestSupport/See
 | TR-164 | A conformer **without** vertex indices (`vertexIndexBound == nil`, so `successorIndices` is never called) still traverses, on dictionary state; a conformer with indices but no `successorIndices` of its own gets the default | a test-local minimal conformer (as in `DirectedGraphDefaultTests.swift`) on `house` → TR-06's transcript | — |
 | TR-165 | A second generic layer reaches the representation's own `successorIndices` | `func run<G: DirectedGraph>(_ g: G)` calling `g.breadthFirstSearch` inside another generic function; hash count as TR-162 | `GF:Tests/GraphProtocolsTests/README.md:70` |
 | TR-166 | Existentials through implicit opening | `func preorder(_ g: some DirectedGraph<Int>) -> [Int]` called with each of AL, AM, CSR, Multigraph as `any DirectedGraph<Int>` on `house` from 5 → each representation's preorder; `descendants(of:)` and `topologicalOrdering()` called directly on the existential | GF DG-A12 |
-| TR-167 | Value semantics: the search holds a copy | `var g = AdjacencyList(house)`; `let s = g.depthFirstSearch(from: 5)`; then `g.insertEdge(0→5)`; `Array(s)` has no back edge, and a new search has one | contrast nx-Tdag:221-250 |
+| TR-167 | Value semantics: the search holds a copy | `var g = AdjacencyList(house)`; `let s = g.lazy.depthFirstSearch(from: 5)`; then `g.insertEdge(0→5)`; `Array(s)` has no back edge, and a new search has one | contrast nx-Tdag:221-250 |
 | TR-168 | `Sendable` | a `DepthFirstSearch<CompressedSparseRow>` and its events cross into a `Task`; compile-time check | — |
 | TR-169 | Overloads: `from: "a"` with `String` vertices picks the single-source overload; `from: ["a", "d"]` the sequence one | `petgraphDAG` | — |
 | TR-170 | A source that is not a vertex traps | `processExitsWith: .failure` for BFS, DFS, `descendants`, `hasPath` on `house` with 9 | nx-Tbfs:70-74 |
@@ -307,7 +307,7 @@ Random graphs: `SeededRandomNumberGenerator` (`GF:Tests/GrafluentTestSupport/See
 
 ### P. Edge-position searches
 
-`edgeBreadthFirstSearch` and `edgeDepthFirstSearch` report the same events as the endpoint
+`lazy.edgeBreadthFirstSearch` and `lazy.edgeDepthFirstSearch` report the same events as the endpoint
 searches, with each edge given by its position in `edges` (NetworkX's `edge_dfs`/`edge_bfs` yield
 `(u, v, key)` for the same reason). Directed, the transcript read back through
 `source(ofEdgeAt:)` and `target(ofEdgeAt:)` is the endpoint search's. Undirected, each edge is
@@ -321,28 +321,28 @@ and `N#`; `D v` and `X v` are as above. Positions are offsets into the written e
 
 | ID | Asserts | Graph and call → expected | Source |
 |---|---|---|---|
-| TR-200 | A repeated tree edge is a forward edge at its own position | ReferenceDirectedMultigraph, edges `0→1, 0→1, 1→0`; `edgeDepthFirstSearch()` → `D0 T#0 D1 B#2 X1 F#1 X0` | edges.py |
-| TR-200 | A repeated edge is a non-tree edge at its own position | ReferenceDirectedMultigraph, edges `0→1, 0→1, 1→0`; `edgeBreadthFirstSearch(from: 0)` → `D0 T#0 D1 N#1 X0 N#2 X1` | edges.py |
-| TR-201 | Each copy of a directed self-loop is a back edge | ReferenceDirectedMultigraph, edges `0→0, 0→0`, vertices `[0, 1]` listed first; `edgeDepthFirstSearch()` → `D0 B#0 B#1 X0 D1 X1` | edges.py |
-| TR-201 | Each copy of a directed self-loop is a non-tree edge | ReferenceDirectedMultigraph, edges `0→0, 0→0`, vertices `[0, 1]` listed first; `edgeBreadthFirstSearch(from: 0)` → `D0 N#0 N#1 X0` | edges.py |
-| TR-202 | A tripled cross edge, each copy at its position | ReferenceDirectedMultigraph, edges `0→1, 1→0, 2→1, 2→1, 2→1, 1→1`; `edgeDepthFirstSearch()` → `D0 T#0 D1 B#1 B#5 X1 X0 D2 C#2 C#3 C#4 X2` | edges.py |
-| TR-203 | A directed depth limit | ReferenceDirectedMultigraph, edges `0→1, 1→2, 0→2, 2→0, 1→1`; `edgeDepthFirstSearch(from: 0, depthLimit: 1)` → `D0 T#0 D1 X1 T#2 D2 X2 X0` | edges.py |
-| TR-203 | A directed breadth-first depth limit | ReferenceDirectedMultigraph, edges `0→1, 1→2, 0→2, 2→0, 1→1`; `edgeBreadthFirstSearch(from: 0, depthLimit: 1)` → `D0 T#0 D1 T#2 D2 X0 X1 X2` | edges.py |
-| TR-204 | The tree edge is reported once; a parallel edge to the parent is a back edge | ReferencePseudograph, edges `0–1, 0–1`; `edgeDepthFirstSearch(from: 0)` → `D0 T#0 D1 B#1 X1 X0` | edges.py |
-| TR-204 | The tree edge is reported once; a parallel edge to the parent is a non-tree edge | ReferencePseudograph, edges `0–1, 0–1`; `edgeBreadthFirstSearch(from: 0)` → `D0 T#0 D1 N#1 X0 X1` | edges.py |
-| TR-205 | An undirected self-loop is one back edge | ReferencePseudograph, edges `0–0, 0–1, 0–0`; `edgeDepthFirstSearch(from: 0)` → `D0 B#0 T#1 D1 X1 B#2 X0` | edges.py |
-| TR-205 | An undirected self-loop is one non-tree edge | ReferencePseudograph, edges `0–0, 0–1, 0–0`; `edgeBreadthFirstSearch(from: 0)` → `D0 N#0 T#1 D1 N#2 X0 X1` | edges.py |
-| TR-206 | A triangle with a doubled side and a loop: tree and back edges only | ReferencePseudograph, edges `0–1, 1–2, 2–0, 1–2, 2–2`; `edgeDepthFirstSearch(from: 0)` → `D0 T#0 D1 T#1 D2 B#2 B#3 B#4 X2 X1 X0` | edges.py |
-| TR-206 | A triangle with a doubled side and a loop, breadth-first | ReferencePseudograph, edges `0–1, 1–2, 2–0, 1–2, 2–2`; `edgeBreadthFirstSearch(from: 0)` → `D0 T#0 D1 T#2 D2 X0 N#1 N#3 X1 N#4 X2` | edges.py |
-| TR-207 | Each edge once, reported from the end that reaches it first | ReferencePseudograph, edges `0–1, 1–2, 1–3, 2–4, 3–0, 0–4`; `edgeDepthFirstSearch(from: 0)` → `D0 T#0 D1 T#1 D2 T#3 D4 B#5 X4 X2 T#2 D3 B#4 X3 X1 X0` | edges.py |
-| TR-207 | Each edge once, from the end explored first | ReferencePseudograph, edges `0–1, 1–2, 1–3, 2–4, 3–0, 0–4`; `edgeBreadthFirstSearch(from: 0)` → `D0 T#0 D1 T#4 D3 T#5 D4 X0 T#1 D2 N#2 X1 X3 N#3 X4 X2` | edges.py |
-| TR-208 | The whole of a disconnected undirected graph | ReferencePseudograph, edges `0–1, 2–3, 3–4, 4–2, 2–3`, vertices `[5]` listed first; `edgeDepthFirstSearch()` → `D5 X5 D0 T#0 D1 X1 X0 D2 T#1 D3 T#2 D4 B#3 X4 B#4 X3 X2` | edges.py |
-| TR-209 | An undirected depth limit leaves forward and cross edges | ReferencePseudograph, edges `0–1, 1–2, 0–3, 3–2, 0–2`; `edgeDepthFirstSearch(from: 0, depthLimit: 2)` → `D0 T#0 D1 T#1 D2 X2 X1 T#2 D3 C#3 X3 F#4 X0` | edges.py |
-| TR-209 | An undirected breadth-first depth limit | ReferencePseudograph, edges `0–1, 1–2, 0–3, 3–2, 0–2`; `edgeBreadthFirstSearch(from: 0, depthLimit: 1)` → `D0 T#0 D1 T#2 D3 T#4 D2 X0 X1 X3 X2` | edges.py |
-| TR-210 | An edge to a pruned vertex is reported from its other end | ReferencePseudograph, edges `0–1, 1–2, 2–0, 1–1`; `edgeDepthFirstSearch(from: 0)`, prune at `discover(1)` → `D0 T#0 D1 X1 T#2 D2 C#1 X2 X0` | edges.py |
-| TR-210 | An edge to a pruned vertex is reported from its other end, breadth-first | ReferencePseudograph, edges `0–1, 1–2, 2–0, 1–1`; `edgeBreadthFirstSearch(from: 0)`, prune at `discover(1)` → `D0 T#0 D1 T#2 D2 X0 X1 N#1 X2` | edges.py |
-| TR-211 | Several roots; a reached root is skipped | ReferencePseudograph, edges `0–1, 2–3, 1–0`; `edgeDepthFirstSearch(from: [2, 1, 3, 0])` → `D2 T#1 D3 X3 X2 D1 T#0 D0 B#2 X0 X1` | edges.py |
-| TR-211 | Several sources, all discovered first | ReferencePseudograph, edges `0–1, 1–2, 2–0, 2–3`; `edgeBreadthFirstSearch(from: [0, 2])` → `D0 D2 T#0 D1 N#2 X0 N#1 T#3 D3 X2 X1 X3` | edges.py |
+| TR-200 | A repeated tree edge is a forward edge at its own position | ReferenceDirectedMultigraph, edges `0→1, 0→1, 1→0`; `lazy.edgeDepthFirstSearch()` → `D0 T#0 D1 B#2 X1 F#1 X0` | edges.py |
+| TR-200 | A repeated edge is a non-tree edge at its own position | ReferenceDirectedMultigraph, edges `0→1, 0→1, 1→0`; `lazy.edgeBreadthFirstSearch(from: 0)` → `D0 T#0 D1 N#1 X0 N#2 X1` | edges.py |
+| TR-201 | Each copy of a directed self-loop is a back edge | ReferenceDirectedMultigraph, edges `0→0, 0→0`, vertices `[0, 1]` listed first; `lazy.edgeDepthFirstSearch()` → `D0 B#0 B#1 X0 D1 X1` | edges.py |
+| TR-201 | Each copy of a directed self-loop is a non-tree edge | ReferenceDirectedMultigraph, edges `0→0, 0→0`, vertices `[0, 1]` listed first; `lazy.edgeBreadthFirstSearch(from: 0)` → `D0 N#0 N#1 X0` | edges.py |
+| TR-202 | A tripled cross edge, each copy at its position | ReferenceDirectedMultigraph, edges `0→1, 1→0, 2→1, 2→1, 2→1, 1→1`; `lazy.edgeDepthFirstSearch()` → `D0 T#0 D1 B#1 B#5 X1 X0 D2 C#2 C#3 C#4 X2` | edges.py |
+| TR-203 | A directed depth limit | ReferenceDirectedMultigraph, edges `0→1, 1→2, 0→2, 2→0, 1→1`; `lazy.edgeDepthFirstSearch(from: 0, depthLimit: 1)` → `D0 T#0 D1 X1 T#2 D2 X2 X0` | edges.py |
+| TR-203 | A directed breadth-first depth limit | ReferenceDirectedMultigraph, edges `0→1, 1→2, 0→2, 2→0, 1→1`; `lazy.edgeBreadthFirstSearch(from: 0, depthLimit: 1)` → `D0 T#0 D1 T#2 D2 X0 X1 X2` | edges.py |
+| TR-204 | The tree edge is reported once; a parallel edge to the parent is a back edge | ReferencePseudograph, edges `0–1, 0–1`; `lazy.edgeDepthFirstSearch(from: 0)` → `D0 T#0 D1 B#1 X1 X0` | edges.py |
+| TR-204 | The tree edge is reported once; a parallel edge to the parent is a non-tree edge | ReferencePseudograph, edges `0–1, 0–1`; `lazy.edgeBreadthFirstSearch(from: 0)` → `D0 T#0 D1 N#1 X0 X1` | edges.py |
+| TR-205 | An undirected self-loop is one back edge | ReferencePseudograph, edges `0–0, 0–1, 0–0`; `lazy.edgeDepthFirstSearch(from: 0)` → `D0 B#0 T#1 D1 X1 B#2 X0` | edges.py |
+| TR-205 | An undirected self-loop is one non-tree edge | ReferencePseudograph, edges `0–0, 0–1, 0–0`; `lazy.edgeBreadthFirstSearch(from: 0)` → `D0 N#0 T#1 D1 N#2 X0 X1` | edges.py |
+| TR-206 | A triangle with a doubled side and a loop: tree and back edges only | ReferencePseudograph, edges `0–1, 1–2, 2–0, 1–2, 2–2`; `lazy.edgeDepthFirstSearch(from: 0)` → `D0 T#0 D1 T#1 D2 B#2 B#3 B#4 X2 X1 X0` | edges.py |
+| TR-206 | A triangle with a doubled side and a loop, breadth-first | ReferencePseudograph, edges `0–1, 1–2, 2–0, 1–2, 2–2`; `lazy.edgeBreadthFirstSearch(from: 0)` → `D0 T#0 D1 T#2 D2 X0 N#1 N#3 X1 N#4 X2` | edges.py |
+| TR-207 | Each edge once, reported from the end that reaches it first | ReferencePseudograph, edges `0–1, 1–2, 1–3, 2–4, 3–0, 0–4`; `lazy.edgeDepthFirstSearch(from: 0)` → `D0 T#0 D1 T#1 D2 T#3 D4 B#5 X4 X2 T#2 D3 B#4 X3 X1 X0` | edges.py |
+| TR-207 | Each edge once, from the end explored first | ReferencePseudograph, edges `0–1, 1–2, 1–3, 2–4, 3–0, 0–4`; `lazy.edgeBreadthFirstSearch(from: 0)` → `D0 T#0 D1 T#4 D3 T#5 D4 X0 T#1 D2 N#2 X1 X3 N#3 X4 X2` | edges.py |
+| TR-208 | The whole of a disconnected undirected graph | ReferencePseudograph, edges `0–1, 2–3, 3–4, 4–2, 2–3`, vertices `[5]` listed first; `lazy.edgeDepthFirstSearch()` → `D5 X5 D0 T#0 D1 X1 X0 D2 T#1 D3 T#2 D4 B#3 X4 B#4 X3 X2` | edges.py |
+| TR-209 | An undirected depth limit leaves forward and cross edges | ReferencePseudograph, edges `0–1, 1–2, 0–3, 3–2, 0–2`; `lazy.edgeDepthFirstSearch(from: 0, depthLimit: 2)` → `D0 T#0 D1 T#1 D2 X2 X1 T#2 D3 C#3 X3 F#4 X0` | edges.py |
+| TR-209 | An undirected breadth-first depth limit | ReferencePseudograph, edges `0–1, 1–2, 0–3, 3–2, 0–2`; `lazy.edgeBreadthFirstSearch(from: 0, depthLimit: 1)` → `D0 T#0 D1 T#2 D3 T#4 D2 X0 X1 X3 X2` | edges.py |
+| TR-210 | An edge to a pruned vertex is reported from its other end | ReferencePseudograph, edges `0–1, 1–2, 2–0, 1–1`; `lazy.edgeDepthFirstSearch(from: 0)`, prune at `discover(1)` → `D0 T#0 D1 X1 T#2 D2 C#1 X2 X0` | edges.py |
+| TR-210 | An edge to a pruned vertex is reported from its other end, breadth-first | ReferencePseudograph, edges `0–1, 1–2, 2–0, 1–1`; `lazy.edgeBreadthFirstSearch(from: 0)`, prune at `discover(1)` → `D0 T#0 D1 T#2 D2 X0 X1 N#1 X2` | edges.py |
+| TR-211 | Several roots; a reached root is skipped | ReferencePseudograph, edges `0–1, 2–3, 1–0`; `lazy.edgeDepthFirstSearch(from: [2, 1, 3, 0])` → `D2 T#1 D3 X3 X2 D1 T#0 D0 B#2 X0 X1` | edges.py |
+| TR-211 | Several sources, all discovered first | ReferencePseudograph, edges `0–1, 1–2, 2–0, 2–3`; `lazy.edgeBreadthFirstSearch(from: [0, 2])` → `D0 D2 T#0 D1 N#2 X0 N#1 T#3 D3 X2 X1 X3` | edges.py |
 | TR-212 | Directed: each position's endpoints give the endpoint search's transcript | PropertyBased, 200 random edge lists on 0..<6 with repeats and self-loops, BFS from a random source and DFS of the whole graph and from a list of roots, depth limits 1…3 or none: on CSR, `AdjacencyMatrix`, `AdjacencyList`, `DirectedPseudograph`, the Multigraph, a conformer without vertex indices, a conformer lending pooled rows whose position rows lie apart from its target rows, and a `StableDirectedGraph` with vertex and edge holes; also from several sources, with a vertex pruned (against the endpoint search pruned at the same vertex), and through `forEach` (against the iterator). No position is reported twice; without a limit every edge is reported | — |
 | TR-213 | Undirected: the transcript is the edge-marking oracle's, on every representation | PropertyBased, 200 random edge lists on 0..<6 with repeats and self-loops, a random source, depth limit and pruned vertex: BFS, whole-graph DFS and DFS from roots against an oracle written in the test that walks `incidentEdges(of:)`. Unpruned and unlimited: every edge once, only tree and back edges, vertex events equal to the endpoint DFS on `directedView`. `forEach` against the iterator. On the ReferencePseudograph, `Pseudograph`, `UndirectedAdjacencyList`, a conformer without vertex indices, one lending pooled incident rows laid out apart, and two lending edge indices that are not positions (offset by 100, and gapped), which the search must not read as positions | bgl `undirected_dfs.hpp` |
 | TR-214 | DirectedPseudograph copies: each at the position `insert(edge:)` returned; a per-copy weight read at the forward edge | hand-written | — |
@@ -440,7 +440,7 @@ rows. LexBFS is array-based partition refinement, MCS bucket queues, both O(n + 
 
 | ID | Measures |
 |---|---|
-| TR-B01 | `for _ in g.breadthFirstSearch(from: 0)` vs a hand-written index BFS, CSR, `graph500Scale8` and a 1 000 × 1 000 grid |
+| TR-B01 | `for _ in g.lazy.breadthFirstSearch(from: 0)` vs a hand-written index BFS, CSR, `graph500Scale8` and a 1 000 × 1 000 grid |
 | TR-B02 | BFS on `AdjacencyList<Int>` with and without `successorIndices` |
 | TR-B03 | DFS event stream vs `preorder` only (does the classification cost matter?) |
 | TR-B04 | Dense vs dictionary state: the same graph as CSR vs a conformer without indices |

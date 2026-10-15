@@ -507,7 +507,7 @@ public struct UndirectedEdgeDepthFirstSearch<G: Graph>: Sequence {
 extension UndirectedEdgeDepthFirstSearch: Sendable where G: Sendable, G.Vertex: Sendable {}
 extension UndirectedEdgeDepthFirstSearch.Iterator: Sendable where G: Sendable, G.Vertex: Sendable, G.Edges.Index: Sendable, G.IncidentEdges.Iterator: Sendable, G.NeighborIndices.Iterator: Sendable {}
 
-extension DirectedGraph {
+extension LazyDirectedGraphView {
     /// A depth-first search from `source` whose edge events carry edge positions.
     ///
     /// - Parameter depthLimit: When given, vertices at this depth are discovered and finished but
@@ -515,8 +515,8 @@ extension DirectedGraph {
     /// - Complexity: O(n + m) over the reached part.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
-    public func edgeDepthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Self> {
-        EdgeDepthFirstSearch(graph: self, roots: [source], depthLimit: depthLimit)
+    public func edgeDepthFirstSearch(from source: Base.Vertex, depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Base> {
+        EdgeDepthFirstSearch(graph: base, roots: [source], depthLimit: depthLimit)
     }
 
     /// A depth-first search from each of `roots` in turn, skipping a root already reached, whose
@@ -525,8 +525,8 @@ extension DirectedGraph {
     /// - Complexity: O(n + m) over the reached part.
     /// - Precondition: every root is a vertex; `depthLimit` is not negative.
     @inlinable
-    public func edgeDepthFirstSearch(from roots: some Sequence<Vertex>, depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Self> {
-        EdgeDepthFirstSearch(graph: self, roots: Array(roots), depthLimit: depthLimit)
+    public func edgeDepthFirstSearch(from roots: some Sequence<Base.Vertex>, depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Base> {
+        EdgeDepthFirstSearch(graph: base, roots: Array(roots), depthLimit: depthLimit)
     }
 
     /// A depth-first search of the whole graph whose edge events carry edge positions: each
@@ -534,12 +534,32 @@ extension DirectedGraph {
     ///
     /// - Complexity: O(n + m).
     @inlinable
-    public func edgeDepthFirstSearch(depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Self> {
-        EdgeDepthFirstSearch(graph: self, roots: nil, depthLimit: depthLimit)
+    public func edgeDepthFirstSearch(depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Base> {
+        EdgeDepthFirstSearch(graph: base, roots: nil, depthLimit: depthLimit)
     }
 }
 
-extension Graph {
+extension DirectedGraph {
+    /// `lazy.edgeDepthFirstSearch(from:depthLimit:)`.
+    @inlinable
+    public func edgeDepthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Self> {
+        lazy.edgeDepthFirstSearch(from: source, depthLimit: depthLimit)
+    }
+
+    /// `lazy.edgeDepthFirstSearch(from:depthLimit:)`.
+    @inlinable
+    public func edgeDepthFirstSearch(from roots: some Sequence<Vertex>, depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Self> {
+        lazy.edgeDepthFirstSearch(from: roots, depthLimit: depthLimit)
+    }
+
+    /// `lazy.edgeDepthFirstSearch(depthLimit:)`.
+    @inlinable
+    public func edgeDepthFirstSearch(depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Self> {
+        lazy.edgeDepthFirstSearch(depthLimit: depthLimit)
+    }
+}
+
+extension LazyGraphView {
     /// A depth-first search from `source` that reports each edge once, by its position.
     ///
     /// - Parameter depthLimit: When given, vertices at this depth are discovered and finished but
@@ -547,8 +567,8 @@ extension Graph {
     /// - Complexity: O(n + m) over the reached part.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
-    public func edgeDepthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Self> {
-        UndirectedEdgeDepthFirstSearch(graph: self, roots: [source], depthLimit: depthLimit)
+    public func edgeDepthFirstSearch(from source: Base.Vertex, depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Base> {
+        UndirectedEdgeDepthFirstSearch(graph: base, roots: [source], depthLimit: depthLimit)
     }
 
     /// A depth-first search from each of `roots` in turn, skipping a root already reached, that
@@ -557,8 +577,8 @@ extension Graph {
     /// - Complexity: O(n + m) over the reached part.
     /// - Precondition: every root is a vertex; `depthLimit` is not negative.
     @inlinable
-    public func edgeDepthFirstSearch(from roots: some Sequence<Vertex>, depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Self> {
-        UndirectedEdgeDepthFirstSearch(graph: self, roots: Array(roots), depthLimit: depthLimit)
+    public func edgeDepthFirstSearch(from roots: some Sequence<Base.Vertex>, depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Base> {
+        UndirectedEdgeDepthFirstSearch(graph: base, roots: Array(roots), depthLimit: depthLimit)
     }
 
     /// A depth-first search of the whole graph that reports each edge once, by its position: each
@@ -566,7 +586,27 @@ extension Graph {
     ///
     /// - Complexity: O(n + m).
     @inlinable
+    public func edgeDepthFirstSearch(depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Base> {
+        UndirectedEdgeDepthFirstSearch(graph: base, roots: nil, depthLimit: depthLimit)
+    }
+}
+
+extension Graph {
+    /// `lazy.edgeDepthFirstSearch(from:depthLimit:)`.
+    @inlinable
+    public func edgeDepthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Self> {
+        lazy.edgeDepthFirstSearch(from: source, depthLimit: depthLimit)
+    }
+
+    /// `lazy.edgeDepthFirstSearch(from:depthLimit:)`.
+    @inlinable
+    public func edgeDepthFirstSearch(from roots: some Sequence<Vertex>, depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Self> {
+        lazy.edgeDepthFirstSearch(from: roots, depthLimit: depthLimit)
+    }
+
+    /// `lazy.edgeDepthFirstSearch(depthLimit:)`.
+    @inlinable
     public func edgeDepthFirstSearch(depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Self> {
-        UndirectedEdgeDepthFirstSearch(graph: self, roots: nil, depthLimit: depthLimit)
+        lazy.edgeDepthFirstSearch(depthLimit: depthLimit)
     }
 }

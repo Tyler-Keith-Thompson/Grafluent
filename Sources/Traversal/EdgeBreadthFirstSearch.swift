@@ -379,7 +379,7 @@ public struct UndirectedEdgeBreadthFirstSearch<G: Graph>: Sequence {
 extension UndirectedEdgeBreadthFirstSearch: Sendable where G: Sendable, G.Vertex: Sendable {}
 extension UndirectedEdgeBreadthFirstSearch.Iterator: Sendable where G: Sendable, G.Vertex: Sendable, G.Edges.Index: Sendable, G.IncidentEdges.Iterator: Sendable, G.NeighborIndices.Iterator: Sendable {}
 
-extension DirectedGraph {
+extension LazyDirectedGraphView {
     /// A breadth-first search from `source` whose edge events carry edge positions.
     ///
     /// - Parameter depthLimit: When given, vertices at this depth are discovered and finished but
@@ -387,8 +387,8 @@ extension DirectedGraph {
     /// - Complexity: O(n + m) over the reached part.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
-    public func edgeBreadthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> EdgeBreadthFirstSearch<Self> {
-        EdgeBreadthFirstSearch(graph: self, sources: [source], depthLimit: depthLimit)
+    public func edgeBreadthFirstSearch(from source: Base.Vertex, depthLimit: Int? = nil) -> EdgeBreadthFirstSearch<Base> {
+        EdgeBreadthFirstSearch(graph: base, sources: [source], depthLimit: depthLimit)
     }
 
     /// A breadth-first search from several sources at once whose edge events carry edge
@@ -398,12 +398,26 @@ extension DirectedGraph {
     /// - Complexity: O(n + m) over the reached part.
     /// - Precondition: every source is a vertex; `depthLimit` is not negative.
     @inlinable
-    public func edgeBreadthFirstSearch(from sources: some Sequence<Vertex>, depthLimit: Int? = nil) -> EdgeBreadthFirstSearch<Self> {
-        EdgeBreadthFirstSearch(graph: self, sources: Array(sources), depthLimit: depthLimit)
+    public func edgeBreadthFirstSearch(from sources: some Sequence<Base.Vertex>, depthLimit: Int? = nil) -> EdgeBreadthFirstSearch<Base> {
+        EdgeBreadthFirstSearch(graph: base, sources: Array(sources), depthLimit: depthLimit)
     }
 }
 
-extension Graph {
+extension DirectedGraph {
+    /// `lazy.edgeBreadthFirstSearch(from:depthLimit:)`.
+    @inlinable
+    public func edgeBreadthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> EdgeBreadthFirstSearch<Self> {
+        lazy.edgeBreadthFirstSearch(from: source, depthLimit: depthLimit)
+    }
+
+    /// `lazy.edgeBreadthFirstSearch(from:depthLimit:)`.
+    @inlinable
+    public func edgeBreadthFirstSearch(from sources: some Sequence<Vertex>, depthLimit: Int? = nil) -> EdgeBreadthFirstSearch<Self> {
+        lazy.edgeBreadthFirstSearch(from: sources, depthLimit: depthLimit)
+    }
+}
+
+extension LazyGraphView {
     /// A breadth-first search from `source` that reports each edge once, by its position.
     ///
     /// - Parameter depthLimit: When given, vertices at this depth are discovered and finished but
@@ -411,8 +425,8 @@ extension Graph {
     /// - Complexity: O(n + m) over the reached part.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
-    public func edgeBreadthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> UndirectedEdgeBreadthFirstSearch<Self> {
-        UndirectedEdgeBreadthFirstSearch(graph: self, sources: [source], depthLimit: depthLimit)
+    public func edgeBreadthFirstSearch(from source: Base.Vertex, depthLimit: Int? = nil) -> UndirectedEdgeBreadthFirstSearch<Base> {
+        UndirectedEdgeBreadthFirstSearch(graph: base, sources: [source], depthLimit: depthLimit)
     }
 
     /// A breadth-first search from several sources at once that reports each edge once, by its
@@ -422,7 +436,21 @@ extension Graph {
     /// - Complexity: O(n + m) over the reached part.
     /// - Precondition: every source is a vertex; `depthLimit` is not negative.
     @inlinable
+    public func edgeBreadthFirstSearch(from sources: some Sequence<Base.Vertex>, depthLimit: Int? = nil) -> UndirectedEdgeBreadthFirstSearch<Base> {
+        UndirectedEdgeBreadthFirstSearch(graph: base, sources: Array(sources), depthLimit: depthLimit)
+    }
+}
+
+extension Graph {
+    /// `lazy.edgeBreadthFirstSearch(from:depthLimit:)`.
+    @inlinable
+    public func edgeBreadthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> UndirectedEdgeBreadthFirstSearch<Self> {
+        lazy.edgeBreadthFirstSearch(from: source, depthLimit: depthLimit)
+    }
+
+    /// `lazy.edgeBreadthFirstSearch(from:depthLimit:)`.
+    @inlinable
     public func edgeBreadthFirstSearch(from sources: some Sequence<Vertex>, depthLimit: Int? = nil) -> UndirectedEdgeBreadthFirstSearch<Self> {
-        UndirectedEdgeBreadthFirstSearch(graph: self, sources: Array(sources), depthLimit: depthLimit)
+        lazy.edgeBreadthFirstSearch(from: sources, depthLimit: depthLimit)
     }
 }

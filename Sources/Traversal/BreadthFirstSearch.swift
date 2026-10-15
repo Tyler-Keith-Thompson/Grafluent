@@ -179,15 +179,15 @@ public struct BreadthFirstSearch<G: DirectedGraph>: Sequence {
 extension BreadthFirstSearch: Sendable where G: Sendable, G.Vertex: Sendable {}
 extension BreadthFirstSearch.Iterator: Sendable where G: Sendable, G.Vertex: Sendable, G.SuccessorIndices.Iterator: Sendable, G.Successors.Iterator: Sendable {}
 
-extension DirectedGraph {
+extension LazyDirectedGraphView {
     /// A breadth-first search from `source`.
     ///
     /// - Parameter depthLimit: When given, vertices at this depth are discovered and finished but
     ///   their out-edges are not reported.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
-    public func breadthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> BreadthFirstSearch<Self> {
-        BreadthFirstSearch(graph: self, sources: [source], depthLimit: depthLimit)
+    public func breadthFirstSearch(from source: Base.Vertex, depthLimit: Int? = nil) -> BreadthFirstSearch<Base> {
+        BreadthFirstSearch(graph: base, sources: [source], depthLimit: depthLimit)
     }
 
     /// A breadth-first search from several sources at once: all are discovered first, at depth 0,
@@ -196,10 +196,26 @@ extension DirectedGraph {
     ///
     /// - Precondition: every source is a vertex; `depthLimit` is not negative.
     @inlinable
-    public func breadthFirstSearch(from sources: some Sequence<Vertex>, depthLimit: Int? = nil) -> BreadthFirstSearch<Self> {
-        BreadthFirstSearch(graph: self, sources: Array(sources), depthLimit: depthLimit)
+    public func breadthFirstSearch(from sources: some Sequence<Base.Vertex>, depthLimit: Int? = nil) -> BreadthFirstSearch<Base> {
+        BreadthFirstSearch(graph: base, sources: Array(sources), depthLimit: depthLimit)
+    }
+}
+
+extension DirectedGraph {
+    /// `lazy.breadthFirstSearch(from:depthLimit:)`.
+    @inlinable
+    public func breadthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> BreadthFirstSearch<Self> {
+        lazy.breadthFirstSearch(from: source, depthLimit: depthLimit)
     }
 
+    /// `lazy.breadthFirstSearch(from:depthLimit:)`.
+    @inlinable
+    public func breadthFirstSearch(from sources: some Sequence<Vertex>, depthLimit: Int? = nil) -> BreadthFirstSearch<Self> {
+        lazy.breadthFirstSearch(from: sources, depthLimit: depthLimit)
+    }
+}
+
+extension DirectedGraph {
     /// The vertices reachable from `source`, by distance: layer k holds the vertices k edges away,
     /// in the order a breadth-first search discovers them.
     ///

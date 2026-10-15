@@ -162,7 +162,7 @@ struct GraphAlgorithmTests {
         #expect(doubled.back == 1)
         // The directed search over the two-arc view classifies arcs, not edges (CLRS §22.3).
         var counts = [0, 0, 0, 0]
-        for event in UndirectedAdjacencyList(edges: k4.edges).directedView.depthFirstSearch(from: 0) {
+        for event in UndirectedAdjacencyList(edges: k4.edges).directedView.lazy.depthFirstSearch(from: 0) {
             switch event {
             case .treeEdge: counts[0] += 1
             case .backEdge: counts[1] += 1

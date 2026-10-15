@@ -60,7 +60,7 @@ struct HypergraphHashTests {
         let view = hypergraph.incidenceGraphView
         for x in view.vertices { sink &+= view.neighborIndices(ofIndex: x).reduce(0, &+) &+ view.incidentEdgeIndices(ofIndex: x).count }
         for q in view.edges.indices { sink &+= view.endpointIndices(ofEdgeAt: q).u &+ view.edges[q].v }
-        sink &+= view.connectedComponents().count &+ view.directedView.breadthFirstSearch(from: 0).reduce(0) { n, _ in n + 1 }
+        sink &+= view.connectedComponents().count &+ view.directedView.lazy.breadthFirstSearch(from: 0).reduce(0) { n, _ in n + 1 }
         sink &+= view.bridges().count &+ view.articulationPoints().count
         #expect(tally.hashes == 0)
         #expect(tally.comparisons == 0)

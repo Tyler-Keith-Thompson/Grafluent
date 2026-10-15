@@ -201,10 +201,10 @@ struct ProductHashTests {
         let sparse = strongProductView(path, k2), dense = strongProductView(complete, k2)
         #expect(dense.edgeCount > 4 * sparse.edgeCount)
         tally.hashes = 0
-        let sparseReached = Array(sparse.breadthFirstSearch(from: source)).count
+        let sparseReached = Array(sparse.lazy.breadthFirstSearch(from: source)).count
         let sparseHashes = tally.hashes
         tally.hashes = 0
-        let denseReached = Array(dense.breadthFirstSearch(from: source)).count
+        let denseReached = Array(dense.lazy.breadthFirstSearch(from: source)).count
         let denseHashes = tally.hashes
         #expect(sparseReached > 0 && denseReached > 0)
         #expect(sparseHashes == denseHashes)

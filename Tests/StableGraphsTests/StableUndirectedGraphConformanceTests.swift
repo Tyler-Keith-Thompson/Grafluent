@@ -98,7 +98,7 @@ struct StableUndirectedGraphConformanceTests {
             #expect(Set(graph.bridges().map { graph.edges[$0] }) == Set(compacted.bridges().map { compacted.edges[$0] }))
             #expect(Set(graph.articulationPoints()) == Set(compacted.articulationPoints()))
             for source in graph.vertices {
-                #expect(Array(graph.directedView.breadthFirstSearch(from: source)).count == Array(compacted.directedView.breadthFirstSearch(from: source)).count)
+                #expect(Array(graph.directedView.lazy.breadthFirstSearch(from: source)).count == Array(compacted.directedView.lazy.breadthFirstSearch(from: source)).count)
                 let tree = graph.dijkstraShortestPaths(from: source) { weight[$0] }
                 let copy = compacted.dijkstraShortestPaths(from: source) { weight[positions[$0]] }
                 for target in graph.vertices {

@@ -33,7 +33,7 @@ struct SearchPropertyTests {
             func check<G: DirectedGraph<Int>>(_ g: G) {
                 var distance: [Int: Int] = [source: 0]
                 var parent: [Int: Int] = [:]
-                for event in g.breadthFirstSearch(from: source) {
+                for event in g.lazy.breadthFirstSearch(from: source) {
                     switch event {
                     case .treeEdge(let e):
                         #expect(parent[e.target] == nil, "two tree edges into \(e.target)")
@@ -89,7 +89,7 @@ struct SearchPropertyTests {
                 var seen: [DirectedEdge<Int>: Int] = [:]
                 var hasBack = false
                 var transcript: [String] = []
-                for event in g.depthFirstSearch() {
+                for event in g.lazy.depthFirstSearch() {
                     transcript.append(event.description)
                     time += 1
                     switch event {
@@ -194,12 +194,12 @@ struct SearchPropertyTests {
         let reversed = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges.map { DirectedEdge(from: $0.target, to: $0.source) })
         for v in graph.vertices {
             let descendants = graph.descendants(of: v)
-            let bfs = Set(graph.breadthFirstSearch(from: v).compactMap { if case .discover(let w) = $0 { w } else { nil } })
-            let dfs = Set(graph.depthFirstSearch(from: v).preorder)
+            let bfs = Set(graph.lazy.breadthFirstSearch(from: v).compactMap { if case .discover(let w) = $0 { w } else { nil } })
+            let dfs = Set(graph.lazy.depthFirstSearch(from: v).preorder)
             #expect(descendants == bfs.subtracting([v]))
             #expect(descendants == dfs.subtracting([v]))
             #expect(graph.ancestors(of: v) == reversed.descendants(of: v))
-            let search = graph.depthFirstSearch(from: v)
+            let search = graph.lazy.depthFirstSearch(from: v)
             #expect(Array(search) == Array(search))
         }
     }
@@ -209,7 +209,7 @@ struct SearchPropertyTests {
         let cases: [(DirectedFixture<Int>, [Int])] = [(.petersen, [9, 15, 6]), (.cube, [7, 12, 5])]
         for (fixture, expected) in cases {
             var counts = [0, 0, 0, 0]
-            for event in AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges).depthFirstSearch(from: 0) {
+            for event in AdjacencyMatrix(vertexCount: fixture.vertexCount, edges: fixture.edges).lazy.depthFirstSearch(from: 0) {
                 switch event {
                 case .treeEdge: counts[0] += 1
                 case .backEdge: counts[1] += 1
@@ -234,11 +234,11 @@ struct SearchStressTests {
         let sparse = CompressedSparseRow(vertexCount: n, edges: edges)
         let list = AdjacencyList(vertices: 0 ..< n, edges: edges)
         await Task {
-            #expect(Array(sparse.depthFirstSearch(from: 0).preorder) == Array(0 ..< n))
-            #expect(Array(sparse.depthFirstSearch(from: 0).postorder) == Array((0 ..< n).reversed()))
+            #expect(Array(sparse.lazy.depthFirstSearch(from: 0).preorder) == Array(0 ..< n))
+            #expect(Array(sparse.lazy.depthFirstSearch(from: 0).postorder) == Array((0 ..< n).reversed()))
             #expect(sparse.topologicalSort() == Array(0 ..< n))
             #expect(sparse.breadthFirstLayers(from: 0).count == n)
-            #expect(Array(list.depthFirstSearch(from: 0).preorder) == Array(0 ..< n))
+            #expect(Array(list.lazy.depthFirstSearch(from: 0).preorder) == Array(0 ..< n))
             #expect(list.topologicalSort() == Array(0 ..< n))
         }.value
     }
@@ -247,7 +247,7 @@ struct SearchStressTests {
     func deepCycle() {
         let n = 100_000
         let sparse = CompressedSparseRow(vertexCount: n, edges: (0 ..< n).map { DirectedEdge(from: $0, to: ($0 + 1) % n) })
-        let backEdges = sparse.depthFirstSearch().filter { if case .backEdge = $0 { true } else { false } }
+        let backEdges = sparse.lazy.depthFirstSearch().filter { if case .backEdge = $0 { true } else { false } }
         #expect(backEdges == [.backEdge(DirectedEdge(from: n - 1, to: 0))])
         #expect(sparse.findCycle()?.vertices == Array(0 ..< n))
         #expect(sparse.topologicalSort() == nil)
@@ -258,11 +258,11 @@ struct SearchStressTests {
         let n = 100_000
         let out = CompressedSparseRow(vertexCount: n, edges: (1 ..< n).map { DirectedEdge(from: 0, to: $0) })
         #expect(out.breadthFirstLayers(from: 0).map(\.count) == [1, n - 1])
-        #expect(Array(out.depthFirstSearch(from: 0).prefix(7)).map(\.description) == [
+        #expect(Array(out.lazy.depthFirstSearch(from: 0).prefix(7)).map(\.description) == [
             "discover(0)", "treeEdge(0→1)", "discover(1)", "finish(1)", "treeEdge(0→2)", "discover(2)", "finish(2)",
         ])
         let into = CompressedSparseRow(vertexCount: 4, edges: (1 ..< 4).map { DirectedEdge(from: $0, to: 0) })
-        #expect(into.depthFirstSearch().map(\.description).joined(separator: " ") == "discover(0) finish(0) discover(1) crossEdge(1→0) finish(1) discover(2) crossEdge(2→0) finish(2) discover(3) crossEdge(3→0) finish(3)")
+        #expect(into.lazy.depthFirstSearch().map(\.description).joined(separator: " ") == "discover(0) finish(0) discover(1) crossEdge(1→0) finish(1) discover(2) crossEdge(2→0) finish(2) discover(3) crossEdge(3→0) finish(3)")
     }
 
     @Test("TR-157 – TR-159 the real-world fixtures")
@@ -283,19 +283,19 @@ struct SearchStressTests {
         let graph500 = DirectedFixture<Int>.graph500Scale8
         let g = CompressedSparseRow(vertexCount: 256, edges: graph500.edges)
         #expect(g.breadthFirstLayers(from: 82).map(\.count) == [1, 167, 66, 1])
-        #expect(counts(g.depthFirstSearch(from: 82)) == [234, 19, 192, 1715])
-        #expect(counts(g.depthFirstSearch()) == [223, 19, 37, 1892])
+        #expect(counts(g.lazy.depthFirstSearch(from: 82)) == [234, 19, 192, 1715])
+        #expect(counts(g.lazy.depthFirstSearch()) == [223, 19, 37, 1892])
         // Every cycle is a self-loop, so the back-edge count is the same on any representation.
         let list = AdjacencyList(vertices: 0 ..< 256, edges: graph500.edges)
-        #expect(counts(list.depthFirstSearch(from: 82))[1] == 19)
-        #expect(counts(list.depthFirstSearch(from: 82))[0] == 234)
+        #expect(counts(list.lazy.depthFirstSearch(from: 82))[1] == 19)
+        #expect(counts(list.lazy.depthFirstSearch(from: 82))[0] == 234)
         let gap = CompressedSparseRow(vertexCount: 14, edges: DirectedFixture<Int>.gap4.edges)
         #expect(gap.breadthFirstLayers(from: 0).map(\.count) == [1, 12])
-        #expect(counts(gap.depthFirstSearch(from: 0)) == [12, 5, 9, 32])
+        #expect(counts(gap.lazy.depthFirstSearch(from: 0)) == [12, 5, 9, 32])
         #expect(gap.findCycle()?.vertices == [0])
         let ligra = CompressedSparseRow(vertexCount: 128, edges: DirectedFixture<Int>.ligraRMat.edges)
         #expect(ligra.breadthFirstLayers(from: 0).map(\.count) == [1, 8, 20, 50, 41, 5])
-        #expect(counts(ligra.depthFirstSearch(from: 0)) == [124, 354, 230, 0])
+        #expect(counts(ligra.lazy.depthFirstSearch(from: 0)) == [124, 354, 230, 0])
         #expect(ligra.findCycle()?.vertices == [0, 22])
     }
 
@@ -303,7 +303,7 @@ struct SearchStressTests {
     func agreement() {
         let complete = AdjacencyMatrix(vertexCount: 10, edges: DirectedFixture<Int>.completeDirected10.edges)
         var counts = [0, 0, 0, 0]
-        for event in complete.depthFirstSearch(from: 0) {
+        for event in complete.lazy.depthFirstSearch(from: 0) {
             switch event {
             case .treeEdge: counts[0] += 1
             case .backEdge: counts[1] += 1
@@ -313,7 +313,7 @@ struct SearchStressTests {
             }
         }
         #expect(counts == [9, 45, 36, 0])
-        #expect(Array(complete.depthFirstSearch(from: 0).preorder) == Array(0 ..< 10))
+        #expect(Array(complete.lazy.depthFirstSearch(from: 0).preorder) == Array(0 ..< 10))
         for fixture in DirectedFixture<Int>.realWorld {
             let list = AdjacencyList(vertices: 0 ..< fixture.vertexCount, edges: fixture.edges)
             let sparse = CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges)
@@ -358,7 +358,7 @@ struct SearchDispatchTests {
         let boost = DirectedFixture<Int>.boost24
         let graph = AdjacencyList(edges: boost.edges.map { DirectedEdge(from: HashCountingVertex(value: $0.source, counter: counter), to: HashCountingVertex(value: $0.target, counter: counter)) })
         let source = HashCountingVertex(value: 7, counter: counter)
-        func run<G: DirectedGraph>(_ g: G, from s: G.Vertex) -> Int { Array(g.breadthFirstSearch(from: s)).count + Array(g.depthFirstSearch(from: s)).count }
+        func run<G: DirectedGraph>(_ g: G, from s: G.Vertex) -> Int { Array(g.lazy.breadthFirstSearch(from: s)).count + Array(g.lazy.depthFirstSearch(from: s)).count }
         counter.hashes = 0
         let events = run(graph, from: source)
         #expect(events > 43)
@@ -406,8 +406,8 @@ struct SearchDispatchTests {
         let house = DirectedFixture<Int>.house
         let unindexed = UnindexedGraph(vertices: [0, 1, 2, 3, 4, 5], edges: house.edges.sorted())
         let matrix = AdjacencyMatrix(vertexCount: 6, edges: house.edges)
-        #expect(Array(unindexed.breadthFirstSearch(from: 5)) == Array(matrix.breadthFirstSearch(from: 5)))
-        #expect(Array(unindexed.depthFirstSearch()) == Array(matrix.depthFirstSearch()))
+        #expect(Array(unindexed.lazy.breadthFirstSearch(from: 5)) == Array(matrix.lazy.breadthFirstSearch(from: 5)))
+        #expect(Array(unindexed.lazy.depthFirstSearch()) == Array(matrix.lazy.depthFirstSearch()))
         #expect(unindexed.topologicalSort() == matrix.topologicalSort())
         #expect(unindexed.topologicalGenerations() == matrix.topologicalGenerations())
         #expect(unindexed.findCycle() == nil)
@@ -415,7 +415,7 @@ struct SearchDispatchTests {
 
     @Test("TR-166 existentials")
     func existentials() {
-        func preorder(_ g: some DirectedGraph<Int>) -> [Int] { Array(g.depthFirstSearch(from: 5).preorder) }
+        func preorder(_ g: some DirectedGraph<Int>) -> [Int] { Array(g.lazy.depthFirstSearch(from: 5).preorder) }
         let house = DirectedFixture<Int>.house
         let graphs: [any DirectedGraph<Int>] = [
             AdjacencyMatrix(vertexCount: 6, edges: house.edges),
@@ -432,15 +432,15 @@ struct SearchDispatchTests {
     @Test("TR-167 a search holds a copy of the graph")
     func valueSemantics() {
         var graph = AdjacencyList(edges: DirectedFixture<Int>.house.edges)
-        let search = graph.depthFirstSearch(from: 5)
+        let search = graph.lazy.depthFirstSearch(from: 5)
         graph.insert(edge: DirectedEdge(from: 0, to: 5))
         #expect(!search.contains { if case .backEdge = $0 { true } else { false } })
-        #expect(graph.depthFirstSearch(from: 5).contains { if case .backEdge = $0 { true } else { false } })
+        #expect(graph.lazy.depthFirstSearch(from: 5).contains { if case .backEdge = $0 { true } else { false } })
     }
 
     @Test("TR-168 searches and their events are Sendable")
     func sendable() async {
-        let search = CompressedSparseRow(vertexCount: 6, edges: DirectedFixture<Int>.house.edges).depthFirstSearch(from: 5)
+        let search = CompressedSparseRow(vertexCount: 6, edges: DirectedFixture<Int>.house.edges).lazy.depthFirstSearch(from: 5)
         let count = await Task.detached { Array(search).count }.value
         #expect(count == 19)
     }
@@ -449,17 +449,17 @@ struct SearchDispatchTests {
     func overloads() {
         let dag = DirectedFixture<String>.petgraphDAG
         let graph = AdjacencyList(vertices: dag.vertices, edges: dag.edges)
-        #expect(Array(graph.breadthFirstSearch(from: "a")) == Array(graph.breadthFirstSearch(from: ["a"])))
-        #expect(Set(graph.depthFirstSearch(from: ["a", "d"]).preorder) == Set(dag.vertices).union(dag.edges.flatMap { [$0.source, $0.target] }))
+        #expect(Array(graph.lazy.breadthFirstSearch(from: "a")) == Array(graph.lazy.breadthFirstSearch(from: ["a"])))
+        #expect(Set(graph.lazy.depthFirstSearch(from: ["a", "d"]).preorder) == Set(dag.vertices).union(dag.edges.flatMap { [$0.source, $0.target] }))
     }
 
     @Test("TR-170 / TR-171 a source that is not a vertex, or a negative depth limit, traps", .tags(.precondition))
     func preconditions() async {
         await #expect(processExitsWith: .failure) {
-            _ = Array(AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).breadthFirstSearch(from: 9))
+            _ = Array(AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).lazy.breadthFirstSearch(from: 9))
         }
         await #expect(processExitsWith: .failure) {
-            _ = Array(AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).depthFirstSearch(from: 9))
+            _ = Array(AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).lazy.depthFirstSearch(from: 9))
         }
         await #expect(processExitsWith: .failure) {
             _ = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).descendants(of: 9)
@@ -468,16 +468,16 @@ struct SearchDispatchTests {
             _ = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).hasPath(from: 9, to: 0)
         }
         await #expect(processExitsWith: .failure) {
-            _ = CompressedSparseRow(vertexCount: 2).depthFirstSearch(from: 0, depthLimit: -1)
+            _ = CompressedSparseRow(vertexCount: 2).lazy.depthFirstSearch(from: 0, depthLimit: -1)
         }
         await #expect(processExitsWith: .failure) {
-            _ = CompressedSparseRow(vertexCount: 2).breadthFirstSearch(from: 0, depthLimit: -1)
+            _ = CompressedSparseRow(vertexCount: 2).lazy.breadthFirstSearch(from: 0, depthLimit: -1)
         }
     }
 
     @Test("TR-173 events are Hashable and print readably")
     func events() {
-        let search = AdjacencyMatrix(vertexCount: 6, edges: DirectedFixture<Int>.house.edges).depthFirstSearch(from: 5)
+        let search = AdjacencyMatrix(vertexCount: 6, edges: DirectedFixture<Int>.house.edges).lazy.depthFirstSearch(from: 5)
         #expect(Set(search).count == 19)
         #expect(DepthFirstSearchEvent.treeEdge(DirectedEdge(from: 0, to: 1)).description == "treeEdge(0→1)")
         #expect(BreadthFirstSearchEvent.discover("a").description == "discover(a)")

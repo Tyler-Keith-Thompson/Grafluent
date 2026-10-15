@@ -227,7 +227,7 @@ struct StableGraphIndexTests {
 
     @Test("SG-070 BFS follows outEdges order across removals")
     func sg070() {
-        // V [0, 1, 2, 3]; E [0→3, 0→1, 0→2, 1→2, 3→2] / remove(edgeAt: 0) / insert(edge: 0→3) / breadthFirstSearch(from: 0)
+        // V [0, 1, 2, 3]; E [0→3, 0→1, 0→2, 1→2, 3→2] / remove(edgeAt: 0) / insert(edge: 0→3) / lazy.breadthFirstSearch(from: 0)
         var graph = StableDirectedGraph<Int>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 3), DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 3, to: 2)])
         #expect(graph.remove(edgeAt: 0) == DirectedEdge(from: 0, to: 3))
         // Positions after remove(edgeAt: 0).
@@ -242,7 +242,7 @@ struct StableGraphIndexTests {
         #expect(graph.vertexIndexBound == 4)
         #expect(graph.edgeIndexBound == nil)
         #expect(graph.insert(edge: DirectedEdge(from: 0, to: 3)) == 5)
-        let discovered = graph.breadthFirstSearch(from: 0).compactMap { event -> Int? in
+        let discovered = graph.lazy.breadthFirstSearch(from: 0).compactMap { event -> Int? in
             if case .discover(let vertex) = event { return vertex }
             return nil
         }
@@ -313,10 +313,10 @@ struct StableGraphIndexTests {
 
     @Test("SG-071 BFS after vertex removal")
     func sg071() {
-        // V [0, 1, 2, 3]; E [0→1, 1→2, 0→3, 3→2] / remove(1) / breadthFirstSearch(from: 0)
+        // V [0, 1, 2, 3]; E [0→1, 1→2, 0→3, 3→2] / remove(1) / lazy.breadthFirstSearch(from: 0)
         var graph = StableDirectedGraph<Int>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 0, to: 3), DirectedEdge(from: 3, to: 2)])
         #expect(graph.remove(1) == 1)
-        let discovered = graph.breadthFirstSearch(from: 0).compactMap { event -> Int? in
+        let discovered = graph.lazy.breadthFirstSearch(from: 0).compactMap { event -> Int? in
             if case .discover(let vertex) = event { return vertex }
             return nil
         }

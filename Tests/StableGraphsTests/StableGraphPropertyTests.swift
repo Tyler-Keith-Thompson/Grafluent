@@ -272,9 +272,9 @@ struct StableGraphPropertyTests {
             #expect(Array(graph.stronglyConnectedComponents().map { Array($0) }) == Array(compacted.stronglyConnectedComponents().map { Array($0) }), "\(raw) \(mask)")
             #expect(Array(graph.weaklyConnectedComponents().map { Array($0) }) == Array(compacted.weaklyConnectedComponents().map { Array($0) }), "\(raw) \(mask)")
             #expect(graph.topologicalSort() == compacted.topologicalSort(), "\(raw) \(mask)")
-            #expect(Array(graph.depthFirstSearch()) == Array(compacted.depthFirstSearch()), "\(raw) \(mask)")
+            #expect(Array(graph.lazy.depthFirstSearch()) == Array(compacted.lazy.depthFirstSearch()), "\(raw) \(mask)")
             for v in graph.vertices {
-                #expect(Array(graph.breadthFirstSearch(from: v)) == Array(compacted.breadthFirstSearch(from: v)), "\(raw) \(mask)")
+                #expect(Array(graph.lazy.breadthFirstSearch(from: v)) == Array(compacted.lazy.breadthFirstSearch(from: v)), "\(raw) \(mask)")
                 #expect(Array(graph.outEdges(of: v)) == compacted.outEdges(of: v).map { positions[$0] }, "\(raw) \(mask)")
                 #expect(Array(graph.inEdges(of: v)) == compacted.inEdges(of: v).map { positions[$0] }, "\(raw) \(mask)")
             }

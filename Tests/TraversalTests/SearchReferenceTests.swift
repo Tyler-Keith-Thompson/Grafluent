@@ -86,20 +86,20 @@ struct SearchReferenceTests {
         }
         func check<G: DirectedGraph>(_ g: G, _ name: String, roots: [G.Vertex], limit: Int?) {
             let depthFirst = referenceDepthFirst(g, roots: roots, limit: limit)
-            #expect(g.depthFirstSearch(from: roots, depthLimit: limit).map(\.description) == depthFirst, "\(name) depth-first, pulled")
+            #expect(g.lazy.depthFirstSearch(from: roots, depthLimit: limit).map(\.description) == depthFirst, "\(name) depth-first, pulled")
             var pushed: [String] = []
-            g.depthFirstSearch(from: roots, depthLimit: limit).forEach { pushed.append($0.description) }
+            g.lazy.depthFirstSearch(from: roots, depthLimit: limit).forEach { pushed.append($0.description) }
             #expect(pushed == depthFirst, "\(name) depth-first, pushed")
             let breadthFirst = referenceBreadthFirst(g, sources: roots, limit: limit)
-            #expect(g.breadthFirstSearch(from: roots, depthLimit: limit).map(\.description) == breadthFirst, "\(name) breadth-first, pulled")
+            #expect(g.lazy.breadthFirstSearch(from: roots, depthLimit: limit).map(\.description) == breadthFirst, "\(name) breadth-first, pulled")
             pushed = []
-            g.breadthFirstSearch(from: roots, depthLimit: limit).forEach { pushed.append($0.description) }
+            g.lazy.breadthFirstSearch(from: roots, depthLimit: limit).forEach { pushed.append($0.description) }
             #expect(pushed == breadthFirst, "\(name) breadth-first, pushed")
             // The whole graph, roots in vertices order.
             let all = Array(g.vertices)
-            #expect(g.depthFirstSearch().map(\.description) == referenceDepthFirst(g, roots: all, limit: nil), "\(name) whole graph")
+            #expect(g.lazy.depthFirstSearch().map(\.description) == referenceDepthFirst(g, roots: all, limit: nil), "\(name) whole graph")
             pushed = []
-            g.depthFirstSearch().forEach { pushed.append($0.description) }
+            g.lazy.depthFirstSearch().forEach { pushed.append($0.description) }
             #expect(pushed == referenceDepthFirst(g, roots: all, limit: nil), "\(name) whole graph, pushed")
         }
         var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 700)
@@ -171,7 +171,7 @@ struct SearchReferenceTests {
         let graph = CompressedSparseRow(vertexCount: 6, edges: DirectedFixture<Int>.house.edges)
         var seen: [String] = []
         #expect(throws: Stop()) {
-            try graph.depthFirstSearch(from: 5).forEach { event throws(Stop) in
+            try graph.lazy.depthFirstSearch(from: 5).forEach { event throws(Stop) in
                 seen.append(event.description)
                 if event == .discover(2) { throw Stop() }
             }
@@ -179,7 +179,7 @@ struct SearchReferenceTests {
         #expect(seen == ["discover(5)", "treeEdge(5→3)", "discover(3)", "treeEdge(3→2)", "discover(2)"])
         var count = 0
         #expect(throws: Stop()) {
-            try graph.breadthFirstSearch(from: 5).forEach { (_: BreadthFirstSearchEvent<Int>) throws(Stop) in
+            try graph.lazy.breadthFirstSearch(from: 5).forEach { (_: BreadthFirstSearchEvent<Int>) throws(Stop) in
                 count += 1
                 if count == 3 { throw Stop() }
             }
