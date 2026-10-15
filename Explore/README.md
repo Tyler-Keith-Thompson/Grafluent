@@ -32,6 +32,7 @@ contents and the menu without a link.
 | `euler` | `degree(of:)`, `eulerianCircuit()`, `eulerianTrail()`, `incidentEdges(of:)` on a `Multigraph`; beside its figure, `hasEulerianTrail` |
 | `postman` | `chinesePostmanTour(weight:)`, `PostmanTour`, `degree(of:)`, `dijkstraShortestPaths(from:weight:)` |
 | `tsp` | `nearestNeighborTour(from:weight:)`, `twoOptTour(improving:weight:)`, `simulatedAnnealingTour(improving:weight:using:)`, `christofidesTour(weight:)`, `shortestTour(weight:)`, `Cycle.weight(_:)` |
+| `hamiltonian` | `hamiltonianCycle()`, `hamiltonianPath(from:to:)`, `neighbors(of:)` |
 | `mst` | `lazy.kruskal(weight:)`, `lazy.prim(from:weight:)`, `kruskalMinimumSpanningTree(weight:)`, `primMinimumSpanningTree(from:weight:)` |
 | `huffman` | `BinaryTree.huffman(weights:)`, `parent(of:)`, `left(of:)`, `depth(of:)`, `inorder` |
 | `lca` | `RootedTree`, `depth(of:)`, `parent(of:)`, `lowestCommonAncestor(of:_:)`, `LowestCommonAncestors`, `distance(from:to:)` |

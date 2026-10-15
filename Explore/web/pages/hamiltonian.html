@@ -1,0 +1,33 @@
+<!-- title: Hamiltonian cycles · Explore Grafluent -->
+<!-- description: Play Hamilton’s icosian game on the dodecahedron, with Grafluent’s hamiltonianPath saying whether your route can still be finished, then watch a backtracking search find a cycle through all twenty places. -->
+<header class="sign">
+  <h1>Hamiltonian cycles</h1>
+  <p class="question">Can you visit every place exactly once and end where you began?</p>
+</header>
+<p class="example lead">Example: the icosian game, which William Rowan Hamilton sold as a puzzle in 1857. Twenty places sit at the corners of a dodecahedron, flattened here onto the page, each joined to three others. The goal is a round trip through all twenty, a <b>Hamiltonian cycle</b>.</p>
+
+<h2 class="labhead"><small>Try it</small>Finish the round</h2>
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The board above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<h2 class="labhead"><small>Step through</small>Try, and take back</h2>
+<div id="search"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The search above, in Grafluent</h2>
+  <pre id="code-search" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Every vertex once, not every edge</h2>
+  <p>An <a href="euler.html">Euler tour</a> uses every <em>road</em> once, and there is a quick test for whether one exists: every place has an even number of roads. A Hamiltonian cycle uses every <em>place</em> once, and no such test is known. The general question is NP-complete: as far as anyone knows, answering it for every graph takes time that grows exponentially with its size.</p>
+  <p>So the search tries. Grafluent’s <code>hamiltonianCycle()</code> grows a route one place at a time, always to the first neighbour not yet visited, and backs up when it gets stuck, as the second lab does. It also stops early in a branch that can’t work: when some place left over can no longer be reached, or has too few unvisited neighbours to be passed through. That pruning doesn’t change which cycle comes out first, only how long it takes. <code>hamiltonianPath(from:to:)</code> asks the same of a route with fixed ends, which is how the first lab checks whether yours can still be finished: what is left must have a path from your current place, through everything unvisited, back to the start.</p>
+
+  <h2><small>Where it breaks</small>Small graphs, or special ones</h2>
+  <p>The dodecahedron is solved in a moment because it is small and every place has only three roads. Each added place multiplies the routes to try, and a few hundred places can be out of reach. For larger graphs there are useful sufficient conditions: <b>Dirac’s theorem</b> says a graph of n ≥ 3 places, each joined to at least half of the others, always has a Hamiltonian cycle. But they only ever say yes; a graph that fails them may still have one.</p>
+  <p>Proving that a graph has <em>no</em> Hamiltonian cycle is harder still: the search has to rule out every route. The Petersen graph, ten places with three roads each, is the classic example, and <code>hamiltonianCycle()</code> answers <code>nil</code> for it only after exhausting the search. Ask for the shortest such cycle with distances on the roads, and it becomes the <a href="tsp.html">travelling salesman problem</a>.</p>
+</section>

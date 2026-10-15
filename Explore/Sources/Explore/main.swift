@@ -26,6 +26,7 @@ func mountPage(_ page: String) -> Bool {
     case "euler": EulerPage.mount()
     case "postman": PostmanPage.mount()
     case "tsp": TSPPage.mount()
+    case "hamiltonian": HamiltonianPage.mount()
     case "giant": GiantPage.mount()
     case "networkmodels": NetworkModelsPage.mount()
     case "huffman": HuffmanPage.mount()

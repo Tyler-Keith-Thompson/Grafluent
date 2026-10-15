@@ -19,6 +19,7 @@ dominators|Dominators|Structure|The blocks every path through a program must pas
 euler|Euler tours|Structure|Crossing every bridge exactly once.|page
 postman|Chinese postman|Structure|The shortest round that covers every street.|page
 tsp|Travelling salesman|Structure|The shortest round that visits every town.|page
+hamiltonian|Hamiltonian cycles|Structure|Visiting every place exactly once.|page
 mst|Minimum spanning trees|Structure|The cheapest way to connect everything.|page
 huffman|Huffman coding|Structure|Shorter codes for common letters, from a tree.|page
 lca|Lowest common ancestor|Structure|The most recent ancestor two people share.|page
