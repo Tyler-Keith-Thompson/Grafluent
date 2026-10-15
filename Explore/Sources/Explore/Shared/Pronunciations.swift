@@ -41,6 +41,7 @@ enum Names {
     static let eades = Pronunciation(name: "Eades", say: "EEDZ", ipa: "/iːdz/", what: "The first spring embedder")
     static let kamadaKawai = Pronunciation(name: "Kamada–Kawai", say: "kah-MAH-dah kah-WAH-ee", what: "Springs whose rest length is the graph distance")
     static let louvain = Pronunciation(name: "Louvain", say: "loo-VAN", ipa: "/luvɛ̃/", what: "Communities by repeatedly merging what raises modularity")
+    static let yen = Pronunciation(name: "Yen", say: "YEN", ipa: "/jɛn/", what: "Jin Y. Yen: the k shortest loop-free routes, each a detour off one found before")
     static let bronKerbosch = Pronunciation(name: "Bron–Kerbosch", say: "BRON KER-boss", ipa: "/ˈbrɔn ˈkɛrbɔs/", what: "Every maximal clique, by backtracking")
 }
 

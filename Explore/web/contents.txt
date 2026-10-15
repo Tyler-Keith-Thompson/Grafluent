@@ -7,6 +7,7 @@ bfs|Breadth-first search|Getting around|Visiting everything reachable, ring by r
 dfs|Depth-first search|Getting around|Visiting everything reachable, one corridor at a time.|page
 dijkstra|Dijkstra’s algorithm|Getting around|The quickest route to everywhere.|page
 astar|A* search|Getting around|The quickest route to one place, aimed at the goal.|page
+kpaths|k shortest paths|Getting around|Alternative routes, quickest first.|page
 semirings|Semirings|Getting around|One shortest-path algorithm, many questions.|page
 toposort|Topological sort|Getting around|An order for tasks with dependencies.|page
 components|Connected components|Structure|Which parts can reach each other.|page
