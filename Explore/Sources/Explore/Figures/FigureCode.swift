@@ -5,6 +5,7 @@ import AdjacencyListModule
 import Connectivity
 import GraphProtocols
 import Multigraphs
+import Tours
 import ShortestPaths
 import Walks
 
@@ -114,4 +115,21 @@ func bowtieFigure() -> [String] {
     let blocks = bowtie.biconnectedComponents().count       // →
     // snippet end
     return ["\(bridges)", "[" + cutVertices.map { "\"\($0)\"" }.joined(separator: ", ") + "]", "\(blocks)"]
+}
+
+func konigsbergFigure() -> [String] {
+    // snippet: figure-konigsberg
+    let konigsberg = Multigraph<String> {
+        UndirectedEdge("North bank", "Kneiphof")
+        UndirectedEdge("North bank", "Kneiphof")
+        UndirectedEdge("South bank", "Kneiphof")
+        UndirectedEdge("South bank", "Kneiphof")
+        UndirectedEdge("Kneiphof", "Lomse")
+        UndirectedEdge("North bank", "Lomse")
+        UndirectedEdge("South bank", "Lomse")
+    }!
+    let bridges = konigsberg.vertices.map { konigsberg.degree(of: $0) }  // →
+    let walkable = konigsberg.hasEulerianTrail                            // →
+    // snippet end
+    return ["[" + bridges.map(String.init).joined(separator: ", ") + "]", "\(walkable)"]
 }

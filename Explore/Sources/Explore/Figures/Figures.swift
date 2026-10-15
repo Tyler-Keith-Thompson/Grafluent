@@ -8,5 +8,6 @@ func mountFigureSamples() {
     if present("fig-walks") { mountView(CodePanel(snippets: [.figureWalks], results: walksFigure()), in: "fig-walks") }
     if present("fig-loops") { mountView(CodePanel(snippets: [.figureLoops], results: loopsFigure()), in: "fig-loops") }
     if present("fig-bowtie") { mountView(CodePanel(snippets: [.figureBowtie], results: bowtieFigure()), in: "fig-bowtie") }
+    if present("fig-konigsberg") { mountView(CodePanel(snippets: [.figureKonigsberg], results: konigsbergFigure()), in: "fig-konigsberg") }
     if present("fig-negative") { mountView(CodePanel(snippets: [.figureNegative], results: negativeFigure()), in: "fig-negative") }
 }

@@ -23,6 +23,7 @@ contents and the menu without a link.
 | `toposort` | `depthFirstSearch()`, `topologicalSort()`, `topologicalGenerations()`, `findCycle()` |
 | `components` | `connectedComponents()`, `breadthFirstSearch(from:)`, `stronglyConnectedComponents()`, `condensation()`, `depthFirstSearch()` |
 | `bridges` | `bridges()`, `articulationPoints()`, `edgeDepthFirstSearch(from:)`, `connectedComponents()`; beside its figure, `biconnectedComponents()` |
+| `euler` | `degree(of:)`, `eulerianCircuit()`, `eulerianTrail()`, `incidentEdges(of:)` on a `Multigraph`; beside its figure, `hasEulerianTrail` |
 | `mst` | `kruskalEvents(weight:)`, `primEvents(from:weight:)`, `kruskalMinimumSpanningTree(weight:)`, `primMinimumSpanningTree(from:weight:)` |
 | `matching` | `bipartition(left:)`, `maximumBipartiteMatching(bipartition:)` |
 | `coloring` | `greedyColoring(order:)`, `greedyColoring(strategy:)`, `chromaticNumber()`, `minimumColoring()` |
