@@ -22,6 +22,7 @@ func mountPage(_ page: String) -> Bool {
     case "bridges": BridgesPage.mount()
     case "euler": EulerPage.mount()
     case "giant": GiantPage.mount()
+    case "networkmodels": NetworkModelsPage.mount()
     case "huffman": HuffmanPage.mount()
     case "lca": LCAPage.mount()
     case "prefixtree": PrefixTreePage.mount()

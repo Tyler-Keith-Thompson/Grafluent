@@ -1,0 +1,41 @@
+<!-- title: Network growth models · Explore Grafluent -->
+<!-- description: Hubs from preferential attachment and small worlds from a few shortcuts: Grafluent’s seeded barabasiAlbert and wattsStrogatz generators, with degree counts, clustering and distances. -->
+<header class="sign">
+  <h1>Network growth models</h1>
+  <div class="say"><span>Say it</span><b>BAH-rah-bah-shee</b><span class="ipa">/ˈbɒrɒbaːʃi/</span></div>
+  <p class="question">Why do real networks have a few huge hubs, and why is everyone only a few handshakes from everyone else?</p>
+</header>
+<p class="example lead">Example: two small random networks, each from a seed, so the same seed always gives the same network. First, one that grows a vertex at a time.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The growing network above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>The rich get richer</h2>
+  <p>In the <b>Barabási–Albert</b> model, a network grows one vertex at a time, and each newcomer links to m vertices already there, picking each in proportion to its degree. A vertex with ten links is ten times as likely to gain the next one as a vertex with one. Early vertices get a head start, and the advantage compounds: a few become hubs while most stay small. The degrees follow a power law, roughly as many vertices of degree 2d as of degree d divided by eight, a long tail no network with uniformly random links has. Citations, links between web pages and airline routes look like this.</p>
+  <p><code>barabasiAlbert</code> starts from a star of m + 1 vertices and makes exactly m(n − m) links.</p>
+</section>
+
+<p class="example lead">Second: a ring where everyone knows their nearest neighbours, and a growing chance that each link is moved to someone at random.</p>
+
+<div id="smallworld"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The ring above, in Grafluent</h2>
+  <pre id="code-smallworld" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>A few shortcuts make a small world</h2>
+  <p>The <b>Watts–Strogatz</b> model starts from a ring in which each vertex knows its k nearest neighbours. That ring is cliquish: two of your friends are probably friends (high <b>clustering</b>, from <code>averageClustering()</code>). But getting across it takes many steps. Now rewire each link with probability p, moving one end to a random vertex. A handful of shortcuts slash the average distance, because each one serves everyone near either end, while hardly touching the clustering, since most triangles survive. In between lies the <b>small world</b>: close-knit locally, and still only a few steps across, like a network of acquaintances.</p>
+
+  <h2><small>Where it breaks</small>Models, not maps</h2>
+  <p>Each model explains one feature and misses others. Barabási–Albert networks have hubs but little clustering, and every vertex has at least m links; Watts–Strogatz networks are clustered and small but have no hubs, every degree staying near k. Real networks have both, and more: communities, vertices that leave, links that age. Fitting a power law to real degree data is also easy to get wrong; a straight-looking tail on a log plot is weak evidence. Use the models to test ideas against a baseline, as with <a href="giant.html">random graphs</a>, rather than as a description of a real network.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

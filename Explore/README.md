@@ -32,6 +32,7 @@ contents and the menu without a link.
 | `lca` | `RootedTree`, `depth(of:)`, `parent(of:)`, `lowestCommonAncestor(of:_:)`, `LowestCommonAncestors`, `distance(from:to:)` |
 | `prefixtree` | `prefixTree(of:)`, `children(of:)`, `isAncestor(_:of:)`, `isSequenceEnd(_:)`, `sequenceEnds` |
 | `giant` | `erdosRenyi(vertexCount:edgeCount:using:)` with `Xoshiro256StarStar`, `connectedComponents()`, `fruchtermanReingoldLayout(iterations:weight:using:)` |
+| `networkmodels` | `barabasiAlbert(vertexCount:edgesPerVertex:using:)`, `wattsStrogatz(vertexCount:nearestNeighborCount:rewiringProbability:using:)`, `averageClustering()`, `floydWarshallShortestPaths(weight:)`, `fruchtermanReingoldLayout` |
 | `planarity` | `isPlanar`, `findKuratowskiSubgraph()`, `planarLayout()`, `planarEmbedding()` |
 | `cliques` | `lazy.bronKerbosch()`, `maximalCliques()`, `maximumClique()` |
 | `isomorphism` | `weisfeilerLehmanGraphHash()`, `weisfeilerLehmanSubgraphHashes(iterations:)`, `isomorphism(to:)` |
