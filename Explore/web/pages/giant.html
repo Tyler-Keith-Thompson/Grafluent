@@ -1,0 +1,29 @@
+<!-- title: The giant component · Explore Grafluent -->
+<!-- description: Add random friendships one at a time with Grafluent’s seeded erdosRenyi and watch one group suddenly take in almost everyone once p passes 1/n. -->
+<header class="sign">
+  <h1>The giant component</h1>
+  <div class="say"><span>Say it</span><b>AIR-dersh RAY-nyee</b><span class="ipa">/ˈɛrdøːʃ ˈreːɲi/</span></div>
+  <p class="question">Add friendships at random. When does one group suddenly take in almost everyone?</p>
+</header>
+<p class="example lead">Example: fifty people at a new school. Friendships form between pairs picked at random, one at a time. The <b>connected components</b> are the groups of people joined by chains of friends.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The school above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>A tipping point at one friend each</h2>
+  <p>In the <b>Erdős–Rényi</b> random graph G(n, p), each of the n(n − 1)/2 pairs is joined with probability p, independently. Its twin G(n, m) picks m edges uniformly; adding random edges one at a time, as above, passes through every G(n, m) in turn. With m edges among n people, p is about 2m/n², and the average number of friends is c = 2m/n.</p>
+  <p>Follow a friendship out of a group and you meet, on average, c new people, each of whom leads on to c more. When c is below 1 that chain dies out fast, so every group stays small: a few people, mostly arranged as trees. When c passes 1, which is p passing 1/n, the chain can keep going, and the many medium groups fuse into one. That <b>giant component</b> holds a fixed share of everyone, a share that solves s = 1 − e<sup>−cs</sup>: about 58% at c = 1.5, 80% at c = 2 and 94% at c = 3. No second group ever gets close.</p>
+  <p>With only fifty people the jump is gentle, and each seed tells a slightly different story. On a million people the curve stays flat near zero right up to p = 1/n, then turns sharply upward there.</p>
+
+  <h2><small>Where it breaks</small>Real networks aren’t coin flips</h2>
+  <p>Erdős–Rényi graphs are the baseline, not a model of real friendships. Real networks have hubs with far more links than average, which <code>barabasiAlbert</code> grows by giving new links mostly to the already popular. They are also full of triangles, friends of friends being friends, which <code>wattsStrogatz</code> builds into a ring before rewiring a few links. Both have giant components too, but at different thresholds.</p>
+  <p>A giant component isn’t the whole graph, either. For everyone to be connected, isolated people included, c has to reach about ln n, which is near 3.9 for fifty people: that is why a few people are usually still alone at the end above.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

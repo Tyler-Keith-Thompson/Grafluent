@@ -12,6 +12,7 @@ components|Connected components|Structure|Which parts can reach each other.|page
 bridges|Bridges and articulation points|Structure|Which single closure splits the network.|page
 euler|Euler tours|Structure|Crossing every bridge exactly once.|page
 mst|Minimum spanning trees|Structure|The cheapest way to connect everything.|page
+giant|The giant component|Structure|When random links suddenly join almost everyone.|page
 cliques|Cliques|Structure|Groups where everyone is connected.|soon
 communities|Communities|Structure|Where a network splits into groups.|soon
 flow|Maximum flow|Assignment|How much a network of pipes can carry.|soon

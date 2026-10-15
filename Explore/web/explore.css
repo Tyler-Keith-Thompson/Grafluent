@@ -412,3 +412,14 @@ figure.fig { margin: 0; }
 .dot.odd { background: color-mix(in srgb, var(--danger) 22%, var(--sheet)); border-color: var(--danger); }
 .dot.even { background: color-mix(in srgb, var(--green) 22%, var(--sheet)); border-color: var(--green); }
 .steps li.empty { color: var(--muted); font-weight: 400; }
+/* The giant component: smaller groups, and the chart of the largest group's size. */
+.node.small circle { fill: color-mix(in srgb, var(--road) 55%, var(--sheet)); stroke: var(--muted); }
+.dot.small { background: color-mix(in srgb, var(--road) 55%, var(--sheet)); border-color: var(--muted); }
+.line.active { border-color: var(--signal); border-top-width: 6px; }
+.chart { width: 100%; height: auto; display: block; }
+.chart .axis { stroke: var(--rule); stroke-width: 1.5; }
+.chart .threshold { stroke: var(--danger); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.chart .tick { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+.chart .ghost-line { fill: none; stroke: var(--rule); stroke-width: 2; }
+.chart .value-line { fill: none; stroke: var(--sign); stroke-width: 2.5; stroke-linejoin: round; }
+.chart .value-dot { fill: var(--signal); stroke: var(--ink); stroke-width: 1.5; }

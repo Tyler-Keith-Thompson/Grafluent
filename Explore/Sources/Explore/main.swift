@@ -19,6 +19,7 @@ func mountPage(_ page: String) -> Bool {
     case "components": ComponentsPage.mount()
     case "bridges": BridgesPage.mount()
     case "euler": EulerPage.mount()
+    case "giant": GiantPage.mount()
     case "mst": MSTPage.mount()
     case "matching": MatchingPage.mount()
     case "coloring": ColoringPage.mount()
