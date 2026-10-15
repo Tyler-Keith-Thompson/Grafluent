@@ -1,6 +1,6 @@
-// A* as an event sequence (`aStarSearch`): a hand-traced graph with an inconsistent heuristic
+// A* as an event sequence (`lazy.aStar`): a hand-traced graph with an inconsistent heuristic
 // (reopening, a loop, a parallel copy) on every representation, a grid, the trivial cases, a zero
-// heuristic against `dijkstraSearch`, an undirected graph, value semantics, the preconditions, and
+// heuristic against `lazy.dijkstra`, an undirected graph, value semantics, the preconditions, and
 // a property test replaying the events against `aStarShortestPath`. Case IDs (SP-nn) refer to the
 // catalog; see README.md.
 
@@ -52,7 +52,7 @@ struct AStarSearchTests {
         ]
         func check<G: DirectedGraph<Int>>(_ g: G) where G.Edges.Index == Int {
             var estimated: [Int] = []
-            let events = Array(g.aStarSearch(from: 0, to: 4, weight: { raw[$0].2 }, heuristic: { estimated.append($0); return h[$0] }))
+            let events = Array(g.lazy.aStar(from: 0, to: 4, weight: { raw[$0].2 }, heuristic: { estimated.append($0); return h[$0] }))
             #expect(events == expected, "\(G.self)")
             #expect(estimated == [0, 1, 2, 3], "\(G.self): once per vertex, never the target")
             let plain = g.aStarShortestPath(from: 0, to: 4, weight: { raw[$0].2 }, heuristic: { h[$0] })
@@ -83,7 +83,7 @@ struct AStarSearchTests {
             }
         }
         let graph = AdjacencyList(vertices: 0 ..< 9, edges: arcs)
-        let events = Array(graph.aStarSearch(from: 0, to: 8, weight: { _ in 1 }, heuristic: { (2 - $0 / 3) + (2 - $0 % 3) }))
+        let events = Array(graph.lazy.aStar(from: 0, to: 8, weight: { _ in 1 }, heuristic: { (2 - $0 / 3) + (2 - $0 % 3) }))
         // Every priority is 4 (every vertex lies on a shortest route but 4 → 5 is blocked), so the
         // ties decide which vertices close before 8; each closes once.
         let examined = events.compactMap { event -> Int? in if case .examine(let v, let d, let h) = event { d + h == 4 ? v : -1 } else { nil } }
@@ -102,11 +102,11 @@ struct AStarSearchTests {
     func trivial() {
         let graph = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 0)])
         var calls = 0
-        let alone = Array(graph.aStarSearch(from: 1, to: 1, weight: { _ in 1 }, heuristic: { _ in calls += 1; return 9 }))
+        let alone = Array(graph.lazy.aStar(from: 1, to: 1, weight: { _ in 1 }, heuristic: { _ in calls += 1; return 9 }))
         #expect(alone == [.discover(1, distance: 0, estimate: 0), .examine(1, distance: 0, estimate: 0)])
         #expect(calls == 0)
         // 2 is never reached: the search ends when nothing is open, after finishing 1.
-        let away = Array(graph.aStarSearch(from: 0, to: 2, weight: { _ in 2.5 }, heuristic: { _ in 0 }))
+        let away = Array(graph.lazy.aStar(from: 0, to: 2, weight: { _ in 2.5 }, heuristic: { _ in 0 }))
         #expect(away.map(\.description) == [
             "discover(0, 0.0, 0.0)", "examine(0, 0.0, 0.0)", "examineEdge(0, 2.5)", "edgeRelaxed(0, 2.5)",
             "discover(1, 2.5, 0.0)", "finish(0, 0.0)", "examine(1, 2.5, 0.0)", "finish(1, 2.5)",
@@ -114,15 +114,15 @@ struct AStarSearchTests {
         #expect(graph.aStarShortestPath(from: 0, to: 2, weight: { _ in 2.5 }, heuristic: { _ in 0 }) == nil)
     }
 
-    @Test("SP-204 a zero heuristic examines vertices in dijkstraSearch's order, up to the target")
+    @Test("SP-204 a zero heuristic examines vertices in lazy.dijkstra's order, up to the target")
     func zeroHeuristic() {
         var rng = SeededRandomNumberGenerator(seed: 204)
         let edges = (0 ..< 300).map { _ in DirectedEdge(from: Int.random(in: 0 ..< 60, using: &rng), to: Int.random(in: 0 ..< 60, using: &rng)) }
         let graph = CompressedSparseRow(vertexCount: 60, edges: edges)
         let weights = (0 ..< graph.edgeCount).map { _ in Int.random(in: 0 ... 9, using: &rng) }
-        let dijkstra = graph.dijkstraSearch(from: 0) { weights[$0] }.compactMap { event -> Int? in if case .examine(let v, _) = event { v } else { nil } }
+        let dijkstra = graph.lazy.dijkstra(from: 0) { weights[$0] }.compactMap { event -> Int? in if case .examine(let v, _) = event { v } else { nil } }
         let target = dijkstra[dijkstra.count / 2]
-        let aStar = graph.aStarSearch(from: 0, to: target, weight: { weights[$0] }, heuristic: { _ in 0 }).compactMap { event -> Int? in if case .examine(let v, _, _) = event { v } else { nil } }
+        let aStar = graph.lazy.aStar(from: 0, to: target, weight: { weights[$0] }, heuristic: { _ in 0 }).compactMap { event -> Int? in if case .examine(let v, _, _) = event { v } else { nil } }
         #expect(aStar == Array(dijkstra.prefix(through: dijkstra.count / 2)))
     }
 
@@ -131,7 +131,7 @@ struct AStarSearchTests {
         let raw: [(Int, Int, Int)] = [(0, 1, 2), (1, 2, 2), (0, 2, 5), (2, 3, 1), (1, 3, 6), (3, 3, 1)]
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 4, edges: raw.map { UndirectedEdge($0.0, $0.1) })
         let h = [3, 2, 1, 0]
-        let events = Array(graph.aStarSearch(from: 0, to: 3, weight: { raw[$0].2 }, heuristic: { h[$0] }))
+        let events = Array(graph.lazy.aStar(from: 0, to: 3, weight: { raw[$0].2 }, heuristic: { h[$0] }))
         let plain = graph.aStarShortestPath(from: 0, to: 3, weight: { raw[$0].2 }, heuristic: { h[$0] })!
         #expect(events.last == .examine(3, distance: 5, estimate: 0) && plain.distance == 5)
         var parent: [Int: DirectedView<UndirectedAdjacencyList<Int>>.Edges.Index] = [:]
@@ -149,7 +149,7 @@ struct AStarSearchTests {
     @Test("SP-206 value semantics: a later insertion does not change the search; each iterator starts over; stopping early")
     func valueSemantics() {
         var graph = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
-        let search = graph.aStarSearch(from: 0, to: 2, weight: { _ in 1 }, heuristic: { _ in 0 })
+        let search = graph.lazy.aStar(from: 0, to: 2, weight: { _ in 1 }, heuristic: { _ in 0 })
         _ = graph.insert(edge: DirectedEdge(from: 0, to: 2))
         let first = Array(search)
         #expect(first.count == 12)
@@ -165,28 +165,28 @@ struct AStarSearchTests {
     func preconditions() async {
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
-            for _ in graph.aStarSearch(from: 0, to: 1, weight: { _ in -1 }, heuristic: { _ in 0 }) {}
+            for _ in graph.lazy.aStar(from: 0, to: 1, weight: { _ in -1 }, heuristic: { _ in 0 }) {}
         }
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.aStarSearch(from: 5, to: 1, weight: { _ in 1 }, heuristic: { _ in 0 })
+            _ = graph.lazy.aStar(from: 5, to: 1, weight: { _ in 1 }, heuristic: { _ in 0 })
         }
         await #expect(processExitsWith: .failure) {
             let graph = UnindexedDigraph(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.aStarSearch(from: 0, to: 5, weight: { _ in 1 }, heuristic: { _ in 0 })
+            _ = graph.lazy.aStar(from: 0, to: 5, weight: { _ in 1 }, heuristic: { _ in 0 })
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
-            for _ in graph.aStarSearch(from: 0, to: 1, weight: { _ in -1 }, heuristic: { _ in 0 }) {}
+            for _ in graph.lazy.aStar(from: 0, to: 1, weight: { _ in -1 }, heuristic: { _ in 0 }) {}
         }
         // The edge into 2 traps as it is examined, before it is relaxed.
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
-            var events = graph.aStarSearch(from: 0, to: 1, weight: { _ in -1 }, heuristic: { _ in 0 }).makeIterator()
+            var events = graph.lazy.aStar(from: 0, to: 1, weight: { _ in -1 }, heuristic: { _ in 0 }).makeIterator()
             for _ in 0 ..< 3 { _ = events.next() }
         }
         let graph = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
-        let events = Array(graph.aStarSearch(from: 0, to: 1, weight: { [1, -5][$0] }, heuristic: { _ in 0 }))
+        let events = Array(graph.lazy.aStar(from: 0, to: 1, weight: { [1, -5][$0] }, heuristic: { _ in 0 }))
         #expect(events.last == .examine(1, distance: 1, estimate: 0))
     }
 
@@ -206,7 +206,7 @@ struct AStarSearchTests {
             let h = (0 ..< 8).map { min(toTarget[$0] ?? 9, guess[$0]) }
             let arcs = raw.map { DirectedEdge(from: $0.0, to: $0.1) }
             func check<G: DirectedGraph<Int>>(_ graph: G, _ name: String) where G.Edges.Index == Int {
-                let events = Array(graph.aStarSearch(from: 0, to: target, weight: { raw[$0].2 }, heuristic: { h[$0] }))
+                let events = Array(graph.lazy.aStar(from: 0, to: target, weight: { raw[$0].2 }, heuristic: { h[$0] }))
                 let plain = graph.aStarShortestPath(from: 0, to: target, weight: { raw[$0].2 }, heuristic: { h[$0] })
                 var parent: [Int: Int] = [:]
                 var state = [Int](repeating: 0, count: 8)

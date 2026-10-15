@@ -234,7 +234,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("ShortestPaths: dijkstraSearch, every event, on CompressedSparseRow") { benchmark in
         for _ in benchmark.scaledIterations {
             var settled = 0
-            for event in csr.dijkstraSearch(from: 0, weight: { weights[$0] }) {
+            for event in csr.lazy.dijkstra(from: 0, weight: { weights[$0] }) {
                 if case .examine(_, let d) = event { settled &+= d }
             }
             blackHole(settled)
@@ -243,7 +243,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("ShortestPaths: dijkstraSearch, every event, on AdjacencyList<Int>") { benchmark in
         for _ in benchmark.scaledIterations {
             var settled = 0
-            for event in list.dijkstraSearch(from: 0, weight: { weights[$0] }) {
+            for event in list.lazy.dijkstra(from: 0, weight: { weights[$0] }) {
                 if case .examine(_, let d) = event { settled &+= d }
             }
             blackHole(settled)
@@ -252,7 +252,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("ShortestPaths: dijkstraSearch, every event, on UndirectedAdjacencyList") { benchmark in
         for _ in benchmark.scaledIterations {
             var settled = 0
-            for event in undirected.dijkstraSearch(from: 0, weight: { undirectedWeights[$0] }) {
+            for event in undirected.lazy.dijkstra(from: 0, weight: { undirectedWeights[$0] }) {
                 if case .examine(_, let d) = event { settled &+= d }
             }
             blackHole(settled)
@@ -316,7 +316,7 @@ let benchmarks: @Sendable () -> Void = {
         let target = side * side - 1
         for _ in benchmark.scaledIterations {
             var last = 0
-            for event in grid.aStarSearch(from: 0, to: target, weight: { gridWeights[$0] }, heuristic: { (target / side - $0 / side) + (target % side - $0 % side) }) {
+            for event in grid.lazy.aStar(from: 0, to: target, weight: { gridWeights[$0] }, heuristic: { (target / side - $0 / side) + (target % side - $0 % side) }) {
                 if case .examine(_, let d, _) = event { last = d }
             }
             blackHole(last)

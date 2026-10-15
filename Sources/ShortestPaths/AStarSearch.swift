@@ -177,7 +177,7 @@ public struct AStarSearch<G: DirectedGraph, W: Comparable & AdditiveArithmetic>:
     }
 }
 
-extension DirectedGraph {
+extension LazyDirectedGraphView {
     /// A* from `source` toward `target`, guided by `heuristic`, as a sequence of events: each
     /// vertex discovered, examined (closed), reopened and finished, and each examined edge relaxed
     /// or not, with the distances and estimates involved. See `AStarSearchEvent` for the order.
@@ -193,22 +193,42 @@ extension DirectedGraph {
     /// - Complexity: O((V + E) log V) to iterate every event with a consistent heuristic, as for
     ///   `aStarShortestPath`; O(V) to make the search and each iterator.
     @inlinable
-    public func aStarSearch<W: Comparable & AdditiveArithmetic>(
-        from source: Vertex, to target: Vertex, weight: @escaping (Edges.Index) -> W, heuristic: @escaping (Vertex) -> W
-    ) -> AStarSearch<Self, W> {
-        AStarSearch(graph: self, source: source, target: target, weight: weight, heuristic: heuristic)
+    public func aStar<W: Comparable & AdditiveArithmetic>(
+        from source: Base.Vertex, to target: Base.Vertex, weight: @escaping (Base.Edges.Index) -> W, heuristic: @escaping (Base.Vertex) -> W
+    ) -> AStarSearch<Base, W> {
+        AStarSearch(graph: base, source: source, target: target, weight: weight, heuristic: heuristic)
     }
 }
 
-extension Graph {
-    /// `directedView.aStarSearch(from:to:weight:heuristic:)`, weighing each arc by its edge. Each
+extension DirectedGraph {
+    /// `lazy.aStar(from:to:weight:)`.
+    @inlinable
+    public func aStarSearch<W: Comparable & AdditiveArithmetic>(
+        from source: Vertex, to target: Vertex, weight: @escaping (Edges.Index) -> W, heuristic: @escaping (Vertex) -> W
+    ) -> AStarSearch<Self, W> {
+        lazy.aStar(from: source, to: target, weight: weight, heuristic: heuristic)
+    }
+}
+
+extension LazyGraphView {
+    /// `directedView.lazy.aStar(from:to:weight:heuristic:)`, weighing each arc by its edge. Each
     /// edge is examined from both ends.
     ///
     /// - Precondition: as for the directed search.
     @inlinable
+    public func aStar<W: Comparable & AdditiveArithmetic>(
+        from source: Base.Vertex, to target: Base.Vertex, weight: @escaping (Base.Edges.Index) -> W, heuristic: @escaping (Base.Vertex) -> W
+    ) -> AStarSearch<DirectedView<Base>, W> {
+        base.directedView.lazy.aStar(from: source, to: target, weight: { weight($0.position) }, heuristic: heuristic)
+    }
+}
+
+extension Graph {
+    /// `lazy.aStar(from:to:weight:)`.
+    @inlinable
     public func aStarSearch<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, to target: Vertex, weight: @escaping (Edges.Index) -> W, heuristic: @escaping (Vertex) -> W
     ) -> AStarSearch<DirectedView<Self>, W> {
-        directedView.aStarSearch(from: source, to: target, weight: { weight($0.position) }, heuristic: heuristic)
+        lazy.aStar(from: source, to: target, weight: weight, heuristic: heuristic)
     }
 }

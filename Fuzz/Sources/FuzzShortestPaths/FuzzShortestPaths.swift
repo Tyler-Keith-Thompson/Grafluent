@@ -110,7 +110,7 @@ enum FuzzShortestPaths {
                 var parent = [G.Edges.Index?](repeating: nil, count: n)
                 var current = -1
                 var decisionDue: G.Edges.Index?
-                for event in graph.dijkstraSearch(from: sources, weight: weight) {
+                for event in graph.lazy.dijkstra(from: sources, weight: weight) {
                     if let due = decisionDue {
                         switch event {
                         case .edgeRelaxed(let e, _), .edgeNotRelaxed(let e, _): check(e == due, "\(name): decision for another edge")
@@ -176,7 +176,7 @@ enum FuzzShortestPaths {
                 var dueOffer = 0
                 var follow: UInt8?
                 var reached: Int?
-                for event in list.aStarSearch(from: source, to: target, weight: w, heuristic: heuristic) {
+                for event in list.lazy.aStar(from: source, to: target, weight: w, heuristic: heuristic) {
                     if let f = follow {
                         switch event {
                         case .discover(let v, _, _): check(f == 0 && state[v] == 0, "\(label): discover \(v)"); state[v] = 1

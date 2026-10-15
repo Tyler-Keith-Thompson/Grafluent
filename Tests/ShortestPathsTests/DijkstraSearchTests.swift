@@ -1,4 +1,4 @@
-// Dijkstra's algorithm as an event sequence (`dijkstraSearch`): a hand-traced directed graph on
+// Dijkstra's algorithm as an event sequence (`lazy.dijkstra`): a hand-traced directed graph on
 // every representation, the trivial cases, self-loops, parallel edges, several sources, an
 // undirected town, early stopping and value semantics, the preconditions, and property tests
 // against `dijkstraShortestPaths` (the same settling order, distances and parent edges). Case IDs
@@ -56,7 +56,7 @@ struct DijkstraSearchTests {
             .finish(3, distance: 5),
         ]
         func check<G: DirectedGraph<Int>>(_ g: G) {
-            let search = g.dijkstraSearch(from: 0) { weights[DirectedEdge(from: g.source(ofEdgeAt: $0), to: g.target(ofEdgeAt: $0))]! }
+            let search = g.lazy.dijkstra(from: 0) { weights[DirectedEdge(from: g.source(ofEdgeAt: $0), to: g.target(ofEdgeAt: $0))]! }
             let events: [Event] = search.map { event in
                 switch event {
                 case .discover(let v, let d): .discover(v, distance: d)
@@ -84,11 +84,11 @@ struct DijkstraSearchTests {
     func trivial() {
         let alone: [DijkstraSearchEvent<Int, Int, Int>] = [.discover(0, distance: 0), .examine(0, distance: 0), .finish(0, distance: 0)]
         let single = AdjacencyList(vertices: [0])
-        #expect(Array(single.dijkstraSearch(from: 0) { _ in 1 }) == alone)
+        #expect(Array(single.lazy.dijkstra(from: 0) { _ in 1 }) == alone)
         let apart = CompressedSparseRow(vertexCount: 3, edges: [DirectedEdge(from: 1, to: 2)])
-        #expect(Array(apart.dijkstraSearch(from: 0) { _ in 1 }) == alone)
+        #expect(Array(apart.lazy.dijkstra(from: 0) { _ in 1 }) == alone)
         let named = AdjacencyList(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
-        let events = Array(named.dijkstraSearch(from: "a") { _ in 2.5 })
+        let events = Array(named.lazy.dijkstra(from: "a") { _ in 2.5 })
         #expect(events.map(\.description) == [
             "discover(a, 0.0)", "examine(a, 0.0)", "examineEdge(0, 2.5)", "edgeRelaxed(0, 2.5)",
             "discover(b, 2.5)", "finish(a, 0.0)", "examine(b, 2.5)", "finish(b, 2.5)",
@@ -114,14 +114,14 @@ struct DijkstraSearchTests {
             .finish(0, distance: 0),
             .examine(1, distance: 2), .finish(1, distance: 2),
         ]
-        #expect(Array(graph.dijkstraSearch(from: 0) { weights[$0]! }) == expected)
+        #expect(Array(graph.lazy.dijkstra(from: 0) { weights[$0]! }) == expected)
     }
 
     @Test("SP-195 several sources: each discovered first at zero, in order, a repeat ignored")
     func severalSources() {
         let graph = AdjacencyList(vertices: 0 ..< 4, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 3, to: 1), DirectedEdge(from: 1, to: 2)])
         let weights = [3, 1, 1]
-        let events = Array(graph.dijkstraSearch(from: [3, 0, 3]) { weights[$0] })
+        let events = Array(graph.lazy.dijkstra(from: [3, 0, 3]) { weights[$0] })
         let first: [DijkstraSearchEvent<Int, Int, Int>] = [.discover(3, distance: 0), .discover(0, distance: 0)]
         #expect(Array(events.prefix(2)) == first)
         let settled = events.compactMap { event -> Int? in
@@ -151,7 +151,7 @@ struct DijkstraSearchTests {
         let town = UndirectedAdjacencyList<String> {
             for street in minutes.keys { street }
         }
-        let events = Array(town.dijkstraSearch(from: "Home") { minutes[town.edges[$0]]! })
+        let events = Array(town.lazy.dijkstra(from: "Home") { minutes[town.edges[$0]]! })
         var settled: [String: Int] = [:]
         var order: [Int] = []
         var examined: [Int: Int] = [:]
@@ -189,7 +189,7 @@ struct DijkstraSearchTests {
     @Test("SP-196 an undirected self-loop is examined from both of its ends, and nothing more", .tags(.selfLoops))
     func undirectedSelfLoop() {
         let graph = ReferencePseudograph(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 0), UndirectedEdge(0, 1)])
-        let events = Array(graph.dijkstraSearch(from: 0) { [7, 1][$0] })
+        let events = Array(graph.lazy.dijkstra(from: 0) { [7, 1][$0] })
         let loopEvents = events.filter {
             switch $0 {
             case .examineEdge(let arc, _), .edgeRelaxed(let arc, _), .edgeNotRelaxed(let arc, _): arc.position == 0
@@ -204,7 +204,7 @@ struct DijkstraSearchTests {
     @Test("SP-199 stopping early, iterating again, and a copy of the graph", .tags(.copyOnWrite))
     func valueSemantics() {
         var graph = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
-        let search = graph.dijkstraSearch(from: 0) { _ in 1 }
+        let search = graph.lazy.dijkstra(from: 0) { _ in 1 }
         let full = Array(search)
         #expect(full.count == 13)
         graph.insert(edge: DirectedEdge(from: 0, to: 2))
@@ -213,7 +213,7 @@ struct DijkstraSearchTests {
         #expect(iterator.next() == .discover(0, distance: 0))
         #expect(iterator.next() == .examine(0, distance: 0))
         #expect(Array(search.prefix(2)) == Array(full.prefix(2)))
-        #expect(graph.dijkstraSearch(from: 0) { _ in 1 }.contains(.examineEdge(2, distance: 1)))
+        #expect(graph.lazy.dijkstra(from: 0) { _ in 1 }.contains(.examineEdge(2, distance: 1)))
         var exhausted = search.makeIterator()
         while exhausted.next() != nil {}
         #expect(exhausted.next() == nil)
@@ -223,26 +223,26 @@ struct DijkstraSearchTests {
     func preconditions() async {
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
-            for _ in graph.dijkstraSearch(from: 0, weight: { _ in -1 }) {}
+            for _ in graph.lazy.dijkstra(from: 0, weight: { _ in -1 }) {}
         }
         await #expect(processExitsWith: .failure) {
             let graph = CompressedSparseRow(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)])
-            for _ in graph.dijkstraSearch(from: 0, weight: { _ in Double.nan }) {}
+            for _ in graph.lazy.dijkstra(from: 0, weight: { _ in Double.nan }) {}
         }
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2)
-            _ = graph.dijkstraSearch(from: 5) { _ in 1 }
+            _ = graph.lazy.dijkstra(from: 5) { _ in 1 }
         }
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2)
-            _ = graph.dijkstraSearch(from: [Int]()) { _ in 1 }
+            _ = graph.lazy.dijkstra(from: [Int]()) { _ in 1 }
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
-            for _ in graph.dijkstraSearch(from: 0, weight: { _ in -1 }) {}
+            for _ in graph.lazy.dijkstra(from: 0, weight: { _ in -1 }) {}
         }
         let graph = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 2, to: 0)])
-        let events = Array(graph.dijkstraSearch(from: 0) { [1, -5][$0] })
+        let events = Array(graph.lazy.dijkstra(from: 0) { [1, -5][$0] })
         #expect(events.last == .finish(1, distance: 1))
     }
 
@@ -253,7 +253,7 @@ struct DijkstraSearchTests {
         await propertyCheck(count: 300, input: edges, Gen.int(in: 0 ... 7)) { raw, source in
             let arcs = raw.map { DirectedEdge(from: $0.0, to: $0.1) }
             func check<G: DirectedGraph<Int>>(_ graph: G, _ name: String) where G.Edges.Index == Int {
-                let events = Array(graph.dijkstraSearch(from: source) { raw[$0].2 })
+                let events = Array(graph.lazy.dijkstra(from: source) { raw[$0].2 })
                 let tree = graph.dijkstraShortestPaths(from: source) { raw[$0].2 }
                 var settled: [Int] = []
                 var parentEdge: [Int: Int] = [:]
@@ -299,7 +299,7 @@ struct DijkstraSearchTests {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 9)).array(of: 0 ... 24)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 0 ... 7)) { raw, source in
             let graph = ReferencePseudograph(vertices: 0 ..< 8, edges: raw.map { UndirectedEdge($0.0, $0.1) })
-            let events = Array(graph.dijkstraSearch(from: source) { raw[$0].2 })
+            let events = Array(graph.lazy.dijkstra(from: source) { raw[$0].2 })
             let tree = graph.dijkstraShortestPaths(from: source) { raw[$0].2 }
             var settled: [Int] = []
             var parentArc: [Int: DirectedView<ReferencePseudograph<Int>>.Edges.Index] = [:]

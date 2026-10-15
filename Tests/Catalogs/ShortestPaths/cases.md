@@ -295,7 +295,7 @@ unspecified order, so ties are compared as sets.
 
 ### O. Dijkstra as an event sequence
 
-`dijkstraSearch(from:weight:)` reports the Boost Graph Library's Dijkstra visitor events:
+`lazy.dijkstra(from:weight:)` reports the Boost Graph Library's Dijkstra visitor events:
 `discover`, `examine` (settled), `examineEdge` with the offer d(u) + w, then `edgeRelaxed` or
 `edgeNotRelaxed` for an unsettled target (an edge into a settled vertex is examined only), and
 `finish`. `cases_search.py` reproduces SP-192 and SP-194 in `cases_search.out`.
@@ -314,7 +314,7 @@ unspecified order, so ties are compared as sets.
 
 ### P. A* as an event sequence
 
-`aStarSearch(from:to:weight:heuristic:)` reports the Boost Graph Library's A* visitor events:
+`lazy.aStar(from:to:weight:heuristic:)` reports the Boost Graph Library's A* visitor events:
 `discover` and `examine` with the distance and the estimate (zero for the target), `examineEdge`
 with the offer d(u) + w, then `edgeRelaxed` or `edgeNotRelaxed` for every examined edge, a closed
 vertex whose distance improves `reopen`ed (the black target), and `finish`. The search ends with
@@ -326,7 +326,7 @@ the target's `examine`, or when nothing is open. `cases_astarsearch.py` reproduc
 | SP-201 | Inconsistent heuristic | 0→1 (1), 0→2 (4), 0→2 (6), 1→2 (1), 1→1 (2), 2→3 (1), 3→4 (5), h = 0, 5, 0, 0, 7, from 0 to 4: 38 events; 2 and 3 reopened; the copy 0→2 (6) and the loop not relaxed; the target's estimate taken as 0 and the heuristic called once each for 0…3; the relaxed chain is `aStarShortestPath`'s `[0,3,5,6]`, 8; the same on the reference multigraph, pseudograph, an unindexed graph and a stable graph with a hole | (ref) `cases_astarsearch.py` |
 | SP-202 | 3 × 3 grid, 4 → 5 blocked, Manhattan | every priority 4; each examined vertex closed once, first 0 and last 8 at 4; nothing reopened | (ref) A* |
 | SP-203 | Trivial | the source is the target: discover, examine, the heuristic never called; an unreachable target: ends when nothing is open; descriptions | — |
-| SP-204 | Zero heuristic | examines `dijkstraSearch`'s settling order up to the target, on a random CSR | — |
+| SP-204 | Zero heuristic | examines `lazy.dijkstra`'s settling order up to the target, on a random CSR | — |
 | SP-205 | Undirected | `UndirectedAdjacencyList` through `directedView`: distance 5 by `[0,1,3]`, as `aStarShortestPath`; an edge examined from both ends | (ref) A* |
 | SP-206 | Value semantics | a later insertion does not change the search; each iterator starts over; stopping early; nil after the end | — |
 | SP-207 | Preconditions | a negative examined weight (as it is examined), a missing source or target (with and without vertex indices), a negative undirected edge trap; a negative edge never examined does not | — |
@@ -347,5 +347,5 @@ the target's `examine`, or when nothing is open. `cases_astarsearch.py` reproduc
 | SP-B06 | Bellman–Ford (active rounds) vs classical full-edge rounds vs a queue (SPFA) on random graphs with negative edges, on the 10⁶ path in reverse order, and on the lasso |
 | SP-B07 | Interleaved `(target, weight)` rows vs separate arrays, hand-written, on G(10⁶, 10⁷) |
 | SP-B08 | `shortestSimplePaths(...).prefix(k)` on a grid; `allShortestPaths` on a grid; `bidirectionalDijkstraShortestPath` vs `dijkstraShortestPath` on random s–t pairs; `johnsonShortestPaths` and `allPairsDijkstraShortestPaths` vs `floydWarshallShortestPaths` on a sparse graph |
-| SP-B09 | `dijkstraSearch`, pulling every event, on CSR, `AdjacencyList<Int>` and `UndirectedAdjacencyList`, against `dijkstraShortestPaths` on the same graphs (SP-B01, SP-B03) |
-| SP-B10 | `aStarSearch`, pulling every event, on the 1000 × 1000 grid with weights 1…4, against `aStarShortestPath` (SP-B05) |
+| SP-B09 | `lazy.dijkstra`, pulling every event, on CSR, `AdjacencyList<Int>` and `UndirectedAdjacencyList`, against `dijkstraShortestPaths` on the same graphs (SP-B01, SP-B03) |
+| SP-B10 | `lazy.aStar`, pulling every event, on the 1000 × 1000 grid with weights 1…4, against `aStarShortestPath` (SP-B05) |

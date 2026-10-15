@@ -275,7 +275,7 @@ public struct DijkstraSearch<G: DirectedGraph, W: Comparable & AdditiveArithmeti
     }
 }
 
-extension DirectedGraph {
+extension LazyDirectedGraphView {
     /// Dijkstra's algorithm from `source`, as a sequence of events: each vertex discovered,
     /// examined (settled) and finished, and each examined edge relaxed or not, with the distances
     /// involved. See `DijkstraSearchEvent` for the order.
@@ -288,10 +288,10 @@ extension DirectedGraph {
     /// - Complexity: O((V + E) log V) to iterate every event, as for
     ///   `dijkstraShortestPaths(from:cutoff:weight:)`; O(V) to make the search and each iterator.
     @inlinable
-    public func dijkstraSearch<W: Comparable & AdditiveArithmetic>(
-        from source: Vertex, weight: @escaping (Edges.Index) -> W
-    ) -> DijkstraSearch<Self, W> {
-        DijkstraSearch(graph: self, sources: CollectionOfOne(source), weight: weight)
+    public func dijkstra<W: Comparable & AdditiveArithmetic>(
+        from source: Base.Vertex, weight: @escaping (Base.Edges.Index) -> W
+    ) -> DijkstraSearch<Base, W> {
+        DijkstraSearch(graph: base, sources: CollectionOfOne(source), weight: weight)
     }
 
     /// Dijkstra's algorithm from several sources at once: all are discovered first, at distance
@@ -299,33 +299,69 @@ extension DirectedGraph {
     ///
     /// - Precondition: `sources` is not empty and holds only vertices; weights as for one source.
     @inlinable
-    public func dijkstraSearch<W: Comparable & AdditiveArithmetic>(
-        from sources: some Sequence<Vertex>, weight: @escaping (Edges.Index) -> W
-    ) -> DijkstraSearch<Self, W> {
-        DijkstraSearch(graph: self, sources: sources, weight: weight)
+    public func dijkstra<W: Comparable & AdditiveArithmetic>(
+        from sources: some Sequence<Base.Vertex>, weight: @escaping (Base.Edges.Index) -> W
+    ) -> DijkstraSearch<Base, W> {
+        DijkstraSearch(graph: base, sources: sources, weight: weight)
     }
 }
 
-extension Graph {
-    /// `directedView.dijkstraSearch(from:weight:)`, weighing each arc by its edge. Each edge is
+extension DirectedGraph {
+    /// `lazy.dijkstra(from:weight:)`.
+    @inlinable
+    public func dijkstraSearch<W: Comparable & AdditiveArithmetic>(
+        from source: Vertex, weight: @escaping (Edges.Index) -> W
+    ) -> DijkstraSearch<Self, W> {
+        lazy.dijkstra(from: source, weight: weight)
+    }
+
+    /// `lazy.dijkstra(from:weight:)`.
+    @inlinable
+    public func dijkstraSearch<W: Comparable & AdditiveArithmetic>(
+        from sources: some Sequence<Vertex>, weight: @escaping (Edges.Index) -> W
+    ) -> DijkstraSearch<Self, W> {
+        lazy.dijkstra(from: sources, weight: weight)
+    }
+}
+
+extension LazyGraphView {
+    /// `directedView.lazy.dijkstra(from:weight:)`, weighing each arc by its edge. Each edge is
     /// examined from both ends; the second time its far end is settled, so it is examined and
     /// nothing more.
     ///
     /// - Precondition: as for the directed search.
     @inlinable
+    public func dijkstra<W: Comparable & AdditiveArithmetic>(
+        from source: Base.Vertex, weight: @escaping (Base.Edges.Index) -> W
+    ) -> DijkstraSearch<DirectedView<Base>, W> {
+        base.directedView.lazy.dijkstra(from: source) { weight($0.position) }
+    }
+
+    /// `directedView.lazy.dijkstra(from:weight:)` from several sources.
+    ///
+    /// - Precondition: as for the directed search.
+    @inlinable
+    public func dijkstra<W: Comparable & AdditiveArithmetic>(
+        from sources: some Sequence<Base.Vertex>, weight: @escaping (Base.Edges.Index) -> W
+    ) -> DijkstraSearch<DirectedView<Base>, W> {
+        base.directedView.lazy.dijkstra(from: sources) { weight($0.position) }
+    }
+}
+
+extension Graph {
+    /// `lazy.dijkstra(from:weight:)`.
+    @inlinable
     public func dijkstraSearch<W: Comparable & AdditiveArithmetic>(
         from source: Vertex, weight: @escaping (Edges.Index) -> W
     ) -> DijkstraSearch<DirectedView<Self>, W> {
-        directedView.dijkstraSearch(from: source) { weight($0.position) }
+        lazy.dijkstra(from: source, weight: weight)
     }
 
-    /// `directedView.dijkstraSearch(from:weight:)` from several sources.
-    ///
-    /// - Precondition: as for the directed search.
+    /// `lazy.dijkstra(from:weight:)`.
     @inlinable
     public func dijkstraSearch<W: Comparable & AdditiveArithmetic>(
         from sources: some Sequence<Vertex>, weight: @escaping (Edges.Index) -> W
     ) -> DijkstraSearch<DirectedView<Self>, W> {
-        directedView.dijkstraSearch(from: sources) { weight($0.position) }
+        lazy.dijkstra(from: sources, weight: weight)
     }
 }
