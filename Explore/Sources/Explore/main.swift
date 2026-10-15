@@ -48,6 +48,7 @@ func mountPage(_ page: String) -> Bool {
     case "stablematching": StableMatchingPage.mount()
     case "coloring": ColoringPage.mount()
     case "edgecoloring": EdgeColoringPage.mount()
+    case "covering": CoveringPage.mount()
     case "pagerank": PageRankPage.mount()
     case "betweenness": BetweennessPage.mount()
     case "linkprediction": LinkPredictionPage.mount()

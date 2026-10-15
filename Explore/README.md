@@ -53,6 +53,7 @@ contents and the menu without a link.
 | `stablematching` | `galeShapley(proposerPreferences:reviewerPreferences:)`, `stableMatching(proposerPreferences:reviewerPreferences:)` |
 | `coloring` | `greedyColoring(order:)`, `greedyColoring(strategy:)`, `chromaticNumber()`, `minimumColoring()` |
 | `edgecoloring` | `edgeColoring()`, `colorClasses`, `isEdgeColoring(_:)` |
+| `covering` | `minimumVertexCover()`, `lexicographicallyFirstMinimumVertexCover()`, `approximateMinimumVertexCover()`, `isVertexCover(_:)`, `minimumDominatingSet()`, `lexicographicallyFirstMinimumDominatingSet()`, `approximateMinimumDominatingSet()`, `isDominatingSet(_:)` |
 | `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |
 | `betweenness` | `betweennessCentrality(normalized:)`, `edgeBetweennessCentrality(normalized:)`, `shortestSimplePaths(from:to:)` |
 | `linkprediction` | `jaccardCoefficient(of:and:)`, `adamicAdarIndex(of:and:)` |

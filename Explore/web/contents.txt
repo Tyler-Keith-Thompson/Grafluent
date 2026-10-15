@@ -40,6 +40,7 @@ matching|Bipartite matching|Assignment|Filling as many jobs as possible.|page
 stablematching|Stable matching|Assignment|Pairing two sides so nobody would rather swap.|page
 coloring|Graph coloring|Assignment|Scheduling without clashes.|page
 edgecoloring|Edge coloring|Assignment|A round-robin schedule in the fewest rounds.|page
+covering|Covers and dominating sets|Assignment|Cameras that watch every street; stations that reach every corner.|page
 pagerank|PageRank|Importance and shape|Which pages matter most.|page
 betweenness|Betweenness|Importance and shape|Who sits on the most shortest paths.|page
 linkprediction|Friend suggestions|Importance and shape|Who you might know, from the friends you share.|page

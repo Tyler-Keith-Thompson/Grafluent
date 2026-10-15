@@ -56,6 +56,7 @@ enum Names {
     static let fiedler = Pronunciation(name: "Fiedler", say: "FEED-ler", ipa: "/ˈfiːdlər/", what: "Miroslav Fiedler: the second eigenvalue as a measure of connectivity, and its eigenvector as a cut")
     static let raghavan = Pronunciation(name: "Raghavan", say: "RAH-guh-vun", ipa: "/ˈrɑːɡəvən/", what: "Usha Nandini Raghavan: communities by letting labels spread, with Réka Albert and Soundar Kumara")
     static let sugiyama = Pronunciation(name: "Sugiyama", say: "soo-gee-YAH-mah", ipa: "/sɯɡijama/", what: "Kozo Sugiyama: layered drawings of hierarchies, in phases, with Shojiro Tagawa and Mitsuhiko Toda")
+    static let chvatal = Pronunciation(name: "Chvátal", say: "KHVAH-tahl", ipa: "/ˈxvaːtal/", what: "Václav Chvátal: the greedy set cover, and how close to the best it stays")
     static let bronKerbosch = Pronunciation(name: "Bron–Kerbosch", say: "BRON KER-boss", ipa: "/ˈbrɔn ˈkɛrbɔs/", what: "Every maximal clique, by backtracking")
 }
 
