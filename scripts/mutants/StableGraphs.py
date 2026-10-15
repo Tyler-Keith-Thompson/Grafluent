@@ -261,9 +261,9 @@ MUTANTS = [
     # only, the default's bytes, room checked, and the general path after them.
     Mutant("fastbufferinit", "AttachedMaps.swift", "singleWord && !someMayBeShared ? UInt(bitPattern: ObjectIdentifier(entries[0].buffer)) : 0", "singleWord ? UInt(bitPattern: ObjectIdentifier(entries[0].buffer)) : 0", module="GraphProtocols"),
     Mutant("fastbuffermark", "AttachedMaps.swift", "        _fastBuffer.store(0, ordering: .relaxed)", "", mode="stmt", module="GraphProtocols"),
-    Mutant("singlewordstride", "AttachedMaps.swift", "unsafeDowncast(entries[0].buffer, to: _DenseMapBuffer.self).stride == 8", "unsafeDowncast(entries[0].buffer, to: _DenseMapBuffer.self).stride >= 8", module="GraphProtocols"),
+    Mutant("singlewordstride", "AttachedMaps.swift", "let singleWord = singleStride == 8 ||", "let singleWord = singleStride >= 8 ||", module="GraphProtocols"),
     Mutant("singlewordcount", "AttachedMaps.swift", "count == 1 && allTrivialDense", "count >= 1 && allTrivialDense", module="GraphProtocols"),
-    Mutant("defaultword", "AttachedMaps.swift", "isTrivial && stride == 8 ? defaultAddress.load(as: UInt64.self) : 0", "0", module="GraphProtocols"),
+    Mutant("defaultword", "AttachedMaps.swift", ": stride == 8 ? defaultAddress.load(as: UInt64.self)", ": stride == 8 ? 0", module="GraphProtocols"),
     Mutant("ownedappendcount", "AttachedMaps.swift", "            buffer.count = c &+ 1", "            buffer.count = c", mode="stmt", nth=0, module="GraphProtocols"),
     Mutant("inlineappendcount", "AttachedMaps.swift", "            buffer.count = c &+ 1", "            buffer.count = c", mode="stmt", nth=2, module="GraphProtocols"),
     Mutant("ownedremovecount", "AttachedMaps.swift", "            buffer.count = last", "            buffer.count = last &+ 1", mode="stmt", nth=0, module="GraphProtocols"),

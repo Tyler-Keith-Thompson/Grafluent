@@ -51,7 +51,7 @@ struct StableGraphConformanceTests {
             #expect(g.isStronglyConnected == compacted.isStronglyConnected)
             #expect(g.topologicalSort() == compacted.topologicalSort())
             #expect(Array(g.depthFirstSearch()) == Array(compacted.depthFirstSearch()))
-            let weight = (0 ..< g.edges.endIndex).map { ($0 &* 2_654_435_761) % 9 + 1 }
+            let weight = (0 ..< g.edges.endIndex).map { Int(UInt64($0) &* 2_654_435_761 % 9) + 1 }
             for source in g.vertices {
                 #expect(Array(g.breadthFirstSearch(from: source)) == Array(compacted.breadthFirstSearch(from: source)))
                 #expect(g.breadthFirstLayers(from: source) == compacted.breadthFirstLayers(from: source))

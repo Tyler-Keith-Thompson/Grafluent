@@ -14,6 +14,7 @@ edge. Hand-written exit tests spliced into the precondition file: extra_traps.sw
 """
 import json
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -884,6 +885,30 @@ IMPORTS = {"Foundation": "Data(", "Traversal": "breadthFirstSearch(", "Connectiv
            "ShortestPaths": "dijkstraShortestPaths(", "Multigraphs": "DirectedPseudograph"}
 
 
+WIDE_LITERAL = re.compile(r"(?<![\w.])(\d[\d_]*)(?![\w.])")
+
+
+def wide_guarded(body):
+    """`body` with each test whose code spells an integer literal past Int32 inside a 64-bit-only
+    `#if`: arm64_32 and wasm32 have a 32-bit `Int`."""
+    out, i = [], 0
+    while i < len(body):
+        if not body[i].startswith("    @Test("):
+            out.append(body[i])
+            i += 1
+            continue
+        j = i
+        while body[j] != "    }":
+            j += 1
+        test = body[i:j + 1]
+        code = " ".join(re.sub(r'"(?:[^"\\]|\\.)*"', '""', line).split("//")[0] for line in test)
+        if any(int(m.group(1).replace("_", "")) > 2**31 - 1 for m in WIDE_LITERAL.finditer(code)):
+            test = ["    #if _pointerBitWidth(_64)"] + test + ["    #endif"]
+        out += test
+        i = j + 1
+    return out
+
+
 def write(fname, suite, rows, comment):
     tests = [test_for(n) for n in rows]
     if fname == "StableGraphPreconditionTests.swift":
@@ -907,7 +932,7 @@ def write(fname, suite, rows, comment):
     out = ["// " + comment, "// Generated from cases.md by swiftgen.py; see README.md.", ""]
     out += ["import " + m for m in imports]
     out += ["", '@Suite("%s"%s)' % (suite, tags), "struct %s {" % fname[:-6]]
-    out += body
+    out += wide_guarded(body)
     out.append("}")
     with open(os.path.join(OUT, fname), "w") as f:
         f.write("\n".join(out) + "\n")

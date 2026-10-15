@@ -372,7 +372,7 @@ extension _TreeLayout {
     @inlinable
     mutating func root(at root: Int?, oriented: Bool = false) -> Bool {
         let n = vertices.count
-        precondition(n < 1 << 31, "A tree has fewer than 2³¹ vertices")
+        precondition(Int64(n) < 1 << 31, "A tree has fewer than 2³¹ vertices")
         var roots: [Int] = []
         var height = 0
         var complete = true

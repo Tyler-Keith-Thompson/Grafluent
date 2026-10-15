@@ -401,6 +401,7 @@ struct StableGraphCodableTests {
         }
     }
 
+    #if _pointerBitWidth(_64)
     @Test("SG-108 vertexEnd far past the payload: no vertex, so one page", .tags(.conformance))
     func sg108() throws {
         // {"vertices":[],"vertexPositions":[],"vertexEnd":4611686018427387903,"edges":[],"edgePositions":[],"edgeEnd":0} → V [] end 4611686018427387903; E [] end 0; bounds nil/0; out -; in -
@@ -423,7 +424,9 @@ struct StableGraphCodableTests {
         #expect(decoded.insert(edge: DirectedEdge(from: -1, to: -1)) == 0)
         #expect(decoded.vertices.firstIndex(of: -1) == 4611686018427387903)
     }
+    #endif
 
+    #if _pointerBitWidth(_64)
     @Test("SG-109 edgeEnd at Int.max with no edge: one page", .tags(.conformance))
     func sg109() throws {
         // {"vertices":[0],"vertexPositions":[0],"vertexEnd":1,"edges":[],"edgePositions":[],"edgeEnd":9223372036854775807} → V [0#0] end 1; E [] end 9223372036854775807; bounds 1/nil; out -; in -
@@ -455,6 +458,7 @@ struct StableGraphCodableTests {
         #expect(decoded.insert(-1).inserted)
         #expect(decoded.vertices.firstIndex(of: -1) == 1)
     }
+    #endif
 
     @Test("SG-110 vertexEnd 65554 with one vertex: 65 pages, within the bound", .tags(.conformance))
     func sg110() throws {
@@ -620,6 +624,7 @@ struct StableGraphCodableTests {
         #expect(decoded.vertices.firstIndex(of: -1) == 81919)
     }
 
+    #if _pointerBitWidth(_64)
     @Test("SG-116 elements far along: the pages before them cost nothing", .tags(.conformance))
     func sg116() throws {
         // {"vertices":[7,8],"vertexPositions":[4611686018427387000,4611686018427387001],"vertexEnd":4611686018427387904,"edges":[0,1],"edgePositions":[9223372036854775000],"edgeEnd":9223372036854775001} → V [7#4611686018427387000, 8#4611686018427387001] end 4611686018427387904; E [9223372036854775000:7→8] end 9223372036854775001; bounds nil/nil; out 7:[8@9223372036854775000]; in 8:[7@9223372036854775000]
@@ -660,4 +665,5 @@ struct StableGraphCodableTests {
         #expect(decoded.insert(edge: DirectedEdge(from: -1, to: -1)) == 9223372036854775001)
         #expect(decoded.vertices.firstIndex(of: -1) == 4611686018427387904)
     }
+    #endif
 }

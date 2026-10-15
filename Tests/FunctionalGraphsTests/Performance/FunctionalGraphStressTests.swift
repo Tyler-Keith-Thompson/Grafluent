@@ -61,7 +61,7 @@ struct FunctionalGraphStressTests {
                 #expect(whole.tailLength(of: v) == mu && whole.cycleLength(of: v) == lambda && whole.root(of: v) == x)
                 let detected = brentCycleDetection(from: v) { successors[$0] }
                 #expect(detected.tailLength == mu && detected.cycleLength == lambda && detected.root == x)
-                for k in [0, 1, mu / 2, mu, mu + 1, n + 1, 1_000_000_000_000_000] {
+                for k in [0, 1, mu / 2, mu, mu + 1, n + 1, Int.max] {
                     var y = v
                     for _ in 0 ..< (k <= mu ? k : mu + (k - mu) % lambda) { y = successors[y] }
                     #expect(whole.successor(of: v, steps: k) == y && graph.successor(of: v, steps: k) == y)
@@ -98,11 +98,15 @@ struct FunctionalGraphStressTests {
             for v in stride(from: 0, to: n, by: 97) {
                 #expect(whole.tailLength(of: v) == 0 && whole.inDegree(of: v) == 1)
                 #expect(whole.successor(of: v, steps: whole.cycleLength(of: v)) == v)
-                #expect(whole.successor(of: v, steps: whole.cycleLength(of: v) * 1_000_003 + 1) == successors[v])
+                let lambda = whole.cycleLength(of: v)
+                // The greatest multiple of λ that leaves room for one more step, at either `Int` width.
+                #expect(whole.successor(of: v, steps: (Int.max / lambda - 1) * lambda + 1) == successors[v])
             }
         }.value
     }
 
+    // x² mod m up to 3 × 10⁹ needs a 64-bit Int.
+    #if _pointerBitWidth(_64)
     @Test("Pollard-rho closures x² + c mod m, m up to 3 × 10⁹", .timeLimit(.minutes(1)))
     func pollardRho() async {
         await Task {
@@ -150,4 +154,5 @@ struct FunctionalGraphStressTests {
             #expect(factor == 97)
         }.value
     }
+    #endif
 }

@@ -324,6 +324,7 @@ struct DirectedAcyclicGraphCodableTests {
         #expect((try? graph.inEdges(checked: 102)) == nil && (try? graph.outDegree(checked: 102)) == nil && (try? graph.inDegree(checked: 102)) == nil)
     }
 
+    #if _pointerBitWidth(_64)
     @Test("DAG-120 StableDirectedGraph: a vertex at position 2⁵⁰ costs one page, not a table to it", .tags(.conformance))
     func dag120() throws {
         // StableDirectedGraph; decode {"base": {"vertices": [7], "vertexPositions": [1125899906842624], "vertexEnd": 1125899906842625, "edges": [], "edgePositions": [], "edgeEnd": 0}, "order": [0]} → order [7]; V [7]; E []
@@ -358,6 +359,7 @@ struct DirectedAcyclicGraphCodableTests {
         #expect(graph.remove(7) == 7)
         #expect(Array(graph.topologicalOrder) == [9, 8] && graph.topologicalPosition(of: 8) == 1)
     }
+    #endif
 
     @Test("DAG-121 an order shorter than the vertices rejected", .tags(.conformance))
     func dag121() throws {

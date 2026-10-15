@@ -305,10 +305,13 @@ public struct BipartiteGraph<Vertex: Hashable> {
         // Each pair once, from its earlier vertex in side order: x is skipped unless it comes
         // after u, so `insert(edge:)` runs once per projected edge.
         var lastSeen = [Int](repeating: -1, count: _side.count)
-        var bound = 0
-        for u in slots { for w in _base.neighborIndices(ofIndex: u) { bound += _base.neighborIndices(ofIndex: w).count - 1 } }
+        // The bounds in 64 bits: Σ deg(w)² and c(c − 1)/2 pass a 32-bit `Int` long before the
+        // projection itself would.
+        var bound: Int64 = 0
+        for u in slots { for w in _base.neighborIndices(ofIndex: u) { bound += Int64(_base.neighborIndices(ofIndex: w).count - 1) } }
+        let pairs = Int64(slots.count) * Int64(max(slots.count - 1, 0)) / 2
         var result = UndirectedAdjacencyList<Vertex>()
-        result.reserveCapacity(vertexCount: slots.count, edgeCount: min(bound / 2, slots.count * max(slots.count - 1, 0) / 2))
+        result.reserveCapacity(vertexCount: slots.count, edgeCount: Int(clamping: min(bound / 2, pairs)))
         for u in slots { result.insert(_base.vertex(atIndex: u)) }
         // In `result`, side position k is slot k.
         for (k, u) in slots.enumerated() {
