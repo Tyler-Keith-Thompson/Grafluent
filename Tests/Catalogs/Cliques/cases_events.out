@@ -1,39 +1,39 @@
 --- CQ-1100: 38 events, order [6, 5, 4, 0, 3, 1, 2]
-call +6 0 0
+call +6 [6] [] []
 maximalClique [6]
 backtrack
-call +5 1 0
+call +5 [5] [4] []
 pivot 4
-call +4 0 0
+call +4 [4, 5] [] []
 maximalClique [4, 5]
 backtrack
 backtrack
-call +4 1 1
+call +4 [4] [3] [5]
 pivot 3
-call +3 0 0
+call +3 [3, 4] [] []
 maximalClique [3, 4]
 backtrack
 backtrack
-call +0 2 0
+call +0 [0] [1, 2] []
 pivot 1
-call +1 1 0
+call +1 [0, 1] [2] []
 pivot 2
-call +2 0 0
+call +2 [0, 1, 2] [] []
 maximalClique [0, 1, 2]
 backtrack
 backtrack
 backtrack
-call +3 2 1
+call +3 [3] [1, 2] [4]
 pivot 1
-call +1 1 0
+call +1 [1, 3] [2] []
 pivot 2
-call +2 0 0
+call +2 [1, 2, 3] [] []
 maximalClique [1, 2, 3]
 backtrack
 backtrack
 backtrack
-call +1 1 2
+call +1 [1] [2] [0, 3]
 pivot 0
 backtrack
-call +2 0 3
+call +2 [2] [] [0, 1, 3]
 backtrack

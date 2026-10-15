@@ -7,8 +7,8 @@ import GraphProtocols
 protocol _BronKerboschObserver {
     /// A call starts on the frame at `base` of `search`'s frames; its R is `search.clique`.
     mutating func enter(_ search: _MaximalCliqueSearch, at base: Int)
-    /// The outer call for `v`, whose P is empty and whose X has `excluded` vertices.
-    mutating func enterAlone(_ v: Int, excluded: Int)
+    /// The outer call for `v`, whose P is empty and whose X is `search.xVertices`.
+    mutating func enterAlone(_ search: _MaximalCliqueSearch, _ v: Int)
     /// The current call's pivot: member `member` of P ∪ X (P's first).
     mutating func pivot(_ search: _MaximalCliqueSearch, _ member: Int)
     /// A maximal clique, as vertex numbers in ascending order.
@@ -23,7 +23,7 @@ protocol _BronKerboschObserver {
 struct _BronKerboschSilence: _BronKerboschObserver {
     @inlinable init() {}
     @inlinable @inline(__always) func enter(_ search: _MaximalCliqueSearch, at base: Int) {}
-    @inlinable @inline(__always) func enterAlone(_ v: Int, excluded: Int) {}
+    @inlinable @inline(__always) func enterAlone(_ search: _MaximalCliqueSearch, _ v: Int) {}
     @inlinable @inline(__always) func pivot(_ search: _MaximalCliqueSearch, _ member: Int) {}
     @inlinable @inline(__always) func report(_ clique: [Int]) {}
     @inlinable @inline(__always) func leave() {}
@@ -136,7 +136,7 @@ struct _MaximalCliqueSearch: Sendable {
         for k in laterOffsets[v] ..< laterOffsets[v + 1] { pVertices.append(later[k]) }
         for k in rows.offsets[v] ..< rows.offsets[v + 1] where rank[rows.targets[k]] < rank[v] { xVertices.append(rows.targets[k]) }
         if pVertices.isEmpty {
-            observer.enterAlone(v, excluded: xVertices.count)
+            observer.enterAlone(self, v)
             guard xVertices.isEmpty else {
                 observer.leave()
                 return false

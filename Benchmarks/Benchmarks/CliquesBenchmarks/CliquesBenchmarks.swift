@@ -222,7 +222,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Cliques: bronKerboschEvents() counted, G(2000, 2·10⁴)") { benchmark in
         for _ in benchmark.scaledIterations {
             var cliques = 0
-            for case .maximalClique in dense.bronKerboschEvents() { cliques &+= 1 }
+            for case .maximalClique in dense.lazy.bronKerbosch() { cliques &+= 1 }
             blackHole(cliques)
         }
     }

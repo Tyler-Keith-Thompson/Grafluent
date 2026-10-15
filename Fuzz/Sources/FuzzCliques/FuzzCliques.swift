@@ -49,20 +49,21 @@ enum FuzzCliques {
         let found = Array(graph.maximalCliques())
         FuzzSupport.check(found.allSatisfy { $0 == $0.sorted() }, "\(name): a clique is not in vertex order")
         FuzzSupport.check(Set(found) == maximal && found.count == maximal.count, "\(name): maximalCliques \(found), expected \(maximal.sorted { $0.lexicographicallyPrecedes($1) })")
-        // The Bron–Kerbosch events: calls nest; R, rebuilt from the vertices the calls add, is a
-        // clique; P's and X's sizes count the vertices adjacent to all of R that are after and
-        // before (or tried) in the order, so their sum is the common neighbourhood's size; a
-        // pivot is adjacent to all of R; a clique is reported exactly when both are empty, and
-        // the cliques are maximalCliques() in order.
+        // The Bron–Kerbosch events: calls nest; R, rebuilt from the vertices the calls add, is the
+        // call's clique and is a clique; P and X are the vertices adjacent to all of R after and
+        // before (or tried) in the order, so together they are the common neighbourhood, in
+        // order; a pivot is adjacent to all of R; a clique is reported exactly when both are
+        // empty, and the cliques are maximalCliques() in order.
         var stack: [(r: [Int], p: Int, x: Int)] = []
         var reported: [[Int]] = []
-        for event in graph.bronKerboschEvents() {
+        for event in graph.lazy.bronKerbosch() {
             switch event {
-            case .call(let v, let p, let x):
+            case .call(let v, let clique, let candidates, let excluded):
                 let r = (stack.last?.r ?? []) + [v]
-                let common = (0 ..< n).filter { u in !r.contains(u) && r.allSatisfy { adjacent[$0][u] } }.count
-                FuzzSupport.check(isClique(r) && p + x == common, "\(name): call \(r) with |P| \(p), |X| \(x), common neighbours \(common)")
-                stack.append((r, p, x))
+                let common = (0 ..< n).filter { u in !r.contains(u) && r.allSatisfy { adjacent[$0][u] } }
+                FuzzSupport.check(isClique(r) && clique == r.sorted() && candidates == candidates.sorted() && excluded == excluded.sorted()
+                                  && (candidates + excluded).sorted() == common, "\(name): call \(r) with R \(clique), P \(candidates), X \(excluded), common neighbours \(common)")
+                stack.append((r, candidates.count, excluded.count))
             case .pivot(let u):
                 FuzzSupport.check(stack.last.map { top in !top.r.contains(u) && top.r.allSatisfy { adjacent[$0][u] } && top.p > 0 } == true, "\(name): pivot \(u)")
             case .maximalClique(let c):

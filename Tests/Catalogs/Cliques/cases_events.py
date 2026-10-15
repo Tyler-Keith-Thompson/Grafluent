@@ -1,5 +1,5 @@
 # The Bron–Kerbosch events of CQ-1100, from a plain recursive model of api.md's enumeration, each
-# call as the vertex it adds to R and the sizes of P and X: outer calls in the degeneracy
+# call as the vertex it adds to R and the contents of R, P and X: outer calls in the degeneracy
 # ordering (given here as the library reports it, which the test pins),
 # R = {v}, P = v's later neighbors, X = its earlier ones; Tomita's pivot maximizes |P ∩ N(u)| over
 # P ∪ X, ties to the least vertex; branches over P \ N(pivot) in ascending order. Prints
@@ -17,7 +17,7 @@ def events(n, edges, order):
     out = []
 
     def call(r, p, x):
-        out.append(("call", "+%d" % r[-1], len(p), len(x)))
+        out.append(("call", "+%d" % r[-1], sorted(r), sorted(p), sorted(x)))
         if not p:
             if not x:
                 out.append(("maximalClique", sorted(r)))

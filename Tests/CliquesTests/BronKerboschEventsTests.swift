@@ -1,4 +1,4 @@
-// The Bron–Kerbosch algorithm with pivoting as an event sequence (`bronKerboschEvents`): a
+// The Bron–Kerbosch algorithm with pivoting as an event sequence (`lazy.bronKerbosch()`): a
 // hand-traced graph against Tests/Catalogs/Cliques/cases_events.py, the trivial cases, value
 // semantics, and a property test replaying the events against `maximalCliques()` and a recursive
 // model written here. Case IDs (CQ-11nn) are listed in README.md.
@@ -20,28 +20,30 @@ struct BronKerboschEventsTests {
         #expect(graph.coreNumbers().degeneracyOrdering == [6, 5, 4, 0, 3, 1, 2])
         // Tests/Catalogs/Cliques/cases_events.out, CQ-1100.
         let expected: [BronKerboschEvent<Int>] = [
-            .call(adding: 6, candidates: 0, excluded: 0), .maximalClique([6]), .backtrack,
-            .call(adding: 5, candidates: 1, excluded: 0), .pivot(4),
-            .call(adding: 4, candidates: 0, excluded: 0), .maximalClique([4, 5]), .backtrack, .backtrack,
-            .call(adding: 4, candidates: 1, excluded: 1), .pivot(3),
-            .call(adding: 3, candidates: 0, excluded: 0), .maximalClique([3, 4]), .backtrack, .backtrack,
-            .call(adding: 0, candidates: 2, excluded: 0), .pivot(1),
-            .call(adding: 1, candidates: 1, excluded: 0), .pivot(2),
-            .call(adding: 2, candidates: 0, excluded: 0), .maximalClique([0, 1, 2]), .backtrack, .backtrack, .backtrack,
-            .call(adding: 3, candidates: 2, excluded: 1), .pivot(1),
-            .call(adding: 1, candidates: 1, excluded: 0), .pivot(2),
-            .call(adding: 2, candidates: 0, excluded: 0), .maximalClique([1, 2, 3]), .backtrack, .backtrack, .backtrack,
+            .call(adding: 6, clique: [6], candidates: [], excluded: []), .maximalClique([6]), .backtrack,
+            .call(adding: 5, clique: [5], candidates: [4], excluded: []), .pivot(4),
+            .call(adding: 4, clique: [4, 5], candidates: [], excluded: []), .maximalClique([4, 5]), .backtrack, .backtrack,
+            .call(adding: 4, clique: [4], candidates: [3], excluded: [5]), .pivot(3),
+            .call(adding: 3, clique: [3, 4], candidates: [], excluded: []), .maximalClique([3, 4]), .backtrack, .backtrack,
+            .call(adding: 0, clique: [0], candidates: [1, 2], excluded: []), .pivot(1),
+            .call(adding: 1, clique: [0, 1], candidates: [2], excluded: []), .pivot(2),
+            .call(adding: 2, clique: [0, 1, 2], candidates: [], excluded: []), .maximalClique([0, 1, 2]), .backtrack, .backtrack, .backtrack,
+            .call(adding: 3, clique: [3], candidates: [1, 2], excluded: [4]), .pivot(1),
+            .call(adding: 1, clique: [1, 3], candidates: [2], excluded: []), .pivot(2),
+            .call(adding: 2, clique: [1, 2, 3], candidates: [], excluded: []), .maximalClique([1, 2, 3]), .backtrack, .backtrack, .backtrack,
             // 1's only later neighbor is 2, adjacent to the pivot 0: no branch.
-            .call(adding: 1, candidates: 1, excluded: 2), .pivot(0), .backtrack,
-            .call(adding: 2, candidates: 0, excluded: 3), .backtrack,
+            .call(adding: 1, clique: [1], candidates: [2], excluded: [0, 3]), .pivot(0), .backtrack,
+            .call(adding: 2, clique: [2], candidates: [], excluded: [0, 1, 3]), .backtrack,
         ]
-        let events = Array(graph.bronKerboschEvents())
+        let events = Array(graph.lazy.bronKerbosch())
         #expect(events == expected)
         // R, rebuilt from the nesting, is each reported clique.
         var r: [Int] = []
         for event in events {
             switch event {
-            case .call(let v, _, _): r.append(v)
+            case .call(let v, let clique, _, _):
+                r.append(v)
+                #expect(clique == r.sorted())
             case .maximalClique(let c): #expect(c == r.sorted())
             case .backtrack: r.removeLast()
             case .pivot: break
@@ -51,17 +53,17 @@ struct BronKerboschEventsTests {
         let cliques = events.compactMap { event -> [Int]? in if case .maximalClique(let c) = event { c } else { nil } }
         #expect(cliques == Array(graph.maximalCliques()))
         let list = UndirectedAdjacencyList(vertices: 0 ..< 7, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(Array(list.bronKerboschEvents()) == expected)
-        #expect(expected[0].description == "call(+6, 0, 0)" && expected[1].description == "maximalClique([6])")
+        #expect(Array(list.lazy.bronKerbosch()) == expected)
+        #expect(expected[0].description == "call(+6, [6], [], [])" && expected[1].description == "maximalClique([6])")
         #expect(expected[2].description == "backtrack" && expected[4].description == "pivot(4)")
         #expect(Set(expected).count < expected.count)
     }
 
     @Test("CQ-1101 no vertices: no events; String vertices; a later insertion does not change the events; each iterator starts over; stopping early")
     func trivialAndValueSemantics() {
-        #expect(Array(UndirectedAdjacencyList<Int>(vertices: []).bronKerboschEvents()).isEmpty)
+        #expect(Array(UndirectedAdjacencyList<Int>(vertices: []).lazy.bronKerbosch()).isEmpty)
         var graph = UndirectedAdjacencyList(vertices: ["a", "b", "c"], edges: [UndirectedEdge("a", "b")])
-        let events = graph.bronKerboschEvents()
+        let events = graph.lazy.bronKerbosch()
         _ = graph.insert(edge: UndirectedEdge("b", "c"))
         let first = Array(events)
         let cliques = first.compactMap { event -> [String]? in if case .maximalClique(let c) = event { c } else { nil } }
@@ -93,7 +95,7 @@ struct BronKerboschEventsTests {
             for (i, v) in order.enumerated() { rank[v] = i }
             var expected: [BronKerboschEvent<Int>] = []
             func call(_ r: [Int], _ p: Set<Int>, _ x: Set<Int>) {
-                expected.append(.call(adding: r.last!, candidates: p.count, excluded: x.count))
+                expected.append(.call(adding: r.last!, clique: r.sorted(), candidates: p.sorted(), excluded: x.sorted()))
                 guard !p.isEmpty else {
                     if x.isEmpty { expected.append(.maximalClique(r.sorted())) }
                     expected.append(.backtrack)
@@ -115,7 +117,7 @@ struct BronKerboschEventsTests {
             for v in order {
                 call([v], neighbors[v].filter { rank[$0] > rank[v] }, neighbors[v].filter { rank[$0] < rank[v] })
             }
-            #expect(Array(graph.bronKerboschEvents()) == expected)
+            #expect(Array(graph.lazy.bronKerbosch()) == expected)
         }
     }
 
@@ -135,7 +137,7 @@ struct BronKerboschEventsTests {
             for (i, v) in order.enumerated() { rank[v] = i }
             var expected: [BronKerboschEvent<Int>] = []
             func call(_ r: [Int], _ p: Set<Int>, _ x: Set<Int>) {
-                expected.append(.call(adding: r.last!, candidates: p.count, excluded: x.count))
+                expected.append(.call(adding: r.last!, clique: r.sorted(), candidates: p.sorted(), excluded: x.sorted()))
                 guard !p.isEmpty else {
                     if x.isEmpty { expected.append(.maximalClique(r.sorted())) }
                     expected.append(.backtrack)
@@ -157,7 +159,7 @@ struct BronKerboschEventsTests {
             for v in order {
                 call([v], neighbors[v].filter { rank[$0] > rank[v] }, neighbors[v].filter { rank[$0] < rank[v] })
             }
-            let events = Array(graph.bronKerboschEvents())
+            let events = Array(graph.lazy.bronKerbosch())
             #expect(events == expected)
             let cliques = events.compactMap { event -> [Int]? in if case .maximalClique(let c) = event { c } else { nil } }
             #expect(cliques == Array(graph.maximalCliques()))

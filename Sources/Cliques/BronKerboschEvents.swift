@@ -3,21 +3,21 @@ import GraphProtocols
 /// What the Bron–Kerbosch algorithm with pivoting reports, in order, as `maximalCliques()` runs
 /// it.
 ///
-/// Each call is entered with the vertex it adds to R, the clique being grown, and the sizes of P,
-/// the candidates that extend R, and X, the vertices that extend it but were already tried. The
-/// outer calls take the vertices in
-/// `coreNumbers().degeneracyOrdering`, each v with R = {v}, P its neighbors after it and X its
-/// neighbors before it (Eppstein, Löffler and Strash). A call with P and X both empty reports R as
-/// a maximal clique. A call with candidates chooses Tomita's pivot, the member of P ∪ X with the
-/// most neighbors in P (ties to the least vertex index), and then calls itself on each candidate
-/// not adjacent to the pivot, in index order, moving that candidate from P to X after the call.
-/// Every call ends with a backtrack. Self-loops and parallel edges are ignored.
+/// Each call is entered with the vertex it adds to R, the clique being grown, and the contents of
+/// R, of P, the candidates that extend R, and of X, the vertices that extend it but were already
+/// tried. The outer calls take the vertices in `coreNumbers().degeneracyOrdering`, each v with
+/// R = {v}, P its neighbors after it and X its neighbors before it (Eppstein, Löffler and
+/// Strash). A call with P and X both empty reports R as a maximal clique. A call with candidates
+/// chooses Tomita's pivot, the member of P ∪ X with the most neighbors in P (ties to the least
+/// vertex index), and then calls itself on each candidate not adjacent to the pivot, in index
+/// order, moving that candidate from P to X after the call. Every call ends with a backtrack.
+/// Self-loops and parallel edges are ignored.
 @frozen
 public enum BronKerboschEvent<Vertex: Hashable>: Hashable {
-    /// A call starts: R is the enclosing call's R with `adding` (an outer call's R is that vertex
-    /// alone, so R's size is the nesting depth), with `candidates` vertices in P and `excluded`
-    /// in X.
-    case call(adding: Vertex, candidates: Int, excluded: Int)
+    /// A call starts: `clique` is R, the enclosing call's R with `adding` (an outer call's R is
+    /// that vertex alone, so R's size is the nesting depth); `candidates` is P and `excluded` is
+    /// X. Each is in `vertices` order.
+    case call(adding: Vertex, clique: [Vertex], candidates: [Vertex], excluded: [Vertex])
     /// The call's pivot.
     case pivot(Vertex)
     /// R is a maximal clique, in `vertices` order: an element of `maximalCliques()`.
@@ -29,10 +29,10 @@ public enum BronKerboschEvent<Vertex: Hashable>: Hashable {
 extension BronKerboschEvent: Sendable where Vertex: Sendable {}
 
 extension BronKerboschEvent: CustomStringConvertible {
-    /// `call(+v, |P|, |X|)`, `pivot(u)`, `maximalClique(R)`, `backtrack`.
+    /// `call(+v, R, P, X)`, `pivot(u)`, `maximalClique(R)`, `backtrack`.
     public var description: String {
         switch self {
-        case .call(let v, let p, let x): "call(+\(v), \(p), \(x))"
+        case .call(let v, let r, let p, let x): "call(+\(v), \(r), \(p), \(x))"
         case .pivot(let u): "pivot(\(u))"
         case .maximalClique(let r): "maximalClique(\(r))"
         case .backtrack: "backtrack"
@@ -62,19 +62,38 @@ struct _BronKerboschRecorder<G: Graph>: _BronKerboschObserver {
     @inlinable
     mutating func enter(_ search: _MaximalCliqueSearch, at base: Int) {
         let frames = search.frames, pWords = search.pWords
-        var candidates = 0, excluded = 0
+        var clique = [search.clique[0]]
+        for k in search.clique.indices.dropFirst() { clique.append(search.pVertices[search.clique[k]]) }
+        clique.sort()
+        // P and the part of X among P's vertices index `pVertices`; the rest of X indexes
+        // `xVertices`. Both lists are sorted, so P comes out in order and X is merged.
+        var candidates: [Int] = [], excluded: [Int] = []
         for k in 0 ..< pWords {
-            candidates &+= frames[base + k].nonzeroBitCount
-            excluded &+= frames[base + pWords + k].nonzeroBitCount
+            var p = frames[base + k], x = frames[base + pWords + k]
+            while p != 0 {
+                candidates.append(search.pVertices[k << 6 | p.trailingZeroBitCount])
+                p &= p &- 1
+            }
+            while x != 0 {
+                excluded.append(search.pVertices[k << 6 | x.trailingZeroBitCount])
+                x &= x &- 1
+            }
         }
-        for k in 0 ..< search.xWords { excluded &+= frames[base + 2 * pWords + k].nonzeroBitCount }
+        for k in 0 ..< search.xWords {
+            var x = frames[base + 2 * pWords + k]
+            while x != 0 {
+                excluded.append(search.xVertices[k << 6 | x.trailingZeroBitCount])
+                x &= x &- 1
+            }
+        }
+        excluded.sort()
         let added = search.clique.count == 1 ? search.clique[0] : search.pVertices[search.clique[search.clique.count - 1]]
-        events.append(.call(adding: _vertex(added), candidates: candidates, excluded: excluded))
+        events.append(.call(adding: _vertex(added), clique: clique.map(_vertex), candidates: candidates.map(_vertex), excluded: excluded.map(_vertex)))
     }
 
     @inlinable
-    mutating func enterAlone(_ v: Int, excluded: Int) {
-        events.append(.call(adding: _vertex(v), candidates: 0, excluded: excluded))
+    mutating func enterAlone(_ search: _MaximalCliqueSearch, _ v: Int) {
+        events.append(.call(adding: _vertex(v), clique: [_vertex(v)], candidates: [], excluded: search.xVertices.sorted().map(_vertex)))
     }
 
     @inlinable
@@ -150,14 +169,20 @@ public struct BronKerboschEvents<G: Graph>: Sequence {
     }
 }
 
-extension Graph {
+extension LazyGraphView {
     /// The Bron–Kerbosch algorithm with Tomita's pivot, as `maximalCliques()` runs it, as a sequence
-    /// of events: each call entered with the vertex it adds to the clique and the sizes of its
-/// candidate and excluded sets, its pivot,
-    /// each maximal clique, and each backtrack. See `BronKerboschEvent` for the order.
+    /// of events: each call entered with the vertex it adds to the clique and the contents of R,
+    /// P and X, its pivot, each maximal clique, and each backtrack. See `BronKerboschEvent` for
+    /// the order.
     ///
     /// - Complexity: O(n + m) before the first event; O(d·n·3^(d/3)) calls in all for degeneracy
-    ///   d.
+    ///   d, each event O(|R| + |P| + |X|) more than the plain search's step.
     @inlinable
-    public func bronKerboschEvents() -> BronKerboschEvents<Self> { BronKerboschEvents(self) }
+    public func bronKerbosch() -> BronKerboschEvents<Base> { BronKerboschEvents(base) }
+}
+
+extension Graph {
+    /// `lazy.bronKerbosch()`.
+    @inlinable
+    public func bronKerboschEvents() -> BronKerboschEvents<Self> { lazy.bronKerbosch() }
 }
