@@ -73,9 +73,9 @@ func describeMatchEvent(_ event: GaleShapleyEvent, _ model: StableMatchingModel)
         return "\(r[b]) is free, so holds on to \(p[a]) for now."
     case .reject(let a, let b):
         let held = model.reviewerLikes[b]
-        return "\(r[b]) says no: \(p[a]) is \(r[b])’s \(rank(p[a], in: held)) choice, worse than the one \(r[b]) holds."
+        return "\(r[b]) says no. \(p[a]) is only \(r[b])’s \(rank(p[a], in: held)) choice, and \(r[b]) already holds someone better."
     case .tradeUp(let b, let from, let to):
-        return "\(r[b]) prefers \(p[to]) (\(rank(p[to], in: model.reviewerLikes[b]))) to \(p[from]) (\(rank(p[from], in: model.reviewerLikes[b]))): trades up, and \(p[from]) is free again."
+        return "\(r[b]) ranks \(p[to]) \(rank(p[to], in: model.reviewerLikes[b])) and \(p[from]) \(rank(p[from], in: model.reviewerLikes[b])). So \(r[b]) trades up to \(p[to]), and \(p[from]) is free again."
     case .exhausted(let a):
         return "\(p[a]) has asked everyone and stays unmatched."
     }
@@ -126,9 +126,9 @@ struct StableMatchingLab {
                         span(.class("label")) { finished ? "Stable" : k == 0 ? "\(model.events.count) events to come" : "Event \(k) of \(model.events.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Every \(model.studentsPropose ? "student" : "tutor") asks their favourite first. Whoever is asked holds on to the best offer so far and turns the rest down, trading up when a better one comes. Press Step."
+                                "Every \(model.studentsPropose ? "student" : "tutor") asks their favourite first. Whoever is asked holds on to the best offer so far. Press Step to see the first offer."
                             } else if finished {
-                                "Nobody is left asking. No student and tutor would both rather have each other than the partners they have: the matching is stable. "
+                                "Nobody is left asking. No student and tutor would both rather have each other than the partners they have, so the matching is stable. "
                                 model.studentsPropose
                                     ? "With students asking, every student gets the best partner any stable matching could give them."
                                     : "With tutors asking, every tutor gets their best stable partner, and every student their worst."

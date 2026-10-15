@@ -5,24 +5,43 @@
   <div class="say"><span>Say it</span><b>vee-ZING</b><span class="ipa">/viˈzinɡ/</span></div>
   <p class="question">Every team plays every other once, and nobody plays twice on the same day. How few days does the tournament need?</p>
 </header>
-<p class="example lead">Example: a small league where each team plays each other team once. A line is a match; a round is a set of matches with no team in two of them.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Rounds where nobody is busy twice</h2>
+  <p>An <b>edge colouring</b> gives every line a colour, so that the lines at any one vertex all differ. Each colour is then a set of lines with no vertex in common. In a league, a line is a match and a colour is a round. No team plays twice in one round.</p>
+  <p>Reach for it to schedule anything that pairs things up, such as matches, meetings between two people, or transfers between machines on a network. Each round can then run all at once.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to colour the lines</h2>
+  <!-- compare
+  | Method | When to use | Colours | Cost | Weakness |
+  | *Misra–Gries, <code>edgeColoring()</code> | Any simple graph | Δ or Δ + 1 | O(m(Δ² + n)) | Sometimes Δ + 1 when Δ would do |
+  | <code>bipartiteEdgeColoring()</code> | Two sides, such as home against away | Exactly Δ | O(m(n + Δ)) | Only for two-sided graphs |
+  | <code>greedyEdgeColoring()</code> | Graphs with repeated lines or self-loops | At most 2Δ − 1 | O(n + mΔ) | Can use many more colours |
+  | *The circle method | A full round robin | n − 1 for an even n, n for an odd n | One pass | Only for everyone against everyone |
+  -->
+  <p>Δ is the most lines at any one vertex, here the most matches any team plays. No method can use fewer than Δ colours. <code>edgeColoring()</code> works on any simple graph and is never more than one colour off. In the table, n is the number of teams and m the number of matches.</p>
+</section>
+
+<p class="example lead">Example: a small league where each team plays each other team once. A line is a match. A round is a set of matches with no team in two of them.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The league above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
-  <h2><small>The idea</small>Colour the edges so no two at a vertex match</h2>
-  <p>An <b>edge colouring</b> gives every edge a colour so that the edges at any one vertex all differ. Each colour is then a set of edges with no vertex in common, a <a href="matching.html">matching</a>, and here each matching is a round of games that can be played side by side. The fewest colours is the graph’s <b>chromatic index</b>.</p>
-  <p>A vertex with Δ edges needs Δ different colours round it, so Δ is a lower bound. Vizing proved in 1964 that Δ + 1 is always enough for a simple graph. So there are only two possible answers, and <code>edgeColoring()</code> always reaches one of them: it runs Misra and Gries’s version of Vizing’s proof, colouring edges one by one and, when an edge is stuck, rotating a fan of colours round one end and swapping two colours along a path to free one up.</p>
-  <p>For the league, Δ is the number of other teams, n − 1. With an even number of teams, n − 1 rounds is possible: the circle method seats the teams round a table, keeps one seat fixed, turns the rest one place each round, and has facing seats play. With an odd number, each round leaves a team out, so n rounds are needed, and the circle method adds an empty seat for the bye. <code>isEdgeColoring(_:)</code> checks any colouring you bring.</p>
+  <h2><small>The idea</small>Only two possible answers</h2>
+  <p>A team with Δ matches needs Δ different rounds, so Δ is a lower bound. Vizing proved in 1964 that Δ + 1 is always enough for a simple graph. So there are only two possible answers. The fewest colours is the graph’s <b>chromatic index</b>.</p>
+  <p><code>edgeColoring()</code> always reaches one of the two. It runs Misra and Gries’s version of Vizing’s proof. It colours the matches one by one. When a match is stuck, it shifts colours round a fan of matches at one end, and swaps two colours along a path, until a colour is free.</p>
+  <p>For the league, Δ is the number of other teams, n − 1. With an even number of teams, n − 1 rounds are possible. The circle method seats the teams round a table and keeps one seat fixed. Each round the others move one place, and teams in facing seats play. With an odd number of teams, each round leaves one team out, so n rounds are needed. The circle method adds an empty seat for the team that rests. <code>isEdgeColoring(_:)</code> checks any colouring you bring.</p>
 
   <h2><small>Where it breaks</small>Δ or Δ + 1 is a hard question</h2>
-  <p>Vizing’s method promises Δ + 1 and sometimes gives it when Δ would do: switch to an even number of teams and compare its schedule with the circle method’s. That isn’t carelessness. Deciding whether a graph needs Δ or Δ + 1 colours is NP-complete in general, so no fast method always finds the smaller. On a <em>bipartite</em> graph, such as home teams against visiting teams, Kőnig’s theorem says Δ is always enough, and <code>bipartiteEdgeColoring()</code> finds it. For graphs with parallel edges, <code>greedyEdgeColoring()</code> works on anything, with at most 2Δ − 1 colours.</p>
-  <p>Real fixtures have more rules than this: home and away games, travel, rest days. Those are usually solved with constraint or integer programming, starting from a colouring like this one.</p>
+  <p>Vizing’s method promises Δ + 1. Sometimes it gives Δ + 1 when Δ would do. Pick an even number of teams and compare its schedule with the circle method’s. That isn’t carelessness. Deciding whether a graph needs Δ or Δ + 1 colours is NP-complete, so no fast method always finds the smaller. On a two-sided graph, such as home teams against visiting teams, Kőnig’s theorem says Δ is always enough.</p>
+  <p>Real fixtures have more rules than this, such as home and away games, travel and rest days. Those are usually solved with constraint or integer programming, starting from a colouring like this one.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The league above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

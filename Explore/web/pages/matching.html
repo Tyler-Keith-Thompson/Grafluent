@@ -4,23 +4,43 @@
   <h1>Bipartite matching</h1>
   <p class="question">How do you fill as many jobs as possible when each applicant only fits some of them?</p>
 </header>
-<p class="example lead">Example: five applicants, five jobs, and lines for who is qualified for what. A graph whose vertices split into two sides, with every edge crossing between them, is <b>bipartite</b>.</p>
+
+<p class="example lead">Example: five applicants, five jobs, and a line for each job an applicant can do. The vertices fall into two sides, and every line crosses between them. A graph like that is <b>bipartite</b>.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The hiring above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
+<section class="prose purpose">
+  <h2><small>What it’s for</small>As many pairs as possible</h2>
+  <p>A <b>matching</b> pairs things up so that nothing is in two pairs. A maximum matching has as many pairs as possible. Reach for it to give workers jobs, students places, or tasks machines, whenever each one fits only some of the other side.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to pair things up</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *Hopcroft–Karp, <code>maximumBipartiteMatching</code> | Two sides, and every pair is as good as any other | The most pairs | O(m√n) | Ignores which pairs are better |
+  | Blossom, <code>maximumMatching()</code> | Any graph, not only two sides | The most pairs | O(nm log n) | Slower on two sides |
+  | <code>linearSumAssignment</code> | Two sides, each pair with a cost | The cheapest way to pair everyone | O(n³) | Needs a cost for every pair |
+  | <code>maximumWeightMatching</code> | Any graph, each pair with a value | The pairs worth the most in total | O(n³) | May leave some out to gain value |
+  | [Stable matching](stablematching.html) | Both sides rank each other | Pairs nobody would break away from | O(n²) | Not always the most pairs |
+  -->
+  <p>Hopcroft–Karp is the fastest when all you count is pairs. When some pairs are better than others, use a weighted method. In the table, n is the number of vertices and m the number of lines.</p>
 </section>
 
 <section class="prose">
   <h2><small>The idea</small>Chains of swaps</h2>
-  <p>Start by pairing people up any way that works. When someone is left out, look for a chain: they take a job held by someone who can move to another job, who frees up another, and so on, ending at an empty job. Swapping along that chain fills one more job without leaving anyone out. Hopcroft–Karp finds many such chains at once, which is what makes it fast.</p>
-  <p>When no chain exists, the matching is the largest possible. Hall’s theorem says when everyone can be placed: every group of applicants must, between them, fit at least as many jobs as there are people in the group. Two people who can only drive, and one driving job, break it.</p>
+  <p>Start by pairing people up any way that works. When someone is left out, look for a chain. They take a job held by someone who can move to another job. That person frees up another job, and so on, until the chain ends at an empty job. Swapping along the chain fills one more job, and nobody loses theirs.</p>
+  <p>When no chain exists, the matching is as large as it can be. Hopcroft–Karp finds many chains at once, and that makes it fast.</p>
+  <p>Hall’s theorem says when everyone can be placed. Every group of applicants must fit, between them, at least as many jobs as there are people in the group. Two people who can only drive, and one driving job, break that rule.</p>
+  <p>Kőnig’s theorem links matchings to covers. In a bipartite graph, the most pairs equals the fewest vertices that touch every line.</p>
 
   <h2><small>Where it breaks</small>When some pairings are better</h2>
-  <p>Matching only counts pairs. If some pairings are better than others, use the weighted version, the assignment problem: <code>linearSumAssignment</code>, or <code>maximumWeightMatching</code>. For a graph that isn’t bipartite, <code>maximumMatching()</code> uses Edmonds’ blossom algorithm.</p>
+  <p>A matching only counts pairs. If a good barista is a poor cashier, it doesn’t know. Give each pair a cost and use <code>linearSumAssignment</code>, or a value and use <code>maximumWeightMatching</code>. For a graph that isn’t bipartite, <code>maximumMatching()</code> uses Edmonds’ blossom algorithm.</p>
+</section>
 
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The hiring above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

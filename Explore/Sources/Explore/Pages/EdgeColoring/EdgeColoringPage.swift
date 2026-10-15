@@ -67,8 +67,8 @@ let edgeColoringModel = EdgeColoringModel()
 func describeRound(_ r: Int, _ model: EdgeColoringModel) -> String {
     let games = model.matches(in: r).map { "\(model.league.edges[$0].u)–\(model.league.edges[$0].v)" }
     let rest = model.resting(in: r)
-    let resting = rest.isEmpty ? " Every team plays." : " Resting: \(guestList(rest))."
-    return "Round \(r + 1): \(games.joined(separator: ", ")). No team is in two of these matches, so they can all be played at once." + resting
+    let resting = rest.isEmpty ? " Every team plays." : " \(guestList(rest)) \(rest.count == 1 ? "rests" : "rest")."
+    return "Round \(r + 1) plays \(guestList(games)). No team is in two of them, so they can all be played at once." + resting
 }
 
 @View
@@ -112,12 +112,12 @@ struct EdgeColoringLab {
                         span(.class("label")) { finished ? "The whole schedule" : k == 0 ? "\(model.roundCount) rounds to show" : "Round \(k) of \(model.roundCount)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "\(n) teams, each to play every other once: \(model.league.edgeCount) matches. A round is a set of matches with no team in two of them, so a schedule is a colouring of the matches, one colour per round. Press Step to see the rounds."
+                                "\(n) teams each play every other team once. That makes \(model.league.edgeCount) matches. Each round gets a colour. Press Step to see the first round."
                             } else if finished {
-                                "Every match has a round: \(model.roundCount) rounds. "
+                                "Every match has a round, and there are \(model.roundCount) rounds. "
                                 extra == 0
-                                    ? "That is the fewest possible: each team plays \(n - 1) matches\(n.isMultiple(of: 2) ? ", at most one a round" : ", and with an odd number of teams someone rests every round")."
-                                    : "The fewest possible is \(model.fewest), so this schedule has \(extra) round more than it needs. Vizing’s theorem promises \(n - 1) or \(n) rounds, and Misra and Gries’s method keeps the promise, but it doesn’t always find the smaller."
+                                    ? (n.isMultiple(of: 2) ? "That is the fewest possible. Each team plays \(n - 1) matches, at most one a round." : "That is the fewest possible. With an odd number of teams, someone rests every round.")
+                                    : "The fewest possible is \(model.fewest), so this schedule has \(extra) round more than it needs. Vizing’s theorem promises \(n - 1) or \(n) rounds. Misra and Gries’s method keeps that promise, but it doesn’t always find the smaller."
                             } else {
                                 describeRound(k - 1, model)
                             }

@@ -35,12 +35,12 @@ final class MatchingModel {
         let now = rounds[k - 1], before = k > 1 ? rounds[k - 2] : []
         let name = applicants[k - 1]
         guard let job = now.first(where: { $0.applicant == name })?.job else {
-            return ("none", "\(name) arrives. No chain of swaps frees a job \(name) can do, so \(name) is left out.")
+            return ("none", "\(name) arrives. No chain of swaps frees a job \(name) can do. \(name) is left out.")
         }
         let moved = before.filter { old in !now.contains { $0 == old } }
         if moved.isEmpty { return ("direct", "\(name) arrives and takes the free \(job.lowercased()) job.") }
-        let moves = moved.map { old in "\(old.applicant) moves from \(old.job.lowercased()) to \(now.first { $0.applicant == old.applicant }!.job.lowercased())" }
-        return ("chain", "\(name) arrives and takes \(job.lowercased()) after a chain of swaps: " + moves.joined(separator: ", ") + ".")
+        let moves = moved.map { old in " \(old.applicant) moves from \(old.job.lowercased()) to \(now.first { $0.applicant == old.applicant }!.job.lowercased())." }
+        return ("chain", "\(name) arrives, and no job \(name) can do is free." + moves.joined() + " That frees the \(job.lowercased()) job for \(name).")
     }
 
     /// Nodes 0..<5 are applicants, 5..<10 jobs: pick one of each to toggle the pair.
@@ -93,11 +93,11 @@ struct MatchingLab {
                     div(.class("legend")) {
                         span { i(.class("line matched")) {}; "hired for that job" }
                         span { i(.class("line")) {}; "could do it" }
-                        span { i(.class("dot")) {}; "dashed ring: left without a match" }
+                        span { i(.class("dot")) {}; "a dashed ring is someone left without a match" }
                     }
                     p(.class("note")) {
                         if let selected = model.selected {
-                            "\(selected < 5 ? applicants[selected] : jobs[selected - 5]) is picked: click someone on the other side to add or remove that pairing."
+                            "\(selected < 5 ? applicants[selected] : jobs[selected - 5]) is picked. Click someone on the other side to add or remove that pairing."
                         } else {
                             "Click an applicant, then a job, to say they can or can’t do it. Clicking a line removes it."
                         }
@@ -116,16 +116,16 @@ struct MatchingLab {
                         }
                         p(.class("narration")) {
                             if k == 0 {
-                                "The applicants arrive one at a time. Each one takes a free job if there is one; if not, look for a chain of swaps that frees one."
+                                "The applicants arrive one at a time. Each one takes a free job if there is one. If not, a chain of swaps may free one. Press Step to begin."
                             } else if !finished {
                                 model.arrival(k).text
                             } else if idle.isEmpty {
-                                "Everyone has a job, and no job has two people: a perfect matching."
+                                "Everyone has a job, and no job has two people. That is a perfect matching."
                             } else {
                                 "No arrangement hires more than \(pairs.count). "
                                 let stuck = applicants.filter { a in canDo.filter { $0.0 == a }.count == 1 }
                                 let rivals = Dictionary(grouping: stuck, by: { a in canDo.first { $0.0 == a }!.1 }).filter { $0.value.count > 1 }
-                                if let rival = rivals.first {
+                                if let rival = rivals.sorted(by: { $0.key < $1.key }).first {
                                     "\(rival.value.joined(separator: " and ")) can only be a \(rival.key.lowercased()), and there is one \(rival.key.lowercased()) job."
                                 } else {
                                     "\(idle.joined(separator: ", ")) \(idle.count == 1 ? "is" : "are") left over."

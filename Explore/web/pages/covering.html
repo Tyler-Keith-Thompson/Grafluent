@@ -4,33 +4,51 @@
   <h1>Covers and dominating sets</h1>
   <p class="question">Where should the cameras go so every street is watched, and the fire stations so every corner is close to one?</p>
 </header>
-<p class="example lead">Example: twelve street corners. A camera on a corner sees every street that meets there; corners with cameras that see every street form a <b>vertex cover</b>. A fire station serves its corner and every corner one street away; corners whose stations serve everywhere form a <b>dominating set</b>.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>The fewest places that reach everything</h2>
+  <p>A <b>vertex cover</b> is a set of vertices that touches every line. A camera on a corner sees every street that meets there, so cameras that watch every street form a vertex cover. A <b>dominating set</b> is a set of vertices that every other vertex sits next to. A fire station serves its own corner and every corner one street away, so stations that serve the whole town form a dominating set.</p>
+  <p>Reach for these when you must place as few things as possible and still reach everything. Examples are guards and sensors, shops and depots, or monitors on a computer network.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Exact plans and quick ones</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *<code>minimumVertexCover()</code>, <code>minimumDominatingSet()</code> | You need the fewest, on a modest network | A smallest plan | Exponential in the worst case | Slow on large, tangled networks |
+  | *The <code>lexicographicallyFirst</code> forms | You need the same answer every time | The smallest plan whose corners come first in the list | Exponential in the worst case | Can take longer than the plain search |
+  | *<code>approximateMinimumVertexCover()</code> | A large network, and twice the fewest is fine | A cover at most twice the smallest | O(n + m) | Can be twice too big |
+  | *<code>approximateMinimumDominatingSet()</code> | A large network, and close is fine | A greedy plan, about ln Δ times the smallest at worst | O((n + m) log n) | Can be several times too big |
+  -->
+  <p>The exact searches give the true fewest. The approximations are fast and come with a promise of how far off they can be. In the table, n is the number of corners, m the number of streets and Δ the most streets at any one corner.</p>
+</section>
+
+<p class="example lead">Example: twelve street corners in a small town. Place cameras or fire stations yourself, then see the plans Grafluent finds.</p>
 
 <h2 class="labhead"><small>Try it</small>Place them yourself</h2>
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The town above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <h2 class="labhead"><small>Step through</small>The greedy plan for fire stations</h2>
 <div id="greedy"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The plan above, in Grafluent</h2>
-  <pre id="code-greedy" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>Easy to check, hard to make small</h2>
-  <p>Checking a plan is quick: <code>isVertexCover(_:)</code> looks at every street once, and <code>isDominatingSet(_:)</code> at every corner and its neighbours. Finding the smallest plan is another matter. Both problems are NP-hard, so <code>minimumVertexCover()</code> and <code>minimumDominatingSet()</code> search, using rules that settle easy parts first, such as a corner on a dead end: its one street is best watched from the other end. They answer in a moment for a town this size; the time can grow exponentially for large, tangled networks.</p>
-  <p>Many plans can be equally small. <code>minimumVertexCover()</code> returns whichever its search finds first. The <code>lexicographicallyFirst</code> spellings fix the choice by a rule, the plan whose earliest-listed corner comes first, so the answer depends only on the town and the order its corners are listed, which matters when a result is saved, compared or tested.</p>
-  <p>When the exact search is too slow, the approximations are quick. <code>approximateMinimumVertexCover()</code> goes through the streets and, for each one still unwatched, puts a camera at an end: never more than twice as many as needed. <code>approximateMinimumDominatingSet()</code> is the greedy plan in the second lab, Chvátal’s: always the corner that serves the most corners not yet served, never worse than about the logarithm of the busiest corner’s streets times the best.</p>
+  <p>Checking a plan is quick. <code>isVertexCover(_:)</code> looks at every street once. <code>isDominatingSet(_:)</code> looks at every corner and its neighbours. Finding the smallest plan is much harder. Both problems are NP-hard, so <code>minimumVertexCover()</code> and <code>minimumDominatingSet()</code> search. They use rules that settle easy parts first. Take a corner on a dead end. Its one street is best watched from the other end. A town this size takes a moment. For large, tangled networks the time can grow exponentially.</p>
+  <p>Many plans can be equally small. <code>minimumVertexCover()</code> returns whichever its search finds first. The <code>lexicographicallyFirst</code> forms pick by a rule instead. They return the smallest plan whose corners come earliest in the list. The answer then depends only on the town and the order of its corners. That matters when a result is saved, compared or tested.</p>
+  <p>When the exact search is too slow, the approximations are quick. <code>approximateMinimumVertexCover()</code> goes through the streets. For each street still unwatched, it puts a camera at an end. That never uses more than twice as many as needed. <code>approximateMinimumDominatingSet()</code> is the greedy plan in the second lab, which is Chvátal’s. It always picks the corner that serves the most corners not yet served.</p>
 
   <h2><small>Where it breaks</small>Small isn’t always best</h2>
-  <p>The fewest cameras may still be the wrong plan if corners differ in cost: a camera on a quiet lane is cheaper than one on a busy junction. Both approximations take a <code>weight:</code> for that. A dominating set also says nothing about distance beyond one street, or about how many corners each station serves; a station on a corner with eight streets may be swamped while another serves one. Those are different problems, closer to the facility location and k-centre problems.</p>
-  <p>Covers and independent sets are two sides of one coin: the corners without cameras never share a street, so a smallest cover is the complement of a largest <b>independent set</b>. On a two-sided graph, such as streets joining north-side and south-side corners only, Kőnig’s theorem makes the cover as easy as a <a href="matching.html">matching</a>.</p>
+  <p>The fewest cameras may still be the wrong plan if corners differ in cost. A camera on a quiet lane is cheaper than one on a busy junction. Both approximations take a <code>weight:</code> for that.</p>
+  <p>A dominating set also says nothing about distance beyond one street, or about how many corners each station serves. A station on a corner with eight streets may be swamped while another serves one. Those are different problems, such as facility location and the k-centre problem.</p>
+  <p>Covers and independent sets are two sides of one coin. The corners without cameras never share a street. So a smallest cover is what is left after a largest <b>independent set</b>. On a two-sided graph, such as streets that only join north-side corners to south-side ones, Kőnig’s theorem makes the cover as easy as a <a href="matching.html">matching</a>.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The town above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+
+  <h2><small>In Swift</small>The greedy plan above, in Grafluent</h2>
+  <pre id="code-greedy" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

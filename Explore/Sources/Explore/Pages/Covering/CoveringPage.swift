@@ -132,11 +132,11 @@ struct CoveringLab {
                         p(.class("narration")) {
                             if cameras {
                                 unseen == 0
-                                    ? "Every street is watched: a vertex cover. The fewest that can do it is \(camera.fewest)" + (names.count == camera.fewest ? ", and you have it." : ".")
+                                    ? "Every street is watched, so this is a vertex cover. The fewest cameras that can do it is \(camera.fewest)" + (names.count == camera.fewest ? ", and you have that many." : ".")
                                     : "\(unseen) of \(crossroads.edgeCount) streets have no camera at either end. Every street needs a camera on at least one of its corners."
                             } else {
                                 unreached == 0
-                                    ? "Every corner has a station on it or next to it: a dominating set. The fewest that can do it is \(station.fewest)" + (names.count == station.fewest ? ", and you have it." : ".")
+                                    ? "Every corner has a station on it or next to it, so this is a dominating set. The fewest stations that can do it is \(station.fewest)" + (names.count == station.fewest ? ", and you have that many." : ".")
                                     : "\(unreached) corner\(unreached == 1 ? " has" : "s have") no station on or next to it."
                             }
                         }
@@ -197,7 +197,7 @@ struct CoveringCodePanel {
 
 /// The sentence for one pick of the greedy plan.
 func describePick(_ pick: StationPick, number: Int, left: Int) -> String {
-    "Station \(number) at \(cornerPlaces[pick.corner].name): it reaches \(pick.reached.count) corner\(pick.reached.count == 1 ? "" : "s") not yet served (\(pick.reached.map { cornerPlaces[$0].name }.joined(separator: ", "))), more than any other. \(left) left."
+    "Station \(number) goes at \(cornerPlaces[pick.corner].name). It serves \(pick.reached.count) new corner\(pick.reached.count == 1 ? "" : "s"), more than any other spot. \(left == 0 ? "No corner is left." : left == 1 ? "1 corner is left." : "\(left) corners are left.")"
 }
 
 /// The greedy plan, one station at a time.
@@ -238,12 +238,12 @@ struct GreedyStationLab {
                         span(.class("label")) { finished ? "Done after \(picks.count) stations" : "Station \(k) of \(picks.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Build stations one at a time, each where it serves the most corners not yet served. Quick, and never far from the best, but not always the best. Press Step to begin."
+                                "Build stations one at a time. Each goes where it serves the most corners that no station serves yet. Press Step to place the first."
                             } else {
                                 describePick(last!, number: k, left: cornerPlaces.count - reached.count)
                                 if finished {
-                                    (mine == quick ? " The same plan as approximateMinimumDominatingSet()." : " Not the plan approximateMinimumDominatingSet() gives.")
-                                        + (picks.count == fewest ? " It happens to be as few as possible: \(fewest)." : " The fewest possible is \(fewest), from minimumDominatingSet().")
+                                    (mine == quick ? " This is the plan approximateMinimumDominatingSet() gives." : " This is not the plan approximateMinimumDominatingSet() gives.")
+                                        + (picks.count == fewest ? " Here it is also the fewest possible." : " The fewest possible is \(fewest), from minimumDominatingSet().")
                                 }
                             }
                         }
