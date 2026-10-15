@@ -45,6 +45,7 @@ contents and the menu without a link.
 | `edgecoloring` | `edgeColoring()`, `colorClasses`, `isEdgeColoring(_:)` |
 | `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |
 | `betweenness` | `betweennessCentrality(normalized:)`, `edgeBetweennessCentrality(normalized:)`, `shortestSimplePaths(from:to:)` |
+| `linkprediction` | `jaccardCoefficient(of:and:)`, `adamicAdarIndex(of:and:)` |
 | `layout` | `FruchtermanReingoldLayout`, `step()`, named graphs |
 
 ## Requirements

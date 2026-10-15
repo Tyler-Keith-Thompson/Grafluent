@@ -1,0 +1,28 @@
+<!-- title: Friend suggestions · Explore Grafluent -->
+<!-- description: People you may know, scored by the friends they share: Grafluent’s jaccardCoefficient and adamicAdarIndex on a small friend network, and why they rank differently. -->
+<header class="sign">
+  <h1>Friend suggestions</h1>
+  <div class="say"><span>Say it</span><b>ah-DAH-mitch</b><span class="ipa">/aˈdaːmit͡ʃ/</span></div>
+  <p class="question">Ana has three friends. Of the people she hasn’t met, who is she most likely to get on with?</p>
+</header>
+<p class="example lead">Example: nine people and a line between each pair of friends. Ben knows almost everyone; Dee knows only two people.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The friends above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Friends of friends, weighed</h2>
+  <p>Networks close triangles: two people with a friend in common are likely to become friends. Guessing which missing links will appear is <b>link prediction</b>, and the simplest scores count shared neighbours.</p>
+  <p>The <b>Jaccard coefficient</b> divides the friends two people share by all the friends either has, so it is between 0 and 1 and doesn’t favour people who simply know a lot of others. The <b>Adamic–Adar index</b> adds up the shared friends, but weighs each by 1 / ln(its number of friends). A shared friend who knows only two people is a strong hint; one who knows everybody is weak, since they connect almost everyone. That is why Adamic–Adar ranks Ivy, met through Cy and Dee, above Eli, met through Cy and the very popular Ben, while Jaccard calls them even.</p>
+  <p>Each score is local, looking only at the two people’s friends, so <code>jaccardCoefficients(of:)</code> and <code>adamicAdarIndices(of:)</code> score many pairs cheaply.</p>
+
+  <h2><small>Where it breaks</small>Only two steps away</h2>
+  <p>Both scores are zero for anyone without a friend in common, so they can never suggest someone three steps away, and a newcomer with no friends gets no suggestions at all. Scores that count longer paths, such as the Katz index or random walks with restart, reach further at more cost. Real recommenders also use what the network doesn’t show: where people live, work or went to school, and which suggestions were accepted before.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

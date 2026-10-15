@@ -47,6 +47,8 @@ enum Names {
     static let vizing = Pronunciation(name: "Vizing", say: "vee-ZING", ipa: "/viˈzinɡ/", what: "Vadim Vizing: every simple graph’s edges in Δ or Δ + 1 colours")
     static let nagamochiIbaraki = Pronunciation(name: "Nagamochi–Ibaraki", say: "nah-gah-MOH-chee ee-bah-RAH-kee", ipa: "/naɡamotɕi ibaɾaki/", what: "Hiroshi Nagamochi and Toshihide Ibaraki: the cheapest cut with no source or sink chosen")
     static let weisfeilerLeman = Pronunciation(name: "Weisfeiler–Leman", say: "VICE-fy-ler LAY-mun", ipa: "/ˈvaɪsfaɪlɐ ˈleːman/", what: "Boris Weisfeiler and Andrei Leman: colour refinement, a quick test that two graphs differ")
+    static let adamic = Pronunciation(name: "Adamic", say: "ah-DAH-mitch", ipa: "/aˈdaːmit͡ʃ/", what: "Lada Adamic: shared friends who have few friends count for more")
+    static let jaccard = Pronunciation(name: "Jaccard", say: "zha-KAR", ipa: "/ʒakaʁ/", what: "Paul Jaccard: the share of two sets that they have in common")
     static let bronKerbosch = Pronunciation(name: "Bron–Kerbosch", say: "BRON KER-boss", ipa: "/ˈbrɔn ˈkɛrbɔs/", what: "Every maximal clique, by backtracking")
 }
 
