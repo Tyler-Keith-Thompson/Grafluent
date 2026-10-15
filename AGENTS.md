@@ -89,6 +89,10 @@ on the manifest against a newer Xcode's SDK, pass `--xcode /Applications/Xcode-2
   limit's timer holds the thread until it expires, after the body has run, so every
   `.timeLimit` test reports its limit exceeded; the script runs tests in parallel (the timers
   overlap) and reports the issues besides those.
+- A debug build traps in three groups with Swift 6.3.3's WebAssembly SDK: "indirect call type
+  mismatch" in SpectralGraphTheory's Lanczos closures, and a `DirectedAcyclicGraph` insertion
+  test whose `#expect` closure runs another closure's body. Neither shows natively or in a
+  release build; it is a toolchain fault, so judge 32-bit behaviour by `-c release`.
 - A test whose literals need a 64-bit `Int` sits inside `#if _pointerBitWidth(_64)`; the catalog
   generators add that guard themselves.
 - Write width-dependent bounds as comparisons on `Int64` or `Int.max`, never `1 << 32` on an
