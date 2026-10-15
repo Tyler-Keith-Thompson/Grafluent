@@ -42,6 +42,7 @@ func mountPage(_ page: String) -> Bool {
     case "isomorphism": IsomorphismPage.mount()
     case "communities": CommunitiesPage.mount()
     case "girvannewman": GirvanNewmanPage.mount()
+    case "labelpropagation": LabelPropagationPage.mount()
     case "mst": MSTPage.mount()
     case "matching": MatchingPage.mount()
     case "stablematching": StableMatchingPage.mount()

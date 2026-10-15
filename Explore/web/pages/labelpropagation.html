@@ -1,0 +1,36 @@
+<!-- title: Label propagation · Explore Grafluent -->
+<!-- description: Let rumours spread on a playground until every child tells the one most friends tell: Grafluent’s label propagation communities, in order, in rounds and at random, and the sweeps one child at a time. -->
+<header class="sign">
+  <h1>Label propagation</h1>
+  <p class="question">If everyone repeats whatever most of their friends say, which groups end up saying the same thing?</p>
+</header>
+<p class="example lead">Example: sixteen children on a playground and who plays with whom. Each starts with a rumour of their own, then keeps switching to the one most of their friends tell. When nobody wants to switch, the children who tell the same rumour are a <b>community</b>.</p>
+
+<h2 class="labhead"><small>Try it</small>Three ways to spread</h2>
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The playground above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<h2 class="labhead"><small>Step through</small>One child at a time</h2>
+<div id="sweeps"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The sweeps above, in Grafluent</h2>
+  <pre id="code-sweeps" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>No score, just a local rule</h2>
+  <p><a href="communities.html">Louvain</a> and <a href="girvannewman.html">Girvan–Newman</a> score whole partitions and look for a good one. Label propagation never scores anything. Each vertex looks only at its neighbours and takes the label most of them have, and inside a tightly knit group that one label quickly wins. Between groups there are too few edges for a label to cross. A sweep costs one look at every edge, and a handful of sweeps is usually enough, so it scales to networks of millions of vertices where scoring would be slow.</p>
+  <p>The order matters. Going round one child at a time, as <code>asynchronousLabelPropagationCommunities()</code> does, means later children hear the changes earlier ones made in the same sweep. Updating everyone at once instead can make two friends swap labels with each other for ever, so <code>labelPropagationCommunities()</code> updates in rounds of children who aren’t friends (the colour classes of a <a href="coloring.html">colouring</a>), which always settles.</p>
+
+  <h2><small>Where it breaks</small>Ties, and one rumour for everyone</h2>
+  <p>Ties are everywhere at the start, when every rumour has exactly one teller, so the tie rule and the order decide a lot. Grafluent’s in-order form breaks ties by taking the last label in the list, which makes it repeatable but arbitrary; the random form breaks them by chance, so two seeds can give two different answers, as Draw again shows. Neither is wrong: the method has no notion of a best answer.</p>
+  <p>On a network without clear groups, or with groups joined by many links, one rumour can flood everything and leave a single community. Label propagation is best as a fast first look at a large network, with a method that measures quality, such as modularity, to check what it found.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

@@ -45,6 +45,7 @@ contents and the menu without a link.
 | `isomorphism` | `weisfeilerLehmanGraphHash()`, `weisfeilerLehmanSubgraphHashes(iterations:)`, `isomorphism(to:)` |
 | `communities` | `lazy.louvain()`, `louvainCommunities()`, `modularity(of:)` |
 | `girvannewman` | `girvanNewmanCommunities()`, `edgeBetweennessCentrality(normalized:)`, `connectedComponents()`, `modularity(of:)` |
+| `labelpropagation` | `asynchronousLabelPropagationCommunities()`, `labelPropagationCommunities()`, `asynchronousLabelPropagationCommunities(using:)` with `Xoshiro256StarStar`, `modularity(of:)`, `neighbors(of:)` |
 | `flow` | `lazy.edmondsKarp(from:to:capacity:)`, `edmondsKarpMaximumFlow(from:to:capacity:)`, `minimumCut` |
 | `mincut` | `minimumCut(capacity:)`, `gomoryHuTree(capacity:)`, `minimumCut(between:and:)` |
 | `mincostflow` | `minimumCostFlow(supply:capacity:cost:)` |
