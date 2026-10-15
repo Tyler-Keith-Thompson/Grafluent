@@ -4,23 +4,45 @@
   <h1>Random walks and node2vec</h1>
   <p class="question">If you wander a network at random, do you explore far or stay close to home, and can you choose?</p>
 </header>
-<p class="example lead">Example: a park of fifteen places: woods round Ash, a river path, and a beach on the far side. A walker takes thirty random steps from Ash. Two dials, <b>p</b> and <b>q</b>, bias each step.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Samples of a network, as sentences</h2>
+  <p>A random walk starts somewhere and keeps taking a random edge. Many short walks are a cheap sample of a large network. Places that often turn up in the same walks are related.</p>
+  <p>Reach for biased walks when you want to learn a vector for each vertex, as node2vec does, to feed a recommender or a classifier. Two dials, p and q, choose what “related” means. It can mean being in the same neighbourhood, or playing the same role.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to wander a network</h2>
+  <!-- compare
+  | Method | When to use | Each step goes | Weakness |
+  | *node2vec walk | You want to choose between near and far | To a random neighbour, weighted by where the walker just was | Two dials to tune |
+  | Plain random walk | Any sample will do | To a random neighbour, all equally likely | Can’t be steered |
+  | [Breadth-first search](bfs.html) | You want everything near the start, nearest first | To every neighbour in turn, nearest places first | Visits the whole network, so it is no sample |
+  | [Depth-first search](dfs.html) | You want to follow one route as far as it goes | As deep as it can, backing up at dead ends | Visits the whole network, so it is no sample |
+  | [PageRank](pagerank.html) | You want how often a walker would be at each place | Computes the long-run share without walking | Gives scores, not walks |
+  -->
+  <p>A node2vec walk costs little per step and can lean toward a breadth-first or a depth-first view. One walk says little on its own, so you need many.</p>
+</section>
+
+<p class="example lead">Example: a park of fifteen places. There are woods round Ash, a river path, and a beach on the far side. A walker takes thirty random steps from Ash. Two dials, <b>p</b> and <b>q</b>, bias each step.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The walk above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>A walk that remembers one step</h2>
-  <p>A plain random walk takes each path out of the current place with equal chance, and forgets where it came from. Grover and Leskovec’s <b>node2vec</b> remembers one step back. Every path out of the current place leads somewhere at distance 0, 1 or 2 from the previous place, and gets a weight to match: 1/p for going straight back, 1 for a place next to the previous one, 1/q for anywhere further. With p = q = 1 it is the plain walk again.</p>
-  <p>A small q pushes the walker onward, so its walks resemble a <a href="dfs.html">depth-first search</a> and reach across the network, here from the woods to the beach. A large q keeps it circling one neighbourhood, like a <a href="bfs.html">breadth-first search</a>, so its walks describe the local structure. node2vec feeds many such walks, as if they were sentences, to a word-embedding model, and places that turn up near each other in walks get similar vectors. Choosing q chooses what “similar” means: the same neighbourhood, or the same role, such as being a bridge.</p>
-  <p><code>randomWalk(from:length:returnParameter:inOutParameter:using:)</code> takes the generator explicitly, so a seeded one gives the same walk on every platform, which is how the twenty-walk summary is repeatable.</p>
+  <p>A plain random walk takes each path out of the current place with equal chance, and forgets where it came from. Grover and Leskovec’s <b>node2vec</b> remembers one step back. Every path out of the current place leads to a place 0, 1 or 2 steps from the previous place. Each path gets a weight to match. Going straight back is 1/p. Going to a place next to the previous one is 1. Going anywhere further is 1/q. With p = q = 1 it is the plain walk again.</p>
+  <p>A small q pushes the walker onward. Its walks resemble a <a href="dfs.html">depth-first search</a> and reach across the network, here from the woods to the beach. A large q keeps it circling one neighbourhood, like a <a href="bfs.html">breadth-first search</a>, so its walks describe the local structure.</p>
+  <p>node2vec feeds many such walks to a word-embedding model, as if they were sentences. Places that turn up near each other in walks get similar vectors. So choosing q chooses what “similar” means. It can mean the same neighbourhood, or the same role, such as being a bridge.</p>
+  <p><code>randomWalk(from:length:returnParameter:inOutParameter:using:)</code> takes the generator as an argument. A seeded one gives the same walk on every platform, which is how the twenty-walk summary is repeatable.</p>
 
   <h2><small>Where it breaks</small>One walk proves little</h2>
-  <p>Thirty steps is a small sample: two seeds with the same p and q can give very different walks, which is why the summary averages twenty. Embeddings use hundreds of walks per vertex. The bias is also only one step deep: it can’t see that the beach is far away, only whether the next place is next to the last. And on a graph with hubs, any walk keeps passing through them, which is the idea behind <a href="pagerank.html">PageRank</a> but a nuisance when hubs aren’t what you want to learn about.</p>
+  <p>Thirty steps is a small sample. Two seeds with the same p and q can give very different walks, which is why the summary averages twenty. Embeddings use hundreds of walks per vertex.</p>
+  <p>The bias is also only one step deep. It can’t see that the beach is far away, only whether the next place is next to the last. And on a graph with hubs, any walk keeps passing through them. That is the idea behind <a href="pagerank.html">PageRank</a>, but a nuisance when hubs aren’t what you want to learn about.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The walk above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

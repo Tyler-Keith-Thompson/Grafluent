@@ -4,22 +4,34 @@
   <h1>Paste a graph</h1>
   <p class="question">Got a graph of your own? Paste it, see it, and search it.</p>
 </header>
-<p class="example lead">Example: a small town in DOT. Change it, or pick another format for an example in that one, or paste your own: up to 120 vertices, undirected. Edges with a <code>weight</code> attribute that is a whole number use it for Dijkstra; the rest weigh 1.</p>
+<p class="example lead">Example: a small town, written in DOT. Change it, pick another format for an example in that one, or paste your own. The page takes up to 120 vertices and reads every edge as undirected. When an edge has a <code>weight</code> attribute that is a whole number, Dijkstra uses it. Other edges weigh 1.</p>
 
 <div id="input"></div>
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>What the page runs, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
+<section class="prose compared">
+  <h2><small>Compared with</small>Which format to use</h2>
+  <!-- compare
+  | Format | When to use | Carries | Weakness |
+  | DOT | Writing a graph by hand, or drawing it with Graphviz | Names, and any attributes as text | Each tool reads its own set of attributes |
+  | GraphML | Moving a graph between tools such as Gephi or yEd | Names, and attributes with declared types | Long-winded XML |
+  | graph6 | Storing many small graphs in little space | Only which vertices are joined | No names or weights, and unreadable by eye |
+  | Edge list | The quickest way to write a graph down | One edge a line, with optional attributes | Can’t list a vertex that has no edges |
+  -->
+  <p>DOT is the easiest to read and write. graph6 is the most compact. GraphML carries the most.</p>
 </section>
 
 <section class="prose">
   <h2><small>The idea</small>Read, draw, run</h2>
-  <p>Each format has an initializer on any graph that can be built up: <code>UndirectedAdjacencyList&lt;String&gt;(dot:)</code>, <code>(graphML:)</code>, <code>(graph6:vertex:)</code> and <code>(edgeList:)</code>. They read bytes, so a file’s contents go straight in, and attributes come out through closures as the reader meets them, keyed by the new edge’s position. Nothing about the text is kept once the graph is built.</p>
-  <p>The drawing is a <a href="layout.html">force-directed layout</a> from a fixed seed, so the same text always draws the same way. Breadth-first search and Dijkstra are the lazy, step-by-step forms the <a href="bfs.html">BFS</a> and <a href="dijkstra.html">Dijkstra</a> pages use, and the components are coloured as on the <a href="components.html">components</a> page.</p>
+  <p>Each format has an initializer on any graph that can be built up: <code>UndirectedAdjacencyList&lt;String&gt;(dot:)</code>, <code>(graphML:)</code>, <code>(graph6:vertex:)</code> and <code>(edgeList:)</code>. They read bytes, so a file’s contents go straight in. Attributes come out through closures as the reader meets them, keyed by the new edge’s position. Nothing about the text is kept once the graph is built.</p>
+  <p>The drawing is a <a href="layout.html">force-directed layout</a> from a fixed seed, so the same text always draws the same way. Breadth-first search and Dijkstra are the lazy, step-by-step forms the <a href="bfs.html">BFS</a> and <a href="dijkstra.html">Dijkstra</a> pages use. The components are coloured as on the <a href="components.html">components</a> page.</p>
 
   <h2><small>Where it breaks</small>Errors, and what readers leave out</h2>
-  <p>A reader that can’t make sense of the text throws a <code>ParseError</code> with its kind and the line and column of the offending character, counted in Unicode scalars, so an editor can jump straight there. Errors are typed: a <code>catch</code> gets a <code>ParseError</code>, never an arbitrary error.</p>
-  <p>Formats carry more than a graph: DOT’s colours and shapes, GraphML’s typed keys, an edge list’s extra columns. The readers hand every attribute to the closures and keep none themselves, so anything this page doesn’t ask for, such as positions written in the file, is read and dropped. graph6 has no names at all: its vertices are numbers, here turned into text by the <code>vertex:</code> closure.</p>
+  <p>A reader that can’t make sense of the text throws a <code>ParseError</code>. It holds the kind of error and the line and column of the character at fault, counted in Unicode scalars, so an editor can jump straight there. Errors are typed, so a <code>catch</code> gets a <code>ParseError</code> and never some other error.</p>
+  <p>Formats carry more than a graph, such as DOT’s colours and shapes, GraphML’s typed keys, and an edge list’s extra columns. The readers hand every attribute to the closures and keep none themselves. So anything this page doesn’t ask for, such as positions written in the file, is read and dropped. graph6 has no names at all. Its vertices are numbers, which the <code>vertex:</code> closure here turns into text.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>What the page runs, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 </section>

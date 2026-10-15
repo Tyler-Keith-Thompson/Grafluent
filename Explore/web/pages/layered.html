@@ -5,40 +5,53 @@
   <div class="say"><span>Say it</span><b>soo-gee-YAH-mah</b><span class="ipa">/sɯɡijama/</span></div>
   <p class="question">How do you draw a flowchart so that every arrow points down and few of them cross?</p>
 </header>
-<p class="example lead">Example: the steps of a software build, each arrow from a step to one that waits for it. A force-directed drawing would scatter them; a <b>layered</b> drawing puts each step on a row, below everything it waits for.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Drawings where direction matters</h2>
+  <p>A layered drawing puts every vertex on a row, so that the arrows point down. Whatever comes first is drawn higher, and you can read the order from the top. It also moves vertices along their rows to keep arrows from crossing.</p>
+  <p>Reach for it for flowcharts, build pipelines, family trees, call graphs and anything else where arrows mean “comes before”. For a plain tree, such as an org chart, a tidy tree drawing does the same job more simply.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to draw a graph with a direction</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *Sugiyama layered drawing | Flowcharts and other graphs with a direction | Rows, arrows down, few crossings | Several phases, each a heuristic | Wide rows and many bends on a dense graph |
+  | *Reingold–Tilford tidy tree | Trees, such as an org chart | Rows by depth, each parent over its children | O(n) | Only draws trees |
+  | Rows by breadth-first search | A quick picture of distance from one start | A row for each number of steps from the start | O(n + m) | Arrows can point up or sideways, and many cross |
+  | [Force-directed layout](layout.html) | Links with no direction | Linked vertices close together | O(n² + m) a step | Ignores direction, so the order can’t be read |
+  -->
+  <p>A layered drawing makes order easy to read, at the cost of more work. When the graph is a tree, the tidy tree is faster and never crosses. In the table, n is the number of vertices and m the number of edges.</p>
+</section>
+
+<p class="example lead">Example: the steps of a software build, each arrow from a step to one that waits for it. A <b>layered</b> drawing puts each step on a row, below everything it waits for.</p>
 
 <h2 class="labhead"><small>Try it</small>A pipeline in layers</h2>
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The pipeline above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <h2 class="labhead"><small>Step through</small>Five phases</h2>
 <div id="phases"></div>
-
-<section class="prose code-after">
-  <h2><small>In Swift</small>The phases above, in Grafluent</h2>
-  <pre id="code-phases" aria-label="Swift code"></pre>
-</section>
 
 <h2 class="labhead"><small>Trees</small>An org chart, tidily</h2>
 <div id="tree"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The org chart above, in Grafluent</h2>
-  <pre id="code-tree" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>One hard problem, split into easier ones</h2>
-  <p>Drawing a directed graph well is hard all at once, so Sugiyama, Tagawa and Toda split it into phases, each solved on its own. Break the loops by turning a few arrows around. Give every vertex a layer so arrows point down, keeping them short. Cut long arrows into pieces at every layer they cross. Order each layer to avoid crossings. Then choose exact positions along each layer. Grafluent’s <code>sugiyamaLayout()</code> uses a minimum feedback arc heuristic for the first phase, Gansner’s network simplex for the layers, barycentre sweeps for the order and Brandes and Köpf’s method for the positions.</p>
-  <p>Trees need much less. A tree already has layers, its depths, and nothing to cross. Reingold and Tilford draw each subtree on its own, then push neighbouring subtrees together until their outlines touch at the minimum spacing, and centre each parent over its children. <code>reingoldTilfordLayout()</code> does this in linear time, and draws two subtrees of the same shape identically, which is what makes a tidy tree look tidy.</p>
+  <p>Drawing a directed graph well is hard all at once. So Sugiyama, Tagawa and Toda split it into phases, each solved on its own. First, break the loops by turning a few arrows around. Second, give every vertex a layer so the arrows point down, and keep them short. Third, cut long arrows into pieces at every layer they cross. Fourth, order each layer to avoid crossings. Last, choose exact positions along each layer.</p>
+  <p>Grafluent’s <code>sugiyamaLayout()</code> uses a minimum feedback arc heuristic for the first phase and Gansner’s network simplex for the layers. It orders the layers by barycentre sweeps and places them by Brandes and Köpf’s method.</p>
+  <p>Trees need much less. A tree already has layers, its depths, and nothing to cross. Reingold and Tilford draw each subtree on its own. Then they push neighbouring subtrees together until their outlines touch at the minimum spacing, and centre each parent over its children. <code>reingoldTilfordLayout()</code> does this in linear time. It draws two subtrees of the same shape the same way, which is what makes a tidy tree look tidy.</p>
 
   <h2><small>Where it breaks</small>Crossings, and wide layers</h2>
-  <p>Finding the order with the fewest crossings is NP-hard even for two layers, so the sweeps are a heuristic: they usually do well, and the drawing reports its <code>crossingCount</code> so you can tell. A graph with many arrows between distant layers fills the drawing with bend points, and wide layers make a short, broad picture. For graphs that are mostly a tree, the tree layout gives a cleaner result; for graphs with no clear direction, a <a href="layout.html">force-directed layout</a> suits better.</p>
-  <p>Loops have no right answer: which arrows to turn around is a choice, and the smallest such set is itself NP-hard to find. The drawing marks them in <code>reversedEdges</code>, so the reader isn’t misled into thinking every arrow points down.</p>
+  <p>Finding the order with the fewest crossings is NP-hard even for two layers. So the sweeps are a heuristic. They usually do well, and the drawing reports its <code>crossingCount</code> so you can tell. A graph with many arrows between distant layers fills the drawing with bend points, and wide layers make a short, broad picture.</p>
+  <p>Loops have no right answer. Which arrows to turn around is a choice, and the smallest such set is itself NP-hard to find. The drawing lists them in <code>reversedEdges</code>, so a reader isn’t misled into thinking every arrow points down.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The pipeline and its phases, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+
+  <h2><small>In Swift</small>The org chart, in Grafluent</h2>
+  <pre id="code-tree" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

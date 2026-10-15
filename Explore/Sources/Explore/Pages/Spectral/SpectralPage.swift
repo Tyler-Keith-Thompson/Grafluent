@@ -132,18 +132,18 @@ struct SpectralLab {
                         span { i(.class("line tree")) {}; "a link between the circles" }
                         span { i(.class("line faint")) {}; "closed: click to open" }
                     }
-                    p(.class("note")) { "Nobody chose these positions: across is each person’s Fiedler value, down the next eigenvector’s. Under each name: the Fiedler value." }
+                    p(.class("note")) { "Nobody chose these positions. Across is each person’s Fiedler value, and down is their value in the next eigenvector. The number under each name is the Fiedler value." }
                 }
                 div(.class("side")) {
                     div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
                         span(.class("label")) { "Algebraic connectivity " + (split.map { threePlacesPlain($0.connectivity) } ?? "0") }
                         p(.class("narration")) {
                             if let split {
-                                "\(model.openLinks.count) link\(model.openLinks.count == 1 ? "" : "s") between the circles. λ₂, the algebraic connectivity, measures how well joined the network is: more links across, larger λ₂. Splitting by the sign of the Fiedler vector puts "
+                                (model.openLinks.count == 1 ? "There is 1 link" : "There are \(model.openLinks.count) links") + " between the circles. λ₂, the algebraic connectivity, measures how well the network is joined. More links across give a larger λ₂. Splitting by the sign of the Fiedler vector puts "
                                 em { blockList(split.negative) }
                                 " on one side."
                             } else {
-                                "No link between the circles: the network is in two pieces, λ₂ is 0, and there is no Fiedler vector. fiedlerVector() answers nil. The drawing’s axes are then vectors of 0, and they separate the pieces completely."
+                                "No link joins the circles, so the network is in two pieces. λ₂ is 0, and there is no Fiedler vector, so fiedlerVector() returns nil. The drawing sets the two pieces apart."
                             }
                         }
                     }
@@ -178,9 +178,10 @@ struct SpectralCodePanel {
 /// The sentence for one threshold of the sweep.
 func describeSweep(_ cut: SweepCut, order: [String], best: Int, signSplit: Int) -> String {
     let left = Array(order.prefix(cut.k))
-    var text = "Put the first \(cut.k) of the Fiedler order on one side (\(blockList(left))). \(cut.cut) link\(cut.cut == 1 ? "" : "s") cross; ratio cut \(threePlacesPlain(cut.ratio))."
-    if cut.k == signSplit { text += " This is the sign split: everyone below 0 on one side." }
-    if cut.k == best { text += " The best ratio of any threshold." }
+    let first = cut.k == 1 ? "Put \(left[0]), first in the Fiedler order, on one side." : "Put \(blockList(left)), the first \(cut.k) in the Fiedler order, on one side."
+    var text = first + " \(cut.cut == 1 ? "1 link crosses" : "\(cut.cut) links cross") between the sides, and the ratio cut is \(threePlacesPlain(cut.ratio))."
+    if cut.k == signSplit { text += " This is the sign split, with everyone below 0 on one side." }
+    if cut.k == best { text += " It is the best ratio of any threshold." }
     return text
 }
 
@@ -214,18 +215,18 @@ struct SweepLab {
                         span { i(.class("dot pal1")) {}; "after it" }
                         span { i(.class("line route")) {}; "a link the threshold cuts" }
                     }
-                    p(.class("note")) { "In each circle: the person’s place in spectralOrdering(), lowest Fiedler value first." }
+                    p(.class("note")) { "The number in each circle is the person’s place in spectralOrdering(), lowest Fiedler value first." }
                 }
                 div(.class("side")) {
                     div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
                         span(.class("label")) { sweep.isEmpty ? "No sweep" : k == sweep.count ? "Done after \(sweep.count) thresholds" : "Threshold \(k) of \(sweep.count)" }
                         p(.class("narration")) {
                             if sweep.isEmpty {
-                                "With the circles apart there is no Fiedler vector to sweep. Open a link in the lab above."
+                                "With the circles apart there is no Fiedler vector to sweep. Open a link between the circles in the first drawing."
                             } else if let current {
                                 describeSweep(current, order: order, best: best, signSplit: signSplit)
                             } else {
-                                "The Fiedler vector puts everyone on a line. Every way of cutting that line in two is a candidate split; try them all, counting the links each cuts, and weigh by how even the two sides are. Press Step to begin."
+                                "The Fiedler vector puts everyone on a line. Each place to cut that line is a candidate split. Try them all. Score each by the links it cuts and by how even the two sides are. Press Step to begin."
                             }
                         }
                     }
@@ -258,7 +259,7 @@ struct SweepLab {
                         (Marble(kind: "m-violet", radius: 6), "the sign split"),
                         (Marble(kind: "m-red", radius: 6), "the best ratio cut"),
                     ])
-                p(.class("note")) { "The sweep is the page’s: it cuts spectralOrdering()’s order at each point in turn and counts the links. Grafluent supplies the order and the Fiedler vector; the ratio cut is the links cut × (1/|S| + 1/|T|)." }
+                p(.class("note")) { "The page runs the sweep itself. It cuts spectralOrdering()’s order at each point in turn and counts the links. The ratio cut is the links cut × (1/|S| + 1/|T|), where |S| and |T| are the sizes of the two sides." }
             }
         }
     }

@@ -186,11 +186,11 @@ struct PipelineLab {
                         span(.class("label")) { "\(model.layered.layerCount) layers · \(model.layered.crossingCount) crossing\(model.layered.crossingCount == 1 ? "" : "s")" }
                         p(.class("narration")) {
                             if reversed.isEmpty {
-                                "Every arrow points down: each step sits below everything it waits for. Long arrows bend at each layer they pass, so no arrow jumps over a step."
+                                "Every arrow points down. Each step sits below everything it waits for. A long arrow bends at each layer it passes, so no arrow jumps over a step."
                             } else {
-                                "The nightly rerun makes a loop, and a loop can’t point down all the way round. Sugiyama’s method turns "
+                                "The nightly rerun makes a loop, and a loop can’t point down all the way round. So Sugiyama’s method turns "
                                 em { reversed.map { "\($0.source) → \($0.target)" }.joined(separator: ", ") }
-                                " around for the drawing only, lays out the rest, and draws it pointing up."
+                                " around for the drawing only, and draws it pointing up."
                             }
                         }
                     }
@@ -234,13 +234,13 @@ func describePhase(_ k: Int, model: LayeredModel, crossings: Int) -> String {
     case .cycles?:
         return reversed.isEmpty
             ? "1. Break the loops. There are none, so nothing is turned around."
-            : "1. Break the loops: turn the fewest arrows around that leaves none, here \(reversed.map { "\($0.source) → \($0.target)" }.joined(separator: ", ")). Now every arrow can point down."
+            : "1. Break the loops. Turn as few arrows around as will leave no loop. Here that is \(reversed.map { "\($0.source) → \($0.target)" }.joined(separator: ", ")). Now every arrow can point down."
     case .layers?:
-        return "2. Give each step a layer, every arrow at least one layer down, with the arrows as short in total as possible. \(model.layered.layerCount) layers; within each, steps in the order they were listed."
+        return "2. Give each step a layer. Every arrow must go at least one layer down, and the arrows should be as short as they can. That takes \(model.layered.layerCount) layers. Within each layer, the steps keep the order they were listed in."
     case .bends?:
-        return "3. Put a bend point on every layer a long arrow passes, so every piece of arrow joins adjacent layers. In the order given, there are \(crossings) crossing\(crossings == 1 ? "" : "s")."
+        return "3. Put a bend point on every layer a long arrow passes. Now every piece of arrow joins two neighbouring layers. In the listed order there " + (crossings == 1 ? "is 1 crossing." : "are \(crossings) crossings.")
     case .crossings?:
-        return "4. Reorder each layer by where its neighbours sit, sweeping down and up, and keep the order with the fewest crossings: \(crossings)."
+        return "4. Reorder each layer by where its neighbours sit, sweeping down and then up. Keep the order with the fewest crossings. That leaves \(crossings)."
     case .coordinates?:
         return "5. Slide each point along its layer so arrows run as straight as they can, without changing the order. This is sugiyamaLayout()’s drawing."
     case nil:
@@ -291,17 +291,9 @@ struct SugiyamaStepLab {
                                       title: describePhase(phase.rawValue, model: model, crossings: shown.withBends ? model.crossings(in: shown.picture) : 0))
                     },
                     legend: [(Marble(kind: "m-blue", radius: 6), "a phase, numbered"), (Marble(kind: "m-green", radius: 6), "the finished drawing")])
-                p(.class("note")) { "sugiyamaLayout() runs all five phases at once. The pictures between are the page’s, rebuilt from its layers, bends and final order, so phases 2 and 3 show the order the layout starts from, as it documents." }
+                p(.class("note")) { "sugiyamaLayout() runs all five phases at once. The page rebuilds the pictures in between from the layers, the bends and the final order. Phases 2 and 3 show the order the layout starts from." }
             }
         }
-    }
-}
-
-/// The phases' code panel.
-@View
-struct SugiyamaCodePanel {
-    var body: some View {
-        PipelineCodePanel()
     }
 }
 
@@ -335,8 +327,8 @@ struct TeamLab {
                         span(.class("label")) { model.circular ? "Bent into a disc" : "A tidy tree" }
                         p(.class("narration")) {
                             model.circular
-                                ? "The same drawing wrapped round the CEO: each level of the chart on its own circle, each team in its own slice."
-                                : "Each level of the chart on its own row, each manager centred over their team, and teams packed as close as they can go without overlapping. Two teams of the same shape are drawn the same way."
+                                ? "The same drawing, wrapped round the CEO. Each level of the chart is a circle, and each team has its own slice."
+                                : "Each level of the chart is a row, and each manager sits centred over their team. Teams pack as close as they can without overlapping. Two teams of the same shape are drawn the same way."
                         }
                     }
                     div(.class("panel")) {
@@ -373,7 +365,6 @@ enum LayeredPage {
         mountView(PipelineLab(), in: "app")
         mountView(PipelineCodePanel(), in: "code")
         mountView(SugiyamaStepLab(), in: "phases")
-        mountView(SugiyamaCodePanel(), in: "code-phases")
         mountView(TeamLab(), in: "tree")
         mountView(TeamCodePanel(), in: "code-tree")
         mountView(NamesStrip(names: [Names.sugiyama]), in: "names")

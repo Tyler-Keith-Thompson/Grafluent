@@ -163,7 +163,7 @@ func parseErrorText(_ kind: ParseError.Kind) -> String {
     switch kind {
     case .syntax: "Something here isn’t allowed by the format."
     case .unexpectedEndOfInput: "The text ends in the middle of something."
-    case .kindMismatch: "The file’s direction doesn’t match: this page reads undirected graphs (DOT’s graph, not digraph)."
+    case .kindMismatch: "This page reads only undirected graphs. In DOT, write graph, not digraph."
     case .invalidUTF8: "The text isn’t valid UTF-8."
     case .undeclaredVertex: "An edge names a node that was never declared."
     case .duplicateVertex: "A node is declared twice."
@@ -226,7 +226,7 @@ struct PasteLab {
                 }
             case .success(let read):
                 if read.graph.vertexCount == 0 {
-                    section(.class("panel")) { p(.class("narration")) { "Read, but there are no vertices to draw." } }
+                    section(.class("panel")) { p(.class("narration")) { "The text reads fine, but it has no vertices to draw." } }
                 } else if let drawing = model.drawing {
                     let names = Array(read.graph.vertices)
                     let index: [String: Int] = Dictionary(uniqueKeysWithValues: names.enumerated().map { ($0.element, $0.offset) })
@@ -306,10 +306,10 @@ struct PasteLab {
                                 }
                             },
                             legend: [(Marble(kind: "m-blue", radius: 6), model.algorithm == .dijkstra ? "a vertex settled, with its distance" : "a vertex reached"), (Marble(kind: "m-blue", radius: 3.5), "an edge into the tree")])
-                        p(.class("note")) { "The marbles are the discover and tree-edge events of lazy.edgeBreadthFirstSearch(from:), or the examine and edgeRelaxed events of lazy.dijkstra(from:weight:); the other events are left off." }
+                        p(.class("note")) { "The marbles are the discover and tree-edge events of lazy.edgeBreadthFirstSearch(from:), or the examine and edgeRelaxed events of lazy.dijkstra(from:weight:). The other events are left off." }
                     }
                 } else {
-                    section(.class("panel")) { p(.class("narration")) { "Read \(read.graph.vertexCount) vertices and \(read.graph.edgeCount) edges: more than the \(pasteVertexLimit) this page draws." } }
+                    section(.class("panel")) { p(.class("narration")) { "The text has \(read.graph.vertexCount) vertices and \(read.graph.edgeCount) edges. This page draws at most \(pasteVertexLimit) vertices." } }
                 }
             }
         }

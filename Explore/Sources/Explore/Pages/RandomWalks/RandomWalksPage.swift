@@ -84,10 +84,10 @@ func describeWalkStep(_ model: RandomWalksModel, _ j: Int) -> String {
     let places = model.places
     let from = parkSpots[places[j]].name, to = parkSpots[places[j + 1]].name
     switch model.kind(j) {
-    case .first: return "Set off from \(from) to \(to): the first step is uniform, every path out equally likely."
-    case .back: return "Back from \(from) to \(to), where the walker just was: weighted 1/p."
-    case .near: return "From \(from) to \(to), which is also next to \(parkSpots[places[j - 1]].name), where the walker was before: weighted 1."
-    case .out: return "From \(from) on to \(to), further from \(parkSpots[places[j - 1]].name): weighted 1/q."
+    case .first: return "Set off from \(from) to \(to). On the first step, every path out is equally likely."
+    case .back: return "Go back from \(from) to \(to), where the walker just was. This step has weight 1/p."
+    case .near: return "Go from \(from) to \(to). \(to) is next to \(parkSpots[places[j - 1]].name), where the walker just was, so this step has weight 1."
+    case .out: return "Go on from \(from) to \(to), further from \(parkSpots[places[j - 1]].name). This step has weight 1/q."
     }
 }
 
@@ -129,7 +129,7 @@ struct RandomWalkLab {
                         span(.class("label")) { k == model.walk.length ? "Done after \(model.walk.length) steps" : "Step \(k) of \(model.walk.length)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "A walker starts at Ash and takes \(RandomWalksModel.length) random steps. After the first, each path out is weighted by where it leads compared with the last place: back there 1/p, to a place next to it 1, further away 1/q. Press Play."
+                                "A walker starts at Ash and takes \(RandomWalksModel.length) random steps. After the first step, each path out gets a weight from the place the walker just left. Straight back is 1/p. To a place next to it is 1. Further away is 1/q. Press Play."
                             } else {
                                 describeWalkStep(model, k - 1)
                             }
@@ -151,13 +151,13 @@ struct RandomWalkLab {
                                 }
                         }
                         p(.class("note")) {
-                            qValue < 1 ? "q below 1 favours moving on: the walk explores outward, like a depth-first search." : qValue > 1 ? "q above 1 favours staying near: the walk circles its neighbourhood, like a breadth-first search." : "q = 1: no preference between near and far."
+                            qValue < 1 ? "With q below 1 the walker prefers to move on. It explores outward, like a depth-first search." : qValue > 1 ? "With q above 1 the walker prefers to stay near. It circles its neighbourhood, like a breadth-first search." : "With q = 1 the walker has no preference between near and far."
                             pValue < 1 ? " p below 1 makes it double back often." : pValue > 1 ? " p above 1 makes doubling back rare." : ""
                         }
                     }
                     div(.class("panel")) {
                         span(.class("label")) { "Twenty walks from seed \(model.seed)" }
-                        p(.class("narration")) { "On average \(oneDecimal(sample.distinct)) different places; \(sample.beach) of 20 reach the beach." }
+                        p(.class("narration")) { "On average a walk visits \(oneDecimal(sample.distinct)) different places. \(sample.beach) of the 20 reach the beach." }
                     }
                 }
             }
@@ -187,7 +187,7 @@ struct RandomWalkLab {
                         (Marble(kind: "m-blue", radius: 6), "to a place next to the last one, 1"),
                         (Marble(kind: "m-violet", radius: 6), "further on, 1/q"),
                     ])
-                p(.class("note")) { "The steps replay the walk randomWalk(from:length:returnParameter:inOutParameter:using:) returns; the kind of each step is worked out by the page. The same seed always gives the same walk." }
+                p(.class("note")) { "The steps replay the walk that randomWalk(from:length:returnParameter:inOutParameter:using:) returns. The page works out the kind of each step. The same seed always gives the same walk." }
             }
         }
     }
