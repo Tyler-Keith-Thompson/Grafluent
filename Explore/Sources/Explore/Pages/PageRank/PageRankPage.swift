@@ -210,8 +210,8 @@ struct PageRankCodePanel {
 
 enum PageRankPage {
     static func mount() {
-        Application(PageRankLab()).mount(in: "#app")
-        Application(PageRankCodePanel()).mount(in: "#code")
-        Application(NamesStrip(names: [Names.page, Names.brin, Names.markov, Names.kleinberg])).mount(in: "#names")
+        mountView(PageRankLab(), in: "app")
+        mountView(PageRankCodePanel(), in: "code")
+        mountView(NamesStrip(names: [Names.page, Names.brin, Names.markov, Names.kleinberg]), in: "names")
     }
 }

@@ -340,10 +340,10 @@ struct StreetsCodePanel {
 
 enum ComponentsPage {
     static func mount() {
-        Application(IslandsLab()).mount(in: "#islands")
-        Application(StreetsLab()).mount(in: "#app")
-        Application(IslandsCodePanel()).mount(in: "#code-islands")
-        Application(StreetsCodePanel()).mount(in: "#code")
-        Application(NamesStrip(names: [Names.tarjan, Names.kosaraju, Names.pearce, Names.hopcroft])).mount(in: "#names")
+        mountView(IslandsLab(), in: "islands")
+        mountView(StreetsLab(), in: "app")
+        mountView(IslandsCodePanel(), in: "code-islands")
+        mountView(StreetsCodePanel(), in: "code")
+        mountView(NamesStrip(names: [Names.tarjan, Names.kosaraju, Names.pearce, Names.hopcroft]), in: "names")
     }
 }

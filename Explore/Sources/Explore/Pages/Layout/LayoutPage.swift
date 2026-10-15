@@ -198,8 +198,8 @@ struct LayoutCodePanel {
 
 enum LayoutPage {
     static func mount() {
-        Application(LayoutLab()).mount(in: "#app")
-        Application(LayoutCodePanel()).mount(in: "#code")
-        Application(NamesStrip(names: [Names.fruchtermanReingold, Names.eades, Names.barnesHut, Names.kamadaKawai, Names.forceAtlas])).mount(in: "#names")
+        mountView(LayoutLab(), in: "app")
+        mountView(LayoutCodePanel(), in: "code")
+        mountView(NamesStrip(names: [Names.fruchtermanReingold, Names.eades, Names.barnesHut, Names.kamadaKawai, Names.forceAtlas]), in: "names")
     }
 }

@@ -52,8 +52,8 @@ Without swiftly, `build.sh` uses the `swift` on `PATH`, which must be 6.3.3 (CI 
 just explore
 ```
 
-This builds release WebAssembly at `-Osize`, strips it, runs `wasm-opt -Oz`, and writes
-`Explore/dist/`: one `<page>.html` per page and `index.html`, `explore.css`, `Explore.wasm`, the
+This builds release WebAssembly at `-Osize`, strips it, runs `wasm-opt -Oz`, draws each page's
+first frame into its HTML (see below), and writes `Explore/dist/`: one `<page>.html` per page and `index.html`, `explore.css`, `Explore.wasm`, the
 JavaScriptKit glue (`index.js`, `instantiate.js`, `runtime.js`, `bridge-js.js`,
 `platforms/browser.js`) and the vendored WASI shim (`vendor/browser_wasi_shim/`). Every URL is
 relative, so `dist/` works from any directory, such as `/Grafluent/explore/` on GitHub Pages.
@@ -71,6 +71,25 @@ cd Explore/dist && python3 -m http.server 8000
 
 Then open <http://localhost:8000/>. The pages must be served over HTTP; browsers do not load
 WebAssembly modules from `file://` URLs.
+
+## First frames
+
+Each page's HTML already holds its first frame: the graph, the side panels, the timeline and the
+code panels with their results, as they are before anyone touches a control. `build.sh` builds
+this package a second time for the build machine (a debug build, about a minute the first time
+and seconds after), and run there, `main.swift` renders every mount point of every page to HTML
+with the same views, through Elementary's HTML rendering, and fills it into `dist/<page>.html`.
+In the browser, `mountView` empties each mount point and ElementaryUI mounts the live view in its
+place, in the same task, so nothing moves. Until then each mount point carries `data-loading`,
+and its controls take no pointer and pulse.
+
+So the first frame matches what the browser mounts, a page's initial state must not depend on
+the platform: no iteration over a `Dictionary` or `Set` (hash order changes on every run), and
+random draws through `next()` rather than `Int.random` or `randomElement`, which differ between
+64-bit and 32-bit `Int`. The layout page starts from random positions, so its first frame is one
+random start and the browser runs from another. ElementaryUI renders its event handlers only
+into a live DOM; `FirstFrames.swift` gives the elements stand-ins that drop them on the build
+machine.
 
 ## One WebAssembly module for the whole site
 
@@ -90,8 +109,8 @@ cache. The index page loads no WebAssembly.
 
 | Path | Holds |
 |---|---|
-| `Sources/Explore/main.swift` | Mounts the page named by `data-page` |
-| `Sources/Explore/Shared/` | `GraphCanvas`, `Timeline` and `Marble`, `Playback` and `PlaybackButtons`, `CodePanel` and `Snippet`, `NamesStrip` and the `Names` pronunciations, DOM event glue |
+| `Sources/Explore/main.swift` | Mounts the page named by `data-page`; on the build machine, writes the first frames |
+| `Sources/Explore/Shared/` | `mountView` (`Mount.swift`) and the first-frame writer (`FirstFrames.swift`), `GraphCanvas`, `Timeline` and `Marble`, `Playback` and `PlaybackButtons`, `CodePanel` and `Snippet`, `NamesStrip` and the `Names` pronunciations, DOM event glue |
 | `Sources/Explore/Pages/<Page>/<Page>Code.swift` | The Grafluent code the page runs, with its `// snippet:` regions |
 | `Sources/Explore/Pages/<Page>/<Page>Page.swift` | The page's model (`@Reactive`) and views |
 | `Sources/Explore/Figures/` | The samples beside the static figures in the pages' prose, mounted on `<pre class="figcode" id="fig-…">` |
@@ -123,7 +142,7 @@ For a stepper such as `kruskalSearch`, `primSearch`, `aStarSearch` or `bronKerbo
    `Playback` (`playback.reset(count:)` after each run); a view that reads `playback.k` and draws
    the state after that many events with `GraphCanvas`, `PlaybackButtons` and a `Timeline` of one
    `Marble` per event; a `CodePanel` view; and `enum MSTPage { static func mount() }` mounting
-   them on `#app`, `#code` and `#names`. `DijkstraPage.swift` is the model to copy.
+   them with `mountView` on `app`, `code` and `names`. `DijkstraPage.swift` is the model to copy.
 4. Pronunciations go in `Shared/Pronunciations.swift` (`Names.kruskal` and others are there).
 5. `web/pages/mst.html`: the title and description comments, the masthead with its "Say it", the
    example, `<div id="app">`, and the prose with `<pre id="code">` and `<div id="names">`.

@@ -2,21 +2,37 @@ import JavaScriptKit
 
 // One WebAssembly module serves every page: the page names itself in `<body data-page="…">`, and
 // this mounts that page's views. web/contents.txt lists the pages in reading order.
-let page = JSObject.global.document.body.getAttribute("data-page").string ?? ""
-switch page {
-case "basics": BasicsPage.mount()
-case "representations": RepresentationsPage.mount()
-case "bfs": BreadthFirstPage.mount()
-case "dfs": DepthFirstPage.mount()
-case "dijkstra": DijkstraPage.mount()
-case "astar": AStarPage.mount()
-case "toposort": TopologicalSortPage.mount()
-case "components": ComponentsPage.mount()
-case "mst": MSTPage.mount()
-case "matching": MatchingPage.mount()
-case "coloring": ColoringPage.mount()
-case "pagerank": PageRankPage.mount()
-case "layout": LayoutPage.mount()
-default: _ = JSObject.global.console.error("No explorer page is called “\(page)”.")
+//
+// Built for the build machine instead, it draws each page's first frame into the HTML: run as
+// `Explore <dist> <page>…`, it fills the mount points of each `<dist>/<page>.html`.
+
+/// Mounts the views of page `page`; false if there is no such page.
+func mountPage(_ page: String) -> Bool {
+    switch page {
+    case "basics": BasicsPage.mount()
+    case "representations": RepresentationsPage.mount()
+    case "bfs": BreadthFirstPage.mount()
+    case "dfs": DepthFirstPage.mount()
+    case "dijkstra": DijkstraPage.mount()
+    case "astar": AStarPage.mount()
+    case "toposort": TopologicalSortPage.mount()
+    case "components": ComponentsPage.mount()
+    case "mst": MSTPage.mount()
+    case "matching": MatchingPage.mount()
+    case "coloring": ColoringPage.mount()
+    case "pagerank": PageRankPage.mount()
+    case "layout": LayoutPage.mount()
+    default: return false
+    }
+    mountFigureSamples()
+    return true
 }
-mountFigureSamples()
+
+#if arch(wasm32)
+let page = JSObject.global.document.body.getAttribute("data-page").string ?? ""
+if !mountPage(page) {
+    _ = JSObject.global.console.error("No explorer page is called “\(page)”.")
+}
+#else
+writeFirstFrames(arguments: Array(CommandLine.arguments.dropFirst()))
+#endif

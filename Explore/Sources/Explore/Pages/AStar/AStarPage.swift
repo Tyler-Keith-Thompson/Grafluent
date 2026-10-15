@@ -459,8 +459,8 @@ struct AStarCodePanel {
 
 enum AStarPage {
     static func mount() {
-        Application(AStarLab()).mount(in: "#app")
-        Application(AStarCodePanel()).mount(in: "#code")
-        Application(NamesStrip(names: [Names.hart, Names.dijkstra])).mount(in: "#names")
+        mountView(AStarLab(), in: "app")
+        mountView(AStarCodePanel(), in: "code")
+        mountView(NamesStrip(names: [Names.hart, Names.dijkstra]), in: "names")
     }
 }

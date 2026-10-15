@@ -37,10 +37,12 @@ final class Playback {
     func play() {
         if k >= count { show(0) }
         playing = true
+        #if arch(wasm32)
         timer = JSTimer(millisecondsDelay: millisecondsPerStep, isRepeating: true) { [weak self] in
             guard let self else { return }
             if self.k >= self.count { self.pause() } else { self.show(self.k + 1) }
         }
+        #endif
     }
 
     func pause() {
@@ -81,8 +83,11 @@ struct PlaybackButtons {
 
 /// Sets a DOM property, for the controls whose shown value is the property rather than the
 /// attribute once someone has used them: a select's value and a range input's value.
+/// The build machine's first frames have no DOM, so there it does nothing.
 func setProperty(id: String, _ name: String, to value: String) {
+    #if arch(wasm32)
     guard let document = JSObject.global.document.object,
           let element = document.getElementById!(id).object else { return }
     element[name] = .string(value)
+    #endif
 }

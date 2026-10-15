@@ -462,8 +462,8 @@ struct MSTCodePanel {
 
 enum MSTPage {
     static func mount() {
-        Application(MSTLab()).mount(in: "#app")
-        Application(MSTCodePanel()).mount(in: "#code")
-        Application(NamesStrip(names: [Names.kruskal, Names.prim, Names.boruvka])).mount(in: "#names")
+        mountView(MSTLab(), in: "app")
+        mountView(MSTCodePanel(), in: "code")
+        mountView(NamesStrip(names: [Names.kruskal, Names.prim, Names.boruvka]), in: "names")
     }
 }

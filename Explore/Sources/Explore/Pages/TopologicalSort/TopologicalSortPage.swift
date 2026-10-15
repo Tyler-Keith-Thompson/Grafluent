@@ -243,8 +243,8 @@ struct TopologicalSortCodePanel {
 
 enum TopologicalSortPage {
     static func mount() {
-        Application(TopologicalSortLab()).mount(in: "#app")
-        Application(TopologicalSortCodePanel()).mount(in: "#code")
-        Application(NamesStrip(names: [Names.kahn, Names.tarjan, Names.tremaux])).mount(in: "#names")
+        mountView(TopologicalSortLab(), in: "app")
+        mountView(TopologicalSortCodePanel(), in: "code")
+        mountView(NamesStrip(names: [Names.kahn, Names.tarjan, Names.tremaux]), in: "names")
     }
 }

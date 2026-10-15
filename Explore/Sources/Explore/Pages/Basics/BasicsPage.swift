@@ -99,7 +99,7 @@ struct BasicsCodePanel {
 
 enum BasicsPage {
     static func mount() {
-        Application(BasicsLab()).mount(in: "#app")
-        Application(BasicsCodePanel()).mount(in: "#code")
+        mountView(BasicsLab(), in: "app")
+        mountView(BasicsCodePanel(), in: "code")
     }
 }

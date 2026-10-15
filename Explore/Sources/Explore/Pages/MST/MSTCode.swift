@@ -21,7 +21,7 @@ let cableCost: [UndirectedEdge<String>: Int] = [
 ]
 
 let houses = UndirectedAdjacencyList<String> {
-    for cable in cableCost.keys { cable }
+    for cable in cableCost.keys.sorted() { cable }
 }
 // snippet end
 

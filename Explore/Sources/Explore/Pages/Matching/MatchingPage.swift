@@ -188,8 +188,8 @@ struct MatchingCodePanel {
 
 enum MatchingPage {
     static func mount() {
-        Application(MatchingLab()).mount(in: "#app")
-        Application(MatchingCodePanel()).mount(in: "#code")
-        Application(NamesStrip(names: [Names.hopcroftKarp, Names.konig, Names.hall, Names.edmonds, Names.kuhn])).mount(in: "#names")
+        mountView(MatchingLab(), in: "app")
+        mountView(MatchingCodePanel(), in: "code")
+        mountView(NamesStrip(names: [Names.hopcroftKarp, Names.konig, Names.hall, Names.edmonds, Names.kuhn]), in: "names")
     }
 }

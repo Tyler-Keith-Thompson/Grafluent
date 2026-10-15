@@ -223,7 +223,7 @@ struct RepresentationsCodePanel {
 
 enum RepresentationsPage {
     static func mount() {
-        Application(RepresentationsLab()).mount(in: "#app")
-        Application(RepresentationsCodePanel()).mount(in: "#code")
+        mountView(RepresentationsLab(), in: "app")
+        mountView(RepresentationsCodePanel(), in: "code")
     }
 }

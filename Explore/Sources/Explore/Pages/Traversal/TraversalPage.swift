@@ -307,16 +307,16 @@ struct TraversalCodePanel {
 
 enum BreadthFirstPage {
     static func mount() {
-        Application(TraversalLab(model: breadthFirstModel)).mount(in: "#app")
-        Application(TraversalCodePanel(model: breadthFirstModel)).mount(in: "#code")
-        Application(NamesStrip(names: [Names.moore, Names.dijkstra])).mount(in: "#names")
+        mountView(TraversalLab(model: breadthFirstModel), in: "app")
+        mountView(TraversalCodePanel(model: breadthFirstModel), in: "code")
+        mountView(NamesStrip(names: [Names.moore, Names.dijkstra]), in: "names")
     }
 }
 
 enum DepthFirstPage {
     static func mount() {
-        Application(TraversalLab(model: depthFirstModel)).mount(in: "#app")
-        Application(TraversalCodePanel(model: depthFirstModel)).mount(in: "#code")
-        Application(NamesStrip(names: [Names.tremaux, Names.tarjan, Names.hopcroft, Names.kahn])).mount(in: "#names")
+        mountView(TraversalLab(model: depthFirstModel), in: "app")
+        mountView(TraversalCodePanel(model: depthFirstModel), in: "code")
+        mountView(NamesStrip(names: [Names.tremaux, Names.tarjan, Names.hopcroft, Names.kahn]), in: "names")
     }
 }

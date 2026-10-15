@@ -387,3 +387,11 @@ figure.fig { margin: 0; }
 .qrow .fate { font-weight: 600; font-size: 13px; color: var(--muted); margin-left: .6em; }
 .qrow.top .fate { color: var(--signal-ink); }
 .node.current[class*="pal"] circle { stroke: var(--danger); stroke-width: 4; }
+
+/* A page's first frame is in its HTML, drawn at build time. Until the WebAssembly mounts in its
+   place and drops `data-loading`, the controls do nothing, so they take no pointer and pulse. */
+[data-loading] :is(button, select, input, .clickable, .marble, .ball, .cell) { pointer-events: none; }
+[data-loading] :is(.buttons, .field, .segmented, .matrix, .timeline-scroll) { cursor: progress; }
+[data-loading] :is(button, select, .scrub) { animation: first-frame 1.6s ease-in-out infinite; }
+@keyframes first-frame { 50% { opacity: .6; } }
+@media (prefers-reduced-motion: reduce) { [data-loading] :is(button, select, .scrub) { animation: none; opacity: .7; } }

@@ -136,6 +136,20 @@ for page in "$HERE"/web/pages/*.html; do
 done
 rm "$DIST/.body"
 
+# Each page's first frame goes into its HTML, so the page is drawn before the WebAssembly arrives:
+# the same views, built for this machine, render the initial state of every mount point as HTML.
+# The WebAssembly then mounts in their place. A debug build compiles fastest; it keeps no index or
+# debug info, which nothing here reads.
+HOST_FLAGS="--product Explore --disable-index-store -debug-info-format none"
+if [ -x "$SWIFTLY" ]; then
+    "$SWIFTLY" run swift build $HOST_FLAGS "+$VERSION"
+    HOST_BIN=$("$SWIFTLY" run swift build --show-bin-path "+$VERSION")
+else
+    swift build $HOST_FLAGS
+    HOST_BIN=$(swift build --show-bin-path)
+fi
+"$HOST_BIN/Explore" "$DIST" $(grep -v '^#' "$CONTENTS" | awk -F'|' '$5 == "page" { print $1 }')
+
 # Pages hosts limit each file to 15 MB.
 find "$DIST" -type f -size +15M -exec sh -c 'echo "$1 is over 15 MB" >&2; exit 1' _ {} \;
 echo "Explore/dist:"

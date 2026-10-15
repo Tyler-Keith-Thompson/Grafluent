@@ -219,8 +219,8 @@ struct ColoringCodePanel {
 
 enum ColoringPage {
     static func mount() {
-        Application(ColoringLab()).mount(in: "#app")
-        Application(ColoringCodePanel()).mount(in: "#code")
-        Application(NamesStrip(names: [Names.welshPowell, Names.brelaz, Names.brooks, Names.konig])).mount(in: "#names")
+        mountView(ColoringLab(), in: "app")
+        mountView(ColoringCodePanel(), in: "code")
+        mountView(NamesStrip(names: [Names.welshPowell, Names.brelaz, Names.brooks, Names.konig]), in: "names")
     }
 }

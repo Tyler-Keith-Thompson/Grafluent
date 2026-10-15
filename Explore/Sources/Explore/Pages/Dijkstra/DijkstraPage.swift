@@ -314,8 +314,8 @@ struct DijkstraCodePanel {
 
 enum DijkstraPage {
     static func mount() {
-        Application(DijkstraLab()).mount(in: "#app")
-        Application(DijkstraCodePanel()).mount(in: "#code")
-        Application(NamesStrip(names: [Names.dijkstra, Names.bellmanFord, Names.hart, Names.kruskal, Names.boruvka, Names.erdosRenyi, Names.konig, Names.hierholzer, Names.tarjan])).mount(in: "#names")
+        mountView(DijkstraLab(), in: "app")
+        mountView(DijkstraCodePanel(), in: "code")
+        mountView(NamesStrip(names: [Names.dijkstra, Names.bellmanFord, Names.hart, Names.kruskal, Names.boruvka, Names.erdosRenyi, Names.konig, Names.hierholzer, Names.tarjan]), in: "names")
     }
 }

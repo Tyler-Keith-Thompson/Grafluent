@@ -24,7 +24,7 @@ let minutes: [UndirectedEdge<String>: Int] = [
 ]
 
 let town = UndirectedAdjacencyList<String> {
-    for street in minutes.keys { street }
+    for street in minutes.keys.sorted() { street }
 }
 // snippet end
 

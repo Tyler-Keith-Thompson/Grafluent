@@ -52,7 +52,9 @@ func surf(pages: [String], links: [(String, String)], damping: Double, seed: UIn
     while visits.count < 200 {
         var clicks = 0
         while clicks < 50, Double.random(in: 0 ..< 1, using: &generator) < damping { clicks += 1 }
-        let walk = web.randomWalk(from: pages.randomElement(using: &generator)!, length: clicks, using: &generator)
+        // One draw of 64 bits picks the page, so a seed gives the same surfer on every platform.
+        let jump = pages[Int(generator.next() % UInt64(pages.count))]
+        let walk = web.randomWalk(from: jump, length: clicks, using: &generator)
         visits += walk.enumerated().map { (page: $0.element, jumped: $0.offset == 0) }
     }
     // snippet end
