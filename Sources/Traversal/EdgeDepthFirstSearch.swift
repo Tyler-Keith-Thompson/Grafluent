@@ -539,26 +539,6 @@ extension LazyDirectedGraphView {
     }
 }
 
-extension DirectedGraph {
-    /// `lazy.edgeDepthFirstSearch(from:depthLimit:)`.
-    @inlinable
-    public func edgeDepthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Self> {
-        lazy.edgeDepthFirstSearch(from: source, depthLimit: depthLimit)
-    }
-
-    /// `lazy.edgeDepthFirstSearch(from:depthLimit:)`.
-    @inlinable
-    public func edgeDepthFirstSearch(from roots: some Sequence<Vertex>, depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Self> {
-        lazy.edgeDepthFirstSearch(from: roots, depthLimit: depthLimit)
-    }
-
-    /// `lazy.edgeDepthFirstSearch(depthLimit:)`.
-    @inlinable
-    public func edgeDepthFirstSearch(depthLimit: Int? = nil) -> EdgeDepthFirstSearch<Self> {
-        lazy.edgeDepthFirstSearch(depthLimit: depthLimit)
-    }
-}
-
 extension LazyGraphView {
     /// A depth-first search from `source` that reports each edge once, by its position.
     ///
@@ -588,25 +568,5 @@ extension LazyGraphView {
     @inlinable
     public func edgeDepthFirstSearch(depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Base> {
         UndirectedEdgeDepthFirstSearch(graph: base, roots: nil, depthLimit: depthLimit)
-    }
-}
-
-extension Graph {
-    /// `lazy.edgeDepthFirstSearch(from:depthLimit:)`.
-    @inlinable
-    public func edgeDepthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Self> {
-        lazy.edgeDepthFirstSearch(from: source, depthLimit: depthLimit)
-    }
-
-    /// `lazy.edgeDepthFirstSearch(from:depthLimit:)`.
-    @inlinable
-    public func edgeDepthFirstSearch(from roots: some Sequence<Vertex>, depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Self> {
-        lazy.edgeDepthFirstSearch(from: roots, depthLimit: depthLimit)
-    }
-
-    /// `lazy.edgeDepthFirstSearch(depthLimit:)`.
-    @inlinable
-    public func edgeDepthFirstSearch(depthLimit: Int? = nil) -> UndirectedEdgeDepthFirstSearch<Self> {
-        lazy.edgeDepthFirstSearch(depthLimit: depthLimit)
     }
 }

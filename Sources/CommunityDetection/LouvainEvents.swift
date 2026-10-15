@@ -183,20 +183,6 @@ extension LazyGraphView {
     }
 }
 
-extension Graph {
-    /// `lazy.louvain(resolution:threshold:)`.
-    @inlinable
-    public func louvainEvents(resolution: Double = 1, threshold: Double = 1e-7) -> LouvainEvents<DirectedView<Self>> {
-        lazy.louvain(resolution: resolution, threshold: threshold)
-    }
-
-    /// `lazy.louvain(weight:)`.
-    @inlinable
-    public func louvainEvents<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, resolution: Double = 1, threshold: Double = 1e-7) -> LouvainEvents<DirectedView<Self>> {
-        lazy.louvain(weight: weight, resolution: resolution, threshold: threshold)
-    }
-}
-
 extension LazyDirectedGraphView {
     /// The Louvain method for directed modularity as a sequence of events. See
     /// `LazyGraphView.louvain(resolution:threshold:)`.
@@ -220,19 +206,5 @@ extension LazyDirectedGraphView {
         let numbers = listed.map(_vertexNumbers)
         return LouvainEvents(graph: base, numbers: numbers, listed: listed, network: base._communityGraph(numbers),
                              weights: base._communityWeights(weight), resolution: resolution, threshold: threshold)
-    }
-}
-
-extension DirectedGraph {
-    /// `lazy.louvain(resolution:threshold:)`.
-    @inlinable
-    public func louvainEvents(resolution: Double = 1, threshold: Double = 1e-7) -> LouvainEvents<Self> {
-        lazy.louvain(resolution: resolution, threshold: threshold)
-    }
-
-    /// `lazy.louvain(weight:)`.
-    @inlinable
-    public func louvainEvents<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, resolution: Double = 1, threshold: Double = 1e-7) -> LouvainEvents<Self> {
-        lazy.louvain(weight: weight, resolution: resolution, threshold: threshold)
     }
 }

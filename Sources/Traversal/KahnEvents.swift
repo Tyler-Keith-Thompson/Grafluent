@@ -144,9 +144,3 @@ extension LazyDirectedGraphView {
     @inlinable
     public func kahn() -> KahnEvents<Base> { KahnEvents(base) }
 }
-
-extension DirectedGraph {
-    /// `lazy.kahn()`.
-    @inlinable
-    public func kahnEvents() -> KahnEvents<Self> { lazy.kahn() }
-}

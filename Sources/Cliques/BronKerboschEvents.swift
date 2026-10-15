@@ -180,9 +180,3 @@ extension LazyGraphView {
     @inlinable
     public func bronKerbosch() -> BronKerboschEvents<Base> { BronKerboschEvents(base) }
 }
-
-extension Graph {
-    /// `lazy.bronKerbosch()`.
-    @inlinable
-    public func bronKerboschEvents() -> BronKerboschEvents<Self> { lazy.bronKerbosch() }
-}

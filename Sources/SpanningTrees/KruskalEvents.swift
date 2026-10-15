@@ -132,13 +132,3 @@ extension LazyGraphView {
         KruskalEvents(graph: base, weight: weight)
     }
 }
-
-extension Graph {
-    /// `lazy.kruskal(weight:)`.
-    @inlinable
-    public func kruskalEvents<W: Comparable & AdditiveArithmetic>(
-        weight: (Edges.Index) -> W
-    ) -> KruskalEvents<Self, W> {
-        lazy.kruskal(weight: weight)
-    }
-}

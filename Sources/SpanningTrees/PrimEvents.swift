@@ -230,21 +230,3 @@ extension LazyGraphView {
         PrimEvents(graph: base, root: root, weight: weight)
     }
 }
-
-extension Graph {
-    /// `lazy.prim(weight:)`.
-    @inlinable
-    public func primEvents<W: Comparable & AdditiveArithmetic>(
-        weight: @escaping (Edges.Index) -> W
-    ) -> PrimEvents<Self, W> {
-        lazy.prim(weight: weight)
-    }
-
-    /// `lazy.prim(from:weight:)`.
-    @inlinable
-    public func primEvents<W: Comparable & AdditiveArithmetic>(
-        from root: Vertex, weight: @escaping (Edges.Index) -> W
-    ) -> PrimEvents<Self, W> {
-        lazy.prim(from: root, weight: weight)
-    }
-}

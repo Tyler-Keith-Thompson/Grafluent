@@ -149,14 +149,6 @@ extension LazyGraphView {
     }
 }
 
-extension Graph {
-    /// `lazy.hopcroftKarp(bipartition:)`.
-    @inlinable
-    public func hopcroftKarpEvents(bipartition: Bipartition<Self>) -> HopcroftKarpEvents<Self> {
-        lazy.hopcroftKarp(bipartition: bipartition)
-    }
-}
-
 extension LazyGraphView {
     /// The Hopcroft–Karp algorithm as a sequence of events, left vertices in `left` order. The
     /// edges in an odd number of augmenting paths are `maximumBipartiteMatching()`'s matching.
@@ -175,10 +167,4 @@ extension LazyGraphView {
         }
         return HopcroftKarpEvents(graph: base, structure: structure, left: leftNumbers, isLeft: isLeft)
     }
-}
-
-extension BipartiteGraph {
-    /// `lazy.hopcroftKarp()`.
-    @inlinable
-    public func hopcroftKarpEvents() -> HopcroftKarpEvents<Self> { lazy.hopcroftKarp() }
 }

@@ -1,11 +1,10 @@
-// `lazy.bronKerbosch` against `maximalCliques()` on G(3000, 0.01) as an `UndirectedAdjacencyList`.
+// `lazy.bronKerbosch()` against `maximalCliques()` on G(3000, 0.01) as an `UndirectedAdjacencyList`.
 // The event side pulls every event and folds the maximal cliques' sizes; the plain side folds the
-// same sizes. Each call adds an event with the contents of R, P
-// and X, linear in the call's own sets; the bound, 3×, only catches a pathological slowdown.
-// The two sides are timed in alternating
-// rounds, each keeping its fastest of five, and the comparison is retried up to three times while
-// it looks slow. The timing runs only in an optimized build; a debug build checks that both sides
-// agree. Case IDs (CQ-11nn) are listed in README.md.
+// same sizes. Each call adds an event with the contents of R, P and X, linear in the call's own
+// sets; the bound, 3×, only catches a pathological slowdown. The two sides are timed in
+// alternating rounds, each keeping its fastest of five, and the comparison is retried up to three
+// times while it looks slow. The timing runs only in an optimized build; a debug build checks that
+// both sides agree. Case IDs (CQ-11nn) are listed in README.md.
 
 import AdjacencyListModule
 import Cliques

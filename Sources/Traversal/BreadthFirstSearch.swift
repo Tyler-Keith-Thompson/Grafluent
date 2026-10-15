@@ -202,20 +202,6 @@ extension LazyDirectedGraphView {
 }
 
 extension DirectedGraph {
-    /// `lazy.breadthFirstSearch(from:depthLimit:)`.
-    @inlinable
-    public func breadthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> BreadthFirstSearch<Self> {
-        lazy.breadthFirstSearch(from: source, depthLimit: depthLimit)
-    }
-
-    /// `lazy.breadthFirstSearch(from:depthLimit:)`.
-    @inlinable
-    public func breadthFirstSearch(from sources: some Sequence<Vertex>, depthLimit: Int? = nil) -> BreadthFirstSearch<Self> {
-        lazy.breadthFirstSearch(from: sources, depthLimit: depthLimit)
-    }
-}
-
-extension DirectedGraph {
     /// The vertices reachable from `source`, by distance: layer k holds the vertices k edges away,
     /// in the order a breadth-first search discovers them.
     ///

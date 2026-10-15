@@ -211,13 +211,3 @@ extension LazyDirectedGraphView {
         EdmondsKarpEvents(graph: base, source: source, sink: sink, capacity: capacity)
     }
 }
-
-extension DirectedGraph {
-    /// `lazy.edmondsKarp(from:to:capacity:)`.
-    @inlinable
-    public func edmondsKarpEvents<C: Comparable & AdditiveArithmetic>(
-        from source: Vertex, to sink: Vertex, capacity: (Edges.Index) -> C
-    ) -> EdmondsKarpEvents<Self, C> {
-        lazy.edmondsKarp(from: source, to: sink, capacity: capacity)
-    }
-}

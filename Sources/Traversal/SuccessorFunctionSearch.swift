@@ -21,9 +21,6 @@ internal struct _SuccessorFunctionGraph<Vertex: Hashable, Successors: Sequence<V
 
 /// A breadth-first search over `successors`, from `sources`. Lazy: on an infinite space, stop
 /// iterating to stop the search. To prune, return fewer successors.
-///
-/// Inside an extension of `DirectedGraph`, the methods of the same name hide this function; call it
-/// as `Traversal.breadthFirstSearch(from:successors:)` there.
 @inlinable
 public func breadthFirstSearch<Vertex: Hashable, Successors: Sequence<Vertex>>(
     from sources: some Sequence<Vertex>,

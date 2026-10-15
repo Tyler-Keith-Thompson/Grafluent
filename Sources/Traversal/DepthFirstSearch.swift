@@ -263,23 +263,3 @@ extension LazyDirectedGraphView {
         DepthFirstSearch(graph: base, roots: nil, depthLimit: depthLimit)
     }
 }
-
-extension DirectedGraph {
-    /// `lazy.depthFirstSearch(from:depthLimit:)`.
-    @inlinable
-    public func depthFirstSearch(from source: Vertex, depthLimit: Int? = nil) -> DepthFirstSearch<Self> {
-        lazy.depthFirstSearch(from: source, depthLimit: depthLimit)
-    }
-
-    /// `lazy.depthFirstSearch(from:depthLimit:)`.
-    @inlinable
-    public func depthFirstSearch(from roots: some Sequence<Vertex>, depthLimit: Int? = nil) -> DepthFirstSearch<Self> {
-        lazy.depthFirstSearch(from: roots, depthLimit: depthLimit)
-    }
-
-    /// `lazy.depthFirstSearch(depthLimit:)`.
-    @inlinable
-    public func depthFirstSearch(depthLimit: Int? = nil) -> DepthFirstSearch<Self> {
-        lazy.depthFirstSearch(depthLimit: depthLimit)
-    }
-}
