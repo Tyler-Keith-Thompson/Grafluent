@@ -30,15 +30,15 @@
 
 /// `floor(e × log10(2))`, for `|e|` ≤ 5,456,721.
 @inline(__always)
-@inlinable func _floorLog10Pow2(_ e: Int) -> Int { (e &* 661_971_961_083) >> 41 }
+@inlinable func _floorLog10Pow2(_ e: Int) -> Int { Int(truncatingIfNeeded: (Int64(e) &* 661_971_961_083) >> 41) }
 
 /// `floor(e × log10(2) − log10(4/3))`, for `|e|` ≤ 5,456,721.
 @inline(__always)
-@inlinable func _floorLog10ThreeQuartersPow2(_ e: Int) -> Int { (e &* 661_971_961_083 &- 274_743_187_321) >> 41 }
+@inlinable func _floorLog10ThreeQuartersPow2(_ e: Int) -> Int { Int(truncatingIfNeeded: (Int64(e) &* 661_971_961_083 &- 274_743_187_321) >> 41) }
 
 /// `floor(e × log2(10))`, for `|e|` ≤ 1,838,394.
 @inline(__always)
-@inlinable func _floorLog2Pow10(_ e: Int) -> Int { (e &* 913_124_641_741) >> 38 }
+@inlinable func _floorLog2Pow10(_ e: Int) -> Int { Int(truncatingIfNeeded: (Int64(e) &* 913_124_641_741) >> 38) }
 
 /// Schubfach's rounding of `cp × g / 2^127` to odd: the high bits, with a sticky low bit.
 @inline(__always)

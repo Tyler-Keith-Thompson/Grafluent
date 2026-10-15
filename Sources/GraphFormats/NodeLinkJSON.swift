@@ -282,7 +282,8 @@
             guard case .integer(let i)? = json.scalar(offset, scratch: &scratch) else { throw ParseError(.invalidValue, at: offset) }
             if idKey.count != 9 { idKey = Array(repeating: 0, count: 9) }
             idKey[0] = UInt8(ascii: "i")
-            withUnsafeBytes(of: i) { bytes in
+            // Eight bytes at either `Int` width (an `Int` is four on 32-bit platforms).
+            withUnsafeBytes(of: Int64(i)) { bytes in
                 for k in 0 ..< 8 { idKey[k &+ 1] = bytes[k] }
             }
             return .integer(i)
@@ -719,8 +720,8 @@
         }
     }
 
-    /// The integer at `p` when it has at most 18 digits and no fraction or exponent, `p` moved
-    /// past it; `nil` (with `p` where it was) otherwise.
+    /// The integer at `p` when it has at most 18 digits (9 where `Int` is 32 bits) and no fraction
+    /// or exponent, `p` moved past it; `nil` (with `p` where it was) otherwise.
     @inline(__always)
     @inlinable mutating func integer() -> Int? {
         var q = p
@@ -737,7 +738,8 @@
                 q &+= 1
             }
         }
-        guard q &- digits <= 18 else { return nil }
+        // 18 digits fit a 64-bit `Int`, 9 a 32-bit one; a longer integer is the two-pass reader's.
+        guard q &- digits <= (Int.bitWidth == 64 ? 18 : 9) else { return nil }
         if q < n {
             let c = text[q]
             if c == UInt8(ascii: ".") || c | 0x20 == UInt8(ascii: "e") { return nil }

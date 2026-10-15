@@ -395,11 +395,17 @@ struct GraphFormatsWriteErrorTests {
         #expect(output == "kept")
         // Without the faults: the same keys where the format does not use them, and every string.
         output = ""
+        // An integer past 32 bits is quoted; a 32-bit `Int` holds none, so there it is 2³⁰, bare.
+        #if _pointerBitWidth(_64)
+        let key = 1 << 40, written = "\"1099511627776\""
+        #else
+        let key = 1 << 30, written = "1073741824"
+        #endif
         try Pseudograph<Int>(vertices: [1], edges: [UndirectedEdge(1, 1)]).writeGML(
             to: &output, vertexID: { _ in "\"&é\n" }, vertexAttributes: { _ in [("source", .integer(1)), ("a_1", .string(""))] },
-            edgeAttributes: { _ in [("id", .boolean(true)), ("key", .integer(1 << 40))] }, graphAttributes: [("label", .double(1e-5))])
+            edgeAttributes: { _ in [("id", .boolean(true)), ("key", .integer(key))] }, graphAttributes: [("label", .double(1e-5))])
         #expect(output == "graph [\n  label 1.E-05\n  node [\n    id 0\n    label \"&#34;&#38;&#233;&#10;\"\n    source 1\n    a_1 \"\"\n  ]\n"
-            + "  edge [\n    source 0\n    target 0\n    id 1\n    key \"1099511627776\"\n  ]\n]\n")
+            + "  edge [\n    source 0\n    target 0\n    id 1\n    key \(written)\n  ]\n]\n")
     }
 
     @Test("Pajek: a repeated label, a line feed in a token, and a coordinate or weight that is not a number throw")

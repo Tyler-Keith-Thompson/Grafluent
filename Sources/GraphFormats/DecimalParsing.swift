@@ -103,7 +103,8 @@
     let digits = i
     var value = 0
     while i < end && _isDigit(text[i]) {
-        if value < 1_000_000_000 { value = value &* 10 &+ Int(text[i] &- 0x30) }
+        // Saturates past 10⁹ (10⁸ where `Int` is 32 bits, so that ten times it still fits).
+        if value < (Int.bitWidth == 64 ? 1_000_000_000 : 100_000_000) { value = value &* 10 &+ Int(text[i] &- 0x30) }
         i &+= 1
     }
     guard i > digits else { return nil }
@@ -336,7 +337,7 @@
         while j < limit {
             let d = base[j] &- 0x30
             if d >= 10 { break }
-            if value < 1_000_000_000 { value = value &* 10 &+ Int(d) }
+            if value < (Int.bitWidth == 64 ? 1_000_000_000 : 100_000_000) { value = value &* 10 &+ Int(d) }
             j &+= 1
         }
         if j > digits {
@@ -346,8 +347,9 @@
         }
     }
     if !decimal {
-        // An integer: within Int when it has at most 18 significant digits, or 19 that fit.
-        if dropped == 0 && (significant < 19 || w <= UInt64(Int.max) &+ (negative ? 1 : 0)) {
+        // An integer: within a 64-bit Int when it has at most 18 significant digits; else (and
+        // always where `Int` is 32 bits) when it fits.
+        if dropped == 0 && ((Int.bitWidth == 64 && significant < 19) || w <= UInt64(Int.max) &+ (negative ? 1 : 0)) {
             if negative { return (.integer(w == UInt64(Int.max) &+ 1 ? Int.min : -Int(w)), afterInteger) }
             return (.integer(Int(w)), afterInteger)
         }

@@ -23,6 +23,7 @@ contract only; data a format cannot hold throws WriteError (GraphFormatsWriteErr
 """
 import math
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -438,9 +439,21 @@ IMPORTS = {"AdjacencyListModule": ("AdjacencyList<", "UndirectedAdjacencyList<")
            "Multigraphs": ("DirectedPseudograph<", "Pseudograph<")}
 
 
+def wide_guarded(test):
+    """`test`, inside a 64-bit-only `#if` when its `[Int]` weights or `.integer` values pass Int32
+    (arm64_32 and wasm32 have a 32-bit `Int`)."""
+    weights = [l for l in test if l.startswith("        let weights: [Int] = ")]
+    values = [int(x) for l in weights for x in l.split("= ", 1)[1].strip("[]").split(", ") if x]
+    values += [int(x) for l in test for x in re.findall(r"\.integer\((-?\d+)\)", l.split("//")[0])]
+    if any(abs(x) > 2**31 - 1 for x in values):
+        return ["    #if _pointerBitWidth(_64)"] + test + ["    #endif"]
+    return test
+
+
 def write(name, suite, fmts, heading, text):
     comment = catalog_comment(heading, fmts, text)
     tests = [read_test(c) if c["kind"] == "read" else write_test(c) for c in CASES if c["fmt"] in fmts]
+    tests = [wide_guarded(t) for t in tests]
     body = []
     for i, t in enumerate(tests):
         if i:

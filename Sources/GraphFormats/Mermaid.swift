@@ -237,7 +237,10 @@
             guard let link = try link(&q) else { return q }
             if link.directed != Target.isDirected { throw ParseError(.kindMismatch, at: link.offset) }
             q = try group(q, into: &targets, target: &target, map: map, vertexLabel: vertexLabel)
-            try budget.spend(sources.count &* targets.count, at: link.offset)
+            // The product as a comparison: it can pass a 32-bit `Int`, and a wrapped one would pass
+            // the budget.
+            let links = targets.isEmpty || sources.count <= Int.max / targets.count ? sources.count * targets.count : .max
+            try budget.spend(links, at: link.offset)
             for u in sources {
                 for v in targets {
                     let position = target.insertEdge(u, v)

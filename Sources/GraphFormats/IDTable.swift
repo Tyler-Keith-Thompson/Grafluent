@@ -63,7 +63,9 @@
     /// The slot's meta word for `bytes` with `hash`, without the entry number.
     @inline(__always)
     @inlinable static func tag(_ bytes: UnsafeBufferPointer<UInt8>, _ hash: Int) -> UInt64 {
-        (UInt64(truncatingIfNeeded: hash) & 0xFFFF_FF00_0000_0000) | (UInt64(min(bytes.count, 255)) << 32)
+        // The hash's top 24 bits at either `Int` width (a 32-bit hash moved up, not sign-extended).
+        (UInt64(truncatingIfNeeded: UInt(bitPattern: hash)) &<< UInt64(64 &- Int.bitWidth)) & 0xFFFF_FF00_0000_0000
+            | (UInt64(min(bytes.count, 255)) << 32)
     }
 
     /// The first 8 bytes of `bytes`, zero-padded, as one word.

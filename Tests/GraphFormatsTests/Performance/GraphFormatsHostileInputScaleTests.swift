@@ -106,7 +106,8 @@ struct GraphFormatsHostileInputScaleTests {
         }
         // Underflow is not an error: the nearest double, 0.
         var graphValues: [String: AttributeValue] = [:]
-        _ = try DirectedPseudograph<String>(nodeLinkJSON: "{\"directed\": true, \"graph\": {\"x\": 1e-999999999999999999999, \"y\": -9223372036854775808}, \"nodes\": [], \"edges\": []}".utf8,
+        // Int.min itself is in range, at either `Int` width.
+        _ = try DirectedPseudograph<String>(nodeLinkJSON: "{\"directed\": true, \"graph\": {\"x\": 1e-999999999999999999999, \"y\": \(Int.min)}, \"nodes\": [], \"edges\": []}".utf8,
                                             graphAttribute: { graphValues[$0] = $1 })
         #expect(graphValues == ["x": .double(0), "y": .integer(Int.min)])
 
@@ -127,13 +128,18 @@ struct GraphFormatsHostileInputScaleTests {
             #expect([error.line, error.column, error.byteOffset] == [1, 142, 141])
         }
 
-        let matrixMarket: [(String, ParseError.Kind, [Int])] = [
+        var matrixMarket: [(String, ParseError.Kind, [Int])] = [
             ("%%MatrixMarket matrix coordinate pattern general\n99999999999999999999 99999999999999999999 1\n", .numberOutOfRange, [2, 1, 49]),
             ("%%MatrixMarket matrix coordinate pattern general\n2 2 1\n1 99999999999999999999\n", .numberOutOfRange, [3, 3, 57]),
             ("%%MatrixMarket matrix coordinate real general\n2 2 1\n1 2 1e999\n", .numberOutOfRange, [3, 5, 56]),
-            // 10¹⁸ entries claimed by a 73-byte file: no reservation from the count, just the mismatch.
-            ("%%MatrixMarket matrix coordinate pattern general\n1 1 1000000000000000000\n", .entryCountMismatch, [3, 1, 73]),
         ]
+        // 10¹⁸ entries claimed by a 73-byte file (10⁹ where `Int` is 32 bits): no reservation from
+        // the count, just the mismatch.
+        #if _pointerBitWidth(_64)
+        matrixMarket.append(("%%MatrixMarket matrix coordinate pattern general\n1 1 1000000000000000000\n", .entryCountMismatch, [3, 1, 73]))
+        #else
+        matrixMarket.append(("%%MatrixMarket matrix coordinate pattern general\n1 1 1000000000\n", .entryCountMismatch, [3, 1, 64]))
+        #endif
         for (input, kind, position) in matrixMarket {
             do {
                 let graph = try DirectedPseudograph<Int>(matrixMarket: input.utf8)

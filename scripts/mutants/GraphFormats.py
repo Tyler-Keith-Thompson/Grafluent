@@ -121,7 +121,7 @@ MUTANTS = [
            "try ids.set(k) { _appendDOTID(id + \"\\(k)\", to: &$0) }", mode="stmt"),
 
     # The expansion budget.
-    Mutant("budgetfloor", EB, "remaining = overflow ? .max : product &+ 4096", "remaining = overflow ? .max : product &+ 1_000_000_000", mode="stmt"),
+    Mutant("budgetfloor", EB, "remaining = overflow || product > Int.max - 4096 ? .max : product + 4096", "remaining = overflow ? .max : product &+ 1_000_000_000", mode="stmt"),
     Mutant("budgetstrict", EB, "if units > remaining { throw ParseError(.limitExceeded, at: offset) }",
            "if units > remaining &* 2 { throw ParseError(.limitExceeded, at: offset) }", mode="stmt"),
 
@@ -169,7 +169,7 @@ MUTANTS = [
     Mutant("nl1member", NL, "if memberWords[k] == word { return false }", "", mode="stmt"),
     Mutant("nl1longmember", NL, "if same { return false }", "", mode="stmt"),
     Mutant("nl1memberlimit", NL, "guard memberCount < Self.memberLimit else { return false }", "", mode="stmt"),
-    Mutant("nl1digits", NL, "guard q &- digits <= 18 else { return nil }", "", mode="stmt"),
+    Mutant("nl1digits", NL, "guard q &- digits <= (Int.bitWidth == 64 ? 18 : 9) else { return nil }", "", mode="stmt"),
     Mutant("nl1finite", NL, "!integral && d.isFinite", "!integral"),
     Mutant("nl1dupinteger", NL, "guard dense[i] == 0 else { return false }", "", mode="stmt"),
     Mutant("nl1dupstring", NL, "guard added else { return false }", "", mode="stmt"),
@@ -335,7 +335,7 @@ MUTANTS = [
     Mutant("gmlamp", GF, "decoded = \"&\"", "decoded = nil", mode="stmt"),
     Mutant("gmlhex", GF, "k < end && text[k] == UInt8(ascii: \"x\")", "false"),
     Mutant("gmlclamp", GF, "min(value &* (hex ? 16 : 10) &+ digit, 0x110000)", "value &* (hex ? 16 : 10) &+ digit"),
-    Mutant("gmlwideint", GF, "i >= -(1 << 31) && i < 1 << 31", "true"),
+    Mutant("gmlwideint", GF, "Int64(i) >= -(1 << 31) && Int64(i) < 1 << 31", "true"),
     Mutant("gmldot", GF, "if !dot { out.append(UInt8(ascii: \".\")) }", "", mode="stmt"),
     Mutant("gmlinfwrite", GF, "out.appendASCII(d < 0 ? \"-INF\" : \"+INF\")", "out.appendASCII(d < 0 ? \"-INF\" : \"INF\")", mode="stmt"),
     Mutant("gmlescape", GF, "v >= 0x20 && v <= 0x7E && v != 0x22 && v != 0x26", "v >= 0x20 && v <= 0x7E && v != 0x22"),

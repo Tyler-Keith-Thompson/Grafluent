@@ -8,6 +8,8 @@
 import Darwin
 #elseif canImport(Glibc)
 import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 import GraphFormats
 import GraphProtocols
@@ -21,7 +23,13 @@ struct GraphFormatsReviewScaleTests {
         let clock = ContinuousClock()
         let start = clock.now
         let header = "%%MatrixMarket matrix coordinate pattern general\n"
-        for count in ["1000000000000", "100000000", "16777217"] {
+        // 10¹² is out of range of a 32-bit `Int` before it is over the limit.
+        #if _pointerBitWidth(_64)
+        let counts = ["1000000000000", "100000000", "16777217"]
+        #else
+        let counts = ["100000000", "16777217"]
+        #endif
+        for count in counts {
             do {
                 let graph = try DirectedPseudograph<Int>(matrixMarket: (header + "\(count) \(count) 0\n").utf8)
                 Issue.record("expected limitExceeded, read \(graph.vertexCount) vertices")

@@ -655,7 +655,7 @@ extension Graph {
 @inlinable func _appendGMLValue(_ value: AttributeValue, to out: inout _OutputBuffer, scratch: inout [UInt8]) {
     switch value {
     case .integer(let i):
-        if i >= -(1 << 31) && i < 1 << 31 {
+        if Int64(i) >= -(1 << 31) && Int64(i) < 1 << 31 {
             out.appendDecimal(i)
         } else {
             out.append(UInt8(ascii: "\""))

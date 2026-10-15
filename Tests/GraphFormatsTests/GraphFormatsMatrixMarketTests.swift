@@ -547,6 +547,7 @@ struct GraphFormatsMatrixMarketTests {
         #expect(output == "%%MatrixMarket matrix coordinate pattern general\n%\n3 3 7\n2 1\n1 2\n3 1\n3 2\n3 3\n3 1\n1 3\n")
     }
 
+    #if _pointerBitWidth(_64)
     @Test("GF-208 integer weights")
     func gf208() {
         // writeMatrixMarket(to:, weight: [1, -2, 3, 4, 5, 6, 9223372036854775807]) on D: 0, 1, 2; 1>0, 0>1, 2>0, 2>1, 2>2, 2>0, 0>2
@@ -556,6 +557,7 @@ struct GraphFormatsMatrixMarketTests {
         graph.writeMatrixMarket(to: &output, weight: { weights[$0] })
         #expect(output == "%%MatrixMarket matrix coordinate integer general\n%\n3 3 7\n2 1 1\n1 2 -2\n3 1 3\n3 2 4\n3 3 5\n3 1 6\n1 3 9223372036854775807\n")
     }
+    #endif
 
     @Test("GF-209 real weights: SciPy's number format")
     func gf209() {

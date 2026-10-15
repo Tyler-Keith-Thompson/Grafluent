@@ -8,6 +8,8 @@
 import Darwin
 #elseif canImport(Glibc)
 import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 import GraphFormats
 import GraphProtocols

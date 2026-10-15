@@ -18,7 +18,7 @@
 
     @inlinable init(inputCount: Int, perByte: Int) {
         let (product, overflow) = inputCount.multipliedReportingOverflow(by: perByte)
-        remaining = overflow ? .max : product &+ 4096
+        remaining = overflow || product > Int.max - 4096 ? .max : product + 4096
     }
 
     /// Takes `units` from the budget, or throws `limitExceeded` at `offset` when it runs out.

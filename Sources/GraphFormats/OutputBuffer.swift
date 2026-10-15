@@ -111,11 +111,14 @@
             return
         }
         var magnitude = value.magnitude
+        // At most 20 digits, or 10 where `UInt` is 32 bits: `bound` stops at the greatest power
+        // of ten the width holds.
+        let maximumDigits = UInt.bitWidth == 64 ? 20 : 10
         var digits = 1
         var bound: UInt = 10
-        while digits < 20 && magnitude >= bound {
+        while digits < maximumDigits && magnitude >= bound {
             digits &+= 1
-            if digits == 20 { break }
+            if digits == maximumDigits { break }
             bound &*= 10
         }
         if value < 0 {

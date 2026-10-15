@@ -146,7 +146,8 @@ extension Graph {
     let negative = signed && q < field.1 && text[q] == UInt8(ascii: "-")
     if negative { q &+= 1 }
     let digits = field.1 &- q
-    guard digits > 0 && digits <= 18 else { return nil }
+    // 18 digits fit a 64-bit `Int`, 9 a 32-bit one.
+    guard digits > 0 && digits <= (Int.bitWidth == 64 ? 18 : 9) else { return nil }
     var value = 0
     while q < field.1 {
         let d = text[q] &- 0x30

@@ -70,6 +70,7 @@ struct GraphFormatsGraphMLTests {
         #expect(graphValues == [:])
     }
 
+    #if _pointerBitWidth(_64)
     @Test("GF-045 typed keys")
     func gf045() throws {
         // DirectedPseudograph<String>(graphML:) → D: a{b=true, i=-7, l=9223372036854775807, f=0.5, d=0.001, s=" x "}, b{b=false, d=inf, i=3}
@@ -98,6 +99,7 @@ struct GraphFormatsGraphMLTests {
         #expect(graphKeys == [])
         #expect(graphValues == [:])
     }
+    #endif
 
     @Test("GF-046 a key's default applies where no data element gives it")
     func gf046() throws {

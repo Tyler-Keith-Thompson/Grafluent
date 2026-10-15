@@ -238,7 +238,7 @@ extension DirectedGraph {
 /// The number of data bytes `bits` bits take, or `Int.max` when `count × (count − 1) / 2`
 /// (`triangle`) or `count²` bits would overflow (no input holds that many bytes).
 @inlinable func _nautyDataBytes(_ count: Int, triangle: Bool) -> Int {
-    guard count <= 3_037_000_499 else { return .max }
+    guard count <= 1 || count <= Int.max / count else { return .max }
     let bits = triangle ? count &* (count &- 1) / 2 : count &* count
     return bits / 6 &+ (bits % 6 == 0 ? 0 : 1)
 }
@@ -398,7 +398,7 @@ extension DirectedGraph {
 
 /// Appends N(n): one byte up to 62, four up to 258,047, else eight.
 @inlinable func _appendNautySize(_ n: Int, to out: inout _OutputBuffer) {
-    precondition(n < 1 << 36, "The nauty formats hold fewer than 2^36 vertices")
+    precondition(Int64(n) < 1 << 36, "The nauty formats hold fewer than 2^36 vertices")
     if n <= 62 {
         out.append(UInt8(truncatingIfNeeded: n) &+ 63)
         return
@@ -422,7 +422,7 @@ extension DirectedGraph {
     _ source: Source, to out: inout _OutputBuffer, header: StaticString?
 ) throws(WriteError) {
     let n = source.vertexCount
-    precondition(n < 1 << 36, "The nauty formats hold fewer than 2^36 vertices")
+    precondition(Int64(n) < 1 << 36, "The nauty formats hold fewer than 2^36 vertices")
     let directed = Source.isDirected
     var data = [UInt8](repeating: 0, count: _nautyDataBytes(n, triangle: !directed))
     try data.withUnsafeMutableBufferPointer { (data) throws(WriteError) in

@@ -223,9 +223,9 @@
         if q == lineStart && text[q] == UInt8(ascii: "%") { throw ParseError(.syntax, at: lineStart) }
         if seen == entries { throw ParseError(.entryCountMismatch, at: lineStart) }
 
-        // The fast path, for an entry as writers print it: indices of at most 18 digits in range,
-        // the value a number of the field's type, blanks between, then the line's end. Anything
-        // else is left to the general reading below, which reports it.
+        // The fast path, for an entry as writers print it: indices of at most 18 digits (9 where
+        // `Int` is 32 bits) in range, the value a number of the field's type, blanks between, then
+        // the line's end. Anything else is left to the general reading below, which reports it.
         fast: do {
             let base = text.baseAddress!
             var f = q
@@ -233,7 +233,7 @@
             while f < n {
                 let d = base[f] &- 0x30
                 if d >= 10 { break }
-                if digits == 18 { break fast }
+                if digits == (Int.bitWidth == 64 ? 18 : 9) { break fast }
                 r = r &* 10 &+ Int(d)
                 digits &+= 1
                 f &+= 1
@@ -245,7 +245,7 @@
             while f < n {
                 let d = base[f] &- 0x30
                 if d >= 10 { break }
-                if digits == 18 { break fast }
+                if digits == (Int.bitWidth == 64 ? 18 : 9) { break fast }
                 c = c &* 10 &+ Int(d)
                 digits &+= 1
                 f &+= 1

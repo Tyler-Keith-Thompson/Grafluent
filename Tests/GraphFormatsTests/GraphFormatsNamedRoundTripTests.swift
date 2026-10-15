@@ -29,9 +29,15 @@ struct GraphFormatsNamedRoundTripTests {
                 if !vertices.contains(name) { vertices.append(name) }
             }
             let ends = vertices.isEmpty ? [] : pairs.map { (vertices[$0.0 % vertices.count], vertices[$0.1 % vertices.count]) }
+            // Where `Int` is 32 bits every integer is in 32 bits, so none comes back as text.
+            #if _pointerBitWidth(_64)
+            let wide: [(AttributeValue, AttributeValue)] = [(.integer(1 << 31), .string("2147483648")), (.integer(Int.min), .string(String(Int.min)))]
+            #else
+            let wide: [(AttributeValue, AttributeValue)] = [(.integer(Int.max), .integer(Int.max)), (.integer(Int.min), .integer(Int.min))]
+            #endif
             let values: [(AttributeValue, AttributeValue)] = [
-                (.integer(0), .integer(0)), (.integer(-(1 << 31)), .integer(-(1 << 31))), (.integer(1 << 31), .string("2147483648")),
-                (.integer(Int.min), .string(String(Int.min))), (.boolean(true), .integer(1)), (.boolean(false), .integer(0)),
+                (.integer(0), .integer(0)), (.integer(Int(Int32.min)), .integer(Int(Int32.min))), wide[0],
+                wide[1], (.boolean(true), .integer(1)), (.boolean(false), .integer(0)),
                 (.double(1e-5), .double(1e-5)), (.double(1e16), .double(1e16)), (.double(-0.0), .double(-0.0)), (.double(0.1), .double(0.1)),
                 (.double(.infinity), .double(.infinity)), (.double(-.infinity), .double(-.infinity)), (.double(5e-324), .double(5e-324)),
                 (.double(2.0), .double(2.0)),
@@ -312,7 +318,7 @@ struct GraphFormatsNamedRoundTripTests {
             let strings = ["w", "it's", "a \"b\"", "\\", "é😀", "\n\r\t", "\u{1}", "", "#", "a,b", "}", "{"]
             let values: [(String, AttributeValue)] = [("3", .integer(3)), ("-7", .integer(-7)), ("0.5", .double(0.5)), ("1e-05", .double(1e-5)),
                                                       ("1e+16", .double(1e16)), ("True", .boolean(true)), ("False", .boolean(false)),
-                                                      ("inf", .double(.infinity)), ("-inf", .double(-.infinity)), ("9223372036854775807", .integer(Int.max))]
+                                                      ("inf", .double(.infinity)), ("-inf", .double(-.infinity)), (String(Int.max), .integer(Int.max))]
             // Python's repr of a string, with single quotes.
             func repr(_ s: String) -> String {
                 var out = "'"

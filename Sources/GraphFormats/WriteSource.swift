@@ -202,7 +202,8 @@ import GraphProtocols
     @inline(__always)
     @inlinable func decimal(_ bytes: UnsafeBufferPointer<UInt8>) -> Int? {
         let count = bytes.count
-        guard count > 0 && count <= 18 && (count == 1 || bytes[0] != UInt8(ascii: "0")) else { return nil }
+        // 18 digits fit a 64-bit `Int`, 9 a 32-bit one.
+        guard count > 0 && count <= (Int.bitWidth == 64 ? 18 : 9) && (count == 1 || bytes[0] != UInt8(ascii: "0")) else { return nil }
         var value = 0
         for b in bytes {
             let d = b &- 0x30

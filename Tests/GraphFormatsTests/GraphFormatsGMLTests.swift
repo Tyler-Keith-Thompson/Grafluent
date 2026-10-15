@@ -1024,6 +1024,7 @@ struct GraphFormatsGMLTests {
         #expect(output == "graph [\n  multigraph 1\n  node [\n    id 0\n    label \"a\"\n  ]\n  node [\n    id 1\n    label \"b\"\n  ]\n  node [\n    id 2\n    label \"c\"\n  ]\n  edge [\n    source 1\n    target 0\n  ]\n  edge [\n    source 0\n    target 0\n  ]\n  edge [\n    source 0\n    target 1\n  ]\n  edge [\n    source 2\n    target 1\n  ]\n]\n")
     }
 
+    #if _pointerBitWidth(_64)
     @Test("GF-556 integers outside 32 bits as strings; reals as NetworkX writes them")
     func gf556() throws {
         // writeGML(to:) on U: a{big=2147483648, low=-2147483648, top=2147483647, e=1e-05, f=1e+16, p=inf, m=-inf, q=nan, z=-0.0}
@@ -1037,6 +1038,7 @@ struct GraphFormatsGMLTests {
         })
         #expect(output == "graph [\n  node [\n    id 0\n    label \"a\"\n    big \"2147483648\"\n    low -2147483648\n    top 2147483647\n    e 1.E-05\n    f 1.E+16\n    p +INF\n    m -INF\n    q NAN\n    z -0.0\n  ]\n]\n")
     }
+    #endif
 
     @Test("GF-557 character references for quotes, ampersands and everything outside ASCII")
     func gf557() throws {
