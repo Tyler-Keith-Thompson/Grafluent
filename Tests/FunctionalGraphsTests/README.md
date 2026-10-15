@@ -36,6 +36,9 @@ struct FunctionalGraph.CycleDecomposition: Sendable
         preimages(checked:), inDegree(checked:), successor(checked:steps:)  // throw VertexNotFound
 func floydCycleDetection(from:successor:) -> (tailLength: Int, cycleLength: Int, root: Vertex)
 func brentCycleDetection(from:successor:) -> (tailLength: Int, cycleLength: Int, root: Vertex)
+extension LazyDirectedGraphView where Base == FunctionalGraph        // graph.lazy
+    func floydCycleDetection(from:) -> FloydCycleDetection   // step(tortoise:hare:), meet, root(_:tailLength:), cycle(length:)
+    func brentCycleDetection(from:) -> BrentCycleDetection   // step(tortoise:hare:), teleport(_:power:), cycle(length:), root(_:tailLength:)
 ```
 
 ## Conventions

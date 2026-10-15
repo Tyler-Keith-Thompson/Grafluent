@@ -151,4 +151,12 @@ MUTANTS += [
     Mutant("mapstamp", F, "        _generation.stamp()", "", mode="stmt"),
     Mutant("mapcheckededge", P, "guard contains(position) else { throw EdgeNotFound() }", "", mode="stmt"),
     Mutant("mapcheckedvertex", P, "guard contains(position) else { throw VertexNotFound() }", "", mode="stmt"),
+    # Floyd's and Brent's cycle detection as event sequences
+    Mutant("evfloydhare", "CycleDetectionEvents.swift", "hare = graph.successor(of: graph.successor(of: hare))", "hare = graph.successor(of: hare)", mode="stmt"),
+    Mutant("evfloydreset", "CycleDetectionEvents.swift", "tortoise = start\n                phase = 2", "phase = 2", mode="stmt"),
+    Mutant("evfloydlap", "CycleDetectionEvents.swift", "count == 0 || tortoise != hare", "tortoise != hare"),
+    Mutant("evbrentpower", "CycleDetectionEvents.swift", "power *= 2", "power += 1", mode="stmt"),
+    Mutant("evbrentlength", "CycleDetectionEvents.swift", "cycleLength = 0", "cycleLength = 1", mode="stmt", nth=0),
+    Mutant("evbrentteleport", "CycleDetectionEvents.swift", "teleported = true", "", mode="stmt"),
+    Mutant("evbrentahead", "CycleDetectionEvents.swift", "count < cycleLength", "count <= cycleLength"),
 ]
