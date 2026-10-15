@@ -298,7 +298,6 @@ struct DijkstraCodePanel {
             ? places[model.target].name
             : (start == "Station" ? "Home" : "Station")
         let walk = quickestWalk(from: start, to: goal)
-        let first = model.events.prefix(2).map { "\($0)" }.joined(separator: ", ")
         CodePanel(
             snippets: [
                 .dijkstraImports, .dijkstraTown,
@@ -306,7 +305,7 @@ struct DijkstraCodePanel {
                 .dijkstraSearch, .dijkstraWalk,
             ],
             results: [
-                "\(model.events.count) events: \(first), …",
+                "\(model.events.count) events",
                 walk.minutes.map { "\($0)" } ?? "nil",
                 "[" + walk.stops.map { "\"\($0)\"" }.joined(separator: ", ") + "]",
             ])

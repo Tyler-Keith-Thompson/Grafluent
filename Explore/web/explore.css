@@ -220,7 +220,7 @@ select { font-weight: 600; padding: 6px 10px; max-width: 100%; }
 .swatch { flex: none; }
 
 /* Prose sections */
-.prose { max-width: 68ch; margin: 56px auto 0; display: grid; gap: 16px; }
+.prose { max-width: 68ch; margin: 56px 0 0; display: grid; gap: 16px; }
 .prose h2 { font-size: clamp(26px, 3.4vw, 34px); font-weight: 900; margin-top: 12px; }
 .prose h2 small { display: block; font-size: 13px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 .prose ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
@@ -259,7 +259,7 @@ pre { margin: 0; background: var(--sheet); border: 1px solid var(--rule); border
 
 /* A page's example, and the previous and next links at its foot */
 .example { border-left: 4px solid var(--signal); padding: 4px 0 4px 14px; }
-.pager { max-width: 68ch; margin: 48px auto 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pager { margin: 48px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .pager a { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); text-decoration: none; font-family: var(--display); font-weight: 800; color: var(--sign); }
 .pager a:hover { border-color: var(--sign); }
 .pager a span { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
