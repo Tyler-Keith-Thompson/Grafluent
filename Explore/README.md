@@ -30,6 +30,7 @@ contents and the menu without a link.
 | `bridges` | `bridges()`, `articulationPoints()`, `lazy.edgeDepthFirstSearch(from:)`, `connectedComponents()`; beside its figure, `biconnectedComponents()` |
 | `dominators` | `dominatorTree(root:)`, `postDominatorTree(exit:)`, `dominators(of:)`, `immediateDominator(of:)`, `children(of:)`, `lazy.breadthFirstSearch(from:)` |
 | `euler` | `degree(of:)`, `eulerianCircuit()`, `eulerianTrail()`, `incidentEdges(of:)` on a `Multigraph`; beside its figure, `hasEulerianTrail` |
+| `postman` | `chinesePostmanTour(weight:)`, `PostmanTour`, `degree(of:)`, `dijkstraShortestPaths(from:weight:)` |
 | `mst` | `lazy.kruskal(weight:)`, `lazy.prim(from:weight:)`, `kruskalMinimumSpanningTree(weight:)`, `primMinimumSpanningTree(from:weight:)` |
 | `huffman` | `BinaryTree.huffman(weights:)`, `parent(of:)`, `left(of:)`, `depth(of:)`, `inorder` |
 | `lca` | `RootedTree`, `depth(of:)`, `parent(of:)`, `lowestCommonAncestor(of:_:)`, `LowestCommonAncestors`, `distance(from:to:)` |

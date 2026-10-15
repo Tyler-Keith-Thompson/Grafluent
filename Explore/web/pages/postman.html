@@ -1,0 +1,37 @@
+<!-- title: Chinese postman · Explore Grafluent -->
+<!-- description: A snowplough must clear every street and come home: Grafluent’s chinesePostmanTour finds the shortest round, and shows which streets it drives twice and why. -->
+<header class="sign">
+  <h1>Chinese postman</h1>
+  <p class="question">A snowplough has to clear every street on the estate and get back to the depot. Which streets should it drive twice, so the whole round is as short as it can be?</p>
+</header>
+<p class="example lead">Example: seven junctions and nine streets, with the minutes each takes to clear. If every junction had an even number of streets, one <a href="euler.html">Euler circuit</a> would drive each street exactly once. Four of them don’t.</p>
+
+<h2 class="labhead"><small>Try it</small>Which streets twice?</h2>
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The estate above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<h2 class="labhead"><small>Step through</small>Follow the plough</h2>
+<div id="plough"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The round above, in Grafluent</h2>
+  <pre id="code-plough" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Fix the odd junctions, as cheaply as possible</h2>
+  <p>A round that ends where it started leaves every junction as many times as it arrives, so it uses an even number of street-ends at each one. At a junction with an odd number of streets, one street must be driven an extra time. Driving a street twice is the same as adding a copy of it to the map, so the question becomes: which copies, adding up to the fewest minutes, make every junction even?</p>
+  <p>There is always an even number of odd junctions, since every street has two ends. Pair them up, and for each pair, copy the streets on the quickest route between them: that makes both ends even and leaves every junction in between even too. The best answer is the pairing whose routes add up to the least, a <b>minimum-weight perfect matching</b> on the odd junctions with the quickest times between them as weights. With the copies added, an Euler circuit drives the round. This is Edmonds and Johnson’s algorithm, and <code>chinesePostmanTour(weight:)</code> runs it: <a href="dijkstra.html">Dijkstra</a> from each odd junction, the blossom algorithm for the matching, then Hierholzer’s circuit.</p>
+  <p>With four odd junctions there are only three pairings, listed in the first lab. With twenty there are over 650 million, which is why the matching is found by an algorithm and not by listing them.</p>
+
+  <h2><small>Where it breaks</small>One-way streets, and only some streets</h2>
+  <p>If streets are one-way, the parity argument becomes one of balance: each junction needs as many ways in as out. Grafluent’s <code>chinesePostmanTour</code> on a directed graph solves that with a <a href="mincostflow.html">minimum-cost flow</a> instead of a matching, and it answers <code>nil</code> when some street can’t be reached and left again. Mix one-way and two-way streets, though, and the problem becomes NP-hard, as it does when only some streets need clearing (the <b>rural postman</b> problem). Then the practical answers are heuristics.</p>
+  <p>The shortest round also isn’t always the best one in practice: a real plough also cares about turns, especially U-turns, and about which streets are cleared first. Those are extra costs the graph doesn’t carry.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>
