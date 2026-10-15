@@ -25,6 +25,7 @@ giant|The giant component|Structure|When random links suddenly join almost every
 networkmodels|Network growth models|Structure|Hubs from the rich getting richer; small worlds from a few shortcuts.|page
 planarity|Planarity|Structure|Whether a network can be drawn without crossings.|page
 cliques|Cliques|Structure|Groups where everyone is connected.|page
+cores|Cores and trusses|Structure|Peeling a network down to its tight centre.|page
 isomorphism|Isomorphism|Structure|Whether two drawings are the same graph.|page
 communities|Communities|Structure|Where a network splits into groups.|page
 girvannewman|Girvan–Newman|Structure|Communities by cutting the busiest links.|page

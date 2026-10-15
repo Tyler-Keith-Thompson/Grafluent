@@ -38,6 +38,7 @@ contents and the menu without a link.
 | `networkmodels` | `barabasiAlbert(vertexCount:edgesPerVertex:using:)`, `wattsStrogatz(vertexCount:nearestNeighborCount:rewiringProbability:using:)`, `averageClustering()`, `floydWarshallShortestPaths(weight:)`, `fruchtermanReingoldLayout` |
 | `planarity` | `isPlanar`, `findKuratowskiSubgraph()`, `planarLayout()`, `planarEmbedding()` |
 | `cliques` | `lazy.bronKerbosch()`, `maximalCliques()`, `maximumClique()` |
+| `cores` | `coreNumbers()`, `kCore(_:)`, `degeneracy`, `trussNumbers()`, `kTruss(_:)`, `onionLayers()`, `layer(of:)` |
 | `isomorphism` | `weisfeilerLehmanGraphHash()`, `weisfeilerLehmanSubgraphHashes(iterations:)`, `isomorphism(to:)` |
 | `communities` | `lazy.louvain()`, `louvainCommunities()`, `modularity(of:)` |
 | `girvannewman` | `girvanNewmanCommunities()`, `edgeBetweennessCentrality(normalized:)`, `connectedComponents()`, `modularity(of:)` |

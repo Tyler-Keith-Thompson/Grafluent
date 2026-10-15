@@ -391,6 +391,7 @@ figure.fig { margin: 0; }
 .dot.pal0 { background: var(--p0); border-color: var(--p0); }
 .dot.pal1 { background: var(--p1); border-color: var(--p1); }
 .dot.pal2 { background: var(--p2); border-color: var(--p2); }
+.dot.pal3 { background: var(--p3); border-color: var(--p3); }
 .qrow .fate { font-weight: 600; font-size: 13px; color: var(--muted); margin-left: .6em; }
 .qrow.top .fate { color: var(--signal-ink); }
 .node.current[class*="pal"] circle { stroke: var(--danger); stroke-width: 4; }
