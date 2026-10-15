@@ -163,9 +163,14 @@ struct IncidenceMatrixConformanceTests {
         // The userInfo key: n·w(m) + m·w(n) + n + m. 3 × 2 is 3·1 + 2·1 + 3 + 2 = 10 words.
         #expect(decodes(#"{"vertexCount":3,"hyperedges":[[0],[1]]}"#, limit: 10))
         #expect(!decodes(#"{"vertexCount":3,"hyperedges":[[0],[1]]}"#, limit: 9))
-        // 64 × 64: 64 + 64 + 64 + 64 = 256 words.
+        // 64 × 64: 64 + 64 + 64 + 64 = 256 words of 64 bits; 128 + 128 + 64 + 64 = 384 of 32 bits.
         let square = "{\"vertexCount\":64,\"hyperedges\":[" + Array(repeating: "[]", count: 64).joined(separator: ",") + "]}"
-        #expect(decodes(square, limit: 256) && !decodes(square, limit: 255))
+        #if _pointerBitWidth(_64)
+        let words = 256
+        #else
+        let words = 384
+        #endif
+        #expect(decodes(square, limit: words) && !decodes(square, limit: words - 1))
         #expect(!decodes(#"{"vertexCount":0,"hyperedges":[]}"#, limit: -1))
     }
 

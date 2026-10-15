@@ -63,7 +63,7 @@ struct LabeledGraphConformanceTests {
         #expect(graph.isStronglyConnected == base.isStronglyConnected)
         #expect(graph.findCycle()?.vertices == base.findCycle()?.vertices.map { labels[$0] })
         #expect(graph.findCycle()?.edges == base.findCycle()?.edges)
-        let weight = (0 ..< graph.edgeCount).map { ($0 &* 2_654_435_761) % 9 + 1 }
+        let weight = (0 ..< graph.edgeCount).map { Int(UInt64($0) &* 2_654_435_761 % 9) + 1 }
         for (i, source) in labels.enumerated() {
             #expect(Array(graph.breadthFirstSearch(from: source)) == base.breadthFirstSearch(from: i).map(bfs))
             #expect(Array(graph.depthFirstSearch(from: source)) == base.depthFirstSearch(from: i).map(dfs))

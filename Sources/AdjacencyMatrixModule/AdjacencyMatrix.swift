@@ -138,8 +138,9 @@ extension AdjacencyMatrix {
     @inlinable
     internal static func _checkStorage(for vertexCount: Int) {
         precondition(vertexCount >= 0, "Negative vertex count")
-        let words = vertexCount.multipliedReportingOverflow(by: _wordsNeeded(forColumns: vertexCount))
-        precondition(!words.overflow && !words.partialValue.multipliedReportingOverflow(by: MemoryLayout<UInt>.size).overflow, "Vertex count \(vertexCount) is too large for a matrix")
+        // Comparisons, at either `Int` width: n · ⌈n / w⌉ words of w bits, each MemoryLayout<UInt>.size bytes.
+        let wordsPerRow = _wordsNeeded(forColumns: vertexCount)
+        precondition(wordsPerRow == 0 || vertexCount <= Int.max / MemoryLayout<UInt>.size / wordsPerRow, "Vertex count \(vertexCount) is too large for a matrix")
     }
 
     @inlinable

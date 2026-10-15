@@ -35,7 +35,7 @@ MUTANTS = [
     # The bit planes.
     Mutant("wordsneeded", R, "(columns + UInt.bitWidth - 1) / UInt.bitWidth", "columns / UInt.bitWidth"),
     Mutant("storagenegative", R, "rows >= 0 && columns >= 0", "rows >= 0"),
-    Mutant("storagebytes", R, "!words.overflow && !words.partialValue.multipliedReportingOverflow(by: MemoryLayout<UInt>.size).overflow", "!words.overflow"),
+    Mutant("storagebytes", R, "rows <= Int.max / MemoryLayout<UInt>.size / wordsPerRow", "rows <= Int.max / wordsPerRow"),
     Mutant("mask", R, "column & (UInt.bitWidth - 1)", "column & (UInt.bitWidth - 2)"),
     Mutant("wordindex", R, "row &* wordsPerRow &+ (column / UInt.bitWidth)", "row &* wordsPerRow"),
     Mutant("setunchanged", R, "        guard new != old else { return false }", "", mode="stmt"),

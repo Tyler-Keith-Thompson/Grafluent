@@ -279,7 +279,7 @@ struct CompressedSparseRowConstructionTests {
         #expect(error([0, 1], [-1]) == .targetOutOfRange(edgeIndex: 0))
         #expect(error([0, 2, 2], [1, 0]) == .unsortedRow(vertex: 0))
         #expect(error([0, 2, 2], [1, 1]) == .duplicateEdge(vertex: 0))
-        #expect(error([0, 1, 9_223_372_036_854_775_807], [0]) == .lastOffsetMismatch(lastOffset: 9_223_372_036_854_775_807, targetCount: 1))
+        #expect(error([0, 1, Int.max], [0]) == .lastOffsetMismatch(lastOffset: Int.max, targetCount: 1))
         #expect(error([0, 0, 2, 3], [0, 2, 1]) == nil)
     }
 }

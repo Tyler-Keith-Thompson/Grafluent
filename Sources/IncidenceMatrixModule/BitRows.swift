@@ -33,8 +33,9 @@ package struct _BitRows {
     @inlinable
     package static func checkStorage(rows: Int, columns: Int) {
         precondition(rows >= 0 && columns >= 0, "Negative matrix dimension")
-        let words = rows.multipliedReportingOverflow(by: wordsNeeded(columns))
-        precondition(!words.overflow && !words.partialValue.multipliedReportingOverflow(by: MemoryLayout<UInt>.size).overflow,
+        // Comparisons, at either `Int` width: rows · ⌈columns / w⌉ words of MemoryLayout<UInt>.size bytes.
+        let wordsPerRow = wordsNeeded(columns)
+        precondition(wordsPerRow == 0 || rows <= Int.max / MemoryLayout<UInt>.size / wordsPerRow,
                      "A \(rows) × \(columns) matrix is too large")
     }
 

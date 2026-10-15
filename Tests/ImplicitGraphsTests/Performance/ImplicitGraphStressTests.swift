@@ -61,7 +61,7 @@ struct ImplicitGraphStressTests {
             let n = 100_000
             // Two or three successors per vertex, repeats and self-loops allowed.
             let row = { (v: Int) -> [Int] in
-                let a = (v &* 7_919 &+ 13) % n, b = (v &* 104_729 &+ 7) % n
+                let a = Int((Int64(v) * 7_919 + 13) % Int64(n)), b = Int((Int64(v) * 104_729 + 7) % Int64(n))
                 return v % 5 == 0 ? [a, b, a] : (v % 7 == 0 ? [v, b] : [a, b])
             }
             let graph = ImplicitDirectedGraph(vertexCount: n, successors: row)
