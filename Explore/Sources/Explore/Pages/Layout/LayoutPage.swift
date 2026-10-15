@@ -11,9 +11,21 @@ struct LayoutFrame {
 
     init() {}
 
-    /// The frame that fits `drawing` in the view box with a margin, keeping its proportions.
-    init(fitting drawing: Drawing<Int>) {
-        guard let box = drawing.boundingBox else { return }
+    /// The frame that fits every drawing of `drawings` in the view box with a margin, keeping
+    /// proportions. One frame for a whole run keeps the camera still while the vertices move.
+    init(fitting drawings: some Sequence<Drawing<Int>>, including other: LayoutFrame? = nil) {
+        var low = SIMD2<Double>(.infinity, .infinity), high = SIMD2<Double>(-.infinity, -.infinity)
+        for drawing in drawings {
+            guard let box = drawing.boundingBox else { continue }
+            low = pointwiseMin(low, box.min)
+            high = pointwiseMax(high, box.max)
+        }
+        if let other, other.scale != 1 || other.min != .zero {
+            low = pointwiseMin(low, other.layout(SIMD2(30, 30)))
+            high = pointwiseMax(high, other.layout(SIMD2(610, 410)))
+        }
+        guard low.x <= high.x else { return }
+        let box = (min: low, max: high)
         let size = box.max - box.min
         let scale = Swift.min(580 / Swift.max(size.x, 1e-9), 380 / Swift.max(size.y, 1e-9))
         self.min = box.min
@@ -33,6 +45,8 @@ final class LayoutModel {
     /// The vertex being dragged, and the frame its view-box coordinates are read in.
     var dragging: Int?
     @ReactiveIgnored var dragFrame = LayoutFrame()
+    /// The camera for the current run: fitted to every frame, so it never moves mid-run.
+    @ReactiveIgnored var viewFrame = LayoutFrame()
     @ReactiveIgnored let playback = Playback(millisecondsPerStep: 40)
 
     init() { restart() }
@@ -40,6 +54,7 @@ final class LayoutModel {
     /// A new run from random positions, played from the start.
     func restart() {
         frames = trajectory(of: startLayout(choice))
+        viewFrame = LayoutFrame(fitting: frames.map(\.drawing))
         playback.reset(count: frames.count - 1)
         playback.play()
     }
@@ -52,13 +67,24 @@ final class LayoutModel {
     /// The drawing on screen.
     var drawing: Drawing<Int> { frames[min(playback.k, frames.count - 1)].drawing }
 
-    /// Moves `vertex` to the view-box point and runs the layout on from there.
+    /// Moves `vertex` to the view-box point. While the vertex is held only it moves; on release
+    /// the layout runs on from there, in a frame that keeps the current view unless the run
+    /// needs more room.
     func drag(_ vertex: Int, to point: (x: Double, y: Double)) {
-        let layout = Explore.drag(drawing, choice: choice, vertex: vertex, to: dragFrame.layout(SIMD2(point.x, point.y)))
-        frames = trajectory(of: layout)
+        let target = dragFrame.layout(SIMD2(point.x, point.y))
+        var positions = drawing.positions
+        positions[drawing.vertices.firstIndex(of: vertex)!] = target
+        frames = [(Drawing(vertices: drawing.vertices, positions: positions), frames[min(playback.k, frames.count - 1)].temperature)]
+        playback.reset(count: 0)
+    }
+
+    /// Runs the layout on from the drawing the drag left.
+    func release(_ vertex: Int) {
+        let point = drawing.positions[drawing.vertices.firstIndex(of: vertex)!]
+        frames = trajectory(of: Explore.drag(drawing, choice: choice, vertex: vertex, to: point))
+        viewFrame = LayoutFrame(fitting: frames.map(\.drawing), including: viewFrame)
         playback.reset(count: frames.count - 1)
-        playback.show(dragging == nil ? 0 : 1)
-        if dragging == nil { playback.play() }
+        playback.play()
     }
 }
 
@@ -79,7 +105,7 @@ struct LayoutLab {
         let playback = model.playback
         let k = playback.k
         let drawing = model.drawing
-        let frame = model.dragging == nil ? LayoutFrame(fitting: drawing) : model.dragFrame
+        let frame = model.dragging == nil ? model.viewFrame : model.dragFrame
         let temperature = model.frames[min(k, model.frames.count - 1)].temperature
         let finished = k == playback.count
         let points = drawing.positions.map { frame.view($0) }
@@ -104,7 +130,7 @@ struct LayoutLab {
                     event.preventDefault()
                     event.capturePointer()
                     layoutModel.playback.pause()
-                    layoutModel.dragFrame = LayoutFrame(fitting: layoutModel.drawing)
+                    layoutModel.dragFrame = layoutModel.viewFrame
                     layoutModel.dragging = v
                 }
                 ._onEvent(PointerMoveEvent.self) { event in
@@ -112,9 +138,9 @@ struct LayoutLab {
                     layoutModel.drag(v, to: point)
                 }
                 ._onEvent(PointerUpEvent.self) { _ in
-                    guard layoutModel.dragging != nil else { return }
+                    guard let v = layoutModel.dragging else { return }
                     layoutModel.dragging = nil
-                    layoutModel.playback.play()
+                    layoutModel.release(v)
                 }
                 p(.class("note")) { "Drag any vertex; the springs pull the rest after it." }
             }

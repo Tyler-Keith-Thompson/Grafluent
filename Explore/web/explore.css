@@ -23,7 +23,7 @@
   --p0: #1d4f9c; --p1: #d0661c; --p2: #1f8a5b; --p3: #c2477d; --p4: #7a4fb8; --p5: #11808c; --p6: #7d7a12; --p7: #6b4a2b;
   --display: "Overpass", "Helvetica Neue", Arial, sans-serif;
   --body: "Source Serif 4", Georgia, "Times New Roman", serif;
-  --mono: "Overpass Mono", ui-monospace, Menlo, monospace;
+  --mono: Menlo, ui-monospace, "SF Mono", SFMono-Regular, Consolas, "DejaVu Sans Mono", monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
