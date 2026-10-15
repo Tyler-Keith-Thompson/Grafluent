@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Euler tours · Explore Grafluent</title>
+<meta name="description" content="The seven bridges of Königsberg, why odd counts make a tour impossible, and Hierholzer’s walk stitching a tour together with Grafluent’s eulerianCircuit.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="euler">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html" aria-current="page">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="giant.html">The giant component</a><i>Cliques (soon)</i><i>Communities (soon)</i></div>
+        <div class="mgroup"><span>Assignment</span><i>Maximum flow (soon)</i><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Euler tours</h1>
+  <div class="say"><span>Say it</span><b>OY-ler</b><span class="ipa">/ˈɔɪlər/</span><span>and</span><b>HEER-holt-ser</b><span class="ipa">/ˈhiːɐ̯hɔlt͡sɐ/</span></div>
+  <p class="question">Can you walk across every bridge in town exactly once?</p>
+</header>
+<p class="example lead">Example: Königsberg in 1736, four pieces of land joined by seven bridges, two of them doubled. Each piece of land is a vertex and each bridge an edge, so two bridges between the same banks are two separate edges: a <b>multigraph</b>. Then the same city with an eighth bridge, and a small town where a tour exists.</p>
+
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="A city of bridges"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 440" role="img" aria-label="Königsberg: places joined by 7 bridges"><g class="edge " data-edge="0"><path d="M319.7,81.7 Q280.2,165.4 200.6,212.7" class="hit" /><path d="M319.7,81.7 Q280.2,165.4 200.6,212.7" class="stroke" /></g><g class="edge " data-edge="1"><path d="M309.4,72.3 Q229.8,119.6 190.3,203.3" class="hit" /><path d="M309.4,72.3 Q229.8,119.6 190.3,203.3" class="stroke" /></g><g class="edge " data-edge="2"><path d="M200.9,236.9 Q279.8,281.7 319.5,363.4" class="hit" /><path d="M200.9,236.9 Q279.8,281.7 319.5,363.4" class="stroke" /></g><g class="edge " data-edge="3"><path d="M190.5,246.6 Q230.2,328.3 309.1,373.1" class="hit" /><path d="M190.5,246.6 Q230.2,328.3 309.1,373.1" class="stroke" /></g><g class="edge " data-edge="4"><path d="M204.0,225.0 L476.0,225.0" class="hit" /><path d="M204.0,225.0 L476.0,225.0" class="stroke" /></g><g class="edge " data-edge="5"><path d="M347.2,76.7 L482.8,208.3" class="hit" /><path d="M347.2,76.7 L482.8,208.3" class="stroke" /></g><g class="edge " data-edge="6"><path d="M347.5,368.6 L482.5,241.4" class="hit" /><path d="M347.5,368.6 L482.5,241.4" class="stroke" /></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="North bank"><circle cx="330.0" cy="60.0" r="22.0" /><text x="330.0" y="100.0" text-anchor="middle" class="name">North bank</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Kneiphof"><circle cx="180.0" cy="225.0" r="22.0" /><text x="180.0" y="265.0" text-anchor="middle" class="name">Kneiphof</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="South bank"><circle cx="330.0" cy="385.0" r="22.0" /><text x="330.0" y="425.0" text-anchor="middle" class="name">South bank</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Lomse"><circle cx="500.0" cy="225.0" r="22.0" /><text x="500.0" y="265.0" text-anchor="middle" class="name">Lomse</text></g></svg><div class="legend"><span><i class="dot odd"></i>odd count</span><span><i class="dot even"></i>even count</span><span><i class="line route"></i>the walk in progress</span><span><i class="line tree"></i>in the tour, with its number</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Step 0 of 4</span><p class="narration">Can you walk across every bridge exactly once? First count the bridges at each place. Press Step to begin.</p></div><div class="panel"><span class="label">Bridges at each place</span><div class="chips"><span class="chip hollow">North bank <span class="num">?</span></span><span class="chip hollow">Kneiphof <span class="num">?</span></span><span class="chip hollow">South bank <span class="num">?</span></span><span class="chip hollow">Lomse <span class="num">?</span></span></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button><span class="spacer"></span><div class="segmented" role="group" aria-label="City"><button type="button" class="on">Königsberg</button><button type="button" class="">An eighth bridge</button><button type="button" class="">A town with a tour</button></div></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="10.0" class="m-red" /><text x="22" y="36" text-anchor="middle">3</text><title>North bank has 3 bridges: odd. Each visit uses one bridge in and one out, so one is left over. Only the start or the end of a walk can be odd.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="10.0" class="m-red" /><text x="48" y="36" text-anchor="middle">5</text><title>Kneiphof has 5 bridges: odd. Each visit uses one bridge in and one out, so one is left over. Only the start or the end of a walk can be odd.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="10.0" class="m-red" /><text x="74" y="36" text-anchor="middle">3</text><title>South bank has 3 bridges: odd. Each visit uses one bridge in and one out, so one is left over. Only the start or the end of a walk can be odd.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="10.0" class="m-red" /><text x="100" y="36" text-anchor="middle">3</text><title>Lomse has 3 bridges: odd. Each visit uses one bridge in and one out, so one is left over. Only the start or the end of a walk can be odd.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-euler" class="scrub" type="range" min="0" max="4" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-green" /></svg>even count</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-red" /></svg>odd count</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="5.0" class="m-ring" /></svg>walk on</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="5.0" class="m-violet" /></svg>start a detour</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-blue" /></svg>stuck: back up, a bridge joins the tour</span></div><p class="note">In each circle, once counted: how many bridges meet there. The walk follows the rule <code>eulerianCircuit()</code> documents: the first unused bridge in <code>incidentEdges</code> order, backing up when stuck.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The city above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">Multigraphs</span>
+<span class="k">import</span> <span class="t">Tours</span>
+<span class="k">import</span> <span class="t">Walks</span>
+
+<span class="k">let</span> bridges = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"North bank"</span>, <span class="s">"Kneiphof"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"North bank"</span>, <span class="s">"Kneiphof"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"South bank"</span>, <span class="s">"Kneiphof"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"South bank"</span>, <span class="s">"Kneiphof"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Kneiphof"</span>, <span class="s">"Lomse"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"North bank"</span>, <span class="s">"Lomse"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"South bank"</span>, <span class="s">"Lomse"</span>),
+]
+
+<span class="k">let</span> city = <span class="t">Multigraph</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> bridge <span class="k">in</span> bridges { bridge }
+}!
+
+<span class="k">let</span> odd = city.vertices.filter { city.degree(of: $<span class="n">0</span>) % <span class="n">2</span> == <span class="n">1</span> }  <span class="c">// ["North bank", "Kneiphof", "South bank", "Lomse"]</span>
+<span class="k">let</span> circuit = city.eulerianCircuit()  <span class="c">// nil</span>
+<span class="k">let</span> trail = city.eulerianTrail()  <span class="c">// nil</span>
+</span></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Count the bridges at each place</h2>
+  <p>The people of Königsberg tried for years to cross all seven bridges in one walk, never crossing one twice. Euler showed in 1736 that they never would, without trying a single route. Every time a walk arrives at a piece of land over one bridge, it leaves over another, so the bridges at a place are used in pairs. The only places allowed a bridge left over are where the walk starts and where it ends.</p>
+  <figure class="fig">
+    <svg viewBox="0 0 520 280" role="img" aria-label="Map of Königsberg: a river with two branches, the island Kneiphof in it, Lomse between the branches, the north and south banks, and seven bridges">
+      <rect x="0" y="78" width="520" height="124" style="fill:color-mix(in srgb, var(--sign) 22%, var(--sheet))"/>
+      <ellipse cx="190" cy="140" rx="78" ry="30" style="fill:var(--sheet);stroke:var(--road);stroke-width:2"/>
+      <path d="M330,112 L520,112 L520,168 L330,168 Q300,140 330,112 z" style="fill:var(--sheet);stroke:var(--road);stroke-width:2"/>
+      <g style="stroke:var(--ink);stroke-width:7;stroke-linecap:round">
+        <line x1="155" y1="74" x2="160" y2="114"/><line x1="225" y1="74" x2="220" y2="114"/>
+        <line x1="155" y1="206" x2="160" y2="166"/><line x1="225" y1="206" x2="220" y2="166"/>
+        <line x1="266" y1="140" x2="318" y2="140"/>
+        <line x1="440" y1="74" x2="440" y2="110"/><line x1="440" y1="206" x2="440" y2="170"/>
+      </g>
+      <text class="cap" x="260" y="44" text-anchor="middle">North bank</text>
+      <text class="cap" x="260" y="246" text-anchor="middle">South bank</text>
+      <text class="cap" x="190" y="145" text-anchor="middle">Kneiphof</text>
+      <text class="cap" x="430" y="145" text-anchor="middle">Lomse</text>
+    </svg>
+    <figcaption>The city: the river Pregel, its island Kneiphof, Lomse between its two branches, and seven bridges. Every piece of land has an odd number of them: 3, 5, 3, 3.</figcaption>
+    <pre class="figcode" id="fig-konigsberg" data-loading aria-busy="true" aria-label="Swift code for this figure"><span><span class="k">let</span> konigsberg = <span class="t">Multigraph</span>&lt;<span class="t">String</span>&gt; {
+    <span class="t">UndirectedEdge</span>(<span class="s">"North bank"</span>, <span class="s">"Kneiphof"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"North bank"</span>, <span class="s">"Kneiphof"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"South bank"</span>, <span class="s">"Kneiphof"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"South bank"</span>, <span class="s">"Kneiphof"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"Kneiphof"</span>, <span class="s">"Lomse"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"North bank"</span>, <span class="s">"Lomse"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"South bank"</span>, <span class="s">"Lomse"</span>)
+}!
+<span class="k">let</span> bridges = konigsberg.vertices.map { konigsberg.degree(of: $<span class="n">0</span>) }  <span class="c">// [3, 5, 3, 3]</span>
+<span class="k">let</span> walkable = konigsberg.hasEulerianTrail  <span class="c">// false</span>
+</span></pre>
+  </figure>
+  <p>So a walk over every bridge exactly once needs at most two places with an odd count. With none, the walk can end where it began: an <b>Eulerian circuit</b>. With exactly two, it must start at one and end at the other: an <b>Eulerian trail</b>. Königsberg has four, so neither exists. Add an eighth bridge between the two banks and only Kneiphof and Lomse stay odd: now a walk exists, from one to the other.</p>
+  <p>Counting proves a tour impossible. Finding one when the counts allow it is Hierholzer’s part, published in 1873. Walk from the start, always over an unused bridge. Because every other place has its bridges in pairs, you can only get stuck back at the start. If bridges are left over, some place on the walk still has one: walk a second loop from there and stitch it into the first at that place. Grafluent runs the stack form of this: back up whenever stuck, writing each bridge you back over into the tour from its end. The detours are stitched in automatically, and every bridge is handled twice at most, so it takes time proportional to the number of bridges.</p>
+
+  <h2><small>When to use something else</small>Every place once is a different, much harder question</h2>
+  <p>An Euler tour uses every <em>edge</em> once. A walk through every <em>place</em> exactly once is a Hamiltonian cycle, and there is no counting trick for it: no fast method is known at all, and <code>hamiltonianCycle()</code> searches. If a delivery round must cover every street but no tour exists, some streets have to be walked twice; <code>chinesePostmanTour(weight:)</code> finds the cheapest way to do that. On one-way streets the rule becomes: as many streets in as out at every place, as <code>isEulerian</code> on a directed graph checks.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Euler</b><span class="how">OY-ler</span><span class="ipa">/ˈɔɪlər/</span><span class="what">Leonhard Euler, who settled the Königsberg bridges in 1736</span></div><div class="name"><b>Hierholzer</b><span class="how">HEER-holt-ser</span><span class="ipa">/ˈhiːɐ̯hɔlt͡sɐ/</span><span class="what">A walk that uses every road exactly once</span></div><div class="name"><b>Königsberg</b><span class="how">KUR-nigs-bairk</span><span class="ipa">/ˈkøːnɪçsbɛʁk/</span><span class="what">The city of the seven bridges, now Kaliningrad</span></div><div class="name"><b>Fleury</b><span class="how">flur-EE</span><span class="ipa">/flœʁi/</span><span class="what">An older tour rule: never cross a bridge you can avoid</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="bridges.html"><span>Previous</span>Bridges and articulation points</a><a class="next" href="mst.html"><span>Next</span>Minimum spanning trees</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>
