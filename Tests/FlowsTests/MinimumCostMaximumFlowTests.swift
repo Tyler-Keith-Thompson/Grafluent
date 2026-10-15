@@ -576,6 +576,7 @@ struct MinimumCostMaximumFlowTests {
         }
     }
 
+    #if _pointerBitWidth(_64)
     @Test("FL-490 Int.max capacity against a negative arc: the value is Int.max, so the negative arc cannot be used")
     func fl490() {
         // V [1, 0]; E [0→1 3 @-2, 1→0 9223372036854775807 @0]; minimumCostMaximumFlow(from: 1, to: 0, capacity:cost:)
@@ -626,4 +627,5 @@ struct MinimumCostMaximumFlowTests {
             if flows[k] > 0 { #expect(reduced <= 0, "edge \(k): reduced cost \(reduced)") }
         }
     }
+    #endif
 }

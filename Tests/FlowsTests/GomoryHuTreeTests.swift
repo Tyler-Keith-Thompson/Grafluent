@@ -1322,6 +1322,7 @@ struct GomoryHuTreeTests {
         }
     }
 
+    #if _pointerBitWidth(_64)
     @Test("FL-527 Int.max path: edges [1–0 9223372036854775807, 2–1 9223372036854775807]")
     func fl527() throws {
         // undirected V [0, 1, 2]; E [0–1 9223372036854775807, 1–2 9223372036854775807]; gomoryHuTree(capacity:)
@@ -1399,4 +1400,5 @@ struct GomoryHuTreeTests {
             }
         }
     }
+    #endif
 }

@@ -99,7 +99,7 @@ func _weisfeilerLehman(_ graph: _IndexGraph, iterations: Int, keepRounds: Bool) 
     if g.isDirected { g.buildInRows() }
     let n = g.count
     var seedHasher = Hasher()
-    seedHasher.combine(0x5745_4953_4645_494C)
+    seedHasher.combine(UInt64(0x5745_4953_4645_494C))
     let seed = UInt64(bitPattern: Int64(seedHasher.finalize()))
     var colors = g.vertexColors.isEmpty ? [Int](repeating: 0, count: n) : g.vertexColors
     var next = [Int](repeating: 0, count: n)

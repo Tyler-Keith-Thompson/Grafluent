@@ -2354,6 +2354,7 @@ struct MaximumFlowTests {
         #expect(cut.value == flow.value)
     }
 
+    #if _pointerBitWidth(_64)
     @Test("FL-161 Int, large: 2^63 - 1 total, Int.max: value 9223372036854775807; S [0, 1]; T [2]; cut [1, 2]")
     func fl161() {
         // V [0, 1, 2]; E [0→1 4611686018427387904, 0→2 4611686018427387903, 1→2 4611686018427387904]; maximumFlow(from: 0, to: 2, capacity:)
@@ -2421,6 +2422,7 @@ struct MaximumFlowTests {
         #expect(cut.value == cut.edges.reduce(0) { $0 + capacities[$1] })
         #expect(cut.value == flow.value)
     }
+    #endif
 
     @Test("FL-164 undirected: one edge both ways: flow -5 on edge 0: value 5; S [1]; T [0]; cut [0r]")
     func fl164() {

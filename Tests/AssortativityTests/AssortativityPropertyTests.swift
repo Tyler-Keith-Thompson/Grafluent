@@ -317,7 +317,7 @@ struct AssortativityPropertyTests {
                 typeOfCode[least(0, 1, 2, adjacent)] = t
             }
             func inGraph(_ x: Int, _ y: Int) -> Bool { arc[x][y] }
-            var counts = [Int](repeating: 0, count: 16)
+            var counts = [Int64](repeating: 0, count: 16)
             for a in 0 ..< n { for b in a + 1 ..< max(n, a + 1) { for c in b + 1 ..< max(n, b + 1) {
                 counts[typeOfCode[least(a, b, c, inGraph)]!] += 1
             } } }
@@ -358,7 +358,7 @@ struct AssortativityPropertyTests {
                 let expected = degree.allSatisfy { $0 == k }
                 #expect(graph.isRegular(degree: k) == expected, "\(ends) k = \(k)")
             }
-            let s = ends.map { degree[$0.0] * degree[$0.1] }.reduce(0, +)
+            let s = ends.map { Int64(degree[$0.0] * degree[$0.1]) }.reduce(0, +)
             #expect(graph.sMetric() == s, "\(ends)")
             // Rich club on the simple graph.
             var adjacent = [[Bool]](repeating: [Bool](repeating: false, count: n), count: n)

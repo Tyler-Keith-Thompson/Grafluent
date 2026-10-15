@@ -996,6 +996,7 @@ struct AutomorphismGroupTests {
         #expect(graph.vertices.allSatisfy { u in graph.vertices.allSatisfy { v in (group.orbit(of: u) == group.orbit(of: v)) == (orbitOf[index[u]!] == orbitOf[index[v]!]) } })
     }
 
+    #if _pointerBitWidth(_64)
     @Test("IS-215 Les Misérables: order")
     func is215() {
         // `U: nx(les_miserables)`; `automorphismGroup().order` ⇒ 3344302080000
@@ -1043,6 +1044,7 @@ struct AutomorphismGroupTests {
         let orbitOf = (0 ..< graph.vertexCount).map(find)
         #expect(graph.vertices.allSatisfy { u in graph.vertices.allSatisfy { v in (group.orbit(of: u) == group.orbit(of: v)) == (orbitOf[index[u]!] == orbitOf[index[v]!]) } })
     }
+    #endif
 
     @Test("IS-216 25 isolated vertices: order")
     func is216() {
@@ -1355,6 +1357,7 @@ struct AutomorphismGroupTests {
         #expect(graph.vertices.allSatisfy { u in graph.vertices.allSatisfy { v in (group.orbit(of: u) == group.orbit(of: v)) == (orbitOf[index[u]!] == orbitOf[index[v]!]) } })
     }
 
+    #if _pointerBitWidth(_64)
     @Test("IS-227 Les Misérables: orbits")
     func is227() {
         // `U: nx(les_miserables)`; `automorphismGroup().orbits` ⇒ {Napoleon,CountessDeLo,Geborand,Champtercier,Cravatte,Count,OldMan} {Myriel} {MlleBaptistine,MmeMagloire} {Valjean} {Labarre,MmeDeR,Isabeau,Gervais,Scaufflaire} {Marguerite} {Listolier,Fameuil,Blacheville,Favourite,Dahlia,Zephine} {Tholomyes} {Fantine} {MmeThenardier} {Thenardier} {Cosette} {Javert} {Fauchelevent} {Bamatabois} {Perpetue} {Simplice} {Woman1} {Judge,Champmathieu,Brevet,Chenildieu,Cochepaille} {Pontmercy} {Boulatruelle} {Eponine} {Anzelma} {Woman2,Toussaint} {MotherInnocent} {Gribier} {MmeBurgon} {Jondrette} {Gavroche} {Gillenormand} {Magnon} {MlleGillenormand} {MmePontmercy} {MlleVaubois} {LtGillenormand} {Marius} {BaronessT} {Mabeuf} {Enjolras} {Combeferre,Feuilly} {Prouvaire} {Courfeyrac} {Bahorel,Joly} {Bossuet} {Grantaire} {MotherPlutarch} {Gueulemer,Babet} {Claquesous} {Montparnasse} {Child1,Child2} {Brujon} {MmeHucheloup}
@@ -1403,6 +1406,7 @@ struct AutomorphismGroupTests {
         let orbitOf = (0 ..< graph.vertexCount).map(find)
         #expect(graph.vertices.allSatisfy { u in graph.vertices.allSatisfy { v in (group.orbit(of: u) == group.orbit(of: v)) == (orbitOf[index[u]!] == orbitOf[index[v]!]) } })
     }
+    #endif
 
     @Test("IS-228 Petersen, one vertex coloured: order")
     func is228() {

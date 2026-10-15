@@ -58,7 +58,7 @@ func _fluidCommunities<R: RandomNumberGenerator>(_ rows: _MergedRows, k: Int, it
             }
             guard !keeps else { continue }
             changed = true
-            let chosen = best[Int(generator.next(upperBound: UInt(best.count)))]
+            let chosen = best[Int(generator.next(upperBound: UInt64(best.count)))]
             if own >= 0 {
                 size[own] -= 1
                 density[own] = size[own] > 0 ? 1 / Double(size[own]) : 0

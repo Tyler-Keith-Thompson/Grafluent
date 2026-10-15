@@ -369,7 +369,7 @@ struct ExactSpanningTreeCountTests {
         // U: K(2) · numberOfSpanningTrees(as: UInt128.self) weight: [9007199254740993] → 9007199254740993
         let edges: [(Int, Int)] = [(0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let weights: [Int] = [9007199254740993]
+        let weights: [Int64] = [9007199254740993]
         let count = graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] })
         #expect(count == 9007199254740993)
     }
@@ -379,7 +379,7 @@ struct ExactSpanningTreeCountTests {
         // U: 0-0, 0-1 · numberOfSpanningTrees(as: UInt128.self) weight: [9223372036854775807, 5] → 5
         let edges: [(Int, Int)] = [(0, 0), (0, 1)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 2), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let weights: [Int] = [9223372036854775807, 5]
+        let weights: [Int64] = [9223372036854775807, 5]
         let count = graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] })
         #expect(count == 5)
     }
@@ -389,7 +389,7 @@ struct ExactSpanningTreeCountTests {
         // U: P(0..4) · numberOfSpanningTrees(as: UInt128.self) weight: [4294967295, 4294967297, 274177, 67280421310721] → 340282366920938463463374607431768211455
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let weights: [Int] = [4294967295, 4294967297, 274177, 67280421310721]
+        let weights: [Int64] = [4294967295, 4294967297, 274177, 67280421310721]
         let count = graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] })
         #expect(count == 340282366920938463463374607431768211455)
     }
@@ -399,7 +399,7 @@ struct ExactSpanningTreeCountTests {
         // U: P(0..4) · numberOfSpanningTrees(as: UInt128.self) weight: [4294967296, 4294967296, 4294967296, 4294967296] → nil
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 5), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let weights: [Int] = [4294967296, 4294967296, 4294967296, 4294967296]
+        let weights: [Int64] = [4294967296, 4294967296, 4294967296, 4294967296]
         let count = graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] })
         #expect(count == nil)
     }
@@ -409,7 +409,7 @@ struct ExactSpanningTreeCountTests {
         // U: P(0..2) · numberOfSpanningTrees(as: UInt128.self) weight: [4611686018427387904, 4611686018427387904] → 21267647932558653966460912964485513216
         let edges: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let weights: [Int] = [4611686018427387904, 4611686018427387904]
+        let weights: [Int64] = [4611686018427387904, 4611686018427387904]
         let count = graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] })
         #expect(count == 21267647932558653966460912964485513216)
     }
@@ -419,7 +419,7 @@ struct ExactSpanningTreeCountTests {
         // U: P(0..2) · numberOfSpanningTrees(as: UInt128.self) weight: [4611686018427387847, 4611686018427387817] → 21267647932558653302378126310941659999
         let edges: [(Int, Int)] = [(0, 1), (1, 2)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 3), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let weights: [Int] = [4611686018427387847, 4611686018427387817]
+        let weights: [Int64] = [4611686018427387847, 4611686018427387817]
         let count = graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] })
         #expect(count == 21267647932558653302378126310941659999)
     }
@@ -429,7 +429,7 @@ struct ExactSpanningTreeCountTests {
         // U: P(0..3) · numberOfSpanningTrees(as: UInt128.self) weight: [4611686018427387847, 4611686018427387817, 4611686018427387787] → nil
         let edges: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let weights: [Int] = [4611686018427387847, 4611686018427387817, 4611686018427387787]
+        let weights: [Int64] = [4611686018427387847, 4611686018427387817, 4611686018427387787]
         let count = graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] })
         #expect(count == nil)
     }
@@ -439,7 +439,7 @@ struct ExactSpanningTreeCountTests {
         // U: K(4) · numberOfSpanningTrees(as: UInt128.self) weight: [2199023255551, 2199023255553, 2199023255557, 2199023255563, 2199023255579, 2199023255581] → 170141183463254596820090958604545301260
         let edges: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
         let graph = ReferencePseudograph(vertices: Array(0 ..< 4), edges: edges.map { UndirectedEdge($0.0, $0.1) })
-        let weights: [Int] = [2199023255551, 2199023255553, 2199023255557, 2199023255563, 2199023255579, 2199023255581]
+        let weights: [Int64] = [2199023255551, 2199023255553, 2199023255557, 2199023255563, 2199023255579, 2199023255581]
         let count = graph.numberOfSpanningTrees(as: UInt128.self, weight: { weights[$0] })
         #expect(count == 170141183463254596820090958604545301260)
     }

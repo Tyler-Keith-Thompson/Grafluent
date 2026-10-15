@@ -73,7 +73,7 @@ func assortativityAnswers(directed: Bool, n: Int, edges: [[Int]]) -> Assortativi
         }
         a.reciprocity = graph.reciprocity()
         a.vertexReciprocity = (0 ..< n).map { graph.reciprocity(of: $0) }
-        a.census = graph.triadicCensus().counts
+        a.census = graph.triadicCensus().counts.map { Int($0) }
         a.inHistogram = graph.inDegreeHistogram()
         a.outHistogram = graph.outDegreeHistogram()
         a.isRegular = graph.isRegular
@@ -82,7 +82,7 @@ func assortativityAnswers(directed: Bool, n: Int, edges: [[Int]]) -> Assortativi
     let whole = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges.map { UndirectedEdge($0[0], $0[1]) })
     a.histogram = whole.degreeHistogram()
     a.isRegular = whole.isRegular
-    a.sMetric = whole.sMetric()
+    a.sMetric = Int(whole.sMetric())
     let loopless = edges.filter { $0[0] != $0[1] }
     let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: loopless.map { UndirectedEdge($0[0], $0[1]) })
     var byEdge: [UndirectedEdge<Int>: Double] = [:]

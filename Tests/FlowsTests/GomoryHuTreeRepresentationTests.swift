@@ -1126,6 +1126,7 @@ struct GomoryHuTreeRepresentationTests {
         }
     }
 
+    #if _pointerBitWidth(_64)
     @Test("FL-527 Int.max path, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl527() throws {
         // undirected V [0, 1, 2]; E [0–1 9223372036854775807, 1–2 9223372036854775807]; gomoryHuTree(capacity:)
@@ -1193,4 +1194,5 @@ struct GomoryHuTreeRepresentationTests {
             }
         }
     }
+    #endif
 }

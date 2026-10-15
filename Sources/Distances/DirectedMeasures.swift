@@ -163,9 +163,10 @@ extension DirectedGraph {
         return _leastTotals(_totals(rows, weights: _distanceWeights(weight), undirected: false)).map { _vertex(number: $0, listed) }
     }
 
-    /// The sum of the distances over all ordered pairs; nil when not strongly connected.
+    /// The sum of the distances over all ordered pairs, as an `Int64`; nil when not strongly
+    /// connected.
     @inlinable
-    public func wienerIndex() -> Int? { _wienerIndex(_distanceRows().rows, undirected: false) }
+    public func wienerIndex() -> Int64? { _wienerIndex(_distanceRows().rows, undirected: false) }
 
     @inlinable
     public func wienerIndex<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> W? {
@@ -178,7 +179,7 @@ extension DirectedGraph {
     public func averageShortestPathLength() -> Double? {
         let n = vertexCount
         guard n > 0, let total = wienerIndex() else { return nil }
-        return n == 1 ? 0 : Double(total) / Double(_pairCount(n, undirected: false))
+        return n == 1 ? 0 : Double(total) / _pairCount(n, undirected: false)
     }
 
     @inlinable

@@ -182,7 +182,7 @@ struct CoveringConformanceTests {
         // Each vertex dominates both: ratios (2⁵³ + 1) / 2 and 2⁵³ / 2. Exactly, vertex 1 is lighter;
         // as doubles both are 2⁵² and the tie would go to vertex 0.
         let edge = UndirectedAdjacencyList(vertices: [0, 1], edges: [UndirectedEdge(0, 1)])
-        let weights = [(1 << 53) + 1, 1 << 53]
+        let weights: [Int64] = [(1 << 53) + 1, 1 << 53]
         #expect(edge.approximateMinimumDominatingSet(weight: { weights[$0] }) == [1])
         // The same doubles tie, and the least index wins.
         #expect(edge.approximateMinimumDominatingSet(weight: { Double(weights[$0]) }) == [0])

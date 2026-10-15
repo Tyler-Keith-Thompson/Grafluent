@@ -111,28 +111,30 @@ func _partitionQuality(_ graph: _CommunityGraph, labels: [Int], count k: Int) ->
     }
     let coverage = m == 0 ? Double.nan : Double(intra) / Double(m)
     guard n >= 2 else { return PartitionQuality(coverage: coverage, performance: .nan) }
-    // Distinct adjacent pairs, as keys a·n + b (a < b undirected), loops left out.
-    var keys: [Int] = []
+    // Distinct adjacent pairs, as keys a·n + b (a < b undirected), loops left out. The keys and
+    // the pair counts are `Int64`: n² passes a 32-bit `Int` at n = 46,341.
+    let wide = Int64(n)
+    var keys: [Int64] = []
     keys.reserveCapacity(m)
     for e in 0 ..< m {
         var a = graph.from[e], b = graph.to[e]
         if a == b { continue }
         if !graph.directed, a > b { swap(&a, &b) }
-        keys.append(a * n + b)
+        keys.append(Int64(a) * wide + Int64(b))
     }
     keys.sort()
-    var intraAdjacent = 0, interAdjacent = 0
-    var previous = -1
+    var intraAdjacent: Int64 = 0, interAdjacent: Int64 = 0
+    var previous: Int64 = -1
     for key in keys where key != previous {
         previous = key
-        if labels[key / n] == labels[key % n] { intraAdjacent += 1 } else { interAdjacent += 1 }
+        if labels[Int(key / wide)] == labels[Int(key % wide)] { intraAdjacent += 1 } else { interAdjacent += 1 }
     }
     var sizes = [Int](repeating: 0, count: k)
     for c in labels { sizes[c] += 1 }
     let ordered = graph.directed
-    var intraPairs = 0
-    for s in sizes { intraPairs += ordered ? s * (s - 1) : s * (s - 1) / 2 }
-    let pairs = ordered ? n * (n - 1) : n * (n - 1) / 2
+    var intraPairs: Int64 = 0
+    for s in sizes.lazy.map(Int64.init) { intraPairs += ordered ? s * (s - 1) : s * (s - 1) / 2 }
+    let pairs = ordered ? wide * (wide - 1) : wide * (wide - 1) / 2
     let good = intraAdjacent + (pairs - intraPairs - interAdjacent)
     return PartitionQuality(coverage: coverage, performance: Double(good) / Double(pairs))
 }

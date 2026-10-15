@@ -166,9 +166,9 @@ func _matching<W: Equatable>(_ values: [W?], _ target: W?) -> [Int] {
 /// Each vertex's total distance to every other, nil when it does not reach them all, by
 /// searches from every vertex (pruned as `_allEccentricities`).
 @inlinable
-func _totals(_ rows: _CompressedRows, undirected: Bool) -> [Int?] {
+func _totals(_ rows: _CompressedRows, undirected: Bool) -> [Int64?] {
     let n = rows.count
-    var result = [Int?](repeating: nil, count: n)
+    var result = [Int64?](repeating: nil, count: n)
     var known = [Bool](repeating: false, count: n)
     var searches = _BreadthFirstSearches(rows)
     for s in 0 ..< n where !known[s] {
@@ -178,7 +178,7 @@ func _totals(_ rows: _CompressedRows, undirected: Bool) -> [Int?] {
             result[s] = total
             continue
         }
-        if undirected { return [Int?](repeating: nil, count: n) }
+        if undirected { return [Int64?](repeating: nil, count: n) }
         for v in searches.reachedVertices { known[v] = true }
     }
     return result
@@ -191,7 +191,7 @@ func _totals<W: Comparable & AdditiveArithmetic>(_ rows: _CompressedRows, weight
     var known = [Bool](repeating: false, count: n)
     var searches = _DijkstraSearches(rows, weights: weights)
     for s in 0 ..< n where !known[s] {
-        let (_, reachedAll, total) = searches.search(from: s)
+        let (_, reachedAll, total) = searches.search(from: s, summing: true)
         known[s] = true
         if reachedAll {
             result[s] = total
@@ -217,12 +217,12 @@ func _leastTotals<W: Comparable>(_ totals: [W?]) -> [Int] {
 /// The Wiener index: sources in index order, each source's targets in index order (only later
 /// ones when undirected), one running total; nil when some pair is not connected.
 @inlinable
-func _wienerIndex(_ rows: _CompressedRows, undirected: Bool) -> Int? {
+func _wienerIndex(_ rows: _CompressedRows, undirected: Bool) -> Int64? {
     // Integer sums are exact in any order: each search's own total, halved when every pair is
     // counted from both ends.
     let n = rows.count
     var searches = _BreadthFirstSearches(rows)
-    var total = 0
+    var total: Int64 = 0
     for s in 0 ..< n {
         let (_, reachedAll, sum) = searches.search(from: s)
         guard reachedAll else { return nil }
@@ -244,6 +244,6 @@ func _wienerIndex<W: Comparable & AdditiveArithmetic>(_ rows: _CompressedRows, w
     return total
 }
 
-/// The pairs a Wiener index sums over.
+/// The pairs a Wiener index sums over, as a `Double`: n(n − 1) passes a 32-bit `Int` at 46,341.
 @inlinable
-func _pairCount(_ n: Int, undirected: Bool) -> Int { undirected ? n * (n - 1) / 2 : n * (n - 1) }
+func _pairCount(_ n: Int, undirected: Bool) -> Double { Double(n) * Double(n - 1) / (undirected ? 2 : 1) }

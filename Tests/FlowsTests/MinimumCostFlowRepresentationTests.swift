@@ -2136,6 +2136,7 @@ struct MinimumCostFlowRepresentationTests {
         }
     }
 
+    #if _pointerBitWidth(_64)
     @Test("FL-488 Int.max capacities, a negative cycle: both arcs near Int.max (only the solver's own arcs are unbounded), on DirectedPseudograph, no indices, CompressedSparseRow, AdjacencyMatrix")
     func fl488() throws {
         // V [0, 1]; E [0→1 9223372036854775807 @0, 1→0 9223372036854775807 @-1]; supply [0: 5, 1: -5]; minimumCostFlow(supply:capacity:cost:)
@@ -2193,7 +2194,9 @@ struct MinimumCostFlowRepresentationTests {
             #expect(pairs.indices.map { flowResult.flow(ofEdgeAt: positionOfEdge[$0]) } == [9223372036854775807, 9223372036854775802] as [Int])
         }
     }
+    #endif
 
+    #if _pointerBitWidth(_64)
     @Test("FL-489 Int.max capacities, the negative arc first, on DirectedPseudograph, no indices, CompressedSparseRow, AdjacencyMatrix")
     func fl489() throws {
         // V [0, 1]; E [0→1 9223372036854775807 @-1, 1→0 9223372036854775807 @0]; supply [0: 5, 1: -5]; minimumCostFlow(supply:capacity:cost:)
@@ -2251,7 +2254,9 @@ struct MinimumCostFlowRepresentationTests {
             #expect(pairs.indices.map { flowResult.flow(ofEdgeAt: positionOfEdge[$0]) } == [9223372036854775807, 9223372036854775802] as [Int])
         }
     }
+    #endif
 
+    #if _pointerBitWidth(_64)
     @Test("FL-490 Int.max capacity against a negative arc: the value is Int.max, so the negative arc cannot be used, on DirectedPseudograph, no indices, CompressedSparseRow, AdjacencyMatrix")
     func fl490() {
         // V [1, 0]; E [0→1 3 @-2, 1→0 9223372036854775807 @0]; minimumCostMaximumFlow(from: 1, to: 0, capacity:cost:)
@@ -2299,6 +2304,7 @@ struct MinimumCostFlowRepresentationTests {
             #expect(pairs.indices.map { flowResult.flow(ofEdgeAt: positionOfEdge[$0]) } == [0, 9223372036854775807] as [Int])
         }
     }
+    #endif
 
     @Test("FL-491 Int8 costs on 130 vertices: no bound on (n + 1) × the greatest cost, on DirectedPseudograph, no indices, CompressedSparseRow, AdjacencyMatrix")
     func fl491() throws {

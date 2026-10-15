@@ -1737,6 +1737,7 @@ struct GlobalMinimumCutTests {
         #expect(graph.minimumCut(capacity: { capacities[$0] }) == cut)
     }
 
+    #if _pointerBitWidth(_64)
     @Test("FL-526 Int.max path: the middle vertex's sum passes Int, so the sums run in Int128")
     func fl526() throws {
         // undirected V [0, 1, 2]; E [0–1 9223372036854775807, 1–2 9223372036854775807]; minimumCut(capacity:)
@@ -1783,6 +1784,7 @@ struct GlobalMinimumCutTests {
         // The same cut on a second call.
         #expect(graph.minimumCut(capacity: { capacities[$0] }) == cut)
     }
+    #endif
 
     @Test("FL-528 found only in a later phase: Nagamochi–Ibaraki's first phase misses it")
     func fl528() throws {

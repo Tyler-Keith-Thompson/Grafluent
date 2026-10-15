@@ -134,7 +134,7 @@ enum FuzzAssortativity {
         let histogram = d.max().map { top in (0 ... top).map { k in d.filter { $0 == k }.count } } ?? []
         check(graph.degreeHistogram() == histogram, "\(name): histogram")
         check(graph.isRegular == (Set(d).count <= 1), "\(name): isRegular")
-        check(graph.sMetric() == ends.map { d[$0.0] * d[$0.1] }.reduce(0, +), "\(name): sMetric")
+        check(graph.sMetric() == Int64(ends.map { d[$0.0] * d[$0.1] }.reduce(0, +)), "\(name): sMetric")
         var adjacent = [[Bool]](repeating: [Bool](repeating: false, count: n), count: n)
         for (a, b) in ends where a != b {
             adjacent[a][b] = true
@@ -219,7 +219,7 @@ enum FuzzAssortativity {
         ]
         var typeOfCode: [Int: Int] = [:]
         for (t, realization) in realizations.enumerated() { typeOfCode[least(0, 1, 2) { x, y in realization.contains { $0 == (x, y) } }] = t }
-        var counts = [Int](repeating: 0, count: 16)
+        var counts = [Int64](repeating: 0, count: 16)
         for a in 0 ..< n { for b in a + 1 ..< max(n, a + 1) { for c in b + 1 ..< max(n, b + 1) {
             counts[typeOfCode[least(a, b, c) { arc[$0][$1] }]!] += 1
         } } }

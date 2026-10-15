@@ -113,8 +113,9 @@ final class _IsomorphismSearch: _MatchingSearch {
     /// each component of G onto its partner by their canonical labelings.
     private func decideByComponents(_ gParts: [_IndexGraph.Component], _ hParts: [_IndexGraph.Component]) -> [Int]? {
         guard gParts.count == hParts.count else { return nil }
-        func sizes(_ parts: [_IndexGraph.Component]) -> [Int] {
-            parts.map { $0.graph.count &* (data.g.edgeCount + 1) &+ $0.graph.edgeCount }.sorted()
+        // (vertex count, edge count) as one key, in 64 bits: n · (m + 1) can pass a 32-bit `Int`.
+        func sizes(_ parts: [_IndexGraph.Component]) -> [Int64] {
+            parts.map { Int64($0.graph.count) &* Int64(data.g.edgeCount + 1) &+ Int64($0.graph.edgeCount) }.sorted()
         }
         guard sizes(gParts) == sizes(hParts) else { return nil }
         func labelings(_ parts: [_IndexGraph.Component]) -> [(certificate: [Int], leaf: [Int], vertices: [Int])]? {
@@ -176,7 +177,7 @@ final class _JointSearch {
     var levels: [Level] = []
     var candidates: [Int] = []
     var images: [Int]
-    var scratch: [Int] = []
+    var scratch: [Int64] = []
 
     init(_ data: _IsomorphismData) {
         self.data = data

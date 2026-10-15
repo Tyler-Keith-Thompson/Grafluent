@@ -116,7 +116,7 @@ struct SpanningTreeStressTests {
             let leaves = 50_000
             let star = RowGraph(vertexCount: leaves + 1, edges: (1 ... leaves).map { UndirectedEdge(0, $0) })
             // Edge k weighs k + 1: distinct, so both orders are determined.
-            let total = leaves * (leaves + 1) / 2
+            let total = leaves / 2 * (leaves + 1)
             let kruskal = star.kruskalMinimumSpanningTree { $0 + 1 }
             #expect(kruskal.edges == Array(0 ..< leaves))
             #expect(kruskal.weight == total)
@@ -199,7 +199,7 @@ struct SpanningTreeStressTests {
         await Task {
             let graph = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges).undirectedView
             // A hash of the position as the weight.
-            let weight: (Int) -> Int = { ($0 &* 2_654_435_761) % 1000 }
+            let weight: (Int) -> Int = { Int(UInt32(truncatingIfNeeded: $0) &* 2_654_435_761 % 1000) }
             let n = graph.vertexCount
             var parent = Array(0 ..< n)
             func find(_ x: Int) -> Int {

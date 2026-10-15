@@ -23,7 +23,7 @@ MUTANTS = [
 
     # Breadth-first search
     Mutant("bfsreset", "DistanceRows.swift", "                            for k in 0 ..< reached { distanceBuffer[queueBuffer[k]] = -1 }", "", mode="stmt"),
-    Mutant("bfstotal", "DistanceRows.swift", "                                        total += next", "", mode="stmt"),
+    Mutant("bfstotal", "DistanceRows.swift", "                                        total += Int64(next)", "", mode="stmt"),
     Mutant("bfsreachedall", "DistanceRows.swift", "reached == n", "reached >= n - 1"),
 
     # Dijkstra
@@ -54,7 +54,7 @@ MUTANTS = [
     Mutant("pathstart", "Measures.swift", "bounds.lower.firstIndex(of: bounds.maxLower)!", "bounds.lower.lastIndex(of: bounds.maxLower)!"),
     Mutant("pathend", "Measures.swift", "searches.distance.firstIndex(of: bounds.maxLower)!", "searches.distance.lastIndex(of: bounds.maxLower)!"),
     Mutant("weightedfarthest", "Measures.swift", "searches.distance[x] > searches.distance[v]", "searches.distance[x] >= searches.distance[v]"),
-    Mutant("averageone", "Measures.swift", "n == 1 ? 0 : Double(total) / Double(_pairCount(n, undirected: true))", "Double(total) / Double(max(_pairCount(n, undirected: true), 1)) + (n == 1 ? 1 : 0)"),
+    Mutant("averageone", "Measures.swift", "n == 1 ? 0 : Double(total) / _pairCount(n, undirected: true)", "Double(total) / max(_pairCount(n, undirected: true), 1) + (n == 1 ? 1 : 0)"),
     Mutant("density", "Measures.swift", "2 * Double(edgeCount) / (Double(n) * Double(n - 1))", "Double(edgeCount) / (Double(n) * Double(n - 1))"),
     Mutant("directeddensity", "DirectedMeasures.swift", "Double(edgeCount) / (Double(n) * Double(n - 1))", "2 * Double(edgeCount) / (Double(n) * Double(n - 1))"),
     Mutant("directedstop", "DirectedMeasures.swift", "_allEccentricities(rows, undirected: false, stopAtMiss: true)", "_allEccentricities(rows, undirected: false)", nth=0),

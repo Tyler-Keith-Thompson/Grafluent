@@ -49,7 +49,7 @@ struct SampledBetweennessTests {
                 // The oracle's draw: swap position i with i + next(upperBound: n − i).
                 var oracle = SeededRandomNumberGenerator(seed: seed)
                 var numbers = Array(0 ..< 6)
-                for i in 0 ..< k { numbers.swapAt(i, i + Int(oracle.next(upperBound: UInt(6 - i)))) }
+                for i in 0 ..< k { numbers.swapAt(i, i + Int(oracle.next(upperBound: UInt64(6 - i)))) }
                 let pivots = Array(numbers.prefix(k))
                 var generator = SeededRandomNumberGenerator(seed: seed)
                 #expect(graph.betweennessCentrality(pivotCount: k, using: &generator).scores.map(\.bitPattern) == graph.betweennessCentrality(pivots: pivots).scores.map(\.bitPattern), "seed \(seed), k \(k)")

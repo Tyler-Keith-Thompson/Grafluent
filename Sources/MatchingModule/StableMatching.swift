@@ -14,16 +14,18 @@ public func stableMatching(proposerPreferences: [[Int]], reviewerPreferences: [[
     for list in reviewerPreferences { total += list.count }
     // Each reviewer's rank of each proposer it lists (−1: not listed): a dense table when it is at
     // most a few times the input, otherwise a dictionary keyed reviewer · p + proposer.
-    let dense = r.multipliedReportingOverflow(by: p).partialValue <= 8 * total + (1 << 20) && !r.multipliedReportingOverflow(by: p).overflow
+    // r · p ≤ budget as a comparison, r ≤ ⌊budget / p⌋, which cannot overflow at either `Int` width.
+    let dense = p == 0 || r <= (8 * total + (1 << 20)) / p
     var table = dense ? [Int](repeating: -1, count: r * p) : []
-    var sparse: [Int: Int] = [:]
+    // Keyed in 64 bits: r · p can pass a 32-bit `Int` (the sparse case is the large one).
+    var sparse: [Int64: Int] = [:]
     var stamp = [Int](repeating: -1, count: max(p, r))
     for (reviewer, list) in reviewerPreferences.enumerated() {
         for (k, proposer) in list.enumerated() {
             precondition(proposer >= 0 && proposer < p, "Proposer \(proposer) is out of range")
             precondition(stamp[proposer] != reviewer, "Reviewer \(reviewer) lists proposer \(proposer) twice")
             stamp[proposer] = reviewer
-            if dense { table[reviewer * p + proposer] = k } else { sparse[reviewer * p + proposer] = k }
+            if dense { table[reviewer * p + proposer] = k } else { sparse[Int64(reviewer) * Int64(p) + Int64(proposer)] = k }
         }
     }
     for k in stamp.indices { stamp[k] = -1 }
@@ -42,14 +44,14 @@ public func stableMatching(proposerPreferences: [[Int]], reviewerPreferences: [[
         while next[proposer] < list.count {
             let reviewer = list[next[proposer]]
             next[proposer] += 1
-            let mine = dense ? table[reviewer * p + proposer] : sparse[reviewer * p + proposer] ?? -1
+            let mine = dense ? table[reviewer * p + proposer] : sparse[Int64(reviewer) * Int64(p) + Int64(proposer)] ?? -1
             if mine < 0 { continue }
             let current = held[reviewer]
             if current < 0 {
                 held[reviewer] = proposer
                 break
             }
-            let theirs = dense ? table[reviewer * p + current] : sparse[reviewer * p + current]!
+            let theirs = dense ? table[reviewer * p + current] : sparse[Int64(reviewer) * Int64(p) + Int64(current)]!
             if mine < theirs {
                 held[reviewer] = proposer
                 free.append(current)

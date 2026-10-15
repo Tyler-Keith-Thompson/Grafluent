@@ -187,7 +187,7 @@ extension Graph {
     @inlinable
     public func asynchronousLabelPropagationCommunities(using generator: inout some RandomNumberGenerator) -> Partition<DirectedView<Self>> {
         _labelPropagation(nil) { graph in
-            _asynchronousLabelPropagation(graph, nil, order: { _shuffledOrder(graph.count, &generator) }, choose: { $0[Int(generator.next(upperBound: UInt($0.count)))] })
+            _asynchronousLabelPropagation(graph, nil, order: { _shuffledOrder(graph.count, &generator) }, choose: { $0[Int(generator.next(upperBound: UInt64($0.count)))] })
         }
     }
 
@@ -198,7 +198,7 @@ extension Graph {
     public func asynchronousLabelPropagationCommunities<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator) -> Partition<DirectedView<Self>> {
         let weights = _communityWeights(weight)
         return _labelPropagation(weights) { graph in
-            _asynchronousLabelPropagation(graph, weights, order: { _shuffledOrder(graph.count, &generator) }, choose: { $0[Int(generator.next(upperBound: UInt($0.count)))] })
+            _asynchronousLabelPropagation(graph, weights, order: { _shuffledOrder(graph.count, &generator) }, choose: { $0[Int(generator.next(upperBound: UInt64($0.count)))] })
         }
     }
 }

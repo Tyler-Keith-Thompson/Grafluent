@@ -153,10 +153,11 @@ func _heldKarpOrder<W>(_ matrix: _TourMatrix<W>, directed: Bool) -> [Int]? {
 
 /// Traps unless Held–Karp's table, 2ⁿ⁻¹ · (n − 1) weights and as many validity bytes (counted
 /// whether or not the graph is complete, so the check comes before any weight is read), fits in
-/// 4 GiB: at most 25 vertices with 8-byte weights, 26 with 4-byte ones.
+/// 4 GiB, or `Int.max` bytes where that is less (2 GiB where `Int` is 32 bits): at most 25
+/// vertices with 8-byte weights, 26 with 4-byte ones (24 and 25 at 2 GiB).
 @inlinable
 func _checkHeldKarpSize<W>(_ n: Int, _: W.Type) {
-    let limit: UInt64 = 1 << 32
+    let limit: UInt64 = Swift.min(1 << 32, UInt64(Int.max))
     let perEntry = UInt64(Swift.max(MemoryLayout<W>.stride, 1) + 1)
     let fits = n <= 33 && (UInt64(1) << UInt64(n - 1)) * UInt64(n - 1) * perEntry <= limit
     precondition(fits, "shortestTour on \(n) vertices needs a table of 2^\(n - 1) · \(n - 1) entries of \(perEntry) bytes, more than 4 GiB (at most 25 vertices with 8-byte weights)")

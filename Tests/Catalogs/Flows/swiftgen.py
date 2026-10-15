@@ -1748,7 +1748,32 @@ def header(comment, imports, suite, struct, tags=None, conformers=False, lines=(
     return L
 
 
+WIDE_LITERAL = re.compile(r"(?<![\w.])(\d[\d_]*)(?![\w.])")
+
+
+def wide_guarded(body):
+    """`body` with each test whose code spells an integer literal past Int32 inside a 64-bit-only
+    `#if`: arm64_32 and wasm32 have a 32-bit `Int`."""
+    out, i = [], 0
+    while i < len(body):
+        if not body[i].startswith("    @Test("):
+            out.append(body[i])
+            i += 1
+            continue
+        j = i
+        while body[j] != "    }":
+            j += 1
+        test = body[i:j + 1]
+        code = " ".join(re.sub(r'"(?:[^"\\]|\\.)*"', '""', line).split("//")[0] for line in test)
+        if any(int(m.group(1).replace("_", "")) > 2**31 - 1 for m in WIDE_LITERAL.finditer(code)):
+            test = ["    #if _pointerBitWidth(_64)"] + test + ["    #endif"]
+        out += test
+        i = j + 1
+    return out
+
+
 def write(name, lines):
+    lines = wide_guarded(lines)
     while lines and lines[-1] == "":
         lines.pop()
     lines.append("}")

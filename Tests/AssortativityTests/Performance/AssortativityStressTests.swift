@@ -25,7 +25,7 @@ struct AssortativityStressTests {
             #expect(averages.averageNeighborDegree(of: 0) == 2 && averages.averageNeighborDegree(of: 1) == 1.5 && averages.averageNeighborDegree(of: n / 2) == 2)
             #expect(graph.degreeHistogram() == [0, 2, n - 2])
             #expect(!graph.isRegular)
-            #expect(graph.sMetric() == 2 * 2 + 4 * (n - 3))
+            #expect(graph.sMetric() == Int64(2 * 2 + 4 * (n - 3)))
             let rich = graph.richClubCoefficients()
             #expect(rich.count == 2 && abs(rich[1] - 2 * Double(n - 3) / (Double(n - 2) * Double(n - 3))) <= 1e-15)
         }.value
@@ -39,7 +39,7 @@ struct AssortativityStressTests {
             #expect(graph.degreeAssortativityCoefficient() == -1)
             #expect(graph.averageDegreeConnectivity() == [n - 1: 1, 1: Double(n - 1)])
             #expect(graph.richClubCoefficients() == [Double(2 * (n - 1)) / (Double(n) * Double(n - 1))])
-            #expect(graph.sMetric() == (n - 1) * (n - 1))
+            #expect(graph.sMetric() == Int64(n - 1) * Int64(n - 1))
             let classes = graph.attributeAssortativityCoefficient(attribute: { $0 == 0 })
             #expect(classes == -1)
         }.value
@@ -51,15 +51,18 @@ struct AssortativityStressTests {
             let leaves = 99_999
             let graph = AdjacencyList(vertices: 0 ... leaves, edges: (0 ..< leaves).map { DirectedEdge(from: leaves, to: $0) })
             let census = graph.triadicCensus()
-            #expect(census["021D"] == leaves * (leaves - 1) / 2)
-            #expect(census["003"] == leaves * (leaves - 1) / 2 * (leaves - 2) / 3)
-            #expect(census.counts.reduce(0, +) == (leaves + 1) * leaves / 2 * (leaves - 1) / 3)
+            // The expected counts in 64 bits, as the census counts: they pass a 32-bit `Int`.
+            let l = Int64(leaves)
+            let pairs: Int64 = l * (l - 1) / 2, empty: Int64 = pairs * (l - 2) / 3, all: Int64 = (l + 1) * l / 2 * (l - 1) / 3
+            #expect(census["021D"] == pairs)
+            #expect(census["003"] == empty)
+            #expect(census.counts.reduce(0, +) == all)
             #expect(graph.reciprocity() == 0)
             #expect(graph.inDegreeHistogram() == [1, leaves])
             #expect(graph.outDegreeHistogram()[leaves] == 1)
             // The in-star: the hub's distinct neighbors are all in-neighbors.
             let inStar = AdjacencyList(vertices: 0 ... leaves, edges: (0 ..< leaves).map { DirectedEdge(from: $0, to: leaves) })
-            #expect(inStar.triadicCensus()["021U"] == leaves * (leaves - 1) / 2)
+            #expect(inStar.triadicCensus()["021U"] == pairs)
         }.value
     }
 
@@ -71,7 +74,8 @@ struct AssortativityStressTests {
             let arcs = (0 ..< 100_000).map { _ in DirectedEdge(from: Int.random(in: 0 ..< n, using: &rng), to: Int.random(in: 0 ..< n, using: &rng)) }
             let graph = AdjacencyList(vertices: 0 ..< n, edges: arcs)
             let census = graph.triadicCensus()
-            #expect(census.counts.reduce(0, +) == n * (n - 1) / 2 * (n - 2) / 3)
+            let triples: Int64 = Int64(n) * Int64(n - 1) / 2 * Int64(n - 2) / 3
+            #expect(census.counts.reduce(0, +) == triples)
             let nonnegative = census.counts.allSatisfy { $0 >= 0 }
             #expect(nonnegative)
             let reciprocity = graph.reciprocity() ?? -1

@@ -1755,6 +1755,7 @@ struct EdmondsKarpRepresentationTests {
         }
     }
 
+    #if _pointerBitWidth(_64)
     @Test("FL-162 Int, large: 2^63 - 1 total, Int.max, on DirectedPseudograph, no indices, CompressedSparseRow, AdjacencyMatrix")
     func fl162() {
         // V [0, 1, 2]; E [0→1 4611686018427387904, 0→2 4611686018427387903, 1→2 4611686018427387904]; edmondsKarpMaximumFlow(from: 0, to: 2, capacity:)
@@ -1814,6 +1815,7 @@ struct EdmondsKarpRepresentationTests {
             #expect(cut.value == 9223372036854775807)
         }
     }
+    #endif
 
     @Test("FL-165 undirected: one edge both ways: flow -5 on edge 0, on Pseudograph, no indices, AdjacencyList.undirectedView, AdjacencyMatrix.undirectedView")
     func fl165() {

@@ -84,7 +84,7 @@ struct DistanceConformanceTests {
 
     @Test("DI-101 – DI-110 from generic code over some Graph, and DI-435 over some DirectedGraph")
     func genericCode() throws {
-        func measures<G: Graph>(_ g: G) -> (radius: Int?, diameter: Int?, center: [G.Vertex], periphery: [G.Vertex], centroid: [G.Vertex], wiener: Int?, average: Double?, density: Double, path: Path<G.Vertex, G.Edges.Index>?) {
+        func measures<G: Graph>(_ g: G) -> (radius: Int?, diameter: Int?, center: [G.Vertex], periphery: [G.Vertex], centroid: [G.Vertex], wiener: Int64?, average: Double?, density: Double, path: Path<G.Vertex, G.Edges.Index>?) {
             (g.radius(), g.diameter(), g.center(), g.periphery(), g.centroid(), g.wienerIndex(), g.averageShortestPathLength(), g.density, g.diameterPath())
         }
         func directedEccentricities<G: DirectedGraph>(_ g: G) -> [Int?] {

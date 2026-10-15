@@ -227,7 +227,7 @@ func _randomPivots<R: RandomNumberGenerator>(count k: Int, vertexCount n: Int, _
     precondition(k >= 0 && k <= n && (k > 0 || n == 0), "The pivot count must be in 1...vertexCount")
     var numbers = Array(0 ..< n)
     for i in 0 ..< k {
-        let j = i + Int(generator.next(upperBound: UInt(n - i)))
+        let j = i + Int(generator.next(upperBound: UInt64(n - i)))
         numbers.swapAt(i, j)
     }
     var chosen = [Bool](repeating: false, count: n)

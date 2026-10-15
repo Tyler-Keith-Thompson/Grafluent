@@ -317,7 +317,7 @@ func _shuffledOrder<R: RandomNumberGenerator>(_ k: Int, _ generator: inout R) ->
     var order = Array(0 ..< k)
     var i = k - 1
     while i > 0 {
-        let j = Int(generator.next(upperBound: UInt(i + 1)))
+        let j = Int(generator.next(upperBound: UInt64(i + 1)))
         order.swapAt(i, j)
         i -= 1
     }

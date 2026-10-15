@@ -2134,6 +2134,7 @@ struct EdmondsKarpTests {
         #expect(cut.value == flow.value)
     }
 
+    #if _pointerBitWidth(_64)
     @Test("FL-162 Int, large: 2^63 - 1 total, Int.max")
     func fl162() {
         // V [0, 1, 2]; E [0→1 4611686018427387904, 0→2 4611686018427387903, 1→2 4611686018427387904]; edmondsKarpMaximumFlow(from: 0, to: 2, capacity:)
@@ -2202,6 +2203,7 @@ struct EdmondsKarpTests {
         #expect(cut.value == cut.edges.reduce(0) { $0 + capacities[$1] })
         #expect(cut.value == flow.value)
     }
+    #endif
 
     @Test("FL-165 undirected: one edge both ways: flow -5 on edge 0: value 5; flow [-5]; S [1]; T [0]; cut [0r]")
     func fl165() {

@@ -122,7 +122,7 @@ func _maximumIndependentSet(_ g: _CompressedRows, loops: [Bool], goal: _Independ
             for k in g.offsets[u] ..< g.offsets[u + 1] where !loops[g.targets[k]] { ends += 1 }
         }
         let p = end - first
-        if ends == p * (p - 1) {
+        if Int64(ends) == Int64(p) * Int64(p - 1) {
             inSet[last ? greatest : least] = true
             size += 1
             continue

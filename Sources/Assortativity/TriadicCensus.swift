@@ -6,11 +6,11 @@ import GraphProtocols
 /// with the same three numbers.
 @frozen
 public struct TriadicCensus: Hashable, Sendable {
-    /// The counts, in `types` order.
-    public let counts: [Int]
+    /// The counts, in `types` order. `Int64`, so a 32-bit `Int` does not cap the vertex count.
+    public let counts: [Int64]
 
     @inlinable
-    init(counts: [Int]) { self.counts = counts }
+    init(counts: [Int64]) { self.counts = counts }
 
     /// The 16 triad types: "003", "012", "102", "021D", "021U", "021C", "111D", "111U", "030T",
     /// "030C", "201", "120D", "120U", "120C", "210", "300".
@@ -24,7 +24,7 @@ public struct TriadicCensus: Hashable, Sendable {
     /// - Parameter type: A MAN code from `types`, such as "021D".
     /// - Precondition: `type` is one of `types`.
     @inlinable
-    public subscript(type: String) -> Int {
+    public subscript(type: String) -> Int64 {
         guard let k = TriadicCensus.types.firstIndex(of: type) else { preconditionFailure("Not a triad type: \(type)") }
         return counts[k]
     }
@@ -48,13 +48,13 @@ extension DirectedGraph {
     /// dyad type. O(n + m^(3/2)).
     ///
     /// - Returns: The count of every triad type; they add up to n(n − 1)(n − 2)/6.
-    /// - Precondition: n(n − 1)(n − 2)/6 fits in `Int`.
+    /// - Precondition: n(n − 1)(n − 2)/6 fits in `Int64`.
     @inlinable
     public func triadicCensus() -> TriadicCensus {
         let simple = _simpleArcRows(_compressedRows(readsEdges: false, dropsLoops: true).rows)
         let n = simple.out.count
         let codes = _triadTypes
-        var counts = [Int](repeating: 0, count: 16)
+        var counts = [Int64](repeating: 0, count: 16)
         // Each vertex's distinct neighbors either way, with the dyad's arcs: bit 1 for v → w, bit
         // 2 for w → v.
         var degree = [Int](repeating: 0, count: n)
@@ -145,13 +145,13 @@ extension DirectedGraph {
                 // Triads with w a neighbor of v only, ranked above u: one per dyad type.
                 for type in 1 ... 3 {
                     let count = above[type] - commonAbove[type]
-                    if count > 0 { counts[codes[dyad + (type & 1) * 4 + (type & 2) * 4]] += count }
+                    if count > 0 { counts[codes[dyad + (type & 1) * 4 + (type & 2) * 4]] += Int64(count) }
                 }
                 let union = (rowEnd - rowStart - 1) + (offsets[u + 1] - offsets[u] - 1) - common
-                counts[dyad == 3 ? 2 : 1] += n - union - 2
+                counts[dyad == 3 ? 2 : 1] += Int64(n - union - 2)
             }
         }
-        let triples = n < 3 ? 0 : n * (n - 1) / 2 * (n - 2) / 3
+        let triples = n < 3 ? 0 : Int64(n) * Int64(n - 1) / 2 * Int64(n - 2) / 3
         counts[0] = triples - counts[1...].reduce(0, +)
         return TriadicCensus(counts: counts)
     }

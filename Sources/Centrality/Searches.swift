@@ -33,7 +33,8 @@ struct _UnweightedCentralitySearch: _CentralitySearch {
     @inlinable
     mutating func sums(from s: Int) -> (reached: Int, total: Double, harmonic: Double) {
         var reached = reachedCount
-        var total = 0
+        // In 64 bits: the distances from one vertex pass a 32-bit `Int` at about 65,000 vertices.
+        var total: Int64 = 0
         var harmonic = 0.0
         queue.withUnsafeMutableBufferPointer { queueBuffer in
             distance.withUnsafeMutableBufferPointer { distanceBuffer in
@@ -55,7 +56,7 @@ struct _UnweightedCentralitySearch: _CentralitySearch {
                                 let w = targets[slot]
                                 if distanceBuffer[w] < 0 {
                                     distanceBuffer[w] = next
-                                    total += next
+                                    total += Int64(next)
                                     if next != depth {
                                         if depth > 0 { harmonic += Double(atDepth) / Double(depth) }
                                         depth = next

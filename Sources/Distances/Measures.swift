@@ -163,9 +163,11 @@ extension Graph {
         return _leastTotals(_totals(_distanceRows(), weights: _distanceWeights(weight), undirected: true)).map { _vertex(number: $0, listed) }
     }
 
-    /// The sum of the distances over all unordered pairs of vertices (the Wiener index); nil when the graph is not connected, 0 when it has fewer than two vertices. O(n(n + m)).
+    /// The sum of the distances over all unordered pairs of vertices (the Wiener index), as an
+    /// `Int64` (on a path it passes a 32-bit `Int` at 2,345 vertices); nil when the graph is not
+    /// connected, 0 when it has fewer than two vertices. O(n(n + m)).
     @inlinable
-    public func wienerIndex() -> Int? { _wienerIndex(_distanceRows(), undirected: true) }
+    public func wienerIndex() -> Int64? { _wienerIndex(_distanceRows(), undirected: true) }
 
     /// The sum of the weighted distances over all unordered pairs, sources in index order and each
     /// one's later targets in index order.
@@ -182,7 +184,7 @@ extension Graph {
     public func averageShortestPathLength() -> Double? {
         let n = vertexCount
         guard n > 0, let total = wienerIndex() else { return nil }
-        return n == 1 ? 0 : Double(total) / Double(_pairCount(n, undirected: true))
+        return n == 1 ? 0 : Double(total) / _pairCount(n, undirected: true)
     }
 
     /// The weighted Wiener index over the number of pairs.

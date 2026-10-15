@@ -897,7 +897,7 @@ for c in cases {
             let directedEccentricities = graph.eccentricities()
             var answers = basics(directedEccentricities, c.n)
             answers.centroid = graph.centroid()
-            answers.wiener = graph.wienerIndex()
+            answers.wiener = graph.wienerIndex().map { Int($0) }
             answers.average = graph.averageShortestPathLength()
             answers.density = graph.density
             answers.diameterPath = graph.diameterPath()?.vertices
@@ -1086,7 +1086,7 @@ for c in cases {
             let undirectedEccentricities = graph.eccentricities()
             var answers = basics(undirectedEccentricities, c.n)
             answers.centroid = graph.centroid()
-            answers.wiener = graph.wienerIndex()
+            answers.wiener = graph.wienerIndex().map { Int($0) }
             answers.average = graph.averageShortestPathLength()
             answers.density = graph.density
             answers.diameterPath = graph.diameterPath()?.vertices

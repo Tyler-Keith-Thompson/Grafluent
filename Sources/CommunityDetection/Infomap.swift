@@ -4,6 +4,8 @@ import Darwin
 import Glibc
 #elseif canImport(Musl)
 import Musl
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 // A swift.org toolchain reading a newer macOS SDK (the fuzz build) gets a Darwin without libm's
 // functions; the SDK's math module has them.
@@ -214,7 +216,7 @@ func _infomapMoves<R: RandomNumberGenerator>(_ level: _FlowLevel, _ module: inou
             // at random rather than always the one nearest the front of the row.
             var c = touched.count - 1
             while c > 0 {
-                touched.swapAt(c, Int(generator.next(upperBound: UInt(c + 1))))
+                touched.swapAt(c, Int(generator.next(upperBound: UInt64(c + 1))))
                 c -= 1
             }
             var best = 0.0, target = source

@@ -1850,6 +1850,7 @@ struct MinimumCostFlowTests {
         #expect(witness)
     }
 
+    #if _pointerBitWidth(_64)
     @Test("FL-488 Int.max capacities, a negative cycle: both arcs near Int.max (only the solver's own arcs are unbounded)")
     func fl488() throws {
         // V [0, 1]; E [0→1 9223372036854775807 @0, 1→0 9223372036854775807 @-1]; supply [0: 5, 1: -5]; minimumCostFlow(supply:capacity:cost:)
@@ -1912,7 +1913,9 @@ struct MinimumCostFlowTests {
             if flows[k] > 0 { #expect(reduced <= 0, "edge \(k): reduced cost \(reduced)") }
         }
     }
+    #endif
 
+    #if _pointerBitWidth(_64)
     @Test("FL-489 Int.max capacities, the negative arc first")
     func fl489() throws {
         // V [0, 1]; E [0→1 9223372036854775807 @-1, 1→0 9223372036854775807 @0]; supply [0: 5, 1: -5]; minimumCostFlow(supply:capacity:cost:)
@@ -1975,6 +1978,7 @@ struct MinimumCostFlowTests {
             if flows[k] > 0 { #expect(reduced <= 0, "edge \(k): reduced cost \(reduced)") }
         }
     }
+    #endif
 
     @Test("FL-491 Int8 costs on 130 vertices: no bound on (n + 1) × the greatest cost: cost 1; flow [1]")
     func fl491() throws {

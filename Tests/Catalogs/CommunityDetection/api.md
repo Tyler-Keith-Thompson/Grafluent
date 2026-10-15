@@ -296,9 +296,9 @@ fixed by rows and edge positions). Louvain and asynchronous label propagation ad
 
 * **What the generator drives** (so a seeded generator reproduces a result): Louvain: one
   Fisher–Yates shuffle of the level's vertices per level, i from k − 1 down to 1 swapping i with
-  `Int(generator.next(upperBound: UInt(i + 1)))`; ties keep the label rule. Asynchronous LPA: one
+  `Int(generator.next(upperBound: UInt64(i + 1)))`; ties keep the label rule. Asynchronous LPA: one
   such shuffle per sweep, and a tie among t labels (in order of first vote in the row) takes the
-  `generator.next(upperBound: UInt(t))`-th. The catalog's `using:` rows (CD-112 – CD-114, CD-153,
+  `generator.next(upperBound: UInt64(t))`-th. The catalog's `using:` rows (CD-112 – CD-114, CD-153,
   CD-154) are graphs where every order gives the same partition (`ref.py` checks 200 orders and 25
   NetworkX seeds); tests add properties (a valid partition; Louvain's Q at least the singletons';
   the same seeded generator gives the same result).

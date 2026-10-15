@@ -4,6 +4,8 @@ import Darwin
 import Glibc
 #elseif canImport(Musl)
 import Musl
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 // A swift.org toolchain reading a newer macOS SDK (the fuzz build) gets a Darwin without libm's
 // functions; the SDK's math module has them.
@@ -114,8 +116,10 @@ func _metaheuristicOrder<W: Comparable & AdditiveArithmetic>(
                 count += 1
                 var accepted = false
                 for _ in 0 ..< inner {
-                    let a = Int.random(in: 1 ..< n, using: &generator)
-                    var b = Int.random(in: 1 ..< n - 1, using: &generator)
+                    // Drawn through 64-bit bounds, so a seed gives the same moves at either `Int`
+                    // width (and the values `Int.random(in:using:)` gives on 64-bit platforms).
+                    let a = 1 + Int(generator.next(upperBound: UInt64(n - 1)))
+                    var b = 1 + Int(generator.next(upperBound: UInt64(n - 2)))
                     if b >= a { b += 1 }
                     let (removed, added) = _tourMoveChange(move, d, UnsafePointer(tp), n: n, a, b)
                     var take = added <= removed

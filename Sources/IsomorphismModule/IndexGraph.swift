@@ -46,16 +46,18 @@ struct _IndexGraph {
             outOffsets.withUnsafeBufferPointer { offsets in
                 outTargets.withUnsafeMutableBufferPointer { targets in
                     outColors.withUnsafeMutableBufferPointer { colors in
-                        var keys: [Int] = []
+                        // Keys neighbour · span + colour in 64 bits: n · span can pass a 32-bit `Int`.
+                        let wideSpan = Int64(span)
+                        var keys: [Int64] = []
                         for v in 0 ..< n {
                             let start = offsets[v], end = offsets[v + 1]
                             if end - start < 2 { continue }
                             keys.removeAll(keepingCapacity: true)
-                            for k in start ..< end { keys.append(targets[k] &* span &+ colors[k]) }
+                            for k in start ..< end { keys.append(Int64(targets[k]) &* wideSpan &+ Int64(colors[k])) }
                             keys.sort()
                             for (j, key) in keys.enumerated() {
-                                targets[start + j] = key / span
-                                colors[start + j] = key % span
+                                targets[start + j] = Int(truncatingIfNeeded: key / wideSpan)
+                                colors[start + j] = Int(truncatingIfNeeded: key % wideSpan)
                             }
                         }
                     }

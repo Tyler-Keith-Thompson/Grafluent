@@ -63,7 +63,7 @@ enum FuzzDistances {
             if name == "unweighted" {
                 check(graph.radius() == x.radius && graph.diameter() == x.diameter, "bounding radius/diameter \(graph.radius() as Any)/\(graph.diameter() as Any), expected \(x.radius as Any)/\(x.diameter as Any)")
                 check(graph.center() == x.center && graph.periphery() == x.periphery, "bounding center \(graph.center()) / periphery \(graph.periphery()), expected \(x.center) / \(x.periphery)")
-                check(graph.centroid() == x.centroid && graph.wienerIndex() == x.wiener, "centroid / Wiener")
+                check(graph.centroid() == x.centroid && graph.wienerIndex().map { Int($0) } == x.wiener, "centroid / Wiener")
                 if let diameter = x.diameter, let path = graph.diameterPath() {
                     let u = x.eccentricities.firstIndex { $0 == diameter }!
                     let v = d[u].firstIndex(of: diameter)!
@@ -94,7 +94,7 @@ enum FuzzDistances {
             let diameter = name == "unweighted" ? graph.diameter() : graph.diameter(weight: w)
             check(diameter == x.diameter, "directed \(name) diameter()")
             let centroid = name == "unweighted" ? graph.centroid() : graph.centroid(weight: w)
-            let wiener = name == "unweighted" ? graph.wienerIndex() : graph.wienerIndex(weight: w)
+            let wiener = name == "unweighted" ? graph.wienerIndex().map { Int($0) } : graph.wienerIndex(weight: w)
             check(centroid == x.centroid && wiener == x.wiener, "directed \(name) centroid \(centroid) / Wiener \(wiener as Any), expected \(x.centroid) / \(x.wiener as Any)")
             if let x0 = x.eccentricities.first {
                 let one = name == "unweighted" ? graph.eccentricity(of: 0) : graph.eccentricity(of: 0, weight: w)

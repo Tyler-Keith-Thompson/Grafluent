@@ -19,6 +19,8 @@ import Walks
 import Darwin
 #elseif canImport(Glibc)
 import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 
 @Suite("simulatedAnnealingTour and thresholdAcceptingTour")
@@ -62,8 +64,8 @@ struct MetaheuristicTourTests {
                 count += 1
                 var accepted = false
                 for _ in 0 ..< 100 {
-                    let a = Int.random(in: 1 ..< n, using: &reference)
-                    var b = Int.random(in: 1 ..< n - 1, using: &reference)
+                    let a = 1 + Int(reference.next(upperBound: UInt64(n - 1)))
+                    var b = 1 + Int(reference.next(upperBound: UInt64(n - 2)))
                     if b >= a { b += 1 }
                     var candidate = cycle
                     if move == .swap {
@@ -139,8 +141,8 @@ struct MetaheuristicTourTests {
                 count += 1
                 var accepted = false
                 for _ in 0 ..< 20 {
-                    let a = Int.random(in: 1 ..< n, using: &reference)
-                    var b = Int.random(in: 1 ..< n - 1, using: &reference)
+                    let a = 1 + Int(reference.next(upperBound: UInt64(n - 1)))
+                    var b = 1 + Int(reference.next(upperBound: UInt64(n - 2)))
                     if b >= a { b += 1 }
                     var candidate = cycle
                     if move == .swap {
@@ -212,8 +214,8 @@ struct MetaheuristicTourTests {
             var count = 0
             while count <= 8 {
                 count += 1
-                let a = Int.random(in: 1 ..< n, using: &reference)
-                var b = Int.random(in: 1 ..< n - 1, using: &reference)
+                let a = 1 + Int(reference.next(upperBound: UInt64(n - 1)))
+                var b = 1 + Int(reference.next(upperBound: UInt64(n - 2)))
                 if b >= a { b += 1 }
                 var candidate = cycle
                 candidate.swapAt(a, b)

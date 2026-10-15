@@ -137,10 +137,10 @@ struct DistancePropertyTests {
             let periphery = (0 ..< n).filter { ecc[$0] == diameter }.map { listed[$0] }
             let leastTotal = totals.compactMap { $0 }.min()
             let centroid = (0 ..< n).filter { totals[$0] == leastTotal }.map { listed[$0] }
-            var wiener: Int? = 0
+            var wiener: Int64? = 0
             for u in 0 ..< n {
                 for v in u + 1 ..< n {
-                    if let d = all[u][v], let w = wiener { wiener = w + d } else { wiener = nil }
+                    if let d = all[u][v], let w = wiener { wiener = w + Int64(d) } else { wiener = nil }
                 }
             }
             let average: Double? = n == 0 ? nil : n == 1 ? 0 : wiener.map { Double($0) / Double(n * (n - 1) / 2) }
@@ -230,10 +230,10 @@ struct DistancePropertyTests {
             let periphery = (0 ..< n).filter { ecc[$0] == diameter }.map { listed[$0] }
             let leastTotal = totals.compactMap { $0 }.min()
             let centroid = (0 ..< n).filter { totals[$0] == leastTotal }.map { listed[$0] }
-            var wiener: Int? = 0
+            var wiener: Int64? = 0
             for u in 0 ..< n {
                 for v in 0 ..< n where v != u {
-                    if let d = all[u][v], let w = wiener { wiener = w + d } else { wiener = nil }
+                    if let d = all[u][v], let w = wiener { wiener = w + Int64(d) } else { wiener = nil }
                 }
             }
             let average: Double? = n == 0 ? nil : n == 1 ? 0 : wiener.map { Double($0) / Double(n * (n - 1)) }

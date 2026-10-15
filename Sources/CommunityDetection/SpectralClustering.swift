@@ -27,7 +27,8 @@ func _kMeans<R: RandomNumberGenerator>(_ points: [Double], count n: Int, dimensi
         for _ in 0 ..< runs {
             // k-means++ seeding: each next center drawn with probability ∝ the squared distance to
             // the nearest center so far.
-            let first = Int.random(in: 0 ..< n, using: &generator)
+            // Bounded draws through 64 bits: the same centers at either `Int` width.
+            let first = Int(generator.next(upperBound: UInt64(n)))
             for j in 0 ..< k { centers[j] = points[first * k + j] }
             for i in 0 ..< n {
                 var s = 0.0
@@ -52,7 +53,7 @@ func _kMeans<R: RandomNumberGenerator>(_ points: [Double], count n: Int, dimensi
                         }
                     }
                 } else {
-                    chosen = Int.random(in: 0 ..< n, using: &generator)
+                    chosen = Int(generator.next(upperBound: UInt64(n)))
                 }
                 for j in 0 ..< k { centers[center * k + j] = points[chosen * k + j] }
                 for i in 0 ..< n {

@@ -61,15 +61,17 @@ public struct ClusteringCoefficients<G: Graph> {
         let degrees = (0 ..< rows.count).map { rows.degree($0) }
         _triangles = triangles
         _degrees = degrees
-        var corners = 0, triples = 0
+        // Sums in `Int64`: the triples Σ d(d − 1)/2 pass a 32-bit `Int` at one vertex of degree
+        // 65,536.
+        var corners: Int64 = 0, triples: Int64 = 0
         var sum = 0.0
         for v in triangles.indices {
-            corners += triangles[v]
-            let d = degrees[v]
+            corners += Int64(triangles[v])
+            let d = Int64(degrees[v])
             triples += d * (d - 1) / 2
-            sum += _clustering(triangles[v], d)
+            sum += _clustering(triangles[v], degrees[v])
         }
-        _triangleCount = corners / 3
+        _triangleCount = Int(corners / 3)
         _transitivity = corners == 0 ? 0 : Double(corners) / Double(triples)
         _averageClustering = triangles.isEmpty ? 0 : sum / Double(triangles.count)
     }
@@ -145,7 +147,8 @@ public struct ClusteringCoefficients<G: Graph> {
 /// 2T / (d(d − 1)), or 0 when d < 2.
 @inlinable
 func _clustering(_ triangles: Int, _ degree: Int) -> Double {
-    degree < 2 ? 0 : Double(2 * triangles) / Double(degree * (degree - 1))
+    // In `Double`: d(d − 1) passes a 32-bit `Int` at degree 46,341 (exact below 2⁵³ either way).
+    degree < 2 ? 0 : 2 * Double(triangles) / (Double(degree) * Double(degree - 1))
 }
 
 extension ClusteringCoefficients: Sendable where G: Sendable, G.Vertex: Sendable {}
@@ -160,17 +163,18 @@ extension Graph {
 
     /// The number of triangles in the simple graph. O(m^(3/2)).
     @inlinable
-    public func triangleCount() -> Int { Cliques._triangles(_simpleRows()).reduce(0, +) / 3 }
+    public func triangleCount() -> Int { Int(Cliques._triangles(_simpleRows()).reduce(Int64(0)) { $0 + Int64($1) } / 3) }
 
     /// Three times the triangles over the connected triples; 0 when there are no triangles.
     @inlinable
     public func transitivity() -> Double {
         let rows = _simpleRows()
         let triangles = Cliques._triangles(rows)
-        var corners = 0, triples = 0
+        // Sums in `Int64`, as in `ClusteringCoefficients`.
+        var corners: Int64 = 0, triples: Int64 = 0
         for v in triangles.indices {
-            corners += triangles[v]
-            let d = rows.degree(v)
+            corners += Int64(triangles[v])
+            let d = Int64(rows.degree(v))
             triples += d * (d - 1) / 2
         }
         return corners == 0 ? 0 : Double(corners) / Double(triples)

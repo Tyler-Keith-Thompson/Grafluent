@@ -299,10 +299,12 @@ func _averages(_ sums: (sums: [Int], counts: [Int])) -> [Double] {
 /// counts, 0 for k = 0.
 @inlinable
 func _connectivity(_ sums: (sums: [Int], counts: [Int])) -> [Int: Double] {
-    var total: [Int: Int] = [:], norm: [Int: Int] = [:]
+    // Each degree's sums in `Int64`: they reach Σ d(w)², past a 32-bit `Int` at one vertex of
+    // degree 46,341 (a vertex's own sum stays below 2m).
+    var total: [Int: Int64] = [:], norm: [Int: Int64] = [:]
     for v in sums.sums.indices {
-        total[sums.counts[v], default: 0] &+= sums.sums[v]
-        norm[sums.counts[v], default: 0] &+= sums.counts[v]
+        total[sums.counts[v], default: 0] += Int64(sums.sums[v])
+        norm[sums.counts[v], default: 0] += Int64(sums.counts[v])
     }
     var result: [Int: Double] = [:]
     result.reserveCapacity(total.count)

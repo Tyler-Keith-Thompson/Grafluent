@@ -76,7 +76,7 @@ final class _AutomorphismSearch {
     private var bestPath: [Int] = []
     /// Per depth: union–find over the node's target cell, smallest vertex as root.
     private var orbitParent: [[Int]] = []
-    private var scratch: [Int] = []
+    private var scratch: [Int64] = []
     private var marks: [Int] = []
     private var stamp = 0
     private var expansions = 0
@@ -318,7 +318,10 @@ final class _AutomorphismSearch {
         for q in 0 ..< n { inverse[leaf[q]] = q }
         var out: [Int] = []
         out.reserveCapacity(2 * n + g.outTargets.count)
-        var row: [Int] = []
+        // Row keys position · span + colour in 64 bits; where n · span passes `Int` (a 32-bit
+        // `Int` only), each entry is written as its position and its colour.
+        let wideSpan = Int64(span), packed = !g.hasEdgeColors || n <= Int.max / span
+        var row: [Int64] = []
         for q in 0 ..< n {
             let v = leaf[q]
             out.append(colors.isEmpty ? 0 : colors[v])
@@ -326,12 +329,16 @@ final class _AutomorphismSearch {
             out.append(end - start)
             row.removeAll(keepingCapacity: true)
             if g.hasEdgeColors {
-                for k in start ..< end { row.append(inverse[g.outTargets[k]] &* span &+ g.outColors[k]) }
+                for k in start ..< end { row.append(Int64(inverse[g.outTargets[k]]) &* wideSpan &+ Int64(g.outColors[k])) }
             } else {
-                for k in start ..< end { row.append(inverse[g.outTargets[k]]) }
+                for k in start ..< end { row.append(Int64(inverse[g.outTargets[k]])) }
             }
             row.sort()
-            out.append(contentsOf: row)
+            if packed {
+                for key in row { out.append(Int(truncatingIfNeeded: key)) }
+            } else {
+                for key in row { out.append(Int(truncatingIfNeeded: key / wideSpan)); out.append(Int(truncatingIfNeeded: key % wideSpan)) }
+            }
         }
         return out
     }
@@ -394,8 +401,10 @@ final class _AutomorphismSearch {
 
 /// Whether `images` maps every out-row of `g` onto the out-row of its image in `h`, colours
 /// included (rows sorted by (neighbour, colour); `span` exceeds every edge colour id).
-func _preservesRows(_ images: [Int], _ g: _IndexGraph, _ h: _IndexGraph, _ span: Int, _ keys: inout [Int]) -> Bool {
+func _preservesRows(_ images: [Int], _ g: _IndexGraph, _ h: _IndexGraph, _ span: Int, _ keys: inout [Int64]) -> Bool {
     let colored = g.hasEdgeColors
+    // Keys neighbour · span + colour in 64 bits: n · span can pass a 32-bit `Int`.
+    let wideSpan = Int64(span)
     for v in 0 ..< g.count {
         let x = images[v]
         let start = g.outOffsets[v], end = g.outOffsets[v + 1]
@@ -403,13 +412,13 @@ func _preservesRows(_ images: [Int], _ g: _IndexGraph, _ h: _IndexGraph, _ span:
         guard h.outOffsets[x + 1] - hs == end - start else { return false }
         keys.removeAll(keepingCapacity: true)
         if colored {
-            for k in start ..< end { keys.append(images[g.outTargets[k]] &* span &+ g.outColors[k]) }
+            for k in start ..< end { keys.append(Int64(images[g.outTargets[k]]) &* wideSpan &+ Int64(g.outColors[k])) }
             keys.sort()
-            for j in 0 ..< keys.count where keys[j] != h.outTargets[hs + j] &* span &+ h.outColors[hs + j] { return false }
+            for j in 0 ..< keys.count where keys[j] != Int64(h.outTargets[hs + j]) &* wideSpan &+ Int64(h.outColors[hs + j]) { return false }
         } else {
-            for k in start ..< end { keys.append(images[g.outTargets[k]]) }
+            for k in start ..< end { keys.append(Int64(images[g.outTargets[k]])) }
             keys.sort()
-            for j in 0 ..< keys.count where keys[j] != h.outTargets[hs + j] { return false }
+            for j in 0 ..< keys.count where keys[j] != Int64(h.outTargets[hs + j]) { return false }
         }
     }
     return true

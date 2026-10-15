@@ -221,7 +221,9 @@ struct _ColoringSearch {
     @inlinable
     mutating func extend(_ preset: [Int], colors: Int, prefer: [Int], seed: UInt64, budget: Int, backjumping: Bool) -> Bool? {
         let p = count
-        var tries = 0
+        // In 64 bits: an unbudgeted search can try more than 2³¹ colours, past a 32-bit `Int`.
+        var tries: Int64 = 0
+        let budget = budget == .max ? Int64.max : Int64(budget)
         k = colors
         words = (colors + 63) >> 6
         color.removeAll(keepingCapacity: true)
@@ -481,7 +483,8 @@ struct _ColoringSearch {
                 // a new tie order each time. On a dense one that only repeats work.
                 var round = 0, extends = false
                 while true {
-                    let budget = !sparse || round >= 40 ? Int.max : 256 << round
+                    // 256 · 2^round as a comparison first: at round 23 it passes a 32-bit `Int`.
+                    let budget = !sparse || round >= 40 || 256 > Int.max >> round ? Int.max : 256 << round
                     if let answer = region.extend(part, colors: chi, prefer: sparse ? hint : [], seed: UInt64(round), budget: budget, backjumping: sparse) {
                         extends = answer
                         break

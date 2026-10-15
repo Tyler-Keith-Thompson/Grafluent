@@ -853,6 +853,8 @@ def lsa_body(cid, args, kwargs):
     nc = cols if cols is not None else (len(M[0]) if nr else 0)
     port = ref.lsap_port(M, maximize) if nr and nc else ([], [])
     W = "Double" if any(isinstance(x, float) for row in M for x in row) else "Int"
+    if W == "Int" and any(x is not None and abs(x) > 2**31 - 1 for row in M for x in row):
+        W = "Int64"  # past Int32: a 32-bit `Int` cannot hold it
     rows_lit = "[" + ", ".join("[" + ", ".join("nil" if x is None else wlit(x, W) for x in row) + "]" for row in M) + "]"
     L = [f"let matrix: [[{W}?]] = {rows_lit}"]
     call = f"linearSumAssignment(rowCount: {nr}, columnCount: {nc}" + (", maximize: true" if maximize else "") + ") { matrix[$0][$1] }"

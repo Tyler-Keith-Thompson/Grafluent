@@ -51,15 +51,16 @@ struct _BreadthFirstSearches {
     }
 
     /// One search from `s`: the eccentricity (the last depth reached), whether every vertex was
-    /// reached, and the total distance. `distance` holds the depths until the next search.
+    /// reached, and the total distance, in `Int64` so a 32-bit `Int` does not overflow at about
+    /// 65,000 vertices. `distance` holds the depths until the next search.
     @inlinable
-    mutating func search(from s: Int, parents: Bool = false) -> (eccentricity: Int, reachedAll: Bool, total: Int) {
+    mutating func search(from s: Int, parents: Bool = false) -> (eccentricity: Int, reachedAll: Bool, total: Int64) {
         let n = rows.count
         if parents, parentSlot.isEmpty { parentSlot = [Int](repeating: -1, count: n) }
         // Flat buffers: the loop runs n times per bounding pass, so even a debug build must not
         // pay array checks on every edge.
         var reached = reachedCount
-        var total = 0
+        var total: Int64 = 0
         queue.withUnsafeMutableBufferPointer { queueBuffer in
             distance.withUnsafeMutableBufferPointer { distanceBuffer in
                 parentSlot.withUnsafeMutableBufferPointer { parentBuffer in
@@ -80,7 +81,7 @@ struct _BreadthFirstSearches {
                                     let w = targets[slot]
                                     if distanceBuffer[w] < 0 {
                                         distanceBuffer[w] = next
-                                        total += next
+                                        total += Int64(next)
                                         if parents { parentBuffer[w] = slot }
                                         queueBuffer[tail] = w
                                         tail += 1
@@ -128,9 +129,10 @@ struct _DijkstraSearches<W: Comparable & AdditiveArithmetic> {
     }
 
     /// One search from `s`: the eccentricity (the greatest settled distance), how many vertices
-    /// were reached, and the total distance. `distance` and `reached` describe it until the next.
+    /// were reached, and, when `summing`, the total distance (else zero: a sum the caller does not
+    /// need must not overflow `W`). `distance` and `reached` describe it until the next.
     @inlinable
-    mutating func search(from s: Int, parents: Bool = false) -> (eccentricity: W, reachedAll: Bool, total: W) {
+    mutating func search(from s: Int, parents: Bool = false, summing: Bool = false) -> (eccentricity: W, reachedAll: Bool, total: W) {
         round += 1
         if parents, parentSlot.isEmpty { parentSlot = [Int](repeating: -1, count: rows.count) }
         distance[s] = .zero
@@ -141,7 +143,7 @@ struct _DijkstraSearches<W: Comparable & AdditiveArithmetic> {
         while let (v, d) = heap.popMin() {
             settled += 1
             if d > eccentricity { eccentricity = d }
-            total += d
+            if summing { total += d }
             for slot in rows.offsets[v] ..< rows.offsets[v + 1] {
                 let w = rows.targets[slot]
                 let candidate = d + weights[rows.edges[slot]]

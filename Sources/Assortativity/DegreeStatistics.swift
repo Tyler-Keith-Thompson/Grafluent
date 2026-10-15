@@ -44,13 +44,14 @@ extension Graph {
     /// The s-metric (Li et al.): Σ d(u) d(v) over the edges, a self-loop contributing d(v)² and
     /// each parallel copy counting. O(n + m).
     ///
-    /// - Precondition: The sum fits in `Int`.
+    /// - Returns: The sum, as an `Int64` (a star of 46,341 leaves passes a 32-bit `Int`).
+    /// - Precondition: The sum fits in `Int64`.
     @inlinable
-    public func sMetric() -> Int {
+    public func sMetric() -> Int64 {
         // Every edge end once: each edge twice, a self-loop's two ends both in its row.
         let (sums, degrees) = _runOnUndirectedRows(_IncidenceRowsAlgorithm(_DegreeSums(source: .out, target: .out, undirected: true)))
-        var total = 0
-        for v in sums.indices { total += degrees[v] * sums[v] }
+        var total: Int64 = 0
+        for v in sums.indices { total += Int64(degrees[v]) * Int64(sums[v]) }
         return total / 2
     }
 

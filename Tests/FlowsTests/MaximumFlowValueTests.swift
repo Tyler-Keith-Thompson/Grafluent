@@ -854,6 +854,7 @@ struct MaximumFlowValueTests {
         #expect(value == graph.minimumCut(from: 0, to: 2, capacity: { capacities[$0] }).value)
     }
 
+    #if _pointerBitWidth(_64)
     @Test("FL-163 Int, large: 2^63 - 1 total, Int.max: 9223372036854775807")
     func fl163() {
         // V [0, 1, 2]; E [0→1 4611686018427387904, 0→2 4611686018427387903, 1→2 4611686018427387904]; maximumFlowValue(from: 0, to: 2, capacity:)
@@ -877,6 +878,7 @@ struct MaximumFlowValueTests {
         #expect(value == graph.maximumFlow(from: 0, to: 2, capacity: { capacities[$0] }).value)
         #expect(value == graph.minimumCut(from: 0, to: 2, capacity: { capacities[$0] }).value)
     }
+    #endif
 
     @Test("FL-167 undirected: one edge both ways: flow -5 on edge 0: 5")
     func fl167() {

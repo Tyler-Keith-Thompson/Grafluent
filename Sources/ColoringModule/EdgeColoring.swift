@@ -150,7 +150,7 @@ struct _EdgeColorTable {
                 total += capacity
             }
         }
-        precondition(total < 1 << 32, "Edge colouring needs fewer than 2³² table slots")
+        precondition(Int64(total) < 1 << 32, "Edge colouring needs fewer than 2³² table slots")
         keys = [Int32](repeating: -1, count: total)
         slots = [Int32](repeating: -1, count: total)
         self.width = width
@@ -164,8 +164,10 @@ struct _EdgeColorTable {
     @inlinable @inline(__always)
     func slot(_ x: Int, _ c: Int) -> Int {
         let word = place[x]
-        let base = Int(word >> 32), m = Int(word & 0xFFFF_FFFF)
-        if m == 0xFFFF_FFFF { return base &+ c }
+        // The low word compared as a `UInt64`: 2³² − 1 is not an `Int` on 32-bit platforms.
+        let base = Int(truncatingIfNeeded: word >> 32), low = word & 0xFFFF_FFFF
+        if low == 0xFFFF_FFFF { return base &+ c }
+        let m = Int(truncatingIfNeeded: low)
         var h = c & m
         while true {
             let key = keys[base &+ h]
@@ -181,8 +183,8 @@ struct _EdgeColorTable {
     @inlinable @inline(__always)
     func slots(of x: Int) -> Range<Int> {
         let word = place[x]
-        let base = Int(word >> 32), m = Int(word & 0xFFFF_FFFF)
-        return base ..< base + (m == 0xFFFF_FFFF ? width : m + 1)
+        let base = Int(truncatingIfNeeded: word >> 32), low = word & 0xFFFF_FFFF
+        return base ..< base + (low == 0xFFFF_FFFF ? width : Int(truncatingIfNeeded: low) + 1)
     }
 
     /// The edge of colour `c` at `x`, or −1.
@@ -217,8 +219,9 @@ struct _EdgeColorTable {
         slots[i] = -1
         if c < low[x] { low[x] = Int32(truncatingIfNeeded: c) }
         let word = place[x]
-        let base = Int(word >> 32), size = Int(word & 0xFFFF_FFFF)
-        guard size != 0xFFFF_FFFF else { return }
+        let base = Int(truncatingIfNeeded: word >> 32), low = word & 0xFFFF_FFFF
+        guard low != 0xFFFF_FFFF else { return }
+        let size = Int(truncatingIfNeeded: low)
         var j = i - base
         var hole = j
         while true {

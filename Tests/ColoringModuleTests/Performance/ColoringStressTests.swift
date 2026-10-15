@@ -273,7 +273,8 @@ struct ColoringStressTests {
                 var rng = SeededRandomNumberGenerator(seed: seed)
                 var pairs = Set<[Int]>()
                 while pairs.count < 2 * n {
-                    let u = Int.random(in: 0 ..< n, using: &rng), v = Int.random(in: 0 ..< n, using: &rng)
+                    // Drawn through 64-bit bounds: the same graphs at either `Int` width.
+                    let u = Int(rng.next(upperBound: UInt64(n))), v = Int(rng.next(upperBound: UInt64(n)))
                     // Planted: only edges between the classes i mod 3, so i mod 3 is a 3-colouring.
                     if u == v || (planted && u % 3 == v % 3) { continue }
                     pairs.insert([min(u, v), max(u, v)])

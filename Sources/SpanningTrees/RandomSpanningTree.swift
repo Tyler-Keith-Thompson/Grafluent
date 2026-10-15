@@ -19,7 +19,8 @@ func _uniformUnit<R: RandomNumberGenerator>(_ g: inout R) -> Double {
 @inlinable
 @inline(__always)
 func _uniformIndex<R: RandomNumberGenerator>(below n: Int, _ g: inout R) -> Int {
-    let shift = UInt64(truncatingIfNeeded: n.leadingZeroBitCount)
+    // 64 − k, where k is the bit length of n, at either `Int` width.
+    let shift = UInt64(truncatingIfNeeded: n.leadingZeroBitCount &+ (64 &- Int.bitWidth))
     while true {
         let r = Int(truncatingIfNeeded: g.next() >> shift)
         if r < n { return r }

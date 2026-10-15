@@ -49,16 +49,16 @@ struct TriadicCensusTests {
     func sixArcs() {
         let graph = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 0, to: 2), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 2)])
         let census = graph.triadicCensus()
-        var expected = [Int](repeating: 0, count: 16)
-        for (type, count) in [("012", 1), ("111D", 1), ("201", 1), ("120C", 1)] { expected[TriadicCensus.types.firstIndex(of: type)!] = count }
+        var expected = [Int64](repeating: 0, count: 16)
+        for (type, count) in [("012", 1), ("111D", 1), ("201", 1), ("120C", 1)] as [(String, Int64)] { expected[TriadicCensus.types.firstIndex(of: type)!] = count }
         #expect(census.counts == expected)
         #expect(census["003"] == 0)
     }
 
     @Test("Fewer than three vertices: every count 0; isolated vertices make 003 and dyadic triads")
     func small() {
-        #expect(AdjacencyList<Int>().triadicCensus().counts == [Int](repeating: 0, count: 16))
-        #expect(AdjacencyList(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)]).triadicCensus().counts == [Int](repeating: 0, count: 16))
+        #expect(AdjacencyList<Int>().triadicCensus().counts == [Int64](repeating: 0, count: 16))
+        #expect(AdjacencyList(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)]).triadicCensus().counts == [Int64](repeating: 0, count: 16))
         // Five vertices, one arc: 012 with each of the other three, 003 for the rest of C(5, 3) = 10.
         let graph = AdjacencyList(vertices: 0 ..< 5, edges: [DirectedEdge(from: 3, to: 1)])
         let census = graph.triadicCensus()
@@ -93,5 +93,15 @@ struct TriadicCensusTests {
     func unindexed() {
         let graph = ReferenceDirectedMultigraph(edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "c"), DirectedEdge(from: "c", to: "a")])
         #expect(graph.triadicCensus()["030C"] == 1)
+    }
+
+    @Test("2,400 vertices and one arc: more than 2³¹ triples, counted in Int64 at either Int width")
+    func pastInt32() {
+        let graph = AdjacencyList(vertices: 0 ..< 2400, edges: [DirectedEdge(from: 0, to: 1)])
+        let census = graph.triadicCensus()
+        // C(2400, 3) = 2,301,120,800 triples: 2,398 hold the arc, the rest are empty.
+        #expect(census["012"] == 2398)
+        #expect(census["003"] == 2_301_118_402)
+        #expect(census.counts.reduce(0, +) == 2_301_120_800)
     }
 }

@@ -1063,7 +1063,7 @@ struct LinearSumAssignmentTests {
     @Test("MA-212 integers beyond 2^53: exact (Int arithmetic is exact; scipy rounds to float64 and returns the worse [0, 1])")
     func ma212() throws {
         // [9007199254740993 9007199254740992; 9007199254740992 9007199254740992]; linearSumAssignment(rowCount: 2, columnCount: 2)
-        let matrix: [[Int?]] = [[9007199254740993, 9007199254740992], [9007199254740992, 9007199254740992]]
+        let matrix: [[Int64?]] = [[9007199254740993, 9007199254740992], [9007199254740992, 9007199254740992]]
         let assignment = try #require(linearSumAssignment(rowCount: 2, columnCount: 2) { matrix[$0][$1] })
         #expect(assignment.rows == [0, 1])
         #expect(assignment.columns == [1, 0])
@@ -1073,15 +1073,15 @@ struct LinearSumAssignmentTests {
         #expect(assignment.rows.count == 2 && assignment.columns.count == 2)
         #expect(assignment.rows == assignment.rows.sorted() && Set(assignment.rows).count == assignment.rows.count)
         #expect(Set(assignment.columns).count == assignment.columns.count)
-        var sum: Int = 0
+        var sum: Int64 = 0
         for (i, j) in zip(assignment.rows, assignment.columns) { sum += try #require(matrix[i][j]) }
         #expect(sum == assignment.cost)
         // Brute force over every assignment of the shorter dimension into the longer one.
-        func entry(_ a: Int, _ b: Int) -> Int? { matrix[a][b] }
+        func entry(_ a: Int, _ b: Int) -> Int64? { matrix[a][b] }
         let (shorter, longer) = (2, 2)
         var taken = [Bool](repeating: false, count: longer)
-        var best: Int?
-        func place(_ a: Int, _ total: Int) {
+        var best: Int64?
+        func place(_ a: Int, _ total: Int64) {
             guard a < shorter else {
                 if best == nil || total < best! { best = total }
                 return

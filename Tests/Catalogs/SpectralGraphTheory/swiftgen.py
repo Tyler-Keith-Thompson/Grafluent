@@ -114,9 +114,11 @@ def pairs(ps, per_line=12, ind="            "):
 
 
 def weights_literal(ws):
-    """[Int] when every weight is an integer (the BinaryInteger overload), else [Double]."""
+    """[Int] when every weight is an integer (the BinaryInteger overload), [Int64] when one is past
+    Int32 (a 32-bit `Int` cannot hold it), else [Double]."""
     if all(isinstance(w, int) for w in ws):
-        return "[Int]", "[" + ", ".join(str(w) for w in ws) + "]"
+        t = "[Int64]" if any(abs(w) > 2**31 - 1 for w in ws) else "[Int]"
+        return t, "[" + ", ".join(str(w) for w in ws) + "]"
     return "[Double]", "[" + ", ".join(num(w) for w in ws) + "]"
 
 
