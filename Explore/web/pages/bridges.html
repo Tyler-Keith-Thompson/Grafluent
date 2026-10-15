@@ -1,0 +1,56 @@
+<!-- title: Bridges and articulation points · Explore Grafluent -->
+<!-- description: Close a road and watch a village split, then watch Grafluent’s depth-first search find every bridge and articulation point in one pass. -->
+<header class="sign">
+  <h1>Bridges and articulation points</h1>
+  <div class="say"><span>Say it</span><b>ar-tik-yuh-LAY-shun</b><span class="ipa">/ɑːrˌtɪkjəˈleɪʃən/</span><span>and</span><b>TAR-jun</b><span class="ipa">/ˈtɑːrdʒən/</span></div>
+  <p class="question">Which single road closure splits the town?</p>
+</header>
+<p class="example lead">Example: a village of nine places and ten two-way roads. A road whose closure cuts the village in two is a <b>bridge</b>; a place whose closure does the same is an <b>articulation point</b>, or cut vertex.</p>
+
+<h2 class="labhead"><small>Try it</small>Close a road or a place</h2>
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The village above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<h2 class="labhead"><small>Step through</small>Every weak spot in one depth-first search</h2>
+<div id="search"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The search above, in Grafluent</h2>
+  <pre id="code-search" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Can you get back without the road you came by?</h2>
+  <p>Trying every closure in turn means one connectivity check per road: slow on a big network. A single <a href="dfs.html">depth-first search</a> answers for every road at once. The search numbers each place by when it first arrives there, its <b>time</b>. The roads it walks to new places form a tree; every other road leads back to a place already on the current path, a <b>back road</b>.</p>
+  <p>Each place also keeps a <b>low-link</b>: the earliest time that it, or anything the search reached from it, can get back to with one back road. When the search leaves a place, its low-link is final, and one comparison with its parent decides everything:</p>
+  <ul>
+    <li>If the low-link is <em>later</em> than the parent’s time, nothing below gets back to the parent except along the tree road between them. That road is a <b>bridge</b>.</li>
+    <li>If it is <em>no earlier</em> than the parent’s time, the branch below can’t get above the parent, so the parent is an <b>articulation point</b>. The start is the exception: it is one when the search had to set out from it more than once.</li>
+  </ul>
+  <p>Each road is looked at once from each end, so the whole thing takes time proportional to the number of places plus roads. Grafluent’s <code>bridges()</code> and <code>articulationPoints()</code> run this search over flat rows; the timeline above rebuilds the times and low-links from <code>edgeDepthFirstSearch</code>’s events.</p>
+
+  <h2><small>Where it breaks</small>Loops have no bridges, and that’s the point</h2>
+  <p>Inside the loop of Mill, Church, Square and School, or the triangle of Station, Market and Harbour, no single closure cuts anyone off: there is always another way round. Such a part is <b>two-edge-connected</b>, and <code>biEdgeConnectedComponents()</code> lists them. So the cure for a fragile network is a loop: one new road from Farm to Church, and Mill–Farm stops being a bridge.</p>
+  <p>Places are a different question from roads. Two triangles that share one corner have no bridge at all, yet taking away the shared corner splits them. Each triangle is a <b>block</b>, a biconnected component, and the corner is in both.</p>
+  <figure class="fig">
+    <svg viewBox="0 0 520 210" role="img" aria-label="Two triangles, A B C and C D E, sharing the vertex C">
+      <line class="e" x1="70" y1="40" x2="70" y2="170"/><line class="e" x1="70" y1="40" x2="260" y2="105"/><line class="e" x1="70" y1="170" x2="260" y2="105"/>
+      <line class="e" x1="450" y1="40" x2="450" y2="170"/><line class="e" x1="450" y1="40" x2="260" y2="105"/><line class="e" x1="450" y1="170" x2="260" y2="105"/>
+      <g class="v"><circle cx="70" cy="40" r="20"/><text x="70" y="46">A</text></g>
+      <g class="v"><circle cx="70" cy="170" r="20"/><text x="70" y="176">B</text></g>
+      <g class="v on"><circle cx="260" cy="105" r="20"/><text x="260" y="111">C</text></g>
+      <g class="v"><circle cx="450" cy="40" r="20"/><text x="450" y="46">D</text></g>
+      <g class="v"><circle cx="450" cy="170" r="20"/><text x="450" y="176">E</text></g>
+    </svg>
+    <figcaption>A bow tie: no road is a bridge, but C is an articulation point, the one place in both blocks.</figcaption>
+    <pre class="figcode" id="fig-bowtie" aria-label="Swift code for this figure"></pre>
+  </figure>
+  <p>For a network that must survive any one failure, ask for no articulation point: <code>isBiconnected</code>. For any <em>two</em> failures, the question becomes one of <a href="flow.html">flow</a>: how many separate routes join each pair.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

@@ -395,3 +395,20 @@ figure.fig { margin: 0; }
 [data-loading] :is(button, select, .scrub) { animation: first-frame 1.6s ease-in-out infinite; }
 @keyframes first-frame { 50% { opacity: .6; } }
 @media (prefers-reduced-motion: reduce) { [data-loading] :is(button, select, .scrub) { animation: none; opacity: .7; } }
+/* Bridges: the weak spots a depth-first search finds, and a closed road or place. */
+.edge.bridge .stroke { stroke: var(--danger); stroke-width: 7; }
+.line.bridge { border-color: var(--danger); border-top-width: 6px; }
+.node.cut circle { fill: var(--danger); stroke: var(--danger); }
+.node.cut .badge { fill: var(--sign-ink); }
+.node.cut.current circle { stroke: var(--signal); stroke-width: 5; }
+.dot.cut { background: var(--danger); border-color: var(--danger); }
+.node.closed circle { fill: var(--paper); stroke: var(--rule); stroke-dasharray: 4 4; }
+.node.closed .name { fill: var(--muted); text-decoration: line-through; }
+/* Euler tours: places with an odd or even number of bridges. */
+.node.odd circle { fill: color-mix(in srgb, var(--danger) 22%, var(--sheet)); stroke: var(--danger); stroke-width: 3; }
+.node.even circle { fill: color-mix(in srgb, var(--green) 22%, var(--sheet)); stroke: var(--green); stroke-width: 3; }
+.node.odd.frontier circle, .node.even.frontier circle { fill: var(--signal); }
+.node.odd.current circle, .node.even.current circle { stroke-width: 5; }
+.dot.odd { background: color-mix(in srgb, var(--danger) 22%, var(--sheet)); border-color: var(--danger); }
+.dot.even { background: color-mix(in srgb, var(--green) 22%, var(--sheet)); border-color: var(--green); }
+.steps li.empty { color: var(--muted); font-weight: 400; }

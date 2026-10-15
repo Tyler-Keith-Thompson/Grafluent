@@ -2,6 +2,7 @@
 // figure illustrates. The marked regions are the samples; the results are computed here.
 
 import AdjacencyListModule
+import Connectivity
 import GraphProtocols
 import Multigraphs
 import ShortestPaths
@@ -96,4 +97,21 @@ func negativeFigure() -> [String] {
     let stops = routes?.path(to: "A").map(Array.init)       // →
     // snippet end
     return [toA.flatMap { $0 }.map { "\($0)" } ?? "nil", names(stops.flatMap { $0 } ?? [])]
+}
+
+func bowtieFigure() -> [String] {
+    // snippet: figure-bowtie
+    let bowtie = UndirectedAdjacencyList<String> {
+        UndirectedEdge("A", "B")
+        UndirectedEdge("B", "C")
+        UndirectedEdge("C", "A")
+        UndirectedEdge("C", "D")
+        UndirectedEdge("D", "E")
+        UndirectedEdge("E", "C")
+    }
+    let bridges = bowtie.bridges().count                    // →
+    let cutVertices = bowtie.articulationPoints()           // →
+    let blocks = bowtie.biconnectedComponents().count       // →
+    // snippet end
+    return ["\(bridges)", "[" + cutVertices.map { "\"\($0)\"" }.joined(separator: ", ") + "]", "\(blocks)"]
 }

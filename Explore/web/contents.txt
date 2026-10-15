@@ -9,6 +9,7 @@ dijkstra|Dijkstra’s algorithm|Getting around|The quickest route to everywhere.
 astar|A* search|Getting around|The quickest route to one place, aimed at the goal.|page
 toposort|Topological sort|Getting around|An order for tasks with dependencies.|page
 components|Connected components|Structure|Which parts can reach each other.|page
+bridges|Bridges and articulation points|Structure|Which single closure splits the network.|page
 mst|Minimum spanning trees|Structure|The cheapest way to connect everything.|page
 cliques|Cliques|Structure|Groups where everyone is connected.|soon
 communities|Communities|Structure|Where a network splits into groups.|soon
