@@ -480,6 +480,6 @@ enum BridgesPage {
         mountView(ClosureCodePanel(), in: "code")
         mountView(LowLinkLab(), in: "search")
         mountView(LowLinkCodePanel(), in: "code-search")
-        mountView(NamesStrip(names: [Names.tarjan, Names.hopcroft, Names.tremaux]), in: "names")
+        mountView(NamesStrip(names: [Names.tarjan, Names.tremaux]), in: "names")
     }
 }

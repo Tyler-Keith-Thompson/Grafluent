@@ -464,6 +464,6 @@ enum MSTPage {
     static func mount() {
         mountView(MSTLab(), in: "app")
         mountView(MSTCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.kruskal, Names.prim, Names.boruvka]), in: "names")
+        mountView(NamesStrip(names: [Names.kruskal, Names.boruvka]), in: "names")
     }
 }

@@ -344,6 +344,6 @@ enum ComponentsPage {
         mountView(StreetsLab(), in: "app")
         mountView(IslandsCodePanel(), in: "code-islands")
         mountView(StreetsCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.tarjan, Names.kosaraju, Names.pearce, Names.hopcroft]), in: "names")
+        mountView(NamesStrip(names: [Names.tarjan, Names.kosaraju]), in: "names")
     }
 }

@@ -190,6 +190,6 @@ enum MatchingPage {
     static func mount() {
         mountView(MatchingLab(), in: "app")
         mountView(MatchingCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.hopcroftKarp, Names.konig, Names.hall, Names.edmonds, Names.kuhn]), in: "names")
+        mountView(NamesStrip(names: [Names.konig, Names.kuhn]), in: "names")
     }
 }

@@ -461,6 +461,6 @@ enum AStarPage {
     static func mount() {
         mountView(AStarLab(), in: "app")
         mountView(AStarCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.hart, Names.dijkstra]), in: "names")
+        mountView(NamesStrip(names: [Names.dijkstra]), in: "names")
     }
 }

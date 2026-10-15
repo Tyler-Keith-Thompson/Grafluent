@@ -221,6 +221,6 @@ enum ColoringPage {
     static func mount() {
         mountView(ColoringLab(), in: "app")
         mountView(ColoringCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.welshPowell, Names.brelaz, Names.brooks, Names.konig]), in: "names")
+        mountView(NamesStrip(names: [Names.brelaz, Names.konig]), in: "names")
     }
 }

@@ -212,6 +212,6 @@ enum PageRankPage {
     static func mount() {
         mountView(PageRankLab(), in: "app")
         mountView(PageRankCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.page, Names.brin, Names.markov, Names.kleinberg]), in: "names")
+        mountView(NamesStrip(names: [Names.kleinberg]), in: "names")
     }
 }

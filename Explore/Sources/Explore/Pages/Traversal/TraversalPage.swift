@@ -309,7 +309,7 @@ enum BreadthFirstPage {
     static func mount() {
         mountView(TraversalLab(model: breadthFirstModel), in: "app")
         mountView(TraversalCodePanel(model: breadthFirstModel), in: "code")
-        mountView(NamesStrip(names: [Names.moore, Names.dijkstra]), in: "names")
+        mountView(NamesStrip(names: [Names.dijkstra]), in: "names")
     }
 }
 
@@ -317,6 +317,6 @@ enum DepthFirstPage {
     static func mount() {
         mountView(TraversalLab(model: depthFirstModel), in: "app")
         mountView(TraversalCodePanel(model: depthFirstModel), in: "code")
-        mountView(NamesStrip(names: [Names.tremaux, Names.tarjan, Names.hopcroft, Names.kahn]), in: "names")
+        mountView(NamesStrip(names: [Names.tremaux, Names.tarjan]), in: "names")
     }
 }

@@ -200,6 +200,6 @@ enum LayoutPage {
     static func mount() {
         mountView(LayoutLab(), in: "app")
         mountView(LayoutCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.fruchtermanReingold, Names.eades, Names.barnesHut, Names.kamadaKawai, Names.forceAtlas]), in: "names")
+        mountView(NamesStrip(names: [Names.fruchtermanReingold, Names.eades, Names.kamadaKawai]), in: "names")
     }
 }
