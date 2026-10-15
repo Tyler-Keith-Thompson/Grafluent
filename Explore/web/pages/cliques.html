@@ -5,22 +5,42 @@
   <div class="say"><span>Say it</span><b>BRON KER-boss</b><span class="ipa">/ˈbrɔn ˈkɛrbɔs/</span></div>
   <p class="question">Which groups of people have all met each other?</p>
 </header>
-<p class="example lead">Example: eight guests at a party, and a line between each pair who have met. A group in which every pair has met is a <b>clique</b>; one that no other guest could join is a <b>maximal</b> clique.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Groups where everyone knows everyone</h2>
+  <p>A <b>clique</b> is a group in which every pair is linked. It is <b>maximal</b> when nobody else could join it. It is <b>maximum</b> when no clique anywhere is bigger. Bron–Kerbosch lists every maximal clique.</p>
+  <p>Reach for it to find tight groups in a social network, proteins that all bind each other, or sets of tasks that all conflict. It is fast on sparse networks, where each vertex has few links.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find tight groups</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *Bron–Kerbosch | You want every maximal clique | Each one, lazily, as it is found | Up to 3<sup>n/3</sup> | Too many cliques on large dense graphs |
+  | Maximum clique | You want only the largest | <code>maximumClique()</code>, one clique | Exponential at worst, with pruning | Says nothing about the others |
+  | [Cores](cores.html) | You want a dense core, not a perfect one | Groups where each has at least k links inside | O(n + m) | A core need not be a clique |
+  | [Communities](communities.html) | Groups may be loose | A split of everyone into groups | About O(m) a pass | Groups are only denser than average |
+  -->
+  <p>Cliques are the strictest kind of group, and listing them can take exponential time. When a looser group will do, cores and communities are much faster.</p>
+</section>
+
+<p class="example lead">Example: eight guests at a party, with a line between each pair who have met.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The party above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>Grow a group, remember who could join</h2>
-  <p>Bron–Kerbosch keeps three sets. <b>R</b> is the group being grown. <b>P</b> holds the guests who could still join it: everyone who has met every member. <b>X</b> holds guests who could join too but have already been tried, so their groups are found already. Each call adds one guest from P to R, keeps only that guest’s friends in P and X, and calls itself again. When P and X are both empty, nobody can join and nobody has been missed: R is a maximal clique. When the call returns, the guest moves from P to X.</p>
-  <p>The <b>pivot</b>, Tomita’s rule, saves most of the work. Pick the guest in P or X who knows the most of P. Any group made only of the pivot’s friends could add the pivot too, so it will turn up in the call that adds the pivot; only the guests the pivot hasn’t met need their own calls. Grafluent also starts the outer calls in degeneracy order, which keeps P small on sparse networks.</p>
+  <p>Bron–Kerbosch keeps three sets. <b>R</b> is the group being grown. <b>P</b> holds the guests who could still join it, because they have met every member. <b>X</b> holds guests who could join too but have already been tried. Their groups have been found already.</p>
+  <p>Each call adds one guest from P to R. It keeps only that guest’s friends in P and X, and calls itself again. When P and X are both empty, nobody can join and nobody has been missed. Then R is a maximal clique. When the call returns, the guest moves from P to X.</p>
+  <p>The <b>pivot</b> saves most of the work. This rule is Tomita’s. Pick the guest in P or X who knows the most of P. Any group made only of the pivot’s friends could add the pivot too. So it will turn up in the call that adds the pivot. Only the guests the pivot hasn’t met need calls of their own. Grafluent also starts the outer calls in degeneracy order, which keeps P small on sparse networks.</p>
 
   <h2><small>Where it breaks</small>There can be very many cliques</h2>
-  <p>A graph can have exponentially many maximal cliques, about 3<sup>n/3</sup> at worst, and listing them takes at least that long. The search is fast on sparse real networks, such as who has met whom, and hopeless on large dense ones. To find only the largest, <code>maximumClique()</code> prunes with bounds instead of listing everything; when groups may overlap only loosely, look at <a href="communities.html">communities</a> instead.</p>
+  <p>A graph can have about 3<sup>n/3</sup> maximal cliques, and listing them takes at least that long. The search is fast on sparse real networks, such as who has met whom. It is hopeless on large dense ones. To find only the largest, <code>maximumClique()</code> prunes with bounds instead of listing everything.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The party above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

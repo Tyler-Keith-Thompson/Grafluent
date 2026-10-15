@@ -116,16 +116,15 @@ func describePlanarity(_ k: Int, _ model: PlanarityModel) -> String {
     let s = model.current
     let link = model.links[k - 1]
     let state = model.states[k]
-    let head = "\(s.link.prefix(1).uppercased() + s.link.dropFirst()) \(k), \(link):"
+    let head = "\(s.link.prefix(1).uppercased() + s.link.dropFirst()) \(k) joins \(link.u) and \(link.v)."
     if state.planar {
-        return head + " still planar. planarLayout() draws it again with no crossings."
+        return head + " The graph is still planar, so planarLayout() redraws it with no crossings."
     }
-    guard let witness = state.witness else { return head + " not planar." }
-    let shape = witness.kind == .k5 ? "five places all joined to each other" : "three places each joined to the same other three"
+    guard let witness = state.witness else { return head + " The graph is not planar." }
     if k == model.breaking {
-        return head + " no longer planar. findKuratowskiSubgraph() returns the proof, in red: a \(kuratowskiName(witness.kind)), \(shape)."
+        return head + " Now no drawing can avoid a crossing. The red lines are the proof, a \(kuratowskiName(witness.kind)) from findKuratowskiSubgraph()."
     }
-    return head + " still not planar: adding never helps."
+    return head + " The graph is still not planar. Adding a link never makes it planar again."
 }
 
 @View
@@ -167,11 +166,11 @@ struct PlanarityLab {
                         span(.class("label")) { finished ? "All \(model.links.count) \(s.link)s added" : "\(k) of \(model.links.count) \(s.link)s" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "\(vertexCount) places, nothing joining them yet. Add the \(s.link)s one at a time; after each, Grafluent asks whether the drawing can still avoid every crossing."
+                                "\(vertexCount) places, and nothing joins them yet. Add the \(s.link)s one at a time. After each one, Grafluent checks whether some drawing still avoids every crossing."
                             } else if finished && state.planar {
                                 "Every \(s.link) is in, and the graph is planar. "
                                 if let faces = state.faces {
-                                    "Its embedding has \(faces) faces, the outside included: \(vertexCount) − \(k) + \(faces) = \(vertexCount - k + faces), as Euler’s formula says for a connected planar graph."
+                                    "Its drawing has \(faces) faces, counting the outside. And \(vertexCount) − \(k) + \(faces) = \(vertexCount - k + faces), as Euler’s formula says."
                                 }
                             } else {
                                 describePlanarity(k, model)
@@ -253,7 +252,7 @@ struct PlanarityLab {
                         (Marble(kind: "m-red", radius: 6), "the \(s.link) that makes it non-planar"),
                         (Marble(kind: "m-grey", radius: 4), "still not planar"),
                     ])
-                p(.class("note")) { "Click any \(s.link) to take it out, and click again to put it back. While the graph is planar, it is drawn by planarLayout(); otherwise as first drawn." }
+                p(.class("note")) { "Click any \(s.link) to take it out, and click again to put it back. While the graph is planar, planarLayout() draws it. Otherwise it is shown as first drawn." }
             }
         }
     }

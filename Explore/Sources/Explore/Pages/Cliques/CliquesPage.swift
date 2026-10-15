@@ -84,22 +84,22 @@ func guestList(_ names: [String]) -> String {
 
 func describeClique(_ event: BronKerboschEvent<String>, before: CliqueSnapshot, after: CliqueSnapshot) -> String {
     switch event {
-    case .call(let adding, let clique, let candidates, let excluded):
+    case .call(let adding, let clique, _, _):
         let start = clique.count == 1
             ? "Start a group with \(adding)."
-            : "Add \(adding): the group is now \(guestList(clique))."
-        return start + " Could still join, knowing everyone in it: \(guestList(candidates)). Already tried: \(guestList(excluded))."
+            : "Add \(adding). The group is now \(guestList(clique))."
+        return start
     case .pivot(let u):
         let frame = after.frames.last!
         let skipped = frame.candidates.filter { $0 != u && party.contains(edge: UndirectedEdge($0, u)) }
         return skipped.isEmpty
-            ? "Pivot on \(u). Every candidate needs trying from here."
-            : "Pivot on \(u), who knows \(guestList(skipped)). Any group built from \(u)’s friends alone could take \(u) too, so it will turn up through \(u): only the others need trying here."
+            ? "Pivot on \(u). \(u) knows none of the others who could join, so each one needs trying."
+            : "Pivot on \(u), who knows \(guestList(skipped)). A group of only \(u)’s friends could add \(u) too, so it will be found through \(u). \(skipped.count == 1 ? "That friend is" : "Those friends are") skipped here."
     case .maximalClique(let clique):
-        return "Nobody can join, and nobody already tried could either: \(guestList(clique)) is a maximal clique."
+        return "Nobody else can join, and nobody already tried could either. So \(guestList(clique)) is a maximal clique."
     case .backtrack:
         guard let moved = after.movedToExcluded else { return "Done with \(before.frames.last!.adding)’s start." }
-        return "Back out of \(moved). From here on \(moved) counts as already tried, so no group is found twice."
+        return "Back out of \(moved). Now \(moved) counts as already tried, so no group is found twice."
     }
 }
 
@@ -154,11 +154,11 @@ struct CliquesLab {
                         span(.class("label")) { finished ? "Done after \(model.events.count) events" : "Event \(k) of \(model.events.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Grow a group one guest at a time, keeping track of who could still join (everyone in the group knows them) and who has already been tried. When nobody can join, the group is a maximal clique. Press Step to begin."
+                                "Grow a group one guest at a time. Keep track of who could still join and who has already been tried. When nobody can join, the group is a maximal clique. Press Step to begin."
                             } else if finished {
-                                "Every start is tried: \(state.found.count) maximal cliques, each in its own colour. The largest, "
+                                "Every start is tried. There are \(state.found.count) maximal cliques, each in its own colour. The largest, "
                                 em { guestList(model.largest) }
-                                ", is a maximum clique: \(model.largest.count) guests who have all met."
+                                ", is a maximum clique. Those \(model.largest.count) guests have all met."
                             } else {
                                 describeClique(last!, before: before, after: state)
                             }
@@ -180,7 +180,6 @@ struct CliquesLab {
                                 span { guestList(frame?.excluded ?? []) }
                             }
                         }
-                        p(.class("note")) { "Calls in progress: \(state.frames.count), one per guest in the group." }
                     }
                     div(.class("panel")) {
                         span(.class("label")) { "Maximal cliques found" }
@@ -209,7 +208,7 @@ struct CliquesLab {
                         (Marble(kind: "m-green", radius: 6), "a maximal clique, with its size"),
                         (Marble(kind: "m-grey", radius: 3.5), "back out"),
                     ])
-                p(.class("note")) { "A line joins each pair who have met. The outer calls start from each guest in turn, in degeneracy order: those with the fewest connections to the rest go first." }
+                p(.class("note")) { "The outer calls take the guests in degeneracy order. Guests with the fewest links to the rest go first." }
             }
         }
     }

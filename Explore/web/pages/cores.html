@@ -4,34 +4,52 @@
   <h1>Cores and trusses</h1>
   <p class="question">Who is at the tight centre of a group of friends, and who hangs on at the edge?</p>
 </header>
-<p class="example lead">Example: a club of sixteen people. The <b>k-core</b> is the largest group in which everyone has at least k friends inside the group. A person’s <b>core number</b> is the largest k whose core they are in.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Finding the dense centre of a network</h2>
+  <p>The <b>k-core</b> is the largest group in which everyone has at least k friends inside the group. A person’s <b>core number</b> is the largest k whose core they are in. People with high core numbers sit at the tight centre. People with low ones hang on at the edge.</p>
+  <p>Reach for cores to find the dense heart of a large network, or to throw away the loose fringe before running something slower. They take time in step with the size of the network, so they work on millions of links.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find a dense centre</h2>
+  <!-- compare
+  | Method | When to use | Counts | Cost | Weakness |
+  | *k-core | A fast first look at the centre | Friends inside the group | O(n + m) | Can hold people who share no friends |
+  | *k-truss | You want tighter groups | Friends that two friends share | About O(m<sup>1.5</sup>) | Slower than cores |
+  | *Onion layers | You want to rank people inside a core | How many rounds of peeling a person survives | O(n + m) | Harder to explain than a core number |
+  | [Cliques](cliques.html) | Everyone must know everyone | Every pair | Exponential at worst | Slow, and very strict |
+  -->
+  <p>Cores are the quickest and the loosest. Trusses demand shared friends, so they find tighter groups. Cliques demand every pair, which is often too strict for real data.</p>
+</section>
+
+<p class="example lead">Example: a club of sixteen people and their friendships.</p>
 
 <h2 class="labhead"><small>Try it</small>Pick out a core or a truss</h2>
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The club above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <h2 class="labhead"><small>Step through</small>Peel it like an onion</h2>
 <div id="onion"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The peeling above, in Grafluent</h2>
-  <pre id="code-onion" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>Take away whoever has too few friends, until nobody does</h2>
-  <p>To find the k-core, remove everyone with fewer than k friends. Their friends now have fewer friends, so some of them may drop below k too; keep removing until everyone left has at least k. What is left doesn’t depend on the order you removed people in, which is why “the” k-core makes sense. Doing this for k = 1, 2, 3, … one after another gives every core number. Batagelj and Zaveršnik do it in a single pass: keep everyone in buckets by their current friend count, always remove from the lowest bucket, and move each friend of the removed person down a bucket. That takes time proportional to people plus friendships, and <code>coreNumbers()</code> is that algorithm.</p>
-  <p>The greatest core number is the network’s <b>degeneracy</b>. It says how dense the densest part is, and it bounds other things: the graph can be coloured with one more colour than its degeneracy, and the clique search on the <a href="cliques.html">cliques</a> page goes in degeneracy order to stay fast.</p>
-  <p>The <b>onion decomposition</b> in the second lab peels a whole round at once instead of one person at a time, and numbers the rounds. Each layer sits inside one core shell, so the layers say the same as the core numbers and more: Fay and Gus both have core number 3, but Fay is one layer deeper, because she only falls once Gus and Hal are gone.</p>
-  <p>A <b>k-truss</b> asks the same question of friendships instead of people: keep only the friendships whose two people share at least k − 2 friends inside what is kept. A truss is always inside a core, and tighter: a long ring of people each with two friends is a 2-core, but there isn’t a triangle in it, so it has no 3-truss. <code>trussNumbers()</code> peels friendships by how many triangles they are in.</p>
+  <p>To find the k-core, remove everyone with fewer than k friends. Their friends now have fewer friends, so some of them may drop below k too. Keep removing until everyone left has at least k. What is left doesn’t depend on the order of removal. That is why “the” k-core makes sense.</p>
+  <p>Doing this for k = 1, 2, 3 and so on gives every core number. Batagelj and Zaveršnik do it in a single pass. They keep people in buckets by their current friend count. They always remove someone from the lowest bucket, and move each of that person’s friends down a bucket. This takes time in step with people plus friendships. <code>coreNumbers()</code> is that algorithm.</p>
+  <p>The greatest core number is the network’s <b>degeneracy</b>. It says how dense the densest part is. It also bounds other things. The graph can be coloured with one more colour than its degeneracy. And the search on the <a href="cliques.html">cliques</a> page goes in degeneracy order to stay fast.</p>
+  <p>The <b>onion decomposition</b> in the second lab peels a whole round at once and numbers the rounds. Each layer sits inside one core shell, so the layers tell you more than the core numbers. Fay and Gus both have core number 3. But Fay is one layer deeper, because she only falls once Gus and Hal are gone.</p>
+  <p>A <b>k-truss</b> asks the same question of friendships instead of people. Keep only the friendships whose two people share at least k − 2 friends inside what is kept. A truss is always inside a core, and tighter. Take a long ring where each person has two friends. It is a 2-core, but it has no triangle, so it has no 3-truss. <code>trussNumbers()</code> peels friendships by how many triangles they are in.</p>
 
   <h2><small>Where it breaks</small>Big hubs are not the centre</h2>
-  <p>A person with dozens of friends who don’t know each other has a low core number: take away the friends, each of whom has only one link, and the hub falls with them. That is the point, since the core finds groups that hold together rather than people who are popular, but it means a core number is not a ranking of importance. For that, see <a href="pagerank.html">PageRank</a> or <a href="betweenness.html">betweenness</a>.</p>
-  <p>A core can also be in pieces. Two separate tight groups are both in the 3-core, with nothing joining them. <code>kCore(_:)</code> lists the people; to see the groups, take the core as its own graph and ask for its <a href="components.html">connected components</a>.</p>
+  <p>Picture a person with dozens of friends who don’t know each other. Each friend has only one link, so they all go early, and the hub falls with them. Its core number is low. That is the point, because a core finds groups that hold together. But it means a core number doesn’t rank importance. For that, see <a href="pagerank.html">PageRank</a> or <a href="betweenness.html">betweenness</a>.</p>
+  <p>A core can also be in pieces. Two separate tight groups can both be in the 3-core, with nothing joining them. <code>kCore(_:)</code> lists the people. To see the groups, take the core as its own graph and ask for its <a href="components.html">connected components</a>.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The club, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+
+  <h2><small>In Swift</small>The peeling, in Grafluent</h2>
+  <pre id="code-onion" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

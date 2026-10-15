@@ -76,11 +76,11 @@ func describeRemoval(_ k: Int, _ model: GirvanNewmanModel) -> String {
     let link = model.removed[k - 1]
     let before = model.states[k - 1], after = model.states[k]
     let score = before.scores.first { $0.link == link }!.score
-    let head = "Take out \(link.u)–\(link.v), the busiest link left: \(shareText(score)) of the shortest paths cross it."
+    let head = "Take out \(link.u)–\(link.v), the busiest link left. \(shareText(score)) of the shortest paths cross it."
     if after.groups.count > before.groups.count {
-        return head + " The network falls apart: \(after.groups.count) groups, modularity \(signedTwoPlaces(after.modularity))."
+        return head + " The network falls apart into \(after.groups.count) groups. Modularity is now \(signedTwoPlaces(after.modularity))."
     }
-    return head + " Everyone it joined can still reach each other, so the groups stay as they are. Every score is recomputed."
+    return head + " Its two ends can still reach each other, so no group splits. Every score is worked out again."
 }
 
 @View
@@ -108,7 +108,7 @@ struct GirvanNewmanLab {
         div {
             section(.class("lab"), .custom(name: "aria-label", value: "The crowd")) {
                 div(.class("panel stage")) {
-                    GraphCanvas(label: "Twelve crowd, a line between each pair who hang out, coloured by group", width: 660, height: 470, nodes: nodes, edges: edges)
+                    GraphCanvas(label: "Twelve friends, a line between each pair who hang out, coloured by group", width: 660, height: 470, nodes: nodes, edges: edges)
                     div(.class("legend")) {
                         span { i(.class("line route")) {}; "just taken out" }
                         span { i(.class("line active")) {}; "the busiest link now" }
@@ -120,9 +120,9 @@ struct GirvanNewmanLab {
                         span(.class("label")) { finished ? "Every link taken out" : k == 0 ? "\(model.removed.count) links to take out" : "Removal \(k) of \(model.removed.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "The numbers on the links are edge betweenness: how many shortest paths between pairs of crowd cross each one. Links between groups carry the most. Press Step to take out the busiest."
+                                "The number on each link is its edge betweenness. It counts the shortest paths between pairs of friends that cross the link. Links between groups carry the most. Press Step to take out the busiest."
                             } else if finished {
-                                "Nobody is left connected. Of all the partitions on the way, the one after removal \(bestStep) has the highest modularity, \(signedTwoPlaces(model.states[bestStep].modularity)): \(model.states[bestStep].groups.count) groups, the usual answer."
+                                "Nobody is left connected. Of all the splits on the way, the one after removal \(bestStep) has the highest modularity, \(signedTwoPlaces(model.states[bestStep].modularity)). Its \(model.states[bestStep].groups.count) groups are the usual answer."
                             } else {
                                 describeRemoval(k, model)
                             }
@@ -172,7 +172,7 @@ struct GirvanNewmanLab {
                         (Marble(kind: "m-blue", radius: 6), "a split, with the number of groups"),
                         (Marble(kind: "m-green", radius: 6), "the split with the best modularity"),
                     ])
-                p(.class("note")) { "Each step is one removal. girvanNewmanCommunities() reports only the splits; the page makes the removals itself, recomputing edgeBetweennessCentrality each time, to show the links in between." }
+                p(.class("note")) { "Each step is one removal. girvanNewmanCommunities() reports only the splits. To show the removals in between, the page makes them itself and recomputes edgeBetweennessCentrality each time." }
             }
         }
     }

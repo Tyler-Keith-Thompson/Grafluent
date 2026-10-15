@@ -100,17 +100,17 @@ func describeIsoStep(_ k: Int, _ model: IsomorphismModel) -> String {
     if k == 4 {
         guard let mapping = model.mapping else {
             return model.sameHash
-                ? "The search tries every way to match the vertices and finds none that keeps every edge. The colours couldn’t tell them apart, but these are different graphs."
+                ? "The search tries every way to match the vertices, and none keeps every edge. The colours couldn’t tell them apart, but these are different graphs."
                 : "No mapping exists, as the colours already showed."
         }
-        let some = model.current.first.prefix(3).map { "\($0.name) → \(mapping[$0.name]!)" }.joined(separator: ", ")
-        return "The search finds a mapping that keeps every edge: \(some), and so on. Matching colours mark each vertex and its image. Same graph, two drawings."
+        let some = model.current.first.prefix(3).map { "\($0.name) → \(mapping[$0.name]!)" }
+        return "The search finds a mapping that keeps every edge, starting \(some[0]), \(some[1]) and \(some[2]). So these are the same graph, drawn two ways."
     }
     let agree = model.colourCountsAgree(after: k)
-    let what = k == 1 ? "Round 1: colour every vertex by how many neighbours it has." : "Round \(k): colour every vertex by its colour and the colours of its neighbours."
+    let what = k == 1 ? "Round 1 colours each vertex by how many neighbours it has." : "Round \(k) colours each vertex by its old colour and its neighbours’ colours."
     return what + (agree
-        ? " Both drawings have the same number of vertices of each colour, so they might be the same graph."
-        : " The counts differ between the drawings, so they are certainly different graphs.")
+        ? " Both drawings have the same count of each colour, so they might be the same graph."
+        : " The counts differ, so they are certainly different graphs.")
 }
 
 @View
@@ -147,7 +147,7 @@ struct IsomorphismLab {
                 div(.class("panel stage")) {
                     GraphCanvas(label: "\(pair.title): the first drawing with lettered vertices, the second with numbered ones", width: 880, height: 400, nodes: nodes, edges: edges)
                     div(.class("legend")) {
-                        span { "Lettered: the first drawing. Numbered: the second." }
+                        span { "Letters mark the first drawing, and numbers the second." }
                         span { i(.class("dot pal1")) {}; finished && model.mapping != nil ? "a vertex and its image share a colour" : "a colour class" }
                     }
                 }
@@ -156,7 +156,7 @@ struct IsomorphismLab {
                         span(.class("label")) { finished ? "The answer" : k == 0 ? "3 rounds, then a search" : "Round \(k) of 3" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Are these two drawings of the same graph: can the numbers be matched to the letters so that every line still joins the same pairs? First a quick test, colour refinement, then a full search. Press Step."
+                                "Are these two drawings of the same graph? That means matching the numbers to the letters so that every line still joins the same pairs. A quick test comes first, then a full search. Press Step."
                             } else {
                                 describeIsoStep(k, model)
                             }
@@ -185,7 +185,7 @@ struct IsomorphismLab {
                                 }
                             }
                         }
-                        p(.class("note")) { "Equal hashes mean the drawings might be the same graph; different hashes mean they certainly aren’t. Only the search settles it." }
+                        p(.class("note")) { "Equal hashes mean the drawings might be the same graph. Different hashes mean they certainly aren’t. Only the search settles it." }
                     }
                 }
             }
@@ -214,7 +214,7 @@ struct IsomorphismLab {
                         (Marble(kind: "m-red", radius: 6), "counts differ, or no mapping"),
                         (Marble(kind: "m-green", radius: 6), "a mapping found"),
                     ])
-                p(.class("note")) { "Each round shows the colours from weisfeilerLehmanSubgraphHashes(iterations: 3); the last step is isomorphism(to:)." }
+                p(.class("note")) { "Each round shows the colours from weisfeilerLehmanSubgraphHashes(iterations: 3). The last step is isomorphism(to:)." }
             }
         }
     }

@@ -80,11 +80,11 @@ func describeFriendship(_ m: Int, _ model: GiantModel) -> String {
     let before = model.states[m - 1], after = model.states[m]
     let a = before.groups[before.group[edge.u]].count, b = before.groups[before.group[edge.v]].count
     var text = before.group[edge.u] == before.group[edge.v]
-        ? "Friendship \(m) is between two people already in one group of \(a): it closes a loop, and no group grows."
+        ? "Friendship \(m) joins two people who are already in the same group of \(a). No group grows."
         : "Friendship \(m) links a group of \(a) and a group of \(b) into one of \(a + b)."
     text += " The largest group has \(after.largest) of \(giantPeople)."
     if m == giantPeople / 2 {
-        text += " Each person now has one friend on average: p has reached 1/n."
+        text += " Each person now has one friend on average. So p has reached 1/n."
     }
     return text
 }
@@ -165,11 +165,11 @@ struct GiantLab {
                         span(.class("label")) { finished ? "All \(model.order.count) friendships added" : "Friendship \(k) of \(model.order.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Fifty people, no friendships yet. Each step adds one, between two people picked at random. Watch the largest group."
+                                "Fifty people, and no friendships yet. Each step adds one, between two people picked at random. Watch the largest group."
                             } else if finished {
-                                "With three friends each on average, one group holds "
+                                "Each person has three friends on average. One group now holds "
                                 em { "\(state.largest) of \(giantPeople)" }
-                                ": the giant component. Everyone else is in groups of a few, or alone."
+                                ". That is the giant component. Everyone else is in a small group, or alone."
                             } else {
                                 describeFriendship(k, model)
                             }
@@ -188,7 +188,7 @@ struct GiantLab {
                             }
                             div {
                                 span(.class("num")) { giantP(k) }
-                                "p, with 1/n = 0.0200"
+                                "p, the chance for each pair"
                             }
                         }
                     }

@@ -5,36 +5,54 @@
   <div class="say"><span>Say it</span><b>BAH-rah-bah-shee</b><span class="ipa">/ˈbɒrɒbaːʃi/</span></div>
   <p class="question">Why do real networks have a few huge hubs, and why is everyone only a few handshakes from everyone else?</p>
 </header>
-<p class="example lead">Example: two small random networks, each from a seed, so the same seed always gives the same network. First, one that grows a vertex at a time.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Test networks with a known shape</h2>
+  <p>A network model is a recipe for making random networks that share one feature with real ones. One recipe makes hubs. Another makes a small world, where friends cluster and yet everyone is close. You use them to test an algorithm on networks that look real, or to check whether a real network’s shape could arise by chance.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other random networks</h2>
+  <!-- compare
+  | Model | When to use | Gives | Misses |
+  | *Barabási–Albert | You need hubs | A few vertices with very many links, most with few | Clustering; every vertex has at least m links |
+  | *Watts–Strogatz | You need a small world | Close-knit groups and short distances | Hubs; every degree stays near k |
+  | [Erdős–Rényi](giant.html) | You need a plain baseline | Links placed fully at random | Hubs and clustering both |
+  -->
+  <p>Each model explains one feature of real networks and misses others. Pick the one whose feature you want to test.</p>
+</section>
+
+<p class="example lead">Example: two small random networks, each drawn from a seed. The same seed always gives the same network. The first grows one vertex at a time.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The growing network above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>The rich get richer</h2>
-  <p>In the <b>Barabási–Albert</b> model, a network grows one vertex at a time, and each newcomer links to m vertices already there, picking each in proportion to its degree. A vertex with ten links is ten times as likely to gain the next one as a vertex with one. Early vertices get a head start, and the advantage compounds: a few become hubs while most stay small. The degrees follow a power law, roughly as many vertices of degree 2d as of degree d divided by eight, a long tail no network with uniformly random links has. Citations, links between web pages and airline routes look like this.</p>
+  <p>In the <b>Barabási–Albert</b> model, a network grows one vertex at a time. Each newcomer links to m vertices already there. It picks each one in proportion to its degree. So a vertex with ten links is ten times as likely to gain the next link as a vertex with one.</p>
+  <p>Early vertices get a head start, and the advantage grows. A few become hubs, while most stay small. The degrees follow a power law. There are roughly eight times fewer vertices of degree 2d than of degree d. Links placed at random never give a tail that long. Citations, links between web pages and airline routes look like this.</p>
   <p><code>barabasiAlbert</code> starts from a star of m + 1 vertices and makes exactly m(n − m) links.</p>
 </section>
 
-<p class="example lead">Second: a ring where everyone knows their nearest neighbours, and a growing chance that each link is moved to someone at random.</p>
+<p class="example lead">The second network is a ring where everyone knows their nearest neighbours. Step by step, each link gets a growing chance of moving to someone at random.</p>
 
 <div id="smallworld"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The ring above, in Grafluent</h2>
-  <pre id="code-smallworld" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>A few shortcuts make a small world</h2>
-  <p>The <b>Watts–Strogatz</b> model starts from a ring in which each vertex knows its k nearest neighbours. That ring is cliquish: two of your friends are probably friends (high <b>clustering</b>, from <code>averageClustering()</code>). But getting across it takes many steps. Now rewire each link with probability p, moving one end to a random vertex. A handful of shortcuts slash the average distance, because each one serves everyone near either end, while hardly touching the clustering, since most triangles survive. In between lies the <b>small world</b>: close-knit locally, and still only a few steps across, like a network of acquaintances.</p>
+  <p>The <b>Watts–Strogatz</b> model starts from a ring. Each vertex knows its k nearest neighbours. Two of your friends are probably friends with each other. This is called high <b>clustering</b>, and <code>averageClustering()</code> measures it. But getting across the ring takes many steps.</p>
+  <p>Now move each link with chance p, sending one end to a random vertex. A handful of these shortcuts cut the average distance sharply, because each one helps everyone near either end. The clustering hardly changes, since most triangles survive. In between lies the <b>small world</b>. It is close-knit locally and still only a few steps across, like a network of acquaintances.</p>
 
   <h2><small>Where it breaks</small>Models, not maps</h2>
-  <p>Each model explains one feature and misses others. Barabási–Albert networks have hubs but little clustering, and every vertex has at least m links; Watts–Strogatz networks are clustered and small but have no hubs, every degree staying near k. Real networks have both, and more: communities, vertices that leave, links that age. Fitting a power law to real degree data is also easy to get wrong; a straight-looking tail on a log plot is weak evidence. Use the models to test ideas against a baseline, as with <a href="giant.html">random graphs</a>, rather than as a description of a real network.</p>
+  <p>Real networks have hubs and clustering both, and more besides. They have communities, vertices that leave, and links that age. Neither model has all of that.</p>
+  <p>Fitting a power law to real degree data is also easy to get wrong. A tail that looks straight on a log plot is weak evidence. Use the models as a baseline to test ideas against, as with <a href="giant.html">random graphs</a>. Don’t treat them as a description of a real network.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The growing network, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+
+  <h2><small>In Swift</small>The ring, in Grafluent</h2>
+  <pre id="code-smallworld" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

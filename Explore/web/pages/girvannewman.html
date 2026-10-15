@@ -4,24 +4,43 @@
   <h1>Girvan–Newman</h1>
   <p class="question">If you keep cutting the link that the most shortest paths cross, what groups are left?</p>
 </header>
-<p class="example lead">Example: twelve friends from a band, a climbing gym and a book club, and a line between each pair who hang out. A few friendships cross between the groups.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Splitting a network, coarse to fine</h2>
+  <p>Girvan–Newman finds communities by cutting. It takes out the link that the most shortest paths cross, again and again, until the network falls into pieces. You get every split along the way, from two groups down to everyone alone.</p>
+  <p>Reach for it on a small network when you want the whole family of splits, or a reason you can explain for each cut. On a large network it is far too slow.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find communities</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *Girvan–Newman | A small network, and you want the hierarchy | Every split, coarsest first | O(m²n) | Far too slow for large networks |
+  | [Louvain](communities.html) | A good split of a large network | One split with high modularity | About O(m) a pass | No clear reason for each group |
+  | [Label propagation](labelpropagation.html) | A very large network, fast | One split | About O(m) a sweep | Answers change from run to run |
+  -->
+  <p>Girvan–Newman is the easiest to reason about and the slowest. Louvain is the usual choice once a network has more than a few hundred people.</p>
+</section>
+
+<p class="example lead">Example: twelve friends from a band, a climbing gym and a book club. A line joins each pair who hang out. A few friendships cross between the groups.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The friends above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>Links between groups carry the traffic</h2>
-  <p>Inside a close group there are many ways between any two people, so the shortest paths spread over many links. Between groups there are only a few links, and every shortest path from one group to another has to use one of them. So those links have the highest <a href="betweenness.html">edge betweenness</a>.</p>
-  <p>Girvan and Newman’s method takes out the link with the highest betweenness, then <em>recomputes</em> every score, and repeats. Recomputing matters: once one link between two groups is gone, the paths it carried move to the others, which become the busiest next. Each time the network falls into more pieces, the pieces are a finer partition. Run to the end and every person is alone; the result is a whole hierarchy of splits, coarsest first.</p>
-  <p>Which level is the answer? A common choice is the one with the highest <b>modularity</b>: the share of links inside groups, minus the share you’d expect if links were placed at random with the same degrees. <code>girvanNewmanCommunities()</code> is a lazy sequence of the partitions, so you can stop at the first with as many groups as you want, or take the best by <code>modularity(of:)</code>.</p>
+  <p>Inside a close group there are many ways between any two people. So the shortest paths spread over many links. Between groups there are only a few links, and every shortest path from one group to another has to use one of them. So those links have the highest <a href="betweenness.html">edge betweenness</a>.</p>
+  <p>Girvan and Newman’s method takes out the link with the highest betweenness. Then it <em>recomputes</em> every score, and repeats. Recomputing matters. Once one link between two groups is gone, the paths it carried move to the others. Those become the busiest next.</p>
+  <p>Each time the network falls into more pieces, you get a finer split. Run to the end and every person is alone. The result is a whole hierarchy of splits, coarsest first.</p>
+  <p>Which level is the answer? A common choice is the one with the highest <b>modularity</b>. Modularity is the share of links inside groups, minus the share you’d expect if links were placed at random. <code>girvanNewmanCommunities()</code> is a lazy sequence of the splits. You can stop at the first with as many groups as you want, or take the best by <code>modularity(of:)</code>.</p>
 
-  <h2><small>Where it breaks</small>Slow, and when to use something else</h2>
-  <p>Every removal recomputes betweenness for the piece it came from, which costs a search from every person in it. That is fine for a few hundred people and far too slow for a large network: the whole sequence is O(m² n). For large networks, <a href="communities.html">Louvain</a> or Leiden find high-modularity groups in a few passes. Girvan–Newman is still worth knowing when the hierarchy itself is wanted, or when the network is small enough that its clear reasoning is worth the time.</p>
-  <p>It also only ever cuts. A person who belongs to two groups ends up in one of them, and a network with no clear groups still gets split, all the way down, so a high modularity is worth checking before trusting the groups.</p>
+  <h2><small>Where it breaks</small>Slow, and it only cuts</h2>
+  <p>Every removal recomputes betweenness for the piece it came from. That costs a search from every person in it. It is fine for a few hundred people, but the whole sequence is O(m²n). For large networks, <a href="communities.html">Louvain</a> or Leiden find high-modularity groups in a few passes.</p>
+  <p>It also only ever cuts. A person who belongs to two groups ends up in one of them. A network with no clear groups still gets split, all the way down. So check that the modularity is high before you trust the groups.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The friends above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

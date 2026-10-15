@@ -113,18 +113,18 @@ struct ChordalLab {
                         span { i(.class("line route")) {}; "a hole: a loop of four or more with no shortcut" }
                         span { i(.class("line faint")) {}; "taken away: click to give back" }
                     }
-                    p(.class("note")) { "Click a friendship to take it away; nobody is left with no friends." }
+                    p(.class("note")) { "Click a friendship to take it away. Nobody can be left with no friends." }
                 }
                 div(.class("side")) {
                     div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
                         span(.class("label")) { answer.chordal ? "Chordal" : "Not chordal" }
                         p(.class("narration")) {
                             if answer.chordal {
-                                "Every loop of four or more friends has a shortcut: two people in it who are friends but not next to each other round the loop. Take away a friendship to break that."
+                                "Every loop of four or more friends has a shortcut. Take away a friendship to break that."
                             } else {
                                 "The loop "
                                 em { (answer.hole ?? []).joined(separator: " – ") }
-                                " has no shortcut: none of them are friends except with their neighbours round it. findHole() returns it as proof."
+                                " has no shortcut. Each of them is friends only with their neighbours on the loop. findHole() returns it as proof."
                             }
                         }
                     }
@@ -134,10 +134,10 @@ struct ChordalLab {
                             if let ordering = answer.ordering {
                                 ordering.joined(separator: ", ")
                             } else {
-                                "None: a graph has one exactly when it is chordal."
+                                "None. A graph has one exactly when it is chordal."
                             }
                         }
-                        p(.class("note")) { "Take the friends away in this order, and whenever someone goes, the friends they still have all know each other." }
+                        p(.class("note")) { "Take the friends away in this order. Whenever someone goes, the friends they still have all know each other." }
                     }
                 }
             }
@@ -169,13 +169,15 @@ func describeChordalStep(_ step: ChordalStep) -> String {
     case .visit(let v, let count):
         return count == 0
             ? "Visit \(name(v)) first."
-            : "Visit \(name(v)) next: \(count) of their friends \(count == 1 ? "is" : "are") visited already, as many as anyone unvisited has."
+            : "Visit \(name(v)) next. \(count) of their friends \(count == 1 ? "is" : "are") visited already, and nobody unvisited has more."
     case .eliminate(let v, let later, let missing):
         if later.isEmpty { return "Take away \(name(v)), the last one left." }
         if let (a, b) = missing {
-            return "Take away \(name(v)): their friends still here are \(blockList(later.map(name))), but \(name(a)) and \(name(b)) aren’t friends. The order fails, so the friends aren’t chordal."
+            return "Take away \(name(v)). Their friends still here include \(name(a)) and \(name(b)), who aren’t friends. The order fails, so the graph isn’t chordal."
         }
-        return "Take away \(name(v)): their friends still here, \(blockList(later.map(name))), " + (later.count == 1 ? "are trivially all friends." : "are all friends with each other.")
+        return later.count == 1
+            ? "Take away \(name(v)). Only one of their friends is still here."
+            : "Take away \(name(v)). Their friends still here, \(blockList(later.map(name))), are all friends with each other."
     }
 }
 
@@ -219,17 +221,17 @@ struct ChordalStepLab {
                         span { i(.class("dot frontier")) {}; "the friends left when someone is taken away" }
                         span { i(.class("line route")) {}; "the missing friendship" }
                     }
-                    p(.class("note")) { eliminated.isEmpty ? "In each circle: for the unvisited, how many of their friends are visited; for the visited, when." : "Taken away in the reverse of the visiting order." }
+                    p(.class("note")) { eliminated.isEmpty ? "An unvisited circle shows how many of its friends are visited. A visited one shows when it was visited." : "Taken away in the reverse of the visiting order." }
                 }
                 div(.class("side")) {
                     div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
                         span(.class("label")) { finished ? "Done after \(steps.count) steps" : "Step \(k) of \(steps.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Visit the friends one at a time, always someone with the most friends already visited. Then take them away in the reverse order, checking that whoever goes has friends left who all know each other. Press Step to begin."
+                                "Visit the friends one at a time. Always pick someone with the most friends already visited. Then take them away in reverse order. Whoever goes must have friends left who all know each other. Press Step to begin."
                             } else {
                                 describeChordalStep(last!)
-                                if finished && failed == nil { " Everyone is gone without a failure: the graph is chordal, and the reverse order is a perfect elimination ordering." }
+                                if finished && failed == nil { " Everyone is gone without a failure. So the graph is chordal, and the reverse order is a perfect elimination ordering." }
                             }
                         }
                     }
@@ -253,7 +255,7 @@ struct ChordalStepLab {
                         (Marble(kind: "m-green", radius: 6), "taken away, remaining friends all friends"),
                         (Marble(kind: "m-red", radius: 6), "taken away, and two of them aren’t"),
                     ])
-                p(.class("note")) { "The visits replay maximumCardinalitySearch()’s order; the counts and the checks are the page’s. isChordal runs the same test in one pass." }
+                p(.class("note")) { "The visits follow maximumCardinalitySearch(). The page does the counts and the checks. isChordal runs the same test in one pass." }
             }
         }
     }

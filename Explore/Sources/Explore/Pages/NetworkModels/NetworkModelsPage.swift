@@ -55,8 +55,11 @@ func describeNewcomer(_ k: Int, _ model: RichModel) -> String {
     let before = model.degrees(k - 1)
     let targets = model.network.edges.filter { ($0.u == v && $0.v < v) || ($0.v == v && $0.u < v) }.map { $0.u == v ? $0.v : $0.u }.sorted()
     let total = before.reduce(0, +)
-    let odds = targets.map { "\($0) (\(before[$0]) of \(total) link ends)" }.joined(separator: " and ")
-    return "Newcomer \(v) links to \(odds). Each pick is in proportion to how many links a vertex already has."
+    let names = targets.map { "\($0)" }.joined(separator: " and ")
+    let held = targets.map { "\(before[$0])" }.joined(separator: " and ")
+    return targets.count == 2
+        ? "Newcomer \(v) links to \(names). They held \(held) of the \(total) link ends."
+        : "Newcomer \(v) links to \(names), which held \(held) of the \(total) link ends."
 }
 
 @View
@@ -97,11 +100,11 @@ struct RichLab {
                         span(.class("label")) { "\(n) of \(richPeople) vertices" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "A star of \(richLinks + 1) to start. Each newcomer makes \(richLinks) links, choosing whom to link to in proportion to how many links they already have. Press Step."
+                                "It starts as a star of \(richLinks + 1). Each newcomer makes \(richLinks) links. A vertex with more links is more likely to be picked. Press Step."
                             } else {
                                 describeNewcomer(k, model)
                                 if k == playback.count {
-                                    " The early vertices have become hubs: the most linked has \(top) links, while most have only \(richLinks) or \(richLinks + 1)."
+                                    " The early vertices have become hubs. The most linked has \(top) links. Most have only \(richLinks) or \(richLinks + 1)."
                                 }
                             }
                         }
@@ -119,7 +122,7 @@ struct RichLab {
                                 }
                             }
                         }
-                        p(.class("note")) { "Many with few links, a few with many: a long tail, unlike a network whose links are placed at random." }
+                        p(.class("note")) { "Many vertices have few links, and a few have many. Links placed at random don’t give a tail this long." }
                     }
                 }
             }
@@ -194,10 +197,10 @@ func percent(_ p: Double) -> String { "\(Int((p * 100).rounded()))%" }
 func describeWorld(_ k: Int, _ model: SmallWorldModel) -> String {
     let w = model.worlds[k], ring = model.worlds[0]
     if k == 0 {
-        return "A ring: everyone knows the \(smallNeighbors) nearest. Friends of friends are mostly friends (clustering \(signedTwoPlaces(w.clustering))), but crossing the ring takes \(signedTwoPlaces(w.separation)) steps on average."
+        return "Everyone on the ring knows the \(smallNeighbors) people nearest. Most friends of friends are friends, so clustering is high, at \(signedTwoPlaces(w.clustering)). Crossing the ring takes \(signedTwoPlaces(w.separation)) steps on average."
     }
     let c = Int((w.clustering / ring.clustering * 100).rounded()), l = Int((w.separation / ring.separation * 100).rounded())
-    return "Rewire each link with probability \(percent(smallProbabilities[k])). Clustering keeps \(c)% of the ring’s; the average distance drops to \(l)% of it."
+    return "Now each link moves with chance \(percent(smallProbabilities[k])). The average distance falls to \(l)% of the ring’s. Clustering keeps \(c)%."
 }
 
 @View
@@ -242,7 +245,7 @@ struct SmallWorldLab {
                                 }
                             }
                         }
-                        p(.class("note")) { "A few rewired links make distances short long before the clustering goes: a small world, close-knit and yet only a few steps across." }
+                        p(.class("note")) { "A few moved links make distances short long before the clustering goes. That is a small world. It is close-knit, and still only a few steps across." }
                     }
                 }
             }

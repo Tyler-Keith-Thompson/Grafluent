@@ -114,11 +114,11 @@ func describeLouvain(_ step: LouvainStep, before: LouvainSnapshot, after: Louvai
         let joined = communityMembers(to, before)
         let target = joined.isEmpty ? "a group of their own" : "the group with " + studentList(joined)
         _ = from
-        return "\(who) moves to \(target), the move that raises modularity most: by \(signedThree(gain)), to \(signedThree(after.modularity))."
+        return "\(who) moves to \(target). That raises modularity by \(signedThree(gain)), to \(signedThree(after.modularity))."
     case .levelFinished(let level, let groups, let q):
-        return "A full pass moves nobody: level \(level) is finished with \(groups.count) groups and modularity \(signedThree(q))."
+        return "A full pass moves nobody. Level \(level) ends with \(groups.count) groups and modularity \(signedThree(q))."
     case .aggregate(_, let count):
-        return "Merge each group into a single dot, with the friendships between groups as weighted links: \(count) dots. Now try moving whole groups."
+        return "Each group becomes a single dot, and the friendships between groups become weighted links. That leaves \(count) dots. Now whole groups can move."
     }
 }
 
@@ -200,11 +200,11 @@ struct CommunitiesLab {
                         span(.class("label")) { finished ? "Done after \(steps.count) steps" : "Step \(k) of \(steps.count), level \(state.level)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Everyone starts in a group of their own. Modularity scores a split: friendships inside groups, against what chance would put there. One at a time, each student moves to the friend’s group that raises it most, or stays put. Press Step to begin."
+                                "Everyone starts in a group of their own. Each student in turn moves to the friend’s group that raises modularity most. If no move helps, they stay put. Press Step to begin."
                             } else if finished {
-                                "The \(model.clubs.count) groups are merged into dots, and no dot gains by moving, so Louvain stops: "
+                                "No dot gains by moving, so Louvain stops. It found "
                                 em { "\(model.clubs.count) groups" }
-                                ", modularity \(signedThree(model.score))."
+                                ", with modularity \(signedThree(model.score))."
                             } else {
                                 describeLouvain(last!, before: before, after: state)
                             }
@@ -255,7 +255,7 @@ struct CommunitiesLab {
                         (Marble(kind: "m-green", radius: 6), "a level is finished"),
                         (Marble(kind: "m-hollow", radius: 6), "groups merged into dots"),
                     ])
-                p(.class("note")) { "Grey dashed lines are friendships between groups; a good split has few of them." }
+                p(.class("note")) { "Grey dashed lines are friendships between groups. A good split has few of them." }
             }
         }
     }

@@ -5,23 +5,44 @@
   <div class="say"><span>Say it</span><b>loo-VAN</b><span class="ipa">/luvɛ̃/</span></div>
   <p class="question">Where does a network naturally split into groups?</p>
 </header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Finding groups nobody told you about</h2>
+  <p>Community detection splits a network into groups that have many links inside and few between. You don’t say how many groups to find. The method works it out from the links alone.</p>
+  <p>The usual score is <b>modularity</b>. It rewards a split for links inside groups, beyond what chance would put there. Louvain is the standard way to find a split with high modularity. It is fast enough for networks with millions of links. Reach for it to find circles of friends, teams that work together, or topics in a web of pages.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find communities</h2>
+  <!-- compare
+  | Method | When to use | How | Cost | Weakness |
+  | *Louvain | A good split of a large network | Moves people between groups to raise modularity, then merges groups | About O(m) a pass | A group can come out split inside |
+  | Leiden | The same, with guarantees | Louvain with a refining step | About O(m) a pass | A little slower than Louvain |
+  | [Girvan–Newman](girvannewman.html) | A small network, and you want the whole hierarchy | Cuts the busiest link again and again | O(m²n) | Far too slow for large networks |
+  | [Label propagation](labelpropagation.html) | A very large network, fast | Each person takes the most common label among friends | About O(m) a sweep | Answers change from run to run |
+  -->
+  <p>Louvain is the usual first choice. Use Leiden when every group must hold together, and label propagation when speed matters most.</p>
+</section>
+
 <p class="example lead">Example: twelve students and who is friends with whom. Three clubs mostly keep to themselves, with a few friendships across. Nobody tells the algorithm about the clubs.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The school above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>More friendships inside groups than chance would give</h2>
-  <p>A good split puts most friendships inside groups and few between them. But “most” needs a yardstick: put everyone in one group and every friendship is inside it. <b>Modularity</b> compares each group with chance: the share of friendships inside it, less the share you would expect if the same people kept their numbers of friends but chose them at random. It is 0 for a split no better than chance, and higher the clearer the groups.</p>
-  <p>The <b>Louvain</b> method raises modularity greedily. Everyone starts alone. Take each student in turn and move them to the neighbouring group that raises modularity most, if any does, and keep sweeping until a full pass moves nobody. Then merge each group into a single dot, the friendships between groups becoming weighted links, and do the same with whole groups. It stops when merging no longer helps. Each sweep takes time proportional to the number of friendships, so it runs on networks with millions of them.</p>
+  <p>A good split puts most friendships inside groups and few between them. But “most” needs a yardstick. Put everyone in one group, and every friendship is inside it. <b>Modularity</b> compares each group with chance. It takes the share of friendships inside the group. Then it subtracts the share you would expect if each person kept their number of friends but chose them at random. A split no better than chance scores 0. The clearer the groups, the higher the score.</p>
+  <p>The <b>Louvain</b> method raises modularity greedily. Everyone starts alone. Take each student in turn. Move them to the neighbouring group that raises modularity most, if any does. Keep sweeping until a full pass moves nobody.</p>
+  <p>Then merge each group into a single dot. The friendships between groups become weighted links. Do the same again with whole groups. It stops when merging no longer helps. Each sweep takes time in step with the number of friendships.</p>
 
   <h2><small>Where it breaks</small>Modularity has a blind spot</h2>
-  <p>In a big network, modularity can’t see groups below a certain size, which depends on the size of the whole network: two small, tight groups may come out merged. Raising the <code>resolution</code> parameter favours smaller groups. Louvain can also produce a group that isn’t connected inside, after its middle member moves away; the Leiden method, <code>leidenCommunities</code>, adds a refinement step that rules that out. And the greedy moves depend on the order students are visited, so the answer is a good split, not always the best one.</p>
-  <p>If what you want is groups where literally everyone knows everyone, that’s a different question: <a href="cliques.html">cliques</a>.</p>
+  <p>In a big network, modularity can’t see groups below a certain size. So two small, tight groups may come out merged. Raising the <code>resolution</code> parameter favours smaller groups.</p>
+  <p>Louvain can also leave a group that isn’t connected inside, after its middle member moves away. The Leiden method, <code>leidenCommunities</code>, adds a step that rules that out. And the greedy moves depend on the order students are visited. So the answer is a good split, but not always the best one.</p>
+  <p>Sometimes you want groups where everyone knows everyone. That is a different question, answered by <a href="cliques.html">cliques</a>.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The school above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

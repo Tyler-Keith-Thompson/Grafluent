@@ -103,7 +103,7 @@ struct CoresLab {
                         span { i(.class("dot visited")) {}; truss ? "in a friendship of the \(k)-truss" : "in the \(k)-core" }
                         span { i(.class("line tree")) {}; truss ? "a friendship in at least \(max(0, k - 2)) triangle\(k == 3 ? "" : "s") of the \(k)-truss" : "a friendship inside the \(k)-core" }
                     }
-                    if !truss { p(.class("note")) { "In each circle: the person’s core number, the largest k whose k-core they are in." } }
+                    if !truss { p(.class("note")) { "Each circle shows the person’s core number." } }
                 }
                 div(.class("side")) {
                     div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
@@ -111,20 +111,20 @@ struct CoresLab {
                         p(.class("narration")) {
                             if truss {
                                 if k <= 2 {
-                                    "Every friendship is in the 2-truss: it asks for k − 2 = 0 shared friends."
+                                    "Every friendship is in the 2-truss, because it asks for k − 2 = 0 shared friends."
                                 } else if strong.isEmpty {
-                                    "Nobody. No group is so tight that every friendship in it has \(k - 2) friends in common."
+                                    "Nobody. No group is tight enough that every friendship in it has \(k - 2) friends in common."
                                 } else {
-                                    "Keep only the friendships whose two people share at least \(k - 2) friend\(k == 3 ? "" : "s") inside what is kept. \(strong.count) of the \(club.edgeCount) friendships survive, among "
+                                    "Keep only the friendships whose two people share at least \(k - 2) friend\(k == 3 ? "" : "s") inside what is kept. \(strong.count) of the \(club.edgeCount) friendships survive. They join "
                                     em { nameList(people) }
                                     "."
                                 }
                             } else if core.isEmpty {
-                                "Nobody: no group has everyone with \(k) friends inside it. The largest k with a core is \(degeneracy), the club’s degeneracy."
+                                "Nobody. No group has everyone with \(k) friends inside it. The largest k with a core is \(degeneracy). That is the club’s degeneracy."
                             } else {
-                                "The largest group in which everyone has at least \(k) friend\(k == 1 ? "" : "s") inside the group: "
+                                "The \(k)-core is "
                                 em { nameList(core) }
-                                "."
+                                ". Each of them has at least \(k) friend\(k == 1 ? "" : "s") inside it."
                             }
                         }
                     }
@@ -156,7 +156,7 @@ struct CoresLab {
                     div(.class("panel")) {
                         span(.class("label")) { "Core or truss?" }
                         p(.class("note")) {
-                            "A core counts friends; a truss counts shared friends. Cy–Hal and Hal–Lea are in the 3-core but not the 3-truss: Hal has three friends, but shares none of them with Cy or Lea."
+                            "A core counts friends. A truss counts shared friends. Cy–Hal and Hal–Lea are in the 3-core but not the 3-truss. Hal has three friends, but shares none of them with Cy or Lea."
                         }
                     }
                 }
@@ -190,11 +190,12 @@ func describePeel(_ round: PeelRound, number: Int, previous: PeelRound?) -> Stri
     let names = round.layer.map { clubSpots[$0].name }
     let left = round.degreeBefore.compactMap { $0 }
     let fewest = left.min() ?? 0
-    let lead = "Layer \(number). \(left.count) people are left, and the fewest friends anyone still has is \(fewest). "
+    let lead = "Layer \(number). The fewest friends anyone still has is \(fewest). "
+    let out = names.count == 1 ? "Out goes \(names[0])" : "Out go \(nameList(names))"
     if fewest > round.core || previous == nil || previous!.core < round.core {
-        return lead + "Raise k to \(round.core) and peel off everyone with at most \(round.core): \(nameList(names)). They are the \(round.core)-shell, or the start of it: core number \(round.core)."
+        return lead + "Now k is \(round.core). \(out), with at most \(round.core) friend\(round.core == 1 ? "" : "s")\(names.count == 1 ? "" : " each"). Their core number is \(round.core)."
     }
-    return lead + "k stays \(round.core). Peeling the last layer left \(nameList(names)) with only \(round.core), so they go now: still core number \(round.core), one layer deeper."
+    return lead + "\(out) too. The last layer left them with only \(round.core). Their core number is still \(round.core), one layer deeper."
 }
 
 /// Peeling the club layer by layer, as the onion decomposition does.
@@ -231,17 +232,17 @@ struct OnionLab {
                         span { i(.class("dot pal3")) {}; "core 4" }
                         span { i(.class("line faint")) {}; "a friendship with someone peeled" }
                     }
-                    p(.class("note")) { "In each circle still there: how many friends the person has among those still there." }
+                    p(.class("note")) { "Each circle still there shows how many friends that person has left." }
                 }
                 div(.class("side")) {
                     div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
                         span(.class("label")) { finished ? "Done after \(rounds.count) layers" : "Layer \(k) of \(rounds.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Peel the club like an onion. Start with k = 1: take away, all at once, everyone with at most k friends left. If nobody has that few, raise k to the fewest anyone has. Each round is a layer. Press Step to begin."
+                                "Peel the club like an onion. Start with k = 1. Take away everyone with at most k friends left, all at once. If nobody has that few, raise k to the fewest anyone has. Each round is a layer. Press Step to begin."
                             } else {
                                 describePeel(last!, number: k, previous: k > 1 ? rounds[k - 2] : nil)
-                                if finished { " Nobody is left. The core numbers are the k each person was peeled at; the layers split the shells finer, by how deep inside each one a person sits." }
+                                if finished { " Nobody is left. Each person’s core number is the k they were peeled at. The layers split each shell finer, by how deep inside it a person sits." }
                             }
                         }
                     }
@@ -270,7 +271,7 @@ struct OnionLab {
                                title: describePeel(round, number: n + 1, previous: n > 0 ? rounds[n - 1] : nil))
                     },
                     legend: [(Marble(kind: "m-pal2", radius: 7), "one layer, with its core number; bigger for more people")])
-                p(.class("note")) { "Each step is one layer of onionLayers(), which computes them all at once; the friend counts are worked out by the page from the friendships still there." }
+                p(.class("note")) { "Each step is one layer of onionLayers(), which computes them all at once. The page counts the friends that are left." }
             }
         }
     }
