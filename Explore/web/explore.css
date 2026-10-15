@@ -81,6 +81,8 @@ code, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .narration em { font-style: normal; font-family: var(--display); font-weight: 800; }
 .empty { color: var(--muted); font-style: italic; }
 .note { font-size: 14px; color: var(--muted); }
+/* Notes and narration name methods in full; a long name may break anywhere rather than widen a narrow page. */
+p.note, .narration { overflow-wrap: anywhere; }
 
 /* The graph canvas */
 .canvas { width: 100%; height: auto; display: block; touch-action: manipulation; overflow: visible; }
