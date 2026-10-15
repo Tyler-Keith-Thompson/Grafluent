@@ -118,6 +118,26 @@ struct _LouvainRows {
     }
 }
 
+/// What local moving tells its caller about each move: nothing for the plain calls, which
+/// specialize the calls away, and the moves themselves for `LouvainEvents`.
+@usableFromInline
+protocol _LouvainObserver {
+    /// Level vertex `u` moved from community `from` to `to`, raising the modularity by `gain`.
+    mutating func moved(_ u: Int, from: Int, to: Int, gain: Double)
+}
+
+/// The observer of the plain calls.
+@frozen
+@usableFromInline
+struct _LouvainSilence: _LouvainObserver {
+    @inlinable
+    init() {}
+
+    @inlinable
+    @inline(__always)
+    func moved(_ u: Int, from: Int, to: Int, gain: Double) {}
+}
+
 /// Local moving on one level: sweeps in `order` until one moves nothing. A vertex stays when its
 /// own community's gain ties the best; among others a tie goes to the greatest label. Returns each
 /// level vertex's community label (a level vertex number) and whether any vertex moved.
@@ -135,7 +155,7 @@ struct _LouvainRows {
 ///   volume of A and B; past n + m in one sweep, every vertex is marked instead, and again when
 ///   the sweep ends.
 @inlinable
-func _louvainLevel(_ rows: _LouvainRows, directed: Bool, m: Double, resolution: Double, order: [Int]) -> (community: [Int], moved: Bool) {
+func _louvainLevel(_ rows: _LouvainRows, directed: Bool, m: Double, resolution: Double, order: [Int], observer: inout some _LouvainObserver) -> (community: [Int], moved: Bool) {
     let k = rows.out.count
     let gamma = directed ? resolution : resolution / 2
     let slots = rows.neighbors.count
@@ -203,6 +223,7 @@ func _louvainLevel(_ rows: _LouvainRows, directed: Bool, m: Double, resolution: 
                                 var bestLink = (stamp[current] == step ? weightTo[current] : 0) * m
                                 var bestPenalty = gamma * ownT
                                 var best = bestLink - bestPenalty
+                                let stay = best
                                 var chosen = current
                                 for i in 0 ..< touchedCount {
                                     let c = touched[i]
@@ -236,6 +257,7 @@ func _louvainLevel(_ rows: _LouvainRows, directed: Bool, m: Double, resolution: 
                                 community[u] = chosen
                                 moves += 1
                                 moved = true
+                                observer.moved(u, from: current, to: chosen, gain: (best - stay) / (m * m))
                                 guard !markedAll else { continue }
                                 for side in 0 ..< 2 {
                                     var w = head[side == 0 ? current : chosen]
@@ -272,22 +294,55 @@ func _louvain(_ graph: _CommunityGraph, _ weights: [Double]?, resolution: Double
     _louvainLevels(graph, weights, resolution: resolution, threshold: threshold, order: order).last!
 }
 
-/// Every level's partition, finest first: the last is `_louvain`'s.
-@inlinable
-func _louvainLevels(_ graph: _CommunityGraph, _ weights: [Double]?, resolution: Double, threshold: Double, order: (Int) -> [Int]) -> [[Int]] {
-    let n = graph.count
-    guard graph.edgeCount > 0 else { return [Array(0 ..< n)] }
-    var m = 0.0
-    if let weights { for w in weights { m += w } } else { m = Double(graph.edgeCount) }
-    var level = _LouvainLevel(count: n, directed: graph.directed, from: graph.from, to: graph.to) { weights?[$0] ?? 1 }
-    var node = Array(0 ..< n)
-    var modularity = _modularity(graph, weights, labels: Array(0 ..< n), count: n, resolution: resolution)
-    var (community, moved) = _louvainLevel(_LouvainRows(level), directed: graph.directed, m: m, resolution: resolution, order: order(level.count))
-    var levels: [[Int]] = []
-    var first = true
-    while first || moved {
-        first = false
-        // Nonempty communities in label order.
+/// Louvain's levels one phase at a time, for `_louvainLevels` and `LouvainEvents`: local moving
+/// on the current level (`move`), then the level's partition of the original vertices and its
+/// modularity, and the merge into the next level while the modularity rises by more than the
+/// threshold (`finish`). Needs at least one edge.
+@frozen
+@usableFromInline
+struct _LouvainRun {
+    @usableFromInline let graph: _CommunityGraph
+    @usableFromInline let weights: [Double]?
+    @usableFromInline let resolution: Double
+    @usableFromInline let threshold: Double
+    /// The total edge weight.
+    @usableFromInline let m: Double
+    @usableFromInline var level: _LouvainLevel
+    /// Each original vertex's level vertex.
+    @usableFromInline var node: [Int]
+    /// The modularity of the partition the current level's vertices stand for.
+    @usableFromInline var modularity: Double
+    /// Each level vertex's community after the last `move`, and whether any vertex moved.
+    @usableFromInline var community: [Int] = []
+    @usableFromInline var moved = false
+
+    @inlinable
+    init(_ graph: _CommunityGraph, _ weights: [Double]?, resolution: Double, threshold: Double) {
+        let n = graph.count
+        var m = 0.0
+        if let weights { for w in weights { m += w } } else { m = Double(graph.edgeCount) }
+        self.graph = graph
+        self.weights = weights
+        self.resolution = resolution
+        self.threshold = threshold
+        self.m = m
+        level = _LouvainLevel(count: n, directed: graph.directed, from: graph.from, to: graph.to) { weights?[$0] ?? 1 }
+        node = Array(0 ..< n)
+        modularity = _modularity(graph, weights, labels: Array(0 ..< n), count: n, resolution: resolution)
+    }
+
+    /// Local moving on the current level, in `order`.
+    @inlinable
+    mutating func move(order: [Int], observer: inout some _LouvainObserver) {
+        (community, moved) = _louvainLevel(_LouvainRows(level), directed: graph.directed, m: m, resolution: resolution, order: order, observer: &observer)
+    }
+
+    /// The current level's partition of the original vertices (nonempty communities in label
+    /// order) and its modularity; when that rises by more than the threshold, the communities
+    /// become the next level's vertices, and `aggregated` is their number.
+    @inlinable
+    mutating func finish() -> (labels: [Int], modularity: Double, aggregated: Int?) {
+        let n = graph.count
         var rank = [Int](repeating: -1, count: level.count)
         for c in community { rank[c] = 0 }
         var count = 0
@@ -296,16 +351,32 @@ func _louvainLevels(_ graph: _CommunityGraph, _ weights: [Double]?, resolution: 
             count += 1
         }
         let labels = (0 ..< n).map { rank[community[node[$0]]] }
-        levels.append(labels)
         let next = _modularity(graph, weights, labels: labels, count: count, resolution: resolution)
-        if next - modularity <= threshold { break }
+        if next - modularity <= threshold { return (labels, next, nil) }
         modularity = next
         let pairs = level
-        let aggregate = _LouvainLevel(count: count, directed: graph.directed,
-                                      from: pairs.pairFrom.map { rank[community[$0]] }, to: pairs.pairTo.map { rank[community[$0]] }) { pairs.pairWeight[$0] }
+        level = _LouvainLevel(count: count, directed: graph.directed,
+                              from: pairs.pairFrom.map { rank[community[$0]] }, to: pairs.pairTo.map { rank[community[$0]] }) { pairs.pairWeight[$0] }
         node = labels
-        level = aggregate
-        (community, moved) = _louvainLevel(_LouvainRows(level), directed: graph.directed, m: m, resolution: resolution, order: order(level.count))
+        return (labels, next, count)
+    }
+}
+
+/// Every level's partition, finest first: the last is `_louvain`'s.
+@inlinable
+func _louvainLevels(_ graph: _CommunityGraph, _ weights: [Double]?, resolution: Double, threshold: Double, order: (Int) -> [Int]) -> [[Int]] {
+    let n = graph.count
+    guard graph.edgeCount > 0 else { return [Array(0 ..< n)] }
+    var run = _LouvainRun(graph, weights, resolution: resolution, threshold: threshold)
+    var silence = _LouvainSilence()
+    run.move(order: order(n), observer: &silence)
+    var levels: [[Int]] = []
+    while true {
+        let (labels, _, aggregated) = run.finish()
+        levels.append(labels)
+        guard aggregated != nil else { break }
+        run.move(order: order(run.level.count), observer: &silence)
+        guard run.moved else { break }
     }
     return levels
 }

@@ -54,13 +54,18 @@ MUTANTS = [
     Mutant("greatestlabel", "Louvain.swift", "gain - best > tolerance || (abs(gain - best) <= tolerance && chosen != current && c > chosen)", "gain - best > tolerance"),
     Mutant("halfgamma", "Louvain.swift", "directed ? resolution : resolution / 2", "resolution"),
     Mutant("directedgain", "Louvain.swift", "outDegree * totalIn[c] + inDegree * totalOut[c]", "outDegree * totalOut[c] + inDegree * totalIn[c]"),
-    Mutant("onelevel", "Louvain.swift", "        if next - modularity <= threshold { break }", "        break", mode="stmt"),
+    Mutant("onelevel", "Louvain.swift", "if next - modularity <= threshold { return (labels, next, nil) }", "return (labels, next, nil)", mode="stmt"),
     Mutant("threshold", "Louvain.swift", "next - modularity <= threshold", "next - modularity < 0"),
     Mutant("roundingties", "Louvain.swift", "4 * scale.ulp", "0"),
     Mutant("remarkall", "Louvain.swift", "if markedAll { for v in 0 ..< k { dirty[v] = true } }", "", mode="stmt"),
     Mutant("marknothing", "Louvain.swift", "for slot in offsets[w] ..< offsets[w + 1] { dirty[neighbors[slot]] = true }", "", mode="stmt"),
     Mutant("budget", "Louvain.swift", "marked > k + slots", "marked > 2 * (k + slots)"),
     Mutant("shuffle", "Louvain.swift", "order.swapAt(i, j)", "", mode="stmt"),
+    # Louvain as an event sequence
+    Mutant("lvgain", "Louvain.swift", "(best - stay) / (m * m)", "best / (m * m)"),
+    Mutant("lveaggregate", "LouvainEvents.swift", "pending.append(.aggregate(vertexCount: k))", "", mode="stmt"),
+    Mutant("lvemoved", "LouvainEvents.swift", "run!.moved ? 1 : 3", "1"),
+    Mutant("lveorder", "LouvainEvents.swift", "Array(0 ..< k)", "Array((0 ..< k).reversed())"),
 
     # Greedy modularity
     Mutant("greedytie", "GreedyModularity.swift", "return u != other.u ? u < other.u : v < other.v", "return u != other.u ? u > other.u : v > other.v", mode="stmt"),
@@ -198,7 +203,7 @@ MUTANTS = [
     Mutant("imtargetexit", "Infomap.swift", "qB + ea - 2 * toB", "qB + ea - toB"),
     Mutant("imapplyexit", "Infomap.swift", "exit[target] = qB + ea - 2 * toTarget", "exit[target] = qB + ea", mode="stmt"),
     Mutant("imnoempty", "Infomap.swift", "size[source] > 1", "false"),
-    Mutant("imshuffle", "Infomap.swift", "touched.swapAt(c, Int(generator.next(upperBound: UInt(c + 1))))", "()", mode="stmt"),
+    Mutant("imshuffle", "Infomap.swift", "touched.swapAt(c, Int(generator.next(upperBound: UInt64(c + 1))))", "()", mode="stmt"),
     Mutant("imthreshold", "Infomap.swift", "guard best < -1e-10 else { continue }", "guard best < 1e-3 else { continue }", mode="stmt"),
     Mutant("imonesweep", "Infomap.swift", "        if !moved { break }", "        break", mode="stmt"),
     Mutant("imnoaggregate", "Infomap.swift", "        guard k < level.count else { break }", "        break", mode="stmt"),

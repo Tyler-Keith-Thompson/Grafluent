@@ -242,6 +242,25 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("CommunityDetection: louvainCommunities(), 200 cliques of 10 in a ring") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(ring.louvainCommunities()) }
     }
+    // Every event of the lazy Louvain, against the plain calls above.
+    Benchmark("CommunityDetection: louvainEvents(), every event, 100 planted blocks of 1000") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var gain = 0.0
+            for event in blocks.louvainEvents() {
+                if case .move(_, _, _, let g) = event { gain += g }
+            }
+            blackHole(gain)
+        }
+    }
+    Benchmark("CommunityDetection: louvainEvents(), every event, G(10⁵, 5·10⁵)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var gain = 0.0
+            for event in sparse.louvainEvents() {
+                if case .move(_, _, _, let g) = event { gain += g }
+            }
+            blackHole(gain)
+        }
+    }
     Benchmark("CommunityDetection: greedyModularityCommunities(), G(2000, 10⁴)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(small.greedyModularityCommunities()) }
     }

@@ -30,6 +30,8 @@ extension Graph {                       // partitions are Partition<DirectedView
     func constantPottsModel<C>(of: C, resolution: Double = 1) -> Double      // also (of:weight:resolution:)
     func leidenCommunities(quality: .modularity, resolution: 1, randomness: 0.01, iterations: nil, using:) -> Partition<…>  // also (weight:…), each also without using:
     func louvainPartitions(resolution: 1, threshold: 1e-7) -> [Partition<…>]  // finest first; also (weight:…), each also (…, using:)
+    func louvainEvents(resolution: 1, threshold: 1e-7) -> LouvainEvents<…>  // lazy, index order; also (weight:…); Element LouvainEvent<…>:
+        // move(v, from:, to:, gain:), levelFinished(Partition, modularity:), aggregate(vertexCount:)
     func connectedComponents<C>(within: C) -> Partition<…>                    // DirectedGraph: weaklyConnectedComponents(within:)
     func kernighanLinBisection(iterations: 10, using:) -> Partition<…>        // also (startingFrom:iterations:), each also (weight:…), and without using:
     func kCliqueCommunities(_ k: Int) -> [[Vertex]]                           // overlapping
@@ -125,6 +127,8 @@ The property tests write their oracles inside each test.
 | `WeightReadingTests.swift` | 7 | The weight closure once per edge in position order through every weighted entry point on a pseudograph with a loop and parallel edges, on `graph.directedView`, on a directed multigraph, on `UndirectedAdjacencyList`, `CompressedSparseRow` and `AdjacencyMatrix`; nothing read when there are no edges; -0.0 accepted; `Float` weights |
 | `CommunityDetectionConformanceTests.swift` | 14 | `Sendable` across a `Task`, the result holding a copy of the graph, the result types, `RandomAccessCollection` (indices, slices keeping flat indices, reversal), `description`, `Equatable` across algorithms and graphs, generic code over `some Graph` / `some DirectedGraph`, any collection of vertex collections (sets, slices, lazy collections, `Components`, a `Partition`), conformers without indices (the `lcg` rows, vertices not in value order), `Collider` vertices, determinism across representations on the karate club, `using:` drawing from the generator and changing the order |
 | `CommunityDetectionPropertyTests.swift` | 9 | PropertyBased, shrinking, multigraphs with loops, shuffled rows and vertex orders: modularity against the matrix definition (both kinds, γ, weights, community order, `graph.directedView`, γ = 0 as coverage); quality against pair counts; every overload returns a canonical partition; Louvain and greedy at least the singletons' Q, greedy locally optimal under merges; label propagation's stop condition; representation independence; weight scaling; γ = 0 gives the components; `using:` repeats |
+| `LouvainEventsTests.swift` | 6 | CD-900 – CD-905: Louvain as events, two traced graphs against `cases_events.py`, trivial, directed and weighted graphs, value semantics, traps, a property test replaying `louvainPartitions` |
+| `Performance/LouvainEventsRatioTests.swift` | 1 | CD-906: every event within 1.8× of `louvainCommunities` (release) |
 | `Performance/CommunityDetectionStressTests.swift` | 9 | Inside a `Task` with a one-minute limit: Louvain on 25,000 disjoint K₄ (also `using:`), a ring of 1000 K₅ and a 10⁵-vertex path; greedy modularity on a ring of 400 K₅; both propagations on a 10⁵-vertex path and 20,000 disjoint K₅; modularity and quality on a ring of 25,000 K₄; directed Louvain and greedy on disjoint 3-cycles on `CompressedSparseRow` |
 
 248 catalog rows (222 value rows, 26 trap rows) and their 88 representation tests, the
@@ -146,6 +150,7 @@ representations, properties or conformance that the catalog does not list.
 | CD-133 – CD-154 | F. Label propagation | `LabelPropagationTests.swift`; again in `CommunityDetectionRepresentationTests.swift` |
 | CD-155 – CD-172 | G. Preconditions (traps) | `CommunityDetectionPreconditionTests.swift` |
 | CD-173 | G. Greedy modularity at total weight 0 (not a trap) | `GreedyModularityTests.swift`; again in `CommunityDetectionRepresentationTests.swift` |
+| CD-900 – CD-906 | Louvain as events (not in `cases.md`; CD-900 and CD-901 traced by `cases_events.py` into `cases_events.out`) | `LouvainEventsTests.swift`, `Performance/LouvainEventsRatioTests.swift` |
 | CD-174 | G. Louvain at total weight 0 (not a trap) | `LouvainTests.swift`; again in `CommunityDetectionRepresentationTests.swift` |
 | CD-192 – CD-217 | I. Leiden, the constant Potts model and Louvain's levels | `LeidenCatalogTests.swift` |
 | CD-218 – CD-240 | J. Kernighan–Lin, k-clique, Walktrap and leading eigenvector | `CommunityMethodsCatalogTests.swift` |

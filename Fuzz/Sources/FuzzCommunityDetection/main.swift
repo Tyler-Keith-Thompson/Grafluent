@@ -255,6 +255,33 @@ enum FuzzCommunityDetection {
         }
         check(graph.louvainPartitions(weight: weight).last == graph.louvainCommunities(weight: weight), "\(name): Louvain's levels")
         check(digraph.louvainPartitions(weight: weight).last == digraph.louvainCommunities(weight: weight), "\(name): directed Louvain's levels")
+        // The Louvain events: the finished levels are the partitions, each level's gains add up to
+        // its rise in modularity, and moves stay among the level's vertices.
+        func checkEvents<G: DirectedGraph>(_ events: LouvainEvents<G>, _ partitions: [Partition<G>], _ singletons: Double, _ label: String) {
+            var finished: [Partition<G>] = []
+            var previous = singletons, gains = 0.0, size = n
+            for event in events {
+                switch event {
+                case .move(let v, let from, let to, let gain):
+                    check(v < size && from < size && to < size && from != to && gain > -1e-9, "\(label): move \(v) \(from) → \(to) at \(gain)")
+                    gains += gain
+                case .levelFinished(let p, let q):
+                    check(abs(previous + gains - q) <= 1e-9 * max(1, abs(q)), "\(label): gains \(gains) from \(previous) to \(q)")
+                    finished.append(p)
+                    previous = q
+                    gains = 0
+                case .aggregate(let k):
+                    check(k == finished.last?.count, "\(label): aggregate \(k)")
+                    size = k
+                }
+            }
+            check(finished == partitions, "\(label): levels")
+        }
+        if !ends.isEmpty && (0 ..< ends.count).contains(where: { weight($0) > 0 }) {
+            let singletons = (0 ..< n).map { [$0] }
+            checkEvents(graph.louvainEvents(weight: weight), graph.louvainPartitions(weight: weight), graph.modularity(of: singletons, weight: weight), "\(name): Louvain events")
+            checkEvents(digraph.louvainEvents(weight: weight), digraph.louvainPartitions(weight: weight), digraph.modularity(of: singletons, weight: weight), "\(name): directed Louvain events")
+        }
         // Kernighan–Lin from the even and odd vertices.
         let start = [(0 ..< n).filter { $0 % 2 == 0 }, (0 ..< n).filter { $0 % 2 == 1 }]
         let bisection = labels(graph.kernighanLinBisection(startingFrom: start, weight: weight), n, "\(name) Kernighan–Lin")
