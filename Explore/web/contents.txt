@@ -43,3 +43,4 @@ pagerank|PageRank|Importance and shape|Which pages matter most.|page
 betweenness|Betweenness|Importance and shape|Who sits on the most shortest paths.|page
 linkprediction|Friend suggestions|Importance and shape|Who you might know, from the friends you share.|page
 layout|Force-directed layout|Importance and shape|Drawing a graph so its shape shows.|page
+spectral|Spectral drawing|Importance and shape|Drawing and cutting a network with its eigenvectors.|page

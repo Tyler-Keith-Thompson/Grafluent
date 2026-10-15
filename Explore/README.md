@@ -56,6 +56,7 @@ contents and the menu without a link.
 | `betweenness` | `betweennessCentrality(normalized:)`, `edgeBetweennessCentrality(normalized:)`, `shortestSimplePaths(from:to:)` |
 | `linkprediction` | `jaccardCoefficient(of:and:)`, `adamicAdarIndex(of:and:)` |
 | `layout` | `FruchtermanReingoldLayout(_:iterations:using:)` with `Xoshiro256StarStar`, `step()`, named graphs |
+| `spectral` | `spectralLayout()`, `fiedlerVector()`, `algebraicConnectivity`, `value(of:)`, `spectralOrdering()` |
 
 ## Requirements
 

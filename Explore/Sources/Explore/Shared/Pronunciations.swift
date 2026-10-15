@@ -53,6 +53,7 @@ enum Names {
     static let batageljZaversnik = Pronunciation(name: "Batagelj–Zaveršnik", say: "BAH-tah-gel zah-VEHRSH-nik", ipa: "/ˈbaːtaɡɛl zaˈʋɛːrʃnik/", what: "Vladimir Batagelj and Matjaž Zaveršnik: every core number in one pass, with buckets by degree")
     static let guan = Pronunciation(name: "Guan Meigu", say: "GWAHN may-GOO", what: "Mei-Ko Kwan, who posed the postman problem in 1960; Guan is the family name")
     static let christofides = Pronunciation(name: "Christofides", say: "kris-TOF-ih-deez", ipa: "/krɪˈstɒfɪdiːz/", what: "Nicos Christofides: a tour never more than 1.5 times the shortest, from a spanning tree and a matching")
+    static let fiedler = Pronunciation(name: "Fiedler", say: "FEED-ler", ipa: "/ˈfiːdlər/", what: "Miroslav Fiedler: the second eigenvalue as a measure of connectivity, and its eigenvector as a cut")
     static let bronKerbosch = Pronunciation(name: "Bron–Kerbosch", say: "BRON KER-boss", ipa: "/ˈbrɔn ˈkɛrbɔs/", what: "Every maximal clique, by backtracking")
 }
 
