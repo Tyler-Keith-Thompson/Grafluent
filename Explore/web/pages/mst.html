@@ -5,24 +5,40 @@
   <p class="question">What’s the cheapest set of cables that connects every house?</p>
 </header>
 
-<p class="example lead">Example: six houses and the cost of laying cable between each pair that can be connected.</p>
+<section class="prose purpose">
+  <h2><small>What it’s for</small>The cheapest network that reaches everyone</h2>
+  <p>A minimum spanning tree joins every place using the cheapest set of links. It has no loops, because a loop would mean one link could go without cutting anyone off. Reach for it to plan cables, pipes or roads, and as a first step in clustering and in tour planning.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Three ways to the same tree</h2>
+  <!-- compare
+  | Method | When to use | How it grows | Cost | Weakness |
+  | *Kruskal | Sparse graphs, or edges already sorted | Cheapest cables first, anywhere | O(m log m) | Sorts every cable first |
+  | *Prim | Dense graphs | One network, outward from a start | O(m log n) | Needs a start, and one connected piece |
+  | Borůvka | Many processors at once | Every group adds its cheapest cable each round | O(m log n) | More bookkeeping per round |
+  -->
+  <p>All three find a tree of the same total cost. They differ in the order they lay cables. In the table, n is the number of houses and m the number of possible cables.</p>
+</section>
+
+<p class="example lead">Example: six houses, and the cost of laying cable between each pair that can be joined.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The six houses, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>Two ways to the same cheapest network</h2>
-  <p><b>Kruskal</b> sorts every possible cable from cheapest to dearest and lays each one unless it would only join two houses that are already connected. <b>Prim</b> grows a single network outward from one house, always adding the cheapest cable that reaches a house not yet connected. Different routes, same total cost.</p>
-  <p>Either way the result is a <b>spanning tree</b>: every house is connected, and there are no loops, so six houses need exactly five cables. A loop would mean one cable could be removed without disconnecting anyone, which is money wasted.</p>
-  <p>Kruskal keeps track of who is already connected with a union–find structure, which answers “same group?” almost instantly. Prim keeps a queue of the houses waiting to join, each with the cheapest price on offer so far, just as Dijkstra keeps its frontier.</p>
+  <p><b>Kruskal</b> sorts every possible cable from cheapest to dearest. It lays each one, unless the cable would only join two houses that are already connected. <b>Prim</b> grows a single network outward from one house. It always adds the cheapest cable that reaches a house not yet connected. The routes differ, but the total cost is the same.</p>
+  <p>Either way the result is a <b>spanning tree</b>. Every house is connected, and there are no loops. So six houses need exactly five cables.</p>
+  <p>Kruskal tracks who is already connected with a union–find structure. It answers “same group?” almost at once. Prim keeps a queue of the houses waiting to join, each with the cheapest price on offer so far. Dijkstra keeps its frontier the same way.</p>
 
   <h2><small>Where it breaks</small>Cheapest isn’t shortest</h2>
-  <p>The cheapest network isn’t the one with the shortest routes. The trip between two houses can be long and winding. If travel time matters, that’s a shortest-path problem.</p>
-  <p>Here a direct Dev–Eli cable would cost 5, and it isn’t in the network: a signal from Dev to Eli goes through Ada and Ben, three cables instead of one.</p>
+  <p>The cheapest network isn’t the one with the shortest routes. The trip between two houses can be long and winding. If travel time matters, that is a shortest-path problem.</p>
+  <p>Here a direct Dev–Eli cable would cost 5, and it isn’t in the network. A signal from Dev to Eli goes through Ada and Ben, over three cables instead of one.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The six houses, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

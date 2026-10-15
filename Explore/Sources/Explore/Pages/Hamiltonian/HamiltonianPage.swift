@@ -115,7 +115,7 @@ final class HamiltonianModel {
         if route.isEmpty { route = [v]; message = ""; return }
         if v == route.last { route.removeLast(); message = ""; return }
         if route.contains(v) {
-            message = "\(boardSpots[v].name) is already on the route: each place is visited once."
+            message = "\(boardSpots[v].name) is already on the route. Each place is visited once."
         } else if !boardAdjacent(route.last!, v) {
             message = "\(boardSpots[v].name) isn’t next to \(boardSpots[route.last!].name)."
         } else {
@@ -182,17 +182,17 @@ struct IcosianLab {
                         span(.class("label")) { complete ? "Solved" : "\(route.count) of \(boardSpots.count) places" }
                         p(.class("narration")) {
                             if complete {
-                                "Every place once, and back to \(boardSpots[route[0]].name): a Hamiltonian cycle."
+                                "Every place once, and back to \(boardSpots[route[0]].name). That is a Hamiltonian cycle."
                             } else if route.isEmpty {
                                 "Click any place to start a route."
                             } else if !model.message.isEmpty {
                                 model.message
                             } else if finish == nil {
-                                "Stuck: there is no way to visit every place left and get back to \(boardSpots[route[0]].name) from here. Take some places back."
+                                "Stuck. From here there is no way to visit every place left and get back to \(boardSpots[route[0]].name). Take some places back."
                             } else if route.count == 5 && route.map({ boardSpots[$0].name }) == ["B", "C", "D", "F", "G"] {
-                                "Hamilton’s game: one player chooses the first five places, B C D F G here, and the other must finish the round, visiting every place once and returning to B. It can be done from here."
+                                "In Hamilton’s game, one player chooses the first five places, here B C D F G. The other must finish the round, visiting every place once and returning to B. It can be done from here."
                             } else {
-                                "The route can still be finished: there is a way through every place left and back to \(boardSpots[route[0]].name)."
+                                "The route can still be finished. There is a way through every place left and back to \(boardSpots[route[0]].name)."
                             }
                         }
                     }
@@ -205,7 +205,7 @@ struct IcosianLab {
                                 .onClick { hamiltonianModel.clear() }
                         }
                         p(.class("note")) {
-                            "The route so far: " + (route.isEmpty ? "none" : route.map { boardSpots[$0].name }.joined(separator: " "))
+                            route.isEmpty ? "There is no route yet." : "The route so far is " + route.map { boardSpots[$0].name }.joined(separator: " ") + "."
                         }
                     }
                 }
@@ -246,11 +246,11 @@ func describeIcosianStep(_ step: IcosianStep, after route: [Int]) -> String {
     case .extend(let v):
         return route.count == 1
             ? "Start at \(boardSpots[v].name)."
-            : "Go on to \(boardSpots[v].name), the first neighbour not yet on the route: \(route.count) places."
+            : "Go on to \(boardSpots[v].name), the first neighbour not yet on the route. The route has \(route.count) places."
     case .retreat(let v):
         return "\(boardSpots[v].name) leads nowhere new that works. Take it off the route and try the next neighbour of \(route.last.map { boardSpots[$0].name } ?? "the start")."
     case .close:
-        return "Every place is on the route, and the last, \(boardSpots[route.last!].name), is next to \(boardSpots[route[0]].name). Close the cycle."
+        return "Every place is on the route, and the last one, \(boardSpots[route.last!].name), is next to \(boardSpots[route[0]].name). Close the cycle."
     }
 }
 
@@ -289,7 +289,7 @@ struct IcosianSearchLab {
                         span(.class("label")) { finished ? "Done after \(steps.count) steps" : "Step \(k) of \(steps.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "A computer has no better idea than to try: go to the first neighbour not yet visited, and when that leads nowhere, take it back and try the next. Press Play to watch."
+                                "A computer has no better idea than to try. Go to the first neighbour not yet visited. When that leads nowhere, take it back and try the next. Press Play to watch."
                             } else {
                                 describeIcosianStep(last!, after: route)
                                 if finished {

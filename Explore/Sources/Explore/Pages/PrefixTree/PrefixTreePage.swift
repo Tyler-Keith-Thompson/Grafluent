@@ -55,7 +55,7 @@ func describeInsert(_ k: Int) -> String {
     let added = after.arborescence.vertexCount - before.arborescence.vertexCount
     let shared = word.count - added
     let reuse = shared == 0 ? "None of it is in the tree yet" : "“\(word.prefix(shared))” is already in the tree"
-    return "Add “\(word)”. \(reuse), so it takes \(added) new \(added == 1 ? "vertex" : "vertices"), and its last one is marked as a word."
+    return "Add “\(word)”. \(reuse), so it takes \(added) new \(added == 1 ? "vertex" : "vertices"). Its last vertex is marked as a word."
 }
 
 @View
@@ -117,7 +117,7 @@ struct PrefixTreeLab {
                         span(.class("label")) { k == wordList.count ? "All \(wordList.count) words" : "\(k) of \(wordList.count) words" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "An empty tree: just the root, the empty prefix. Press Step to add the words one at a time."
+                                "The tree starts empty, with just the root, the empty prefix. Press Step to add the words one at a time."
                             } else {
                                 describeInsert(k)
                                 " The tree has \(n) vertices for \(wordList.prefix(k).reduce(0) { $0 + $1.count }) letters."

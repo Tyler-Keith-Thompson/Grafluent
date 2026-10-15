@@ -8,18 +8,34 @@
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The words above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Every word that starts this way</h2>
+  <p>A prefix tree finds every stored word that starts with what you typed. The time depends on how much you typed, not on how many words are stored. Reach for it for autocomplete, spell checkers and routing tables.</p>
 </section>
 
 <section class="prose">
   <h2><small>The idea</small>Share the beginnings</h2>
-  <p>A <b>prefix tree</b>, or trie, stores a set of words so that words with the same beginning share it. The root is the empty prefix. Adding a word walks down from the root letter by letter, following an edge where one already exists and making a new vertex where none does; the vertex the word ends at is marked. “cart” after “car” and “card” costs one new vertex, because “car” is already there.</p>
-  <p>Looking up is the same walk. Follow the letters typed; if an edge is missing, no word starts that way. Otherwise every marked vertex below the one you reached is a word with that beginning. The walk costs the length of what you typed, however many words the list holds, and listing the suggestions costs the size of the part below.</p>
-  <p><code>prefixTree(of:)</code> builds one from any sequences of hashable symbols, not just words: lists of moves, paths in a file system, IP address bits. The tree is an <code>Arborescence</code> on vertex numbers, with the symbol of each edge and the vertex where each sequence ends.</p>
+  <p>A <b>prefix tree</b>, or trie, stores a set of words so that words with the same beginning share it. The root is the empty prefix. To add a word, walk down from the root letter by letter. Follow an edge where one already exists, and make a new vertex where none does. Mark the vertex where the word ends. Adding “cart” after “car” and “card” costs one new vertex, because “car” is already there.</p>
+  <p>Looking up is the same walk. Follow the letters typed. If an edge is missing, no word starts that way. Otherwise every marked vertex below the one you reached is a word with that beginning. The walk costs the length of what you typed, however many words the list holds. Listing the suggestions costs the size of the part below.</p>
+  <p><code>prefixTree(of:)</code> builds one from any sequences of hashable symbols, not just words. Lists of moves, paths in a file system and IP address bits all work. The tree is an <code>Arborescence</code> on vertex numbers. It records the symbol of each edge and the vertex where each sequence ends.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find words by their start</h2>
+  <!-- compare
+  | Method | When to use | Find by start | Memory | Weakness |
+  | *Prefix tree (<code>prefixTree(of:)</code>) | Words added over time, many lookups | The length of what you typed | One vertex per distinct prefix | Many vertices on a big list |
+  | Compressed trie (radix tree) | A large dictionary | The length of what you typed | One vertex per branching point | More work to add a word |
+  | Sorted array with binary search | A fixed list | A search, then a scan | The words and nothing else | Slow to add a word |
+  -->
+  <p>For a list that never changes, a sorted array is often just as good. A prefix tree pays off when the words change or the lookups are many.</p>
 
   <h2><small>Where it breaks</small>Many vertices, and only exact beginnings</h2>
-  <p>One vertex per distinct prefix adds up: a large dictionary has millions, mostly in long single-file chains near the leaves. Compressed tries (radix trees) merge each chain into one edge labelled with a whole string, and a sorted array with binary search often does just as well for a fixed list.</p>
-  <p>A prefix tree also only finds words that start exactly with what was typed. A real search box ranks suggestions by how often they are chosen, and forgives typos, which needs edit-distance search or a different index altogether.</p>
+  <p>One vertex per distinct prefix adds up. A large dictionary has millions of them, mostly in long single-file chains near the leaves. A compressed trie merges each chain into one edge labelled with a whole string.</p>
+  <p>A prefix tree also finds only words that start exactly with what was typed. A real search box ranks suggestions by how often people choose them, and it forgives typos. That needs edit-distance search or a different index altogether.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The words above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 </section>

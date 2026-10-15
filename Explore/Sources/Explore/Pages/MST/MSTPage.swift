@@ -189,13 +189,13 @@ func describe(_ step: KruskalStep, before state: KruskalSnapshot) -> String {
     case .consider(let cable):
         let left = state.group(of: a), right = state.group(of: b)
         let where_ = left == right
-            ? "Both are already in one group: \(houseList(left))."
-            : "\(housePlaces[a].name)’s group is \(houseList(left)); \(housePlaces[b].name)’s is \(houseList(right))."
-        return "Next cheapest: \(cableName(cable)), cost \(cost(cable)). " + where_
+            ? "Both are already in one group, \(houseList(left))."
+            : "\(housePlaces[a].name)’s group is \(houseList(left)). \(housePlaces[b].name)’s is \(houseList(right))."
+        return "The next cheapest cable is \(cableName(cable)), cost \(cost(cable)). " + where_
     case .lay(let cable, _, _):
-        return "Lay \(cableName(cable)): it joins two groups into one, \(houseList((state.group(of: a) + state.group(of: b)).sorted()))."
+        return "Lay \(cableName(cable)). It joins two groups into one, \(houseList((state.group(of: a) + state.group(of: b)).sorted()))."
     case .skip(let cable, _):
-        return "Skip \(cableName(cable)): its houses are already connected, so it would only close a loop."
+        return "Skip \(cableName(cable)). Its houses are already connected, so it would only close a loop."
     }
 }
 
@@ -203,8 +203,8 @@ func describe(_ step: KruskalStep, before state: KruskalSnapshot) -> String {
 func describe(_ step: PrimStep) -> String {
     switch step {
     case .join(let house, let cable):
-        guard let cable else { return "Start at \(housePlaces[house].name): a network of one house, costing nothing." }
-        return "\(housePlaces[house].name) is the cheapest house to reach: it joins by \(cableName(cable)), cost \(cost(cable))."
+        guard let cable else { return "Start at \(housePlaces[house].name), a network of one house that costs nothing." }
+        return "\(housePlaces[house].name) is the cheapest house to reach. It joins by \(cableName(cable)), cost \(cost(cable))."
     case .offer(let from, let to, let cable, let previous, let better):
         let name = housePlaces[to].name
         if better {
@@ -306,8 +306,8 @@ struct MSTLab {
                                 "Every house is connected by 5 cables, total cost "
                                 em { "\(laidCost)" }
                                 prim
-                                    ? ". Kruskal, laying cables in a different order, reaches the same total: \(totals.kruskal)."
-                                    : ". Prim, growing from one house, reaches the same total: \(totals.prim)."
+                                    ? ". Kruskal lays cables in a different order and reaches the same total, \(totals.kruskal)."
+                                    : ". Prim grows from one house and reaches the same total, \(totals.prim)."
                             } else if let lastKruskal {
                                 describe(lastKruskal, before: kruskalBefore)
                             } else if let lastPrim {
@@ -320,7 +320,7 @@ struct MSTLab {
                             span(.class("label")) { "Waiting houses, cheapest first" }
                             div(.class("queue")) {
                                 if waiting.isEmpty {
-                                    p(.class("empty")) { finished ? "Empty: every house is connected." : "Empty" }
+                                    p(.class("empty")) { finished ? "Empty. Every house is connected." : "Empty" }
                                 }
                                 for (j, house) in waiting.enumerated() {
                                     div(.class(j == 0 ? "qrow top" : "qrow")) {
@@ -330,26 +330,12 @@ struct MSTLab {
                                 }
                             }
                         }
-                        div(.class("panel")) {
-                            span(.class("label")) { "Connected, in order" }
-                            div(.class("chips")) {
-                                if grown.order.isEmpty {
-                                    p(.class("empty")) { "None yet" }
-                                }
-                                for house in grown.order {
-                                    span(.class("chip")) {
-                                        "\(housePlaces[house].name) "
-                                        span(.class("num")) { grown.via[house].map { "\(cost($0))" } ?? "start" }
-                                    }
-                                }
-                            }
-                        }
                     } else {
                         div(.class("panel")) {
                             span(.class("label")) { "Cables, cheapest first" }
                             div(.class("queue")) {
                                 for cable in sortedCables {
-                                    let fate = kruskal.laid.contains(cable) ? "laid" : kruskal.skipped.contains(cable) ? "skipped: closes a loop"
+                                    let fate = kruskal.laid.contains(cable) ? "laid" : kruskal.skipped.contains(cable) ? "skipped, closes a loop"
                                         : cable == activeCable ? "considering" : finished ? "not needed" : ""
                                     div(.class("qrow cable" + (kruskal.laid.contains(cable) ? " laid" : kruskal.skipped.contains(cable) ? " skipped" : cable == activeCable ? " top" : finished ? " later" : ""))) {
                                         span {
@@ -430,7 +416,7 @@ struct MSTLab {
                         legend: [
                             (Marble(kind: "m-grey", radius: 3.5), "the next cheapest cable is read"),
                             (Marble(kind: "m-blue", radius: 6), "it joins two groups: laid"),
-                            (Marble(kind: "m-red", radius: 5), "its houses are already connected: skipped"),
+                            (Marble(kind: "m-red", radius: 5), "skipped, its houses already connected"),
                         ])
                     p(.class("note")) { "Numbers on the lines are what each cable costs. Houses of one colour are already connected to each other." }
                 }

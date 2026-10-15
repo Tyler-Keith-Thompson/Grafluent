@@ -69,9 +69,9 @@ func relationship(_ a: String, _ b: String, up: Int, down: Int) -> String {
 func describeClimb(_ k: Int, _ model: LCAModel) -> String {
     let (px, py) = model.climb[k - 1], (x, y) = model.climb[k]
     let moved = [px != x ? "\(px) up to \(x)" : nil, py != y ? "\(py) up to \(y)" : nil].compactMap { $0 }
-    let why = moved.count == 2 ? "Both are in the same generation, so both step up: " : "\(px != x ? px : py) is a generation lower, so only that side steps up: "
-    let head = why + moved.joined(separator: " and ") + "."
-    return x == y ? head + " They meet at \(x): the lowest common ancestor." : head
+    let why = moved.count == 2 ? "Both are in the same generation, so both step up. " : "\(px != x ? px : py) is a generation lower, so only that side steps up. "
+    let head = why + "Move " + moved.joined(separator: " and ") + "."
+    return x == y ? head + " They meet at \(x), the lowest common ancestor." : head
 }
 
 @View
@@ -116,7 +116,7 @@ struct LCALab {
                             if model.climb.count == 1 {
                                 "Pick two different people."
                             } else if k == 0 {
-                                "Who is the most recent ancestor \(model.first) and \(model.second) share? Climb from both: whoever is in a later generation steps up to their parent, and once they are level, both step up together, until they stand on the same person. Press Step."
+                                "Who is the most recent ancestor \(model.first) and \(model.second) share? Climb from both. Whoever is in a later generation steps up first. Once they are level, both step up together until they meet. Press Step."
                             } else {
                                 describeClimb(k, model)
                             }

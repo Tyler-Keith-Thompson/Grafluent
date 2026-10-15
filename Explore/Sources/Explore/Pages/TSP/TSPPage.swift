@@ -148,11 +148,11 @@ struct TSPLab {
                         span(.class("label")) { "\(chosen.name): \(tourLength(chosen.tour)) km" }
                         p(.class("narration")) {
                             switch model.method {
-                            case 0: "Always drive to the nearest town not yet visited, then home. Quick, and usually decent, but the last few legs have to take whatever is left."
-                            case 1: "Start from the nearest-neighbour tour and keep swapping two roads for two shorter ones, by turning a stretch of the tour around, until no swap helps."
-                            case 2: "Random changes to the nearest-neighbour tour, sometimes accepting a worse one so the search can climb out of a dip; a seeded generator makes it the same every time."
-                            case 3: "A minimum spanning tree, with its odd towns matched up, walked as an Euler circuit with repeats skipped. Never more than 1.5 times the shortest on straight roads."
-                            default: "The shortest of all \(Int((1 ... towns.count - 1).reduce(1, *) / 2)) tours, by Held and Karp’s dynamic programming over subsets of towns."
+                            case 0: "Always drive to the nearest town not yet visited, then home. It is quick and usually decent. But the last few legs have to take whatever is left."
+                            case 1: "Start from the nearest-neighbour tour. Keep swapping two roads for two shorter ones until no swap helps."
+                            case 2: "Make random changes to the nearest-neighbour tour. Sometimes accept a worse one, so the search can climb out of a dip. A seeded generator makes it the same every time."
+                            case 3: "Join the towns by a minimum spanning tree and match up its odd towns. Walk the result as an Euler circuit, skipping repeats. On straight roads it is never more than 1.5 times the shortest."
+                            default: "The shortest of all \(Int((1 ... towns.count - 1).reduce(1, *) / 2)) tours, found by Held and Karp’s dynamic programming over subsets of towns."
                             }
                         }
                         label(.class("field"), .for("tsp-method")) {
@@ -204,10 +204,10 @@ func describeTourStep(_ step: TourStep, before: [Int]) -> String {
     case .visit(let town, let km):
         return "From \(towns[before.last!].name), the nearest town not yet visited is \(towns[town].name), \(km) km."
     case .close(let km):
-        return "Every town is visited. Drive home to \(towns[before[0]].name), \(km) km: the nearest-neighbour tour is \(orderLength(before)) km."
+        return "Every town is visited. Drive home to \(towns[before[0]].name), \(km) km. The nearest-neighbour tour is \(orderLength(before)) km."
     case .exchange(let removed, let added, let saved, let order):
         func road(_ r: (Int, Int)) -> String { "\(towns[r.0].name)–\(towns[r.1].name)" }
-        return "Swap \(road(removed[0])) and \(road(removed[1])) for \(road(added[0])) and \(road(added[1])), turning the stretch between them around. That saves \(saved) km: \(orderLength(order)) km."
+        return "Swap \(road(removed[0])) and \(road(removed[1])) for \(road(added[0])) and \(road(added[1])). That saves \(saved) km, for \(orderLength(order)) km in all."
     }
 }
 
@@ -257,12 +257,12 @@ struct TourStepLab {
                         span(.class("label")) { finished ? "Done after \(steps.count) steps" : "Step \(k) of \(steps.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Start at \(towns[model.start].name). First build a tour greedily, one nearest town at a time; then improve it with 2-opt, one swap of two roads at a time. Press Step to begin."
+                                "Start at \(towns[model.start].name). First build a tour, one nearest town at a time. Then improve it with 2-opt, one swap of two roads at a time. Press Step to begin."
                             } else {
                                 describeTourStep(last!, before: before)
                                 if finished {
                                     orderLength(order) == library
-                                        ? " No swap saves anything now: the tour is 2-optimal, \(orderLength(order)) km, as twoOptTour(improving:) found."
+                                        ? " No swap saves anything now. The tour is 2-optimal at \(orderLength(order)) km, as twoOptTour(improving:) found."
                                         : " No swap saves anything now. twoOptTour(improving:) found \(library) km."
                                 }
                             }

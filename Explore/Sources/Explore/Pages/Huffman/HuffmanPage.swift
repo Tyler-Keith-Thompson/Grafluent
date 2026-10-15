@@ -107,12 +107,12 @@ func describeHuffman(_ step: HuffmanStep, _ model: HuffmanModel) -> String {
     switch step {
     case .join(let v):
         let l = model.tree.left(of: v)!, r = model.tree.right(of: v)!
-        return "Take the two lightest: \(huffmanName(l, model)) (\(model.weight[l])) and \(huffmanName(r, model)) (\(model.weight[r])). Join them under a new node weighing \(model.weight[v]), the lighter on the 0 side."
+        return "Take the two lightest, \(huffmanName(l, model)) (\(model.weight[l])) and \(huffmanName(r, model)) (\(model.weight[r])). Join them under a new node weighing \(model.weight[v]), with the lighter on the 0 side."
     case .read(let leaf):
         let letter = model.letters[leaf]
         let word = model.codes[letter]!
         let count = model.counts[letter]!
-        return "Read “\(shown(letter))” from the top: \(word.map { $0 == "0" ? "0" : "1" }.joined(separator: ", ")). Its code is \(word); it appears \(count) time\(count == 1 ? "" : "s"), so it costs \(count * word.count) bits."
+        return "Read the path to “\(shown(letter))” from the top. Its code is \(word). It appears \(count) time\(count == 1 ? "" : "s"), so it costs \(count * word.count) bits."
     }
 }
 
@@ -177,7 +177,7 @@ struct HuffmanLab {
                             if n == 0 {
                                 "Nothing to code yet."
                             } else if k == 0 {
-                                "Each different letter starts as a tree of its own, weighted by how often it appears. Huffman joins the two lightest, again and again, until one tree is left. Press Step to begin."
+                                "Each different letter starts as a tree of its own, weighted by how often it appears. Huffman joins the two lightest again and again, until one tree is left. Press Step to begin."
                             } else if finished {
                                 "Every letter has a code, and none is the start of another, so the bits can be read back without gaps. The sentence takes "
                                 em { "\(model.bits) bits" }
