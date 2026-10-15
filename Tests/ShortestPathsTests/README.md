@@ -47,6 +47,9 @@ extension DirectedGraph
     func bellmanFordShortestPaths(from: Vertex | some Sequence<Vertex>, weight:) -> ShortestPathTree<Self, W>?
     func findNegativeCycle(from: Vertex | some Sequence<Vertex>, weight:) -> Cycle<Vertex, Edges.Index>?
     func findNegativeCycle(weight:) -> Cycle<Vertex, Edges.Index>?   // every vertex a source
+    func lazy.bellmanFord(from: Vertex | some Sequence<Vertex>, weight: @escaping (Edges.Index) -> W)
+        -> BellmanFordSearch<Self, W>                  // lazy; Element BellmanFordEvent<Vertex, Edges.Index, W>:
+                                                       // round(k), examine(v, distance:), edgeRelaxed, edgeNotRelaxed, negativeCycle
     func dagShortestPaths(from: Vertex | some Sequence<Vertex>, weight:) -> ShortestPathTree<Self, W>?  // nil on a reachable cycle
     func shortestSimplePaths(from:to:weight:) -> ShortestSimplePaths<Self, W>   // lazy, shortest first
     func shortestSimplePaths(from:to:) -> ShortestSimplePaths<Self, Int>         // fewest edges first

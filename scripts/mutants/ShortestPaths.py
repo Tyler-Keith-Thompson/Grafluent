@@ -356,4 +356,13 @@ MUTANTS = [
     Mutant("ybfsparent", "ShortestSimplePaths.swift",
            "parent[v] = u",
            "", mode="stmt", nth=0),
+
+    # Bellman–Ford as an event sequence
+    Mutant("bfsstrict", "BellmanFordSearch.swift", "candidate < distance[v]", "candidate <= distance[v]"),
+    Mutant("bfsunreached", "BellmanFordSearch.swift", "parent[v] == -2", "false"),
+    Mutant("bfsrounds", "BellmanFordSearch.swift", "round < ids.count", "round <= ids.count"),
+    Mutant("bfsparent", "BellmanFordSearch.swift", "parent[v] = current", "parent[v] = v", mode="stmt"),
+    Mutant("bfscycle", "BellmanFordSearch.swift", "_negativeCycle(parent: parent, active: active)", "Optional<[Int]>.none"),
+    Mutant("bfsswap", "BellmanFordSearch.swift", "swap(&active, &upcoming)", "active.removeAll()", mode="stmt"),
+    Mutant("bfsfrom", "BellmanFordSearch.swift", "currentDistance = distance[u]", "currentDistance = .zero", mode="stmt"),
 ]

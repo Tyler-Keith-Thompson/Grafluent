@@ -194,7 +194,7 @@ lists each catalog's scripts and Python pins (run through `uv`).
   member is named for the algorithm whose steps it reports and returns a sequence of `…Event`s:
   `lazy.breadthFirstSearch`, `lazy.depthFirstSearch` (vertex pairs),
   `lazy.edgeBreadthFirstSearch`, `lazy.edgeDepthFirstSearch` (edge positions), `lazy.dijkstra`,
-  `lazy.aStar`, `lazy.kruskal`, `lazy.prim`, `lazy.edmondsKarp`, `lazy.louvain`,
+  `lazy.aStar`, `lazy.bellmanFord`, `lazy.kruskal`, `lazy.prim`, `lazy.edmondsKarp`, `lazy.louvain`,
   `lazy.bronKerbosch`, `lazy.kahn`, `lazy.hopcroftKarp`. Events favour useful state over speed;
   their ratio tests only bound a pathological slowdown (3× the plain call).
 - Results are dedicated types (`ShortestPathTree`, `Components`, `Matching`, `Flow`), not tuples.
