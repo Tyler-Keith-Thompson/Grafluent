@@ -66,7 +66,7 @@ func describeCut(_ k: Int, _ model: MinCutModel) -> String {
     let (pair, cut) = model.tree[k]
     let small = cut.sourceSide.count <= cut.sinkSide.count ? cut.sourceSide : cut.sinkSide
     let plural = cut.value == 1 ? "cable" : "cables"
-    return "Separating \(pair.u) from \(pair.v) takes at least \(cut.value) \(plural): cut off \(officeList(small)) from the rest. Gomory and Hu’s tree gets an edge \(pair.u)–\(pair.v) worth \(cut.value)."
+    return "Keeping \(pair.u) and \(pair.v) apart takes \(cut.value) \(plural). The cheapest way cuts off \(officeList(small)). The Gomory–Hu tree gets an edge \(pair.u)–\(pair.v) worth \(cut.value)."
 }
 
 @View
@@ -116,9 +116,9 @@ struct MinCutLab {
                         span(.class("label")) { finished ? "The cheapest cut" : k == 0 ? "\(model.tree.count) pairs to separate" : "Cut \(k) of \(model.tree.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "To split the network, cut every cable between two groups of offices. Which split takes the fewest cuts? Press Step to separate one pair of offices at a time, as cheaply as possible."
+                                "Splitting the network means cutting every cable between two groups of offices. Press Step to keep one pair of offices apart, as cheaply as possible."
                             } else if finished {
-                                "The cheapest split of all takes \(value) \(value == 1 ? "cable" : "cables"): it cuts off \(officeList(model.cheapest?.sinkSide ?? [])). It is the lightest edge of Gomory and Hu’s tree, and minimumCut(capacity:) finds it directly."
+                                "The cheapest split of all takes \(value) \(value == 1 ? "cable" : "cables"). It cuts off \(officeList(model.cheapest?.sinkSide ?? [])). That is the lightest edge in the Gomory–Hu tree, and minimumCut(capacity:) finds it directly."
                             } else {
                                 describeCut(k - 1, model)
                             }

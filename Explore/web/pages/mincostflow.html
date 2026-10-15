@@ -4,22 +4,43 @@
   <h1>Minimum-cost flow</h1>
   <p class="question">Two warehouses, four shops, roads that carry only so much and cost so much per crate. What’s the cheapest way to stock every shop?</p>
 </header>
-<p class="example lead">Example: North has 6 crates and South 5. They reach four shops directly or through a hub. Each road is labelled with the crates sent over the crates it can take, then the cost per crate.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>The cheapest plan that meets every demand</h2>
+  <p>Some places have goods to send, and some places want them. Each road can carry only so much, and each unit costs something to send. A minimum-cost flow is the cheapest way to move everything so that every place gets what it wants.</p>
+  <p>Reach for it to plan deliveries, to route traffic or data at the least cost, or to schedule work across machines. Shortest paths, maximum flow and the assignment problem are all special cases of it.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Simpler questions it covers</h2>
+  <!-- compare
+  | Method | When to use | Gives | Weakness |
+  | *<code>minimumCostFlow</code> | Set supplies and demands, roads with limits and costs | The cheapest plan that meets every demand | No plan at all if the demands can’t be met |
+  | <code>minimumCostMaximumFlow</code> | Send as much as you can, then pay least | The cheapest of the largest flows | One source and one sink |
+  | [Maximum flow](flow.html) | Cost doesn’t matter | The most that can be sent | Ignores cost |
+  | [Dijkstra](dijkstra.html) | One unit, and no road limits | The cheapest single route | Ignores how much a road can carry |
+  | <code>linearSumAssignment</code> | Pair each worker with one job | The cheapest pairing | One unit per worker and per job |
+  -->
+  <p>The simpler methods are faster when they fit. A minimum-cost flow is the one to use when limits and costs both matter.</p>
+</section>
+
+<p class="example lead">Example: North has 6 crates and South 5. They reach four shops directly or through a hub. Each road shows the crates sent over the crates it can take, then the cost per crate.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The deliveries above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
   <h2><small>The idea</small>Supplies, demands, capacities and costs</h2>
-  <p>A <b>minimum-cost flow</b> problem gives each place a <b>supply</b> (positive: it sends that much more than it receives) or a demand (negative), and each edge a capacity and a cost per unit. The answer is the flow that meets every supply and demand, never exceeds a capacity, and costs least in total. Shortest paths, <a href="flow.html">maximum flow</a> and the assignment problem are all special cases.</p>
-  <p>The page uses a standard trick to let the warehouses send <em>up to</em> their stock rather than exactly it: one made-up place, Stock, supplies everything wanted, with a free road to each warehouse as wide as its stock. Then each shop’s demand is its order, and the solver decides which warehouse fills it.</p>
-  <p>Cheapest isn’t greedy. Ashby is cheapest to stock through the hub, until Colby opens: Colby’s only cheap road starts at the hub, and the hub can take in only 6 crates a day. So the cheapest plan for three shops moves Ashby’s crates to the dearer direct road, freeing the hub for Colby. <code>minimumCostFlow</code> runs the <b>network simplex</b>: it keeps a spanning tree of roads whose flows are free to change, and repeatedly brings in a road that would lower the cost, sending flow round the cycle it closes, until no road can. The answer comes with a price, a <em>potential</em>, at every place; no road with room left is cheaper than the difference in price across it, which proves no better plan exists.</p>
+  <p>Each place gets a <b>supply</b>. A positive supply sends that much more than it receives. A negative one is a demand. Each road gets a capacity and a cost per unit. The answer is the flow that meets every supply and demand, stays within every capacity, and costs least in total.</p>
+  <p>The warehouses here should send <em>up to</em> their stock, not exactly that much. A standard trick handles this. One made-up place, Stock, supplies everything the shops want. A free road runs from Stock to each warehouse, as wide as that warehouse’s stock. Each shop’s demand is its order, and the solver decides which warehouse fills it.</p>
+  <p>The cheapest plan isn’t built greedily. Ashby is cheapest to stock through the hub, until Colby opens. Colby’s only cheap road starts at the hub, and the hub can take in only 6 crates a day. So the cheapest plan for three shops moves Ashby’s crates to the dearer direct road. That frees the hub for Colby.</p>
+  <p><code>minimumCostFlow</code> runs the <b>network simplex</b>. It keeps a tree of roads whose flows are free to change. Again and again it adds a road that would lower the cost, and sends flow round the loop that road closes. It stops when no road would help. The answer comes with a price at every place, called a <b>potential</b>. No road with room left costs less than the difference in price across it. That proves no better plan exists.</p>
 
   <h2><small>Where it breaks</small>Whole crates, straight costs</h2>
-  <p>Costs here grow in a straight line: two crates cost twice one. Real deliveries have a fixed cost per truck, discounts for bulk, or a choice of whether to open a warehouse at all, and those make the problem much harder: they need integer programming, with a flow problem like this one inside. When every supply, demand and capacity is a whole number, the network simplex always finds a plan in whole crates, which is why it suits goods that don’t split.</p>
-  <p>If the supplies can’t all be met, because the shops want more than the roads can carry, there is no flow and the call returns nil. To send as much as possible and then pay least for it, use <code>minimumCostMaximumFlow</code>.</p>
+  <p>Costs here grow in a straight line, so two crates cost twice as much as one. Real deliveries often have a fixed cost per truck, discounts for bulk, or a choice of whether to open a warehouse at all. Those make the problem much harder. They need integer programming, often with a flow problem like this one inside. When every supply, demand and capacity is a whole number, the network simplex always finds a plan in whole crates. That suits goods that don’t split.</p>
+  <p>If the shops want more than the roads can carry, no plan exists and the call returns nil. To send as much as possible and then pay least for it, use <code>minimumCostMaximumFlow</code>.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The deliveries above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 </section>

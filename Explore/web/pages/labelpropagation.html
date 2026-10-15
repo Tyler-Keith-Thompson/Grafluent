@@ -4,30 +4,46 @@
   <h1>Label propagation</h1>
   <p class="question">If everyone repeats whatever most of their friends say, which groups end up saying the same thing?</p>
 </header>
-<p class="example lead">Example: sixteen children on a playground and who plays with whom. Each starts with a rumour of their own, then keeps switching to the one most of their friends tell. When nobody wants to switch, the children who tell the same rumour are a <b>community</b>.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Fast groups in a very large network</h2>
+  <p>Label propagation splits a network into groups, called <b>communities</b>, that have many links inside and few between. Each vertex copies the label most of its neighbours have. Inside a close group one label soon wins, and it rarely crosses the few links to the next group.</p>
+  <p>Reach for it when the network is huge and you want a quick first look. It never scores a split, so it is very fast. It also has no idea of a best answer, so check what it finds with a score such as modularity.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find communities</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *Label propagation | A quick look at a very large network | Groups from a local rule | O(m) a sweep, and a few sweeps | Two runs can give different groups |
+  | [Louvain](communities.html) | Good groups on a network of any size | Groups with a high modularity score | Close to linear in practice | Can merge small groups that should stay apart |
+  | [Girvan–Newman](girvannewman.html) | A small network, when you want every level of split | A family tree of splits, from one group to single vertices | O(m²n) | Far too slow past a few hundred vertices |
+  -->
+  <p>Label propagation is the fastest of the three. It is also the least steady. The order of the visits and the way ties break change its answer. In the table, n is the number of vertices and m the number of links.</p>
+</section>
+
+<p class="example lead">Example: sixteen children on a playground, and who plays with whom. Each child starts with a rumour of their own. Then each keeps switching to the rumour most of their friends tell. When nobody wants to switch, the children who tell the same rumour are a group.</p>
 
 <h2 class="labhead"><small>Try it</small>Three ways to spread</h2>
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The playground above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <h2 class="labhead"><small>Step through</small>One child at a time</h2>
 <div id="sweeps"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The sweeps above, in Grafluent</h2>
-  <pre id="code-sweeps" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
-  <h2><small>The idea</small>No score, just a local rule</h2>
-  <p><a href="communities.html">Louvain</a> and <a href="girvannewman.html">Girvan–Newman</a> score whole partitions and look for a good one. Label propagation never scores anything. Each vertex looks only at its neighbours and takes the label most of them have, and inside a tightly knit group that one label quickly wins. Between groups there are too few edges for a label to cross. A sweep costs one look at every edge, and a handful of sweeps is usually enough, so it scales to networks of millions of vertices where scoring would be slow.</p>
-  <p>The order matters. Going round one child at a time, as <code>asynchronousLabelPropagationCommunities()</code> does, means later children hear the changes earlier ones made in the same sweep. Updating everyone at once instead can make two friends swap labels with each other for ever, so <code>labelPropagationCommunities()</code> updates in rounds of children who aren’t friends (the colour classes of a <a href="coloring.html">colouring</a>), which always settles.</p>
+  <h2><small>The idea</small>A local rule, and the order of turns</h2>
+  <p>Each child looks only at their own friends. A sweep visits every child once, so it looks at every friendship about twice. A handful of sweeps is usually enough, which is why the method scales to networks with millions of vertices.</p>
+  <p>The order matters. <code>asynchronousLabelPropagationCommunities()</code> visits one child at a time. Later children hear the changes earlier ones made in the same sweep. If everyone switched at the same moment, two friends could swap rumours with each other for ever. So <code>labelPropagationCommunities()</code> works in rounds. In each round only children who aren’t friends switch together. Those rounds are the colour classes of a <a href="coloring.html">colouring</a>, and this way always settles.</p>
 
   <h2><small>Where it breaks</small>Ties, and one rumour for everyone</h2>
-  <p>Ties are everywhere at the start, when every rumour has exactly one teller, so the tie rule and the order decide a lot. Grafluent’s in-order form breaks ties by taking the last label in the list, which makes it repeatable but arbitrary; the random form breaks them by chance, so two seeds can give two different answers, as Draw again shows. Neither is wrong: the method has no notion of a best answer.</p>
-  <p>On a network without clear groups, or with groups joined by many links, one rumour can flood everything and leave a single community. Label propagation is best as a fast first look at a large network, with a method that measures quality, such as modularity, to check what it found.</p>
+  <p>At the start every rumour has exactly one teller, so ties are everywhere. The tie rule and the order decide a lot. Grafluent’s in-order form takes the last label in the list on a tie. That makes it repeatable, but the choice is arbitrary. The random form breaks ties by chance, so two seeds can give two answers, as Draw again shows.</p>
+  <p>On a network without clear groups, one rumour can flood everything and leave a single group. The same happens when groups are joined by many links. Use label propagation for a fast first look, and score the result with modularity before you trust it.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The playground above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+
+  <h2><small>In Swift</small>The sweeps above, in Grafluent</h2>
+  <pre id="code-sweeps" aria-label="Swift code"></pre>
 </section>

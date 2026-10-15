@@ -120,9 +120,9 @@ struct RumourLab {
                         span(.class("label")) { "\(groups.count) group\(groups.count == 1 ? "" : "s") · modularity \(twoPlacesSigned(score))" }
                         p(.class("narration")) {
                             switch model.variant {
-                            case 0: "Everyone starts with a rumour of their own. Going round in a fixed order, each child switches to the rumour most of their friends tell, until nobody wants to switch. Each rumour left standing is a group."
-                            case 1: "The same rule, but children who aren’t friends with each other switch at the same moment, in rounds. Nobody hears a rumour that changed under them in the same round, which keeps two friends from swapping back and forth."
-                            default: "Each sweep goes round in a new random order, and ties are broken at random, from seed \(model.seed). Different seeds can give different groups: label propagation has no single answer."
+                            case 0: "Everyone starts with a rumour of their own. The children take turns in a fixed order. Each one switches to the rumour most of their friends tell. When nobody wants to switch, each rumour still told is a group."
+                            case 1: "The same rule, in rounds. In each round, children who aren’t friends switch at the same time. So two friends can’t keep swapping rumours back and forth."
+                            default: "Each sweep visits the children in a new random order, and ties break at random. This draw uses seed \(model.seed). Another seed can give other groups."
                             }
                         }
                     }
@@ -180,14 +180,21 @@ struct RumourCodePanel {
 /// The sentence for one visit.
 func describeRumour(_ step: RumourStep) -> String {
     let child = playSpots[step.child].name
-    func rumour(_ l: Int) -> String { "\(playSpots[l].name)’s" }
-    let told = step.leaders.count == 1
-        ? "\(step.votes) friend\(step.votes == 1 ? "" : "s") tell \(rumour(step.leaders[0])) rumour, more than any other"
-        : "\(step.leaders.count) rumours tie at \(step.votes) friend\(step.votes == 1 ? "" : "s") each (\(step.leaders.map { playSpots[$0].name }.joined(separator: ", ")))"
-    if step.before != step.after {
-        return "\(child): \(told). Switch from \(rumour(step.before)) rumour to \(rumour(step.after))" + (step.leaders.count > 1 ? ", the last of them in the list." : ".")
+    func rumour(_ l: Int) -> String { l == step.child ? "their own" : "\(playSpots[l].name)’s" }
+    let friends = "\(step.votes) friend\(step.votes == 1 ? "" : "s")"
+    if step.leaders.count == 1 {
+        let tells = "\(friends) \(step.votes == 1 ? "tells" : "tell") it, more than any other."
+        return step.before != step.after
+            ? "\(child) switches to \(rumour(step.after)) rumour. " + tells
+            : "\(child) keeps \(rumour(step.before)) rumour. " + tells
     }
-    return "\(child): \(told). Already holding " + (step.leaders.count > 1 ? "one of them" : "it") + ", so keep \(rumour(step.before))."
+    guard step.leaders.count > 1 else { return "\(child) has no friends to hear from." }
+    let names = step.leaders.map { playSpots[$0].name }
+    let list = names.dropLast().joined(separator: ", ") + " and " + names.last!
+    let tie = "The rumours of \(list) tie for \(child), with \(friends) each."
+    return step.before != step.after
+        ? tie + " \(child) takes \(rumour(step.after)), the last in the list."
+        : tie + " \(child) already tells one of them, so \(child) keeps it."
 }
 
 /// The sweeps, one child at a time.
@@ -224,19 +231,19 @@ struct RumourStepLab {
                         span { i(.class("dot pal0")) {}; "holding a rumour that survives to the end" }
                         span { i(.class("line active")) {}; "the friends just heard from" }
                     }
-                    p(.class("note")) { "In each circle: whose rumour the child holds, by initial." }
+                    p(.class("note")) { "The letter in each circle is the initial of the child whose rumour it is." }
                 }
                 div(.class("side")) {
                     div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
                         span(.class("label")) { finished ? "Done after \(last?.sweep ?? 0) sweeps" : last.map { "Sweep \($0.sweep), visit \(k) of \(steps.count)" } ?? "Visit 0 of \(steps.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Every child starts with a rumour of their own. Going round in order, each listens to their friends and switches to the rumour most of them tell; on a tie, they keep theirs if it is among the most told, else take the last in the list. Press Step to begin."
+                                "Every child starts with a rumour of their own. The children take turns in order. Each one switches to the rumour most of their friends tell. Press Step to begin."
                             } else {
                                 describeRumour(last!)
                                 if finished {
-                                    " A whole sweep changed nothing: \(survivors.count) rumours are left, one per group."
-                                    agrees ? " The same groups as asynchronousLabelPropagationCommunities()." : " Not the groups asynchronousLabelPropagationCommunities() found."
+                                    " A whole sweep changed nothing, so \(survivors.count) rumours are left, one per group."
+                                    agrees ? " They are the groups asynchronousLabelPropagationCommunities() returns." : " They are not the groups asynchronousLabelPropagationCommunities() returns."
                                 }
                             }
                         }
@@ -268,7 +275,7 @@ struct RumourStepLab {
                         (Marble(kind: "m-blue", radius: 6), "a child switches rumour, to the one shown"),
                         (Marble(kind: "m-hollow", radius: 5), "a child keeps theirs"),
                     ])
-                p(.class("note")) { "The visits are the page’s own, following the rule asynchronousLabelPropagationCommunities() documents, which returns only the groups; the last step is checked against it." }
+                p(.class("note")) { "The page makes these visits itself, by the rule asynchronousLabelPropagationCommunities() documents. The library returns only the groups, and the last step is checked against them." }
             }
         }
     }

@@ -5,24 +5,42 @@
   <div class="say"><span>Say it</span><b>nah-gah-MOH-chee ee-bah-RAH-kee</b><span class="ipa">/naɡamotɕi ibaɾaki/</span></div>
   <p class="question">What’s the fewest cables you’d have to cut to split a network in two?</p>
 </header>
-<p class="example lead">Example: eight offices joined by data links, each labelled with the number of cables in it. Cutting a link means cutting all its cables.</p>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>How fragile a network is</h2>
+  <p>A <b>cut</b> splits a network into two groups. Its value is the total weight of the links between the groups. The <b>minimum cut</b> is the cheapest such split. It tells you the least that a digger, a storm or an attacker has to break to cut someone off.</p>
+  <p>Reach for it to find the weak spot in a network of cables, roads or pipes. Sometimes you need the cheapest way to keep two particular places apart. Sometimes you want that answer for every pair at once. Each has its own method.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find a cut</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *Nagamochi–Ibaraki, <code>minimumCut(capacity:)</code> | The weakest spot anywhere | The cheapest split of all | O(nm log n) | Says nothing about a given pair |
+  | [Maximum flow](flow.html), <code>minimumCut(from:to:capacity:)</code> | Keeping two given places apart | The cheapest split between them | One maximum flow | Answers one pair at a time |
+  | *Gomory–Hu tree | Every pair at once | A tree that holds the cheapest split for each pair | n − 1 maximum flows | More work than one pair needs |
+  -->
+  <p>For the single weakest spot, use <code>minimumCut(capacity:)</code>. It needs no flows at all. For many pairs, build a Gomory–Hu tree once and read every answer from it. In the table, n is the number of offices and m the number of links.</p>
+</section>
+
+<p class="example lead">Example: eight offices joined by data links. Each link shows how many cables it has. Cutting a link means cutting all its cables.</p>
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The network above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
-</section>
-
 <section class="prose">
-  <h2><small>The idea</small>The weakest place to split</h2>
-  <p>A <b>cut</b> splits the vertices into two non-empty groups; its value is the total capacity of the edges between them, here the cables. A <b>minimum cut</b> is the cheapest such split. It is how fragile the network is: the least an attacker, a digger or a storm has to break to cut someone off. Often it just isolates the most weakly connected office; here it is the few links between two clusters.</p>
-  <p>To keep two particular offices apart, the cheapest cut equals the most data that can flow between them, the max-flow min-cut theorem from <a href="flow.html">maximum flow</a>. Gomory and Hu showed that n − 1 such flows answer every pair at once: they fit in a tree on the same offices, and the fewest cables between any two is the lightest edge on their tree path. The timeline builds that tree one edge at a time, by Gusfield’s method, as <code>gomoryHuTree(capacity:)</code> does, so the cheapest cut overall is its lightest edge.</p>
-  <p>When no pair is given, <code>minimumCut(capacity:)</code> finds the cheapest split directly, without any flows: Nagamochi and Ibaraki’s method orders the vertices by how tightly each is tied to those before it, and merges any two whose tie is at least the best cut seen so far, since a cheaper cut can’t separate them. That runs in O(nm log n).</p>
+  <h2><small>The idea</small>One tree answers every pair</h2>
+  <p>To keep two offices apart, the fewest cables to cut equals the most data that can flow between them. That is the max-flow min-cut theorem from <a href="flow.html">maximum flow</a>. So one flow answers one pair.</p>
+  <p>Gomory and Hu showed that n − 1 flows answer every pair. The answers fit in a tree on the same offices. The fewest cables between any two offices is the lightest edge on the tree path between them. The timeline builds that tree one edge at a time, by Gusfield’s method, as <code>gomoryHuTree(capacity:)</code> does. The cheapest cut overall is the tree’s lightest edge.</p>
+  <p><code>minimumCut(capacity:)</code> finds that cheapest split without any flows. Nagamochi and Ibaraki’s method puts the offices in order, each one as tightly tied to those before it as possible. Two offices tied by at least the best cut so far can’t be worth separating, so it merges them and goes on.</p>
 
   <h2><small>Where it breaks</small>Cheapest isn’t always the split you want</h2>
-  <p>The minimum cut loves to cut off one poorly connected vertex. That is right for measuring fragility, and wrong for finding two balanced halves: a split into roughly equal sides with few edges between them is a different, much harder problem (balanced partitioning), and <a href="communities.html">community detection</a> is usually what people mean by it.</p>
-  <p>Capacities must not be negative. On a directed network, <code>minimumCut(capacity:)</code> counts only the edges leaving one side, and uses Hao and Orlin’s method instead; to separate two given vertices, use <code>minimumCut(from:to:capacity:)</code>.</p>
+  <p>The minimum cut often just cuts off one poorly connected office. That is right for measuring fragility. It is wrong when you want two halves of about the same size with few links between them. That is a different and much harder problem. <a href="communities.html">Community detection</a> is usually what people want there.</p>
+  <p>Capacities must not be negative. On a directed network, <code>minimumCut(capacity:)</code> counts only the links leaving one side, and it uses Hao and Orlin’s method instead.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The network above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

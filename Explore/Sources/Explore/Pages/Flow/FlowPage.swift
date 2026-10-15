@@ -118,11 +118,11 @@ func describeFlowStep(_ step: FlowStep, _ model: FlowModel) -> String {
             at = p.source == at ? p.target : p.source
             route.append(at)
         }
-        return "The shortest route with room to spare: \(route.joined(separator: " → ")), \(path.count) pipes. Its tightest spot leaves room for \(bottleneck)."
+        return "The shortest route with room to spare is \(route.joined(separator: " → ")). Its tightest pipe has room for \(bottleneck) more."
     case .push(let i, let amount):
         return "Send \(amount) more along \(pipeName(i))."
     case .cancel(let i, let amount):
-        return "This route runs backwards through \(pipeName(i)): cancel \(amount) of the water already sent there, and reroute it."
+        return "This route runs backwards along \(pipeName(i)). Cancel \(amount) of the water sent there, so it can go another way."
     }
 }
 
@@ -176,11 +176,11 @@ struct FlowLab {
                         span(.class("label")) { finished ? "Done after \(steps.count) events" : "Event \(k) of \(steps.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Nothing flows yet. Each pipe is labelled with its flow over how much it can carry. Find a route from the Reservoir to the Town with room to spare, send what fits, and repeat. Press Step to begin."
+                                "Nothing flows yet. Each pipe shows its flow over the most it can carry. Press Step to find a route with room to spare."
                             } else if finished {
                                 describeFlowStep(last!, model) + " No route has room left now, so "
                                 em { "\(model.most)" }
-                                " is the most the network can carry. The red pipes are a minimum cut: they hold exactly \(model.most) between them, and every route to the Town crosses one, so nothing could carry more."
+                                " is the most the network can carry. The red pipes are a minimum cut. Every route to the Town crosses one of them, and together they carry exactly \(model.most)."
                             } else {
                                 describeFlowStep(last!, model)
                             }

@@ -48,9 +48,9 @@ func describeOpening(_ k: Int, _ model: MinCostFlowModel) -> String {
     let shop = shopOrder[k - 1]
     let before = model.states[k - 1], after = model.states[k]
     let less = roads.indices.filter { after.flows[$0] < before.flows[$0] && roads[$0].road.source != "Stock" }
-    let head = "\(shop) opens, wanting \(demand[shop]!) crates. The cheapest plan now costs £\(after.total), £\(after.total - before.total) more."
+    let head = "\(shop) opens and wants \(demand[shop]!) crates. The cheapest plan now costs £\(after.total), which is £\(after.total - before.total) more."
     if less.isEmpty { return head + " Every earlier delivery stays as it was." }
-    return head + " To make room, less goes along " + less.map(deliveryRoadName).joined(separator: " and ") + ": the cheapest plan for all the shops isn’t the old plan plus the new shop’s cheapest route."
+    return head + " To make room, fewer crates go along " + less.map(deliveryRoadName).joined(separator: " and ") + "."
 }
 
 @View
@@ -95,10 +95,10 @@ struct MinCostFlowLab {
                         span(.class("label")) { finished ? "Every shop open" : k == 0 ? "\(shopOrder.count) shops to open" : "\(k) of \(shopOrder.count) shops open" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "North has 6 crates and South 5. Each road takes so many crates a day and costs so much per crate. The shops open one at a time; after each, Grafluent works out the cheapest plan for every shop open so far. Press Step."
+                                "No shop is open yet. Press Step to open the first one. Each time a shop opens, Grafluent works out the cheapest plan for every shop open so far."
                             } else if finished {
                                 describeOpening(k, model)
-                                " All 11 crates go out, and no plan that meets every shop costs less than £\(state.total)."
+                                " All 11 crates go out. No plan that stocks every shop costs less than £\(state.total)."
                             } else {
                                 describeOpening(k, model)
                             }
