@@ -139,6 +139,8 @@ struct GraphDrawingReviewTests {
         #expect(((q[0] - q[3]) * (q[0] - q[3])).sum() > 1e-6, "\(q)")
     }
 
+    // Layers of 10¹² need a 64-bit Int.
+    #if _pointerBitWidth(_64)
     @Test("sugiyamaLayout(layers:) with huge layer numbers: empty layers are skipped, y is the given layer")
     func hugeCallerLayers() {
         // DR-158's graph and layers [0, 2, 1, 3], times 10¹²: the same drawing, stretched in y.
@@ -156,4 +158,5 @@ struct GraphDrawingReviewTests {
         #expect(apart.drawing.positions == [SIMD2(0, Double(Int.max / 2)), SIMD2(0, 7)])
         #expect(apart.bends(ofEdgeAt: 0).isEmpty && apart.reversedEdges.isEmpty && apart.layerCount == Int.max / 2 + 1)
     }
+    #endif
 }

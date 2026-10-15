@@ -7,6 +7,8 @@
 import Darwin
 #elseif canImport(Glibc)
 import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 import AdjacencyListModule
 import AdjacencyMatrixModule

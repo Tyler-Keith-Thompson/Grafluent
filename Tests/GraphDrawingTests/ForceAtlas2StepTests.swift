@@ -14,6 +14,8 @@ import Testing
 import Darwin
 #elseif canImport(Glibc)
 import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 
 @Suite("forceAtlas2Layout: forces, speed and stepping")

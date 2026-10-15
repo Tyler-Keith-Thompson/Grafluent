@@ -4,6 +4,8 @@ import Darwin
 import Glibc
 #elseif canImport(Musl)
 import Musl
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 #if canImport(math_h)
 import math_h
@@ -351,7 +353,7 @@ struct _ForceAtlas2Engine: Sendable {
         }
         let optimalJitter = 0.05 * Double(n).squareRoot()
         let minimumJitter = optimalJitter.squareRoot()
-        var jitter = jitterTolerance * Swift.max(minimumJitter, Swift.min(10, optimalJitter * totalTraction / Double(n * n)))
+        var jitter = jitterTolerance * Swift.max(minimumJitter, Swift.min(10, optimalJitter * totalTraction / (Double(n) * Double(n))))
         let minimumEfficiency = 0.05
         if totalSwing > 2 * totalTraction {
             if speedEfficiency > minimumEfficiency { speedEfficiency *= 0.5 }

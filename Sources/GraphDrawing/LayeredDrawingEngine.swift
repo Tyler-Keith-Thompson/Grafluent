@@ -359,9 +359,10 @@ struct _LayerGraph {
 
     /// The segments (upper, lower) marked as type-1 conflicts: a segment that is not inner (both
     /// ends dummies) crossing an inner one. Keys are upper · N + lower.
-    func typeOneConflicts(_ order: [Int], _ position: [Int]) -> Set<Int> {
+    func typeOneConflicts(_ order: [Int], _ position: [Int]) -> Set<Int64> {
         let nodeCount = position.count
-        var marked = Set<Int>()
+        // Keys upper · nodeCount + lower in 64 bits: past 46,341 nodes they pass a 32-bit `Int`.
+        var marked = Set<Int64>()
         for l in stride(from: 1, to: layerCount, by: 1) {
             let upperWidth = layerStart[l] - layerStart[l - 1]
             let s = layerStart[l], e = layerStart[l + 1]
@@ -383,7 +384,7 @@ struct _LayerGraph {
                     for slot in upStart[w] ..< upStart[w + 1] {
                         let u = up[slot]
                         let k = position[u]
-                        if (k < k0 || k > k1) && !(u >= vertexCount && w >= vertexCount) { marked.insert(u * nodeCount + w) }
+                        if (k < k0 || k > k1) && !(u >= vertexCount && w >= vertexCount) { marked.insert(Int64(u) * Int64(nodeCount) + Int64(w)) }
                     }
                 }
                 start = i + 1
@@ -396,7 +397,7 @@ struct _LayerGraph {
     /// One of the four vertical alignments and its compaction: x per node (negated for the
     /// rightward ones, so every result reads left to right).
     mutating func alignAndCompact(
-        _ order: [Int], _ position: [Int], sorted neighbors: [Int], marked: Set<Int>, upward: Bool, leftward: Bool,
+        _ order: [Int], _ position: [Int], sorted neighbors: [Int], marked: Set<Int64>, upward: Bool, leftward: Bool,
         _ root: inout [Int], _ align: inout [Int], _ place: inout [Int]
     ) -> [Int] {
         let nodeCount = position.count
@@ -425,7 +426,7 @@ struct _LayerGraph {
                 for mi in (d - 1) / 2 ... d / 2 {
                     guard align[v] == v else { break }
                     let u = neighbors[leftward ? a + mi : b - 1 - mi]
-                    let key = upward ? u * nodeCount + v : v * nodeCount + u
+                    let key = upward ? Int64(u) * Int64(nodeCount) + Int64(v) : Int64(v) * Int64(nodeCount) + Int64(u)
                     let pu = p(position[u], adjacentWidth)
                     if !marked.contains(key) && r < pu {
                         align[u] = v

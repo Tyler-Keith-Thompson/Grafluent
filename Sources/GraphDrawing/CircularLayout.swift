@@ -4,6 +4,8 @@ import Darwin
 import Glibc
 #elseif canImport(Musl)
 import Musl
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 // A swift.org toolchain reading a newer macOS SDK (the fuzz build) gets a Darwin without libm's
 // functions; the SDK's math module has them.

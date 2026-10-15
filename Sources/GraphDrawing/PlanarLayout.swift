@@ -459,27 +459,27 @@ func _canonicalOrdering(_ g: _HalfEdgeEmbedding, outerFace: [Int]) -> (order: [I
 }
 
 /// A set of vertex pairs (u, v), u < v, by open addressing with linear probing in one flat table
-/// of `2^k ≥ 2 · capacity` entries, each the pair packed as u · 2³² + v (vertex numbers are below
-/// 2³²); empty slots hold −1. It never grows past its capacity.
+/// of `2^k ≥ 2 · capacity` entries, each the pair packed in 64 bits as u · 2³² + v (vertex numbers
+/// are below 2³²); empty slots hold −1. It never grows past its capacity.
 struct _PairSet {
-    var table: [Int]
+    var table: [Int64]
     let mask: Int
 
     init(capacity: Int) {
         var size = 16
         while size < 2 * capacity { size <<= 1 }
-        table = [Int](repeating: -1, count: size)
+        table = [Int64](repeating: -1, count: size)
         mask = size - 1
     }
 
     @inline(__always)
-    func slot(_ key: Int) -> Int {
+    func slot(_ key: Int64) -> Int {
         // Fibonacci hashing of the key's 64 bits.
-        Int(truncatingIfNeeded: (UInt64(bitPattern: Int64(key)) &* 0x9E37_79B9_7F4A_7C15) >> 20) & mask
+        Int(truncatingIfNeeded: (UInt64(bitPattern: key) &* 0x9E37_79B9_7F4A_7C15) >> 20) & mask
     }
 
     func contains(_ u: Int, _ v: Int) -> Bool {
-        let key = u << 32 | v
+        let key = Int64(u) << 32 | Int64(v)
         var i = slot(key)
         while true {
             let k = table[i]
@@ -490,7 +490,7 @@ struct _PairSet {
     }
 
     mutating func insert(_ u: Int, _ v: Int) {
-        let key = u << 32 | v
+        let key = Int64(u) << 32 | Int64(v)
         var i = slot(key)
         while table[i] >= 0 {
             if table[i] == key { return }
