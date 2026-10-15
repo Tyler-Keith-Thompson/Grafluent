@@ -58,6 +58,7 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 | `just diff [--module X]` | Differential tests against NetworkX, scipy, rustworkx and igraph |
 | `just bench [--target X]` | Benchmarks; `just bench-compare` against the `main` baseline |
 | `just explore` | The browser explorer as release WebAssembly into `Explore/dist/` |
+| `just wasi-test [-c release] [--targets X,Y]` | SwiftPM tests on wasm32-wasi under wasmtime: a 32-bit `Int` |
 | `just docs` | Combined DocC site into `.build/docs` |
 | `bazel query 'rdeps(//Tests/..., //Sources/X)'` | Test targets affected by a change to X |
 
@@ -69,6 +70,29 @@ Every shell command gets a timeout. macOS has no `timeout`; use
   or copies of the repo, and shut down any extra Bazel server you start.
 - Run suites through Bazel, not `swift test --filter`. Only `mutate.py` builds inside
   `.build/mutation`.
+
+### 32-bit `Int` (WebAssembly)
+
+watchOS's arm64_32 and wasm32 have a 32-bit `Int`. `just wasi-test` (`scripts/wasi_test.py`)
+builds the SwiftPM test targets with `swift build --build-tests --swift-sdk
+swift-6.3.3-RELEASE_wasm` through swiftly into `.build/wasm`, then runs each binary with
+`wasmtime run --dir . <binary> --testing-library swift-testing`, logs in
+`.build/wasm/logs`. Needs swiftly's 6.3.3 toolchain, its WebAssembly SDK (`swift sdk list`; the
+install command is in `Explore/README.md`) and `brew install wasmtime`. If the toolchain crashes
+on the manifest against a newer Xcode's SDK, pass `--xcode /Applications/Xcode-26.2.0.app` (as
+`EXPLORE_XCODE` does for `just explore`).
+
+- One binary of every target passes wasmtime's limit of a million functions, so targets run in
+  groups (`GRAFLUENT_WASI_TESTS` makes `Package.swift` declare only those).
+- Not run on WASI: files with exit tests (no child processes; the manifest leaves them out) and
+  the `*MapConcurrencyTests` (one thread, no `Thread`; `#if !os(WASI)`). On WASI a time
+  limit's timer holds the thread until it expires, after the body has run, so every
+  `.timeLimit` test reports its limit exceeded; the script runs tests in parallel (the timers
+  overlap) and reports the issues besides those.
+- A test whose literals need a 64-bit `Int` sits inside `#if _pointerBitWidth(_64)`; the catalog
+  generators add that guard themselves.
+- Write width-dependent bounds as comparisons on `Int64` or `Int.max`, never `1 << 32` on an
+  `Int` (it is 0 at 32 bits); keep counts that grow as n² or n³ in `Int64`.
 
 ### Mutation, fuzzing and differential testing
 

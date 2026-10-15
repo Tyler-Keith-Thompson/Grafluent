@@ -4,6 +4,8 @@
 // values. Afterwards each copy's maps hold one value per hyperedge and per vertex, and only the
 // values that copy wrote. The race this guards against is timing-dependent, so many rounds run; a
 // round that does not interleave passes either way. Each test is self-contained.
+// WASI runs one thread, with no `Thread` or Dispatch.
+#if !os(WASI)
 
 import Foundation
 import GraphProtocols
@@ -84,3 +86,5 @@ struct IncidenceListMapConcurrencyTests {
         #expect(failures == 0, "first: \(firstFailure)")
     }
 }
+
+#endif

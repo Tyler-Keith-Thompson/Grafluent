@@ -66,6 +66,10 @@ docs:
 explore:
     {{PROJECT_ROOT}}/Explore/build.sh
 
+[doc('SwiftPM tests on wasm32-wasi under wasmtime, a 32-bit Int, in groups of targets, e.g. just wasi-test, just wasi-test -c release, or just wasi-test --targets SemiringsTests')]
+wasi-test *args="":
+    python3 -u {{PROJECT_ROOT}}/scripts/wasi_test.py {{args}}
+
 [doc('Fuzz with libFuzzer, time-boxed, e.g. just fuzz, or just fuzz FuzzShortestPaths -t 600')]
 fuzz *args="":
     python3 {{PROJECT_ROOT}}/scripts/fuzz.py run {{args}}
