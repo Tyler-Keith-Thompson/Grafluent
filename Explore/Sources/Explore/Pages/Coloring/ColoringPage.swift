@@ -105,9 +105,9 @@ struct ColoringLab {
                                 }, nodeAction: "Pick")
                     p(.class("note")) {
                         if let selected = model.selected {
-                            "\(courses[selected]) is picked: click another exam to add or remove a clash."
+                            "\(courses[selected]) is picked. Click another exam to add or remove a clash."
                         } else {
-                            "A line means some student sits both exams, so they need different slots. The number in each exam is its slot. Click two exams to add a clash; click a line to remove it."
+                            "A line means some student sits both exams, so they need different slots. The number in each exam is its slot. Click two exams to add a clash, or click a line to remove it."
                         }
                     }
                 }
@@ -122,11 +122,11 @@ struct ColoringLab {
                             if run.greedy == nil {
                                 "These clashes don’t split the exams into two groups, so this order doesn’t exist. Pick another."
                             } else if k == 0 {
-                                "Go through the exams in order, giving each the first slot none of its clashing exams already has."
+                                "Go through the exams in order. Each exam gets the first slot that none of its clashing exams has. Press Step to begin."
                             } else if !finished {
                                 coloringStepText(run, current)
                             } else if used > run.fewest.count {
-                                "This order needs \(used) slots. \(run.fewest.count) is enough: the fewest-slot timetable is below."
+                                "This order needs \(used) slots, but \(run.fewest.count) are enough. The timetable with the fewest slots shows how."
                             } else {
                                 "This order finds the fewest slots, \(run.fewest.count)."
                             }
@@ -176,7 +176,7 @@ struct ColoringLab {
                         let colour = run.greedy!.color(of: exam)
                         return Marble(kind: "m-pal\(colour % 8)", radius: 11, letter: "\(colour + 1)", title: coloringStepText(run, exam))
                     },
-                    legend: [(Marble(kind: "m-pal0", radius: 6), "an exam gets a slot; the number is the slot")])
+                    legend: [(Marble(kind: "m-pal0", radius: 6), "an exam gets the slot shown")])
             }
         }
     }
@@ -189,8 +189,8 @@ func coloringStepText(_ run: ColoringRun, _ exam: String) -> String {
     let taken = Set(run.exams.neighbors(of: exam).filter { earlier.contains($0) }.map { greedy.color(of: $0) + 1 }).sorted()
     let slot = greedy.color(of: exam) + 1
     return taken.isEmpty
-        ? "\(exam): nothing it clashes with has a slot yet, so slot 1."
-        : "\(exam) clashes with exams in slot\(taken.count == 1 ? "" : "s") \(taken.map(String.init).joined(separator: ", ")), so it gets slot \(slot)."
+        ? "Nothing \(exam) clashes with has a slot yet, so \(exam) gets slot 1."
+        : "\(exam) clashes with exams in slot\(taken.count == 1 ? "" : "s") \(guestList(taken.map(String.init))), so it gets slot \(slot)."
 }
 
 /// A colouring as its count and its classes.
