@@ -25,10 +25,10 @@
     <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
       <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./" aria-current="page">Contents</a>
         <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
-        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
-        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a></div>
-        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a><a href="girvannewman.html">Girvan–Newman</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="layout.html">Force-directed layout</a></div>
       </nav>
     </details>
     <a href="../documentation/">Docs</a>
@@ -69,6 +69,7 @@
       <li><a href="dfs.html"><b>Depth-first search</b><span>Visiting everything reachable, one corridor at a time.</span></a></li>
       <li><a href="dijkstra.html"><b>Dijkstra’s algorithm</b><span>The quickest route to everywhere.</span></a></li>
       <li><a href="astar.html"><b>A* search</b><span>The quickest route to one place, aimed at the goal.</span></a></li>
+      <li><a href="kpaths.html"><b>k shortest paths</b><span>Alternative routes, quickest first.</span></a></li>
       <li><a href="semirings.html"><b>Semirings</b><span>One shortest-path algorithm, many questions.</span></a></li>
       <li><a href="toposort.html"><b>Topological sort</b><span>An order for tasks with dependencies.</span></a></li>
     </ol>
@@ -85,20 +86,24 @@
       <li><a href="planarity.html"><b>Planarity</b><span>Whether a network can be drawn without crossings.</span></a></li>
       <li><a href="cliques.html"><b>Cliques</b><span>Groups where everyone is connected.</span></a></li>
       <li><a href="communities.html"><b>Communities</b><span>Where a network splits into groups.</span></a></li>
+      <li><a href="girvannewman.html"><b>Girvan–Newman</b><span>Communities by cutting the busiest links.</span></a></li>
     </ol>
   </section>
   <section class="group">
     <h3>Assignment</h3>
     <ol>
       <li><a href="flow.html"><b>Maximum flow</b><span>How much a network of pipes can carry.</span></a></li>
+      <li><a href="mincut.html"><b>Minimum cut</b><span>The fewest links to cut to split a network.</span></a></li>
       <li><a href="matching.html"><b>Bipartite matching</b><span>Filling as many jobs as possible.</span></a></li>
       <li><a href="coloring.html"><b>Graph coloring</b><span>Scheduling without clashes.</span></a></li>
+      <li><a href="edgecoloring.html"><b>Edge coloring</b><span>A round-robin schedule in the fewest rounds.</span></a></li>
     </ol>
   </section>
   <section class="group">
     <h3>Importance and shape</h3>
     <ol>
       <li><a href="pagerank.html"><b>PageRank</b><span>Which pages matter most.</span></a></li>
+      <li><a href="betweenness.html"><b>Betweenness</b><span>Who sits on the most shortest paths.</span></a></li>
       <li><a href="layout.html"><b>Force-directed layout</b><span>Drawing a graph so its shape shows.</span></a></li>
     </ol>
   </section>

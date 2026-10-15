@@ -27,10 +27,10 @@
     <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
       <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
         <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
-        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
-        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html" aria-current="page">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a></div>
-        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html" aria-current="page">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a><a href="girvannewman.html">Girvan–Newman</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="layout.html">Force-directed layout</a></div>
       </nav>
     </details>
     <a href="../documentation/">Docs</a>
@@ -103,7 +103,7 @@
 
 <span class="k">let</span> start = <span class="s">"Mill"</span>
 
-<span class="k">let</span> events = <span class="t">Array</span>(village.edgeDepthFirstSearch(from: start))  <span class="c">// 28 events: discover(Mill), treeEdge(0), discover(Farm), …</span>
+<span class="k">let</span> events = <span class="t">Array</span>(village.lazy.edgeDepthFirstSearch(from: start))  <span class="c">// 28 events: discover(Mill), treeEdge(0), discover(Farm), …</span>
 
 <span class="k">let</span> bridges = village.bridges().map { village.edges[$<span class="n">0</span>] }  <span class="c">// [Farm–Mill, Square–Station, Harbour–Lighthouse]</span>
 <span class="k">let</span> cutVertices = village.articulationPoints()  <span class="c">// ["Mill", "Square", "Station", "Harbour"]</span>
@@ -118,7 +118,7 @@
     <li>If the low-link is <em>later</em> than the parent’s time, nothing below gets back to the parent except along the tree road between them. That road is a <b>bridge</b>.</li>
     <li>If it is <em>no earlier</em> than the parent’s time, the branch below can’t get above the parent, so the parent is an <b>articulation point</b>. The start is the exception: it is one when the search had to set out from it more than once.</li>
   </ul>
-  <p>Each road is looked at once from each end, so the whole thing takes time proportional to the number of places plus roads. Grafluent’s <code>bridges()</code> and <code>articulationPoints()</code> run this search over flat rows; the timeline above rebuilds the times and low-links from <code>edgeDepthFirstSearch</code>’s events.</p>
+  <p>Each road is looked at once from each end, so the whole thing takes time proportional to the number of places plus roads. Grafluent’s <code>bridges()</code> and <code>articulationPoints()</code> run this search over flat rows; the timeline above rebuilds the times and low-links from <code>lazy.edgeDepthFirstSearch</code>’s events.</p>
 
   <h2><small>Where it breaks</small>Loops have no bridges, and that’s the point</h2>
   <p>Inside the loop of Mill, Church, Square and School, or the triangle of Station, Market and Harbour, no single closure cuts anyone off: there is always another way round. Such a part is <b>two-edge-connected</b>, and <code>biEdgeConnectedComponents()</code> lists them. So the cure for a fragile network is a loop: one new road from Farm to Church, and Mill–Farm stops being a bridge.</p>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Communities · Explore Grafluent</title>
-<meta name="description" content="Watch Grafluent’s louvainEvents split a school’s friendships into groups, each move raising the modularity, then merge the groups and carry on.">
+<meta name="description" content="Watch Grafluent’s lazy.louvain split a school’s friendships into groups, each move raising the modularity, then merge the groups and carry on.">
 <script>
   // The theme the reader picked last time, before anything is drawn.
   try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
@@ -27,10 +27,10 @@
     <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
       <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
         <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
-        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
-        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html" aria-current="page">Communities</a></div>
-        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html" aria-current="page">Communities</a><a href="girvannewman.html">Girvan–Newman</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="layout.html">Force-directed layout</a></div>
       </nav>
     </details>
     <a href="../documentation/">Docs</a>
@@ -65,7 +65,7 @@
     <span class="k">for</span> pair <span class="k">in</span> friendships { pair }
 }
 
-<span class="k">let</span> events = <span class="t">Array</span>(school.louvainEvents())  <span class="c">// 11 events</span>
+<span class="k">let</span> events = <span class="t">Array</span>(school.lazy.louvain())  <span class="c">// 11 events</span>
 <span class="k">let</span> clubs = school.louvainCommunities()  <span class="c">// [Ada, Bo, Cal, Dot], [Eve, Finn, Gia, Hugo], [Ivy, Jay, Kim, Leo]</span>
 <span class="k">let</span> score = school.modularity(of: clubs)  <span class="c">// 0.515</span>
 </span></pre>
@@ -83,7 +83,7 @@
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Louvain</b><span class="how">loo-VAN</span><span class="ipa">/luvɛ̃/</span><span class="what">Communities by repeatedly merging what raises modularity</span></div><div class="name"><b>Leiden</b><span class="how">LIE-den</span><span class="ipa">/ˈlɛidə(n)/</span><span class="what">Louvain with a refinement step, so every group is connected</span></div><div class="name"><b>Blondel</b><span class="how">blon-DEL</span><span class="ipa">/blɔ̃dɛl/</span><span class="what">Vincent Blondel, first author of the Louvain method</span></div></div></div>
 </section>
-<nav class="pager" aria-label="Pages"><a class="prev" href="cliques.html"><span>Previous</span>Cliques</a><a class="next" href="flow.html"><span>Next</span>Maximum flow</a></nav>
+<nav class="pager" aria-label="Pages"><a class="prev" href="cliques.html"><span>Previous</span>Cliques</a><a class="next" href="girvannewman.html"><span>Next</span>Girvan–Newman</a></nav>
 </div>
 <script>
   if (!location.hash) window.scrollTo(0, 0);

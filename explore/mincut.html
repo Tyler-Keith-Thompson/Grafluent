@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minimum cut · Explore Grafluent</title>
+<meta name="description" content="The fewest cables to cut to split an office network in two, with Grafluent’s minimumCut(capacity:) and a Gomory–Hu tree built one pair at a time.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="mincut">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a><a href="girvannewman.html">Girvan–Newman</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html" aria-current="page">Minimum cut</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="layout.html">Force-directed layout</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Minimum cut</h1>
+  <div class="say"><span>Say it</span><b>nah-gah-MOH-chee ee-bah-RAH-kee</b><span class="ipa">/naɡamotɕi ibaɾaki/</span></div>
+  <p class="question">What’s the fewest cables you’d have to cut to split a network in two?</p>
+</header>
+<p class="example lead">Example: eight offices joined by data links, each labelled with the number of cables in it. Cutting a link means cutting all its cables.</p>
+
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="The office network"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 420" role="img" aria-label="Eight offices joined by links, each labelled with its number of cables"><g class="edge  clickable" data-edge="0"><path d="M85.8,111.5 L184.2,58.5" class="hit" /><path d="M85.8,111.5 L184.2,58.5" class="stroke" /><text x="141.16329769945523" y="101.44612429898828" text-anchor="middle" class="weight">3</text></g><g class="edge  clickable" data-edge="1"><path d="M78.7,135.7 L161.3,284.3" class="hit" /><path d="M78.7,135.7 L161.3,284.3" class="stroke" /><text x="108.63595541042001" y="221.3133581053222" text-anchor="middle" class="weight">2</text></g><g class="edge  clickable" data-edge="2"><path d="M197.9,67.9 L172.1,282.1" class="hit" /><path d="M197.9,67.9 L172.1,282.1" class="stroke" /><text x="172.09260109967002" y="178.4511121319604" text-anchor="middle" class="weight">3</text></g><g class="edge  clickable" data-edge="3"><path d="M210.2,64.8 L279.8,165.2" class="hit" /><path d="M210.2,64.8 L279.8,165.2" class="stroke" /><text x="234.31150150863087" y="127.39972972479401" text-anchor="middle" class="weight">2</text></g><g class="edge  clickable" data-edge="4"><path d="M182.7,287.3 L277.3,192.7" class="hit" /><path d="M182.7,287.3 L277.3,192.7" class="stroke" /><text x="239.1923881554251" y="254.1923881554251" text-anchor="middle" class="weight">4</text></g><g class="edge  clickable" data-edge="5"><path d="M187.6,303.8 L432.4,356.2" class="hit" /><path d="M187.6,303.8 L432.4,356.2" class="stroke" /><text x="307.27612184649865" y="347.7114313830063" text-anchor="middle" class="weight">1</text></g><g class="edge  clickable" data-edge="6"><path d="M305.7,188.7 L364.3,221.3" class="hit" /><path d="M305.7,188.7 L364.3,221.3" class="stroke" /><text x="328.6866418946778" y="221.36404458957998" text-anchor="middle" class="weight">2</text></g><g class="edge  clickable" data-edge="7"><path d="M388.4,214.1 L461.6,75.9" class="hit" /><path d="M388.4,214.1 L461.6,75.9" class="stroke" /><text x="436.4892429125118" y="156.08254036544741" text-anchor="middle" class="weight">3</text></g><g class="edge  clickable" data-edge="8"><path d="M388.5,245.8 L441.5,344.2" class="hit" /><path d="M388.5,245.8 L441.5,344.2" class="stroke" /><text x="403.55387570101175" y="306.1632976994552" text-anchor="middle" class="weight">4</text></g><g class="edge  clickable" data-edge="9"><path d="M468.8,78.0 L451.2,342.0" class="hit" /><path d="M468.8,78.0 L451.2,342.0" class="stroke" /><text x="447.0287929478641" y="214.13525286319094" text-anchor="middle" class="weight">2</text></g><g class="edge  clickable" data-edge="10"><path d="M480.6,74.5 L569.4,195.5" class="hit" /><path d="M480.6,74.5 L569.4,195.5" class="stroke" /><text x="514.5167350538758" y="147.68772762715773" text-anchor="middle" class="weight">3</text></g><g class="edge  clickable" data-edge="11"><path d="M461.8,346.4 L568.2,223.6" class="hit" /><path d="M461.8,346.4 L568.2,223.6" class="stroke" /><text x="524.8239580762677" y="298.51409699943196" text-anchor="middle" class="weight">3</text></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="Ashford"><circle cx="70.0" cy="120.0" r="16.0" /><text x="70.0" y="154.0" text-anchor="middle" class="name">Ashford</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Bury"><circle cx="200.0" cy="50.0" r="16.0" /><text x="200.0" y="26.0" text-anchor="middle" class="name">Bury</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="Cobham"><circle cx="170.0" cy="300.0" r="16.0" /><text x="170.0" y="334.0" text-anchor="middle" class="name">Cobham</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Deal"><circle cx="290.0" cy="180.0" r="16.0" /><text x="290.0" y="214.0" text-anchor="middle" class="name">Deal</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Epsom"><circle cx="380.0" cy="230.0" r="16.0" /><text x="380.0" y="264.0" text-anchor="middle" class="name">Epsom</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Frome"><circle cx="470.0" cy="60.0" r="16.0" /><text x="470.0" y="36.0" text-anchor="middle" class="name">Frome</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Goole"><circle cx="450.0" cy="360.0" r="16.0" /><text x="450.0" y="394.0" text-anchor="middle" class="name">Goole</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="Hythe"><circle cx="580.0" cy="210.0" r="16.0" /><text x="580.0" y="244.0" text-anchor="middle" class="name">Hythe</text></g></svg><div class="legend"><span><i class="dot pal0"></i>one side</span><span><i class="dot pal1"></i>the other side</span><span><i class="line route"></i>the cables cut</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">7 pairs to separate</span><p class="narration">To split the network, cut every cable between two groups of offices. Which split takes the fewest cuts? Press Step to separate one pair of offices at a time, as cheaply as possible.</p></div><div class="panel"><span class="label">Gomory–Hu tree so far</span><svg class="canvas" viewBox="0 0 640 420" role="img" aria-label="The Gomory–Hu tree: an edge per pair separated, labelled with the fewest cables between them"><g class="node visited" data-node="0" tabindex="-1" role="presentation" aria-label="Ashford"><circle cx="70.0" cy="120.0" r="16.0" /><text x="70.0" y="154.0" text-anchor="middle" class="name">Ashford</text></g><g class="node visited" data-node="1" tabindex="-1" role="presentation" aria-label="Bury"><circle cx="200.0" cy="50.0" r="16.0" /><text x="200.0" y="26.0" text-anchor="middle" class="name">Bury</text></g><g class="node visited" data-node="2" tabindex="-1" role="presentation" aria-label="Cobham"><circle cx="170.0" cy="300.0" r="16.0" /><text x="170.0" y="334.0" text-anchor="middle" class="name">Cobham</text></g><g class="node visited" data-node="3" tabindex="-1" role="presentation" aria-label="Deal"><circle cx="290.0" cy="180.0" r="16.0" /><text x="290.0" y="214.0" text-anchor="middle" class="name">Deal</text></g><g class="node visited" data-node="4" tabindex="-1" role="presentation" aria-label="Epsom"><circle cx="380.0" cy="230.0" r="16.0" /><text x="380.0" y="264.0" text-anchor="middle" class="name">Epsom</text></g><g class="node visited" data-node="5" tabindex="-1" role="presentation" aria-label="Frome"><circle cx="470.0" cy="60.0" r="16.0" /><text x="470.0" y="36.0" text-anchor="middle" class="name">Frome</text></g><g class="node visited" data-node="6" tabindex="-1" role="presentation" aria-label="Goole"><circle cx="450.0" cy="360.0" r="16.0" /><text x="450.0" y="394.0" text-anchor="middle" class="name">Goole</text></g><g class="node visited" data-node="7" tabindex="-1" role="presentation" aria-label="Hythe"><circle cx="580.0" cy="210.0" r="16.0" /><text x="580.0" y="244.0" text-anchor="middle" class="name">Hythe</text></g></svg><p class="note">The fewest cables between any two offices is the lightest edge on the tree path between them.</p></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="11.0" class="m-blue" /><text x="22" y="36" text-anchor="middle">5</text><title>Separating Bury from Ashford takes at least 5 cables: cut off Ashford from the rest. Gomory and Hu’s tree gets an edge Bury–Ashford worth 5.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="11.0" class="m-blue" /><text x="48" y="36" text-anchor="middle">7</text><title>Separating Cobham from Bury takes at least 7 cables: cut off Ashford and Bury from the rest. Gomory and Hu’s tree gets an edge Cobham–Bury worth 7.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="11.0" class="m-blue" /><text x="74" y="36" text-anchor="middle">7</text><title>Separating Deal from Cobham takes at least 7 cables: cut off Ashford, Bury and Cobham from the rest. Gomory and Hu’s tree gets an edge Deal–Cobham worth 7.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="11.0" class="m-blue" /><text x="100" y="36" text-anchor="middle">8</text><title>Separating Goole from Epsom takes at least 8 cables: cut off Frome, Goole and Hythe from the rest. Gomory and Hu’s tree gets an edge Goole–Epsom worth 8.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="11.0" class="m-red" /><text x="126" y="36" text-anchor="middle">3</text><title>Separating Epsom from Deal takes at least 3 cables: cut off Epsom, Frome, Goole and Hythe from the rest. Gomory and Hu’s tree gets an edge Epsom–Deal worth 3.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="11.0" class="m-blue" /><text x="152" y="36" text-anchor="middle">8</text><title>Separating Frome from Goole takes at least 8 cables: cut off Frome and Hythe from the rest. Gomory and Hu’s tree gets an edge Frome–Goole worth 8.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="11.0" class="m-blue" /><text x="178" y="36" text-anchor="middle">6</text><title>Separating Hythe from Frome takes at least 6 cables: cut off Hythe from the rest. Gomory and Hu’s tree gets an edge Hythe–Frome worth 6.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-mincut" class="scrub" type="range" min="0" max="7" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-blue" /></svg>a pair separated, with the cables it takes</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-red" /></svg>the cheapest of them</span></div><p class="note">Each step is one edge of the Gomory–Hu tree, in the order gomoryHuTree(capacity:) adds them, with its cut from minimumCut(between:and:). Click a link to add a cable; four goes back to one.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The network above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">Flows</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+
+<span class="k">let</span> cables: [<span class="t">UndirectedEdge</span>&lt;<span class="t">String</span>&gt;: <span class="t">Int</span>] = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ashford"</span>, <span class="s">"Bury"</span>): <span class="n">3</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ashford"</span>, <span class="s">"Cobham"</span>): <span class="n">2</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Bury"</span>, <span class="s">"Cobham"</span>): <span class="n">3</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Bury"</span>, <span class="s">"Deal"</span>): <span class="n">2</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Cobham"</span>, <span class="s">"Deal"</span>): <span class="n">4</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Cobham"</span>, <span class="s">"Goole"</span>): <span class="n">1</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Deal"</span>, <span class="s">"Epsom"</span>): <span class="n">2</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Epsom"</span>, <span class="s">"Frome"</span>): <span class="n">3</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Epsom"</span>, <span class="s">"Goole"</span>): <span class="n">4</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Frome"</span>, <span class="s">"Goole"</span>): <span class="n">2</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Frome"</span>, <span class="s">"Hythe"</span>): <span class="n">3</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Goole"</span>, <span class="s">"Hythe"</span>): <span class="n">3</span>,
+]
+
+<span class="k">let</span> offices = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> link <span class="k">in</span> cables.keys.sorted() { link }
+}
+
+<span class="k">let</span> cheapest = offices.minimumCut { cables[offices.edges[$<span class="n">0</span>]]! }!
+<span class="k">let</span> fewest = cheapest.value  <span class="c">// 3</span>
+<span class="k">let</span> cutOff = cheapest.sinkSide  <span class="c">// ["Goole", "Epsom", "Frome", "Hythe"]</span>
+
+<span class="k">let</span> gomoryHu = offices.gomoryHuTree { cables[offices.edges[$<span class="n">0</span>]]! }!
+<span class="k">let</span> pairs = <span class="t">Array</span>(gomoryHu.tree.edges)  <span class="c">// [Bury–Ashford, Cobham–Bury, Deal–Cobham, Goole–Epsom, Epsom–Deal, Frome–Goole, Hythe–Frome]</span>
+<span class="k">let</span> cuts = pairs.map { gomoryHu.minimumCut(between: $<span class="n">0</span>.u, and: $<span class="n">0</span>.v) }
+<span class="k">let</span> values = cuts.map(\.value)  <span class="c">// [5, 7, 7, 8, 3, 8, 6]</span>
+</span></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>The weakest place to split</h2>
+  <p>A <b>cut</b> splits the vertices into two non-empty groups; its value is the total capacity of the edges between them, here the cables. A <b>minimum cut</b> is the cheapest such split. It is how fragile the network is: the least an attacker, a digger or a storm has to break to cut someone off. Often it just isolates the most weakly connected office; here it is the few links between two clusters.</p>
+  <p>To keep two particular offices apart, the cheapest cut equals the most data that can flow between them, the max-flow min-cut theorem from <a href="flow.html">maximum flow</a>. Gomory and Hu showed that n − 1 such flows answer every pair at once: they fit in a tree on the same offices, and the fewest cables between any two is the lightest edge on their tree path. The timeline builds that tree one edge at a time, by Gusfield’s method, as <code>gomoryHuTree(capacity:)</code> does, so the cheapest cut overall is its lightest edge.</p>
+  <p>When no pair is given, <code>minimumCut(capacity:)</code> finds the cheapest split directly, without any flows: Nagamochi and Ibaraki’s method orders the vertices by how tightly each is tied to those before it, and merges any two whose tie is at least the best cut seen so far, since a cheaper cut can’t separate them. That runs in O(nm log n).</p>
+
+  <h2><small>Where it breaks</small>Cheapest isn’t always the split you want</h2>
+  <p>The minimum cut loves to cut off one poorly connected vertex. That is right for measuring fragility, and wrong for finding two balanced halves: a split into roughly equal sides with few edges between them is a different, much harder problem (balanced partitioning), and <a href="communities.html">community detection</a> is usually what people mean by it.</p>
+  <p>Capacities must not be negative. On a directed network, <code>minimumCut(capacity:)</code> counts only the edges leaving one side, and uses Hao and Orlin’s method instead; to separate two given vertices, use <code>minimumCut(from:to:capacity:)</code>.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Nagamochi–Ibaraki</b><span class="how">nah-gah-MOH-chee ee-bah-RAH-kee</span><span class="ipa">/naɡamotɕi ibaɾaki/</span><span class="what">Hiroshi Nagamochi and Toshihide Ibaraki: the cheapest cut with no source or sink chosen</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="flow.html"><span>Previous</span>Maximum flow</a><a class="next" href="matching.html"><span>Next</span>Bipartite matching</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

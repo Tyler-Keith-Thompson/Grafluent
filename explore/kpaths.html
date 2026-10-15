@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>k shortest paths · Explore Grafluent</title>
+<meta name="description" content="Alternative routes across a small town, quickest first, from Grafluent’s shortestSimplePaths: Yen’s algorithm as a lazy sequence, stepped one route at a time.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="kpaths">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="kpaths.html" aria-current="page">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a><a href="girvannewman.html">Girvan–Newman</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="layout.html">Force-directed layout</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>k shortest paths</h1>
+  <div class="say"><span>Say it</span><b>YEN</b><span class="ipa">/jɛn/</span></div>
+  <p class="question">The quickest route is blocked. What’s the next best way across town, and the one after that?</p>
+</header>
+<p class="example lead">Example: nine places in a small town, with driving minutes on each road. The routes from Home to the Stadium come out one at a time, quickest first, none visiting a place twice.</p>
+
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="Alternative routes"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 470" role="img" aria-label="Map of a town: places joined by roads labelled with driving minutes"><g class="edge " data-edge="0"><path d="M70.9,248.1 L174.1,371.9" class="hit" /><path d="M70.9,248.1 L174.1,371.9" class="stroke" /><text x="112.51312336523411" y="323.32239719563825" text-anchor="middle" class="weight">8</text></g><g class="edge " data-edge="1"><path d="M201.9,386.6 L328.1,398.4" class="hit" /><path d="M201.9,386.6 L328.1,398.4" class="stroke" /><text x="263.78657078699024" y="410.44324493877076" text-anchor="middle" class="weight">6</text></g><g class="edge " data-edge="2"><path d="M196.4,372.4 L308.6,247.6" class="hit" /><path d="M196.4,372.4 L308.6,247.6" class="stroke" /><text x="262.1628239012132" y="323.6965415110918" text-anchor="middle" class="weight">5</text></g><g class="edge " data-edge="3"><path d="M360.3,77.4 L464.7,127.6" class="hit" /><path d="M360.3,77.4 L464.7,127.6" class="stroke" /><text x="406.8603969559523" y="119.21302170686829" text-anchor="middle" class="weight">5</text></g><g class="edge " data-edge="4"><path d="M480.0,152.0 L480.0,313.0" class="hit" /><path d="M480.0,152.0 L480.0,313.0" class="stroke" /><text x="467.0" y="237.5" text-anchor="middle" class="weight">3</text></g><g class="edge " data-edge="5"><path d="M334.4,226.0 L465.6,144.0" class="hit" /><path d="M334.4,226.0 L465.6,144.0" class="stroke" /><text x="406.88998622004135" y="201.02397795206613" text-anchor="middle" class="weight">9</text></g><g class="edge " data-edge="6"><path d="M492.6,146.4 L577.4,223.6" class="hit" /><path d="M492.6,146.4 L577.4,223.6" class="stroke" /><text x="526.2552536780479" y="199.61922095414727" text-anchor="middle" class="weight">6</text></g><g class="edge " data-edge="7"><path d="M70.9,221.9 L174.1,98.1" class="hit" /><path d="M70.9,221.9 L174.1,98.1" class="stroke" /><text x="132.48687663476588" y="173.32239719563825" text-anchor="middle" class="weight">6</text></g><g class="edge " data-edge="8"><path d="M77.0,235.0 L303.0,235.0" class="hit" /><path d="M77.0,235.0 L303.0,235.0" class="stroke" /><text x="190.0" y="253.0" text-anchor="middle" class="weight">14</text></g><g class="edge " data-edge="9"><path d="M360.1,392.2 L464.9,337.8" class="hit" /><path d="M360.1,392.2 L464.9,337.8" class="stroke" /><text x="418.484123137915" y="381.5408089088361" text-anchor="middle" class="weight">7</text></g><g class="edge " data-edge="10"><path d="M201.9,83.4 L328.1,71.6" class="hit" /><path d="M201.9,83.4 L328.1,71.6" class="stroke" /><text x="266.21342921300976" y="95.44324493877075" text-anchor="middle" class="weight">5</text></g><g class="edge " data-edge="11"><path d="M196.4,97.6 L308.6,222.4" class="hit" /><path d="M196.4,97.6 L308.6,222.4" class="stroke" /><text x="242.83717609878684" y="173.69654151109185" text-anchor="middle" class="weight">4</text></g><g class="edge " data-edge="12"><path d="M322.5,218.2 L342.5,86.8" class="hit" /><path d="M322.5,218.2 L342.5,86.8" class="stroke" /><text x="345.353301554922" y="159.44746993256393" text-anchor="middle" class="weight">6</text></g><g class="edge " data-edge="13"><path d="M334.6,243.7 L465.4,321.3" class="hit" /><path d="M334.6,243.7 L465.4,321.3" class="stroke" /><text x="393.36299619597935" y="298.67811166992954" text-anchor="middle" class="weight">6</text></g><g class="edge " data-edge="14"><path d="M492.9,318.9 L577.1,246.1" class="hit" /><path d="M492.9,318.9 L577.1,246.1" class="stroke" /><text x="543.4970583144992" y="297.33869910099907" text-anchor="middle" class="weight">5</text></g><g class="node visited source clickable" data-node="0" tabindex="0" role="button" aria-label="Drive to Home"><circle cx="60.0" cy="235.0" r="15.0" /><text x="60.0" y="268.0" text-anchor="middle" class="name">Home</text></g><g class="node  clickable" data-node="1" tabindex="0" role="button" aria-label="Drive to Mill"><circle cx="185.0" cy="85.0" r="15.0" /><text x="185.0" y="62.0" text-anchor="middle" class="name">Mill</text></g><g class="node  clickable" data-node="2" tabindex="0" role="button" aria-label="Drive to Bridge"><circle cx="185.0" cy="385.0" r="15.0" /><text x="185.0" y="418.0" text-anchor="middle" class="name">Bridge</text></g><g class="node  clickable" data-node="3" tabindex="0" role="button" aria-label="Drive to Square"><circle cx="320.0" cy="235.0" r="15.0" /><text x="320.0" y="268.0" text-anchor="middle" class="name">Square</text></g><g class="node  clickable" data-node="4" tabindex="0" role="button" aria-label="Drive to Museum"><circle cx="345.0" cy="70.0" r="15.0" /><text x="345.0" y="47.0" text-anchor="middle" class="name">Museum</text></g><g class="node  clickable" data-node="5" tabindex="0" role="button" aria-label="Drive to Market"><circle cx="345.0" cy="400.0" r="15.0" /><text x="345.0" y="433.0" text-anchor="middle" class="name">Market</text></g><g class="node  clickable" data-node="6" tabindex="0" role="button" aria-label="Drive to Harbor"><circle cx="480.0" cy="135.0" r="15.0" /><text x="480.0" y="168.0" text-anchor="middle" class="name">Harbor</text></g><g class="node  clickable" data-node="7" tabindex="0" role="button" aria-label="Drive to Park"><circle cx="480.0" cy="330.0" r="15.0" /><text x="480.0" y="363.0" text-anchor="middle" class="name">Park</text></g><g class="node visited clickable" data-node="8" tabindex="0" role="button" aria-label="Drive to Stadium"><circle cx="590.0" cy="235.0" r="15.0" /><text x="590.0" y="268.0" text-anchor="middle" class="name">Stadium</text></g></svg><div class="legend"><span><i class="line route"></i>this route</span><span><i class="line active"></i>where it turns off</span><span><i class="line tree"></i>the earlier route it leaves</span><span><i class="dot selected"></i>the turning point</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">8 routes to come</span><p class="narration">The first 8 routes from Home to Stadium, none visiting a place twice, quickest first. Press Step to take the next one from the sequence.</p></div><div class="panel"><span class="label">Routes so far, quickest first</span><div class="queue"><p class="empty">None yet</p></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button><span class="spacer"></span><label class="field" for="kpaths-start">From <select id="kpaths-start"><option value="Home" selected>Home</option><option value="Mill">Mill</option><option value="Bridge">Bridge</option><option value="Square">Square</option><option value="Museum">Museum</option><option value="Market">Market</option><option value="Harbor">Harbor</option><option value="Park">Park</option><option value="Stadium">Stadium</option></select></label><label class="field" for="kpaths-goal">to <select id="kpaths-goal"><option value="Home">Home</option><option value="Mill">Mill</option><option value="Bridge">Bridge</option><option value="Square">Square</option><option value="Museum">Museum</option><option value="Market">Market</option><option value="Harbor">Harbor</option><option value="Park">Park</option><option value="Stadium" selected>Stadium</option></select></label></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="11.0" class="m-blue" /><text x="22" y="36" text-anchor="middle">1</text><title>Route 1, 21 min: Home → Mill → Square → Park → Stadium. The quickest of all, found by one shortest-path search.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="11.0" class="m-ring" /><text x="48" y="36" text-anchor="middle">2</text><title>Route 2, 22 min: Home → Mill → Museum → Harbor → Stadium. It follows route 1 as far as Mill, then turns off to Museum. It is 1 min slower than the quickest.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="11.0" class="m-ring" /><text x="74" y="36" text-anchor="middle">3</text><title>Route 3, 24 min: Home → Bridge → Square → Park → Stadium. It leaves Home a different way, by Bridge. It is 3 min slower than the quickest.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="11.0" class="m-ring" /><text x="100" y="36" text-anchor="middle">4</text><title>Route 4, 24 min: Home → Mill → Museum → Harbor → Park → Stadium. It follows route 2 as far as Harbor, then turns off to Park. It is 3 min slower than the quickest.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="11.0" class="m-ring" /><text x="126" y="36" text-anchor="middle">5</text><title>Route 5, 25 min: Home → Mill → Square → Harbor → Stadium. It follows route 1 as far as Square, then turns off to Harbor. It is 4 min slower than the quickest.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="11.0" class="m-ring" /><text x="152" y="36" text-anchor="middle">6</text><title>Route 6, 25 min: Home → Mill → Square → Park → Harbor → Stadium. It follows route 1 as far as Park, then turns off to Harbor. It is 4 min slower than the quickest.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="11.0" class="m-ring" /><text x="178" y="36" text-anchor="middle">7</text><title>Route 7, 25 min: Home → Square → Park → Stadium. It leaves Home a different way, by Square. It is 4 min slower than the quickest.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="11.0" class="m-ring" /><text x="204" y="36" text-anchor="middle">8</text><title>Route 8, 26 min: Home → Bridge → Market → Park → Stadium. It follows route 3 as far as Bridge, then turns off to Market. It is 5 min slower than the quickest.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-kpaths" class="scrub" type="range" min="0" max="8" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-blue" /></svg>the quickest route</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-hollow" /></svg>a route tied with it</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-ring" /></svg>a slower route</span></div><p class="note">The page takes the first 8 routes from the lazy sequence, and each step shows the next of them. Click any place to drive there instead.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The town above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">ShortestPaths</span>
+
+<span class="k">let</span> driveMinutes: [<span class="t">UndirectedEdge</span>&lt;<span class="t">String</span>&gt;: <span class="t">Int</span>] = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Home"</span>, <span class="s">"Mill"</span>): <span class="n">6</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Home"</span>, <span class="s">"Bridge"</span>): <span class="n">8</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Home"</span>, <span class="s">"Square"</span>): <span class="n">14</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Mill"</span>, <span class="s">"Square"</span>): <span class="n">4</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Mill"</span>, <span class="s">"Museum"</span>): <span class="n">5</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Bridge"</span>, <span class="s">"Square"</span>): <span class="n">5</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Bridge"</span>, <span class="s">"Market"</span>): <span class="n">6</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Square"</span>, <span class="s">"Museum"</span>): <span class="n">6</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Square"</span>, <span class="s">"Park"</span>): <span class="n">6</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Square"</span>, <span class="s">"Harbor"</span>): <span class="n">9</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Museum"</span>, <span class="s">"Harbor"</span>): <span class="n">5</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Market"</span>, <span class="s">"Park"</span>): <span class="n">7</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Harbor"</span>, <span class="s">"Park"</span>): <span class="n">3</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Harbor"</span>, <span class="s">"Stadium"</span>): <span class="n">6</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Park"</span>, <span class="s">"Stadium"</span>): <span class="n">5</span>,
+]
+
+<span class="k">let</span> crosstown = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> road <span class="k">in</span> driveMinutes.keys.sorted() { road }
+}
+
+<span class="k">let</span> start = <span class="s">"Home"</span>
+<span class="k">let</span> goal = <span class="s">"Stadium"</span>
+<span class="k">let</span> count = <span class="n">8</span>
+
+<span class="k">let</span> routes = crosstown.shortestSimplePaths(from: start, to: goal) { driveMinutes[crosstown.edges[$<span class="n">0</span>]]! }
+<span class="k">let</span> firstFew = <span class="t">Array</span>(routes.prefix(count))  <span class="c">// 8 routes</span>
+<span class="k">let</span> minutes = firstFew.map(\.distance)  <span class="c">// [21, 22, 24, 24, 25, 25, 25, 26]</span>
+<span class="k">let</span> quickest = firstFew.first?.path.vertices ?? []  <span class="c">// ["Home", "Mill", "Square", "Park", "Stadium"]</span>
+</span></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Every new route is a detour off an old one</h2>
+  <p>The quickest route is one <a href="dijkstra.html">Dijkstra</a> search. For the second, notice that any other route agrees with the first for a while, maybe only at Home, and then turns off somewhere. So try each stop of the first route as the turning point: keep the stretch before it, forbid the road the first route took from there, and search for the quickest way to finish without going back through the kept stretch. Each turning point gives one candidate. The cheapest candidate is the second route.</p>
+  <p>Yen’s algorithm repeats this. After route k is found, it tries every turning point along route k, forbidding at each one the next road of <em>every</em> earlier route that shares the same opening, so no route can come out twice. Candidates pile up in a priority queue, and the cheapest one is always the next route. Lawler’s refinement skips the turning points before where route k itself turned off, since those were tried already. On the map, the blue line is the earlier route a new one shares its opening with, and the yellow stretch is the detour.</p>
+  <p>In Grafluent, <code>shortestSimplePaths(from:to:weight:)</code> returns a lazy sequence: nothing past the first route is searched until you ask for it, so <code>prefix(k)</code> costs only what k routes cost. Without a weight, it counts roads instead of minutes.</p>
+
+  <h2><small>Where it breaks</small>Near-copies, and a search per stop</h2>
+  <p>The next quickest route is usually the quickest with one small wiggle: a block around the corner and back. A route planner offering alternatives wants routes that differ by more than that, and filters the list (for example, dropping routes that share most of their roads with one already shown) or penalises roads already used and searches again. Yen gives the true ranking; deciding which alternatives are worth showing is a separate choice.</p>
+  <p>Each new route costs up to one shortest-path search per stop on the route before it, so asking for thousands of routes on a large map is slow. Weights must not be negative: the searches are Dijkstra’s. And the routes are <em>simple</em>, never visiting a place twice; when repeats are allowed, Eppstein’s algorithm lists the k shortest walks much faster.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Yen</b><span class="how">YEN</span><span class="ipa">/jɛn/</span><span class="what">Jin Y. Yen: the k shortest loop-free routes, each a detour off one found before</span></div><div class="name"><b>Dijkstra</b><span class="how">DIKE-struh</span><span class="ipa">/ˈdɛikstra/</span><span class="what">Shortest paths when no edge is negative</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="astar.html"><span>Previous</span>A* search</a><a class="next" href="semirings.html"><span>Next</span>Semirings</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

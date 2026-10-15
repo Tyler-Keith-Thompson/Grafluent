@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Girvan–Newman · Explore Grafluent</title>
+<meta name="description" content="Twelve friends split into their groups by taking out the busiest link again and again, with Grafluent’s girvanNewmanCommunities, edgeBetweennessCentrality and modularity.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="girvannewman">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a><a href="girvannewman.html" aria-current="page">Girvan–Newman</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="layout.html">Force-directed layout</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Girvan–Newman</h1>
+  <div class="say"><span>Say it</span><b>GUR-vun</b><span class="ipa">/ˈɡɜːrvən/</span></div>
+  <p class="question">If you keep cutting the link that the most shortest paths cross, what groups are left?</p>
+</header>
+<p class="example lead">Example: twelve friends from a band, a climbing gym and a book club, and a line between each pair who hang out. A few friendships cross between the groups.</p>
+
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="The crowd"><div class="panel stage"><svg class="canvas" viewBox="0 0 660 470" role="img" aria-label="Twelve crowd, a line between each pair who hang out, coloured by group"><g class="edge " data-edge="0"><path d="M75.8,101.4 L154.2,58.6" class="hit" /><path d="M75.8,101.4 L154.2,58.6" class="stroke" /><text x="121.22507769884746" y="96.412642447887" text-anchor="middle" class="weight">3</text></g><g class="edge " data-edge="1"><path d="M73.4,122.0 L146.6,188.0" class="hit" /><path d="M73.4,122.0 L146.6,188.0" class="stroke" /><text x="101.30345848890815" y="169.66282390121316" text-anchor="middle" class="weight">8</text></g><g class="edge " data-edge="2"><path d="M168.8,68.0 L161.2,182.0" class="hit" /><path d="M168.8,68.0 L161.2,182.0" class="stroke" /><text x="152.02879294786408" y="129.13525286319094" text-anchor="middle" class="weight">5.33</text></g><g class="edge " data-edge="3"><path d="M185.4,59.3 L254.6,100.7" class="hit" /><path d="M185.4,59.3 L254.6,100.7" class="stroke" /><text x="213.31155517944217" y="96.14740803426308" text-anchor="middle" class="weight">6.67</text></g><g class="edge " data-edge="4"><path d="M173.9,188.6 L256.1,121.4" class="hit" /><path d="M173.9,188.6 L256.1,121.4" class="stroke" /><text x="223.23209127334442" y="170.06144488964318" text-anchor="middle" class="weight">12.33</text></g><g class="edge " data-edge="5"><path d="M415.4,100.7 L484.6,59.3" class="hit" /><path d="M415.4,100.7 L484.6,59.3" class="stroke" /><text x="456.68844482055783" y="96.14740803426308" text-anchor="middle" class="weight">7.17</text></g><g class="edge " data-edge="6"><path d="M413.4,122.0 L486.6,188.0" class="hit" /><path d="M413.4,122.0 L486.6,188.0" class="stroke" /><text x="441.3034584889082" y="169.66282390121316" text-anchor="middle" class="weight">7.17</text></g><g class="edge " data-edge="7"><path d="M500.0,68.0 L500.0,182.0" class="hit" /><path d="M500.0,68.0 L500.0,182.0" class="stroke" /><text x="487.0" y="130.0" text-anchor="middle" class="weight">1</text></g><g class="edge " data-edge="8"><path d="M514.7,60.3 L585.3,109.7" class="hit" /><path d="M514.7,60.3 L585.3,109.7" class="stroke" /><text x="542.5449895232767" y="100.65001496674753" text-anchor="middle" class="weight">7.17</text></g><g class="edge " data-edge="9"><path d="M514.1,188.8 L585.9,131.2" class="hit" /><path d="M514.1,188.8 L585.9,131.2" class="stroke" /><text x="558.1210356182075" y="175.1512945227594" text-anchor="middle" class="weight">7.17</text></g><g class="edge " data-edge="10"><path d="M435.8,341.1 L374.2,388.9" class="hit" /><path d="M435.8,341.1 L374.2,388.9" class="stroke" /><text x="397.01877202430603" y="359.73842117410777" text-anchor="middle" class="weight">6.67</text></g><g class="edge " data-edge="11"><path d="M432.1,328.0 L287.9,312.0" class="hit" /><path d="M432.1,328.0 L287.9,312.0" class="stroke" /><text x="361.435609838973" y="312.07951144924294" text-anchor="middle" class="weight">12.33</text></g><g class="edge " data-edge="12"><path d="M347.3,387.3 L282.7,322.7" class="hit" /><path d="M347.3,387.3 L282.7,322.7" class="stroke" /><text x="324.19238815542514" y="350.80761184457486" text-anchor="middle" class="weight">5.33</text></g><g class="edge " data-edge="13"><path d="M342.2,402.7 L247.8,417.3" class="hit" /><path d="M342.2,402.7 L247.8,417.3" class="stroke" /><text x="293.02325660469876" y="402.151167930542" text-anchor="middle" class="weight">3</text></g><g class="edge " data-edge="14"><path d="M263.8,326.9 L236.2,403.1" class="hit" /><path d="M263.8,326.9 L236.2,403.1" class="stroke" /><text x="237.7826854946503" y="365.5573401798728" text-anchor="middle" class="weight">8</text></g><g class="edge " data-edge="15"><path d="M288.0,110.0 L382.0,110.0" class="hit" /><path d="M288.0,110.0 L382.0,110.0" class="stroke" /><text x="335.0" y="128.0" text-anchor="middle" class="weight">16</text></g><g class="edge " data-edge="16"><path d="M589.5,134.6 L460.5,315.4" class="hit" /><path d="M589.5,134.6 L460.5,315.4" class="stroke" /><text x="514.4214648743124" y="222.44390348165174" text-anchor="middle" class="weight">16</text></g><g class="edge active" data-edge="17"><path d="M172.7,212.7 L257.3,297.3" class="hit" /><path d="M172.7,212.7 L257.3,297.3" class="stroke" /><text x="205.8076118445749" y="269.19238815542514" text-anchor="middle" class="weight">20.67</text></g><g class="node pal0" data-node="0" tabindex="-1" role="presentation" aria-label="Abe"><circle cx="60.0" cy="110.0" r="16.0" /><text x="60.0" y="115.0" text-anchor="middle" class="badge">A</text><text x="60.0" y="144.0" text-anchor="middle" class="name">Abe</text></g><g class="node pal0" data-node="1" tabindex="-1" role="presentation" aria-label="Bea"><circle cx="170.0" cy="50.0" r="16.0" /><text x="170.0" y="55.0" text-anchor="middle" class="badge">B</text><text x="170.0" y="26.0" text-anchor="middle" class="name">Bea</text></g><g class="node pal0" data-node="2" tabindex="-1" role="presentation" aria-label="Cam"><circle cx="160.0" cy="200.0" r="16.0" /><text x="160.0" y="205.0" text-anchor="middle" class="badge">C</text><text x="160.0" y="234.0" text-anchor="middle" class="name">Cam</text></g><g class="node pal0" data-node="3" tabindex="-1" role="presentation" aria-label="Dan"><circle cx="270.0" cy="110.0" r="16.0" /><text x="270.0" y="115.0" text-anchor="middle" class="badge">D</text><text x="270.0" y="144.0" text-anchor="middle" class="name">Dan</text></g><g class="node pal0" data-node="4" tabindex="-1" role="presentation" aria-label="Ela"><circle cx="400.0" cy="110.0" r="16.0" /><text x="400.0" y="115.0" text-anchor="middle" class="badge">E</text><text x="400.0" y="144.0" text-anchor="middle" class="name">Ela</text></g><g class="node pal0" data-node="5" tabindex="-1" role="presentation" aria-label="Fox"><circle cx="500.0" cy="50.0" r="16.0" /><text x="500.0" y="55.0" text-anchor="middle" class="badge">F</text><text x="500.0" y="26.0" text-anchor="middle" class="name">Fox</text></g><g class="node pal0" data-node="6" tabindex="-1" role="presentation" aria-label="Gil"><circle cx="500.0" cy="200.0" r="16.0" /><text x="500.0" y="205.0" text-anchor="middle" class="badge">G</text><text x="500.0" y="234.0" text-anchor="middle" class="name">Gil</text></g><g class="node pal0" data-node="7" tabindex="-1" role="presentation" aria-label="Hal"><circle cx="600.0" cy="120.0" r="16.0" /><text x="600.0" y="125.0" text-anchor="middle" class="badge">H</text><text x="600.0" y="154.0" text-anchor="middle" class="name">Hal</text></g><g class="node pal0" data-node="8" tabindex="-1" role="presentation" aria-label="Ian"><circle cx="450.0" cy="330.0" r="16.0" /><text x="450.0" y="335.0" text-anchor="middle" class="badge">I</text><text x="450.0" y="364.0" text-anchor="middle" class="name">Ian</text></g><g class="node pal0" data-node="9" tabindex="-1" role="presentation" aria-label="Jo"><circle cx="360.0" cy="400.0" r="16.0" /><text x="360.0" y="405.0" text-anchor="middle" class="badge">J</text><text x="360.0" y="434.0" text-anchor="middle" class="name">Jo</text></g><g class="node pal0" data-node="10" tabindex="-1" role="presentation" aria-label="Kai"><circle cx="270.0" cy="310.0" r="16.0" /><text x="270.0" y="315.0" text-anchor="middle" class="badge">K</text><text x="270.0" y="344.0" text-anchor="middle" class="name">Kai</text></g><g class="node pal0" data-node="11" tabindex="-1" role="presentation" aria-label="Lu"><circle cx="230.0" cy="420.0" r="16.0" /><text x="230.0" y="425.0" text-anchor="middle" class="badge">L</text><text x="230.0" y="454.0" text-anchor="middle" class="name">Lu</text></g></svg><div class="legend"><span><i class="line route"></i>just taken out</span><span><i class="line active"></i>the busiest link now</span><span><i class="line faint"></i>taken out before</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">18 links to take out</span><p class="narration">The numbers on the links are edge betweenness: how many shortest paths between pairs of crowd cross each one. Links between groups carry the most. Press Step to take out the busiest.</p></div><div class="panel"><span class="label">Groups now</span><div class="stat"><div><span class="num">1</span>group</div><div class=""><span class="num">0.00</span>modularity</div></div><div class="chips"><span class="chip pal0">Abe Bea Cam Dan Ela Fox Gil Hal Ian Jo Kai Lu</span></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="498" viewBox="0 0 498 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="490" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="5.0" class="m-grey" /><title>Take out Cam–Kai, the busiest link left: 20.67 of the shortest paths cross it. Everyone it joined can still reach each other, so the groups stay as they are. Every score is recomputed.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="11.0" class="m-blue" /><text x="48" y="36" text-anchor="middle">2</text><title>Take out Dan–Ela, the busiest link left: 32 of the shortest paths cross it. The network falls apart: 2 groups, modularity 0.33.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="11.0" class="m-green" /><text x="74" y="36" text-anchor="middle">3</text><title>Take out Hal–Ian, the busiest link left: 16 of the shortest paths cross it. The network falls apart: 3 groups, modularity 0.50.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="5.0" class="m-grey" /><title>Take out Abe–Bea, the busiest link left: 1.5 of the shortest paths cross it. Everyone it joined can still reach each other, so the groups stay as they are. Every score is recomputed.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="11.0" class="m-blue" /><text x="126" y="36" text-anchor="middle">4</text><title>Take out Abe–Cam, the busiest link left: 3 of the shortest paths cross it. The network falls apart: 4 groups, modularity 0.42.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="5.0" class="m-grey" /><title>Take out Ela–Fox, the busiest link left: 1.5 of the shortest paths cross it. Everyone it joined can still reach each other, so the groups stay as they are. Every score is recomputed.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="11.0" class="m-blue" /><text x="178" y="36" text-anchor="middle">5</text><title>Take out Ela–Gil, the busiest link left: 3 of the shortest paths cross it. The network falls apart: 5 groups, modularity 0.35.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="5.0" class="m-grey" /><title>Take out Ian–Jo, the busiest link left: 1.5 of the shortest paths cross it. Everyone it joined can still reach each other, so the groups stay as they are. Every score is recomputed.</title></g><g class="marble future" data-step="8"><circle cx="230" cy="32" r="11.0" class="m-blue" /><text x="230" y="36" text-anchor="middle">6</text><title>Take out Ian–Kai, the busiest link left: 3 of the shortest paths cross it. The network falls apart: 6 groups, modularity 0.28.</title></g><g class="marble future" data-step="9"><circle cx="256" cy="32" r="5.0" class="m-grey" /><title>Take out Bea–Cam, the busiest link left: 1 of the shortest paths cross it. Everyone it joined can still reach each other, so the groups stay as they are. Every score is recomputed.</title></g><g class="marble future" data-step="10"><circle cx="282" cy="32" r="11.0" class="m-blue" /><text x="282" y="36" text-anchor="middle">7</text><title>Take out Bea–Dan, the busiest link left: 2 of the shortest paths cross it. The network falls apart: 7 groups, modularity 0.20.</title></g><g class="marble future" data-step="11"><circle cx="308" cy="32" r="11.0" class="m-blue" /><text x="308" y="36" text-anchor="middle">8</text><title>Take out Cam–Dan, the busiest link left: 1 of the shortest paths cross it. The network falls apart: 8 groups, modularity 0.17.</title></g><g class="marble future" data-step="12"><circle cx="334" cy="32" r="5.0" class="m-grey" /><title>Take out Fox–Gil, the busiest link left: 1 of the shortest paths cross it. Everyone it joined can still reach each other, so the groups stay as they are. Every score is recomputed.</title></g><g class="marble future" data-step="13"><circle cx="360" cy="32" r="11.0" class="m-blue" /><text x="360" y="36" text-anchor="middle">9</text><title>Take out Fox–Hal, the busiest link left: 2 of the shortest paths cross it. The network falls apart: 9 groups, modularity 0.08.</title></g><g class="marble future" data-step="14"><circle cx="386" cy="32" r="11.0" class="m-blue" /><text x="386" y="36" text-anchor="middle">10</text><title>Take out Gil–Hal, the busiest link left: 1 of the shortest paths cross it. The network falls apart: 10 groups, modularity 0.04.</title></g><g class="marble future" data-step="15"><circle cx="412" cy="32" r="5.0" class="m-grey" /><title>Take out Jo–Kai, the busiest link left: 1 of the shortest paths cross it. Everyone it joined can still reach each other, so the groups stay as they are. Every score is recomputed.</title></g><g class="marble future" data-step="16"><circle cx="438" cy="32" r="11.0" class="m-blue" /><text x="438" y="36" text-anchor="middle">11</text><title>Take out Jo–Lu, the busiest link left: 2 of the shortest paths cross it. The network falls apart: 11 groups, modularity −0.04.</title></g><g class="marble future" data-step="17"><circle cx="464" cy="32" r="11.0" class="m-blue" /><text x="464" y="36" text-anchor="middle">12</text><title>Take out Kai–Lu, the busiest link left: 1 of the shortest paths cross it. The network falls apart: 12 groups, modularity −0.09.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-girvannewman" class="scrub" type="range" min="0" max="18" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="4.0" class="m-grey" /></svg>a link taken out, nothing splits</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-blue" /></svg>a split, with the number of groups</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-green" /></svg>the split with the best modularity</span></div><p class="note">Each step is one removal. girvanNewmanCommunities() reports only the splits; the page makes the removals itself, recomputing edgeBetweennessCentrality each time, to show the links in between.</p></section></div></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The friends above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">Centrality</span>
+<span class="k">import</span> <span class="t">CommunityDetection</span>
+<span class="k">import</span> <span class="t">Connectivity</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+
+<span class="k">let</span> hangOut = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Abe"</span>, <span class="s">"Bea"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Abe"</span>, <span class="s">"Cam"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Bea"</span>, <span class="s">"Cam"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Bea"</span>, <span class="s">"Dan"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Cam"</span>, <span class="s">"Dan"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ela"</span>, <span class="s">"Fox"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Ela"</span>, <span class="s">"Gil"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Fox"</span>, <span class="s">"Gil"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Fox"</span>, <span class="s">"Hal"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Gil"</span>, <span class="s">"Hal"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ian"</span>, <span class="s">"Jo"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Ian"</span>, <span class="s">"Kai"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Jo"</span>, <span class="s">"Kai"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Jo"</span>, <span class="s">"Lu"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Kai"</span>, <span class="s">"Lu"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Dan"</span>, <span class="s">"Ela"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Hal"</span>, <span class="s">"Ian"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Cam"</span>, <span class="s">"Kai"</span>),
+]
+
+<span class="k">let</span> crowd = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> pair <span class="k">in</span> hangOut { pair }
+}
+
+<span class="k">let</span> partitions = <span class="t">Array</span>(crowd.girvanNewmanCommunities())  <span class="c">// 11 partitions</span>
+<span class="k">let</span> best = partitions.max { crowd.modularity(of: $<span class="n">0</span>) &lt; crowd.modularity(of: $<span class="n">1</span>) }!  <span class="c">// [["Abe", "Bea", "Cam", "Dan"], ["Ela", "Fox", "Gil", "Hal"], ["Ian", "Jo", "Kai", "Lu"]]</span>
+
+<span class="k">var</span> left = hangOut
+<span class="k">var</span> removed: [<span class="t">UndirectedEdge</span>&lt;<span class="t">String</span>&gt;] = []
+<span class="k">while</span> !left.isEmpty {
+    <span class="k">let</span> now = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+        <span class="k">for</span> person <span class="k">in</span> crowd.vertices { person }
+        <span class="k">for</span> pair <span class="k">in</span> left { pair }
+    }
+    <span class="k">let</span> busy = now.edgeBetweennessCentrality(normalized: <span class="k">false</span>)
+    <span class="k">let</span> busiest = now.edges.indices.max { busy.score(ofEdgeAt: $<span class="n">0</span>) &lt; busy.score(ofEdgeAt: $<span class="n">1</span>) }!
+    removed.append(left.remove(at: busiest))
+}
+
+<span class="k">let</span> gone = removed.prefix(<span class="n">0</span>)
+
+<span class="k">let</span> left = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> person <span class="k">in</span> crowd.vertices { person }
+    <span class="k">for</span> pair <span class="k">in</span> hangOut <span class="k">where</span> !gone.contains(pair) { pair }
+}
+<span class="k">let</span> busy = left.edgeBetweennessCentrality(normalized: <span class="k">false</span>)
+<span class="k">let</span> groups = left.connectedComponents()  <span class="c">// [["Abe", "Bea", "Cam", "Dan", "Ela", "Fox", "Gil", "Hal", "Ian", "Jo", "Kai", "Lu"]]</span>
+</span></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Links between groups carry the traffic</h2>
+  <p>Inside a close group there are many ways between any two people, so the shortest paths spread over many links. Between groups there are only a few links, and every shortest path from one group to another has to use one of them. So those links have the highest <a href="betweenness.html">edge betweenness</a>.</p>
+  <p>Girvan and Newman’s method takes out the link with the highest betweenness, then <em>recomputes</em> every score, and repeats. Recomputing matters: once one link between two groups is gone, the paths it carried move to the others, which become the busiest next. Each time the network falls into more pieces, the pieces are a finer partition. Run to the end and every person is alone; the result is a whole hierarchy of splits, coarsest first.</p>
+  <p>Which level is the answer? A common choice is the one with the highest <b>modularity</b>: the share of links inside groups, minus the share you’d expect if links were placed at random with the same degrees. <code>girvanNewmanCommunities()</code> is a lazy sequence of the partitions, so you can stop at the first with as many groups as you want, or take the best by <code>modularity(of:)</code>.</p>
+
+  <h2><small>Where it breaks</small>Slow, and when to use something else</h2>
+  <p>Every removal recomputes betweenness for the piece it came from, which costs a search from every person in it. That is fine for a few hundred people and far too slow for a large network: the whole sequence is O(m² n). For large networks, <a href="communities.html">Louvain</a> or Leiden find high-modularity groups in a few passes. Girvan–Newman is still worth knowing when the hierarchy itself is wanted, or when the network is small enough that its clear reasoning is worth the time.</p>
+  <p>It also only ever cuts. A person who belongs to two groups ends up in one of them, and a network with no clear groups still gets split, all the way down, so a high modularity is worth checking before trusting the groups.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Girvan</b><span class="how">GUR-vun</span><span class="ipa">/ˈɡɜːrvən/</span><span class="what">Michelle Girvan: communities by cutting the busiest links</span></div><div class="name"><b>Louvain</b><span class="how">loo-VAN</span><span class="ipa">/luvɛ̃/</span><span class="what">Communities by repeatedly merging what raises modularity</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="communities.html"><span>Previous</span>Communities</a><a class="next" href="flow.html"><span>Next</span>Maximum flow</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

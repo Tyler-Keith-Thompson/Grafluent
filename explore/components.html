@@ -27,10 +27,10 @@
     <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
       <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
         <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
-        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
-        <div class="mgroup"><span>Structure</span><a href="components.html" aria-current="page">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a></div>
-        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html" aria-current="page">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a><a href="girvannewman.html">Girvan–Newman</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="layout.html">Force-directed layout</a></div>
       </nav>
     </details>
     <a href="../documentation/">Docs</a>
@@ -74,7 +74,7 @@
 <span class="k">var</span> reached = <span class="t">Set</span>&lt;<span class="t">String</span>&gt;()
 <span class="k">var</span> searches: [[<span class="t">BreadthFirstSearchEvent</span>&lt;<span class="t">String</span>&gt;]] = []
 <span class="k">for</span> island <span class="k">in</span> names <span class="k">where</span> !reached.contains(island) {
-    <span class="k">let</span> search = <span class="t">Array</span>(islands.directedView.breadthFirstSearch(from: island))
+    <span class="k">let</span> search = <span class="t">Array</span>(islands.directedView.lazy.breadthFirstSearch(from: island))
     <span class="k">for</span> <span class="k">case</span> .discover(<span class="k">let</span> found) <span class="k">in</span> search { reached.insert(found) }
     searches.append(search)
 }
@@ -112,7 +112,7 @@
 <span class="k">let</span> neighbourhoods = streets.stronglyConnectedComponents()  <span class="c">// 4: {Bakery} {Mill, Dock} {Park, School, Market} {Hill, Square, Church}</span>
 <span class="k">let</span> condensation = streets.condensation()
 <span class="k">let</span> links = condensation.graph.edgeCount  <span class="c">// 3</span>
-<span class="k">let</span> events = <span class="t">Array</span>(streets.depthFirstSearch())  <span class="c">// 29 events</span>
+<span class="k">let</span> events = <span class="t">Array</span>(streets.lazy.depthFirstSearch())  <span class="c">// 29 events</span>
 </span></pre>
 </section>
 

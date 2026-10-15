@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maximum flow · Explore Grafluent</title>
-<meta name="description" content="Water from a reservoir to a town, one augmenting path at a time, with Grafluent’s edmondsKarpEvents: bottlenecks, pushes, a cancellation that reroutes, and the minimum cut.">
+<meta name="description" content="Water from a reservoir to a town, one augmenting path at a time, with Grafluent’s lazy.edmondsKarp: bottlenecks, pushes, a cancellation that reroutes, and the minimum cut.">
 <script>
   // The theme the reader picked last time, before anything is drawn.
   try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
@@ -27,10 +27,10 @@
     <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
       <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
         <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
-        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
-        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a></div>
-        <div class="mgroup"><span>Assignment</span><a href="flow.html" aria-current="page">Maximum flow</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="layout.html">Force-directed layout</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="bridges.html">Bridges and articulation points</a><a href="euler.html">Euler tours</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="giant.html">The giant component</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="communities.html">Communities</a><a href="girvannewman.html">Girvan–Newman</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html" aria-current="page">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="matching.html">Bipartite matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="layout.html">Force-directed layout</a></div>
       </nav>
     </details>
     <a href="../documentation/">Docs</a>
@@ -65,7 +65,7 @@
 }
 <span class="k">let</span> capacity = <span class="t">Dictionary</span>(uniqueKeysWithValues: pipes.map { ($<span class="n">0</span>.pipe, $<span class="n">0</span>.capacity) })
 
-<span class="k">let</span> events = <span class="t">Array</span>(waterworks.edmondsKarpEvents(from: <span class="s">"Reservoir"</span>, to: <span class="s">"Town"</span>) { capacity[waterworks.edges[$<span class="n">0</span>]]! })  <span class="c">// 10 events: augmentingPath([0, 2, 5], 2), push(0, 2), …</span>
+<span class="k">let</span> events = <span class="t">Array</span>(waterworks.lazy.edmondsKarp(from: <span class="s">"Reservoir"</span>, to: <span class="s">"Town"</span>) { capacity[waterworks.edges[$<span class="n">0</span>]]! })  <span class="c">// 10 events: augmentingPath([0, 2, 5], 2), push(0, 2), …</span>
 <span class="k">let</span> flow = waterworks.edmondsKarpMaximumFlow(from: <span class="s">"Reservoir"</span>, to: <span class="s">"Town"</span>) { capacity[waterworks.edges[$<span class="n">0</span>]]! }
 <span class="k">let</span> most = flow.value  <span class="c">// 4</span>
 <span class="k">let</span> cut = flow.minimumCut.edges.map { waterworks.edges[$<span class="n">0</span>] }  <span class="c">// [Junction → Town, Tank → Town]</span>
@@ -84,7 +84,7 @@
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Dinic</b><span class="how">DEE-nits</span><span class="ipa">/ˈdinit͡s/</span><span class="what">Yefim Dinitz: many shortest routes at once, in layers</span></div></div></div>
 </section>
-<nav class="pager" aria-label="Pages"><a class="prev" href="communities.html"><span>Previous</span>Communities</a><a class="next" href="matching.html"><span>Next</span>Bipartite matching</a></nav>
+<nav class="pager" aria-label="Pages"><a class="prev" href="girvannewman.html"><span>Previous</span>Girvan–Newman</a><a class="next" href="mincut.html"><span>Next</span>Minimum cut</a></nav>
 </div>
 <script>
   if (!location.hash) window.scrollTo(0, 0);
