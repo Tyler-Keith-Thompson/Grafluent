@@ -1,0 +1,28 @@
+<!-- title: Isomorphism · Explore Grafluent -->
+<!-- description: Are two drawings the same graph? Weisfeiler–Leman colour refinement as a quick test, then Grafluent’s isomorphism(to:) finds the mapping, or proves there is none. -->
+<header class="sign">
+  <h1>Isomorphism</h1>
+  <div class="say"><span>Say it</span><b>VICE-fy-ler LAY-mun</b><span class="ipa">/ˈvaɪsfaɪlɐ ˈleːman/</span></div>
+  <p class="question">Two drawings look nothing alike. Are they the same network, just drawn differently?</p>
+</header>
+<p class="example lead">Example: three pairs of drawings. Two graphs are <b>isomorphic</b> when the vertices of one can be renamed as the vertices of the other so that exactly the same pairs are joined. Where the vertices sit on the page doesn’t matter.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The drawings above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Rule out quickly, then search</h2>
+  <p>Some differences are easy to spot: different numbers of vertices, edges, or vertices of each degree. Colour refinement, the <b>Weisfeiler–Leman</b> test, pushes that idea as far as it goes. Start with every vertex the same colour. Each round, give each vertex a new colour that records its old colour and the multiset of its neighbours’ colours. After one round the colours are the degrees; after two, the degrees of the neighbours too; and so on. If at any round the two graphs have different numbers of vertices of some colour, they can’t be the same graph. <code>weisfeilerLehmanGraphHash()</code> boils the final colours down to one number, and two graphs with different hashes are certainly different. It takes time proportional to the edges, per round.</p>
+  <p>Equal hashes prove nothing, though. To be sure, <code>isomorphism(to:)</code> searches for the renaming: it matches one vertex at a time, trying only vertices that could still correspond, and backs up when an edge doesn’t match. It returns the mapping, or nil when none exists, and <code>isomorphisms(to:)</code> lists every one.</p>
+
+  <h2><small>Where it breaks</small>Graphs where every vertex looks alike</h2>
+  <p>In the look-alikes, every vertex has three neighbours, so every round gives every vertex the same colour: the test sees nothing. Yet one graph has triangles and the other has none, so they are different. Colour refinement can never split a <em>regular</em> graph, one where all degrees are equal, and the cubes pass it for the same reason. The search does the real work on graphs like these.</p>
+  <p>No fast method is known that works on every pair of graphs, and none is known to be impossible either; Babai’s algorithm is quasi-polynomial, and practical searches handle most graphs that come up quickly. For whether a small graph appears <em>inside</em> a bigger one, use <code>subgraphIsomorphisms(to:)</code>, which is a harder problem.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

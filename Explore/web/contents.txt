@@ -19,6 +19,7 @@ huffman|Huffman coding|Structure|Shorter codes for common letters, from a tree.|
 giant|The giant component|Structure|When random links suddenly join almost everyone.|page
 planarity|Planarity|Structure|Whether a network can be drawn without crossings.|page
 cliques|Cliques|Structure|Groups where everyone is connected.|page
+isomorphism|Isomorphism|Structure|Whether two drawings are the same graph.|page
 communities|Communities|Structure|Where a network splits into groups.|page
 girvannewman|Girvan–Newman|Structure|Communities by cutting the busiest links.|page
 flow|Maximum flow|Assignment|How much a network of pipes can carry.|page
