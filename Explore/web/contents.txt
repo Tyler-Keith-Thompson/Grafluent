@@ -12,6 +12,7 @@ kpaths|k shortest paths|Getting around|Alternative routes, quickest first.|page
 semirings|Semirings|Getting around|One shortest-path algorithm, many questions.|page
 toposort|Topological sort|Getting around|An order for tasks with dependencies.|page
 criticalpath|Critical path|Getting around|How soon a project can finish, and what can’t slip.|page
+cyclefinding|Tortoise and hare|Getting around|Finding a loop with only two bookmarks.|page
 components|Connected components|Structure|Which parts can reach each other.|page
 bridges|Bridges and articulation points|Structure|Which single closure splits the network.|page
 euler|Euler tours|Structure|Crossing every bridge exactly once.|page

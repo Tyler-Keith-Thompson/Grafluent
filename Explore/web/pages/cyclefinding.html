@@ -1,0 +1,24 @@
+<!-- title: Tortoise and hare · Explore Grafluent -->
+<!-- description: Clicking Next through a reading list that loops: Floyd’s and Brent’s cycle detection on a FunctionalGraph, step by step, find where the loop starts and how long it is with two bookmarks. -->
+<header class="sign">
+  <h1>Tortoise and hare</h1>
+  <p class="question">Keep clicking “Next” and the pages start repeating. Where does the loop begin, and how long is it, if you may only keep two bookmarks?</p>
+</header>
+<p class="example lead">Example: twelve pages, each with one “Next” link. Every page leads somewhere, so from A you must eventually come round again: a tail, then a loop.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The pages above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>A faster runner laps a slower one</h2>
+  <p>A graph in which every vertex has exactly one way out is a <b>functional graph</b>: it is a function from the vertices to themselves, here “the page Next opens”. Walking it from any start traces a shape like the letter ρ: a tail of μ steps, then a loop of λ pages forever. Remembering every page seen would find the loop, but needs memory for all of them.</p>
+  <p><b>Floyd’s</b> method keeps two positions. The tortoise moves one step a turn, the hare two. Once both are on the loop, the hare gains one step a turn, so it must land on the tortoise. Then a little arithmetic shows the start is as far from the loop’s first page as the meeting point is, going forward: send the tortoise back to the start, move both one step at a time, and they meet exactly at the loop’s first page, after μ steps. One more lap from there gives λ.</p>
+  <p><b>Brent’s</b> method moves only the hare. The tortoise waits, and each time the hare has run a power of two steps without meeting it, the tortoise jumps to the hare and the allowance doubles. When the hare comes back to the waiting tortoise, the steps since the jump are λ. Then a second pass with the two λ apart finds μ. It makes fewer moves than Floyd’s, typically a third fewer, which matters when each step is expensive.</p>
+
+  <h2><small>Where it breaks</small>When memory isn’t the problem</h2>
+  <p>Both use constant memory, which is their point: they find loops in sequences far too long to store, such as a pseudo-random generator or Pollard’s method for factoring numbers. When the graph is small and in memory, it is simpler to mark pages as you go, and <code>cycleDecomposition()</code> finds every loop of a <code>FunctionalGraph</code> at once in O(n). Neither method applies to graphs where a vertex has several ways out; for those, a cycle is found by <a href="dfs.html">depth-first search</a>.</p>
+</section>

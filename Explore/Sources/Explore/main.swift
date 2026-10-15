@@ -18,6 +18,7 @@ func mountPage(_ page: String) -> Bool {
     case "kpaths": KPathsPage.mount()
     case "bellmanford": BellmanFordPage.mount()
     case "toposort": TopologicalSortPage.mount()
+    case "cyclefinding": CycleFindingPage.mount()
     case "criticalpath": CriticalPathPage.mount()
     case "components": ComponentsPage.mount()
     case "bridges": BridgesPage.mount()
