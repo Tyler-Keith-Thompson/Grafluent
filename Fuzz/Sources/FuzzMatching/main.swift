@@ -101,7 +101,7 @@ enum FuzzMatching {
         var matchedEdges = Set<Int>()
         var covered = Set<Int>()
         var phaseLength = 0
-        for event in graph.hopcroftKarpEvents(bipartition: partition) {
+        for event in graph.lazy.hopcroftKarp(bipartition: partition) {
             switch event {
             case .phase(let k):
                 check(k > phaseLength && k % 2 == 1, "Hopcroft–Karp phase \(k) after \(phaseLength) on \(ends)")

@@ -1,4 +1,4 @@
-// The Hopcroft–Karp algorithm as an event sequence (`hopcroftKarpEvents`): a hand-traced graph
+// The Hopcroft–Karp algorithm as an event sequence (`lazy.hopcroftKarp`): a hand-traced graph
 // against Tests/Catalogs/MatchingModule/cases_events.py on `BipartiteGraph` and on a `Graph` with
 // its bipartition, the trivial cases, value semantics, the preconditions, and a property test
 // replaying the augmenting paths against `maximumBipartiteMatching`. Case IDs (MA-11nn) are listed
@@ -23,10 +23,10 @@ struct HopcroftKarpEventsTests {
             .phase(length: 5), .augmentingPath([2, 0, 1, 3, 4]),
         ]
         let bipartite = try #require(BipartiteGraph(left: [0, 1, 2], right: [3, 4, 5], edges: pairs.map { UndirectedEdge($0.0, $0.1) }))
-        #expect(Array(bipartite.hopcroftKarpEvents()) == expected)
+        #expect(Array(bipartite.lazy.hopcroftKarp()) == expected)
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let bipartition = try #require(graph.bipartition(left: [0, 1, 2]))
-        #expect(Array(graph.hopcroftKarpEvents(bipartition: bipartition)) == expected)
+        #expect(Array(graph.lazy.hopcroftKarp(bipartition: bipartition)) == expected)
         #expect(Set(graph.maximumBipartiteMatching(bipartition: bipartition).edges) == [2, 1, 4])
         #expect(expected[0].description == "phase(1)" && expected[4].description == "augmentingPath([2, 0, 1, 3, 4])")
     }
@@ -34,11 +34,11 @@ struct HopcroftKarpEventsTests {
     @Test("MA-1101 no edges or no vertices: no events; value semantics: each iterator starts over; stopping early; String vertices")
     func trivialAndValueSemantics() throws {
         let empty = try #require(BipartiteGraph<Int>(left: [], right: []))
-        #expect(Array(empty.hopcroftKarpEvents()).isEmpty)
+        #expect(Array(empty.lazy.hopcroftKarp()).isEmpty)
         let apart = try #require(BipartiteGraph<Int>(left: [0, 1], right: [2]))
-        #expect(Array(apart.hopcroftKarpEvents()).isEmpty)
+        #expect(Array(apart.lazy.hopcroftKarp()).isEmpty)
         let named = try #require(BipartiteGraph(left: ["a", "b"], right: ["x"], edges: [UndirectedEdge("a", "x"), UndirectedEdge("b", "x")]))
-        let events = named.hopcroftKarpEvents()
+        let events = named.lazy.hopcroftKarp()
         let first = Array(events)
         #expect(first == [.phase(length: 1), .augmentingPath([0])])
         #expect(Array(events) == first)
@@ -54,14 +54,14 @@ struct HopcroftKarpEventsTests {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1)])
             let other = UndirectedAdjacencyList(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
-            _ = graph.hopcroftKarpEvents(bipartition: other.bipartition()!)
+            _ = graph.lazy.hopcroftKarp(bipartition: other.bipartition()!)
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
             let sides = graph.bipartition()!
             var wider = graph
             _ = wider.insert(edge: UndirectedEdge(0, 2))
-            _ = wider.hopcroftKarpEvents(bipartition: sides)
+            _ = wider.lazy.hopcroftKarp(bipartition: sides)
         }
     }
 
@@ -80,7 +80,7 @@ struct HopcroftKarpEventsTests {
             var length = 0
             var usedInPhase = Set<Int>()
             var lengths: [Int] = []
-            for event in graph.hopcroftKarpEvents(bipartition: bipartition) {
+            for event in graph.lazy.hopcroftKarp(bipartition: bipartition) {
                 switch event {
                 case .phase(let k):
                     #expect(k > length && k % 2 == 1)

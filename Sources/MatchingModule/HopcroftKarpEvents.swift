@@ -123,7 +123,7 @@ public struct HopcroftKarpEvents<G: Graph>: Sequence {
     }
 }
 
-extension Graph {
+extension LazyGraphView {
     /// The Hopcroft–Karp algorithm on a bipartite graph as a sequence of events: each phase with
     /// the length of its augmenting paths, then each augmenting path. See `HopcroftKarpEvent` for
     /// the order. Left vertices are taken in `bipartition.left` order.
@@ -135,8 +135,8 @@ extension Graph {
     /// - Precondition: `bipartition` is this graph's (`bipartition()`): the same vertices, every
     ///   edge across.
     @inlinable
-    public func hopcroftKarpEvents(bipartition: Bipartition<Self>) -> HopcroftKarpEvents<Self> {
-        let structure = _matchingGraph()
+    public func hopcroftKarp(bipartition: Bipartition<Base>) -> HopcroftKarpEvents<Base> {
+        let structure = base._matchingGraph()
         let n = structure.count
         precondition(bipartition.left.count + bipartition.right.count == n, "The bipartition is not this graph's")
         var isLeft = [Bool](repeating: false, count: n)
@@ -145,26 +145,40 @@ extension Graph {
             isLeft[v] = true
             left.append(v)
         }
-        return HopcroftKarpEvents(graph: self, structure: structure, left: left, isLeft: isLeft)
+        return HopcroftKarpEvents(graph: base, structure: structure, left: left, isLeft: isLeft)
     }
 }
 
-extension BipartiteGraph {
+extension Graph {
+    /// `lazy.hopcroftKarp(bipartition:)`.
+    @inlinable
+    public func hopcroftKarpEvents(bipartition: Bipartition<Self>) -> HopcroftKarpEvents<Self> {
+        lazy.hopcroftKarp(bipartition: bipartition)
+    }
+}
+
+extension LazyGraphView {
     /// The Hopcroft–Karp algorithm as a sequence of events, left vertices in `left` order. The
     /// edges in an odd number of augmenting paths are `maximumBipartiteMatching()`'s matching.
     ///
     /// - Complexity: O(n + m) to make the sequence; O(m √n) to iterate every event.
     @inlinable
-    public func hopcroftKarpEvents() -> HopcroftKarpEvents<Self> {
-        let structure = _matchingGraph()
+    public func hopcroftKarp<Vertex>() -> HopcroftKarpEvents<Base> where Base == BipartiteGraph<Vertex> {
+        let structure = base._matchingGraph()
         var isLeft = [Bool](repeating: false, count: structure.count)
         var leftNumbers: [Int] = []
-        leftNumbers.reserveCapacity(left.count)
-        for v in left {
-            let i = vertexIndex(of: v)
+        leftNumbers.reserveCapacity(base.left.count)
+        for v in base.left {
+            let i = base.vertexIndex(of: v)
             isLeft[i] = true
             leftNumbers.append(i)
         }
-        return HopcroftKarpEvents(graph: self, structure: structure, left: leftNumbers, isLeft: isLeft)
+        return HopcroftKarpEvents(graph: base, structure: structure, left: leftNumbers, isLeft: isLeft)
     }
+}
+
+extension BipartiteGraph {
+    /// `lazy.hopcroftKarp()`.
+    @inlinable
+    public func hopcroftKarpEvents() -> HopcroftKarpEvents<Self> { lazy.hopcroftKarp() }
 }

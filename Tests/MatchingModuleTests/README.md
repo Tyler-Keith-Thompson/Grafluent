@@ -26,14 +26,14 @@ extension Graph {
     func maximalMatching() -> Matching<Self, Int>                                      // greedy, position order
     func maximumMatching() -> Matching<Self, Int>                                      // Edmonds
     func maximumBipartiteMatching(bipartition:) -> Matching<Self, Int>                 // Hopcroft–Karp
-    func hopcroftKarpEvents(bipartition:) -> HopcroftKarpEvents<Self>                   // lazy; Element HopcroftKarpEvent<Edges.Index>:
+    func lazy.hopcroftKarp(bipartition:) -> HopcroftKarpEvents<Self>                   // lazy; Element HopcroftKarpEvent<Edges.Index>:
                                                                                         // phase(length:), augmentingPath([Edge])
     func maximumWeightMatching(weight:maximumCardinality:) -> Matching<Self, W>        // W: SignedInteger or FloatingPoint
     func minimumWeightMatching(weight:) -> Matching<Self, W>                           // W: SignedInteger or FloatingPoint
     func minimumWeightFullMatching(bipartition:weight:) -> Matching<Self, W>?          // W: SignedNumeric & Comparable
     func isMatching(_:), isMaximalMatching(_:), isPerfectMatching(_:) -> Bool
 }
-extension BipartiteGraph { maximumBipartiteMatching(), hopcroftKarpEvents(), minimumWeightFullMatching(weight:) }
+extension BipartiteGraph { maximumBipartiteMatching(), lazy.hopcroftKarp(), minimumWeightFullMatching(weight:) }
 func linearSumAssignment(rowCount:columnCount:maximize:cost:) -> LinearSumAssignment<W>?   // rows, columns, cost
 func stableMatching(proposerPreferences:reviewerPreferences:) -> StableMatching            // mate(ofProposer:), mate(ofReviewer:)
 ```

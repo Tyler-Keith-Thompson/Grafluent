@@ -80,7 +80,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Matching: hopcroftKarpEvents(), every event, 10⁵ + 10⁵ vertices, 3·10⁵ edges") { benchmark in
         for _ in benchmark.scaledIterations {
             var paths = 0
-            for case .augmentingPath in bipartite.hopcroftKarpEvents() { paths &+= 1 }
+            for case .augmentingPath in bipartite.lazy.hopcroftKarp() { paths &+= 1 }
             blackHole(paths)
         }
     }
