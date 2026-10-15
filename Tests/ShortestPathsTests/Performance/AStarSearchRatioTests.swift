@@ -6,7 +6,7 @@
 // and weight closures are called through their contexts; the bound, 3×, only catches a pathological slowdown. The two
 // sides are timed in alternating rounds, each keeping its fastest of seven, and the comparison is
 // retried up to three times while it looks slow. The timing runs only in an optimized build; a
-// debug build checks that both sides agree. Case IDs (SP-nn) refer to the catalog; see README.md.
+// debug build checks that both sides agree, on a 100 × 100 grid. Case IDs (SP-nn) refer to the catalog; see README.md.
 
 import AdjacencyListModule
 import CompressedSparseRowModule
@@ -20,7 +20,12 @@ struct AStarSearchRatioTests {
     @Test("SP-209 iterating every event is within 3× of aStarShortestPath on AdjacencyList and CompressedSparseRow", .timeLimit(.minutes(1)))
     func ratio() async {
         await Task {
+            // The timing needs the full grid; a debug build only checks agreement, on a smaller one.
+            #if DEBUG
+            let k = 100
+            #else
             let k = 700
+            #endif
             var rng = SeededRandomNumberGenerator(seed: 209)
             var edges: [DirectedEdge<Int>] = []
             for r in 0 ..< k {
