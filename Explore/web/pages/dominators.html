@@ -1,0 +1,51 @@
+<!-- title: Dominators · Explore Grafluent -->
+<!-- description: Click a block of a small function’s control flow to see which blocks every path to it must pass, with Grafluent’s dominatorTree and postDominatorTree, then check the answer by taking out one block at a time. -->
+<header class="sign">
+  <h1>Dominators</h1>
+  <div class="say"><span>Say it</span><b>LENG-ow-er TAR-jun</b><span class="ipa">/ˈlɛŋaʊ̯ɐ ˈtɑːrdʒən/</span></div>
+  <p class="question">Which parts of a program are sure to have run by the time it reaches a given line?</p>
+</header>
+<p class="example lead">Example: a function that adds up the numbers in a file, line by line, warning about lines that aren’t numbers and giving up after too many. Each <b>block</b> is a run of code with no jumps in it; the arrows are the jumps. A block <b>dominates</b> another when every path from the entry to the second passes through the first.</p>
+<pre class="listing" aria-label="The function, with each line’s block">func total(of lines: [String]) throws -> Int {
+    var sum = 0, bad = 0, count = 0            // entry
+    for line in lines {                        // loop
+        if let n = Int(line) {                 // check
+            sum += n                           // add
+        } else {
+            bad += 1                           // warn
+            if bad > 3 { throw TooManyBad() }  // give up
+        }
+        count += 1                             // next
+    }
+    return sum                                 // done
+}                                              // exit</pre>
+
+<h2 class="labhead"><small>Try it</small>What must run before this block?</h2>
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The function above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<h2 class="labhead"><small>Step through</small>Take out one block at a time</h2>
+<div id="closing"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The check above, in Grafluent</h2>
+  <pre id="code-closing" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>The blocks you can’t get around</h2>
+  <p>Each block has a chain of dominators running back to the entry, and the nearest one is its <b>immediate dominator</b>. Every block but the entry has exactly one, so drawing each block under its immediate dominator gives a tree: the <b>dominator tree</b>. A block’s ancestors in that tree are exactly the blocks that dominate it, which is why <code>dominates(_:_:)</code> answers in constant time once the tree is built.</p>
+  <p>The check in the second lab follows the definition: take a block out, search from the entry, and whatever is cut off is what that block dominates. That is one search per block. Lengauer and Tarjan get every immediate dominator from a single depth-first search. Each block first gets a <b>semidominator</b>: the earliest block in the search’s order with a path to it that detours only through later blocks. One more pass over the search tree turns semidominators into immediate dominators. Grafluent’s <code>dominatorTree(root:)</code> runs that algorithm, in time close to linear in the number of jumps.</p>
+  <p>Turn every arrow around and ask from the exit instead, and you get <b>post-dominators</b>: the blocks sure to run after a given one, from <code>postDominatorTree(exit:)</code>. Compilers use both. A loop’s head dominates its body, which is how loops are found; and the <b>dominance frontier</b>, where one block’s dominance stops, is where a variable assigned in two branches needs a merge, which <code>dominanceFrontiers(root:)</code> lists.</p>
+
+  <h2><small>Where it breaks</small>Code nothing reaches, and code that never ends</h2>
+  <p>A block the entry can’t reach has no dominators at all: “every path passes through” is vacuous when there is no path. Grafluent answers <code>nil</code> from <code>dominators(of:)</code> for such a block, rather than an empty list, so dead code can’t be mistaken for code with no requirements. Post-dominators have the same gap from the other end: a block that loops forever, or a function with two exits, never reaches the one exit you named. Give every exit a jump to one shared exit block first.</p>
+  <p>Dominance is about the jumps as drawn, not about the values that choose between them. Here <code>give up</code> only ever follows several warnings, but the graph sees one arrow from <code>warn</code> and no count. What dominators promise holds on every path through the graph, which is why a compiler can rely on them; facts that depend on the data are beyond them.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

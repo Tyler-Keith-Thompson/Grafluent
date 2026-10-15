@@ -49,6 +49,7 @@ enum Names {
     static let weisfeilerLeman = Pronunciation(name: "Weisfeiler–Leman", say: "VICE-fy-ler LAY-mun", ipa: "/ˈvaɪsfaɪlɐ ˈleːman/", what: "Boris Weisfeiler and Andrei Leman: colour refinement, a quick test that two graphs differ")
     static let adamic = Pronunciation(name: "Adamic", say: "ah-DAH-mitch", ipa: "/aˈdaːmit͡ʃ/", what: "Lada Adamic: shared friends who have few friends count for more")
     static let jaccard = Pronunciation(name: "Jaccard", say: "zha-KAR", ipa: "/ʒakaʁ/", what: "Paul Jaccard: the share of two sets that they have in common")
+    static let lengauerTarjan = Pronunciation(name: "Lengauer–Tarjan", say: "LENG-ow-er TAR-jun", ipa: "/ˈlɛŋaʊ̯ɐ ˈtɑːrdʒən/", what: "Thomas Lengauer and Robert Tarjan: every immediate dominator from one depth-first search")
     static let bronKerbosch = Pronunciation(name: "Bron–Kerbosch", say: "BRON KER-boss", ipa: "/ˈbrɔn ˈkɛrbɔs/", what: "Every maximal clique, by backtracking")
 }
 

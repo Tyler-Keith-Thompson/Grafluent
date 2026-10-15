@@ -15,6 +15,7 @@ criticalpath|Critical path|Getting around|How soon a project can finish, and wha
 cyclefinding|Tortoise and hare|Getting around|Finding a loop with only two bookmarks.|page
 components|Connected components|Structure|Which parts can reach each other.|page
 bridges|Bridges and articulation points|Structure|Which single closure splits the network.|page
+dominators|Dominators|Structure|The blocks every path through a program must pass.|page
 euler|Euler tours|Structure|Crossing every bridge exactly once.|page
 mst|Minimum spanning trees|Structure|The cheapest way to connect everything.|page
 huffman|Huffman coding|Structure|Shorter codes for common letters, from a tree.|page

@@ -284,6 +284,8 @@ figure.fig { margin: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 .fig .weight { font-family: var(--mono); font-size: 14px; fill: var(--muted); paint-order: stroke; stroke: var(--sheet); stroke-width: 4px; }
 .example.lead { max-width: 68ch; margin: 22px 0 0; font-size: 18px; }
+/* The program a page analyses, as plain text after its example. */
+.example + .listing { max-width: 68ch; margin-top: 14px; font-size: 13px; }
 .adj b { font-family: var(--display); font-weight: 800; }
 .matrix th.corner { font-family: var(--display); font-size: 11px; font-weight: 800; color: var(--muted); text-align: left; max-width: 7em; line-height: 1.2; }
 .matrix th.col.hl, .matrix tr.hl th { color: var(--ink); background: color-mix(in srgb, var(--signal) 35%, var(--sheet)); border-radius: 4px; }
