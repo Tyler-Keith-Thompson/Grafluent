@@ -23,4 +23,5 @@ flow|Maximum flow|Assignment|How much a network of pipes can carry.|page
 matching|Bipartite matching|Assignment|Filling as many jobs as possible.|page
 coloring|Graph coloring|Assignment|Scheduling without clashes.|page
 pagerank|PageRank|Importance and shape|Which pages matter most.|page
+betweenness|Betweenness|Importance and shape|Who sits on the most shortest paths.|page
 layout|Force-directed layout|Importance and shape|Drawing a graph so its shape shows.|page

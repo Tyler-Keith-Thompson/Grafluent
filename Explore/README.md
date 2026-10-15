@@ -36,6 +36,7 @@ contents and the menu without a link.
 | `matching` | `bipartition(left:)`, `maximumBipartiteMatching(bipartition:)` |
 | `coloring` | `greedyColoring(order:)`, `greedyColoring(strategy:)`, `chromaticNumber()`, `minimumColoring()` |
 | `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |
+| `betweenness` | `betweennessCentrality(normalized:)`, `edgeBetweennessCentrality(normalized:)`, `shortestSimplePaths(from:to:)` |
 | `layout` | `FruchtermanReingoldLayout`, `step()`, named graphs |
 
 ## Requirements
