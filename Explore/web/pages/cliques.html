@@ -1,0 +1,27 @@
+<!-- title: Cliques · Explore Grafluent -->
+<!-- description: Watch Grafluent’s bronKerboschEvents grow groups of guests who have all met, with Tomita’s pivot, and report every maximal clique of a small party. -->
+<header class="sign">
+  <h1>Cliques</h1>
+  <div class="say"><span>Say it</span><b>BRON KER-bosh</b><span class="ipa">/ˈbrɔn ˈkɛrbɔs/</span></div>
+  <p class="question">Which groups of people have all met each other?</p>
+</header>
+<p class="example lead">Example: eight guests at a party, and a line between each pair who have met. A group in which every pair has met is a <b>clique</b>; one that no other guest could join is a <b>maximal</b> clique.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The party above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Grow a group, remember who could join</h2>
+  <p>Bron–Kerbosch keeps three sets. <b>R</b> is the group being grown. <b>P</b> holds the guests who could still join it: everyone who has met every member. <b>X</b> holds guests who could join too but have already been tried, so their groups are found already. Each call adds one guest from P to R, keeps only that guest’s friends in P and X, and calls itself again. When P and X are both empty, nobody can join and nobody has been missed: R is a maximal clique. When the call returns, the guest moves from P to X.</p>
+  <p>The <b>pivot</b>, Tomita’s rule, saves most of the work. Pick the guest in P or X who knows the most of P. Any group made only of the pivot’s friends could add the pivot too, so it will turn up in the call that adds the pivot; only the guests the pivot hasn’t met need their own calls. Grafluent also starts the outer calls in degeneracy order, which keeps P small on sparse networks.</p>
+
+  <h2><small>Where it breaks</small>There can be very many cliques</h2>
+  <p>A graph can have exponentially many maximal cliques, about 3<sup>n/3</sup> at worst, and listing them takes at least that long. The search is fast on sparse real networks, such as who has met whom, and hopeless on large dense ones. To find only the largest, <code>maximumClique()</code> prunes with bounds instead of listing everything; when groups may overlap only loosely, look at <a href="communities.html">communities</a> instead.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

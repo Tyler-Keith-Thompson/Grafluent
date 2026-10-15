@@ -16,7 +16,7 @@ mst|Minimum spanning trees|Structure|The cheapest way to connect everything.|pag
 huffman|Huffman coding|Structure|Shorter codes for common letters, from a tree.|page
 giant|The giant component|Structure|When random links suddenly join almost everyone.|page
 planarity|Planarity|Structure|Whether a network can be drawn without crossings.|page
-cliques|Cliques|Structure|Groups where everyone is connected.|soon
+cliques|Cliques|Structure|Groups where everyone is connected.|page
 communities|Communities|Structure|Where a network splits into groups.|soon
 flow|Maximum flow|Assignment|How much a network of pipes can carry.|page
 matching|Bipartite matching|Assignment|Filling as many jobs as possible.|page

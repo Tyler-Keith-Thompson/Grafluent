@@ -23,6 +23,7 @@ enum Names {
     static let mohri = Pronunciation(name: "Mohri", say: "moh-REE", ipa: "/moˈriː/", what: "Mehryar Mohri: one shortest-distance algorithm for every semiring")
     static let viterbi = Pronunciation(name: "Viterbi", say: "vih-TUR-bee", ipa: "/vɪˈtɜːrbi/", what: "Andrew Viterbi: the most likely path, by multiplying and keeping the best")
     static let dinic = Pronunciation(name: "Dinic", say: "DEE-nits", ipa: "/ˈdinit͡s/", what: "Yefim Dinitz: many shortest routes at once, in layers")
+    static let tomita = Pronunciation(name: "Tomita", say: "toh-MEE-tah", ipa: "/tomita/", what: "Etsuji Tomita: the pivot that keeps the search near its best case")
     static let konig = Pronunciation(name: "Kőnig", say: "KUR-nig", ipa: "/ˈkøːniɡ/", what: "In two-sided graphs, biggest matching = smallest cover")
     static let hierholzer = Pronunciation(name: "Hierholzer", say: "HEER-holt-ser", ipa: "/ˈhiːɐ̯hɔlt͡sɐ/", what: "A walk that uses every road exactly once")
     static let euler = Pronunciation(name: "Euler", say: "OY-ler", ipa: "/ˈɔɪlər/", what: "Leonhard Euler, who settled the Königsberg bridges in 1736")
@@ -38,7 +39,7 @@ enum Names {
     static let eades = Pronunciation(name: "Eades", say: "EEDZ", ipa: "/iːdz/", what: "The first spring embedder")
     static let kamadaKawai = Pronunciation(name: "Kamada–Kawai", say: "kah-MAH-dah kah-WAH-ee", what: "Springs whose rest length is the graph distance")
     static let louvain = Pronunciation(name: "Louvain", say: "loo-VAN", ipa: "/luvɛ̃/", what: "Communities by repeatedly merging what raises modularity")
-    static let bronKerbosch = Pronunciation(name: "Bron–Kerbosch", say: "BRON KER-boss", ipa: "/ˈbrɔn ˈkɛrbɔs/", what: "Every maximal clique, by backtracking")
+    static let bronKerbosch = Pronunciation(name: "Bron–Kerbosch", say: "BRON KER-bosh", ipa: "/ˈbrɔn ˈkɛrbɔs/", what: "Every maximal clique, by backtracking")
 }
 
 /// The names a page mentions, each with how to say it.

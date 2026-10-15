@@ -443,3 +443,8 @@ figure.fig { margin: 0; }
 .line.cancel { border-color: var(--danger); border-top-style: dotted; }
 .edge.cancel .stroke { stroke: var(--danger); stroke-width: 6; stroke-dasharray: 2 7; }
 .edge.cancel .head, .edge.bridge .head { fill: var(--danger); }
+/* Cliques: the vertices already tried, and the pivot. */
+.node.excluded circle { fill: var(--paper); stroke: var(--muted); stroke-dasharray: 4 3; }
+.node.excluded .badge { fill: var(--muted); }
+.dot.excluded { background: var(--paper); border-color: var(--muted); border-style: dashed; }
+.dot.selected { border-color: var(--signal); border-width: 3px; }
