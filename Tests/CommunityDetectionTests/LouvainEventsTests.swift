@@ -1,4 +1,4 @@
-// The Louvain method as an event sequence (`louvainEvents`): three triangles in a chain and a ring
+// The Louvain method as an event sequence (`lazy.louvain`): three triangles in a chain and a ring
 // of twelve triangles traced against Tests/Catalogs/CommunityDetection/cases_events.py, the
 // trivial cases, directed and weighted graphs, value semantics, the preconditions, and a property
 // test replaying the events against `louvainPartitions` (each level's gains add up to its rise in
@@ -17,7 +17,7 @@ struct LouvainEventsTests {
     func chain() {
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (4, 5), (3, 5), (5, 6), (6, 7), (7, 8), (6, 8)]
         let graph = ReferencePseudograph(vertices: 0 ..< 9, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let events = Array(graph.louvainEvents())
+        let events = Array(graph.lazy.louvain())
         // Tests/Catalogs/CommunityDetection/cases_events.out, CD-900.
         let moves: [(Int, Int, Int, Double)] = [
             (0, 0, 1, 0.0743801652892562), (2, 2, 1, 0.13223140495867769), (3, 3, 4, 0.066115702479338845),
@@ -44,7 +44,7 @@ struct LouvainEventsTests {
         #expect(events[0].description.hasPrefix("move(0, 0 → 1, 0.07438"))
         // The same on an adjacency list.
         let list = UndirectedAdjacencyList(vertices: 0 ..< 9, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        #expect(Array(list.louvainEvents()).count == 8)
+        #expect(Array(list.lazy.louvain()).count == 8)
     }
 
     @Test("CD-901 a ring of twelve triangles: two levels, the second pairing the triangles; the last partition is louvainCommunities'", .tags(.fixture))
@@ -55,7 +55,7 @@ struct LouvainEventsTests {
             pairs += [(b, b + 1), (b + 1, b + 2), (b, b + 2), (b + 2, (b + 3) % 36)]
         }
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 36, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        let events = Array(graph.louvainEvents())
+        let events = Array(graph.lazy.louvain())
         #expect(events.count == 34)
         let finished = events.compactMap { event -> (Partition<DirectedView<UndirectedAdjacencyList<Int>>>, Double)? in
             if case .levelFinished(let p, let q) = event { (p, q) } else { nil }
@@ -74,23 +74,23 @@ struct LouvainEventsTests {
     @Test("CD-902 no edges: one level of singletons at modularity 0; no vertices; directed and weighted graphs agree with louvainPartitions")
     func trivial() {
         let isolated = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [])
-        let events = Array(isolated.louvainEvents())
+        let events = Array(isolated.lazy.louvain())
         #expect(events == [.levelFinished(isolated.louvainCommunities(), modularity: 0)])
         #expect(events[0].description.hasPrefix("levelFinished("))
-        #expect(Array(UndirectedAdjacencyList<Int>(vertices: []).louvainEvents()).count == 1)
+        #expect(Array(UndirectedAdjacencyList<Int>(vertices: []).lazy.louvain()).count == 1)
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3), (2, 3), (1, 1)]
         let directed = AdjacencyList(vertices: 0 ..< 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        let finished = directed.louvainEvents().compactMap { event -> Partition<AdjacencyList<Int>>? in
+        let finished = directed.lazy.louvain().compactMap { event -> Partition<AdjacencyList<Int>>? in
             if case .levelFinished(let p, _) = event { p } else { nil }
         }
         #expect(finished == directed.louvainPartitions())
         let weights: [Double] = [1, 2, 1, 3, 1, 2, 0.5, 4]
-        let weighted = directed.louvainEvents(weight: { weights[$0] }, resolution: 0.8).compactMap { event -> Partition<AdjacencyList<Int>>? in
+        let weighted = directed.lazy.louvain(weight: { weights[$0] }, resolution: 0.8).compactMap { event -> Partition<AdjacencyList<Int>>? in
             if case .levelFinished(let p, _) = event { p } else { nil }
         }
         #expect(weighted == directed.louvainPartitions(weight: { weights[$0] }, resolution: 0.8))
         let undirected = ReferencePseudograph(vertices: 0 ..< 6, edges: arcs.map { UndirectedEdge($0.0, $0.1) })
-        let undirectedWeighted = undirected.louvainEvents(weight: { Float(weights[$0]) }, threshold: 0.01).compactMap { event -> Partition<DirectedView<ReferencePseudograph<Int>>>? in
+        let undirectedWeighted = undirected.lazy.louvain(weight: { Float(weights[$0]) }, threshold: 0.01).compactMap { event -> Partition<DirectedView<ReferencePseudograph<Int>>>? in
             if case .levelFinished(let p, _) = event { p } else { nil }
         }
         #expect(undirectedWeighted == undirected.louvainPartitions(weight: { Float(weights[$0]) }, threshold: 0.01))
@@ -99,7 +99,7 @@ struct LouvainEventsTests {
     @Test("CD-903 value semantics: a later insertion does not change the events; each iterator starts over; stopping early")
     func valueSemantics() {
         var graph = UndirectedAdjacencyList(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(2, 3)])
-        let events = graph.louvainEvents()
+        let events = graph.lazy.louvain()
         _ = graph.insert(edge: UndirectedEdge(1, 2))
         let first = Array(events)
         #expect(Array(events) == first)
@@ -118,15 +118,15 @@ struct LouvainEventsTests {
     func preconditions() async {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
-            _ = graph.louvainEvents(resolution: -1)
+            _ = graph.lazy.louvain(resolution: -1)
         }
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.louvainEvents(threshold: .nan)
+            _ = graph.lazy.louvain(threshold: .nan)
         }
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.louvainEvents(weight: { _ in -1.0 })
+            _ = graph.lazy.louvain(weight: { _ in -1.0 })
         }
     }
 
@@ -162,10 +162,10 @@ struct LouvainEventsTests {
             }
             let identity = Array(0 ..< 12).map { [$0] }
             if !raw.isEmpty {
-                check(undirected.louvainEvents(weight: w), undirected.louvainPartitions(weight: w), undirected.modularity(of: identity, weight: w), "undirected")
-                check(directed.louvainEvents(weight: w), directed.louvainPartitions(weight: w), directed.modularity(of: identity, weight: w), "directed")
+                check(undirected.lazy.louvain(weight: w), undirected.louvainPartitions(weight: w), undirected.modularity(of: identity, weight: w), "undirected")
+                check(directed.lazy.louvain(weight: w), directed.louvainPartitions(weight: w), directed.modularity(of: identity, weight: w), "directed")
             }
-            check(directed.louvainEvents(resolution: 1.5), directed.louvainPartitions(resolution: 1.5), raw.isEmpty ? 0 : directed.modularity(of: identity, resolution: 1.5), "directed, γ = 1.5")
+            check(directed.lazy.louvain(resolution: 1.5), directed.louvainPartitions(resolution: 1.5), raw.isEmpty ? 0 : directed.modularity(of: identity, resolution: 1.5), "directed, γ = 1.5")
         }
     }
 }

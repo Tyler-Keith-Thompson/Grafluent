@@ -246,7 +246,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("CommunityDetection: louvainEvents(), every event, 100 planted blocks of 1000") { benchmark in
         for _ in benchmark.scaledIterations {
             var gain = 0.0
-            for event in blocks.louvainEvents() {
+            for event in blocks.lazy.louvain() {
                 if case .move(_, _, _, let g) = event { gain += g }
             }
             blackHole(gain)
@@ -255,7 +255,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("CommunityDetection: louvainEvents(), every event, G(10⁵, 5·10⁵)") { benchmark in
         for _ in benchmark.scaledIterations {
             var gain = 0.0
-            for event in sparse.louvainEvents() {
+            for event in sparse.lazy.louvain() {
                 if case .move(_, _, _, let g) = event { gain += g }
             }
             blackHole(gain)

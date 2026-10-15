@@ -30,7 +30,7 @@ extension Graph {                       // partitions are Partition<DirectedView
     func constantPottsModel<C>(of: C, resolution: Double = 1) -> Double      // also (of:weight:resolution:)
     func leidenCommunities(quality: .modularity, resolution: 1, randomness: 0.01, iterations: nil, using:) -> Partition<…>  // also (weight:…), each also without using:
     func louvainPartitions(resolution: 1, threshold: 1e-7) -> [Partition<…>]  // finest first; also (weight:…), each also (…, using:)
-    func louvainEvents(resolution: 1, threshold: 1e-7) -> LouvainEvents<…>  // lazy, index order; also (weight:…); Element LouvainEvent<…>:
+    func lazy.louvain(resolution: 1, threshold: 1e-7) -> LouvainEvents<…>  // lazy, index order; also (weight:…); Element LouvainEvent<…>:
         // move(v, from:, to:, gain:), levelFinished(Partition, modularity:), aggregate(vertexCount:)
     func connectedComponents<C>(within: C) -> Partition<…>                    // DirectedGraph: weaklyConnectedComponents(within:)
     func kernighanLinBisection(iterations: 10, using:) -> Partition<…>        // also (startingFrom:iterations:), each also (weight:…), and without using:

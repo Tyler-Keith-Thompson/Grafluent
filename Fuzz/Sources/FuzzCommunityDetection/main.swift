@@ -279,8 +279,8 @@ enum FuzzCommunityDetection {
         }
         if !ends.isEmpty && (0 ..< ends.count).contains(where: { weight($0) > 0 }) {
             let singletons = (0 ..< n).map { [$0] }
-            checkEvents(graph.louvainEvents(weight: weight), graph.louvainPartitions(weight: weight), graph.modularity(of: singletons, weight: weight), "\(name): Louvain events")
-            checkEvents(digraph.louvainEvents(weight: weight), digraph.louvainPartitions(weight: weight), digraph.modularity(of: singletons, weight: weight), "\(name): directed Louvain events")
+            checkEvents(graph.lazy.louvain(weight: weight), graph.louvainPartitions(weight: weight), graph.modularity(of: singletons, weight: weight), "\(name): Louvain events")
+            checkEvents(digraph.lazy.louvain(weight: weight), digraph.louvainPartitions(weight: weight), digraph.modularity(of: singletons, weight: weight), "\(name): directed Louvain events")
         }
         // Kernighan–Lin from the even and odd vertices.
         let start = [(0 ..< n).filter { $0 % 2 == 0 }, (0 ..< n).filter { $0 % 2 == 1 }]
