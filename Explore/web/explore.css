@@ -458,3 +458,8 @@ figure.fig { margin: 0; }
 .node.excluded .badge { fill: var(--muted); }
 .dot.excluded { background: var(--paper); border-color: var(--muted); border-style: dashed; }
 .dot.selected { border-color: var(--signal); border-width: 3px; }
+
+/* Paste a graph */
+.paste-text { width: 100%; min-height: 220px; font-family: var(--mono); font-size: 13px; line-height: 1.5; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); resize: vertical; }
+.paste-error { margin-top: 18px; padding: 16px; display: grid; gap: 10px; border-left: 4px solid var(--danger); }
+.paste-line { font-size: 13px; padding: 10px 12px; }

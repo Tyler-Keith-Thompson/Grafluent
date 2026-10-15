@@ -49,3 +49,4 @@ layout|Force-directed layout|Importance and shape|Drawing a graph so its shape s
 spectral|Spectral drawing|Importance and shape|Drawing and cutting a network with its eigenvectors.|page
 layered|Layered drawing|Importance and shape|Flowcharts and org charts, drawn in rows.|page
 randomwalks|Random walks and node2vec|Importance and shape|Wandering a network, near or far.|page
+paste|Paste a graph|Your own graph|Read DOT, GraphML, graph6 or an edge list, then draw and search it.|page

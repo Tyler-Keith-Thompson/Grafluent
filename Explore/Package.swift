@@ -53,6 +53,7 @@ let package = Package(
                 .product(name: "CommunityDetection", package: "Grafluent"),
                 .product(name: "SpectralGraphTheory", package: "Grafluent"),
                 .product(name: "Covering", package: "Grafluent"),
+                .product(name: "GraphFormats", package: "Grafluent"),
             ],
             plugins: ["Snippets"]
         ),

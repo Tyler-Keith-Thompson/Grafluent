@@ -55,6 +55,7 @@ func mountPage(_ page: String) -> Bool {
     case "linkprediction": LinkPredictionPage.mount()
     case "layout": LayoutPage.mount()
     case "randomwalks": RandomWalksPage.mount()
+    case "paste": PastePage.mount()
     case "spectral": SpectralPage.mount()
     case "layered": LayeredPage.mount()
     default: return false
