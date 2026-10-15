@@ -15,24 +15,76 @@ package func _maximalMatching(_ graph: _MatchingGraph) -> [Int] {
     return mateEdge
 }
 
-/// Hopcroft–Karp, iterative: each
-/// phase layers the left vertices by a breadth-first search from the free ones (in `left` order),
-/// then depth-first searches from each free left vertex, a row cursor per frame, descend into the
-/// mate one layer deeper; a vertex whose search fails leaves the phase. Phases run until none
-/// augments. Row v is `targets[offsets[v] ..< offsets[v + 1]]`; only targets that `accept` admits
-/// are followed (rows of left vertices hold right vertices). `mateSlot[v]` is the slot of left
-/// vertex v's matched arc (−1 free) and `pairRight[w]` right vertex w's mate (−1 free); the caller
-/// may seed them with any matching.
-@inlinable
-package func _hopcroftKarpPhases(
-    offsets: [Int], targets: [Int], left: [Int], mateSlot: inout [Int], pairRight: inout [Int], accept: (Int) -> Bool
-) {
-    let n = offsets.count - 1
-    let infinity = Int.max
-    var layer = [Int](repeating: infinity, count: n)
-    var queue = [Int](repeating: 0, count: left.count)
-    var stack: [(vertex: Int, slot: Int)] = []
-    while true {
+/// What Hopcroft–Karp tells its caller about each phase: nothing for the plain calls, which
+/// specialize the calls away, and the phases themselves for `HopcroftKarpEvents`.
+@usableFromInline
+package protocol _HopcroftKarpObserver {
+    /// A phase's layering found shortest augmenting paths with `free` left vertices on each.
+    mutating func layered(free: Int)
+    /// An augmenting path found, before it is applied: `stack` holds its left vertices and the
+    /// slots of the arcs it takes out of them; `mateSlot` is still the matching before it.
+    mutating func augmenting(_ stack: [(vertex: Int, slot: Int)], mateSlot: [Int])
+}
+
+/// The observer of the plain calls.
+@frozen
+@usableFromInline
+package struct _HopcroftKarpSilence: _HopcroftKarpObserver {
+    @inlinable package init() {}
+    @inlinable @inline(__always) package func layered(free: Int) {}
+    @inlinable @inline(__always) package func augmenting(_ stack: [(vertex: Int, slot: Int)], mateSlot: [Int]) {}
+}
+
+/// Hopcroft–Karp, iterative, one phase at a time: each phase layers the left vertices by a
+/// breadth-first search from the free ones (in `left` order), then depth-first searches from each
+/// free left vertex, a row cursor per frame, descend into the mate one layer deeper; a vertex whose
+/// search fails leaves the phase. Phases run until none augments. Row v is
+/// `targets[offsets[v] ..< offsets[v + 1]]`; only targets that `accept` admits are followed (rows
+/// of left vertices hold right vertices). `mateSlot[v]` is the slot of left vertex v's matched arc
+/// (−1 free) and `pairRight[w]` right vertex w's mate (−1 free); the caller may seed them with any
+/// matching.
+@frozen
+@usableFromInline
+package struct _HopcroftKarpRun {
+    @usableFromInline let offsets: [Int]
+    @usableFromInline let targets: [Int]
+    @usableFromInline let left: [Int]
+    @usableFromInline package var mateSlot: [Int]
+    @usableFromInline package var pairRight: [Int]
+    @usableFromInline var layer: [Int]
+    @usableFromInline var queue: [Int]
+    @usableFromInline var stack: [(vertex: Int, slot: Int)] = []
+
+    @inlinable
+    package init(offsets: [Int], targets: [Int], left: [Int], mateSlot: [Int], pairRight: [Int]) {
+        self.offsets = offsets
+        self.targets = targets
+        self.left = left
+        self.mateSlot = mateSlot
+        self.pairRight = pairRight
+        layer = [Int](repeating: Int.max, count: offsets.count - 1)
+        queue = [Int](repeating: 0, count: left.count)
+    }
+
+    /// One phase; false, changing nothing, when no augmenting path is left.
+    @inlinable
+    package mutating func phase(accept: (Int) -> Bool, observer: inout some _HopcroftKarpObserver) -> Bool {
+        // The arrays move into locals for the phase, as the plain loop's locals, and back after.
+        var mateSlot: [Int] = [], pairRight: [Int] = [], layer: [Int] = [], queue: [Int] = [], stack: [(vertex: Int, slot: Int)] = []
+        swap(&mateSlot, &self.mateSlot)
+        swap(&pairRight, &self.pairRight)
+        swap(&layer, &self.layer)
+        swap(&queue, &self.queue)
+        swap(&stack, &self.stack)
+        defer {
+            swap(&mateSlot, &self.mateSlot)
+            swap(&pairRight, &self.pairRight)
+            swap(&layer, &self.layer)
+            swap(&queue, &self.queue)
+            swap(&stack, &self.stack)
+        }
+        let offsets = offsets, targets = targets, left = left
+        let infinity = Int.max
         // Breadth-first layering; `free` is the layer of the free right vertices.
         var head = 0, tail = 0
         for v in left {
@@ -62,7 +114,8 @@ package func _hopcroftKarpPhases(
                 }
             }
         }
-        guard free != infinity else { break }
+        guard free != infinity else { return false }
+        observer.layered(free: free)
         // Depth-first augmentation from each free left vertex.
         for root in left where mateSlot[root] < 0 {
             stack.removeAll(keepingCapacity: true)
@@ -92,13 +145,31 @@ package func _hopcroftKarpPhases(
                 stack[stack.count - 1].slot = slot + 1
             }
             if augmented {
+                observer.augmenting(stack, mateSlot: mateSlot)
                 for (v, slot) in stack {
                     pairRight[targets[slot]] = v
                     mateSlot[v] = slot
                 }
             }
         }
+        return true
     }
+}
+
+/// Hopcroft–Karp's phases (`_HopcroftKarpRun`) until none augments, from the matching in
+/// `mateSlot` and `pairRight`, which hold the maximum matching afterwards.
+@inlinable
+package func _hopcroftKarpPhases(
+    offsets: [Int], targets: [Int], left: [Int], mateSlot: inout [Int], pairRight: inout [Int], accept: (Int) -> Bool
+) {
+    var run = _HopcroftKarpRun(offsets: offsets, targets: targets, left: left, mateSlot: mateSlot, pairRight: pairRight)
+    // The run holds the only reference, so its writes copy nothing.
+    mateSlot = []
+    pairRight = []
+    var silence = _HopcroftKarpSilence()
+    while run.phase(accept: accept, observer: &silence) {}
+    mateSlot = run.mateSlot
+    pairRight = run.pairRight
 }
 
 /// Hopcroft–Karp from the empty matching (`_hopcroftKarpPhases`). Returns the matched edge number

@@ -65,7 +65,7 @@ for f in /tmp/co/*; do cmp "$f" Tests/ColoringModuleTests/"$(basename "$f")"; do
 | IncidenceMatrix | xgi | `swiftgen.py` | `ref.py --stress` |
 | Isomorphism | igraph, rustworkx, scipy | `swiftgen.py --phase2` (the flag also writes `AutomorphismGroupTests.swift`) | `ref.py --stress` |
 | LabeledGraphs | — | `swiftgen.py` | `ref.py --stress` |
-| MatchingModule | scipy | `swiftgen.py` | `ref.py --stress` |
+| MatchingModule | scipy | `swiftgen.py` | `ref.py --stress`; `cases_events.py` reproduces `cases_events.out` |
 | Multigraphs | — | `swiftgen.py` | `ref.py` |
 | NamedGraphs | igraph | `swiftgen.py` | `ref.py --stress` |
 | Planarity | igraph | `swiftgen.py` | `ref.py --stress` |

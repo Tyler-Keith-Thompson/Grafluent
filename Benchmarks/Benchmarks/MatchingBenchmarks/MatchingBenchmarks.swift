@@ -77,6 +77,13 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Matching: maximumBipartiteMatching(), 10⁵ + 10⁵ vertices, 3·10⁵ edges") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(bipartite.maximumBipartiteMatching()) }
     }
+    Benchmark("Matching: hopcroftKarpEvents(), every event, 10⁵ + 10⁵ vertices, 3·10⁵ edges") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var paths = 0
+            for case .augmentingPath in bipartite.hopcroftKarpEvents() { paths &+= 1 }
+            blackHole(paths)
+        }
+    }
     Benchmark("Matching: maximumMatching() (Edmonds), same bipartite graph") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(bipartite.maximumMatching()) }
     }

@@ -96,6 +96,30 @@ enum FuzzMatching {
         guard let partition = graph.bipartition() else { return }
         let hk = graph.maximumBipartiteMatching(bipartition: partition)
         check(isMatching(ends, hk.edges) && hk.edges.count == largest, "Hopcroft–Karp \(hk.edges), largest \(largest) on \(ends)")
+        // The Hopcroft–Karp events: each path alternates, unmatched first, from a free vertex to a
+        // free one at its phase's length, and the paths' symmetric difference is the matching.
+        var matchedEdges = Set<Int>()
+        var covered = Set<Int>()
+        var phaseLength = 0
+        for event in graph.hopcroftKarpEvents(bipartition: partition) {
+            switch event {
+            case .phase(let k):
+                check(k > phaseLength && k % 2 == 1, "Hopcroft–Karp phase \(k) after \(phaseLength) on \(ends)")
+                phaseLength = k
+            case .augmentingPath(let path):
+                check(path.count == phaseLength, "Hopcroft–Karp path \(path) in a phase of \(phaseLength) on \(ends)")
+                for (i, e) in path.enumerated() { check(matchedEdges.contains(e) == (i % 2 == 1), "Hopcroft–Karp path \(path) does not alternate on \(ends)") }
+                let (a, b) = ends[path[0]]
+                var start = a
+                if path.count > 1 { start = a == ends[path[1]].0 || a == ends[path[1]].1 ? b : a }
+                var at = start
+                for e in path { at = ends[e].0 == at ? ends[e].1 : ends[e].0 }
+                check(!covered.contains(start) && !covered.contains(at), "Hopcroft–Karp path \(path) ends at a matched vertex on \(ends)")
+                for e in path where !matchedEdges.insert(e).inserted { matchedEdges.remove(e) }
+                covered = Set(matchedEdges.flatMap { [ends[$0].0, ends[$0].1] })
+            }
+        }
+        check(matchedEdges == Set(hk.edges), "Hopcroft–Karp events' matching \(matchedEdges.sorted()), plain \(hk.edges) on \(ends)")
         // Full matchings: every matching that covers the smaller side, by enumeration.
         let leftSet = Set(partition.left)
         let smaller = min(partition.left.count, partition.right.count)

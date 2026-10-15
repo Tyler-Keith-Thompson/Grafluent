@@ -1,0 +1,6 @@
+--- MA-1100: 5 events
+phase 1
+augmentingPath [0]
+augmentingPath [3]
+phase 5
+augmentingPath [2, 0, 1, 3, 4]

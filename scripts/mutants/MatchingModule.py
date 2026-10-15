@@ -45,6 +45,11 @@ MUTANTS = [
     Mutant("hkremove", "CardinalityMatching.swift", "layer[v] = infinity", "", nth=1, mode="stmt"),
     Mutant("hkdeeper", "CardinalityMatching.swift", "layer[p] == next", "layer[p] >= next && layer[p] != infinity"),
     Mutant("hkparentcursor", "CardinalityMatching.swift", "if let parent = stack.last { stack[stack.count - 1].slot = parent.slot + 1 }", "", mode="stmt"),
+    # Hopcroft–Karp as an event sequence
+    Mutant("hkeobserve", "CardinalityMatching.swift", "observer.augmenting(stack, mateSlot: mateSlot)", "", mode="stmt"),
+    Mutant("hkelayered", "CardinalityMatching.swift", "observer.layered(free: free)", "", mode="stmt"),
+    Mutant("hkelength", "HopcroftKarpEvents.swift", "2 * free - 1", "free"),
+    Mutant("hkematched", "HopcroftKarpEvents.swift", "if i > 0 { path.append(positions[slotEdges[mateSlot[v]]]) }", "", mode="stmt"),
 
     # Edmonds
     Mutant("edmondsodd", "CardinalityMatching.swift", "_find(&base, v) == _find(&base, w) || label[w] == 2", "_find(&base, v) == _find(&base, w)"),

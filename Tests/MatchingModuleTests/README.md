@@ -26,12 +26,14 @@ extension Graph {
     func maximalMatching() -> Matching<Self, Int>                                      // greedy, position order
     func maximumMatching() -> Matching<Self, Int>                                      // Edmonds
     func maximumBipartiteMatching(bipartition:) -> Matching<Self, Int>                 // Hopcroft–Karp
+    func hopcroftKarpEvents(bipartition:) -> HopcroftKarpEvents<Self>                   // lazy; Element HopcroftKarpEvent<Edges.Index>:
+                                                                                        // phase(length:), augmentingPath([Edge])
     func maximumWeightMatching(weight:maximumCardinality:) -> Matching<Self, W>        // W: SignedInteger or FloatingPoint
     func minimumWeightMatching(weight:) -> Matching<Self, W>                           // W: SignedInteger or FloatingPoint
     func minimumWeightFullMatching(bipartition:weight:) -> Matching<Self, W>?          // W: SignedNumeric & Comparable
     func isMatching(_:), isMaximalMatching(_:), isPerfectMatching(_:) -> Bool
 }
-extension BipartiteGraph { maximumBipartiteMatching(), minimumWeightFullMatching(weight:) }
+extension BipartiteGraph { maximumBipartiteMatching(), hopcroftKarpEvents(), minimumWeightFullMatching(weight:) }
 func linearSumAssignment(rowCount:columnCount:maximize:cost:) -> LinearSumAssignment<W>?   // rows, columns, cost
 func stableMatching(proposerPreferences:reviewerPreferences:) -> StableMatching            // mate(ofProposer:), mate(ofReviewer:)
 ```
@@ -123,6 +125,8 @@ vertices (written for the blossom's cached slacks, which small integer weights r
 | `MatchingConformanceTests.swift` | 12 | Equality and hashing, descriptions, `Matching<G, Int>` with `weight == edges.count`, the empty graph's perfect matching, `Sendable` across a `Task`, the graph copy a matching keeps, generic code, `CompressedSparseRow` through `AdjacencyList(csr).undirectedView`, `graph.directedView.undirectedView`, `Int32`, `Float` and `Int8` weights, forbidden pairs under `maximize`, `LinearSumAssignment` and `StableMatching` as values |
 | `MatchingPropertyTests.swift` | 8 | PropertyBased, shrinking, multigraphs with loops in shuffled vertex orders: maximum size and the greedy scan against brute force; Edmonds' exact output against api.md's procedure written out; Hopcroft–Karp's size against Edmonds and the unit-weight matching, the König cover, its exact output against api.md's procedure, the same through `bipartition()` and with doubled edges; maximum- and minimum-weight matching against brute force in `Int`, `Double` and `Int32`, loops never weighed, no negative edge without `maximumCardinality`; `linearSumAssignment` against brute force (forbidden pairs, `maximize`, transposed, `Double`); the full matching against brute force and against `linearSumAssignment` on the biadjacency matrix, `weight` called once per edge; `stableMatching` stable, proposer-optimal, rural hospitals, and reviewer-optimal with the roles swapped; the checks against their definitions |
 | `MatchingReviewTests.swift` | 3 | MA-1001 – MA-1003: the full matching on a multigraph takes each pair's lightest copy; two weighted inputs where the final δ₁ clamp and the end-of-stage expansion of zero-dual S-blossoms decide the result |
+| `HopcroftKarpEventsTests.swift` | 4 | MA-1100 – MA-1103: Hopcroft–Karp as events on a traced graph (`cases_events.py`), trivial cases and value semantics, traps, a property test replaying `maximumBipartiteMatching` |
+| `Performance/HopcroftKarpEventsRatioTests.swift` | 1 | MA-1104: every event within 1.8× of `maximumBipartiteMatching` (release) |
 | `Performance/MatchingStressTests.swift` | 11 | Inside a `Task` with a one-minute limit: Hopcroft–Karp on 10⁵ vertices with a planted perfect matching (and through `bipartition()`) and with unequal sides; Edmonds on C₁₀₀₀₀₁, P₁₀₀₀₀₀ and a chain of 10⁴ pentagons; the weighted path P₁₀₀₀ and 300 weighted triangles; 200 × 200 and 300 × 150 assignments and the constant matrix; the full matching of K₁₅₀,₁₅₀; weighted matchings with non-dyadic weights against the assignment on K₆₀,₆₀ and a subset program on 300 random graphs; 1000 × 1000 and 500 × 500 stable matchings |
 
 238 catalog rows (228 value rows, 10 trap rows), their 181 representation tests, and 52 more tests
@@ -146,6 +150,7 @@ catalog does not list.
 | MA-022, MA-023, MA-157 – MA-165 | Minimum weight | `MinimumWeightMatchingTests.swift` |
 | MA-035 – MA-051 | Checks | `MatchingCheckTests.swift` |
 | MA-052 – MA-078 | Hopcroft–Karp | `HopcroftKarpTests.swift` |
+| MA-1100 – MA-1104 | Hopcroft–Karp as events (not in `cases.md`; MA-1100 traced by `cases_events.py` into `cases_events.out`) | `HopcroftKarpEventsTests.swift`, `Performance/HopcroftKarpEventsRatioTests.swift` |
 | MA-166 – MA-181 | Full matching | `FullMatchingTests.swift` |
 | MA-182 – MA-212 | Assignment | `LinearSumAssignmentTests.swift` |
 | MA-213 – MA-228 | Stable | `StableMatchingTests.swift` |
