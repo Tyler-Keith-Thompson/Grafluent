@@ -72,6 +72,39 @@ for page in "$HERE"/web/pages/*.html; do
     fi
     tail -n +3 "$page" > "$DIST/.body"
     awk -v title="$title" -v description="$description" -v name="$name" -v body="$DIST/.body" -v contents="$CONTENTS" '
+        function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+        # The cells of a "| a | b |" row, trimmed, into `out`; returns how many.
+        function cells(line, out,   n, i) {
+            line = trim(line); sub(/^\|/, "", line); sub(/\|$/, "", line)
+            n = split(line, out, "|")
+            for (i = 1; i <= n; i++) out[i] = trim(out[i])
+            return n
+        }
+        # A compare block as a table. Its first row names the columns; in each later row the first
+        # cell is the method: "[Name](page.html)" links to its page, "*Name" is this page, and
+        # anything else is plain text. Each cell keeps its column name, so a phone can show the
+        # rows as cards.
+        function compare_table(rows,   head, c, n, i, j, s, p, out) {
+            n = cells(row[1], head)
+            out = "<div class=\"compare\">\n<table>\n  <thead><tr>"
+            for (j = 1; j <= n; j++) out = out "<th scope=\"col\">" head[j] "</th>"
+            out = out "</tr></thead>\n  <tbody>"
+            for (i = 2; i <= rows; i++) {
+                if (cells(row[i], c) != n) { print name ".html: compare row " i " does not have " n " cells" > "/dev/stderr"; exit 1 }
+                s = c[1]
+                if (substr(s, 1, 1) == "*") {
+                    out = out "\n    <tr class=\"self\"><th scope=\"row\">" substr(s, 2) " <span class=\"this\">This page</span></th>"
+                } else {
+                    p = index(s, "](")
+                    if (substr(s, 1, 1) == "[" && p > 0 && substr(s, length(s)) == ")")
+                        s = "<a href=\"" substr(s, p + 2, length(s) - p - 2) "\">" substr(s, 2, p - 2) "</a>"
+                    out = out "\n    <tr><th scope=\"row\">" s "</th>"
+                }
+                for (j = 2; j <= n; j++) out = out "<td data-label=\"" head[j] "\">" c[j] "</td>"
+                out = out "</tr>"
+            }
+            return out "\n  </tbody>\n</table>\n</div>"
+        }
         BEGIN {
             FS = "|"
             while ((getline line < contents) > 0) {
@@ -126,7 +159,16 @@ for page in "$HERE"/web/pages/*.html; do
         /<!-- end wasm -->/ { skip = 0; next }
         skip { next }
         /^@BODY@$/ {
-            while ((getline line < body) > 0) { if (line ~ /^ *@CONTENTS@$/) print list; else print line }
+            rows = 0; table = 0
+            while ((getline line < body) > 0) {
+                if (line ~ /^ *@CONTENTS@$/) { print list; continue }
+                # A "Compared with" table: the rows between "<!-- compare" and "-->".
+                if (line ~ /^ *<!-- compare *$/) { table = 1; rows = 0; continue }
+                if (table && line ~ /^ *--> *$/) { print compare_table(rows); table = 0; continue }
+                if (table) { if (trim(line) != "") row[++rows] = line; continue }
+                print line
+            }
+            if (table) { print name ".html: a compare table is not closed with -->" > "/dev/stderr"; exit 1 }
             next
         }
         /^@PAGER@$/ { print pager; next }

@@ -463,3 +463,33 @@ figure.fig { margin: 0; }
 .paste-text { width: 100%; min-height: 220px; font-family: var(--mono); font-size: 13px; line-height: 1.5; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); resize: vertical; }
 .paste-error { margin-top: 18px; padding: 16px; display: grid; gap: 10px; border-left: 4px solid var(--danger); }
 .paste-line { font-size: 13px; padding: 10px 12px; }
+
+/* An algorithm page opens with what it is for and how it compares, before the example. The
+   comparison is a table, drawn by build.sh from a page's "<!-- compare" block; on a phone each
+   row becomes a card with its column names. "In Swift" closes the page, as wide as the lab. */
+.purpose { margin-top: 30px; }
+.purpose h2 { margin-top: 0; }
+.purpose + .compared { margin-top: 36px; }
+.compared { max-width: none; }
+.compared > :not(.compare) { max-width: 68ch; }
+.compare table { width: 100%; border-collapse: collapse; font-size: 15px; line-height: 1.45; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+.compare th, .compare td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+.compare tbody tr:last-child > * { border-bottom: 0; }
+.compare thead th { font-family: var(--display); font-weight: 800; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.compare tbody th { font-family: var(--display); font-weight: 800; font-size: 16px; white-space: nowrap; }
+.compare tr.self { background: color-mix(in srgb, var(--signal) 16%, var(--sheet)); }
+.compare .this { display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.compare + p { font-size: 16px; }
+@media (max-width: 720px) {
+  .compare table, .compare tbody, .compare tr, .compare th, .compare td { display: block; }
+  .compare table { background: none; border: 0; border-radius: 0; overflow: visible; }
+  .compare thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .compare tbody { display: grid; gap: 10px; }
+  .compare tr { background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; }
+  .compare th, .compare td { padding: 0; border: 0; }
+  .compare tbody th { white-space: normal; font-size: 18px; }
+  .compare .this { display: inline; margin-left: 6px; }
+  .compare td::before { content: attr(data-label); display: block; font-family: var(--display); font-weight: 800; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+}
+.in-swift { max-width: none; }
+.in-swift h2 { max-width: 68ch; }

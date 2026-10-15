@@ -152,7 +152,7 @@ cache. The index page loads no WebAssembly.
 | `Sources/Explore/Figures/` | The samples beside the static figures in the pages' prose, mounted on `<pre class="figcode" id="fig-…">` |
 | `Sources/SnippetExtractor/`, `Plugins/Snippets/` | The build plugin that turns `// snippet:` regions into `Snippet` constants |
 | `web/template.html` | The shell every page is poured into: head, top bar and menu, pager, loader |
-| `web/pages/<page>.html` | A page's masthead and prose, with `#app`, `#code` and `#names` mount points |
+| `web/pages/<page>.html` | A page's masthead and prose, with `#app`, `#code` and `#names` mount points and any compare table |
 | `web/contents.txt` | Reading order, groups and summaries: the index, the menu and previous/next links |
 | `web/explore.css` | The one stylesheet, light and dark |
 | `build.sh` | What `just explore` runs |
@@ -179,11 +179,51 @@ For a stepper such as `lazy.kruskal`, `lazy.prim`, `lazy.aStar` or `lazy.bronKer
    the state after that many events with `GraphCanvas`, `PlaybackButtons` and a `Timeline` of one
    `Marble` per event; a `CodePanel` view; and `enum MSTPage { static func mount() }` mounting
    them with `mountView` on `app`, `code` and `names`. `DijkstraPage.swift` is the model to copy.
-4. Pronunciations go in `Shared/Pronunciations.swift` (`Names.kruskal` and others are there).
-5. `web/pages/mst.html`: the title and description comments, the masthead with its "Say it", the
-   example, `<div id="app">`, and the prose with `<pre id="code">` and `<div id="names">`.
+4. Pronunciations go in `Shared/Pronunciations.swift` (`Names.dijkstra` and others are there),
+   only for names whose obvious English reading is wrong: Dijkstra, Euler and Louvain have one;
+   Kruskal, Tarjan and Yen do not. A page with no such name has no "Say it" and no names strip.
+5. `web/pages/mst.html`: the title and description comments, then the sections in the order
+   below.
 6. In `web/contents.txt`, change the row's status from `soon` to `page`; add a `case "mst":` to
    `main.swift`.
+
+### The order of an algorithm page
+
+A reader learns what an algorithm is for, and what else could do the job, before how it works:
+
+1. The masthead (`<header class="sign">`): the name, a "Say it" only when needed, and the question
+   the page answers.
+2. **What it’s for** (`<section class="prose purpose">`): two or three plain sentences on what the
+   algorithm accomplishes and when you would reach for it.
+3. **Compared with** (`<section class="prose compared">`), where alternatives exist: a compare
+   table, then one short line on strengths and weaknesses.
+4. The example: `<p class="example lead">`, then `<div id="app">`.
+5. **The idea** and **Where it breaks** (`<section class="prose">`).
+6. **In Swift** (`<section class="prose in-swift">` with `<pre id="code">`), then the names strip
+   if the page has one.
+
+A compare table is written in the page as a block that `build.sh` turns into a table; on a phone
+each row becomes a card that keeps its column names. The first row names the columns. In each
+later row the first cell is the method: `[Name](page.html)` links to its page, `*Name` marks this
+page's own row, and plain text is a method with no page. Cells may hold inline HTML (`<code>`)
+but no `|`, and every row has as many cells as the first.
+
+```html
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Cheapest routes when some costs are negative</h2>
+  <p>…</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find cheapest routes</h2>
+  <!-- compare
+  | Method | When to use | Handles | Cost | Weakness |
+  | *Bellman–Ford | Some costs are negative | Negative costs; finds a loop that pays | O(nm) | Slow on big graphs |
+  | [Dijkstra](dijkstra.html) | No cost is negative | Costs of zero or more | O(m log n) | Wrong answers with a negative cost |
+  -->
+  <p>One short line on strengths and weaknesses.</p>
+</section>
+```
 
 Every algorithm page has the playback buttons, the scrubber and the marble timeline, and every
 graph drawn on a page has the Swift that builds it beside it: the page's `CodePanel` for the live
