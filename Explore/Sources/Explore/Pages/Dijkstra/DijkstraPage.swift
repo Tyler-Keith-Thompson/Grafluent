@@ -134,14 +134,14 @@ func describe(_ step: DijkstraStep) -> String {
     switch step {
     case .settle(let place, let d):
         return d == 0
-            ? "Start at \(places[place].name). It takes 0 minutes to be where you already are, so it is settled first."
-            : "\(places[place].name) has the smallest guess on the frontier, \(d) min. Nothing quicker can still arrive, so it is settled."
+            ? "Start at \(places[place].name). It takes 0 minutes to be where you already are, so \(places[place].name) is settled first."
+            : "\(places[place].name) has the smallest guess on the frontier, \(d) min. Nothing quicker can still arrive, so \(places[place].name) is settled."
     case .check(let from, let to, let street, let offer, let previous, let better):
         let w = minutes[town.edges[street]]!
         let via = "\(places[from].name) → \(places[to].name)"
         return better
-            ? "Check \(via): \(offer - w) + \(w) = \(offer) min, which beats \(minutesText(previous)). \(places[to].name)’s guess drops to \(offer) min."
-            : "Check \(via): \(offer - w) + \(w) = \(offer) min, which doesn’t beat \(minutesText(previous)). Nothing changes."
+            ? "\(via) takes \(offer - w) + \(w) = \(offer) min. That beats \(minutesText(previous)), so \(places[to].name)’s guess drops to \(offer) min."
+            : "\(via) takes \(offer - w) + \(w) = \(offer) min. That doesn’t beat \(minutesText(previous)), so nothing changes."
     }
 }
 
@@ -165,10 +165,6 @@ struct DijkstraLab {
         let frontier = (0 ..< places.count)
             .filter { !state.settled[$0] && state.distance[$0] != nil }
             .sorted { (state.distance[$0]!, $0) < (state.distance[$1]!, $1) }
-        let settledOrder = steps.prefix(k).compactMap { step -> (place: Int, distance: Int)? in
-            if case .settle(let place, let d) = step { return (place, d) }
-            return nil
-        }
         let nodes = places.enumerated().map { i, place in
             CanvasNode(
                 x: place.x, y: place.y, name: place.name, note: state.distance[i].map { "\($0) min" } ?? "",
@@ -189,8 +185,8 @@ struct DijkstraLab {
                                 nodes: nodes, edges: edges, onNode: { dijkstra.start($0) }, nodeAction: "Start at")
                     div(.class("legend")) {
                         span { i(.class("dot")) {}; "not reached yet" }
-                        span { i(.class("dot frontier")) {}; "frontier: a best guess so far" }
-                        span { i(.class("dot visited")) {}; "settled: the quickest is known" }
+                        span { i(.class("dot frontier")) {}; "frontier, with a best guess" }
+                        span { i(.class("dot visited")) {}; "settled, the quickest is known" }
                     }
                 }
                 div(.class("side")) {
@@ -202,9 +198,9 @@ struct DijkstraLab {
                             } else if finished {
                                 "Every place is settled. The blue streets form the "
                                 em { "shortest-path tree" }
-                                ": each place reached the quickest way from \(places[model.source].name)."
+                                ". They show the quickest way to each place from \(places[model.source].name)."
                                 if model.target >= 0 && model.target != model.source {
-                                    " The red line is the quickest walk to \(places[model.target].name): \(state.distance[model.target].map { "\($0)" } ?? "∞") min."
+                                    " The red line is the quickest walk to \(places[model.target].name). It takes \(state.distance[model.target].map { "\($0)" } ?? "∞") min."
                                 }
                             } else {
                                 describe(last!)
@@ -215,26 +211,12 @@ struct DijkstraLab {
                         span(.class("label")) { "Frontier, quickest first" }
                         div(.class("queue")) {
                             if frontier.isEmpty {
-                                p(.class("empty")) { finished ? "Empty: nothing left to settle." : "Empty" }
+                                p(.class("empty")) { finished ? "Empty. Nothing is left to settle." : "Empty" }
                             }
                             for (j, place) in frontier.enumerated() {
                                 div(.class(j == 0 ? "qrow top" : "qrow")) {
                                     span { places[place].name + (j == 0 ? " · next" : "") }
                                     span(.class("num")) { "\(state.distance[place]!) min" }
-                                }
-                            }
-                        }
-                    }
-                    div(.class("panel")) {
-                        span(.class("label")) { "Settled" }
-                        div(.class("chips")) {
-                            if settledOrder.isEmpty {
-                                p(.class("empty")) { "None yet" }
-                            }
-                            for entry in settledOrder {
-                                span(.class("chip")) {
-                                    "\(places[entry.place].name) "
-                                    span(.class("num")) { "\(entry.distance)" }
                                 }
                             }
                         }

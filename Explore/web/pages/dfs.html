@@ -8,19 +8,30 @@
 
 <div id="app"></div>
 
-<section class="prose code-after">
-  <h2><small>In Swift</small>The building above, in Grafluent</h2>
-  <pre id="code" aria-label="Swift code"></pre>
+<section class="prose purpose">
+  <h2><small>When to use it</small>Structure, not distance</h2>
+  <p>Depth-first search finds everything you can reach from a start, like breadth-first search. Its order is what makes it useful. The times it enters and leaves each room show whether the graph has a cycle and how its parts hang together. Reach for it to find cycles, to put tasks in order, or to split a graph into its strongly connected parts.</p>
 </section>
 
 <section class="prose">
   <h2><small>The idea</small>As deep as it goes, then back up</h2>
-  <p><b>Depth-first</b> follows one corridor as far as it goes, then backs up to the last junction and tries the next way. It is the natural way to explore a maze. It keeps the rooms it has entered but not yet finished in a <b>stack</b>: the newest is always next, which is the path from reception to where you stand.</p>
-  <p>Its order of “entered” and “finished” reveals a graph’s structure. Each edge it meets is coloured by what it means: a new room (a <b>tree edge</b>), a door back to a room still being explored (a <b>back edge</b>, the sign of a cycle), a door to a room already finished further down the same corridor (a <b>forward edge</b>), and a door into a branch already finished (a <b>cross edge</b>). <a href="toposort.html">Topological sort</a> and <a href="components.html">strongly connected components</a> are both built on these times.</p>
+  <p>Depth-first search follows one corridor as far as it goes. Then it backs up to the last junction and tries the next way. It is the natural way to explore a maze. It keeps a <b>stack</b> of the rooms it has entered but not yet finished. The newest one is always next. The stack is the path from reception to where you stand.</p>
+  <p>The search gives every door it meets one of four kinds.</p>
+  <ul>
+    <li>A <b>tree edge</b> leads to a new room.</li>
+    <li>A <b>back edge</b> leads to a room still on the current path. It is the sign of a cycle.</li>
+    <li>A <b>forward edge</b> leads to a room already finished, further along the same corridor.</li>
+    <li>A <b>cross edge</b> leads into a branch that is already finished.</li>
+  </ul>
+  <p><a href="toposort.html">Topological sort</a> and <a href="components.html">strongly connected components</a> are both built on these kinds and times.</p>
 
   <h2><small>Where it breaks</small>Deep is not near</h2>
-  <p>The first route depth-first finds to a room can be a long way round. For the route with the fewest doors, use <a href="bfs.html">breadth-first search</a>; once doors have different lengths, <a href="dijkstra.html">Dijkstra’s algorithm</a>.</p>
+  <p>The first route depth-first search finds to a room can be a long way round. For the route with the fewest doors, use <a href="bfs.html">breadth-first search</a>. When doors have different lengths, use <a href="dijkstra.html">Dijkstra’s algorithm</a>.</p>
+</section>
 
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The building above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names"></div>

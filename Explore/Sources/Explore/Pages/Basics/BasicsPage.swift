@@ -59,19 +59,28 @@ struct BasicsLab {
                     p(.class("narration")) {
                         if model.directed {
                             let s = basicsPairs.filter { $0.0 == picked }.map(\.1), p = basicsPairs.filter { $0.1 == picked }.map(\.0)
-                            "Edges leave \(picked) for "
-                            b { s.isEmpty ? "no one" : s.joined(separator: ", ") }
-                            " (its successors, in yellow) and arrive from "
-                            b { p.isEmpty ? "no one" : p.joined(separator: ", ") }
-                            " (its predecessors, pale blue). An arrow only works one way."
+                            if s.isEmpty {
+                                "No arrows leave \(picked). "
+                            } else {
+                                "Arrows from \(picked) go to "
+                                b { s.joined(separator: ", ") }
+                                ". These are its successors, in yellow. "
+                            }
+                            if p.isEmpty {
+                                "No arrows come into \(picked)."
+                            } else {
+                                "Arrows into \(picked) come from "
+                                b { p.joined(separator: ", ") }
+                                ". These are its predecessors, in pale blue."
+                            }
                         } else {
                             let nbrs = basicsPairs.compactMap { $0.0 == picked ? $0.1 : $0.1 == picked ? $0.0 : nil }
                             "\(picked)’s neighbours are "
                             b { nbrs.joined(separator: ", ") }
-                            ": \(nbrs.count) edges touch it, so its degree is \(nbrs.count)."
+                            ". \(nbrs.count) edges touch \(picked), so its degree is \(nbrs.count)."
                         }
                         if model.weighted {
-                            " The red edge is the lightest one in the whole graph."
+                            " The red edge is the lightest in the graph."
                         }
                     }
                 }

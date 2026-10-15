@@ -5,7 +5,7 @@
   <p class="question">What exactly is a graph, and which kinds will you meet on these pages?</p>
 </header>
 <section class="prose first">
-  <p>A graph has two parts. <b>Vertices</b> are the objects you care about: cities, people, web pages, tasks in a build. <b>Edges</b> are the relationships between pairs of them: a road, a friendship, a link, a dependency. Graph theory calls the objects vertices; many libraries and papers call them nodes. They mean the same thing.</p>
+  <p>A graph has two parts. <b>Vertices</b> are the things you care about, such as cities, people, web pages or tasks in a build. <b>Edges</b> join pairs of them. An edge might be a road, a friendship, a link or a dependency. Many libraries and papers call vertices <b>nodes</b>. The two words mean the same thing.</p>
 </section>
 
 <div id="app"></div>
@@ -17,7 +17,7 @@
 
 <section class="prose">
 <h2><small>Direction</small>Undirected and directed</h2>
-<p>In an <b>undirected</b> graph an edge works both ways, like a friendship or a two-way street. In a <b>directed</b> graph each edge has a start and an end, drawn as an arrow, like a one-way street, a link from one page to another, or “compile before test”. Grafluent keeps the two as separate kinds of graph, so an algorithm that only makes sense for one can’t be handed the other by mistake.</p>
+<p>In an <b>undirected</b> graph an edge works both ways, like a friendship or a two-way street. In a <b>directed</b> graph each edge has a start and an end, and it is drawn as an arrow. Think of a one-way street, a link from one page to another, or “compile before test”. Grafluent keeps the two as separate kinds of graph. So an algorithm that only makes sense for one can’t be handed the other by mistake.</p>
 <figure class="fig three">
   <div class="trace"><svg viewBox="0 0 240 120" role="img" aria-label="Undirected edge between A and B">
     <line class="e" x1="50" y1="60" x2="190" y2="60"/>
@@ -33,7 +33,7 @@
   <pre class="figcode" id="fig-direction" aria-label="Swift code for this figure"></pre>
 </figure>
 <h2><small>Weights</small>Numbers on the edges</h2>
-<p>Often an edge carries a number: minutes to walk a street, the cost of a cable, how much a pipe can carry. That number is the edge’s <b>weight</b>. A graph with them is a <b>weighted</b> graph. Grafluent never stores weights inside the graph itself. You keep them wherever suits you and pass the algorithm a way to look each one up, so the same graph can be measured in minutes on one page and in kilometres on the next.</p>
+<p>Often an edge carries a number, such as the minutes to walk a street, the cost of a cable, or how much a pipe can carry. That number is the edge’s <b>weight</b>, and a graph with weights is a <b>weighted</b> graph. Grafluent never stores weights inside the graph. You keep them wherever suits you, and you pass the algorithm a way to look each one up. So the same graph can be measured in minutes on one page and in kilometres on the next.</p>
 <figure class="fig">
   <svg viewBox="0 0 520 150" role="img" aria-label="Three vertices with weighted edges 4, 3 and 9">
     <line class="e" x1="70" y1="110" x2="260" y2="35"/><line class="e" x1="260" y1="35" x2="450" y2="110"/><line class="e" x1="70" y1="110" x2="450" y2="110"/>
@@ -54,9 +54,9 @@
   <figcaption>The same five-vertex graph three times, with a walk, a path and a cycle traced in colour. The numbers give the order of the steps.</figcaption>
   <pre class="figcode" id="fig-walks" aria-label="Swift code for this figure"></pre>
 </figure>
-<p>Cycles matter a lot. A road network is full of them, while tasks with dependencies must have none, or no order could ever finish them. Grafluent has a type for each: <code>Walk</code>, <code>Path</code> and <code>Cycle</code>. An algorithm that returns a route returns the type that says exactly what it guarantees.</p>
+<p>Cycles matter a lot. A road network is full of them. Tasks with dependencies must have none, or no order could ever finish them. Grafluent has a type for each kind of route, <code>Walk</code>, <code>Path</code> and <code>Cycle</code>. An algorithm that returns a route returns the type that says what it guarantees.</p>
 <h2><small>Two more you’ll see</small>Self-loops and parallel edges</h2>
-<p>A <b>self-loop</b> is an edge from a vertex to itself, like a road that leaves a town and comes back. <b>Parallel edges</b> are two or more edges between the same pair, like a highway and a back road between the same two towns. A graph that allows them is called a <b>multigraph</b>. Grafluent tells parallel edges apart by their position in the graph, so each can have its own weight.</p>
+<p>A <b>self-loop</b> is an edge from a vertex to itself, like a road that leaves a town and comes back. <b>Parallel edges</b> are two or more edges between the same pair, like a highway and a back road between the same two towns. A graph that allows them is called a <b>multigraph</b>. Grafluent tells parallel edges apart by their position in the graph, so each one can have its own weight.</p>
 <figure class="fig three">
   <div class="trace"><svg viewBox="0 0 240 150" role="img" aria-label="A vertex with a self-loop">
     <path class="e" d="M108 90 C 50 10, 190 10, 132 90" fill="none"/>
@@ -70,6 +70,6 @@
   </svg><b>Parallel edges</b><span>A 12-minute highway and a 20-minute back road, both between A and B.</span></div>
   <pre class="figcode" id="fig-loops" aria-label="Swift code for this figure"></pre>
 </figure>
-  <p>Try them in the graph near the top of the page: pick a vertex to see its neighbours, switch between undirected and directed, and show the weights.</p>
+  <p>Try these ideas in the small graph at the start of the page. Pick a vertex to see its neighbours. Switch between undirected and directed, and show the weights.</p>
 
 </section>

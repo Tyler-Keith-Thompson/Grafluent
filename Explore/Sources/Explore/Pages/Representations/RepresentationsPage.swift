@@ -95,8 +95,8 @@ struct RepresentationsLab {
                         }
                         p(.class("note")) {
                             undirected
-                                ? "A friendship goes both ways, so each one is stored in both people’s rows, and the matrix is a mirror image across its diagonal."
-                                : "A follow goes one way: Ana can follow Ben without Ben following back."
+                                ? "A friendship goes both ways. So each one is stored in both people’s rows, and the matrix is a mirror image across its diagonal."
+                                : "A follow goes one way. Ana can follow Ben without Ben following back."
                         }
                         div(.class("stat")) {
                             div { span(.class("num")) { "\(n)" }; "vertices" }
@@ -121,10 +121,9 @@ struct RepresentationsLab {
                 div(.class("panel")) {
                     h3 { "Adjacency matrix" }
                     p(.class("note")) {
-                        "Read across a row: the 1s are who that person "
-                        undirected ? "is friends with" : "follows"
-                        ". Read down a column: the 1s are "
-                        undirected ? "the same people again." : "who follows that person."
+                        undirected
+                            ? "Read across a row to see that person’s friends. A column shows the same people again."
+                            : "Read across a row to see who that person follows. Read down a column to see who follows that person."
                         " Click a square to flip it."
                     }
                     table(.class("matrix")) {
@@ -144,13 +143,13 @@ struct RepresentationsLab {
                         }
                     }
                     p(.class("note")) {
-                        "\(ones) ones and \(n * n - ones) zeros: the matrix spends a square on every pair, edge or not. Four people need 16 squares; a million would need a trillion, almost all of them 0."
+                        "\(ones) ones and \(n * n - ones) zeros. The matrix spends a square on every pair, edge or not."
                     }
                 }
                 div(.class("panel")) {
                     h3 { "Compressed sparse row" }
                     p(.class("note")) {
-                        "Every row of the list packed end to end into one targets array. The offsets array says where each person’s run starts; the last offset marks the end."
+                        "Every row of the list, packed end to end into one targets array. The offsets say where each person’s run starts. The last offset marks the end."
                     }
                     div(.class("csr-scroll")) {
                         SVG.svg(.class("csr"), .width(.init(width)), .viewBox(0, 0, .init(width), 190), .custom(name: "role", value: "img"),
@@ -176,8 +175,8 @@ struct RepresentationsLab {
                     }
                     p(.class("note")) {
                         if let v = selected {
-                            "\(friendNames[v])’s run is targets[\(offsets[v]) ..< \(offsets[v + 1])]: "
-                            + (offsets[v] == offsets[v + 1] ? "empty." : (offsets[v] ..< offsets[v + 1]).map { forms.csr.vertex(atIndex: targets[$0]) }.joined(separator: ", ") + ".")
+                            "\(friendNames[v])’s run is targets[\(offsets[v]) ..< \(offsets[v + 1])]. "
+                            + (offsets[v] == offsets[v + 1] ? "It is empty." : "It holds " + (offsets[v] ..< offsets[v + 1]).map { forms.csr.vertex(atIndex: targets[$0]) }.joined(separator: ", ") + ".")
                         } else {
                             "Pick a person to see their run."
                         }

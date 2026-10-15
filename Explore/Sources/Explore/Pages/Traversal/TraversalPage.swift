@@ -100,17 +100,20 @@ final class TraversalModel {
             return s.depthFirst ? "Enter \(s.spots[v].name) for the first time." : "\(s.spots[v].name) hears the news and joins the back of the queue."
         case .finish(let v):
             return s.depthFirst
-                ? "Finish \(s.spots[v].name): every door out of it has been tried, so back up."
-                : "\(s.spots[v].name) has passed the news to everyone they message, and leaves the queue."
+                ? "Every door out of \(s.spots[v].name) has been tried. Back up."
+                : "\(s.spots[v].name) has passed the news on to everyone they message. \(s.spots[v].name) leaves the queue."
         case .edge(let d, let kind):
             let e = s.edges[d]
             let via = "\(e.source) → \(e.target)"
             switch kind {
-            case "tree": return s.depthFirst ? "Tree edge \(via): \(e.target) is new, so walk through." : "Tree edge \(via): \(e.target) hadn’t heard yet."
-            case "back": return "Back edge \(via): \(e.target) is still being explored, an ancestor on the current path. That closes a cycle."
-            case "forward": return "Forward edge \(via): \(e.target) was already reached, and finished, further down this corridor."
-            case "cross": return "Cross edge \(via): \(e.target) is finished, on a branch already explored."
-            default: return "Non-tree edge \(via): \(e.target) already heard, so nothing changes."
+            case "tree":
+                return s.depthFirst
+                    ? "\(via) leads to a new room, so walk through. This is a tree edge."
+                    : "\(e.source) messages \(e.target), who hadn’t heard yet. So \(via) is a tree edge."
+            case "back": return "\(via) leads back to a room on the current path. This back edge closes a cycle."
+            case "forward": return "\(via) leads to a room already finished, further along this corridor. This is a forward edge."
+            case "cross": return "\(via) leads into a branch that is already finished. This is a cross edge."
+            default: return "\(e.source) messages \(e.target), who has already heard. Nothing changes."
             }
         }
     }
@@ -216,13 +219,13 @@ struct TraversalLab {
                                 model.describe(last)
                             } else {
                                 dfs
-                                    ? "Go through the first new door you find, and only back up when a room has no new doors left."
-                                    : "\(s.spots[model.start].name) has news. Everyone who hears it passes it on to the people they message, in the order they heard it."
+                                    ? "Go through the first new door you find. Back up only when a room has no new doors left."
+                                    : "\(s.spots[model.start].name) has news. Each friend who hears it passes it on, in the order they heard it."
                             }
                         }
                     }
                     div(.class("panel")) {
-                        span(.class("label")) { dfs ? "Stack: the current path, newest first" : "Queue: next to pass it on first" }
+                        span(.class("label")) { dfs ? "Stack, the current path, newest first" : "Queue, next in line first" }
                         div(.class("queue")) {
                             if pending.isEmpty { p(.class("empty")) { "Empty" } }
                             for (j, v) in pending.enumerated() {
@@ -231,13 +234,6 @@ struct TraversalLab {
                                     span(.class("num")) { dfs ? "#\(snapshot.discovered[v]!)" : "ring \(snapshot.depth[v])" }
                                 }
                             }
-                        }
-                    }
-                    div(.class("panel")) {
-                        span(.class("label")) { "Discovery order" }
-                        div(.class("chips")) {
-                            if snapshot.order.isEmpty { p(.class("empty")) { "None yet" } }
-                            for v in snapshot.order { span(.class("chip")) { s.spots[v].name } }
                         }
                     }
                 }
@@ -268,8 +264,8 @@ struct TraversalLab {
                            (Marble(kind: "m-violet", radius: 5), "non-tree edge")])
                 p(.class("note")) {
                     dfs
-                        ? "Under each room: when it was entered / when it was finished, on one clock. Click a room to start there."
-                        : "Under each friend: which ring they are in, how many messages from the start. Click a friend to start there."
+                        ? "Each room shows two times on one clock, when it was entered and when it was finished. Click a room to start there."
+                        : "Each friend shows their ring, the number of messages from the start. Click a friend to start there."
                 }
             }
         }
