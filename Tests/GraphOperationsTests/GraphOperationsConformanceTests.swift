@@ -46,7 +46,7 @@ struct GraphOperationsConformanceTests {
             let order = Array(view.edges.indices)
             var ordinal: [View.Edges.Index: Int] = [:]
             for (k, p) in order.enumerated() { ordinal[p] = k }
-            let weight = (0 ..< order.count).map { ($0 &* 2_654_435_761 &+ seed) % 9 + 1 }
+            let weight = (0 ..< order.count).map { Int((UInt64($0) &* 2_654_435_761 &+ UInt64(seed)) % 9) + 1 }
             #expect(Array(view.vertices) == Array(copy.vertices), "\(what)")
             #expect(view.edges.map { $0 } == copy.edges.map { $0 }, "\(what)")
             #expect(view.edgeCount == copy.edgeCount && view.vertexCount == copy.vertexCount, "\(what)")
@@ -129,7 +129,7 @@ struct GraphOperationsConformanceTests {
             let order = Array(view.edges.indices)
             var ordinal: [View.Edges.Index: Int] = [:]
             for (k, p) in order.enumerated() { ordinal[p] = k }
-            let weight = (0 ..< order.count).map { ($0 &* 2_654_435_761 &+ seed) % 9 + 1 }
+            let weight = (0 ..< order.count).map { Int((UInt64($0) &* 2_654_435_761 &+ UInt64(seed)) % 9) + 1 }
             #expect(Array(view.vertices) == Array(copy.vertices), "\(what)")
             #expect(view.edges.map { [$0.u, $0.v] } == copy.edges.map { [$0.u, $0.v] }, "\(what)")
             #expect(view.connectedComponents().map { Array($0) } == copy.connectedComponents().map { Array($0) }, "\(what)")

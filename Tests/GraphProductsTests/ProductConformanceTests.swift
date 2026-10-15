@@ -54,7 +54,7 @@ struct ProductConformanceTests {
                 #expect(Array(copy.successors(of: v)) == Array(product.successors(of: v)), "\(context)")
                 #expect(copy.predecessors(of: v).sorted() == product.predecessors(of: v).sorted(), "\(context)")
             }
-            let weight = (0 ..< product.edgeCount).map { ($0 &* 2_654_435_761) % 7 + 1 }
+            let weight = (0 ..< product.edgeCount).map { Int(UInt64($0) &* 2_654_435_761 % 7) + 1 }
             #expect(Array(product.depthFirstSearch()) == Array(copy.depthFirstSearch()), "\(context)")
             #expect(product.topologicalSort() == copy.topologicalSort(), "\(context)")
             #expect(product.stronglyConnectedComponents().map { Array($0) } == copy.stronglyConnectedComponents().map { Array($0) }, "\(context)")
@@ -149,7 +149,7 @@ struct ProductConformanceTests {
                 #expect(copy.neighbors(of: v).sorted() == product.neighbors(of: v).sorted(), "\(context)")
                 #expect(product.incidentEdges(of: v).map { offset[$0] ?? -1 }.sorted() == copy.incidentEdges(of: v).sorted(), "\(context)")
             }
-            let weight = (0 ..< product.edgeCount).map { ($0 &* 2_654_435_761) % 7 + 1 }
+            let weight = (0 ..< product.edgeCount).map { Int(UInt64($0) &* 2_654_435_761 % 7) + 1 }
             #expect(product.connectedComponents().map { Array($0) } == copy.connectedComponents().map { Array($0) }, "\(context)")
             #expect(product.isConnected == copy.isConnected, "\(context)")
             #expect(product.bridges().map { offset[$0] ?? -1 } == copy.bridges(), "\(context)")
