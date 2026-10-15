@@ -1,0 +1,29 @@
+<!-- title: Girvan–Newman · Explore Grafluent -->
+<!-- description: Twelve friends split into their groups by taking out the busiest link again and again, with Grafluent’s girvanNewmanCommunities, edgeBetweennessCentrality and modularity. -->
+<header class="sign">
+  <h1>Girvan–Newman</h1>
+  <div class="say"><span>Say it</span><b>GUR-vun</b><span class="ipa">/ˈɡɜːrvən/</span></div>
+  <p class="question">If you keep cutting the link that the most shortest paths cross, what groups are left?</p>
+</header>
+<p class="example lead">Example: twelve friends from a band, a climbing gym and a book club, and a line between each pair who hang out. A few friendships cross between the groups.</p>
+
+<div id="app"></div>
+
+<section class="prose code-after">
+  <h2><small>In Swift</small>The friends above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
+
+<section class="prose">
+  <h2><small>The idea</small>Links between groups carry the traffic</h2>
+  <p>Inside a close group there are many ways between any two people, so the shortest paths spread over many links. Between groups there are only a few links, and every shortest path from one group to another has to use one of them. So those links have the highest <a href="betweenness.html">edge betweenness</a>.</p>
+  <p>Girvan and Newman’s method takes out the link with the highest betweenness, then <em>recomputes</em> every score, and repeats. Recomputing matters: once one link between two groups is gone, the paths it carried move to the others, which become the busiest next. Each time the network falls into more pieces, the pieces are a finer partition. Run to the end and every person is alone; the result is a whole hierarchy of splits, coarsest first.</p>
+  <p>Which level is the answer? A common choice is the one with the highest <b>modularity</b>: the share of links inside groups, minus the share you’d expect if links were placed at random with the same degrees. <code>girvanNewmanCommunities()</code> is a lazy sequence of the partitions, so you can stop at the first with as many groups as you want, or take the best by <code>modularity(of:)</code>.</p>
+
+  <h2><small>Where it breaks</small>Slow, and when to use something else</h2>
+  <p>Every removal recomputes betweenness for the piece it came from, which costs a search from every person in it. That is fine for a few hundred people and far too slow for a large network: the whole sequence is O(m² n). For large networks, <a href="communities.html">Louvain</a> or Leiden find high-modularity groups in a few passes. Girvan–Newman is still worth knowing when the hierarchy itself is wanted, or when the network is small enough that its clear reasoning is worth the time.</p>
+  <p>It also only ever cuts. A person who belongs to two groups ends up in one of them, and a network with no clear groups still gets split, all the way down, so a high modularity is worth checking before trusting the groups.</p>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>
