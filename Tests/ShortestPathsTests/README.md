@@ -42,6 +42,8 @@ extension DirectedGraph
     func dijkstraSearch(from: Vertex | some Sequence<Vertex>, weight: @escaping (Edges.Index) -> W)
         -> DijkstraSearch<Self, W>                     // lazy; Element DijkstraSearchEvent<Vertex, Edges.Index, W>
     func aStarShortestPath(from:to:weight:heuristic: (Vertex) -> W) -> (path: Path<Vertex, Edges.Index>, distance: W)?
+    func aStarSearch(from:to:weight: @escaping (Edges.Index) -> W, heuristic: @escaping (Vertex) -> W)
+        -> AStarSearch<Self, W>                        // lazy; Element AStarSearchEvent<Vertex, Edges.Index, W>
     func bellmanFordShortestPaths(from: Vertex | some Sequence<Vertex>, weight:) -> ShortestPathTree<Self, W>?
     func findNegativeCycle(from: Vertex | some Sequence<Vertex>, weight:) -> Cycle<Vertex, Edges.Index>?
     func findNegativeCycle(weight:) -> Cycle<Vertex, Edges.Index>?   // every vertex a source
@@ -58,6 +60,8 @@ struct ShortestSimplePaths<G, Distance>: Sequence     // Element (path: Path<G.V
 struct AllShortestPaths<G, Distance>: Sequence        // Element Path<G.Vertex, G.Edges.Index>; distance: Distance?
 enum DijkstraSearchEvent<Vertex, Edge, Weight>        // discover, examine, examineEdge, edgeRelaxed,
                                                       // edgeNotRelaxed, finish; each with a distance
+enum AStarSearchEvent<Vertex, Edge, Weight>           // DijkstraSearchEvent's, discover and examine with the
+                                                      // estimate, plus reopen (a closed vertex improved)
 extension DirectedAcyclicGraph
     func dagShortestPaths(from: Vertex | some Sequence<Vertex>, weight:) -> ShortestPathTree<Self, W>   // in the maintained order
 extension Graph                                        // weight over the base's positions

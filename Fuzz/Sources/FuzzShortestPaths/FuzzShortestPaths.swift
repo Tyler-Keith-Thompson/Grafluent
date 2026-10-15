@@ -165,6 +165,66 @@ enum FuzzShortestPaths {
                 }
             }
 
+            // A* as events: the target examined last, at the true distance; each examined edge
+            // decided next; discovery only of new vertices, reopening only of closed ones; the
+            // chain of last relaxed edges into the target is the plain call's path.
+            do {
+                let label = "A* events on AdjacencyList"
+                var state = [UInt8](repeating: 0, count: n)
+                var parent = [Int?](repeating: nil, count: n)
+                var due: Int?
+                var dueOffer = 0
+                var follow: UInt8?
+                var reached: Int?
+                for event in list.aStarSearch(from: source, to: target, weight: w, heuristic: heuristic) {
+                    if let f = follow {
+                        switch event {
+                        case .discover(let v, _, _): check(f == 0 && state[v] == 0, "\(label): discover \(v)"); state[v] = 1
+                        case .reopen(let v, _, _): check(f == 2 && state[v] == 2, "\(label): reopen \(v)"); state[v] = 1
+                        default: check(false, "\(label): a relaxed edge to a new or closed vertex was not followed")
+                        }
+                        follow = nil
+                        continue
+                    }
+                    if let e = due {
+                        switch event {
+                        case .edgeRelaxed(let x, let dv):
+                            check(x == e, "\(label): decision for another edge")
+                            let v = list.target(ofEdgeAt: x)
+                            check(dv == dueOffer, "\(label): relaxed distance")
+                            parent[v] = x
+                            if state[v] != 1 { follow = state[v] }
+                        case .edgeNotRelaxed(let x, _): check(x == e, "\(label): decision for another edge")
+                        default: check(false, "\(label): an examined edge was not decided")
+                        }
+                        due = nil
+                        continue
+                    }
+                    switch event {
+                    case .discover(let v, let dv, _): check(v == source && dv == 0 && state[v] == 0, "\(label): first event"); state[v] = 1
+                    case .examine(let v, let dv, _):
+                        check(state[v] == 1 && reached == nil, "\(label): examine \(v)")
+                        state[v] = 2
+                        if v == target { reached = dv }
+                    case .examineEdge(let e, let offer):
+                        due = e
+                        dueOffer = offer
+                    case .finish: break
+                    default: check(false, "\(label): \(event) out of turn")
+                    }
+                }
+                check(reached == truth, "\(label): reached \(String(describing: reached)), expected \(String(describing: truth))")
+                if let plain = star {
+                    var chain: [Int] = []
+                    var v = target
+                    while v != source, let e = parent[v], chain.count <= n {
+                        chain.append(e)
+                        v = list.source(ofEdgeAt: e)
+                    }
+                    check(chain.reversed() == plain.path.edges, "\(label): chain \(chain.reversed()), plain \(plain.path.edges)")
+                }
+            }
+
             // Undirected: each pair once, lighter direction wins, Floyd–Warshall over both arcs.
             var undirected: [UndirectedEdge<Int>: Int] = [:]
             for e in order { undirected[UndirectedEdge(e.source, e.target)] = min(undirected[UndirectedEdge(e.source, e.target)] ?? .max, weight[e]!) }

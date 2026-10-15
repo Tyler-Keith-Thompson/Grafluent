@@ -1,0 +1,39 @@
+--- SP-201: 38 events
+discover 0 0 0
+examine 0 0 0
+examineEdge 0 1
+edgeRelaxed 0 1
+discover 1 1 5
+examineEdge 1 4
+edgeRelaxed 1 4
+discover 2 4 0
+examineEdge 2 6
+edgeNotRelaxed 2 4
+finish 0 0
+examine 2 4 0
+examineEdge 5 5
+edgeRelaxed 5 5
+discover 3 5 0
+finish 2 4
+examine 3 5 0
+examineEdge 6 10
+edgeRelaxed 6 10
+discover 4 10 0
+finish 3 5
+examine 1 1 5
+examineEdge 3 2
+edgeRelaxed 3 2
+reopen 2 2 0
+examineEdge 4 3
+edgeNotRelaxed 4 1
+finish 1 1
+examine 2 2 0
+examineEdge 5 3
+edgeRelaxed 5 3
+reopen 3 3 0
+finish 2 2
+examine 3 3 0
+examineEdge 6 8
+edgeRelaxed 6 8
+finish 3 3
+examine 4 8 0

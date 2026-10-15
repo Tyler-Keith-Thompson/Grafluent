@@ -312,6 +312,27 @@ unspecified order, so ties are compared as sets.
 | SP-199 | Value semantics | a later insertion does not change the search; each iterator starts over; stopping early | — |
 | SP-200 | Ratio (release) | every event within 1.6× of `dijkstraShortestPaths` on directed G(10⁵, 10⁶) (AL, CSR), 1.8× on undirected G(10⁵, 5·10⁵) | — |
 
+### P. A* as an event sequence
+
+`aStarSearch(from:to:weight:heuristic:)` reports the Boost Graph Library's A* visitor events:
+`discover` and `examine` with the distance and the estimate (zero for the target), `examineEdge`
+with the offer d(u) + w, then `edgeRelaxed` or `edgeNotRelaxed` for every examined edge, a closed
+vertex whose distance improves `reopen`ed (the black target), and `finish`. The search ends with
+the target's `examine`, or when nothing is open. `cases_astarsearch.py` reproduces SP-201 in
+`cases_astarsearch.out`.
+
+| ID | Case | Expected | Source |
+|---|---|---|---|
+| SP-201 | Inconsistent heuristic | 0→1 (1), 0→2 (4), 0→2 (6), 1→2 (1), 1→1 (2), 2→3 (1), 3→4 (5), h = 0, 5, 0, 0, 7, from 0 to 4: 38 events; 2 and 3 reopened; the copy 0→2 (6) and the loop not relaxed; the target's estimate taken as 0 and the heuristic called once each for 0…3; the relaxed chain is `aStarShortestPath`'s `[0,3,5,6]`, 8; the same on the reference multigraph, pseudograph, an unindexed graph and a stable graph with a hole | (ref) `cases_astarsearch.py` |
+| SP-202 | 3 × 3 grid, 4 → 5 blocked, Manhattan | every priority 4; each examined vertex closed once, first 0 and last 8 at 4; nothing reopened | (ref) A* |
+| SP-203 | Trivial | the source is the target: discover, examine, the heuristic never called; an unreachable target: ends when nothing is open; descriptions | — |
+| SP-204 | Zero heuristic | examines `dijkstraSearch`'s settling order up to the target, on a random CSR | — |
+| SP-205 | Undirected | `UndirectedAdjacencyList` through `directedView`: distance 5 by `[0,1,3]`, as `aStarShortestPath`; an edge examined from both ends | (ref) A* |
+| SP-206 | Value semantics | a later insertion does not change the search; each iterator starts over; stopping early; nil after the end | — |
+| SP-207 | Preconditions | a negative examined weight (as it is examined), a missing source or target (with and without vertex indices), a negative undirected edge trap; a negative edge never examined does not | — |
+| SP-208 | Property | ≤ 30 edges on 8 vertices, weights 0…9, loops and parallel edges, an admissible estimate min(true distance, random 0…9) toward a random target: event order and states; the target examined at the true distance; the relaxed chain is `aStarShortestPath`'s path (reference multigraph, pseudograph, unindexed) | (ref) Bellman–Ford |
+| SP-209 | Ratio (release) | every event within 1.8× of `aStarShortestPath` on a 700 × 700 grid, weights 1…10, Manhattan estimate, corner to corner (AL, CSR) | — |
+
 ---
 
 ## Benchmarks (not tests)
@@ -327,3 +348,4 @@ unspecified order, so ties are compared as sets.
 | SP-B07 | Interleaved `(target, weight)` rows vs separate arrays, hand-written, on G(10⁶, 10⁷) |
 | SP-B08 | `shortestSimplePaths(...).prefix(k)` on a grid; `allShortestPaths` on a grid; `bidirectionalDijkstraShortestPath` vs `dijkstraShortestPath` on random s–t pairs; `johnsonShortestPaths` and `allPairsDijkstraShortestPaths` vs `floydWarshallShortestPaths` on a sparse graph |
 | SP-B09 | `dijkstraSearch`, pulling every event, on CSR, `AdjacencyList<Int>` and `UndirectedAdjacencyList`, against `dijkstraShortestPaths` on the same graphs (SP-B01, SP-B03) |
+| SP-B10 | `aStarSearch`, pulling every event, on the 1000 × 1000 grid with weights 1…4, against `aStarShortestPath` (SP-B05) |

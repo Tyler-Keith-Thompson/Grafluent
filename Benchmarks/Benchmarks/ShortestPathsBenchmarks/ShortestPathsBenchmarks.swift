@@ -311,6 +311,17 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(grid.aStarShortestPath(from: 0, to: target, weight: { gridWeights[$0] }, heuristic: { (target / side - $0 / side) + (target % side - $0 % side) }))
         }
     }
+    // SP-B10: every event of the lazy A* search, against the plain call above.
+    Benchmark("ShortestPaths: aStarSearch, every event, on a 1000×1000 grid, weights 1…4 from [Int]") { benchmark in
+        let target = side * side - 1
+        for _ in benchmark.scaledIterations {
+            var last = 0
+            for event in grid.aStarSearch(from: 0, to: target, weight: { gridWeights[$0] }, heuristic: { (target / side - $0 / side) + (target % side - $0 % side) }) {
+                if case .examine(_, let d, _) = event { last = d }
+            }
+            blackHole(last)
+        }
+    }
     // SP-B08: all pairs on a sparse graph (2000 vertices, 10 000 edges), against the hand-written
     // loop.
     let sparseN = 2000

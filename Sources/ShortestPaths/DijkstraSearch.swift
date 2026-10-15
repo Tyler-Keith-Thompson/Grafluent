@@ -48,13 +48,111 @@ extension DijkstraSearchEvent: CustomStringConvertible {
     }
 }
 
-/// How a Dijkstra search reads a graph's out-edges, chosen once: by slot from the compressed or
+/// How a best-first search reads a graph's out-edges, chosen once: by slot from the compressed or
 /// pooled rows the graph lends, or from the numbered rows of a graph with holes, with integer
 /// cursors; otherwise by iterator.
 @frozen
 @usableFromInline
 enum _DijkstraSearchReading: UInt8 {
     case compressed, pooled, numbered, indexed, unindexed
+
+    /// The fastest reading `graph` supports, numbered by `ids`.
+    @inlinable
+    init<G: DirectedGraph>(_ graph: G, _ ids: _VertexIdentifiers<G>) {
+        if ids.isIndexed {
+            let n = ids.count
+            if G.Edges.Index.self == Int.self, graph._withSuccessorIndexRows({ offsets, targets -> Void in
+                precondition(offsets.count == n + 1 && offsets[0] >= 0 && offsets[n] <= targets.count, "The row offsets do not match the vertex count")
+                for v in 0 ..< n { precondition(offsets[v] <= offsets[v + 1], "The row offsets decrease") }
+            }) != nil {
+                self = .compressed
+            } else if G.Edges.Index.self == Int.self, graph._withCheckedOutIndexRows({ _, _, _, _ in }) != nil {
+                self = .pooled
+            } else {
+                self = .indexed
+            }
+        } else {
+            self = ids.rows != nil ? .numbered : .unindexed
+        }
+    }
+}
+
+/// One out-row at a time of a numbered graph, read the way `reading` says: the row cursor of the
+/// event-sequence searches (`DijkstraSearch`, `AStarSearch`).
+@frozen
+@usableFromInline
+struct _DijkstraSearchRows<G: DirectedGraph> {
+    @usableFromInline let ids: _VertexIdentifiers<G>
+    @usableFromInline let reading: _DijkstraSearchReading
+    /// Slot reading: the rest of the current row, and the shift from a slot to its position.
+    @usableFromInline var cursor = 0
+    @usableFromInline var end = 0
+    @usableFromInline var shift = 0
+    /// Iterator reading: the rest of the current row.
+    @usableFromInline var positions: G.OutEdges.Iterator?
+    @usableFromInline var targets: G.SuccessorIndices.Iterator?
+
+    @inlinable
+    init(ids: _VertexIdentifiers<G>, reading: _DijkstraSearchReading) {
+        self.ids = ids
+        self.reading = reading
+    }
+
+    /// The next out-edge of the current row and the number of its target, or `nil` at the end.
+    @inlinable
+    @inline(__always)
+    mutating func next() -> (edge: G.Edges.Index, target: Int)? {
+        switch reading {
+        case .compressed:
+            guard cursor < end else { return nil }
+            let k = cursor
+            cursor &+= 1
+            let target = ids.graph._withSuccessorIndexRows { _, targets in targets[k] }.unsafelyUnwrapped
+            return (unsafeBitCast(k, to: G.Edges.Index.self), target)
+        case .pooled:
+            guard cursor < end else { return nil }
+            let k = cursor
+            cursor &+= 1
+            let shift = shift
+            let (position, target) = ids.graph._withOutIndexRows { targets, _, edges, _ in (edges[k &+ shift], targets[k]) }.unsafelyUnwrapped
+            return (unsafeBitCast(position, to: G.Edges.Index.self), target)
+        case .numbered:
+            guard cursor < end else { return nil }
+            let k = cursor
+            cursor &+= 1
+            let rows = ids.rows.unsafelyUnwrapped
+            return (unsafeBitCast(rows.edges[k], to: G.Edges.Index.self), rows.neighbors[k])
+        case .indexed:
+            // `outEdges` and `successorIndices` have the same length.
+            guard let edge = positions?.next(), let target = targets?.next() else { return nil }
+            return (edge, target)
+        case .unindexed:
+            guard let edge = positions?.next() else { return nil }
+            return (edge, ids.existingIdentifier(of: ids.graph.target(ofEdgeAt: edge)).unsafelyUnwrapped)
+        }
+    }
+
+    /// Opens the out-row of `u`.
+    @inlinable
+    mutating func load(_ u: Int) {
+        switch reading {
+        case .compressed:
+            (cursor, end) = ids.graph._withSuccessorIndexRows { offsets, _ in (offsets[u], offsets[u &+ 1]) }.unsafelyUnwrapped
+        case .pooled:
+            (cursor, end, shift) = ids.graph._withOutIndexRows { _, targetRows, _, edgeRows in
+                let start = targetRows[3 &* u]
+                return (start, start &+ targetRows[3 &* u &+ 1], edgeRows[3 &* u] &- start)
+            }.unsafelyUnwrapped
+        case .numbered:
+            let offsets = ids.rows.unsafelyUnwrapped.offsets
+            (cursor, end) = (offsets[u], offsets[u &+ 1])
+        case .indexed:
+            positions = ids.graph.outEdges(ofIndex: u).makeIterator()
+            targets = ids.graph.successorIndices(ofIndex: u).makeIterator()
+        case .unindexed:
+            positions = ids.graph.outEdges(of: ids.vertices[u]).makeIterator()
+        }
+    }
 }
 
 /// Dijkstra's algorithm as a sequence of `DijkstraSearchEvent`s, pulled one at a time. It holds a
@@ -80,21 +178,7 @@ public struct DijkstraSearch<G: DirectedGraph, W: Comparable & AdditiveArithmeti
         self.sources = graph._sourceIndices(sources, ids).indices
         self.ids = ids
         self.weight = weight
-        if ids.isIndexed {
-            let n = ids.count
-            if G.Edges.Index.self == Int.self, graph._withSuccessorIndexRows({ offsets, targets -> Void in
-                precondition(offsets.count == n + 1 && offsets[0] >= 0 && offsets[n] <= targets.count, "The row offsets do not match the vertex count")
-                for v in 0 ..< n { precondition(offsets[v] <= offsets[v + 1], "The row offsets decrease") }
-            }) != nil {
-                reading = .compressed
-            } else if G.Edges.Index.self == Int.self, graph._withCheckedOutIndexRows({ _, _, _, _ in }) != nil {
-                reading = .pooled
-            } else {
-                reading = .indexed
-            }
-        } else {
-            reading = ids.rows != nil ? .numbered : .unindexed
-        }
+        reading = _DijkstraSearchReading(graph, ids)
     }
 
     @inlinable
@@ -107,7 +191,6 @@ public struct DijkstraSearch<G: DirectedGraph, W: Comparable & AdditiveArithmeti
         @usableFromInline let sources: [Int]
         @usableFromInline var nextSource = 0
         @usableFromInline let weight: (G.Edges.Index) -> W
-        @usableFromInline let reading: _DijkstraSearchReading
         @usableFromInline var distance: [W]
         /// Per vertex: 0 undiscovered, 1 in the queue, 2 settled.
         @usableFromInline var state: [UInt8]
@@ -115,13 +198,8 @@ public struct DijkstraSearch<G: DirectedGraph, W: Comparable & AdditiveArithmeti
         /// The vertex being examined and its distance; -1 between vertices.
         @usableFromInline var current = -1
         @usableFromInline var currentDistance: W = .zero
-        /// Slot reading: the rest of the current row, and the shift from a slot to its position.
-        @usableFromInline var cursor = 0
-        @usableFromInline var end = 0
-        @usableFromInline var shift = 0
-        /// Iterator reading: the rest of the current row.
-        @usableFromInline var positions: G.OutEdges.Iterator?
-        @usableFromInline var targets: G.SuccessorIndices.Iterator?
+        /// The rest of the current row.
+        @usableFromInline var rows: _DijkstraSearchRows<G>
         /// The edge just examined, into an unsettled target, to be relaxed or not next.
         @usableFromInline var pendingEdge: G.Edges.Index?
         @usableFromInline var pendingTarget = -1
@@ -134,67 +212,11 @@ public struct DijkstraSearch<G: DirectedGraph, W: Comparable & AdditiveArithmeti
             self.ids = ids
             self.sources = sources
             self.weight = weight
-            self.reading = reading
             let n = ids.count
             distance = [W](repeating: .zero, count: n)
             state = [UInt8](repeating: 0, count: n)
             queue = IndexedPriorityQueue(indexBound: n)
-        }
-
-        /// The next out-edge of the current row and the number of its target, or `nil` at the end.
-        @inlinable
-        @inline(__always)
-        mutating func _nextEdge() -> (edge: G.Edges.Index, target: Int)? {
-            switch reading {
-            case .compressed:
-                guard cursor < end else { return nil }
-                let k = cursor
-                cursor &+= 1
-                let target = ids.graph._withSuccessorIndexRows { _, targets in targets[k] }.unsafelyUnwrapped
-                return (unsafeBitCast(k, to: G.Edges.Index.self), target)
-            case .pooled:
-                guard cursor < end else { return nil }
-                let k = cursor
-                cursor &+= 1
-                let shift = shift
-                let (position, target) = ids.graph._withOutIndexRows { targets, _, edges, _ in (edges[k &+ shift], targets[k]) }.unsafelyUnwrapped
-                return (unsafeBitCast(position, to: G.Edges.Index.self), target)
-            case .numbered:
-                guard cursor < end else { return nil }
-                let k = cursor
-                cursor &+= 1
-                let rows = ids.rows.unsafelyUnwrapped
-                return (unsafeBitCast(rows.edges[k], to: G.Edges.Index.self), rows.neighbors[k])
-            case .indexed:
-                // `outEdges` and `successorIndices` have the same length.
-                guard let edge = positions?.next(), let target = targets?.next() else { return nil }
-                return (edge, target)
-            case .unindexed:
-                guard let edge = positions?.next() else { return nil }
-                return (edge, ids.existingIdentifier(of: ids.graph.target(ofEdgeAt: edge)).unsafelyUnwrapped)
-            }
-        }
-
-        /// Opens the out-row of `u`.
-        @inlinable
-        mutating func _load(_ u: Int) {
-            switch reading {
-            case .compressed:
-                (cursor, end) = ids.graph._withSuccessorIndexRows { offsets, _ in (offsets[u], offsets[u &+ 1]) }.unsafelyUnwrapped
-            case .pooled:
-                (cursor, end, shift) = ids.graph._withOutIndexRows { _, targetRows, _, edgeRows in
-                    let start = targetRows[3 &* u]
-                    return (start, start &+ targetRows[3 &* u &+ 1], edgeRows[3 &* u] &- start)
-                }.unsafelyUnwrapped
-            case .numbered:
-                let offsets = ids.rows.unsafelyUnwrapped.offsets
-                (cursor, end) = (offsets[u], offsets[u &+ 1])
-            case .indexed:
-                positions = ids.graph.outEdges(ofIndex: u).makeIterator()
-                targets = ids.graph.successorIndices(ofIndex: u).makeIterator()
-            case .unindexed:
-                positions = ids.graph.outEdges(of: ids.vertices[u]).makeIterator()
-            }
+            rows = _DijkstraSearchRows(ids: ids, reading: reading)
         }
 
         @inlinable
@@ -228,7 +250,7 @@ public struct DijkstraSearch<G: DirectedGraph, W: Comparable & AdditiveArithmeti
                 return .discover(ids.vertex(s), distance: .zero)
             }
             if current >= 0 {
-                guard let (edge, v) = _nextEdge() else {
+                guard let (edge, v) = rows.next() else {
                     let u = current
                     current = -1
                     return .finish(ids.vertex(u), distance: currentDistance)
@@ -247,7 +269,7 @@ public struct DijkstraSearch<G: DirectedGraph, W: Comparable & AdditiveArithmeti
             state[u] = 2
             current = u
             currentDistance = du
-            _load(u)
+            rows.load(u)
             return .examine(ids.vertex(u), distance: du)
         }
     }
