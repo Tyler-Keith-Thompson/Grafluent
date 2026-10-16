@@ -117,6 +117,72 @@ every row; `ref.py --write` regenerates `cases.md` where supported) and `swiftge
 byte: edit the generator, regenerate, `git diff`, then run the suite. `Tests/Catalogs/README.md`
 lists each catalog's scripts and Python pins (run through `uv`).
 
+## Workflow
+
+### Adding a feature
+
+A feature is done when it has all of these. Copy what its sibling features in the module already
+have.
+
+1. **Code and docs.** The implementation, with doc comments per "Docs" below. A new module gets a
+   row in `scripts/modules.py`, then `just modules`, the README's module table and the umbrella
+   DocC list.
+2. **Tests** in `Tests/<Module>Tests`:
+   - hand-worked cases;
+   - edge cases: empty graph, one vertex, self-loops, parallel edges where the representation
+     allows them, disconnected graphs;
+   - `checked:` spellings and their errors;
+   - exit tests for every trap;
+   - a property test against a naive reference;
+   - the same checks run on several representations (`AdjacencyList`, `CompressedSparseRow`,
+     `AdjacencyMatrix`, the pseudographs, `StableDirectedGraph` with holes).
+3. **Catalog rows**, if `Tests/Catalogs/<Module>/` exists: `ref.py` checks every row, and the
+   generator regenerates its test files byte for byte.
+4. **Mutants** in `scripts/mutants/<Module>.py`. Run `just mutate <Module>` and kill every
+   survivor or document it as equivalent in the spec header.
+5. **A differential comparison** in `just diff`, where NetworkX, igraph, scipy or rustworkx has the
+   function.
+6. **Fuzzing:** extend `Fuzz/Sources/Fuzz<Module>` with invariant checks, then run
+   `just fuzz <Target> -t 60` and `just fuzz-regress`.
+7. **A benchmark** in `Benchmarks/Benchmarks/<Module>Benchmarks`. The code must keep pace with a
+   hand-written loop over arrays: measure in release, and add a ratio test in
+   `Tests/<Module>Tests/Performance/` where siblings have one. Use small inputs in debug builds,
+   because the timing only runs in release and CI's debug runner is slow.
+8. **A `graph.lazy` member**, if the algorithm has steps worth watching (see "Shapes"), with a
+   replay test showing its events reproduce the plain call.
+9. **An explore page**, optional. See `Explore/README.md` for the page order, compare tables,
+   first frames and the owner's copy rules.
+
+Watch for these:
+
+- A closure inside `#expect` nested in another closure can run the wrong body, or crash the
+  Linux compiler. Put the body in a nested `func`.
+- Hoist literals to typed `let`s rather than writing them inline in `#expect`.
+- Iterate dictionary keys sorted wherever order is visible.
+- `Package.swift` must stay free of Foundation, because the fuzz builds use the swift.org
+  toolchain.
+
+### What to run
+
+| Change | Run |
+|---|---|
+| Any library code | `bazel test` for every target in `bazel query 'rdeps(//Tests/..., //Sources/X)'`, then `just test-release` |
+| A module's code or tests | `just mutate X`; `just fuzz-regress` for its targets; `just diff --module X` if it has a section |
+| Code using `Int` arithmetic that could overflow | `just wasi-test -c release --targets XTests` (a 32-bit `Int`) |
+| `Benchmarks/`, or an API the benchmarks call | `cd Benchmarks && env -u TOOLCHAINS xcrun --toolchain default swift build -c release` |
+| `Explore/` | `EXPLORE_XCODE=/Applications/Xcode-26.2.0.app just explore`, then check the pages in headless Chrome at 1280 and 400 px |
+
+### Before a push
+
+Every push to `main` releases a patch version, and CI minutes are scarce, so batch pushes.
+
+1. Verify the committed state in a clean worktree: `bazel test //...` in debug, then
+   `--config=release`.
+2. Run the same commit's debug suite on arm64 Linux. CI runs on `ubuntu-26.04-arm`, so this
+   fills the remote cache CI reads.
+3. Watch the Release and DocC workflows to green, and fix anything that breaks.
+4. Don't add CI steps that rebuild without the owner's approval.
+
 ## House rules
 
 ### Library code
