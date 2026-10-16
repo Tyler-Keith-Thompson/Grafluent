@@ -40,3 +40,4 @@ __pycache__/
 # Benchmark baselines: only `main` (just bench-baseline) is shared; other names are local before/after comparisons.
 Benchmarks/.benchmarkBaselines/*/*
 !Benchmarks/.benchmarkBaselines/*/main/
+*.swp
