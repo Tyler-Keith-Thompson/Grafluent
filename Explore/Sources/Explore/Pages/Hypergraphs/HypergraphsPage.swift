@@ -69,16 +69,11 @@ func councilDrawing(expansion: Bool, shown k: Int, current: Int?, inShown: Set<S
     return (nodes, edges)
 }
 
-/// `Ann, Bert and Cleo`.
-func councilList(_ names: [String]) -> String {
-    names.count <= 1 ? names.joined() : names.dropLast().joined(separator: ", ") + " and " + names.last!
-}
-
 /// The sentence for one committee.
 func describeCommittee(_ c: Int) -> String {
     let members = committees[c]
     let size = members.count
-    return "\(committeeNames[c]): \(councilList(members)). One hyperedge with \(size) member\(size == 1 ? "" : "s")\(size == 1 ? ", which no ordinary edge could be" : (size == 2 ? ", like an ordinary edge" : ", which an ordinary graph would need \(size * (size - 1) / 2) edges to hint at"))."
+    return "\(committeeNames[c]): \(nameList(members)). One hyperedge with \(size) member\(size == 1 ? "" : "s")\(size == 1 ? ", which no ordinary edge could be" : (size == 2 ? ", like an ordinary edge" : ", which an ordinary graph would need \(size * (size - 1) / 2) edges to hint at"))."
 }
 
 /// The council drawn as its incidence graph, committee by committee, or as its clique expansion.
@@ -146,7 +141,7 @@ struct HypergraphsLab {
                             if k == 0 { p(.class("empty")) { "None yet" } }
                             for c in shownCommittees {
                                 div(.class(c == current ? "qrow top" : "qrow plain")) {
-                                    span { "\(committeeNames[c]): \(councilList(committees[c]))" }
+                                    span { "\(committeeNames[c]): \(nameList(committees[c]))" }
                                     span(.class("num")) { "\(committees[c].count)" }
                                 }
                             }

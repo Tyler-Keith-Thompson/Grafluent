@@ -77,11 +77,6 @@ final class CliquesModel {
 
 let cliquesModel = CliquesModel()
 
-/// `Ana, Ben and Cy`, or `nobody`.
-func guestList(_ names: [String]) -> String {
-    names.isEmpty ? "nobody" : names.count == 1 ? names[0] : names.dropLast().joined(separator: ", ") + " and " + names.last!
-}
-
 func describeClique(_ event: BronKerboschEvent<String>, before: CliqueSnapshot, after: CliqueSnapshot) -> String {
     switch event {
     case .call(let adding, let clique, _, _):

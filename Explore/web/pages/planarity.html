@@ -18,7 +18,7 @@
   | Method | When to use | Gives | Cost | Weakness |
   | Count the edges | A quick first check | “No” when there are more than 3n − 6 edges | O(1) | Can never say yes |
   | *Left-right test | You want a yes or no, and a drawing | <code>isPlanar</code>, <code>planarEmbedding()</code>, <code>planarLayout()</code> | O(n + m) | No proof when the answer is no |
-  | *Edge addition | You want proof of a no | <code>findKuratowskiSubgraph()</code> | O(n + m) | More work than a plain yes or no |
+  | Edge addition | You want proof of a no | <code>findKuratowskiSubgraph()</code> | O(n + m) | More work than a plain yes or no |
   -->
   <p>Counting edges is instant but only rules graphs out. The two full tests take time in step with the size of the graph. Ask for the proof only when you need it.</p>
 </section>

@@ -46,11 +46,6 @@ final class SteinerModel {
 
 let steinerModel = SteinerModel()
 
-/// `Plant, Hill and Bay`.
-func gridList(_ names: [String]) -> String {
-    names.count <= 1 ? names.joined() : names.dropLast().joined(separator: ", ") + " and " + names.last!
-}
-
 /// The mains of the tree sorted by length, so the playback lays the short ones first.
 func gridLaidInOrder(_ edges: [Int]) -> [Int] {
     edges.sorted { (cableKilometres[utility.edges[$0]]!, $0) < (cableKilometres[utility.edges[$1]]!, $1) }
@@ -102,7 +97,7 @@ struct SteinerLab {
                         span(.class("label")) { finished ? "Connected" : (k == 0 ? "The request" : "Cable \(k) of \(laid.count)") }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Connect \(gridList(places)) with the least cable. Other places may be used on the way. Press Step to lay the cables, shortest first."
+                                "Connect \(nameList(places)) with the least cable. Other places may be used on the way. Press Step to lay the cables, shortest first."
                             } else {
                                 describeCable(current!, number: k, of: laid.count)
                                 if finished {

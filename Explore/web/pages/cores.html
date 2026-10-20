@@ -16,8 +16,8 @@
   <!-- compare
   | Method | When to use | Counts | Cost | Weakness |
   | *k-core | A fast first look at the centre | Friends inside the group | O(n + m) | Can hold people who share no friends |
-  | *k-truss | You want tighter groups | Friends that two friends share | About O(m<sup>1.5</sup>) | Slower than cores |
-  | *Onion layers | You want to rank people inside a core | How many rounds of peeling a person survives | O(n + m) | Harder to explain than a core number |
+  | k-truss | You want tighter groups | Friends that two friends share | About O(m<sup>1.5</sup>) | Slower than cores |
+  | Onion layers | You want to rank people inside a core | How many rounds of peeling a person survives | O(n + m) | Harder to explain than a core number |
   | [Cliques](cliques.html) | Everyone must know everyone | Every pair | Exponential at worst | Slow, and very strict |
   -->
   <p>Cores are the quickest and the loosest. Trusses demand shared friends, so they find tighter groups. Cliques demand every pair, which is often too strict for real data.</p>

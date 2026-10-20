@@ -35,7 +35,7 @@
   <p>Grafluent doesn’t simulate the surfer. It uses power iteration. Every page starts with an equal share. Each round, every page passes its share along its links. This repeats until no score moves by more than the tolerance. A page with no links out shares its rank with every page. The surfer on this page is there to show that the two agree.</p>
 
   <h2><small>Where it breaks</small>Pages that hoard rank</h2>
-  <p>A tight cluster of pages that link only to each other can soak up rank. The random jump keeps that in check. Turn the damping all the way up to see what happens without it. The surfer can get stuck going round, and the scores may never settle. Then <code>pageRank</code> throws <code>NoConvergence</code>.</p>
+  <p>A tight cluster of pages that link only to each other can soak up rank. The random jump keeps that in check. Turn the damping all the way up to see what happens without it: here the Forum, which nobody links to, drops to nothing. On some graphs the surfer goes round a loop for ever and the scores never settle; then <code>pageRank</code> throws <code>NoConvergence</code>.</p>
   <p>Anyone can make pages, so anyone can make links. A web search engine has to spot pages built only to raise another page’s rank.</p>
 </section>
 

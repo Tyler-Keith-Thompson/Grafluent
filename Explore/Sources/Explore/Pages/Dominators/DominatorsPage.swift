@@ -16,11 +16,6 @@ let programIndex: [String: Int] = Dictionary(uniqueKeysWithValues: programBlocks
 /// The jumps, as offsets in `programBlocks`, in `program`'s edge order.
 let programJumps: [(from: Int, to: Int)] = program.edges.map { (programIndex[$0.source]!, programIndex[$0.target]!) }
 
-/// `entry, loop and check`.
-func blockList(_ names: [String]) -> String {
-    names.count <= 1 ? names.joined() : names.dropLast().joined(separator: ", ") + " and " + names.last!
-}
-
 /// Where each block of `tree` sits in a drawing of the tree in a `width` × `height` view box:
 /// leaves spread evenly in depth-first order, each parent centred over its children, a row per
 /// depth. Blocks not in the tree are not placed.
@@ -151,14 +146,14 @@ struct DominatorsLab {
                                     "\(block) is the exit. Every path ends here, so it post-dominates every block that can reach it."
                                 } else {
                                     "Every path from \(block) to the exit runs through "
-                                    em { blockList(chain.dropFirst().map { $0 }) }
+                                    em { nameList(chain.dropFirst().map { $0 }) }
                                     ". The nearest, \(parent!), is its immediate post-dominator. Once \(block) runs, \(parent!) is sure to run after it."
                                 }
                             } else if chain.count <= 1 {
                                 "\(block) is the entry. Every block is reached through it, so it dominates them all."
                             } else {
                                 "Every path from the entry to \(block) runs through "
-                                em { blockList(chain.dropFirst().reversed().map { $0 }) }
+                                em { nameList(chain.dropFirst().reversed().map { $0 }) }
                                 ". The nearest, \(parent!), is its immediate dominator and its parent in the tree."
                                 if block == "exit" { " The exit can be reached through done or through give up, so neither one is unavoidable." }
                                 if block == "next" { " Next can be reached through add or through warn, so neither one is unavoidable." }
@@ -216,7 +211,7 @@ func describeClosing(_ step: ClosingStep) -> String {
     let others = step.cutOff.filter { $0 != step.block }.map { programBlocks[$0].name }
     return others.isEmpty
         ? "Take out \(name). Everything else is still reachable from the entry, so \(name) dominates only itself."
-        : "Take out \(name). The entry can no longer reach \(blockList(others)). Every path to \(others.count == 1 ? "it" : "them") ran through \(name), so \(name) dominates \(others.count == 1 ? "it" : "them")."
+        : "Take out \(name). The entry can no longer reach \(nameList(others)). Every path to \(others.count == 1 ? "it" : "them") ran through \(name), so \(name) dominates \(others.count == 1 ? "it" : "them")."
 }
 
 /// The check by definition: take out each block in turn and see what the entry stops reaching.

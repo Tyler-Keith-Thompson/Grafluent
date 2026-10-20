@@ -63,17 +63,12 @@ func loopList(_ cycles: [Cycle<String, Int>]) -> String {
     "[" + cycles.map { "[" + $0.vertices.joined(separator: ", ") + "]" }.joined(separator: ", ") + "]"
 }
 
-/// `Gate, Pond and Oak`.
-func loopPlaceList(_ names: [String]) -> String {
-    names.count <= 1 ? names.joined() : names.dropLast().joined(separator: ", ") + " and " + names.last!
-}
-
 /// The sentence for one cycle of the basis.
 func describeCycle(_ cycle: Cycle<String, Int>, number: Int, weighted: Bool) -> String {
     let places = cycle.vertices
     let metres = cycle.edges.reduce(0) { $0 + loopMetres[$1] }
     let size = weighted ? "\(metres) m" : "\(cycle.edges.count) path\(cycle.edges.count == 1 ? "" : "s")"
-    return "Cycle \(number): \(loopPlaceList(places)), back to \(places[0]). \(size)."
+    return "Cycle \(number): \(nameList(places)), back to \(places[0]). \(size)."
 }
 
 /// The commons with the basis cycles shown one by one.

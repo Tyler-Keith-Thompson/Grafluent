@@ -177,7 +177,7 @@ func describeChordalStep(_ step: ChordalStep) -> String {
         }
         return later.count == 1
             ? "Take away \(name(v)). Only one of their friends is still here."
-            : "Take away \(name(v)). Their friends still here, \(blockList(later.map(name))), are all friends with each other."
+            : "Take away \(name(v)). Their friends still here, \(nameList(later.map(name))), are all friends with each other."
     }
 }
 

@@ -140,7 +140,7 @@ struct SpectralLab {
                         p(.class("narration")) {
                             if let split {
                                 (model.openLinks.count == 1 ? "There is 1 link" : "There are \(model.openLinks.count) links") + " between the circles. λ₂, the algebraic connectivity, measures how well the network is joined. More links across give a larger λ₂. Splitting by the sign of the Fiedler vector puts "
-                                em { blockList(split.negative) }
+                                em { nameList(split.negative) }
                                 " on one side."
                             } else {
                                 "No link joins the circles, so the network is in two pieces. λ₂ is 0, and there is no Fiedler vector, so fiedlerVector() returns nil. The drawing sets the two pieces apart."
@@ -178,7 +178,7 @@ struct SpectralCodePanel {
 /// The sentence for one threshold of the sweep.
 func describeSweep(_ cut: SweepCut, order: [String], best: Int, signSplit: Int) -> String {
     let left = Array(order.prefix(cut.k))
-    let first = cut.k == 1 ? "Put \(left[0]), first in the Fiedler order, on one side." : "Put \(blockList(left)), the first \(cut.k) in the Fiedler order, on one side."
+    let first = cut.k == 1 ? "Put \(left[0]), first in the Fiedler order, on one side." : "Put \(nameList(left)), the first \(cut.k) in the Fiedler order, on one side."
     var text = first + " \(cut.cut == 1 ? "1 link crosses" : "\(cut.cut) links cross") between the sides, and the ratio cut is \(threePlacesPlain(cut.ratio))."
     if cut.k == signSplit { text += " This is the sign split, with everyone below 0 on one side." }
     if cut.k == best { text += " It is the best ratio of any threshold." }

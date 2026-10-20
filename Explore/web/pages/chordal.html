@@ -16,8 +16,8 @@
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
   | *Maximum cardinality search | A quick yes or no | <code>isChordal</code>, <code>perfectEliminationOrdering()</code> | O(n + m) | No proof when the answer is no |
-  | *Lexicographic breadth-first search | You want a finer order to build on | <code>lexicographicBreadthFirstSearch()</code> | O(n + m) | A little more bookkeeping |
-  | *Find a hole | You want proof of a no | <code>findHole()</code>, a loop with no shortcut | Slower than the test | Only useful when the answer is no |
+  | Lexicographic breadth-first search | You want a finer order to build on | <code>lexicographicBreadthFirstSearch()</code> | O(n + m) | A little more bookkeeping |
+  | Find a hole | You want proof of a no | <code>findHole()</code>, a loop with no shortcut | Slower than the test | Only useful when the answer is no |
   -->
   <p>Both searches answer in linear time. Ask for a hole only when you need to show someone why the answer is no.</p>
 </section>

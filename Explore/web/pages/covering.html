@@ -16,9 +16,9 @@
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
   | *<code>minimumVertexCover()</code>, <code>minimumDominatingSet()</code> | You need the fewest, on a modest network | A smallest plan | Exponential in the worst case | Slow on large, tangled networks |
-  | *The <code>lexicographicallyFirst</code> forms | You need the same answer every time | The smallest plan whose corners come first in the list | Exponential in the worst case | Can take longer than the plain search |
-  | *<code>approximateMinimumVertexCover()</code> | A large network, and twice the fewest is fine | A cover at most twice the smallest | O(n + m) | Can be twice too big |
-  | *<code>approximateMinimumDominatingSet()</code> | A large network, and close is fine | A greedy plan, about ln Δ times the smallest at worst | O((n + m) log n) | Can be several times too big |
+  | The <code>lexicographicallyFirst</code> forms | You need the same answer every time | The smallest plan whose corners come first in the list | Exponential in the worst case | Can take longer than the plain search |
+  | <code>approximateMinimumVertexCover()</code> | A large network, and twice the fewest is fine | A cover at most twice the smallest | O(n + m) | Can be twice too big |
+  | <code>approximateMinimumDominatingSet()</code> | A large network, and close is fine | A greedy plan, about ln Δ times the smallest at worst | O((n + m) log n) | Can be several times too big |
   -->
   <p>The exact searches give the true fewest. The approximations are fast and come with a promise of how far off they can be. In the table, n is the number of corners, m the number of streets and Δ the most streets at any one corner.</p>
 </section>

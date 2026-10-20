@@ -125,8 +125,8 @@ struct PostmanLab {
                     div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
                         span(.class("label")) { "\(tour.weight) minutes" }
                         p(.class("narration")) {
-                            "Clearing every street once takes \(total) minutes. But \(blockList(odd)) each have an odd number of streets. So some streets must be driven twice. The cheapest choice is "
-                            em { blockList(tour.duplicatedEdges.map(streetName)) }
+                            "Clearing every street once takes \(total) minutes. But \(nameList(odd)) each have an odd number of streets. So some streets must be driven twice. The cheapest choice is "
+                            em { nameList(tour.duplicatedEdges.map(streetName)) }
                             ", for \(tour.weight - total) minutes more."
                         }
                     }

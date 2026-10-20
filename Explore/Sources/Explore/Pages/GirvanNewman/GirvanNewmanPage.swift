@@ -209,8 +209,3 @@ enum GirvanNewmanPage {
     }
 }
 
-/// `0.42` or `−0.08`, to two places.
-func signedTwoPlaces(_ x: Double) -> String {
-    let hundredths = Int((abs(x) * 100).rounded())
-    return (x < 0 && hundredths > 0 ? "−" : "") + "\(hundredths / 100).\(hundredths % 100 < 10 ? "0" : "")\(hundredths % 100)"
-}

@@ -53,11 +53,6 @@ func companyColours<G: DirectedGraph>(_ tree: CommunityHierarchy<G>, _ level: In
     return map
 }
 
-/// `Ada, Bo, Cal and Di`.
-func personList(_ names: [String]) -> String {
-    names.count <= 1 ? names.joined() : names.dropLast().joined(separator: ", ") + " and " + names.last!
-}
-
 /// The community each person is in at `level`: the deepest community at or above that level.
 func communityAtLevel<G: DirectedGraph>(_ tree: CommunityHierarchy<G>, _ level: Int, of vertex: G.Vertex) -> Int {
     var c = tree.community(of: vertex)
@@ -72,8 +67,8 @@ func describeLevel<G: DirectedGraph>(_ tree: CommunityHierarchy<G>, _ level: Int
     let over = range.filter { tree[$0].count > cap }
     let split = over.filter { !tree.children(of: $0).isEmpty }
     var text = level == 0
-        ? "Level 0: Leiden on the whole company finds \(range.count) communities, of \(personList(sizes.map { "\($0)" })) people."
-        : "Level \(level): \(range.count) communities, of \(personList(sizes.map { "\($0)" })) people, split from the ones over the cap."
+        ? "Level 0: Leiden on the whole company finds \(range.count) communities, of \(nameList(sizes.map { "\($0)" })) people."
+        : "Level \(level): \(range.count) communities, of \(nameList(sizes.map { "\($0)" })) people, split from the ones over the cap."
     if over.isEmpty {
         text += " None is over the cap of \(cap), so this is the last level."
     } else if split.isEmpty {
@@ -148,7 +143,7 @@ struct HierarchyLab {
                             for l in 0 ..< (shown ? level + 1 : 0) {
                                 for c in tree.communities(atLevel: l) {
                                     div(.class(l == level ? "qrow top" : "qrow plain")) {
-                                        span { String(repeating: "· ", count: l) + personList(Array(tree[c])) }
+                                        span { String(repeating: "· ", count: l) + nameList(Array(tree[c])) }
                                         span(.class("num")) { tree.children(of: c).isEmpty ? "final" : "splits" }
                                     }
                                 }

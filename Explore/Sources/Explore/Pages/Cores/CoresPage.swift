@@ -66,11 +66,6 @@ final class CoresModel {
 
 let coresModel = CoresModel()
 
-/// `Ana, Ben and Cy`.
-func nameList(_ names: [String]) -> String {
-    names.count <= 1 ? names.joined() : names.dropLast().joined(separator: ", ") + " and " + names.last!
-}
-
 /// The club with the k-core or the k-truss picked out.
 @View
 struct CoresLab {

@@ -67,14 +67,6 @@ final class BetweennessModel {
 
 let betweennessModel = BetweennessModel()
 
-/// `3`, `2.5` or `0.33`.
-func shareText(_ x: Double) -> String {
-    let hundredths = Int((x * 100).rounded())
-    let whole = hundredths / 100, rest = hundredths % 100
-    if rest == 0 { return "\(whole)" }
-    return rest % 10 == 0 ? "\(whole).\(rest / 10)" : "\(whole).\(rest < 10 ? "0" : "")\(rest)"
-}
-
 func describePair(_ pair: OfficePair) -> String {
     let a = officeSeats[pair.a].name, b = officeSeats[pair.b].name
     let hops = pair.paths[0].links.count

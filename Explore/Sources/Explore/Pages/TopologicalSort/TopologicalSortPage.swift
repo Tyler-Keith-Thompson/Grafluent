@@ -245,6 +245,5 @@ enum TopologicalSortPage {
     static func mount() {
         mountView(TopologicalSortLab(), in: "app")
         mountView(TopologicalSortCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.tremaux]), in: "names")
     }
 }

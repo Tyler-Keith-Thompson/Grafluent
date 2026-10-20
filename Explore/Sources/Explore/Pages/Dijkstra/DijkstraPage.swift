@@ -298,6 +298,6 @@ enum DijkstraPage {
     static func mount() {
         mountView(DijkstraLab(), in: "app")
         mountView(DijkstraCodePanel(), in: "code")
-        mountView(NamesStrip(names: [Names.dijkstra, Names.boruvka, Names.erdosRenyi, Names.konig, Names.hierholzer]), in: "names")
+        mountView(NamesStrip(names: [Names.dijkstra]), in: "names")
     }
 }

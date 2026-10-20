@@ -51,17 +51,12 @@ func countyPathEdges(_ stops: [String]) -> Set<Int> {
 /// `["Birch", "Glen"]`.
 func countyQuoted(_ names: [String]) -> String { "[" + names.map { "\"\($0)\"" }.joined(separator: ", ") + "]" }
 
-/// `Birch, Glen and Holt`.
-func countyList(_ names: [String]) -> String {
-    names.count <= 1 ? names.joined() : names.dropLast().joined(separator: ", ") + " and " + names.last!
-}
-
 /// The sentence for one village's eccentricity.
 func describeEccentricity(_ v: Int, _ model: DistancesModel) -> String {
     let unit = model.byMinutes ? "minutes" : "hops"
     let far = model.byMinutes ? model.farthestByMinutes[v] : model.farthestByHops[v]
     let name = countySpots[v].name
-    return "\(name): the farthest village is \(far.village), \(far.distance) \(unit) away by \(countyList(Array(far.stops.dropFirst()))). So \(name)’s eccentricity is \(far.distance)."
+    return "\(name): the farthest village is \(far.village), \(far.distance) \(unit) away by \(nameList(Array(far.stops.dropFirst()))). So \(name)’s eccentricity is \(far.distance)."
 }
 
 /// The county with each village's countyFarthest village, then the centre and the periphery.
@@ -119,9 +114,9 @@ struct DistancesLab {
                                 describeEccentricity(current!, model)
                                 if finished {
                                     " The radius is \(measures.radius.map { "\($0)" } ?? "∞") \(unit), at "
-                                    em { countyList(measures.center) }
+                                    em { nameList(measures.center) }
                                     ": the centre. The diameter is \(measures.diameter.map { "\($0)" } ?? "∞") \(unit), at "
-                                    em { countyList(measures.periphery) }
+                                    em { nameList(measures.periphery) }
                                     ": the periphery."
                                 }
                             }

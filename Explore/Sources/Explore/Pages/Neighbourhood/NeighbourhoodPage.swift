@@ -60,11 +60,6 @@ final class NeighbourhoodModel {
 
 let neighbourhoodModel = NeighbourhoodModel()
 
-/// `Ada Lovelace, Lord Byron and Poetry`.
-func factList(_ names: [String]) -> String {
-    names.count <= 1 ? names.joined() : names.dropLast().joined(separator: ", ") + " and " + names.last!
-}
-
 /// The ring each kept entity is in: 0 for a seed, then one more per hop, with the budget applied.
 func factRings(seeds: [String], hops: Int, budget: Int) -> [String: Int] {
     let kept = Set(factsNearby(seeds, hops: hops, budget: budget))
@@ -94,16 +89,16 @@ func describeRing(_ depth: Int, seeds: [String], hops: Int, budget: Int) -> Stri
     let all = without.filter { $0.value == depth }.map(\.key).sorted()
     let keptSoFar = withBudget.filter { $0.value <= depth }.count
     if depth == 0 {
-        return "Start from \(factList(seeds)). \(keptSoFar) of the budget of \(budget) used."
+        return "Start from \(nameList(seeds)). \(keptSoFar) of the budget of \(budget) used."
     }
     if kept.isEmpty {
-        return "Ring \(depth) would add \(factList(all)), but the budget of \(budget) is already used up, so nothing more is kept."
+        return "Ring \(depth) would add \(nameList(all)), but the budget of \(budget) is already used up, so nothing more is kept."
     }
     if kept.count < all.count {
         let dropped = all.filter { !kept.contains($0) }
-        return "Ring \(depth) has \(all.count) entities, more than the \(kept.count) places left in the budget. The best connected are kept: \(factList(kept)). Dropped: \(factList(dropped))."
+        return "Ring \(depth) has \(all.count) entities, more than the \(kept.count) places left in the budget. The best connected are kept: \(nameList(kept)). Dropped: \(nameList(dropped))."
     }
-    return "Ring \(depth) adds \(factList(kept)), everything one hop further. \(keptSoFar) of the budget of \(budget) used."
+    return "Ring \(depth) adds \(nameList(kept)), everything one hop further. \(keptSoFar) of the budget of \(budget) used."
 }
 
 /// The knowledge graph with the rings around the seeds, as far as the hops and the budget allow.
@@ -146,7 +141,7 @@ struct NeighbourhoodLab {
                         span(.class("label")) { k == 0 ? "The question" : "Ring \(shownRing) of \(model.hops)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "A question about \(factList(seeds)). Pull in what the graph knows within \(model.hops) hop\(model.hops == 1 ? "" : "s"), at most \(model.budget) entities. Press Step to add one ring at a time."
+                                "A question about \(nameList(seeds)). Pull in what the graph knows within \(model.hops) hop\(model.hops == 1 ? "" : "s"), at most \(model.budget) entities. Press Step to add one ring at a time."
                             } else {
                                 describeRing(shownRing, seeds: seeds, hops: model.hops, budget: model.budget)
                             }
@@ -197,7 +192,7 @@ struct NeighbourhoodLab {
                                 let names = rings.filter { $0.value == depth }.map(\.key).sorted()
                                 if !names.isEmpty {
                                     div(.class(depth == shownRing ? "qrow top" : "qrow plain")) {
-                                        span { factList(names) }
+                                        span { nameList(names) }
                                         span(.class("num")) { depth == 0 ? "the question" : "ring \(depth)" }
                                     }
                                 }
