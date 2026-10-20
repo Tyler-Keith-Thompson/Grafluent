@@ -26,6 +26,7 @@ writes the catalog's rows; `ref.py --fill` computes Expected.
 | `asynchronousLabelPropagationCommunities()`, also `(weight:)`, each also `(using:)` | `Graph` | Raghavan–Albert–Kumara 2007 |
 | `girvanNewmanCommunities()` → `GirvanNewmanSequence` | `Graph` | Girvan–Newman 2002: the divisive hierarchy, coarsest first |
 | `spectralClustering(clusterCount:tolerance:maxIterations:)`, also `(…, weight:, …)`, each also `(…, using:)` | `Graph` | Ng–Jordan–Weiss 2001: N's eigenvectors, unit rows, k-means++ (Arthur–Vassilvitskii 2007) |
+| `hierarchicalLeidenCommunities(maximumCommunitySize:quality:resolution:randomness:iterations:using:)` → `CommunityHierarchy`, also `(weight:…)`, each also without `using:` | both | Leiden on the whole graph, then inside every community over the cap, level by level (graspologic's `hierarchical_leiden`); levels, parents, children and leaves |
 | `Partition<G>` | | Communities in canonical order, `community(of:)`, `community(ofIndex:)`, `count` |
 
 Label propagation on a directed graph: `digraph.undirectedView.labelPropagationCommunities()`.

@@ -9,7 +9,8 @@
 // than the components, each splitting one community of the last in two along a remaining cut, and
 // the last every vertex alone, the same on the conformer and on UndirectedAdjacencyList. Leiden
 // (both quality functions, both kinds) gives connected communities no single vertex gains by
-// leaving; Louvain's levels end with its partition; Kernighan–Lin keeps the starting sizes and
+// leaving, and hierarchical Leiden with a cap of 2 starts from that partition, nests its levels
+// consistently and ends in connected leaves that partition the vertices; Louvain's levels end with its partition; Kernighan–Lin keeps the starting sizes and
 // never cuts more; k-clique communities are the brute-force unions of percolating k-cliques;
 // Walktrap and leading-eigenvector communities are canonical partitions, Walktrap's connected;
 // spectral clustering gives exactly the cluster count asked for, as a canonical partition, and the
@@ -253,6 +254,50 @@ enum FuzzCommunityDetection {
             let directed = labels(digraph.leidenCommunities(weight: weight, quality: quality, resolution: gamma, using: &generator), n, "\(name) directed Leiden")
             checkNodeOptimal(a, directed, directed: true, potts: potts, gamma: gamma, ends, "\(name) directed Leiden \(quality)")
         }
+        // Hierarchical Leiden with a cap of 2: level 0 is Leiden's partition from the same seed;
+        // every level's communities are ranges of numbers, a child's vertices are a subset of its
+        // parent's and the children of a community over the cap cover it (or it has none); each
+        // community is connected; the leaves partition the vertices and community(of:) names them;
+        // the same seed repeats the hierarchy.
+        func checkHierarchy<G: DirectedGraph>(_ result: CommunityHierarchy<G>, _ flat: Partition<G>, _ label: String) where G.Vertex == Int {
+            check(result.levelCount == (n == 0 ? 0 : 1) || result.levelCount > 1, "\(label): \(result.levelCount) levels")
+            if n > 0 { check(result.communities(atLevel: 0).map { Array(result[$0]) } == flat.map { Array($0) }, "\(label): level 0") }
+            var seen = 0
+            for level in 0 ..< result.levelCount {
+                let range = result.communities(atLevel: level)
+                check(range.lowerBound == seen, "\(label): level \(level) starts at \(range.lowerBound), not \(seen)")
+                seen = range.upperBound
+                for c in range { check(result.level(of: c) == level, "\(label): community \(c) on level \(result.level(of: c))") }
+            }
+            check(seen == result.count, "\(label): \(result.count) communities in \(seen) levels")
+            for c in 0 ..< result.count {
+                let members = Array(result[c])
+                check(members == members.sorted() && !members.isEmpty, "\(label): community \(c) is \(members)")
+                let inside = components(n, ends.filter { members.contains($0.0) && members.contains($0.1) })
+                check(members.allSatisfy { inside[$0] == inside[members[0]] }, "\(label): community \(c) is not connected")
+                if let p = result.parent(of: c) {
+                    check(result.level(of: p) == result.level(of: c) - 1 && Set(result[p]).isSuperset(of: members), "\(label): community \(c) under \(p)")
+                    check(result.children(of: p).contains(c), "\(label): community \(c) not among \(p)'s children")
+                } else {
+                    check(result.level(of: c) == 0, "\(label): community \(c) has no parent on level \(result.level(of: c))")
+                }
+                let children = result.children(of: c)
+                if children.isEmpty {
+                    for v in members { check(result.community(of: v) == c && result.community(ofIndex: v) == c, "\(label): vertex \(v) in \(c)") }
+                } else {
+                    check(members.count > 2 && children.count > 1, "\(label): community \(c) of \(members.count) split into \(children.count)")
+                    check(children.flatMap { Array(result[$0]) }.sorted() == members, "\(label): children of \(c) do not cover it")
+                    for d in children { check(result.parent(of: d) == c, "\(label): child \(d) of \(c)") }
+                }
+            }
+            check(result.leaves.flatMap { Array(result[$0]) }.sorted() == Array(0 ..< n), "\(label): the leaves do not partition the vertices")
+        }
+        var hierarchySeed = SplitMix(state: seed &+ 1), flatSeed = SplitMix(state: seed &+ 1), againSeed = SplitMix(state: seed &+ 1)
+        let hierarchy = graph.hierarchicalLeidenCommunities(weight: weight, maximumCommunitySize: 2, using: &hierarchySeed)
+        checkHierarchy(hierarchy, graph.leidenCommunities(weight: weight, using: &flatSeed), "\(name): hierarchical Leiden")
+        check(graph.hierarchicalLeidenCommunities(weight: weight, maximumCommunitySize: 2, using: &againSeed) == hierarchy, "\(name): hierarchical Leiden not repeatable")
+        var directedHierarchySeed = SplitMix(state: seed &+ 2), directedFlatSeed = SplitMix(state: seed &+ 2)
+        checkHierarchy(digraph.hierarchicalLeidenCommunities(weight: weight, maximumCommunitySize: 2, using: &directedHierarchySeed), digraph.leidenCommunities(weight: weight, using: &directedFlatSeed), "\(name): directed hierarchical Leiden")
         check(graph.louvainPartitions(weight: weight).last == graph.louvainCommunities(weight: weight), "\(name): Louvain's levels")
         check(digraph.louvainPartitions(weight: weight).last == digraph.louvainCommunities(weight: weight), "\(name): directed Louvain's levels")
         // The Louvain events: the finished levels are the partitions, each level's gains add up to

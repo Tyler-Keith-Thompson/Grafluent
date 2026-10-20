@@ -297,6 +297,18 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(sparse.leidenCommunities(iterations: 2, using: &generator))
         }
     }
+    Benchmark("CommunityDetection: hierarchicalLeidenCommunities(maximumCommunitySize: 100, using:), G(10⁵, 5·10⁵)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = SeededRandomNumberGenerator(seed: 1)
+            blackHole(sparse.hierarchicalLeidenCommunities(maximumCommunitySize: 100, using: &generator))
+        }
+    }
+    Benchmark("CommunityDetection: hierarchicalLeidenCommunities(maximumCommunitySize: 100, using:), 100 planted blocks of 1000") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var generator = SeededRandomNumberGenerator(seed: 1)
+            blackHole(blocks.hierarchicalLeidenCommunities(maximumCommunitySize: 100, using: &generator))
+        }
+    }
     Benchmark("CommunityDetection: leidenCommunities(using:), 100 planted blocks of 1000") { benchmark in
         for _ in benchmark.scaledIterations {
             var generator = SeededRandomNumberGenerator(seed: 1)

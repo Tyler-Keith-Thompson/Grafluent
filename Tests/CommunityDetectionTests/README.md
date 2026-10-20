@@ -2,11 +2,11 @@
 
 `CommunityDetection` partitions a graph's vertices into communities and scores partitions:
 modularity (Newman–Girvan with a resolution γ; Leicht–Newman on directed graphs), coverage and
-performance, the constant Potts model, Louvain (and its levels), Leiden, greedy modularity
+performance, the constant Potts model, Louvain (and its levels), Leiden and hierarchical Leiden, greedy modularity
 (Clauset–Newman–Moore), label propagation, semi-synchronous and asynchronous, Girvan–Newman's
 sequence of partitions, Kernighan–Lin bisection, k-clique percolation, asynchronous fluid
 communities, Walktrap and leading-eigenvector communities, spectral clustering (Ng–Jordan–Weiss),
-and the split of a grouping into its connected parts, on `Graph` and (modularity, quality, the constant Potts model, Louvain, Leiden,
+and the split of a grouping into its connected parts, on `Graph` and (modularity, quality, the constant Potts model, Louvain, Leiden, hierarchical Leiden,
 greedy, the component split) `DirectedGraph`, unweighted and weighted. The API description (`api.md`) is in
 [`Tests/Catalogs/CommunityDetection/`](../Catalogs/CommunityDetection/). The suite uses only the
 public API, and each test is self-contained. The shared material is the `ReferencePseudograph` and
@@ -29,6 +29,7 @@ extension Graph {                       // partitions are Partition<DirectedView
     func girvanNewmanCommunities() -> GirvanNewmanSequence<Self>              // a lazy Sequence of Partition<…>, coarsest first
     func constantPottsModel<C>(of: C, resolution: Double = 1) -> Double      // also (of:weight:resolution:)
     func leidenCommunities(quality: .modularity, resolution: 1, randomness: 0.01, iterations: nil, using:) -> Partition<…>  // also (weight:…), each also without using:
+    func hierarchicalLeidenCommunities(maximumCommunitySize:, quality: .modularity, resolution: 1, randomness: 0.01, iterations: nil, using:) -> CommunityHierarchy<…>  // also (weight:…), each also without using:
     func louvainPartitions(resolution: 1, threshold: 1e-7) -> [Partition<…>]  // finest first; also (weight:…), each also (…, using:)
     func lazy.louvain(resolution: 1, threshold: 1e-7) -> LouvainEvents<…>  // lazy, index order; also (weight:…); Element LouvainEvent<…>:
         // move(v, from:, to:, gain:), levelFinished(Partition, modularity:), aggregate(vertexCount:)

@@ -132,6 +132,27 @@ MUTANTS = [
     Mutant("lditerationlimit", "Leiden.swift", "iterations.map({ iteration < $0 }) ?? true", "true"),
     Mutant("ldpick", "Leiden.swift", "guard x >= stay else { continue }", "", mode="stmt"),
 
+    # Hierarchical Leiden.
+    Mutant("hlcap", "HierarchicalLeiden.swift", "hierarchy.offsets[c + 1] - hierarchy.offsets[c] > maximumCommunitySize", "hierarchy.offsets[c + 1] - hierarchy.offsets[c] >= maximumCommunitySize"),
+    Mutant("hlnextcap", "HierarchicalLeiden.swift", "hierarchy.offsets[d + 1] - hierarchy.offsets[d] > maximumCommunitySize", "hierarchy.offsets[d + 1] - hierarchy.offsets[d] >= maximumCommunitySize"),
+    Mutant("hlsplit", "HierarchicalLeiden.swift", "guard split else { continue }", "", mode="stmt"),
+    Mutant("hlnext", "HierarchicalLeiden.swift", "next.append(d)", "", mode="stmt"),
+    Mutant("hlparent", "HierarchicalLeiden.swift", "hierarchy.addCommunities(of: vertices, labels: labels, parent: c)", "hierarchy.addCommunities(of: vertices, labels: labels, parent: 0)"),
+    Mutant("hlleaf", "HierarchicalLeiden.swift", "leaf[v] = first + canonical[i]", "", mode="stmt"),
+    Mutant("hlinside", "HierarchicalLeiden.swift", "hierarchy.leaf[graph.to[e]] == hierarchy.leaf[graph.from[e]]", "true"),
+    Mutant("hlweights", "HierarchicalLeiden.swift", "edges.map { weights[$0] }", "edges.map { _ in 1.0 }"),
+    Mutant("hlemptylevel", "HierarchicalLeiden.swift", "guard hierarchy.parent.count > levelStart else { break }", "", mode="stmt"),
+    Mutant("hlcheckcap", "HierarchicalLeiden.swift", "maximumCommunitySize >= 1", "maximumCommunitySize >= 0"),
+    Mutant("hlfirstchild", "HierarchicalLeiden.swift", "if childCount[p] == 0 { firstChild[p] = c }", "firstChild[p] = c", mode="stmt"),
+    Mutant("hllevel", "HierarchicalLeiden.swift", "level[c] = l", "level[c] = 0", mode="stmt"),
+    Mutant("hlleaves", "HierarchicalLeiden.swift", "_childCount[c] == 0", "true"),
+    Mutant("hlcanonical", "HierarchicalLeiden.swift", "renumber[label] < 0", "renumber[label] < 0 || label == 0"),
+    Mutant("hllocal", "HierarchicalLeiden.swift", "local[hierarchy.members[slot]] = i", "local[hierarchy.members[slot]] = 0", mode="stmt"),
+    Mutant("hlempty", "HierarchicalLeiden.swift", "guard n > 0 else { return hierarchy }", "", mode="stmt"),
+    Mutant("hlparentnil", "HierarchicalLeiden.swift", "return p < 0 ? nil : p", "return p", mode="stmt"),
+    Mutant("hlcheckedguard", "HierarchicalLeiden.swift", "guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt"),
+    Mutant("hlcheckedlookup", "HierarchicalLeiden.swift", "_numbers[vertex]", "Optional(_numbers[vertex] ?? 0)", nth=1),
+
     # Louvain's levels and the component split.
     Mutant("lvlevels", "Louvain.swift", "levels.append(labels)", "levels = [labels]", mode="stmt"),
     Mutant("partsweight", "Leiden.swift", "labels[w] == labels[s]", "true"),

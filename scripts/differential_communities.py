@@ -288,6 +288,45 @@ def compare_community_extras(case, mine, problems):
             if v is not None:
                 problems.append(f"{key}: vertex {v} gains by moving alone: {labels}")
     COVERED["leiden"] += 1
+    # Hierarchical Leiden with a cap of 3, from the same seed as the plain run: level 0 is the
+    # plain partition; levels and children are ranges; a child's vertices are inside its parent's
+    # and the children of a split community cover it; every community is connected; the leaves
+    # partition the vertices and name each vertex's final community.
+    levels, parents, members, leaf_of = mine["hierarchicalLeidenLevels"], mine["hierarchicalLeidenParents"], mine["hierarchicalLeidenMembers"], mine["hierarchicalLeidenLeafOf"]
+    count = len(levels)
+    if not (len(parents) == len(members) == count):
+        problems.append(f"hierarchicalLeiden: {count} levels, {len(parents)} parents, {len(members)} member lists")
+    else:
+        if n:
+            level0 = members[: levels.count(0)]
+            if canonical_labels(mine["leiden"]) != canonical_labels([next(i for i, c in enumerate(level0) if v in c) for v in range(n)]):
+                problems.append(f"hierarchicalLeiden: level 0 {level0} is not leiden's {mine['leiden']}")
+        if levels != sorted(levels) or any(l != 0 for l in levels[: levels.count(0)]):
+            problems.append(f"hierarchicalLeiden: levels {levels} are not in order")
+        children = {c: [d for d in range(count) if parents[d] == c] for c in range(count)}
+        for c in range(count):
+            vs = members[c]
+            if vs != sorted(vs) or not vs:
+                problems.append(f"hierarchicalLeiden: community {c} is {vs}")
+            if connected_parts(len(vs), [(vs.index(a), vs.index(b)) for a, b in ends if a in vs and b in vs], [0] * len(vs)) != 1:
+                problems.append(f"hierarchicalLeiden: community {c} is not connected: {vs}")
+            p = parents[c]
+            if p < 0:
+                if levels[c] != 0:
+                    problems.append(f"hierarchicalLeiden: community {c} on level {levels[c]} has no parent")
+            elif levels[p] != levels[c] - 1 or not set(vs) <= set(members[p]):
+                problems.append(f"hierarchicalLeiden: community {c} under {p}")
+            kids = children[c]
+            if kids:
+                if kids != list(range(kids[0], kids[0] + len(kids))) or len(kids) < 2 or len(vs) <= 3:
+                    problems.append(f"hierarchicalLeiden: community {c} of {len(vs)} has children {kids}")
+                if sorted(v for d in kids for v in members[d]) != vs:
+                    problems.append(f"hierarchicalLeiden: the children of {c} do not cover it")
+        leaves = [c for c in range(count) if not children[c]]
+        if sorted(v for c in leaves for v in members[c]) != list(range(n)):
+            problems.append("hierarchicalLeiden: the leaves do not partition the vertices")
+        if any(leaf_of[v] != c for c in leaves for v in members[c]):
+            problems.append("hierarchicalLeiden: community(of:) disagrees with the leaves")
     h = quality(n, directed, ends, unit, mine["leiden"], False, 1.0)
     m = len(ends)
     q = h / m if m else 0.0

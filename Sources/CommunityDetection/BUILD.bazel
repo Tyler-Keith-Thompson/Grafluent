@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Modularity, the constant Potts model and the map equation; Louvain, Leiden, Infomap, label propagation, greedy modularity, Girvan–Newman, Kernighan–Lin bisection, k-clique percolation, asynchronous fluid, Walktrap and leading-eigenvector communities; spectral clustering (Ng–Jordan–Weiss).
+# Modularity, the constant Potts model and the map equation; Louvain, Leiden and hierarchical Leiden, Infomap, label propagation, greedy modularity, Girvan–Newman, Kernighan–Lin bisection, k-clique percolation, asynchronous fluid, Walktrap and leading-eigenvector communities; spectral clustering (Ng–Jordan–Weiss).
 swift_library(
     name = "CommunityDetection",
     srcs = glob(["**/*.swift"]),

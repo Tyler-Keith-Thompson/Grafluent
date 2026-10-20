@@ -2,7 +2,9 @@
 // functions), Louvain's levels, Kernighan–Lin bisection from a fixed split, k-clique percolation,
 // asynchronous fluid communities, Walktrap, and spectral clustering of a planted partition. The
 // script checks Leiden's partitions for node
-// optimality and connectivity and compares its modularity with igraph's, compares Kernighan–Lin
+// optimality and connectivity and compares its modularity with igraph's, checks hierarchical
+// Leiden's nesting (level 0 is Leiden's partition from the same seed, connected communities, leaves
+// partitioning the vertices), compares Kernighan–Lin
 // and k-clique communities with NetworkX exactly, Walktrap's modularity with igraph's, and the
 // spectral clustering with the planted labels. The randomized calls draw from Tours.swift's
 // SplitMix64.
@@ -29,6 +31,13 @@ struct CommunityExtras: Encodable {
     /// The greatest modularity of five more Leiden runs, each from its own generator.
     var leidenBestModularity = 0.0
     var leidenPottsQuality = 0.0
+    /// Hierarchical Leiden (unweighted, cap 3): each community's level, parent (−1 on level 0) and
+    /// vertices, in the hierarchy's numbering.
+    var hierarchicalLeidenLevels: [Int] = []
+    var hierarchicalLeidenParents: [Int] = []
+    var hierarchicalLeidenMembers: [[Int]] = []
+    /// The final community of each vertex.
+    var hierarchicalLeidenLeafOf: [Int] = []
     /// Whether louvainPartitions() ends with louvainCommunities(), each level coarsening the last.
     var louvainLevelsAgree = true
     /// Undirected only: Kernighan–Lin from {0 ..< n/2}, {n/2 ..< n}, unweighted and |w|.
@@ -84,6 +93,12 @@ func directedCommunityExtras<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ dw: 
     a.leidenPotts = labels(potts, n)
     a.leidenPottsQuality = graph.constantPottsModel(of: potts, resolution: 0.1)
     a.louvainLevelsAgree = louvainLevelsAgree(graph.louvainPartitions(), graph.louvainCommunities(), n)
+    var hierarchySeed = SplitMix64(state: UInt64(n) &* 31 &+ 7)
+    let hierarchy = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 3, using: &hierarchySeed)
+    a.hierarchicalLeidenLevels = (0 ..< hierarchy.count).map { hierarchy.level(of: $0) }
+    a.hierarchicalLeidenParents = (0 ..< hierarchy.count).map { hierarchy.parent(of: $0) ?? -1 }
+    a.hierarchicalLeidenMembers = hierarchy.map { Array($0) }
+    a.hierarchicalLeidenLeafOf = (0 ..< n).map { hierarchy.community(of: $0) }
     return a
 }
 
@@ -102,6 +117,12 @@ func undirectedCommunityExtras<G: Graph<Int>>(_ graph: G, _ n: Int, _ dw: (G.Edg
     a.leidenPotts = labels(potts, n)
     a.leidenPottsQuality = graph.constantPottsModel(of: potts, resolution: 0.1)
     a.louvainLevelsAgree = louvainLevelsAgree(graph.louvainPartitions(), graph.louvainCommunities(), n)
+    var hierarchySeed = SplitMix64(state: UInt64(n) &* 31 &+ 7)
+    let hierarchy = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 3, using: &hierarchySeed)
+    a.hierarchicalLeidenLevels = (0 ..< hierarchy.count).map { hierarchy.level(of: $0) }
+    a.hierarchicalLeidenParents = (0 ..< hierarchy.count).map { hierarchy.parent(of: $0) ?? -1 }
+    a.hierarchicalLeidenMembers = hierarchy.map { Array($0) }
+    a.hierarchicalLeidenLeafOf = (0 ..< n).map { hierarchy.community(of: $0) }
     let halves = [Array(0 ..< n / 2), Array(n / 2 ..< n)]
     a.kernighanLin = labels(graph.kernighanLinBisection(startingFrom: halves), n)
     a.weightedKernighanLin = labels(graph.kernighanLinBisection(startingFrom: halves, weight: dw), n)
