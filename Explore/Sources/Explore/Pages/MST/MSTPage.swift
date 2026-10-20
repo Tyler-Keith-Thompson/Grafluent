@@ -435,13 +435,14 @@ struct MSTCodePanel {
             snippets: [
                 .mstImports, .mstHouses,
                 Snippet(lines: ["let start = \"\(housePlaces[model.start].name)\""]),
-                .mstKruskal, .mstPrim, .mstTotals,
+                .mstKruskal, .mstPrim, .mstTotals, .mstRunnersup,
             ],
             results: [
                 "\(model.kruskalLog.count) events",
                 "\(model.primLog.count) events",
                 "\(totals.kruskal)",
                 "\(totals.prim)",
+                "\(runnersUp())",
             ])
     }
 }

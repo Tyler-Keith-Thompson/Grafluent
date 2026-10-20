@@ -52,3 +52,11 @@ func cablingTotals(from start: String) -> (kruskal: Int, prim: Int) {
     // snippet end
     return (byKruskal, byPrim)
 }
+
+/// The costs of the three cheapest networks: the runners-up are one cable swap away.
+func runnersUp() -> [Int] {
+    // snippet: mst-runnersup
+    let cheapest = houses.spanningForests { cableCost[houses.edges[$0]]! }.prefix(3).map(\.weight)  // →
+    // snippet end
+    return cheapest
+}
