@@ -1,0 +1,43 @@
+<!-- title: Expanders · Explore Grafluent -->
+<!-- description: Wirings where every machine is a few hops from every other with few cables: the chordal cycle, Margulis–Gabber–Galil and Paley graphs, the spectral gap, with Grafluent’s chordalCycle(prime:), margulisGabberGalil(side:) and paley(prime:). -->
+<header class="sign">
+  <h1>Expanders</h1>
+  <p class="question">Twenty-nine machines, and each may have three cables at most. Can a message from one reach all of them in six hops?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Well connected with few cables</h2>
+  <p>An <b>expander</b> is a sparse graph that behaves like a dense one: every vertex has only a few neighbours, yet every set of vertices has many edges leaving it, so there are no bottlenecks and nothing is far from anything else. The <b>spectral gap</b>, the second-smallest eigenvalue of the Laplacian, measures this: a bigger gap means a better expander.</p>
+  <p>Reach for one when you need a network that is cheap to build and hard to cut: the switches of a data centre, the peers of a gossip protocol, or an error-correcting code. Expanders are also what makes random walks mix fast, which is why they turn up in sampling and in derandomization.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to wire a few cables each</h2>
+  <!-- compare
+  | Wiring | When to use | Gives | Cost | Weakness |
+  | *Expander families | A fixed, checkable wiring | Short hops and a large spectral gap from a formula | O(n) or O(n²) edges, built in that time | Needs a prime or a square of vertices |
+  | Random regular graph | Any size and degree | An expander with high probability | O(nd) | No guarantee for the one you drew |
+  | Ring or grid | Hardware that sits in a line or a plane | Short cables between neighbours | O(n) | Far corners are many hops apart |
+  | Complete graph | Few vertices | Every pair one hop apart | O(n²) cables | Too many cables to build |
+  -->
+  <p>The ring is the cheapest wiring and the slowest. The complete graph is the fastest and the dearest. An expander takes a few more cables than a ring and gets most of the way to the complete graph.</p>
+</section>
+
+<p class="example lead">Example: twenty-nine machines in a ring, wired as a plain ring, as a ring where each machine also reaches the one two along, and as the chordal cycle, a ring with one chord from each machine to its inverse modulo 29.</p>
+
+<h2 class="labhead"><small>Step through</small>A message, one hop a step</h2>
+<div id="app"></div>
+
+<section class="prose">
+  <h2><small>The idea</small>Chords from arithmetic</h2>
+  <p>The <b>chordal cycle</b> on a prime p is the ring 0, 1, …, p − 1 with a chord from each machine x to the machine x⁻¹, the number that gives 1 when multiplied by x modulo p. Only 1 and p − 1 are their own inverses, so they get no chord, and every machine has two or three cables. Those chords look random but are not, and Lubotzky showed the family expands: as p grows, the spectral gap stays above a constant. In the lab the chordal cycle on 29 machines uses 40 cables and reaches everyone in six hops; the plain ring, with 29 cables, needs fourteen, and the ring with a skip, with 58, still needs seven.</p>
+  <p>Two more families come from the same kind of arithmetic. <code>margulisGabberGalil(side:)</code> puts n² machines on a grid and joins (x, y) to (x + 2y, y), (x + 2y + 1, y), (x, y + 2x) and (x, y + 2x + 1), all modulo n: at most eight cables each, and a spectral gap bounded away from zero. <code>paley(prime:)</code> joins x and y when y − x is a nonzero square modulo p, for a prime p ≡ 1 (mod 4): every machine has (p − 1)/2 cables, and the graph is its own complement. The lab reads the gap with <code>fiedlerVector()</code>, whose <code>algebraicConnectivity</code> is that second eigenvalue, and counts the hops with <code>breadthFirstLayers(from:)</code>.</p>
+
+  <h2><small>Where it breaks</small>The sizes are fixed</h2>
+  <p>The chordal cycle and the Paley graph need a prime number of vertices, and Margulis–Gabber–Galil a square; for other sizes <code>randomRegular(vertexCount:degree:)</code> gives an expander with high probability but no guarantee. Built as simple graphs, these families drop a step that returns to its own vertex and merge two steps that meet, so the degree is a bound, not a constant: a chordal cycle has some machines with two cables, a Margulis–Gabber–Galil graph some with four. And a large gap says the network has no bottleneck, not that it is fast: the hops still count, and on 29 machines the best is six.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The wirings, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
