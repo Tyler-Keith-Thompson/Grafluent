@@ -51,6 +51,7 @@ let package = Package(
                 .product(name: "Flows", package: "Grafluent"),
                 .product(name: "Cliques", package: "Grafluent"),
                 .product(name: "Cycles", package: "Grafluent"),
+                .product(name: "GraphProducts", package: "Grafluent"),
                 .product(name: "GraphOperations", package: "Grafluent"),
                 .product(name: "Distances", package: "Grafluent"),
                 .product(name: "CommunityDetection", package: "Grafluent"),

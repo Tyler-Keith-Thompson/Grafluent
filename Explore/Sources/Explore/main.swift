@@ -44,6 +44,7 @@ func mountPage(_ page: String) -> Bool {
     case "hierarchy": HierarchyPage.mount()
     case "steiner": SteinerPage.mount()
     case "neighbourhood": NeighbourhoodPage.mount()
+    case "products": ProductsPage.mount()
     case "chordal": ChordalPage.mount()
     case "isomorphism": IsomorphismPage.mount()
     case "communities": CommunitiesPage.mount()
