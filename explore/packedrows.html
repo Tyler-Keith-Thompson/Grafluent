@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changing a stored graph · Explore Grafluent</title>
+<meta name="description" content="Packed rows with spare cells: a graph that keeps changing yet walks as fast as two plain arrays, with the storage drawn live as you add and remove edges.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="packedrows">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a><a href="packedrows.html" aria-current="page">Changing a stored graph</a><a href="products.html">Graph products</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Changing a stored graph</h1>
+  <p class="question">How can a graph keep changing without losing the speed of packed arrays?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Graphs that change all the time</h2>
+  <p>Most real graphs are never finished. People follow and unfollow. Servers come and go. A route map gets a new road every week. The algorithms that run on these graphs want each vertex’s neighbours packed side by side in memory, because a processor reads a packed row very fast. Compressed sparse row stores the rows that way, but it can’t take a new edge without a rebuild. An adjacency list takes new edges all day, but its rows drift apart as they grow, and walking them slows down.</p>
+  <p>Packed rows keep both. Every row stays packed, in order, with a few spare cells after it. Adding an edge usually fills a spare cell. When a row runs out, a small neighbourhood of rows is laid out again to share the spare cells around. Walking the graph reads one array from start to end, as compressed sparse row does. Reach for <code>PackedCompressedSparseRow</code> when a graph changes between the times you run algorithms on it, and you run them often.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Three ways to store a changing graph</h2>
+<div class="compare">
+<table>
+  <thead><tr><th scope="col">Form</th><th scope="col">When to use</th><th scope="col">Walking a row</th><th scope="col">Adding an edge</th><th scope="col">Removing an edge</th><th scope="col">Weakness</th></tr></thead>
+  <tbody>
+    <tr><th scope="row"><a href="representations.html">Adjacency list</a></th><td data-label="When to use">The default; a graph you build by adding edges and rarely walk whole</td><td data-label="Walking a row">Fast, but rows drift apart as the graph changes</td><td data-label="Adding an edge">One write, usually</td><td data-label="Removing an edge">One write</td><td data-label="Weakness">Walks get slower the more the graph has changed</td></tr>
+    <tr><th scope="row"><a href="representations.html">Compressed sparse row</a></th><td data-label="When to use">A graph you build once and study many times</td><td data-label="Walking a row">Fastest: two plain arrays</td><td data-label="Adding an edge">A rebuild of everything</td><td data-label="Removing an edge">A rebuild</td><td data-label="Weakness">Can’t change</td></tr>
+    <tr class="self"><th scope="row">Packed rows (<code>PackedCompressedSparseRow</code>) <span class="this">This page</span></th><td data-label="When to use">A graph that keeps changing and keeps being walked</td><td data-label="Walking a row">As fast as compressed sparse row</td><td data-label="Adding an edge">A few cells move; now and then a window of rows</td><td data-label="Removing an edge">One write</td><td data-label="Weakness">Adding costs several times what a list pays</td></tr>
+  </tbody>
+</table>
+</div>
+  <p>If you only add edges and seldom walk the whole graph, the adjacency list is simpler and quicker to build. If you walk it often between changes, packed rows pay back the extra cost of each insert many times over.</p>
+</section>
+
+<p class="example lead">Example: six people and who follows whom, with the storage drawn underneath. It starts built in one go, so the rows are packed tight. Add one follow and watch the storage spread out with spare cells. Keep adding and most follows drop into a spare cell. Fill it up and the whole storage doubles.</p>
+
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="Six people and the storage of who follows whom"><div class="panel stage"><svg class="canvas" viewBox="0 0 420 320" role="img" aria-label="Six people; an arrow from each person to everyone they follow"><g class="edge tree clickable" data-edge="0"><path d="M134.0,70.0 L285.0,70.0" class="hit" /><path d="M134.0,70.0 L285.0,70.0" class="stroke" /><polygon points="285.0,70.0 274.0,75.5 274.0,64.5" class="head" /></g><g class="edge tree clickable" data-edge="1"><path d="M130.4,82.7 Q232.6,146.2 350.3,165.9" class="hit" /><path d="M130.4,82.7 Q232.6,146.2 350.3,165.9" class="stroke" /><polygon points="350.3,165.9 338.6,169.5 340.4,158.6" class="head" /></g><g class="edge  clickable" data-edge="2"><path d="M323.1,90.1 L361.4,149.0" class="hit" /><path d="M323.1,90.1 L361.4,149.0" class="stroke" /><polygon points="361.4,149.0 350.8,142.8 360.0,136.8" class="head" /></g><g class="edge  clickable" data-edge="3"><path d="M354.6,157.3 Q252.4,93.8 134.7,74.1" class="hit" /><path d="M354.6,157.3 Q252.4,93.8 134.7,74.1" class="stroke" /><polygon points="134.7,74.1 146.4,70.5 144.6,81.4" class="head" /></g><g class="edge  clickable" data-edge="4"><path d="M323.1,249.9 L361.4,191.0" class="hit" /><path d="M323.1,249.9 L361.4,191.0" class="stroke" /><polygon points="361.4,191.0 360.0,203.2 350.8,197.2" class="head" /></g><g class="node visited selected clickable" data-node="0" tabindex="0" role="button" aria-label="Pick Ana"><circle cx="110.0" cy="70.0" r="22.0" /><text x="110.0" y="75.0" text-anchor="middle" class="badge">A</text><text x="110.0" y="40.0" text-anchor="middle" class="name">Ana</text></g><g class="node  clickable" data-node="1" tabindex="0" role="button" aria-label="Pick Ben"><circle cx="310.0" cy="70.0" r="22.0" /><text x="310.0" y="75.0" text-anchor="middle" class="badge">B</text><text x="310.0" y="40.0" text-anchor="middle" class="name">Ben</text></g><g class="node  clickable" data-node="2" tabindex="0" role="button" aria-label="Pick Cy"><circle cx="375.0" cy="170.0" r="22.0" /><text x="375.0" y="175.0" text-anchor="middle" class="badge">C</text><text x="375.0" y="210.0" text-anchor="middle" class="name">Cy</text></g><g class="node  clickable" data-node="3" tabindex="0" role="button" aria-label="Pick Dee"><circle cx="310.0" cy="270.0" r="22.0" /><text x="310.0" y="275.0" text-anchor="middle" class="badge">D</text><text x="310.0" y="310.0" text-anchor="middle" class="name">Dee</text></g><g class="node  clickable" data-node="4" tabindex="0" role="button" aria-label="Pick Eli"><circle cx="110.0" cy="270.0" r="22.0" /><text x="110.0" y="275.0" text-anchor="middle" class="badge">E</text><text x="110.0" y="310.0" text-anchor="middle" class="name">Eli</text></g><g class="node  clickable" data-node="5" tabindex="0" role="button" aria-label="Pick Fay"><circle cx="45.0" cy="170.0" r="22.0" /><text x="45.0" y="175.0" text-anchor="middle" class="badge">F</text><text x="45.0" y="210.0" text-anchor="middle" class="name">Fay</text></g></svg><p class="note">Ana is picked. Click someone else to add or remove “Ana follows them”, or click Ana again to let go.</p></div><div class="side"><div class="panel"><span class="label">The storage</span><div class="stat"><div><span class="num">5</span>cells used</div><div><span class="num">5</span>cells in all</div></div><div class="buttons"><button type="button">Everyone follows everyone</button><button type="button">Start over</button></div><p class="note">Built in one go, so the rows sit packed end to end with no spare cells. Pick someone and add a follow to see the storage change.</p></div><div class="panel"><span class="label">Rows</span><div class="adj"><div class="hl"><b>Ana</b> → Ben, Cy  (2 of 2 cells)</div><div class=""><b>Ben</b> → Cy  (1 of 1 cells)</div><div class=""><b>Cy</b> → Ana  (1 of 1 cells)</div><div class=""><b>Dee</b> → Cy  (1 of 1 cells)</div><div class=""><b>Eli</b> → ·  (0 of 0 cells)</div><div class=""><b>Fay</b> → ·  (0 of 0 cells)</div></div><p class="note">Each row holds the people someone follows, then its spare cells.</p></div></div></section><div class="reps"><div class="panel"><h3>The cells</h3><p class="note">One array holds every row in order. A filled cell is a follow. An empty cell inside a row’s span is spare, kept so the row can grow in place. The bracket under each span names its row.</p><div class="csr-scroll"><svg class="csr" width="182" viewBox="0 0 182 120" role="img" aria-label="The rows packed into one array of cells with spare cells after each"><rect x="20.0" y="30" width="27.0" height="30" class="cell" /><text x="33.5" y="20" text-anchor="middle" class="idx">0</text><rect x="50.0" y="30" width="27.0" height="30" class="cell" /><rect x="80.0" y="30" width="27.0" height="30" class="cell" /><rect x="110.0" y="30" width="27.0" height="30" class="cell" /><rect x="140.0" y="30" width="27.0" height="30" class="cell" /><text x="153.5" y="20" text-anchor="middle" class="idx">4</text><rect x="20.0" y="30" width="27.0" height="30" class="cell on hl" /><text x="33.5" y="51" text-anchor="middle" class="bit on">B</text><rect x="50.0" y="30" width="27.0" height="30" class="cell on hl" /><text x="63.5" y="51" text-anchor="middle" class="bit on">C</text><line x1="20.0" y1="70" x2="77.0" y2="70" class="ptr hl" /><line x1="20.0" y1="64" x2="20.0" y2="70" class="ptr hl" /><line x1="77.0" y1="64" x2="77.0" y2="70" class="ptr hl" /><text x="48.5" y="88" text-anchor="middle" class="idx">Ana</text><rect x="80.0" y="30" width="27.0" height="30" class="cell on" /><text x="93.5" y="51" text-anchor="middle" class="bit on">C</text><line x1="80.0" y1="70" x2="107.0" y2="70" class="ptr" /><line x1="80.0" y1="64" x2="80.0" y2="70" class="ptr" /><line x1="107.0" y1="64" x2="107.0" y2="70" class="ptr" /><text x="93.5" y="88" text-anchor="middle" class="idx">Ben</text><rect x="110.0" y="30" width="27.0" height="30" class="cell on" /><text x="123.5" y="51" text-anchor="middle" class="bit on">A</text><line x1="110.0" y1="70" x2="137.0" y2="70" class="ptr" /><line x1="110.0" y1="64" x2="110.0" y2="70" class="ptr" /><line x1="137.0" y1="64" x2="137.0" y2="70" class="ptr" /><text x="123.5" y="88" text-anchor="middle" class="idx">Cy</text><rect x="140.0" y="30" width="27.0" height="30" class="cell on" /><text x="153.5" y="51" text-anchor="middle" class="bit on">C</text><line x1="140.0" y1="70" x2="167.0" y2="70" class="ptr" /><line x1="140.0" y1="64" x2="140.0" y2="70" class="ptr" /><line x1="167.0" y1="64" x2="167.0" y2="70" class="ptr" /><text x="153.5" y="88" text-anchor="middle" class="idx">Dee</text></svg></div><p class="note">Ana’s row owns cells 0 to 1: 2 used, 0 spare.</p><p class="note">6 people, 5 follows, 5 cells.</p></div></div></div></div>
+
+<section class="prose">
+  <h2><small>The idea</small>A bookshelf with gaps</h2>
+  <p>Think of a bookshelf where each person’s books stand together, with a little empty space after each run. A new book usually slides into that space. When one run has no space left, you look at the shortest stretch of shelf around it. If that stretch is not too full, you spread its books out again so every run gets some space. If it is too full, you take a longer stretch, and longer again. Only when the whole shelf is more than seven tenths full do you buy a shelf twice as long.</p>
+  <p>Packed rows do exactly that with cells. A short stretch may be up to 92 percent full before it is spread out again. The whole storage may only be 70 percent full. The thresholds fall from one to the other, so a spread at any size leaves its rows room to grow before they ask again. That is a packed memory array, and the structure is the packed compressed sparse row of Wheatman and Xu. Each insert moves O(log² n) cells on average, and every walk reads the storage once, forward.</p>
+  <p>Edges keep their positions through all of it. A rebalance moves cells, never the number an edge goes by, so anything attached to the edges, a weight or a label, stays where it is.</p>
+
+  <h2><small>Where it breaks</small>Adding at the end, over and over</h2>
+  <p>The spare cells are spread out evenly, but a stream of inserts that all land in the same place uses them up there first. Adding vertices one after another, each with its edges, always hits the newest row at the end of the storage. The end fills, spreads, fills again, and each spread is larger than the last. It still works, but each insert costs more than on a graph whose inserts land anywhere. If that is your pattern, build with an adjacency list and convert once, or build in one go.</p>
+  <p>Removing an edge is cheap: the row’s last entry moves into the hole, and the cell is spare again. When fewer than a quarter of the cells are in use, the storage halves, so memory follows the graph down as well as up.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The people above, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">PackedCompressedSparseRowModule</span>
+
+<span class="k">let</span> people = [<span class="s">"Ana"</span>, <span class="s">"Ben"</span>, <span class="s">"Cy"</span>, <span class="s">"Dee"</span>, <span class="s">"Eli"</span>, <span class="s">"Fay"</span>]
+<span class="k">let</span> arrows = [
+    (<span class="s">"Ana"</span>, <span class="s">"Ben"</span>),
+    (<span class="s">"Ana"</span>, <span class="s">"Cy"</span>),
+    (<span class="s">"Ben"</span>, <span class="s">"Cy"</span>),
+    (<span class="s">"Cy"</span>, <span class="s">"Ana"</span>),
+    (<span class="s">"Dee"</span>, <span class="s">"Cy"</span>),
+]
+
+<span class="k">var</span> follows = <span class="t">PackedCompressedSparseRow</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> name <span class="k">in</span> people { name }
+    <span class="k">for</span> (who, whom) <span class="k">in</span> arrows { <span class="t">DirectedEdge</span>(from: who, to: whom) }
+}
+
+<span class="k">let</span> who = <span class="s">"Dee"</span>, whom = <span class="s">"Cy"</span>
+
+<span class="k">let</span> follow = <span class="t">DirectedEdge</span>(from: who, to: whom)
+<span class="k">if</span> follows.contains(edge: follow) {
+    follows.remove(edge: follow)
+} <span class="k">else</span> {
+    follows.insert(edge: follow)
+}
+
+<span class="k">let</span> anaFollows = <span class="t">Array</span>(follows.successors(of: <span class="s">"Ana"</span>))  <span class="c">// ["Ben", "Cy"]</span>
+<span class="k">let</span> deeFollowsCy = follows.contains(edge: <span class="t">DirectedEdge</span>(from: <span class="s">"Dee"</span>, to: <span class="s">"Cy"</span>))  <span class="c">// true</span>
+<span class="k">let</span> followCount = follows.edgeCount  <span class="c">// 5</span>
+</span></pre>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="representations.html"><span>Previous</span>Storing a graph</a><a class="next" href="products.html"><span>Next</span>Graph products</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>
