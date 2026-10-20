@@ -1,11 +1,11 @@
 import GraphProtocols
 
 /// The subset table of feedback set searches: traps when 2ⁿ entries of `perEntry` bytes do not
-/// fit in 4 GiB.
+/// fit in 4 GiB, or when the subset masks do not fit a 32-bit `Int` (30 vertices there).
 @inlinable
 func _checkFeedbackTable(_ n: Int, perEntry: Int, _ name: String) {
-    precondition(n <= 32 && (1 << n) * perEntry <= 4 << 30,
-                 "\(name) on \(n) vertices needs a table of 2^\(n) entries of \(perEntry) bytes, more than 4 GiB (at most \(perEntry == 9 ? 28 : 32) vertices)")
+    let limit = Swift.min(perEntry == 9 ? 28 : 32, Int.bitWidth - 2)
+    precondition(n <= limit, "\(name) on \(n) vertices needs a table of 2^\(n) entries of \(perEntry) bytes, more than 4 GiB (at most \(limit) vertices)")
 }
 
 /// An ordering of `0..<n` that minimizes the total weight of the arcs pointing leftward in it,
