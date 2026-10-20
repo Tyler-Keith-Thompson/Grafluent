@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resilience · Explore Grafluent</title>
+<meta name="description" content="How many racks or patches can fail before a network splits, and which groups hold together: vertex and edge connectivity, the minimum vertex cut and k-components with Grafluent.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="resilience">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a><a href="products.html">Graph products</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html" aria-current="page">Resilience</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Resilience</h1>
+  <p class="question">A data centre has twelve racks and twenty patches. How many can fail at once before some rack is cut off, and which racks hold together best?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>How much failure a network takes</h2>
+  <p>A network’s <b>vertex connectivity</b> is the fewest vertices whose failure splits it; its <b>edge connectivity</b> is the fewest links. A <b>minimum vertex cut</b> names such a set. The <b>k-components</b> refine this inside the network: the largest groups that stay connected through any k − 1 failures among their own members, for every k.</p>
+  <p>Reach for them to rate a network’s robustness, to find where to add a link so one failure no longer isolates a site, or to find the tightly knit cores of a social network, which is what Moody and White built k-components for.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find weak points and tight groups</h2>
+<div class="compare">
+<table>
+  <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Gives</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
+  <tbody>
+    <tr class="self"><th scope="row">Connectivity and a minimum cut <span class="this">This page</span></th><td data-label="When to use">One number, and one weakest set</td><td data-label="Gives">How many must fail, and which</td><td data-label="Cost">Flow computations, O(n) of them at worst</td><td data-label="Weakness">Says nothing about the rest of the network</td></tr>
+    <tr class="self"><th scope="row">k-components <span class="this">This page</span></th><td data-label="When to use">Where the network is tough and where it is loose</td><td data-label="Gives">Nested groups by how many failures they survive</td><td data-label="Cost">A flow per candidate pair at each level</td><td data-label="Weakness">Expensive on large networks</td></tr>
+    <tr><th scope="row"><a href="bridges.html">Bridges and articulation points</a></th><td data-label="When to use">Single points of failure only</td><td data-label="Gives">Every link or vertex whose loss alone splits something</td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">Nothing about two or more failures</td></tr>
+    <tr><th scope="row"><a href="cores.html">Cores</a></th><td data-label="When to use">A fast look at density</td><td data-label="Gives">Who has k neighbours in the group</td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">A core can still be split by one vertex</td></tr>
+  </tbody>
+</table>
+</div>
+  <p>Bridges and articulation points answer the k = 1 question fast. Connectivity and k-components answer it for every k, at a price that grows with the network.</p>
+</section>
+
+<p class="example lead">Example: two rings of four racks, each fully cross-linked, joined through two patch panels, with a lab and a desk looped through one ring.</p>
+
+<h2 class="labhead"><small>Step through</small>The groups at each k</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="The data centre's k-components"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 470" role="img" aria-label="Twelve racks and their patches, coloured by the groups that survive k − 1 failures"><g class="edge " data-edge="0"><path d="M60.0,127.0 L60.0,313.0" class="hit" /><path d="M60.0,127.0 L60.0,313.0" class="stroke" /></g><g class="edge " data-edge="1"><path d="M68.6,124.6 L181.4,315.4" class="hit" /><path d="M68.6,124.6 L181.4,315.4" class="stroke" /></g><g class="edge " data-edge="2"><path d="M77.0,110.0 L173.0,110.0" class="hit" /><path d="M77.0,110.0 L173.0,110.0" class="stroke" /></g><g class="edge " data-edge="3"><path d="M77.0,330.0 L173.0,330.0" class="hit" /><path d="M77.0,330.0 L173.0,330.0" class="stroke" /></g><g class="edge " data-edge="4"><path d="M68.6,315.4 L181.4,124.6" class="hit" /><path d="M68.6,315.4 L181.4,124.6" class="stroke" /></g><g class="edge " data-edge="5"><path d="M190.0,313.0 L190.0,127.0" class="hit" /><path d="M190.0,313.0 L190.0,127.0" class="stroke" /></g><g class="edge " data-edge="6"><path d="M450.0,127.0 L450.0,313.0" class="hit" /><path d="M450.0,127.0 L450.0,313.0" class="stroke" /></g><g class="edge " data-edge="7"><path d="M458.6,124.6 L571.4,315.4" class="hit" /><path d="M458.6,124.6 L571.4,315.4" class="stroke" /></g><g class="edge " data-edge="8"><path d="M467.0,110.0 L563.0,110.0" class="hit" /><path d="M467.0,110.0 L563.0,110.0" class="stroke" /></g><g class="edge " data-edge="9"><path d="M467.0,330.0 L563.0,330.0" class="hit" /><path d="M467.0,330.0 L563.0,330.0" class="stroke" /></g><g class="edge " data-edge="10"><path d="M458.6,315.4 L571.4,124.6" class="hit" /><path d="M458.6,315.4 L571.4,124.6" class="stroke" /></g><g class="edge " data-edge="11"><path d="M580.0,313.0 L580.0,127.0" class="hit" /><path d="M580.0,313.0 L580.0,127.0" class="stroke" /></g><g class="edge " data-edge="12"><path d="M206.2,115.0 L303.8,145.0" class="hit" /><path d="M206.2,115.0 L303.8,145.0" class="stroke" /></g><g class="edge " data-edge="13"><path d="M206.2,325.0 L303.8,295.0" class="hit" /><path d="M206.2,325.0 L303.8,295.0" class="stroke" /></g><g class="edge " data-edge="14"><path d="M336.2,145.0 L433.8,115.0" class="hit" /><path d="M336.2,145.0 L433.8,115.0" class="stroke" /></g><g class="edge " data-edge="15"><path d="M336.2,295.0 L433.8,325.0" class="hit" /><path d="M336.2,295.0 L433.8,325.0" class="stroke" /></g><g class="edge " data-edge="16"><path d="M320.0,167.0 L320.0,273.0" class="hit" /><path d="M320.0,167.0 L320.0,273.0" class="stroke" /></g><g class="edge " data-edge="17"><path d="M581.1,127.0 L598.9,403.0" class="hit" /><path d="M581.1,127.0 L598.9,403.0" class="stroke" /></g><g class="edge " data-edge="18"><path d="M583.2,422.8 L496.8,437.2" class="hit" /><path d="M583.2,422.8 L496.8,437.2" class="stroke" /></g><g class="edge " data-edge="19"><path d="M491.4,427.4 L568.6,342.6" class="hit" /><path d="M491.4,427.4 L568.6,342.6" class="stroke" /></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="R1"><circle cx="60.0" cy="110.0" r="15.0" /><text x="60.0" y="143.0" text-anchor="middle" class="name">R1</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="R2"><circle cx="60.0" cy="330.0" r="15.0" /><text x="60.0" y="363.0" text-anchor="middle" class="name">R2</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="R3"><circle cx="190.0" cy="330.0" r="15.0" /><text x="190.0" y="363.0" text-anchor="middle" class="name">R3</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="R4"><circle cx="190.0" cy="110.0" r="15.0" /><text x="190.0" y="143.0" text-anchor="middle" class="name">R4</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="S1"><circle cx="450.0" cy="110.0" r="15.0" /><text x="450.0" y="143.0" text-anchor="middle" class="name">S1</text></g><g class="node current" data-node="5" tabindex="-1" role="presentation" aria-label="S2"><circle cx="450.0" cy="330.0" r="15.0" /><text x="450.0" y="363.0" text-anchor="middle" class="name">S2</text><text x="450.0" y="380.0" text-anchor="middle" class="note">cut</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="S3"><circle cx="580.0" cy="330.0" r="15.0" /><text x="580.0" y="363.0" text-anchor="middle" class="name">S3</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="S4"><circle cx="580.0" cy="110.0" r="15.0" /><text x="580.0" y="143.0" text-anchor="middle" class="name">S4</text></g><g class="node current" data-node="8" tabindex="-1" role="presentation" aria-label="P1"><circle cx="320.0" cy="150.0" r="15.0" /><text x="320.0" y="183.0" text-anchor="middle" class="name">P1</text><text x="320.0" y="200.0" text-anchor="middle" class="note">cut</text></g><g class="node " data-node="9" tabindex="-1" role="presentation" aria-label="P2"><circle cx="320.0" cy="290.0" r="15.0" /><text x="320.0" y="323.0" text-anchor="middle" class="name">P2</text></g><g class="node " data-node="10" tabindex="-1" role="presentation" aria-label="Lab"><circle cx="600.0" cy="420.0" r="15.0" /><text x="600.0" y="453.0" text-anchor="middle" class="name">Lab</text></g><g class="node " data-node="11" tabindex="-1" role="presentation" aria-label="Desk"><circle cx="480.0" cy="440.0" r="15.0" /><text x="480.0" y="473.0" text-anchor="middle" class="name">Desk</text></g></svg><div class="legend"><span><i class="dot current"></i>the smallest set whose failure splits the centre</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">The whole centre</span><p class="narration">The centre stays connected through any 1 rack failure, but not 2: losing <em>S2 and P1</em> splits it. Any 1 patch can fail too. Press Step to see which groups hold together at each k.</p></div><div class="panel"><span class="label">Groups so far</span><div class="queue"><p class="empty">None yet</p></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="8.0" class="m-pal0" /><text x="22" y="36" text-anchor="middle">1</text><title>k = 1: 1 group that stays connected through any single failure among them: R1, R2, R3, R4, S1, S2, S3, S4, P1, P2, Lab and Desk.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="8.0" class="m-pal1" /><text x="48" y="36" text-anchor="middle">2</text><title>k = 2: 1 group that stays connected through any 1 failures at once among them: R1, R2, R3, R4, S1, S2, S3, S4, P1, P2, Lab and Desk.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="10.0" class="m-pal2" /><text x="74" y="36" text-anchor="middle">3</text><title>k = 3: 2 groups that stay connected through any 2 failures at once among them: R1, R2, R3 and R4; S1, S2, S3 and S4.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-resilience" class="scrub" type="range" min="0" max="3" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-pal1" /></svg>one k, bigger for more groups</span></div><p class="note">kComponents() computes every level at once. Each step shows one k.</p></section></div></div>
+
+<section class="prose">
+  <h2><small>The idea</small>Count the disjoint paths</h2>
+  <p>By Menger’s theorem, the fewest vertices whose failure separates two others equals the most paths between them that share no vertex. So connectivity is a <a href="flow.html">maximum flow</a> question: split each vertex into an in-half and an out-half joined by a link of capacity one, and the largest flow between two vertices is the number of vertex-disjoint paths. <code>vertexConnectivity()</code> takes the least over the pairs it must check, and <code>minimumVertexCut()</code> reads the cut off the flow. <code>edgeConnectivity()</code> does the same without splitting vertices.</p>
+  <p><code>kComponents()</code> builds the hierarchy by cohesive blocking: find the connectivity k of a piece, cut it at a minimum cut, and continue in each part until it falls apart. Every group at k lies inside a group at k − 1, and the 2-components are the <a href="bridges.html">blocks</a> with three or more vertices. In the centre, each ring of four is a 3-component, because a ring of four cross-linked racks is K₄ and survives any two failures. The two panels join the rings into a 2-component. The lab and the desk, in a loop through two racks of one ring, belong to the 2-component but to no 3-component.</p>
+
+  <h2><small>Where it breaks</small>A flow per pair adds up</h2>
+  <p>Each connectivity question is a maximum flow, and k-components ask many of them, so on a network of thousands of vertices they take a while and on millions they are impractical. For a single point of failure use bridges and articulation points instead, which cost one pass. The numbers also say nothing about likelihood: a cut of two racks that share a power supply is worse than its size suggests.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The centre, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">Connectivity</span>
+<span class="k">import</span> <span class="t">Flows</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+
+<span class="c">/// Two rings of four racks, each ring fully cross-linked, joined by two patch panels, with a lab</span>
+<span class="c">/// and a desk looped through one ring.</span>
+<span class="k">let</span> patches = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"R1"</span>, <span class="s">"R2"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"R1"</span>, <span class="s">"R3"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"R1"</span>, <span class="s">"R4"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"R2"</span>, <span class="s">"R3"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"R2"</span>, <span class="s">"R4"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"R3"</span>, <span class="s">"R4"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"S1"</span>, <span class="s">"S2"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"S1"</span>, <span class="s">"S3"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"S1"</span>, <span class="s">"S4"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"S2"</span>, <span class="s">"S3"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"S2"</span>, <span class="s">"S4"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"S3"</span>, <span class="s">"S4"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"R4"</span>, <span class="s">"P1"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"R3"</span>, <span class="s">"P2"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"P1"</span>, <span class="s">"S1"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"P2"</span>, <span class="s">"S2"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"P1"</span>, <span class="s">"P2"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"S4"</span>, <span class="s">"Lab"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Lab"</span>, <span class="s">"Desk"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Desk"</span>, <span class="s">"S3"</span>),
+]
+
+<span class="k">let</span> machineRoom = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> patch <span class="k">in</span> patches { patch }
+}
+
+<span class="k">let</span> racks = machineRoom.vertexConnectivity()  <span class="c">// 2</span>
+<span class="k">let</span> links = machineRoom.edgeConnectivity()  <span class="c">// 2</span>
+<span class="k">let</span> weakest = machineRoom.minimumVertexCut()  <span class="c">// ["S2", "P1"]</span>
+
+<span class="k">let</span> cohesion = machineRoom.kComponents()
+<span class="k">let</span> levels = (<span class="n">1</span> ... cohesion.maximumK).map { k <span class="k">in</span> cohesion[k].map(<span class="t">Array</span>.init) }  <span class="c">// [[["R1", "R2", "R3", "R4", "S1", "S2", "S3", "S4", "P1", "P2", "Lab", "Desk"]], [["R1", "R2", "R3", "R4", "S1", "S2", "S3", "S4", "P1", "P2", "Lab", "Desk"]], [["R1", "R2", "R3", "R4"], ["S1", "S2", "S3", "S4"]]]</span>
+</span></pre>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="bridges.html"><span>Previous</span>Bridges and articulation points</a><a class="next" href="dominators.html"><span>Next</span>Dominators</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>
