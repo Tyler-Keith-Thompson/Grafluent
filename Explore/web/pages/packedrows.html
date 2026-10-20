@@ -1,0 +1,43 @@
+<!-- title: Changing a stored graph · Explore Grafluent -->
+<!-- description: Packed rows with spare cells: a graph that keeps changing yet walks as fast as two plain arrays, with the storage drawn live as you add and remove edges. -->
+<header class="sign">
+  <h1>Changing a stored graph</h1>
+  <p class="question">How can a graph keep changing without losing the speed of packed arrays?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Graphs that change all the time</h2>
+  <p>Most real graphs are never finished. People follow and unfollow. Servers come and go. A route map gets a new road every week. The algorithms that run on these graphs want each vertex’s neighbours packed side by side in memory, because a processor reads a packed row very fast. Compressed sparse row stores the rows that way, but it can’t take a new edge without a rebuild. An adjacency list takes new edges all day, but its rows drift apart as they grow, and walking them slows down.</p>
+  <p>Packed rows keep both. Every row stays packed, in order, with a few spare cells after it. Adding an edge usually fills a spare cell. When a row runs out, a small neighbourhood of rows is laid out again to share the spare cells around. Walking the graph reads one array from start to end, as compressed sparse row does. Reach for <code>PackedCompressedSparseRow</code> when a graph changes between the times you run algorithms on it, and you run them often.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Three ways to store a changing graph</h2>
+  <!-- compare
+  | Form | When to use | Walking a row | Adding an edge | Removing an edge | Weakness |
+  | [Adjacency list](representations.html) | The default; a graph you build by adding edges and rarely walk whole | Fast, but rows drift apart as the graph changes | One write, usually | One write | Walks get slower the more the graph has changed |
+  | [Compressed sparse row](representations.html) | A graph you build once and study many times | Fastest: two plain arrays | A rebuild of everything | A rebuild | Can’t change |
+  | *Packed rows (<code>PackedCompressedSparseRow</code>) | A graph that keeps changing and keeps being walked | As fast as compressed sparse row | A few cells move; now and then a window of rows | One write | Adding costs several times what a list pays |
+  -->
+  <p>If you only add edges and seldom walk the whole graph, the adjacency list is simpler and quicker to build. If you walk it often between changes, packed rows pay back the extra cost of each insert many times over.</p>
+</section>
+
+<p class="example lead">Example: six people and who follows whom, with the storage drawn underneath. It starts built in one go, so the rows are packed tight. Add one follow and watch the storage spread out with spare cells. Keep adding and most follows drop into a spare cell. Fill it up and the whole storage doubles.</p>
+
+<div id="app"></div>
+
+<section class="prose">
+  <h2><small>The idea</small>A bookshelf with gaps</h2>
+  <p>Think of a bookshelf where each person’s books stand together, with a little empty space after each run. A new book usually slides into that space. When one run has no space left, you look at the shortest stretch of shelf around it. If that stretch is not too full, you spread its books out again so every run gets some space. If it is too full, you take a longer stretch, and longer again. Only when the whole shelf is more than seven tenths full do you buy a shelf twice as long.</p>
+  <p>Packed rows do exactly that with cells. A short stretch may be up to 92 percent full before it is spread out again. The whole storage may only be 70 percent full. The thresholds fall from one to the other, so a spread at any size leaves its rows room to grow before they ask again. That is a packed memory array, and the structure is the packed compressed sparse row of Wheatman and Xu. Each insert moves O(log² n) cells on average, and every walk reads the storage once, forward.</p>
+  <p>Edges keep their positions through all of it. A rebalance moves cells, never the number an edge goes by, so anything attached to the edges, a weight or a label, stays where it is.</p>
+
+  <h2><small>Where it breaks</small>Adding at the end, over and over</h2>
+  <p>The spare cells are spread out evenly, but a stream of inserts that all land in the same place uses them up there first. Adding vertices one after another, each with its edges, always hits the newest row at the end of the storage. The end fills, spreads, fills again, and each spread is larger than the last. It still works, but each insert costs more than on a graph whose inserts land anywhere. If that is your pattern, build with an adjacency list and convert once, or build in one go.</p>
+  <p>Removing an edge is cheap: the row’s last entry moves into the hole, and the cell is spare again. When fewer than a quarter of the cells are in use, the storage halves, so memory follows the graph down as well as up.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The people above, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>

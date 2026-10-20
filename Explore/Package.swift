@@ -25,6 +25,7 @@ let package = Package(
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
                 .product(name: "AdjacencyMatrixModule", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "PackedCompressedSparseRowModule", package: "Grafluent"),
                 .product(name: "LabeledGraphs", package: "Grafluent"),
                 .product(name: "Traversal", package: "Grafluent"),
                 .product(name: "DirectedAcyclicGraphModule", package: "Grafluent"),

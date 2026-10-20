@@ -11,6 +11,7 @@ func mountPage(_ page: String) -> Bool {
     switch page {
     case "basics": BasicsPage.mount()
     case "representations": RepresentationsPage.mount()
+    case "packedrows": PackedRowsPage.mount()
     case "bfs": BreadthFirstPage.mount()
     case "dfs": DepthFirstPage.mount()
     case "dijkstra": DijkstraPage.mount()

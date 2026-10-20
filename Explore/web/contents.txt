@@ -3,6 +3,7 @@
 # `soon` row is listed without a link until its page exists.
 basics|Graph basics|Start here|Vertices, edges, direction and weight, with pictures.|page
 representations|Storing a graph|Start here|Adjacency lists, matrices and compressed rows.|page
+packedrows|Changing a stored graph|Start here|Packed rows that take new edges without a rebuild.|page
 products|Graph products|Start here|Big regular graphs from small ones: boards, grids and tori.|page
 bfs|Breadth-first search|Getting around|Visiting everything reachable, ring by ring.|page
 dfs|Depth-first search|Getting around|Visiting everything reachable, one corridor at a time.|page

@@ -16,6 +16,7 @@ contents and the menu without a link.
 |---|---|
 | `basics` | `neighbors(of:)`, `successors(of:)`, `predecessors(of:)`; beside its figures, `dijkstraShortestPaths`, `Walk`, `Path`, `Cycle`, `Pseudograph`, `Multigraph` |
 | `representations` | `AdjacencyList`, `LabeledGraph<_, AdjacencyMatrix>`, `LabeledGraph<_, CompressedSparseRow>` |
+| `packedrows` | `PackedCompressedSparseRow`, `insert(edge:)`, `remove(edge:)`, `contains(edge:)`, `successors(of:)`, `_withOutIndexRows` for the drawn cells |
 | `products` | `cartesianProductView(_:_:)`, `tensorProductView(_:_:)`, `strongProductView(_:_:)`, `lexicographicProductView(_:_:)`, `Pair`, `neighbors(of:)` |
 | `bfs` | `lazy.breadthFirstSearch(from:)` |
 | `dfs` | `lazy.depthFirstSearch(from:)` |
