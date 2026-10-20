@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Erdős–Rényi, Barabási–Albert, Holme–Kim, Watts–Strogatz and Newman–Watts–Strogatz, random geometric, random regular, random k-out, random bipartite, stochastic block model, Chung–Lu, configuration model, directed scale-free, random trees and DAGs; graphical degree sequences and Havel–Hakimi.
+# Erdős–Rényi, R-MAT, Barabási–Albert, Holme–Kim, Watts–Strogatz and Newman–Watts–Strogatz, random geometric, random regular, random k-out, random bipartite, stochastic block model, Chung–Lu, configuration model, directed scale-free, random trees and DAGs; graphical degree sequences and Havel–Hakimi.
 swift_library(
     name = "RandomGraphs",
     srcs = glob(["**/*.swift"]),

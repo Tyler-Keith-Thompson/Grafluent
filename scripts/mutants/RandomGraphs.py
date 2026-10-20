@@ -62,7 +62,24 @@ NWS = "NewmanWattsStrogatz.swift"
 KO = "RandomKOut.swift"
 SF = "ScaleFree.swift"
 
+RM = "RMAT.swift"
+
 MUTANTS = [
+    # R-MAT: the quadrant choice, the loop and repeat rejection, the checks.
+    Mutant("rmatsum", RM, "a + b + c <= 1 + 1e-12", "true"),
+    Mutant("rmatnegative", RM, "a >= 0 && b >= 0 && c >= 0", "true"),
+    Mutant("rmatscale", RM, "scale >= 0 && scale < Int.bitWidth - 2", "scale < Int.bitWidth - 2"),
+    Mutant("rmatlow", RM, "m >= 0 && m <= total", "m <= total"),
+    Mutant("rmathigh", RM, "m >= 0 && m <= total", "m >= 0"),
+    Mutant("rmattotal", RM, "directed ? _orderedPairCount(n) : _unorderedPairCount(n)", "directed ? _unorderedPairCount(n) : _orderedPairCount(n)"),
+    Mutant("rmatloop", RM, "if u == v { continue }", "", mode="stmt"),
+    Mutant("rmatrepeat", RM, "chosen.insert(s, t)", "true"),
+    Mutant("rmatcanonical", RM, "directed || u < v ? (u, v) : (v, u)", "(u, v)"),
+    Mutant("rmatbottomleft", RM, "u |= bit", "v |= bit", nth=0),
+    Mutant("rmattopright", RM, "v |= bit", "u |= bit", nth=0),
+    Mutant("rmatlevel", RM, "1 << level", "1 << (scale - 1 - level)"),
+    Mutant("rmatorder", RM, "return _sortedRowMajor(n, drawn)", "return drawn", mode="stmt"),
+    Mutant("rmatdirected", RM, "_rmatPairs(scale: scale, m, a, b, c, directed: true, &generator)", "_rmatPairs(scale: scale, m, a, b, c, directed: false, &generator)"),
     # xoshiro256**: the scrambler, the linear step, the rotation.
     Mutant("nextmul5", X, "Self._rotateLeft(s1 &* 5, 7) &* 9", "Self._rotateLeft(s1 &* 3, 7) &* 9"),
     Mutant("nextrot7", X, "Self._rotateLeft(s1 &* 5, 7) &* 9", "Self._rotateLeft(s1 &* 5, 8) &* 9"),

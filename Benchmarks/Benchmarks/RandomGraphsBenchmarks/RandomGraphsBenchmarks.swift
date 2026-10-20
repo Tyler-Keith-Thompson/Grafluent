@@ -29,6 +29,10 @@ let benchmarks: @Sendable () -> Void = {
         var g = Xoshiro256StarStar(seed: 1)
         for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.erdosRenyi(vertexCount: 100_000, edgeProbability: 1e-4, using: &g)) }
     }
+    Benchmark("RandomGraphs: CompressedSparseRow rmat(scale: 17, edgeCount: 10⁶) (directed)") { benchmark in
+        var g = Xoshiro256StarStar(seed: 1)
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.rmat(scale: 17, edgeCount: 1_000_000, using: &g)) }
+    }
     Benchmark("RandomGraphs: CompressedSparseRow G(n, m), n = 10⁵, m = 5·10⁵ (directed)") { benchmark in
         var g = Xoshiro256StarStar(seed: 1)
         for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.erdosRenyi(vertexCount: 100_000, edgeCount: 500_000, using: &g)) }

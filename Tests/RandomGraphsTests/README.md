@@ -42,6 +42,7 @@ extension _GraphConstruction {     // UndirectedAdjacencyList, Pseudograph, Mult
         stochasticBlockModel(blockSizes:edgeProbabilities:using:),
         randomRegular(vertexCount:degree:using:),
         randomBipartite(leftCount:rightCount:edgeProbability:using:)
+    static func rmat(scale:edgeCount:a:b:c:using:)   // 2^scale vertices, Graph500's a, b, c by default; RMATTests.swift
 }
 extension _DirectedGraphConstruction {   // CSR, AdjacencyMatrix, AdjacencyList, DirectedPseudograph,
                                          // DirectedMultigraph, StableDirectedGraph
