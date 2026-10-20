@@ -71,7 +71,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 187 and sorted(REC) == list(range(1, N + 1))
+assert N == 204 and sorted(REC) == list(range(1, N + 1))
 
 
 def group(n): return CELLS[n][1]
@@ -422,6 +422,7 @@ def built_swift(n, call_text):
     """The Swift call of a materialized row: `Type.member(of: g ...)`."""
     t = call_text
     t = t.replace("(of: g)", "(of: graph)").replace("(of: g, by:", "(of: graph, by:").replace("(g, h)", "(graph, other)")
+    t = re.sub(r"\(g, h, root: (\w+)\)", lambda m: "(graph, other, root: %s)" % s(m.group(1)), t)
     t = t.replace("DirectedAcyclicGraph<AdjacencyList<Int>>(g.condensation())", "DirectedAcyclicGraph<AdjacencyList<Int>>(graph.condensation())")
 
     def blocks(m):
@@ -648,6 +649,10 @@ FILES = [
      "relabeled (catalog GO-151 – GO-161): by ordering, ordering[i] becomes vertex i; by a name map,\n"
      "// the distinct names at their first occurrence and every edge renamed in edges order, a simple\n"
      "// target keeping the first of coinciding edges and a pseudograph all of them."),
+    ("RootedCoronaProductTests.swift", "GraphOperations rootedProduct and coronaProduct", ids("RootedProduct", "CoronaProduct"),
+     "rootedProduct(_:_:root:) and coronaProduct(_:_:) (catalog GO-188 – GO-204): a copy of h per vertex\n"
+     "// of g, vertex (a, b) at a·|V(h)| + b, the copies' roots joined as g joins their vertices; the\n"
+     "// corona keeps g at 0..<|V(g)| with copies after it, each vertex joined to all of its copy."),
     ("SetOperationsTests.swift", "GraphOperations union, intersection, difference and symmetricDifference", ids("Union", "Intersection", "Difference", "SymmetricDifference"),
      "union, intersection, difference and symmetricDifference (catalog GO-162 – GO-173): equal vertices\n"
      "// are one vertex; the edges form a set, inserted in row-major order of the result's vertices."),

@@ -50,6 +50,7 @@ To run it:
 | Condensation as a DAG | `DirectedAcyclicGraph<Base>(_ condensation: Condensation<G>)` |
 | Quotient (vertex contraction) | `Target.quotient(of:by:)`, the partition as a sequence of blocks |
 | Disjoint union | `Target.disjointUnion(_:_:)` |
+| Rooted and corona products | `Target.rootedProduct(_:_:root:)` (and `checkedRoot:`), `Target.coronaProduct(_:_:)` |
 | Join | `Target.join(_:_:)` |
 | Ego graph | `egoGraphView(of:radius:)` of one center or of several, with `undirected:` on a bidirectional base and `maximumVertexCount:priority:` for a vertex budget; a `SubgraphView` |
 | Power Gᵏ | `Target.power(of:_:)` |
@@ -125,6 +126,7 @@ GO-054, GO-060), so the complement of the complement is the simple, loopless bas
 | condensation | Materialized | `DirectedAcyclicGraph<Base>` |
 | `quotient(of:by:)` | Materialized | `Target` |
 | `disjointUnion`, `join` | Materialized | `Target` |
+| `rootedProduct`, `coronaProduct` | Materialized | `Target` |
 | `egoGraphView(of:radius:)` | Lazy, O(n + rows walked) to build | `SubgraphView<Base>` |
 | `power`, `contraction`, `transitiveClosure`, `transitiveReduction`, `relabeled(_:ordering:)` | Materialized | `Target` |
 | `relabeled(_:by:)`, `union`, `intersection`, `difference`, `symmetricDifference` | Materialized, labels kept | a `MutableDirectedGraph` / `MutableGraph` target |
@@ -244,6 +246,8 @@ extension _DirectedGraphConstruction {
     public static func quotient<G: DirectedGraph>(
         of graph: G, by partition: some Sequence<some Sequence<G.Vertex>>) -> Self
     public static func disjointUnion(_ g: some DirectedGraph, _ h: some DirectedGraph) -> Self
+    public static func rootedProduct<H: DirectedGraph>(_ g: some DirectedGraph, _ h: H, root: H.Vertex) -> Self  // also checkedRoot: throws(VertexNotFound)
+    public static func coronaProduct(_ g: some DirectedGraph, _ h: some DirectedGraph) -> Self
     public static func join(_ g: some DirectedGraph, _ h: some DirectedGraph) -> Self
 }
 extension _GraphConstruction { /* the same four over Graph */ }
@@ -330,6 +334,7 @@ Result numbering:
 | `quotient`: an empty block | An isolated vertex | GO-091 |
 | `quotient`: edges inside a block | Dropped, with no self-loops | GO-086 |
 | `disjointUnion` / `join` with a self-loop | **Trap** | GO-099, GO-105 |
+| `rootedProduct` / `coronaProduct` with a self-loop, or a root not in `h` | **Trap**; `checkedRoot:` throws `VertexNotFound` | GO-196, GO-197, GO-204 |
 | Mutating the base after making a view | Impossible: the view holds a copy, so mutating the original never shows through | — |
 | `spanningSubgraphView` / `subgraph` over a base without edge indices | Sorted kept positions, binary search per row entry and per rank; dense edge indices still | hand-written test |
 | A materialized operation over a graph without vertex indices | **Trap**, like the views | GO-118, extra traps |
@@ -363,6 +368,7 @@ n and m are the base's counts, and k is the number of kept vertices.
 | condensation → DAG | O(k + e) after `condensation()` | the target |
 | `quotient` | O(n + m + sort), one hash per listed vertex | O(n) |
 | `disjointUnion`, `join` | O(n + m), join + O(\|V(g)\|·\|V(h)\|) | the target |
+| `rootedProduct`, `coronaProduct` | O(\|V(g)\|·(\|V(h)\| + \|E(h)\|) + \|E(g)\|) | the target |
 | `power(of:_:)` | O(n · (n + m)) worst case, a search per vertex stopped after k layers | O(n) scratch |
 | `contraction` | O(n + m + row sorts), one hash per named vertex | O(n) |
 | `transitiveClosure` | O(n + m + k·e/64 + output and its sorts), k components, e arcs between them | k²/8 bytes |

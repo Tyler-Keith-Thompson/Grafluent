@@ -256,6 +256,53 @@ struct OperationsPropertyTests {
         }
     }
 
+    @Test("rootedProduct and coronaProduct: the edge sets of their definitions, numbered a·|V(h)| + b and |V(g)| + a·|V(h)| + b")
+    func productLaws() async {
+        let gEdges = zip(Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 4)).array(of: 0 ... 8)
+        let hEdges = zip(Gen.int(in: 0 ... 3), Gen.int(in: 0 ... 3)).array(of: 0 ... 6)
+        await propertyCheck(count: 300, input: gEdges, Gen.int(in: 0 ... 5), hEdges, Gen.int(in: 1 ... 4), Gen.int(in: 0 ... 3)) { rawG, ng, rawH, nh, rawRoot in
+            let gPairs = ng == 0 ? [] : rawG.map { ($0.0 % ng, $0.1 % ng) }.filter { $0.0 != $0.1 }
+            let hPairs = rawH.map { ($0.0 % nh, $0.1 % nh) }.filter { $0.0 != $0.1 }
+            let root = rawRoot % nh
+            let context = "g \(ng) \(gPairs), h \(nh) \(hPairs), root \(root)"
+            // Directed: the arcs of the definitions, as sets.
+            var rooted = Set<[Int]>(), corona = Set<[Int]>()
+            for a in 0 ..< ng {
+                for (b, c) in hPairs {
+                    rooted.insert([a * nh + b, a * nh + c])
+                    corona.insert([ng + a * nh + b, ng + a * nh + c])
+                }
+                for b in 0 ..< nh { corona.insert([a, ng + a * nh + b]) }
+            }
+            for (a, a2) in gPairs {
+                rooted.insert([a * nh + root, a2 * nh + root])
+                corona.insert([a, a2])
+            }
+            let g = DirectedPseudograph(vertices: 0 ..< ng, edges: gPairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+            let h = DirectedPseudograph(vertices: 0 ..< nh, edges: hPairs.map { DirectedEdge(from: $0.0, to: $0.1) })
+            let r = CompressedSparseRow.rootedProduct(g, h, root: root)
+            #expect(r.vertexCount == ng * nh, "\(context)")
+            #expect(Set(r.edges.map { [$0.source, $0.target] }) == rooted, "\(context)")
+            #expect(r.edges.map { [$0.source, $0.target] } == r.edges.map { [$0.source, $0.target] }.sorted { $0.lexicographicallyPrecedes($1) }, "row-major; \(context)")
+            #expect((try? CompressedSparseRow.rootedProduct(g, h, checkedRoot: root)) == r, "\(context)")
+            let c = AdjacencyList<Int>.coronaProduct(g, h)
+            #expect(c.vertexCount == ng + ng * nh, "\(context)")
+            #expect(Set(c.edges.map { [$0.source, $0.target] }) == corona, "\(context)")
+            // Undirected: the same with orientations dropped.
+            let ug = Pseudograph(vertices: 0 ..< ng, edges: gPairs.map { UndirectedEdge($0.0, $0.1) })
+            let uh = Pseudograph(vertices: 0 ..< nh, edges: hPairs.map { UndirectedEdge($0.0, $0.1) })
+            let ur = UndirectedAdjacencyList<Int>.rootedProduct(ug, uh, root: root)
+            #expect(ur.vertexCount == ng * nh, "\(context)")
+            #expect(Set(ur.edges.map { [Swift.min($0.u, $0.v), Swift.max($0.u, $0.v)] }) == Set(rooted.map { [Swift.min($0[0], $0[1]), Swift.max($0[0], $0[1])] }), "\(context)")
+            #expect((try? UndirectedAdjacencyList<Int>.rootedProduct(ug, uh, checkedRoot: root)) == ur, "\(context)")
+            let uc = UndirectedAdjacencyList<Int>.coronaProduct(ug, uh)
+            #expect(uc.vertexCount == ng + ng * nh, "\(context)")
+            #expect(Set(uc.edges.map { [Swift.min($0.u, $0.v), Swift.max($0.u, $0.v)] }) == Set(corona.map { [Swift.min($0[0], $0[1]), Swift.max($0[0], $0[1])] }), "\(context)")
+            #expect(throws: VertexNotFound.self) { try CompressedSparseRow.rootedProduct(g, h, checkedRoot: nh) }
+            #expect(throws: VertexNotFound.self) { try UndirectedAdjacencyList<Int>.rootedProduct(ug, uh, checkedRoot: -1) }
+        }
+    }
+
     @Test("contraction(of:_:_:) and contraction(of:edgeAt:): the ends merged at the smaller index, later vertices moved down, loops dropped")
     func contractionLaws() async {
         let input = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 1 ... 14)

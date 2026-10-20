@@ -458,6 +458,23 @@ def compare_operations(case, mine):
         kept += layer
     if mine["egoBudget"] != sorted(kept):
         problems.append(f"operations: egoGraphView(of: {sources}, maximumVertexCount: 4) {mine['egoBudget']}, NetworkX layers {sorted(kept)}")
+    # Rooted and corona products against NetworkX, on the simple graph with loops dropped: the
+    # rooted product with a path of three at its middle (indices g·3 + h), the corona with a path of
+    # two (g, then n + g·2 + h). NetworkX builds both undirected, so a directed product is compared
+    # with orientations dropped.
+    P3 = nx.path_graph(3)
+    RP = nx.rooted_product(nx.Graph(loopless), P3, 1)
+    want = {(min(u[0] * 3 + u[1], v[0] * 3 + v[1]), max(u[0] * 3 + u[1], v[0] * 3 + v[1])) for u, v in RP.edges()}
+    mine_rooted = {(min(e), max(e)) for e in mine["rooted"]}
+    if mine["rootedCount"] != RP.number_of_nodes() or mine_rooted != want:
+        problems.append(f"operations: rootedProduct {mine['rootedCount']} {sorted(mine_rooted)}, NetworkX {RP.number_of_nodes()} {sorted(want)}")
+    P2 = nx.path_graph(2)
+    CP = nx.corona_product(nx.Graph(loopless), P2)
+    index = lambda node: n + node[0] * 2 + node[1] if isinstance(node, tuple) else node
+    want = {(min(index(u), index(v)), max(index(u), index(v))) for u, v in CP.edges()}
+    mine_corona = {(min(e), max(e)) for e in mine["corona"]}
+    if mine["coronaCount"] != CP.number_of_nodes() or mine_corona != want:
+        problems.append(f"operations: coronaProduct {mine['coronaCount']} {sorted(mine_corona)}, NetworkX {CP.number_of_nodes()} {sorted(want)}")
     a, b = min(s, t), max(s, t)
     new = {x: (x if a == b or x < b else (a if x == b else x - 1)) for x in range(n)}
     C = loopless.copy() if a == b else nx.contracted_nodes(G, s, t, self_loops=False)

@@ -585,6 +585,63 @@ struct GraphOperationsPreconditionTests {
         #expect(graph.vertexIndexBound == 2)
     }
 
+    @Test("GO-196 root not a vertex of h traps")
+    func go196() async {
+        // UL V [a, b]; E [a–b] ; UL V [x, y]; E [x–y] / UndirectedAdjacencyList<Int>.rootedProduct(g, h, root: q) → **trap** (q is not a vertex)
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+            let other = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
+            _ = UndirectedAdjacencyList<Int>.rootedProduct(graph, other, root: "q")
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "b"]])
+        #expect(graph.vertexIndexBound == 2)
+        let other = UndirectedAdjacencyList<String>(vertices: ["x", "y"], edges: [UndirectedEdge("x", "y")])
+        #expect(Array(other.vertices) == ["x", "y"])
+        #expect(other.edges.map { [$0.u, $0.v] } == [["x", "y"]])
+        #expect(other.vertexIndexBound == 2)
+    }
+
+    @Test("GO-197 a self-loop in h traps")
+    func go197() async {
+        // AL V [a, b]; E [a→b] ; AL V [x]; E [x→x] / CompressedSparseRow.rootedProduct(g, h, root: x) → **trap** (a self-loop, which the construction targets do not take)
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+            let other = DirectedPseudograph<String>(vertices: ["x"], edges: [DirectedEdge(from: "x", to: "x")])
+            _ = CompressedSparseRow.rootedProduct(graph, other, root: "x")
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
+        #expect(graph.vertexIndexBound == 2)
+        let other = DirectedPseudograph<String>(vertices: ["x"], edges: [DirectedEdge(from: "x", to: "x")])
+        #expect(Array(other.vertices) == ["x"])
+        #expect(other.edges.map { [$0.source, $0.target] } == [["x", "x"]])
+        #expect(other.vertexIndexBound == 1)
+    }
+
+    @Test("GO-204 a self-loop in g traps")
+    func go204() async {
+        // UL V [a]; E [a–a] ; UL V [x]; E [] / UndirectedAdjacencyList<Int>.coronaProduct(g, h) → **trap** (a self-loop, which the construction targets do not take)
+        await #expect(processExitsWith: .failure) {
+            let graph = Pseudograph<String>(vertices: ["a"], edges: [UndirectedEdge("a", "a")])
+            let other = UndirectedAdjacencyList<String>(vertices: ["x"], edges: [] as [UndirectedEdge<String>])
+            _ = UndirectedAdjacencyList<Int>.coronaProduct(graph, other)
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = Pseudograph<String>(vertices: ["a"], edges: [UndirectedEdge("a", "a")])
+        #expect(Array(graph.vertices) == ["a"])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "a"]])
+        #expect(graph.vertexIndexBound == 1)
+        let other = UndirectedAdjacencyList<String>(vertices: ["x"], edges: [] as [UndirectedEdge<String>])
+        #expect(Array(other.vertices) == ["x"])
+        #expect(other.edges.map { [$0.u, $0.v] } == [] as [[String]])
+        #expect(other.vertexIndexBound == 1)
+    }
+
     @Test("Label-space rows of a vertex outside a subgraph view trap; index-space reads past the bound trap")
     func subgraphOutsideVertices() async {
         await #expect(processExitsWith: .failure) {
@@ -771,4 +828,41 @@ struct GraphOperationsPreconditionTests {
         #expect(AdjacencyList<String>.union(graph, graph).edgeCount == 1)
         #expect(AdjacencyList<String>.relabeled(graph) { $0 }.edgeCount == 1)
     }
+
+    #if _pointerBitWidth(_64)
+    @Test("rootedProduct and coronaProduct trap before any work when the product has more vertices than Int can count")
+    func productOverflow() async {
+        await #expect(processExitsWith: .failure) {
+            // 2⁴⁰ vertices without edges: the product would have 2⁸⁰.
+            struct Huge: DirectedGraph {
+                var vertices: Range<Int> { 0 ..< (1 << 40) }
+                var edges: [DirectedEdge<Int>] { [] }
+                func successors(of vertex: Int) -> [Int] { [] }
+                func outEdges(of vertex: Int) -> [Int] { [] }
+                func contains(_ vertex: Int) -> Bool { vertex >= 0 && vertex < 1 << 40 }
+                var vertexIndexBound: Int? { 1 << 40 }
+                func vertexIndex(of vertex: Int) -> Int { vertex }
+                func vertex(atIndex index: Int) -> Int { index }
+            }
+            _ = CompressedSparseRow.rootedProduct(Huge(), Huge(), root: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            struct Huge: Graph {
+                var vertices: Range<Int> { 0 ..< (1 << 40) }
+                var edges: [UndirectedEdge<Int>] { [] }
+                func neighbors(of vertex: Int) -> [Int] { [] }
+                func incidentEdges(of vertex: Int) -> [Int] { [] }
+                func contains(_ vertex: Int) -> Bool { vertex >= 0 && vertex < 1 << 40 }
+                var vertexIndexBound: Int? { 1 << 40 }
+                func vertexIndex(of vertex: Int) -> Int { vertex }
+                func vertex(atIndex index: Int) -> Int { index }
+            }
+            _ = UndirectedAdjacencyList<Int>.coronaProduct(Huge(), Huge())
+        }
+        // Without the fault: two vertices with two make four, and two plus their copies six.
+        let g = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
+        #expect(CompressedSparseRow.rootedProduct(g, g, root: 0).vertexCount == 4)
+        #expect(CompressedSparseRow.coronaProduct(g, g).vertexCount == 6)
+    }
+    #endif
 }

@@ -370,6 +370,13 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("GraphOperations: CompressedSparseRow.egoGraphView(of: 0, radius: 2), G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(csr.egoGraphView(of: 0, radius: 2)) }
     }
+    let path3 = CompressedSparseRow(vertexCount: 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+    Benchmark("GraphOperations: CompressedSparseRow.rootedProduct(G(10⁵, 10⁶), P₃, root: 1)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.rootedProduct(csr, path3, root: 1)) }
+    }
+    Benchmark("GraphOperations: CompressedSparseRow.coronaProduct(G(10⁵, 10⁶), P₃)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.coronaProduct(csr, path3)) }
+    }
     Benchmark("GraphOperations: CompressedSparseRow.egoGraphView(of: [0, 1, 2], radius: 2), G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(csr.egoGraphView(of: [0, 1, 2], radius: 2)) }
     }

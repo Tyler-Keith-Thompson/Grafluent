@@ -14,6 +14,8 @@
 # room, and slicing the layer at it traps a line later: the same trap with a worse message); and
 # cutting a layer that exactly fills the budget (the room is the whole layer, so it keeps every
 # vertex, as not cutting does).
+# Also: dropping the products' vertex-count overflow precondition (the multiplication then traps on
+# overflow itself: the same trap with a worse message).
 
 TESTS = ["GraphOperationsTests", "GraphProtocolsTests"]
 
@@ -26,6 +28,7 @@ SO = "SetOperations.swift"
 RL = "Relabeling.swift"
 PW = "Power.swift"
 EG = "EgoGraph.swift"
+RP = "RootedAndCoronaProducts.swift"
 CT = "Contraction.swift"
 TC = "TransitiveClosure.swift"
 
@@ -91,6 +94,19 @@ MUTANTS = [
     Mutant("powersource", PW, "row.append(contentsOf: queue[1 ..< count])", "row.append(contentsOf: queue[0 ..< count])", mode="stmt"),
     Mutant("powerk", PW, "precondition(k >= 1, \"The power must be at least 1\")", "", mode="stmt", nth=0),
     Mutant("upowerk", PW, "precondition(k >= 1, \"The power must be at least 1\")", "", mode="stmt", nth=1),
+    # Rooted and corona products.
+    Mutant("rpcross", RP, "row.append(a2 * nh + r)", "row.append(a2 * nh)", mode="stmt", nth=0),
+    Mutant("rproot", RP, "b == r", "true", nth=0),
+    Mutant("rpuroot", RP, "b == r", "true", nth=1),
+    Mutant("rpcount", RP, "_productVertexCount(copies: ng, size: nh, extra: 0)", "_productVertexCount(copies: ng, size: nh, extra: 1)", nth=0),
+    Mutant("rpucross", RP, "if a2 > a { row.append(a2 * nh + r) }", "row.append(a2 * nh + r)", mode="stmt"),
+    Mutant("rpuinner", RP, "if c > b { row.append(base + c) }", "row.append(base + c)", mode="stmt", nth=0),
+    Mutant("cpjoin", RP, "for b in 0 ..< nh { edges.append(DirectedEdge(from: a, to: base + b)) }", "", mode="stmt"),
+    Mutant("cpujoin", RP, "for b in 0 ..< nh { edges.append(UndirectedEdge(a, base + b)) }", "", mode="stmt"),
+    Mutant("cpoffset", RP, "ng + a * nh", "a * nh", nth=0),
+    Mutant("cpucopies", RP, "_appendUndirectedRows(of: h, count: nh, offset: ng + a * nh, extra: 0 ..< 0, to: &edges)", "", mode="stmt"),
+    Mutant("cpcount", RP, "_productVertexCount(copies: ng, size: nh, extra: ng)", "_productVertexCount(copies: ng, size: nh, extra: 0)", nth=0),
+
     # The ego graph.
     Mutant("egoradius", EG, "depth < radius", "depth <= radius"),
     Mutant("egonegative", EG, "precondition(radius >= 0, \"The radius must not be negative\")", "", mode="stmt"),

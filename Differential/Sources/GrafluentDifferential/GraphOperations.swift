@@ -22,6 +22,12 @@ struct OperationsAnswers: Encodable {
     /// number as the priority.
     var egoCenters: [Int] = []
     var egoBudget: [Int] = []
+    /// rootedProduct with a path of three rooted at its middle, and coronaProduct with a path of
+    /// two: vertex counts and edges.
+    var rootedCount = 0
+    var rooted: [[Int]] = []
+    var coronaCount = 0
+    var corona: [[Int]] = []
     var contraction: [[Int]] = []
     var contractionCount = 0
     var closure: [[Int]]?
@@ -48,6 +54,16 @@ func directedOperationsAnswers(n: Int, edges: [[Int]], sources: [Int], target: I
     a.egoUndirected = Array(graph.egoGraphView(of: source, radius: 2, undirected: true).vertices)
     a.egoCenters = Array(graph.egoGraphView(of: sources, radius: 2).vertices)
     a.egoBudget = Array(graph.egoGraphView(of: sources, radius: 2, maximumVertexCount: 4, priority: { $0 }).vertices)
+    let path3 = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
+    // The construction targets take no self-loops, so the products are of the loopless graph.
+    let loopless = AdjacencyList(vertices: 0 ..< n, edges: edges.filter { $0[0] != $0[1] }.map { DirectedEdge(from: $0[0], to: $0[1]) })
+    let rooted = CompressedSparseRow.rootedProduct(loopless, path3, root: 1)
+    a.rootedCount = rooted.vertexCount
+    a.rooted = pairs(rooted)
+    let path2 = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
+    let corona = CompressedSparseRow.coronaProduct(loopless, path2)
+    a.coronaCount = corona.vertexCount
+    a.corona = pairs(corona)
     let contraction = CompressedSparseRow.contraction(of: graph, source, target)
     a.contraction = pairs(contraction)
     a.contractionCount = contraction.vertexCount
@@ -77,6 +93,15 @@ func undirectedOperationsAnswers(n: Int, edges: [[Int]], sources: [Int], target:
     a.egoEdges = pairs(ego)
     a.egoCenters = Array(graph.egoGraphView(of: sources, radius: 2).vertices)
     a.egoBudget = Array(graph.egoGraphView(of: sources, radius: 2, maximumVertexCount: 4, priority: { $0 }).vertices)
+    let path3 = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
+    let loopless = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges.filter { $0[0] != $0[1] }.map { UndirectedEdge($0[0], $0[1]) })
+    let rooted = UndirectedAdjacencyList<Int>.rootedProduct(loopless, path3, root: 1)
+    a.rootedCount = rooted.vertexCount
+    a.rooted = pairs(rooted)
+    let path2 = UndirectedAdjacencyList(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
+    let corona = UndirectedAdjacencyList<Int>.coronaProduct(loopless, path2)
+    a.coronaCount = corona.vertexCount
+    a.corona = pairs(corona)
     let contraction = UndirectedAdjacencyList<Int>.contraction(of: graph, source, target)
     a.contraction = pairs(contraction)
     a.contractionCount = contraction.vertexCount

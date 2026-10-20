@@ -618,6 +618,34 @@ def join(g, h):
     return Built(ng + nh, sorted(es), g.directed)
 
 
+def rooted_product(g, h, root):
+    """`Target.rootedProduct(g, h, root:)`: a copy of h per vertex of g, vertex (a, b) at a·|V(h)| + b,
+    the copies' roots joined as g joins their vertices."""
+    require(g.directed == h.directed, "both directed or both undirected")
+    r = h.vertex_index(root)
+    ng, nh = g.n(), h.n()
+    es = set()
+    for a in range(ng):
+        es |= _simple_edges(h, a * nh)
+    for (a, a2) in _simple_edges(g, 0):
+        e = (a * nh + r, a2 * nh + r)
+        es.add(e if g.directed else (min(e), max(e)))
+    return Built(ng * nh, sorted(es), g.directed)
+
+
+def corona_product(g, h):
+    """`Target.coronaProduct(g, h)`: g at 0..<|V(g)|, a copy of h per vertex a of g at
+    |V(g)| + a·|V(h)| + b, and a joined to every vertex of its copy (an arc from a, directed)."""
+    require(g.directed == h.directed, "both directed or both undirected")
+    ng, nh = g.n(), h.n()
+    es = _simple_edges(g, 0)
+    for a in range(ng):
+        es |= _simple_edges(h, ng + a * nh)
+        for b in range(nh):
+            es.add((a, ng + a * nh + b))
+    return Built(ng + ng * nh, sorted(es), g.directed)
+
+
 # ---------------------------------------------------------------- relabelings, binary operations, powers,
 # ego graphs, contractions, closures
 
@@ -1062,6 +1090,32 @@ def spec_disjoint_union(g, h, R):
     I = to_ig(g).disjoint_union(to_ig(h))
     I.simplify()
     assert ig_edge_set(I, g.directed) == {(u, v) if g.directed else frozenset((u, v)) for u, v in R.es}
+
+
+def spec_rooted_product(g, h, root, R):
+    S = lambda x: nx.DiGraph(to_nx(x)) if x.directed else nx.Graph(to_nx(x))
+    # NetworkX's rooted product is undirected whatever its factors, so a directed product is
+    # compared with orientations dropped.
+    P = nx.rooted_product(S(g), S(h), root)
+    nh = h.n()
+    index = lambda node: g.vertex_index(node[0]) * nh + h.vertex_index(node[1])
+    want = {(min(index(u), index(v)), max(index(u), index(v))) for u, v in P.edges()}
+    mine = {(min(u, v), max(u, v)) for u, v in R.es}
+    assert mine == want, (sorted(mine), sorted(want))
+    assert R.n() == P.number_of_nodes()
+
+
+def spec_corona_product(g, h, R):
+    # NetworkX's corona product takes undirected graphs only, so a directed product is compared
+    # with orientations dropped against the corona of the underlying graphs.
+    S = lambda x: nx.Graph(to_nx(x))
+    P = nx.corona_product(S(g), S(h))
+    ng, nh = g.n(), h.n()
+    index = lambda node: ng + g.vertex_index(node[0]) * nh + h.vertex_index(node[1]) if isinstance(node, tuple) else g.vertex_index(node)
+    want = {(min(index(u), index(v)), max(index(u), index(v))) for u, v in P.edges()}
+    mine = {(min(u, v), max(u, v)) for u, v in R.es}
+    assert mine == want, (sorted(mine), sorted(want))
+    assert R.n() == P.number_of_nodes()
 
 
 def spec_join(g, h, R):
@@ -1720,6 +1774,36 @@ def define():
                   lambda g, c=centers, r=radius, u=undirected, l=limit, pr=priority: ego_multi(g, c, 1 if r is None else r, bool(u), l, pr),
                   f".egoGraphView({args})",
                   None if limit is not None else (lambda g, v, c=centers, r=radius, u=undirected: spec_ego_multi(g, c, 1 if r is None else r, bool(u), v)))
+
+    # ---- rootedProduct and coronaProduct
+    G = "RootedProduct"
+    for title, a, b, root in [
+        ("a path of two with a path of three rooted at an end", UL("a b", "a-b"), UL("x y z", "x-y y-z"), "x"),
+        ("rooted at the middle: the roots' edge between the copies' middles", UL("a b", "a-b"), UL("x y z", "x-y y-z"), "y"),
+        ("a triangle with a single edge: copies joined into a triangle of roots", UL("a b c", "a-b b-c a-c"), UL("x y", "x-y"), "y"),
+        ("directed: g's arcs between the roots, h's arcs inside each copy", AL("a b c", "a>b b>c"), AL("x y", "x>y"), "x"),
+        ("g without edges: the copies apart", UL("a b", ""), UL("x y", "x-y"), "x"),
+        ("h a single vertex: g itself", AL("a b c", "a>b c>a"), AL("x", ""), "x"),
+        ("g empty: the empty graph", UL("", ""), UL("x y", "x-y"), "x"),
+        ("parallel edges of g merge", UL("a b", "a-b a-b"), UL("x y", "x-y"), "x"),
+        ("root not a vertex of h traps", UL("a b", "a-b"), UL("x y", "x-y"), "q"),
+        ("a self-loop in h traps", AL("a b", "a>b"), AL("x", "x>x"), "x"),
+    ]:
+        target = "CompressedSparseRow" if a[0].directed else "UndirectedAdjacencyList<Int>"
+        built_case(G, title, [a, b], lambda g, h, r=root: rooted_product(g, h, r), f"{target}.rootedProduct(g, h, root: {root})",
+                   lambda g, h, R, r=root: spec_rooted_product(g, h, r, R))
+    G = "CoronaProduct"
+    for title, a, b in [
+        ("a path of two with a path of two: each vertex joined to its copy", UL("a b", "a-b"), UL("x y", "x-y")),
+        ("a triangle with a single vertex: a pendant vertex at each", UL("a b c", "a-b b-c a-c"), UL("x", "")),
+        ("directed: arcs from each vertex of g into its copy", AL("a b", "a>b"), AL("x y", "y>x")),
+        ("h without vertices: g itself", AL("a b c", "a>b b>c"), AL("", "")),
+        ("g without edges: copies hanging from isolated vertices", UL("a b", ""), UL("x y z", "x-y")),
+        ("g empty: the empty graph", UL("", ""), UL("x y", "x-y")),
+        ("a self-loop in g traps", UL("a", "a-a"), UL("x", "")),
+    ]:
+        target = "CompressedSparseRow" if a[0].directed else "UndirectedAdjacencyList<Int>"
+        built_case(G, title, [a, b], corona_product, f"{target}.coronaProduct(g, h)", spec_corona_product)
 
 # ---------------------------------------------------------------- output
 

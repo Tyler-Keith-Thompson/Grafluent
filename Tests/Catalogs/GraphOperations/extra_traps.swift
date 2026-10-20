@@ -184,3 +184,40 @@
         #expect(AdjacencyList<String>.union(graph, graph).edgeCount == 1)
         #expect(AdjacencyList<String>.relabeled(graph) { $0 }.edgeCount == 1)
     }
+
+    #if _pointerBitWidth(_64)
+    @Test("rootedProduct and coronaProduct trap before any work when the product has more vertices than Int can count")
+    func productOverflow() async {
+        await #expect(processExitsWith: .failure) {
+            // 2⁴⁰ vertices without edges: the product would have 2⁸⁰.
+            struct Huge: DirectedGraph {
+                var vertices: Range<Int> { 0 ..< (1 << 40) }
+                var edges: [DirectedEdge<Int>] { [] }
+                func successors(of vertex: Int) -> [Int] { [] }
+                func outEdges(of vertex: Int) -> [Int] { [] }
+                func contains(_ vertex: Int) -> Bool { vertex >= 0 && vertex < 1 << 40 }
+                var vertexIndexBound: Int? { 1 << 40 }
+                func vertexIndex(of vertex: Int) -> Int { vertex }
+                func vertex(atIndex index: Int) -> Int { index }
+            }
+            _ = CompressedSparseRow.rootedProduct(Huge(), Huge(), root: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            struct Huge: Graph {
+                var vertices: Range<Int> { 0 ..< (1 << 40) }
+                var edges: [UndirectedEdge<Int>] { [] }
+                func neighbors(of vertex: Int) -> [Int] { [] }
+                func incidentEdges(of vertex: Int) -> [Int] { [] }
+                func contains(_ vertex: Int) -> Bool { vertex >= 0 && vertex < 1 << 40 }
+                var vertexIndexBound: Int? { 1 << 40 }
+                func vertexIndex(of vertex: Int) -> Int { vertex }
+                func vertex(atIndex index: Int) -> Int { index }
+            }
+            _ = UndirectedAdjacencyList<Int>.coronaProduct(Huge(), Huge())
+        }
+        // Without the fault: two vertices with two make four, and two plus their copies six.
+        let g = AdjacencyList(vertices: 0 ..< 2, edges: [DirectedEdge(from: 0, to: 1)])
+        #expect(CompressedSparseRow.rootedProduct(g, g, root: 0).vertexCount == 4)
+        #expect(CompressedSparseRow.coronaProduct(g, g).vertexCount == 6)
+    }
+    #endif
