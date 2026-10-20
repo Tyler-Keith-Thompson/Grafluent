@@ -53,7 +53,7 @@
   <!-- compare
   | Method | Covers | Exists when | Cost | Weakness |
   | *Euler tour (<code>eulerianCircuit()</code>, <code>eulerianTrail()</code>) | Every edge, once | No more than two places have an odd count | O(m) | Often no tour exists |
-  | [Chinese postman](postman.html) (<code>chinesePostmanTour(weight:)</code>) | Every edge, at least once | Always, if the graph is connected | O(n³) | Some edges are walked twice |
+  | [Chinese postman](postman.html) (<code>chinesePostmanTour(weight:)</code>) | Every edge, at least once | Always, if the graph is connected | O(k³ + k (n + m) log n), k the odd-degree vertices | Some edges are walked twice |
   | [Hamiltonian cycle](hamiltonian.html) (<code>hamiltonianCycle()</code>) | Every place, once | No simple test is known | Exponential at worst | Slow on large graphs |
   -->
   <p>An Euler tour is the cheapest to find, but a graph often has none. Then a delivery round that must cover every street has to walk some of them twice. On one-way streets the rule changes. Every place needs as many streets in as out, which <code>isEulerian</code> checks on a directed graph.</p>

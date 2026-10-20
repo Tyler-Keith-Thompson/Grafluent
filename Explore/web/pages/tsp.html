@@ -17,7 +17,7 @@
   | *Nearest neighbour | A first tour, fast | Often about a quarter longer than the shortest | O(n²) | The last legs take whatever is left |
   | *2-opt | Improving any tour | Usually within a few percent | A pass over all pairs of roads, repeated | Stops at a tour no single swap improves |
   | *Simulated annealing | Time to spare for a better tour | Often better than 2-opt | As many random changes as you allow | Random, and no promise |
-  | *Christofides | You need a promise | Never more than 1.5 times the shortest, on straight-line distances | About O(n³) | Often beaten by 2-opt in practice |
+  | *Christofides | You need a promise | Never more than 1.5 times the shortest, on straight-line distances | O(n³) | Often beaten by 2-opt in practice |
   | *Held–Karp (<code>shortestTour(weight:)</code>) | A few dozen towns at most | The shortest | O(n² 2ⁿ) | Doubles with every town added |
   -->
   <p>The fast methods give good tours on thousands of towns. Only Held–Karp is exact. In the table, n is the number of towns.</p>
