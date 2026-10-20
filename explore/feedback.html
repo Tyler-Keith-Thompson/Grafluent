@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedback sets · Explore Grafluent</title>
+<meta name="description" content="The fewest arrows or vertices whose removal leaves no directed cycle: exact minimum feedback arc and vertex sets, the Eades–Lin–Smyth heuristic and a build order after the cuts, with Grafluent’s minimumFeedbackArcSet(), minimumFeedbackVertexSet() and feedbackArcSet().">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="feedback">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a><a href="products.html">Graph products</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html" aria-current="page">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Feedback sets</h1>
+  <p class="question">Nine packages import each other in four loops, so nothing can be built first. What is the smallest number of imports to cut, and which?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Breaking every loop at the least cost</h2>
+  <p>A <b>feedback arc set</b> is a set of arrows whose removal leaves no directed cycle; a <b>feedback vertex set</b> does the same with vertices. The minimum ones are the cheapest way to make a graph acyclic: the fewest imports to untangle, the fewest tables to drop from a chain of foreign keys, the fewest matches to discount when ranking teams from who beat whom, or where to put the backward edges when drawing a graph in layers.</p>
+  <p>Both minimum problems are NP-hard, so the exact answers take time exponential in the number of vertices and are for small graphs: a dependency graph of a few dozen packages, not a web crawl. For large graphs there is a fast heuristic that is usually close.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Ways to get rid of cycles</h2>
+<div class="compare">
+<table>
+  <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Gives</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
+  <tbody>
+    <tr class="self"><th scope="row">Minimum feedback arc set <span class="this">This page</span></th><td data-label="When to use">At most 28 vertices, and the answer must be best</td><td data-label="Gives">The fewest arrows, or the lightest</td><td data-label="Cost">Θ(2ⁿ · m)</td><td data-label="Weakness">Exponential: the table doubles with each vertex</td></tr>
+    <tr><th scope="row">Minimum feedback vertex set</th><td data-label="When to use">At most 32 vertices</td><td data-label="Gives">The fewest vertices</td><td data-label="Cost">Θ(2ⁿ · n)</td><td data-label="Weakness">Exponential too</td></tr>
+    <tr><th scope="row">Eades–Lin–Smyth heuristic (`feedbackArcSet()`)</th><td data-label="When to use">Any size</td><td data-label="Gives">A small set, often the minimum</td><td data-label="Cost">O((n + m) log n)</td><td data-label="Weakness">No promise on the size</td></tr>
+    <tr><th scope="row"><a href="toposort.html">Topological sort</a></th><td data-label="When to use">The graph is already acyclic</td><td data-label="Gives">An order, or one cycle as a witness</td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">Stops at the first cycle</td></tr>
+    <tr><th scope="row"><a href="components.html">Condensation</a></th><td data-label="When to use">Loops may stay, grouped</td><td data-label="Gives">Each strongly connected piece as one vertex</td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">Nothing is cut</td></tr>
+  </tbody>
+</table>
+</div>
+  <p>Take the exact set when the graph is small and the count matters; take the heuristic otherwise. A condensation keeps the loops and works around them.</p>
+</section>
+
+<p class="example lead">Example: nine packages whose imports form four loops: tests that import the app and the app that imports its tests, a cache behind an auth package behind a database behind the cache, and a logger that imports the core that imports it, with a detour through the network package.</p>
+
+<h2 class="labhead"><small>Step through</small>One cut a step</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="Cutting dependency loops"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 470" role="img" aria-label="Nine packages and their imports, the cut arrows fading one a step, and the build order once no loop is left"><g class="edge " data-edge="0"><path d="M306.0,72.8 L214.7,156.5" class="hit" /><path d="M306.0,72.8 L214.7,156.5" class="stroke" /><polygon points="214.7,156.5 219.1,145.0 226.6,153.1" class="head" /></g><g class="edge " data-edge="1"><path d="M334.9,71.7 L444.3,157.6" class="hit" /><path d="M334.9,71.7 L444.3,157.6" class="stroke" /><polygon points="444.3,157.6 432.2,155.2 439.0,146.5" class="head" /></g><g class="edge " data-edge="2"><path d="M301.0,60.0 L140.0,60.0" class="hit" /><path d="M301.0,60.0 L140.0,60.0" class="stroke" /><polygon points="140.0,60.0 151.0,54.5 151.0,65.5" class="head" /></g><g class="edge " data-edge="3"><path d="M139.0,60.0 L300.0,60.0" class="hit" /><path d="M139.0,60.0 L300.0,60.0" class="stroke" /><polygon points="300.0,60.0 289.0,65.5 289.0,54.5" class="head" /></g><g class="edge " data-edge="4"><path d="M211.6,185.1 L287.8,284.1" class="hit" /><path d="M211.6,185.1 L287.8,284.1" class="stroke" /><polygon points="287.8,284.1 276.7,278.8 285.5,272.1" class="head" /></g><g class="edge " data-edge="5"><path d="M190.0,186.2 L130.5,283.0" class="hit" /><path d="M190.0,186.2 L130.5,283.0" class="stroke" /><polygon points="130.5,283.0 131.6,270.7 140.9,276.5" class="head" /></g><g class="edge " data-edge="6"><path d="M139.0,300.0 L280.0,300.0" class="hit" /><path d="M139.0,300.0 L280.0,300.0" class="stroke" /><polygon points="280.0,300.0 269.0,305.5 269.0,294.5" class="head" /></g><g class="edge " data-edge="7"><path d="M287.8,314.6 L212.8,404.6" class="hit" /><path d="M287.8,314.6 L212.8,404.6" class="stroke" /><polygon points="212.8,404.6 215.6,392.7 224.1,399.7" class="head" /></g><g class="edge " data-edge="8"><path d="M212.2,405.4 L287.2,315.4" class="hit" /><path d="M212.2,405.4 L287.2,315.4" class="stroke" /><polygon points="287.2,315.4 284.4,327.3 275.9,320.3" class="head" /></g><g class="edge " data-edge="9"><path d="M189.5,404.2 L131.1,316.6" class="hit" /><path d="M189.5,404.2 L131.1,316.6" class="stroke" /><polygon points="131.1,316.6 141.8,322.7 132.6,328.8" class="head" /></g><g class="edge " data-edge="10"><path d="M472.9,184.0 L566.4,285.3" class="hit" /><path d="M472.9,184.0 L566.4,285.3" class="stroke" /><polygon points="566.4,285.3 554.9,281.0 563.0,273.5" class="head" /></g><g class="edge " data-edge="11"><path d="M566.6,313.4 L474.1,405.9" class="hit" /><path d="M566.6,313.4 L474.1,405.9" class="stroke" /><polygon points="474.1,405.9 478.0,394.2 485.8,402.0" class="head" /></g><g class="edge " data-edge="12"><path d="M460.0,401.0 L460.0,190.0" class="hit" /><path d="M460.0,401.0 L460.0,190.0" class="stroke" /><polygon points="460.0,190.0 465.5,201.0 454.5,201.0" class="head" /></g><g class="edge " data-edge="13"><path d="M444.8,408.6 L316.0,312.0" class="hit" /><path d="M444.8,408.6 L316.0,312.0" class="stroke" /><polygon points="316.0,312.0 328.1,314.2 321.5,323.0" class="head" /></g><g class="node frontier" data-node="0" tabindex="-1" role="presentation" aria-label="App"><circle cx="320.0" cy="60.0" r="17.0" /><text x="320.0" y="95.0" text-anchor="middle" class="name">App</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Test"><circle cx="120.0" cy="60.0" r="17.0" /><text x="120.0" y="95.0" text-anchor="middle" class="name">Test</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="UI"><circle cx="200.0" cy="170.0" r="17.0" /><text x="200.0" y="205.0" text-anchor="middle" class="name">UI</text></g><g class="node frontier" data-node="3" tabindex="-1" role="presentation" aria-label="Auth"><circle cx="460.0" cy="170.0" r="17.0" /><text x="460.0" y="205.0" text-anchor="middle" class="name">Auth</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Net"><circle cx="120.0" cy="300.0" r="17.0" /><text x="120.0" y="335.0" text-anchor="middle" class="name">Net</text></g><g class="node frontier" data-node="5" tabindex="-1" role="presentation" aria-label="Core"><circle cx="300.0" cy="300.0" r="17.0" /><text x="300.0" y="335.0" text-anchor="middle" class="name">Core</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Log"><circle cx="200.0" cy="420.0" r="17.0" /><text x="200.0" y="455.0" text-anchor="middle" class="name">Log</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="DB"><circle cx="580.0" cy="300.0" r="17.0" /><text x="580.0" y="335.0" text-anchor="middle" class="name">DB</text></g><g class="node " data-node="8" tabindex="-1" role="presentation" aria-label="Cache"><circle cx="460.0" cy="420.0" r="17.0" /><text x="460.0" y="455.0" text-anchor="middle" class="name">Cache</text></g></svg><div class="legend"><span><i class="dot frontier"></i>a package in every loop’s way: the fewest to rewrite</span><span><i class="dot done"></i>number: its place in the build order</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Before any cut</span><p class="narration">The imports form 4 loops, so there is no order to build the packages in. The fewest arrows whose removal breaks every loop number 3. Press Step to cut them one at a time.</p></div><div class="panel"><span class="label">Three answers</span><div class="queue"><div class="qrow top"><span>fewest arrows, exact</span><span class="num">3</span></div><div class="qrow plain"><span>Eades–Lin–Smyth’s heuristic</span><span class="num">3</span></div><div class="qrow plain"><span>fewest packages</span><span class="num">3</span></div></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="7.0" class="m-current" /><text x="22" y="36" text-anchor="middle">1</text><title>Cut Test → App: 1 loop broken, 3 left.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="9.0" class="m-current" /><text x="48" y="36" text-anchor="middle">2</text><title>Cut Core → Log: 2 loops broken, 1 left.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="7.0" class="m-done" /><text x="74" y="36" text-anchor="middle">1</text><title>Cut Auth → DB: 1 loop broken, 0 left.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-feedback" class="scrub" type="range" min="0" max="3" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-current" /></svg>a cut; the number is the loops it breaks</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-done" /></svg>the cut that breaks the last loop</span></div><p class="note">minimumFeedbackArcSet() names all 3 arrows at once; each step cuts one and counts the loops left with simpleCycles().</p></section></div></div>
+
+<section class="prose">
+  <h2><small>The idea</small>Order the vertices, then count the arrows pointing backward</h2>
+  <p>Write the vertices in a line. Every arrow then points forward or backward, and the backward ones are a feedback arc set: remove them and every remaining arrow points forward, so no cycle can close. Every feedback arc set arises this way from some order, so the minimum one is the order with the fewest backward arrows. <code>minimumFeedbackArcSet()</code> finds that order by dynamic programming over subsets of vertices: the best order of a subset ends with the vertex whose arrows into the rest cost least, after the best order of the rest. Each subset is one entry in a table with 2ⁿ rows, which is why the search stops at 28 vertices. The weighted form adds up weights instead of counting, and a self-loop is always in the set, since no order can point it forward.</p>
+  <p><code>minimumFeedbackVertexSet()</code> fills a table of the same size with a yes or no: a subset of vertices induces an acyclic subgraph when one of its vertices has no arrow coming in from the subset and the rest is acyclic, peeled one source at a time. The largest acyclic subset is the complement of the answer; on an undirected graph the peeling takes vertices with at most one neighbour left and finds the fewest vertices leaving a forest. <code>feedbackArcSet()</code> is Eades, Lin and Smyth’s heuristic: it builds an order greedily, placing sinks at the end and sources at the start and otherwise the vertex with the most arrows out relative to in, and takes the backward arrows of that order.</p>
+
+  <h2><small>Where it breaks</small>The table doubles with every vertex</h2>
+  <p>Thirty vertices would need a table of a billion rows, so the exact searches stop at 28 and 32 and trap beyond. On a bigger graph, condense it first: only the strongly connected pieces hold cycles, and each piece can be solved on its own if it is small enough. The heuristic has no such limit but no promise either; on this example it matches the minimum, and on others it can take a few more arrows than needed. And when several minimum sets exist, which arrows the exact search returns is unspecified: the vertices it returns are the set that lists first.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The packages, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">Cycles</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">Traversal</span>
+
+<span class="c">/// Nine packages and who depends on whom: an arrow from a package to one it imports.</span>
+<span class="k">let</span> packages = [<span class="s">"App"</span>, <span class="s">"Test"</span>, <span class="s">"UI"</span>, <span class="s">"Auth"</span>, <span class="s">"Net"</span>, <span class="s">"Core"</span>, <span class="s">"Log"</span>, <span class="s">"DB"</span>, <span class="s">"Cache"</span>]
+<span class="k">let</span> dependsOn: [(<span class="t">String</span>, <span class="t">String</span>)] = [
+    (<span class="s">"App"</span>, <span class="s">"UI"</span>), (<span class="s">"App"</span>, <span class="s">"Auth"</span>), (<span class="s">"App"</span>, <span class="s">"Test"</span>), (<span class="s">"Test"</span>, <span class="s">"App"</span>), (<span class="s">"UI"</span>, <span class="s">"Core"</span>), (<span class="s">"UI"</span>, <span class="s">"Net"</span>), (<span class="s">"Net"</span>, <span class="s">"Core"</span>),
+    (<span class="s">"Core"</span>, <span class="s">"Log"</span>), (<span class="s">"Log"</span>, <span class="s">"Core"</span>), (<span class="s">"Log"</span>, <span class="s">"Net"</span>), (<span class="s">"Auth"</span>, <span class="s">"DB"</span>), (<span class="s">"DB"</span>, <span class="s">"Cache"</span>), (<span class="s">"Cache"</span>, <span class="s">"Auth"</span>), (<span class="s">"Cache"</span>, <span class="s">"Core"</span>),
+]
+<span class="k">let</span> dependencies = <span class="t">AdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> package <span class="k">in</span> packages { package }
+    <span class="k">for</span> (from, to) <span class="k">in</span> dependsOn { <span class="t">DirectedEdge</span>(from: from, to: to) }
+}
+
+<span class="k">let</span> loops = <span class="t">Array</span>(dependencies.simpleCycles()).count  <span class="c">// 4</span>
+<span class="k">let</span> cuts = dependencies.minimumFeedbackArcSet()  <span class="c">// [3, 7, 10]</span>
+<span class="k">let</span> cheap = dependencies.feedbackArcSet()  <span class="c">// [3, 7, 12]</span>
+<span class="k">let</span> culprits = dependencies.minimumFeedbackVertexSet()  <span class="c">// ["App", "Auth", "Core"]</span>
+
+<span class="k">let</span> count = <span class="n">0</span>
+
+<span class="k">let</span> removed = <span class="t">Set</span>(cuts.prefix(count))
+<span class="k">let</span> trimmed = <span class="t">AdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> package <span class="k">in</span> packages { package }
+    <span class="k">for</span> position <span class="k">in</span> dependencies.edges.indices <span class="k">where</span> !removed.contains(position) { dependencies.edges[position] }
+}
+<span class="k">let</span> loops = <span class="t">Array</span>(trimmed.simpleCycles()).count  <span class="c">// 4</span>
+<span class="k">let</span> order = trimmed.topologicalSort()  <span class="c">// nil</span>
+</span></pre>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="cyclebasis.html"><span>Previous</span>Cycle bases</a><a class="next" href="isomorphism.html"><span>Next</span>Isomorphism</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>
