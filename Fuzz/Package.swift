@@ -24,6 +24,7 @@ let package = Package(
         target("FuzzDisjointSet", ["DisjointSetModule"]),
         target("FuzzLinkCutTree", ["LinkCutTreeModule"]),
         target("FuzzAdjacencyList", ["GraphProtocols", "AdjacencyListModule"]),
+        target("FuzzPackedCompressedSparseRow", ["GraphProtocols", "PackedCompressedSparseRowModule"]),
         target("FuzzUndirectedAdjacencyList", ["GraphProtocols", "AdjacencyListModule"]),
         target("FuzzSpanningTrees", ["GraphProtocols", "AdjacencyListModule", "SpanningTrees", "Trees"]),
         target("FuzzUndirectedConnectivity", ["GraphProtocols", "AdjacencyListModule", "Connectivity"]),

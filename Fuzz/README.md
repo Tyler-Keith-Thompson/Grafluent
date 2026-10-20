@@ -8,6 +8,7 @@ component, in their own package so the library never links the fuzzer runtime.
 | `FuzzPriorityQueue` | A dictionary from index to priority: every query after every operation; a snapshot drains in order |
 | `FuzzDisjointSet` | A naive label array: union results, `find`, `inSameSet`, `setSize`, `setCount`, canonical `labels()`, equality with a rebuilt value |
 | `FuzzAdjacencyList` | Sets of vertices and pairs: neighborhoods, degrees, dense vertex and edge indices, edge positions, equality and hashing, snapshots |
+| `FuzzPackedCompressedSparseRow` | The same checks as `FuzzAdjacencyList` on the packed rows, whose rebalances move cells under every operation |
 | `FuzzUndirectedAdjacencyList` | The same for unordered pairs, with self-loops listed twice and each position at both ends |
 | `FuzzShortestPaths` | Floyd–Warshall: Dijkstra on two representations, single target, A*, unweighted, Bellman–Ford, the negative-cycle witness, undirected Dijkstra, Johnson and all-pairs Dijkstra, bidirectional Dijkstra; brute-force simple paths: Yen's sequence and every shortest path |
 | `FuzzSpanningTrees` | Brute-force minimum and maximum spanning forests: Kruskal, Prim, Borůvka and the default agree on weight, every result is a spanning forest |

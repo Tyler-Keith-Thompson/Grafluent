@@ -33,7 +33,7 @@ let order = build.topologicalSort()                // ["fetch", "compile", "test
 - **Vocabulary:** `GraphProtocols`, `Walks`, `Semirings`
 - **Data structures:** `PriorityQueueModule`, `DisjointSetModule`
 - **Representations:** `AdjacencyListModule`, `AdjacencyMatrixModule`, `IncidenceMatrixModule`,
-  `CompressedSparseRowModule`, `EdgeListModule`, `ImplicitGraphs`, `LabeledGraphs`
+  `CompressedSparseRowModule`, `PackedCompressedSparseRowModule`, `EdgeListModule`, `ImplicitGraphs`, `LabeledGraphs`
 - **Structures:** `DirectedAcyclicGraphModule`, `Trees`, `BipartiteGraphs`, `Multigraphs`,
   `StableGraphs`, `Hypergraphs`, `FunctionalGraphs`
 - **Operations:** `GraphOperations`, `GraphProducts`

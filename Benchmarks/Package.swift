@@ -339,6 +339,20 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "PackedCompressedSparseRowBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "PackedCompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "Traversal", package: "Grafluent"),
+            ],
+            path: "Benchmarks/PackedCompressedSparseRowBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "StableGraphsBenchmarks",
             dependencies: [
                 "BenchmarkSupport",

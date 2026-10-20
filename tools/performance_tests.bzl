@@ -25,6 +25,7 @@ PERFORMANCE_TEST_PACKAGES = [
     "Tests/LabeledGraphsTests",
     "Tests/MatchingModuleTests",
     "Tests/MultigraphsTests",
+    "Tests/PackedCompressedSparseRowTests",
     "Tests/PlanarityTests",
     "Tests/RandomGraphsTests",
     "Tests/ShortestPathsTests",

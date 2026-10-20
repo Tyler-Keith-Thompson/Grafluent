@@ -11,6 +11,7 @@
 @_exported import AdjacencyListModule
 @_exported import AdjacencyMatrixModule
 @_exported import IncidenceMatrixModule
+@_exported import PackedCompressedSparseRowModule
 @_exported import CompressedSparseRowModule
 @_exported import EdgeListModule
 @_exported import ImplicitGraphs

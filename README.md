@@ -141,7 +141,7 @@ The full API reference is the [DocC documentation](https://tyler-keith-thompson.
 |---|---|
 | Vocabulary | `GraphProtocols` (protocols, edges, builders, errors), `Walks`, `Semirings` |
 | Data structures | `PriorityQueueModule`, `DisjointSetModule`, `LinkCutTreeModule` |
-| Representations | `AdjacencyListModule`, `AdjacencyMatrixModule`, `IncidenceMatrixModule`, `CompressedSparseRowModule`, `EdgeListModule`, `ImplicitGraphs`, `LabeledGraphs` |
+| Representations | `AdjacencyListModule`, `AdjacencyMatrixModule`, `IncidenceMatrixModule`, `CompressedSparseRowModule`, `PackedCompressedSparseRowModule`, `EdgeListModule`, `ImplicitGraphs`, `LabeledGraphs` |
 | Structures | `DirectedAcyclicGraphModule`, `Trees`, `BipartiteGraphs`, `Multigraphs`, `StableGraphs`, `Hypergraphs`, `FunctionalGraphs` |
 | Operations | `GraphOperations` (views, subgraphs, ego graphs, condensation, line graphs, set operations, powers, contraction, relabeling, transitive closure), `GraphProducts` |
 | Algorithms | `Traversal`, `ShortestPaths`, `SpanningTrees`, `Connectivity`, `Cycles`, `Tours`, `Flows`, `MatchingModule`, `ColoringModule`, `Cliques`, `Covering`, `Centrality`, `CommunityDetection`, `IsomorphismModule`, `Planarity`, `TreeAlgorithms`, `Distances`, `SpectralGraphTheory`, `Assortativity`, `Similarity` |
