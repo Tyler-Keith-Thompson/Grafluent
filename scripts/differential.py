@@ -2538,6 +2538,11 @@ def main():
         for problem in native[:20]:
             print(problem)
         failures += len(native)
+    if "communities" in sections:
+        native = differential_communities.finish()
+        for problem in native:
+            print(problem)
+        failures += len(native)
     print("covered: " + ", ".join(f"{k} {v}" for k, v in covered.items()))
     if "centrality" in sections:
         print("centrality: " + ", ".join(f"{k} {v}" for k, v in differential_centrality.COVERED.items()))

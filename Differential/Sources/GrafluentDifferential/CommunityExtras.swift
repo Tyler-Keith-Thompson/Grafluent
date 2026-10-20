@@ -28,7 +28,8 @@ struct CommunityExtras: Encodable {
     var weightedLeiden: [Int] = []
     var leidenPotts: [Int] = []
     var leidenModularity = 0.0
-    /// The greatest modularity of five more Leiden runs, each from its own generator.
+    /// The greatest modularity of 200 more Leiden runs, each from its own generator: enough that
+    /// a graph where a run reaches the best partition one time in twenty still reaches it here.
     var leidenBestModularity = 0.0
     var leidenPottsQuality = 0.0
     /// Hierarchical Leiden (unweighted, cap 3): each community's level, parent (−1 on level 0) and
@@ -84,7 +85,7 @@ func directedCommunityExtras<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ dw: 
     let leiden = graph.leidenCommunities(using: &generator)
     a.leiden = labels(leiden, n)
     a.leidenModularity = graph.modularity(of: leiden)
-    a.leidenBestModularity = (1 ... 5).map { seed -> Double in
+    a.leidenBestModularity = (1 ... 200).map { seed -> Double in
         var g = SplitMix64(state: UInt64(seed) &* 1_000_003)
         return graph.modularity(of: graph.leidenCommunities(using: &g))
     }.max()!
@@ -108,7 +109,7 @@ func undirectedCommunityExtras<G: Graph<Int>>(_ graph: G, _ n: Int, _ dw: (G.Edg
     let leiden = graph.leidenCommunities(using: &generator)
     a.leiden = labels(leiden, n)
     a.leidenModularity = graph.modularity(of: leiden)
-    a.leidenBestModularity = (1 ... 5).map { seed -> Double in
+    a.leidenBestModularity = (1 ... 200).map { seed -> Double in
         var g = SplitMix64(state: UInt64(seed) &* 1_000_003)
         return graph.modularity(of: graph.leidenCommunities(using: &g))
     }.max()!
