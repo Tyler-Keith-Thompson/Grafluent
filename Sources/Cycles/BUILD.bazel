@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Cycle detection, cycle bases, elementary circuits, chordless cycles, minimum mean cycles (Karp), girth, feedback arc sets.
+# Cycle detection, cycle bases and minimum cycle bases (de Pina), elementary circuits, chordless cycles, minimum mean cycles (Karp), girth, feedback arc sets.
 swift_library(
     name = "Cycles",
     srcs = glob(["**/*.swift"]),
@@ -13,6 +13,7 @@ swift_library(
         "//Sources/Walks",
         "//Sources/DisjointSetModule",
         "//Sources/Connectivity",
+        "//Sources/PriorityQueueModule",
     ],
     visibility = ["//visibility:public"],
 )
@@ -27,6 +28,7 @@ docc_archive(
         "//Sources/Walks:WalksDocumentation",
         "//Sources/DisjointSetModule:DisjointSetModuleDocumentation",
         "//Sources/Connectivity:ConnectivityDocumentation",
+        "//Sources/PriorityQueueModule:PriorityQueueModuleDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

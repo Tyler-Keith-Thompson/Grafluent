@@ -226,6 +226,29 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Cycles: cycleBasis, G(10⁵, 1.2·10⁵)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(sparse.cycleBasis()) }
     }
+    // CY-B05b: the minimum cycle basis, on a 30 × 30 grid (841 squares) and G(500, 700).
+    var gridEdges: [UndirectedEdge<Int>] = []
+    for r in 0 ..< 30 {
+        for c in 0 ..< 30 {
+            if c + 1 < 30 { gridEdges.append(UndirectedEdge(30 * r + c, 30 * r + c + 1)) }
+            if r + 1 < 30 { gridEdges.append(UndirectedEdge(30 * r + c, 30 * r + c + 30)) }
+        }
+    }
+    let basisGrid = UndirectedAdjacencyList(vertices: 0 ..< 900, edges: gridEdges)
+    Benchmark("Cycles: minimumCycleBasis, 30 × 30 grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(basisGrid.minimumCycleBasis()) }
+    }
+    var seenSmallBasis = Set<UndirectedEdge<Int>>()
+    let smallPairs = Inputs.randomEdges(vertexCount: 500, edgeCount: 900, seed: 3)
+        .map { UndirectedEdge($0.source, $0.target) }
+        .filter { !$0.isSelfLoop && seenSmallBasis.insert($0).inserted }
+    let basisSmall = UndirectedAdjacencyList(vertices: 0 ..< 500, edges: Array(smallPairs.prefix(700)))
+    Benchmark("Cycles: minimumCycleBasis, G(500, 700)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(basisSmall.minimumCycleBasis()) }
+    }
+    Benchmark("Cycles: minimumCycleBasis(weight:), G(500, 700)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(basisSmall.minimumCycleBasis(weight: { Double($0 % 4 + 1) })) }
+    }
     // CY-B06: girth.
     Benchmark("Cycles: BASELINE hand-written girth, G(2000, 3000)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(handWrittenGirth(girthRows)) }

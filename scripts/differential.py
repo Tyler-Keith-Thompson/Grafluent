@@ -915,6 +915,55 @@ def compare_cycles(case, mine, G):
             rank += 1
     if rank != len(basis):
         problems.append(f"cycleBasis is not independent: rank {rank} of {len(basis)}")
+    # The minimum cycle basis against NetworkX's minimum_cycle_basis on the simple graph: as many
+    # cycles as m − n + c (loops and parallel copies make 1- and 2-cycles NetworkX does not see,
+    # so compare the total length and weight through a simple graph plus those short cycles).
+    minimum, weight = mine["minimumBasisEdges"], mine["minimumBasisWeight"]
+    if len(minimum) != expected:
+        problems.append(f"minimumCycleBasis has {len(minimum)} cycles, expected {expected}")
+
+    def gf2_rank(sets):
+        pivots, r = {}, 0
+        for es in sets:
+            x = 0
+            for e in es:
+                x ^= 1 << e
+            while x and x.bit_length() in pivots:
+                x ^= pivots[x.bit_length()]
+            if x:
+                pivots[x.bit_length()] = x
+                r += 1
+        return r
+    if gf2_rank(minimum) != len(minimum):
+        problems.append("minimumCycleBasis is not independent")
+    if n <= 40:
+        S = nx.Graph()
+        S.add_nodes_from(range(n))
+        loops = [k for k, e in enumerate(edges) if e[0] == e[1]]
+        multi = {}
+        for k, e in enumerate(edges):
+            a, b = e[0], e[1]
+            if a != b:
+                multi.setdefault((min(a, b), max(a, b)), []).append(k)
+        for (a, b), ks in multi.items():
+            S.add_edge(a, b, weight=min(k % 4 + 1 for k in ks), length=1)
+        # Loops are 1-cycles; the copies beyond the first of each pair are 2-cycles with the lightest copy.
+        extra_length = len(loops) + sum(len(ks) - 1 for ks in multi.values()) * 2
+        extra_weight = sum(k % 4 + 1 for k in loops)
+        for ks in multi.values():
+            ws = sorted(k % 4 + 1 for k in ks)
+            extra_weight += sum(ws[0] + w for w in ws[1:])
+        theirs = nx.minimum_cycle_basis(S)
+        theirs_weighted = nx.minimum_cycle_basis(S, weight="weight")
+        length = sum(len(c) for c in theirs) + extra_length
+        if sum(len(es) for es in minimum) != length:
+            problems.append(f"minimumCycleBasis has total length {sum(len(es) for es in minimum)}, NetworkX {length}")
+
+        def cycle_weight(nodes):
+            return sum(S[nodes[i]][nodes[(i + 1) % len(nodes)]]["weight"] for i in range(len(nodes)))
+        their_weight = sum(cycle_weight(c) for c in theirs_weighted) + extra_weight
+        if weight != their_weight:
+            problems.append(f"minimumCycleBasis(weight:) weighs {weight}, NetworkX {their_weight}")
     return problems
 
 

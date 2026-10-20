@@ -24,6 +24,8 @@ extension Graph {
     /// The fundamental cycles of the breadth-first spanning forest: one per non-tree edge, in
     /// ascending position, canonical. m − n + c cycles.
     func cycleBasis() -> [Cycle<Vertex, Edges.Index>]
+    func minimumCycleBasis() -> [Cycle<Vertex, Edges.Index>]
+    func minimumCycleBasis<W: BinaryFloatingPoint>(weight: (Edges.Index) -> W) -> [Cycle<Vertex, Edges.Index>]
 
     /// Every simple cycle once, lazily, canonical, in the documented order.
     /// Precondition: maxLength >= 0.
@@ -133,6 +135,17 @@ Every other edge (loops and parallel copies included) is a non-tree edge and giv
 edge plus the tree path between its ends, in canonical form. Cycles are in ascending position of
 their non-tree edge. There are m − n + c of them, they are independent over GF(2), and each
 contains exactly one non-tree edge, its own (CY-757). Multigraphs and loops are supported.
+
+### `minimumCycleBasis()`, `minimumCycleBasis(weight:)`
+
+De Pina's algorithm: the supports start as the unit vectors of the edges outside the breadth-first
+forest; for each support in turn, the lightest cycle with an odd overlap with it joins the basis (the
+lightest closed walk from (u, 0) to (u, 1) in the graph lifted to two copies of each vertex, an
+edge of the support crossing between them, over the ends u of the support's edges), and every later
+support with an odd overlap with that cycle takes the symmetric difference with the chosen support.
+m − n + c cycles, independent over GF(2), of the least total length (or weight, each weight finite
+and greater than zero), canonical, in nondecreasing weight, then length, then edge positions.
+Loops and parallel copies give 1- and 2-cycles.
 
 ### `simpleCycles(maxLength:)`
 

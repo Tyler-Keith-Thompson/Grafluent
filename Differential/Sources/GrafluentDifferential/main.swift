@@ -217,6 +217,10 @@ struct Cycles: Encodable {
     var findCycleEdges: [Int]?
     var basis: [[Int]]?
     var basisEdges: [[Int]]?
+    /// minimumCycleBasis(): its cycles' edge positions, and the weighted basis's total weight with
+    /// weights position % 4 + 1.
+    var minimumBasisEdges: [[Int]]?
+    var minimumBasisWeight: Int?
     /// chordlessCycles(), and (directed) the minimum mean cycle's vertices, weight and length.
     var chordless: [[Int]]?
     var chordlessEdges: [[Int]]?
@@ -1005,6 +1009,12 @@ for c in cases {
             if !basis.allSatisfy(isValid) { cycles.valid = false }
             cycles.basis = basis.map(\.vertices)
             cycles.basisEdges = basis.map(\.edges)
+            let minimum = graph.minimumCycleBasis()
+            if !minimum.allSatisfy(isValid) { cycles.valid = false }
+            cycles.minimumBasisEdges = minimum.map(\.edges)
+            let weighted = graph.minimumCycleBasis(weight: { Double($0 % 4 + 1) })
+            if !weighted.allSatisfy(isValid) { cycles.valid = false }
+            cycles.minimumBasisWeight = weighted.reduce(0) { $0 + $1.edges.reduce(0) { $0 + $1 % 4 + 1 } }
             let chordless = c.n <= enumerationLimit ? listed(graph.chordlessCycles(), isValid, &cycles.valid) : nil
             cycles.chordless = chordless?.vertices
             cycles.chordlessEdges = chordless?.edges

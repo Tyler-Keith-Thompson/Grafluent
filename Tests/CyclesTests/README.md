@@ -18,6 +18,7 @@ extension Graph {
     func findCycle() -> Cycle<Vertex, Edges.Index>?                  // first back edge of a DFS, canonical
     func findCycle(from roots: some Sequence<Vertex>) -> Cycle<Vertex, Edges.Index>?   // traps on a non-vertex
     func cycleBasis() -> [Cycle<Vertex, Edges.Index>]                // fundamental cycles of the BFS forest
+    func minimumCycleBasis() -> [Cycle<Vertex, Edges.Index>]         // de Pina; also (weight:), weights finite and > 0
     func simpleCycles(maxLength: Int = .max) -> UndirectedSimpleCycles<Self>           // traps when negative
     func girth() -> Int?                                             // 1 with a loop, 2 with a parallel pair
 }
@@ -44,6 +45,7 @@ struct UndirectedSimpleCycles<G: Graph>: Sequence           // the same shape
 | Length bound | Counts edges: 0 is empty, 1 the loops, 2 adds 2-cycles; the unbounded sequence filtered, same order; negative traps | §F, CY-753, CY-850 |
 | `findCycle()` | DFS, roots in `vertices` order (or the given roots in order, skipping reached ones), rows in order, skipping the edge it arrived by (not the parent vertex); the first edge to a vertex on the path closes the cycle; returned canonical; `nil` exactly when `isAcyclic` | §A, CY-756, CY-764 |
 | `cycleBasis()` | One cycle per non-tree edge of the BFS forest (loops and parallel copies included), in ascending position of that edge, canonical; m − n + c cycles, independent over GF(2) | §B, CY-757 |
+| `minimumCycleBasis()`, `(weight:)` | de Pina's minimum cycle basis: m − n + c independent cycles of the least total length or weight, canonical, in nondecreasing weight then length then edge positions | `MinimumCycleBasisTests.swift` |
 | `girth()` | Least cycle length; `nil` when acyclic | §G, CY-758 |
 | Views | `g.directedView` reads every edge as two arcs, so it has a digon per edge and two loops per loop and is never acyclic when g has an edge; `digraph.undirectedView` lists out-edges then in-edges, so antiparallel arcs are a 2-cycle and `isAcyclic` is the polytree test | CY-413 – CY-417, CY-707, CY-708, CY-759, CY-858 |
 
@@ -71,6 +73,8 @@ inside each test.
 |---|---|---|
 | `UndirectedCycleDetectionTests.swift` | 39 | §A: `isAcyclic`, `findCycle()`, `findCycle(from:)`: empty, K₁, K₂, loops, parallel pairs, the parent-edge rule, small find-cycle cases, rows reversed, String vertices |
 | `CycleBasisTests.swift` | 24 | §B: fundamental bases, multigraphs and loops, grids, wheels, rows reversed, a graph where a depth-first (Paton) basis is not fundamental |
+| `MinimumCycleBasisTests.swift` | 8 | de Pina's minimum cycle basis: a triangle sharing an edge with a square, K₄, a wheel, a grid and a theta graph, degenerate graphs, weights, representations, and the greedy oracle over every simple cycle |
+| `MinimumCycleBasisPreconditionTests.swift` | 4 | weights of zero, negative, NaN and infinite trap |
 | `DirectedSimpleCycleTests.swift` | 53 | §C: small digraphs with pinned orders; complete digraphs with and without loops (A006231); Johnson's figure 1; a digraph where skipping visited start vertices loses a cycle (CY-252) |
 | `UndirectedSimpleCycleTests.swift` | 44 | §D: small graphs; complete graphs (A002807), rings, stars, wheels, grids, Petersen, K₃,₃; canonical form and order on K₄, rows reversed; cut vertices |
 | `CycleMultigraphTests.swift` | 24 | §E: loops, parallel pairs and triples, doubled sides, antiparallel copies, `g.directedView` counts |

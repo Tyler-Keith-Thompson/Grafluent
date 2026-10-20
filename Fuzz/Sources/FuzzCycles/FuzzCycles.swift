@@ -170,6 +170,28 @@ enum FuzzCycles {
             basisEdges.append(es)
         }
         check(rank(basisEdges) == basis.count, "\(name): cycleBasis is not independent")
+        // The minimum cycle basis, unweighted and with weights 1 … 4 by position: as many cycles,
+        // each a canonical simple cycle, independent, in nondecreasing weight, and of the least total
+        // weight: the greedy basis over every simple cycle by weight.
+        for weighted in [false, true] {
+            func weight(_ es: [Int]) -> Int { es.reduce(0) { $0 + (weighted ? $1 % 4 + 1 : 1) } }
+            var minimum = graph.minimumCycleBasis()
+            if weighted { minimum = graph.minimumCycleBasis(weight: { (p: G.Edges.Index) -> Double in Double(edgeNumber[p]! % 4 + 1) }) }
+            check(minimum.count == basis.count, "\(name): minimumCycleBasis has \(minimum.count) cycles, expected \(basis.count)")
+            var minimumEdges: [[Int]] = []
+            for c in minimum {
+                let (vs, es) = numbers(c)
+                check(expected.contains(key(vs, es)), "\(name): minimum basis cycle \(vs) \(es) is not a canonical simple cycle")
+                minimumEdges.append(es)
+            }
+            check(rank(minimumEdges) == minimum.count, "\(name): minimumCycleBasis is not independent")
+            let weights = minimumEdges.map(weight)
+            check(weights == weights.sorted(), "\(name): minimumCycleBasis is not in nondecreasing weight")
+            var greedy: [[Int]] = []
+            let expectedEdges = expected.map { Array($0[($0.firstIndex(of: -1)! + 1)...]) }.sorted { weight($0) < weight($1) || (weight($0) == weight($1) && $0.lexicographicallyPrecedes($1)) }
+            for es in expectedEdges where rank(greedy + [es]) == greedy.count + 1 { greedy.append(es) }
+            check(greedy.map(weight).reduce(0, +) == weights.reduce(0, +), "\(name): minimumCycleBasis weighs \(weights.reduce(0, +)), the greedy basis \(greedy.map(weight).reduce(0, +))")
+        }
     }
 
     static func checkDirected<G: DirectedGraph>(_ graph: G, _ name: String, maxLength: Int) where G.Vertex == Int {

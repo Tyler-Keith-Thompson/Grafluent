@@ -6,6 +6,8 @@
 # (girth's depth bound, the O(1) shortcut in isAcyclic) only makes it longer. Karp's block size
 # and keeping every level (minimumMeanCycle) only trade memory for time, and chordlessCycles'
 # bound on entering a vertex only prunes: the bound on closing a cycle decides what is emitted.
+# In minimumCycleBasis, the searches' stop once they cannot beat the best cycle so far only
+# prunes, and accepting a later cycle of equal weight picks another of the tied minimum bases.
 
 TESTS = ["CyclesTests"]
 
@@ -54,6 +56,20 @@ MUTANTS = [
     Mutant("treeedge", "UndirectedCycles.swift", "                    isTree[e] = true", "", mode="stmt"),
     Mutant("lcaorder", "UndirectedCycles.swift", "edgesB.reversed()", "edgesB"),
     Mutant("bfsdfs", "UndirectedCycles.swift", "queue[head]", "queue[queue.count - 1]"),
+
+    # Minimum cycle basis
+    Mutant("mcbtree", "MinimumCycleBasis.swift", "                    isTree[e] = true", "", mode="stmt"),
+    Mutant("mcbparity", "MinimumCycleBasis.swift", "inSupport[e]", "true", nth=1),
+    Mutant("mcbbfsparity", "MinimumCycleBasis.swift", "inSupport[e]", "true", nth=2),
+    Mutant("mcbrelax", "MinimumCycleBasis.swift", "nd < distance[t]", "false"),
+    Mutant("mcbodd", "MinimumCycleBasis.swift", "guard overlap & 1 == 1 else { continue }", "guard overlap > 0 else { continue }", mode="stmt"),
+    Mutant("mcbupdate", "MinimumCycleBasis.swift", "supports[j] = merged", "", mode="stmt"),
+    Mutant("mcbsupport", "MinimumCycleBasis.swift", "merged.append(support[b])", "merged.append(cycle[b])", mode="stmt"),
+    Mutant("mcbunmark", "MinimumCycleBasis.swift", "for e in support { inSupport[e] = false }", "", mode="stmt"),
+    Mutant("mcbsort", "MinimumCycleBasis.swift", "if x.weight != y.weight { return x.weight < y.weight }", "", mode="stmt"),
+    Mutant("mcbsortlength", "MinimumCycleBasis.swift", "if x.edges.count != y.edges.count { return x.edges.count < y.edges.count }", "", mode="stmt"),
+    Mutant("mcbweightcheck", "MinimumCycleBasis.swift", "w.isFinite && w > 0", "w.isFinite && w >= 0"),
+    Mutant("mcbwalk", "MinimumCycleBasis.swift", "vertices.reverse()", "", mode="stmt"),
 
     # Girth
     Mutant("girthstop", "Girth.swift", "2 * dist[v] + 1 >= best", "2 * dist[v] + 3 >= best"),
