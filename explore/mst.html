@@ -70,6 +70,7 @@
   <h2><small>The idea</small>Two ways to the same cheapest network</h2>
   <p><b>Kruskal</b> sorts every possible cable from cheapest to dearest. It lays each one, unless the cable would only join two houses that are already connected. <b>Prim</b> grows a single network outward from one house. It always adds the cheapest cable that reaches a house not yet connected. The routes differ, but the total cost is the same.</p>
   <p>Either way the result is a <b>spanning tree</b>. Every house is connected, and there are no loops. So six houses need exactly five cables.</p>
+  <p>The cheapest network is one of many. <code>spanningForests(weight:)</code> lists every spanning tree from the cheapest up, so the runners-up are there when the cheapest cable cannot be laid; the code at the end shows the three cheapest totals.</p>
   <p>Kruskal tracks who is already connected with a union–find structure. It answers “same group?” almost at once. Prim keeps a queue of the houses waiting to join, each with the cheapest price on offer so far. Dijkstra keeps its frontier the same way.</p>
 
   <h2><small>Where it breaks</small>Cheapest isn’t shortest</h2>
@@ -107,6 +108,8 @@
 
 <span class="k">let</span> byKruskal = houses.kruskalMinimumSpanningTree { cableCost[houses.edges[$<span class="n">0</span>]]! }.weight  <span class="c">// 17</span>
 <span class="k">let</span> byPrim = houses.primMinimumSpanningTree(from: start) { cableCost[houses.edges[$<span class="n">0</span>]]! }.weight  <span class="c">// 17</span>
+
+<span class="k">let</span> cheapest = houses.spanningForests { cableCost[houses.edges[$<span class="n">0</span>]]! }.prefix(<span class="n">3</span>).map(\.weight)  <span class="c">// [17, 18, 18]</span>
 </span></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
