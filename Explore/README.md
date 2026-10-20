@@ -30,6 +30,7 @@ contents and the menu without a link.
 | `components` | `connectedComponents()`, `lazy.breadthFirstSearch(from:)`, `stronglyConnectedComponents()`, `condensation()`, `lazy.depthFirstSearch()` |
 | `distances` | `eccentricities()`, `eccentricities(weight:)`, `radius`, `diameter`, `center`, `periphery`, `diameterPath(weight:)`, `dijkstraShortestPaths(from:weight:)` |
 | `bridges` | `bridges()`, `articulationPoints()`, `lazy.edgeDepthFirstSearch(from:)`, `connectedComponents()`; beside its figure, `biconnectedComponents()` |
+| `resilience` | `vertexConnectivity()`, `edgeConnectivity()`, `minimumVertexCut()`, `kComponents()`, `maximumK`, `KComponents` subscript |
 | `dominators` | `dominatorTree(root:)`, `postDominatorTree(exit:)`, `dominators(of:)`, `immediateDominator(of:)`, `children(of:)`, `lazy.breadthFirstSearch(from:)` |
 | `euler` | `degree(of:)`, `eulerianCircuit()`, `eulerianTrail()`, `incidentEdges(of:)` on a `Multigraph`; beside its figure, `hasEulerianTrail` |
 | `postman` | `chinesePostmanTour(weight:)`, `PostmanTour`, `degree(of:)`, `dijkstraShortestPaths(from:weight:)` |

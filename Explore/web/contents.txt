@@ -17,6 +17,7 @@ cyclefinding|Tortoise and hare|Getting around|Finding a loop with only two bookm
 components|Connected components|Structure|Which parts can reach each other.|page
 distances|Centre and diameter|Structure|The middle of a network, and its far ends.|page
 bridges|Bridges and articulation points|Structure|Which single closure splits the network.|page
+resilience|Resilience|Structure|How many failures a network takes, and which groups hold.|page
 dominators|Dominators|Structure|The blocks every path through a program must pass.|page
 euler|Euler tours|Structure|Crossing every bridge exactly once.|page
 postman|Chinese postman|Structure|The shortest round that covers every street.|page
