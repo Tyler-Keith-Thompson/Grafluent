@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graph products · Explore Grafluent</title>
+<meta name="description" content="Build a board from files and ranks: the Cartesian, tensor, strong and lexicographic products of two small graphs, as lazy views with Grafluent’s cartesianProductView and friends.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="products">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a><a href="products.html" aria-current="page">Graph products</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Graph products</h1>
+  <p class="question">A chess board is four files times three ranks. Which product of two paths gives the rook’s moves, and which the king’s?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Big regular graphs from small ones</h2>
+  <p>A <b>product</b> of two graphs has a vertex for every pair of vertices, one from each. Which pairs are joined is the rule that names the product. Grids, tori, hypercubes, boards and the state spaces of several machines running side by side are all products of small graphs.</p>
+  <p>Reach for a product to build such a graph without listing its edges, to reason about it through its factors, or to model two things that move at once: one step in either factor, or in both.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>The four products</h2>
+<div class="compare">
+<table>
+  <thead><tr><th scope="col">Product</th><th scope="col">A move changes</th><th scope="col">On the board</th><th scope="col">Edges</th><th scope="col">Also called</th></tr></thead>
+  <tbody>
+    <tr class="self"><th scope="row">Cartesian <span class="this">This page</span></th><td data-label="A move changes">One factor, one step</td><td data-label="On the board">A rook’s single step</td><td data-label="Edges">m₁ n₂ + n₁ m₂</td><td data-label="Also called">Box product</td></tr>
+    <tr class="self"><th scope="row">Tensor <span class="this">This page</span></th><td data-label="A move changes">Both factors, one step each</td><td data-label="On the board">A bishop’s single step</td><td data-label="Edges">2 m₁ m₂</td><td data-label="Also called">Direct, categorical or Kronecker product</td></tr>
+    <tr class="self"><th scope="row">Strong <span class="this">This page</span></th><td data-label="A move changes">One or both factors</td><td data-label="On the board">A king</td><td data-label="Edges">The two above added</td><td data-label="Also called">Normal product</td></tr>
+    <tr class="self"><th scope="row">Lexicographic <span class="this">This page</span></th><td data-label="A move changes">The first factor, landing anywhere; or the second alone</td><td data-label="On the board">A courier</td><td data-label="Edges">m₁ n₂² + n₁ m₂</td><td data-label="Also called">Composition</td></tr>
+  </tbody>
+</table>
+</div>
+  <p>The Cartesian product keeps the factors apart, so most questions about it reduce to questions about the factors. The strong product is the Cartesian plus the tensor. The lexicographic product is the odd one: it is not symmetric in its factors.</p>
+</section>
+
+<p class="example lead">Example: the files a to d, a path of four, and the ranks 1 to 3, a path of three.</p>
+
+<h2 class="labhead"><small>Step through</small>Draw the moves</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="The moves of a graph product on a board"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 470" role="img" aria-label="A board of four files and three ranks, with the moves of the Cartesian product drawn so far"><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="a1"><circle cx="140.0" cy="370.0" r="15.0" /><text x="140.0" y="403.0" text-anchor="middle" class="name">a1</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="b1"><circle cx="260.0" cy="370.0" r="15.0" /><text x="260.0" y="403.0" text-anchor="middle" class="name">b1</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="c1"><circle cx="380.0" cy="370.0" r="15.0" /><text x="380.0" y="403.0" text-anchor="middle" class="name">c1</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="d1"><circle cx="500.0" cy="370.0" r="15.0" /><text x="500.0" y="403.0" text-anchor="middle" class="name">d1</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="a2"><circle cx="140.0" cy="240.0" r="15.0" /><text x="140.0" y="273.0" text-anchor="middle" class="name">a2</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="b2"><circle cx="260.0" cy="240.0" r="15.0" /><text x="260.0" y="273.0" text-anchor="middle" class="name">b2</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="c2"><circle cx="380.0" cy="240.0" r="15.0" /><text x="380.0" y="273.0" text-anchor="middle" class="name">c2</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="d2"><circle cx="500.0" cy="240.0" r="15.0" /><text x="500.0" y="273.0" text-anchor="middle" class="name">d2</text></g><g class="node " data-node="8" tabindex="-1" role="presentation" aria-label="a3"><circle cx="140.0" cy="110.0" r="15.0" /><text x="140.0" y="143.0" text-anchor="middle" class="name">a3</text></g><g class="node " data-node="9" tabindex="-1" role="presentation" aria-label="b3"><circle cx="260.0" cy="110.0" r="15.0" /><text x="260.0" y="143.0" text-anchor="middle" class="name">b3</text></g><g class="node " data-node="10" tabindex="-1" role="presentation" aria-label="c3"><circle cx="380.0" cy="110.0" r="15.0" /><text x="380.0" y="143.0" text-anchor="middle" class="name">c3</text></g><g class="node " data-node="11" tabindex="-1" role="presentation" aria-label="d3"><circle cx="500.0" cy="110.0" r="15.0" /><text x="500.0" y="143.0" text-anchor="middle" class="name">d3</text></g></svg><div class="legend"><span><i class="line current"></i>the move just drawn</span><span><i class="line tree"></i>an earlier move</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">The Cartesian product</span><p class="narration">Files a to d are a path of four; ranks 1 to 3 are a path of three. Their Cartesian product has a square for every file and rank, and it moves like a rook taking one step: change the file or the rank by one step, not both. Press Step to draw its moves.</p></div><div class="panel"><div class="buttons"><label class="field" for="products-kind">Product: <select id="products-kind"><option value="0" selected>Cartesian</option><option value="1">tensor</option><option value="2">strong</option><option value="3">lexicographic</option></select></label></div></div><div class="panel"><span class="label">The four products</span><div class="queue"><div class="qrow top"><span>Cartesian: a rook taking one step</span><span class="num">17 moves</span></div><div class="qrow plain"><span>tensor: a bishop taking one step</span><span class="num">12 moves</span></div><div class="qrow plain"><span>strong: a king</span><span class="num">29 moves</span></div><div class="qrow plain"><span>lexicographic: a courier</span><span class="num">35 moves</span></div></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="472" viewBox="0 0 472 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="464" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="6.0" class="m-pal0" /><title>Move 1 of 17: a1 to b1, changing the file only.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="6.0" class="m-pal0" /><title>Move 2 of 17: a2 to b2, changing the file only.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="6.0" class="m-pal0" /><title>Move 3 of 17: a3 to b3, changing the file only.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="6.0" class="m-pal0" /><title>Move 4 of 17: b1 to c1, changing the file only.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="6.0" class="m-pal0" /><title>Move 5 of 17: b2 to c2, changing the file only.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="6.0" class="m-pal0" /><title>Move 6 of 17: b3 to c3, changing the file only.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="6.0" class="m-pal0" /><title>Move 7 of 17: c1 to d1, changing the file only.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="6.0" class="m-pal0" /><title>Move 8 of 17: c2 to d2, changing the file only.</title></g><g class="marble future" data-step="8"><circle cx="230" cy="32" r="6.0" class="m-pal0" /><title>Move 9 of 17: c3 to d3, changing the file only.</title></g><g class="marble future" data-step="9"><circle cx="256" cy="32" r="6.0" class="m-pal1" /><title>Move 10 of 17: a1 to a2, changing the rank only.</title></g><g class="marble future" data-step="10"><circle cx="282" cy="32" r="6.0" class="m-pal1" /><title>Move 11 of 17: a2 to a3, changing the rank only.</title></g><g class="marble future" data-step="11"><circle cx="308" cy="32" r="6.0" class="m-pal1" /><title>Move 12 of 17: b1 to b2, changing the rank only.</title></g><g class="marble future" data-step="12"><circle cx="334" cy="32" r="6.0" class="m-pal1" /><title>Move 13 of 17: b2 to b3, changing the rank only.</title></g><g class="marble future" data-step="13"><circle cx="360" cy="32" r="6.0" class="m-pal1" /><title>Move 14 of 17: c1 to c2, changing the rank only.</title></g><g class="marble future" data-step="14"><circle cx="386" cy="32" r="6.0" class="m-pal1" /><title>Move 15 of 17: c2 to c3, changing the rank only.</title></g><g class="marble future" data-step="15"><circle cx="412" cy="32" r="6.0" class="m-pal1" /><title>Move 16 of 17: d1 to d2, changing the rank only.</title></g><g class="marble future" data-step="16"><circle cx="438" cy="32" r="6.0" class="m-pal1" /><title>Move 17 of 17: d2 to d3, changing the rank only.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-products" class="scrub" type="range" min="0" max="17" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-pal0" /></svg>a move along a file</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-pal1" /></svg>a move along a rank</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="6.0" class="m-pal2" /></svg>a move that changes both</span></div><p class="note">The product is a lazy view. Each step draws one more of its edges, in the order the view lists them.</p></section></div></div>
+
+<section class="prose">
+  <h2><small>The idea</small>A vertex for every pair, an edge by the rule</h2>
+  <p>Write a square as a pair: its file and its rank. In the <b>Cartesian</b> product two squares are joined when they share a file and their ranks are adjacent, or share a rank and their files are adjacent. That is a rook moving one step, and the product of two paths is a grid. In the <b>tensor</b> product both coordinates must change, each to a neighbour: a bishop’s single step. The <b>strong</b> product allows either: a king. The <b>lexicographic</b> product lets a move change the file to a neighbouring file and land on any rank at all, or keep the file and move the rank by one.</p>
+  <p>Grafluent builds each as a lazy view over the two factors: <code>cartesianProductView(files, ranks)</code> and its three siblings. A view stores nothing but its factors. Its vertices are <code>Pair</code>s, its edges come from the factors’ edges, and its rows are computed when read, so a product with a million vertices costs no more memory than its factors.</p>
+  <p>Products compose with everything else. A <a href="bfs.html">breadth-first search</a> on the Cartesian product of two paths measures rook distance; on the strong product it measures king distance, which is the larger of the two coordinate differences.</p>
+
+  <h2><small>Where it breaks</small>Counting grows fast</h2>
+  <p>A product with n₁ n₂ vertices is easy to build but no easier to search. Every algorithm that visits all of it still pays for all of it, and three factors multiply again. Directed factors give directed products, with the same rules read along the arcs. Self-loops in a factor make the products join a square to itself; the views follow their factors and keep them.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The board, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">GraphProducts</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+
+<span class="k">let</span> files = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="t">UndirectedEdge</span>(<span class="s">"a"</span>, <span class="s">"b"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"b"</span>, <span class="s">"c"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"c"</span>, <span class="s">"d"</span>)
+}
+
+<span class="k">let</span> ranks = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="t">UndirectedEdge</span>(<span class="s">"1"</span>, <span class="s">"2"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"2"</span>, <span class="s">"3"</span>)
+}
+
+<span class="k">let</span> rook = cartesianProductView(files, ranks)
+<span class="k">let</span> squares = rook.vertexCount  <span class="c">// 12</span>
+<span class="k">let</span> steps = rook.edgeCount  <span class="c">// 17</span>
+<span class="k">let</span> from = rook.neighbors(of: <span class="t">Pair</span>(<span class="s">"b"</span>, <span class="s">"2"</span>)).map { $<span class="n">0</span>.first + $<span class="n">0</span>.second }  <span class="c">// ["a2", "c2", "b1", "b3"]</span>
+</span></pre>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="representations.html"><span>Previous</span>Storing a graph</a><a class="next" href="bfs.html"><span>Next</span>Breadth-first search</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

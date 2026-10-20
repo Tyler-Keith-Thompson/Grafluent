@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neighbourhoods · Explore Grafluent</title>
+<meta name="description" content="Pull in what a knowledge graph knows around a question: a few hops from the entities it names, cut to a budget by how well connected each entity is, with Grafluent’s egoGraphView(of:radius:maximumVertexCount:priority:).">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="neighbourhood">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a><a href="products.html">Graph products</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html" aria-current="page">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Neighbourhoods</h1>
+  <p class="question">A question names Ada Lovelace. Which facts in a knowledge graph are near enough to matter, and how do you stop at a sensible number?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>The part of a graph around a few places</h2>
+  <p>A knowledge graph can hold millions of facts. A question touches a few entities, and what matters is what lies close to them: the entities a hop or two away and the facts between them. That is the <b>neighbourhood</b> of the question, also called its ego graph.</p>
+  <p>Reach for it to feed a language model the facts around a question, to show a person the part of a social network near them, or to cut a large graph down to a piece worth drawing. A <b>budget</b> keeps the piece small when a hop would bring in too much.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to pick the nearby part</h2>
+<div class="compare">
+<table>
+  <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Picks</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
+  <tbody>
+    <tr class="self"><th scope="row">Neighbourhood with a budget <span class="this">This page</span></th><td data-label="When to use">A question names some entities</td><td data-label="Picks">Everything within k hops, the best ranked first when a ring overflows</td><td data-label="Cost">O(what it visits)</td><td data-label="Weakness">A hop from a hub brings in a crowd</td></tr>
+    <tr><th scope="row"><a href="pagerank.html">PageRank from the seeds</a></th><td data-label="When to use">Closeness should count more than hops</td><td data-label="Picks">The top entities by a walk that keeps returning to the seeds</td><td data-label="Cost">A few passes over the links</td><td data-label="Weakness">Needs the whole graph in memory</td></tr>
+    <tr><th scope="row"><a href="steiner.html">Steiner tree</a></th><td data-label="When to use">The seeds should be joined, not surrounded</td><td data-label="Picks">The cheapest tree connecting the seeds</td><td data-label="Cost">O(m log m)</td><td data-label="Weakness">Nothing beside the paths</td></tr>
+    <tr><th scope="row"><a href="hierarchy.html">Communities</a></th><td data-label="When to use">You want a summary of a region, not its facts</td><td data-label="Picks">A whole community and its summary</td><td data-label="Cost">Found once, ahead of time</td><td data-label="Weakness">Not centred on the question</td></tr>
+  </tbody>
+</table>
+</div>
+  <p>Hops are the simplest notion of nearness, and a budget keeps them honest. Personalised PageRank ranks by nearness instead of counting hops. A Steiner tree answers a different question: how the seeds connect.</p>
+</section>
+
+<p class="example lead">Example: eighteen entities about Ada Lovelace and her world, and a question that names one or two of them.</p>
+
+<h2 class="labhead"><small>Step through</small>One ring at a time</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="The neighbourhood of a question in a knowledge graph"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 470" role="img" aria-label="Eighteen entities from a knowledge graph with the ones near the question picked out, ring by ring"><g class="edge " data-edge="0"><path d="M261.9,227.6 L358.1,167.4" class="hit" /><path d="M261.9,227.6 L358.1,167.4" class="stroke" /></g><g class="edge " data-edge="1"><path d="M261.9,242.4 L358.1,302.6" class="hit" /><path d="M261.9,242.4 L358.1,302.6" class="stroke" /></g><g class="edge " data-edge="2"><path d="M370.0,296.0 L370.0,174.0" class="hit" /><path d="M370.0,296.0 L370.0,174.0" class="stroke" /></g><g class="edge " data-edge="3"><path d="M382.3,316.6 L487.7,373.4" class="hit" /><path d="M382.3,316.6 L487.7,373.4" class="stroke" /></g><g class="edge " data-edge="4"><path d="M236.0,235.0 L134.0,235.0" class="hit" /><path d="M236.0,235.0 L134.0,235.0" class="stroke" /></g><g class="edge " data-edge="5"><path d="M110.4,224.8 L49.6,160.2" class="hit" /><path d="M110.4,224.8 L49.6,160.2" class="stroke" /></g><g class="edge " data-edge="6"><path d="M111.0,245.7 L49.0,319.3" class="hit" /><path d="M111.0,245.7 L49.0,319.3" class="stroke" /></g><g class="edge " data-edge="7"><path d="M362.0,148.5 L308.0,71.5" class="hit" /><path d="M362.0,148.5 L308.0,71.5" class="stroke" /></g><g class="edge " data-edge="8"><path d="M286.2,57.9 L183.8,42.1" class="hit" /><path d="M286.2,57.9 L183.8,42.1" class="stroke" /></g><g class="edge " data-edge="9"><path d="M156.2,42.5 L73.8,57.5" class="hit" /><path d="M156.2,42.5 L73.8,57.5" class="stroke" /></g><g class="edge " data-edge="10"><path d="M382.3,153.4 L487.7,96.6" class="hit" /><path d="M382.3,153.4 L487.7,96.6" class="stroke" /></g><g class="edge " data-edge="11"><path d="M511.5,98.0 L588.5,152.0" class="hit" /><path d="M511.5,98.0 L588.5,152.0" class="stroke" /></g><g class="edge " data-edge="12"><path d="M600.0,146.0 L600.0,74.0" class="hit" /><path d="M600.0,146.0 L600.0,74.0" class="stroke" /></g><g class="edge " data-edge="13"><path d="M601.4,173.9 L608.6,246.1" class="hit" /><path d="M601.4,173.9 L608.6,246.1" class="stroke" /></g><g class="edge " data-edge="14"><path d="M487.7,386.7 L402.3,433.3" class="hit" /><path d="M487.7,386.7 L402.3,433.3" class="stroke" /></g><g class="edge " data-edge="15"><path d="M376.0,439.1 L244.0,430.9" class="hit" /><path d="M376.0,439.1 L244.0,430.9" class="stroke" /></g><g class="edge " data-edge="16"><path d="M382.3,303.4 L487.7,246.6" class="hit" /><path d="M382.3,303.4 L487.7,246.6" class="stroke" /></g><g class="edge " data-edge="17"><path d="M506.9,252.2 L583.1,387.8" class="hit" /><path d="M506.9,252.2 L583.1,387.8" class="stroke" /></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="Ada Lovelace"><circle cx="250.0" cy="235.0" r="12.0" /><text x="250.0" y="265.0" text-anchor="middle" class="name">Ada Lovelace</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Analytical Engine"><circle cx="370.0" cy="160.0" r="12.0" /><text x="370.0" y="190.0" text-anchor="middle" class="name">Analytical Engine</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="Charles Babbage"><circle cx="370.0" cy="310.0" r="12.0" /><text x="370.0" y="340.0" text-anchor="middle" class="name">Charles Babbage</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Difference Engine"><circle cx="500.0" cy="380.0" r="12.0" /><text x="500.0" y="410.0" text-anchor="middle" class="name">Difference Engine</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Lord Byron"><circle cx="120.0" cy="235.0" r="12.0" /><text x="120.0" y="265.0" text-anchor="middle" class="name">Lord Byron</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Poetry"><circle cx="40.0" cy="150.0" r="12.0" /><text x="40.0" y="180.0" text-anchor="middle" class="name">Poetry</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Greece"><circle cx="40.0" cy="330.0" r="12.0" /><text x="40.0" y="360.0" text-anchor="middle" class="name">Greece</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="Punched cards"><circle cx="300.0" cy="60.0" r="12.0" /><text x="300.0" y="90.0" text-anchor="middle" class="name">Punched cards</text></g><g class="node " data-node="8" tabindex="-1" role="presentation" aria-label="Jacquard loom"><circle cx="170.0" cy="40.0" r="12.0" /><text x="170.0" y="70.0" text-anchor="middle" class="name">Jacquard loom</text></g><g class="node " data-node="9" tabindex="-1" role="presentation" aria-label="Weaving"><circle cx="60.0" cy="60.0" r="12.0" /><text x="60.0" y="90.0" text-anchor="middle" class="name">Weaving</text></g><g class="node " data-node="10" tabindex="-1" role="presentation" aria-label="Programming"><circle cx="500.0" cy="90.0" r="12.0" /><text x="500.0" y="120.0" text-anchor="middle" class="name">Programming</text></g><g class="node " data-node="11" tabindex="-1" role="presentation" aria-label="Alan Turing"><circle cx="600.0" cy="160.0" r="12.0" /><text x="600.0" y="190.0" text-anchor="middle" class="name">Alan Turing</text></g><g class="node " data-node="12" tabindex="-1" role="presentation" aria-label="Enigma"><circle cx="600.0" cy="60.0" r="12.0" /><text x="600.0" y="90.0" text-anchor="middle" class="name">Enigma</text></g><g class="node " data-node="13" tabindex="-1" role="presentation" aria-label="Bletchley Park"><circle cx="610.0" cy="260.0" r="12.0" /><text x="610.0" y="290.0" text-anchor="middle" class="name">Bletchley Park</text></g><g class="node " data-node="14" tabindex="-1" role="presentation" aria-label="Logarithm tables"><circle cx="390.0" cy="440.0" r="12.0" /><text x="390.0" y="470.0" text-anchor="middle" class="name">Logarithm tables</text></g><g class="node " data-node="15" tabindex="-1" role="presentation" aria-label="Navigation"><circle cx="230.0" cy="430.0" r="12.0" /><text x="230.0" y="460.0" text-anchor="middle" class="name">Navigation</text></g><g class="node " data-node="16" tabindex="-1" role="presentation" aria-label="Royal Society"><circle cx="500.0" cy="240.0" r="12.0" /><text x="500.0" y="270.0" text-anchor="middle" class="name">Royal Society</text></g><g class="node " data-node="17" tabindex="-1" role="presentation" aria-label="Isaac Newton"><circle cx="590.0" cy="400.0" r="12.0" /><text x="590.0" y="430.0" text-anchor="middle" class="name">Isaac Newton</text></g></svg><div class="legend"><span><i class="dot current"></i>named in the question</span><span><i class="dot frontier"></i>the ring just added</span><span><i class="dot visited"></i>an earlier ring</span><span><i class="line tree"></i>a fact between kept entities</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">The question</span><p class="narration">A question about Ada Lovelace. Pull in what the graph knows within 2 hops, at most 8 entities. Press Step to add one ring at a time.</p></div><div class="panel"><div class="buttons"><label class="field" for="neighbourhood-question">About <select id="neighbourhood-question"><option value="0" selected>Ada Lovelace</option><option value="1">Ada Lovelace and Alan Turing</option><option value="2">the Difference Engine</option></select></label><label class="field" for="neighbourhood-hops">Hops: <select id="neighbourhood-hops"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></label><label class="field" for="neighbourhood-budget">Budget: <select id="neighbourhood-budget"><option value="4">4</option><option value="6">6</option><option value="8" selected>8</option><option value="12">12</option><option value="18">18</option></select></label></div></div><div class="panel"><span class="label">Kept so far</span><div class="queue"><p class="empty">None yet</p></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="6.0" class="m-current" /><text x="22" y="36" text-anchor="middle">1</text><title>Start from Ada Lovelace. 1 of the budget of 8 used.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="8.0" class="m-frontier" /><text x="48" y="36" text-anchor="middle">3</text><title>Ring 1 adds Analytical Engine, Charles Babbage and Lord Byron, everything one hop further. 4 of the budget of 8 used.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="9.0" class="m-frontier" /><text x="74" y="36" text-anchor="middle">4</text><title>Ring 2 has 6 entities, more than the 4 places left in the budget. The best connected are kept: Difference Engine, Programming, Punched cards and Royal Society. Dropped: Greece and Poetry.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-neighbourhood" class="scrub" type="range" min="0" max="3" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-current" /></svg>the question’s entities</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-frontier" /></svg>one ring, with how many it keeps</span></div><p class="note">egoGraphView(of:radius:maximumVertexCount:priority:) builds the whole view at once. The page shows it ring by ring.</p></section></div></div>
+
+<section class="prose">
+  <h2><small>The idea</small>Breadth-first from the seeds, with a cap</h2>
+  <p>Start from the entities the question names. The first ring is everything one fact away from any of them. The next ring is everything one fact beyond that, and so on, up to the number of hops you allow. This is a <a href="bfs.html">breadth-first search</a> from several starting points at once, and the neighbourhood is the part of the graph it reaches, with all the facts between those entities.</p>
+  <p>The budget is applied ring by ring. A ring that fits is kept whole. The first ring that would push past the budget is cut to the places left, keeping the entities of greatest priority, and the search stops there. The lab ranks by how many facts an entity has, so hubs come first; <code>pageRank(personalization:)</code> from the seeds is a stronger ranking for the same closure. <code>egoGraphView(of:radius:maximumVertexCount:priority:)</code> builds the whole view in one pass and shares the graph’s storage, so it costs nothing to make beyond the search.</p>
+
+  <h2><small>Where it breaks</small>Hubs and hops</h2>
+  <p>One hop from a hub is a crowd. In a graph where “England” links to a million entities, a two-hop neighbourhood of almost anything is most of the graph. The budget stops the flood but cannot say which of the million matter; that is what the priority is for, and a priority such as personalised PageRank from the seeds does better than counting links.</p>
+  <p>Hops are blind to the kind of link. A knowledge graph with typed relations, as an edge map, can filter the neighbourhood to the relations the question is about before counting hops.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The knowledge graph, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">GraphOperations</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+
+<span class="k">let</span> mentions = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ada Lovelace"</span>, <span class="s">"Analytical Engine"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Ada Lovelace"</span>, <span class="s">"Charles Babbage"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Charles Babbage"</span>, <span class="s">"Analytical Engine"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Charles Babbage"</span>, <span class="s">"Difference Engine"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ada Lovelace"</span>, <span class="s">"Lord Byron"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Lord Byron"</span>, <span class="s">"Poetry"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Lord Byron"</span>, <span class="s">"Greece"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Analytical Engine"</span>, <span class="s">"Punched cards"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Punched cards"</span>, <span class="s">"Jacquard loom"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Jacquard loom"</span>, <span class="s">"Weaving"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Analytical Engine"</span>, <span class="s">"Programming"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Programming"</span>, <span class="s">"Alan Turing"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Alan Turing"</span>, <span class="s">"Enigma"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Alan Turing"</span>, <span class="s">"Bletchley Park"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Difference Engine"</span>, <span class="s">"Logarithm tables"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Logarithm tables"</span>, <span class="s">"Navigation"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Charles Babbage"</span>, <span class="s">"Royal Society"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Royal Society"</span>, <span class="s">"Isaac Newton"</span>),
+]
+
+<span class="k">let</span> facts = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> mention <span class="k">in</span> mentions { mention }
+}
+
+<span class="k">let</span> seeds = [<span class="s">"Ada Lovelace"</span>]
+<span class="k">let</span> hops = <span class="n">2</span>
+<span class="k">let</span> budget = <span class="n">8</span>
+
+<span class="k">let</span> nearby = facts.egoGraphView(of: seeds, radius: hops)
+<span class="k">let</span> entities = <span class="t">Array</span>(nearby.vertices)  <span class="c">// ["Ada Lovelace", "Analytical Engine", "Charles Babbage", "Difference Engine", "Lord Byron", "Poetry", "Greece", "Punched cards", "Programming", "Royal Society"]</span>
+<span class="k">let</span> links = nearby.edgeCount  <span class="c">// 10</span>
+
+<span class="k">let</span> nearby = facts.egoGraphView(of: seeds, radius: hops, maximumVertexCount: budget) { facts.degree(of: $<span class="n">0</span>) }
+<span class="k">let</span> entities = <span class="t">Array</span>(nearby.vertices)  <span class="c">// ["Ada Lovelace", "Analytical Engine", "Charles Babbage", "Difference Engine", "Lord Byron", "Punched cards", "Programming", "Royal Society"]</span>
+</span></pre>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="linkprediction.html"><span>Previous</span>Friend suggestions</a><a class="next" href="layout.html"><span>Next</span>Force-directed layout</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>
