@@ -834,6 +834,40 @@ def normal_cycle(vs, directed):
     return min(forward, backward)
 
 
+def compare_feedback_sets(case, mine):
+    """The minimum feedback arc set (directed) and vertex set against igraph's exact sizes, on
+    cases of at most 14 vertices; the sets themselves must leave the graph acyclic (a forest)."""
+    import igraph as ig
+    problems = []
+    directed, n, edges = case["directed"], case["n"], case["edges"]
+    if mine.get("feedbackVertices") is None:
+        return problems
+    I = ig.Graph(n=n, edges=[(u, v) for u, v, _ in edges], directed=directed)
+    M = nx.MultiDiGraph() if directed else nx.MultiGraph()
+    M.add_nodes_from(range(n))
+    M.add_edges_from((u, v) for u, v, _ in edges)
+    vertices = mine["feedbackVertices"]
+    if len(vertices) != len(I.feedback_vertex_set()):
+        problems.append(f"minimumFeedbackVertexSet has {len(vertices)} vertices, igraph {len(I.feedback_vertex_set())}")
+    R = M.copy()
+    R.remove_nodes_from(vertices)
+    acyclic = nx.is_directed_acyclic_graph(R) if directed else (R.number_of_nodes() == 0 or nx.is_forest(R))
+    if not acyclic:
+        problems.append(f"minimumFeedbackVertexSet {vertices} leaves a cycle")
+    if vertices != sorted(vertices):
+        problems.append("minimumFeedbackVertexSet is not in vertices order")
+    if directed:
+        arcs = mine["feedbackArcs"]
+        if len(arcs) != len(I.feedback_arc_set(method="ip")):
+            problems.append(f"minimumFeedbackArcSet has {len(arcs)} arcs, igraph {len(I.feedback_arc_set(method='ip'))}")
+        R = M.copy()
+        for u, v in arcs:
+            R.remove_edge(u, v)
+        if not nx.is_directed_acyclic_graph(R):
+            problems.append(f"minimumFeedbackArcSet {arcs} leaves a cycle")
+    return problems
+
+
 def compare_cycles(case, mine, G):
     """Cycles against NetworkX: the set of simple cycles (when there are few enough to list), the
     length-bounded set, girth, forests; and the library's own promises: canonical form, order by
@@ -905,6 +939,7 @@ def compare_cycles(case, mine, G):
         girth = None if g == float("inf") else int(g)
     if mine.get("girth") != girth:
         problems.append(f"girth {mine.get('girth')}, expected {girth}")
+    problems += compare_feedback_sets(case, mine)
     if directed:
         return problems
 

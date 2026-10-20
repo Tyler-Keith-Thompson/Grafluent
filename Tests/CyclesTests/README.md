@@ -27,6 +27,9 @@ extension DirectedGraph {
     func girth() -> Int?
     func feedbackArcSet() -> [Edges.Index]                          // Eades–Lin–Smyth; every self-loop in it
     func feedbackArcSet(weight: (Edges.Index) -> Double) -> [Edges.Index]   // traps on a non-finite weight
+    func minimumFeedbackArcSet() -> [Edges.Index]                   // exact, at most 28 vertices
+    func minimumFeedbackArcSet(weight: (Edges.Index) -> Double) -> [Edges.Index]
+    func minimumFeedbackVertexSet() -> [Vertex]                     // exact, at most 32 vertices; also on Graph
 }
 struct DirectedSimpleCycles<G: DirectedGraph>: Sequence     // Element == Cycle<G.Vertex, G.Edges.Index>
 struct UndirectedSimpleCycles<G: Graph>: Sequence           // the same shape
@@ -87,6 +90,7 @@ inside each test.
 | `CyclePreconditionTests.swift` | 4 | §L exit tests: negative bound (CY-850), root not a vertex (CY-851), index rows that break the laws (CY-860) |
 | `CycleReviewTests.swift` | 11 | CY-1001 – CY-1011: girth after a longer cycle from earlier roots, a windmill with its hub last, a bounded 100 × 100 grid, girth of 10⁵-vertex forests and DAGs, edge indices out of range and edges in no row, iterators copied part-way, Traversal's directed `findCycle` against `simpleCycles`, `isAcyclic` without hashing |
 | `FeedbackArcSetTests.swift` | 4 | `feedbackArcSet()` and `feedbackArcSet(weight:)` (no catalog rows): self-loops in the set, weighted sets, random multigraphs (ascending, loops in, the rest acyclic by Kahn's algorithm, equal weights give the unweighted set), and exit tests for non-finite weights |
+| `MinimumFeedbackSetTests.swift` | 8 | `minimumFeedbackArcSet()`, `minimumFeedbackArcSet(weight:)` and `minimumFeedbackVertexSet()` (no catalog rows): hand cases, loops and parallel edges, ties, brute force over orderings and subsets on random multigraphs, preconditions |
 
 379 tests in all.
 

@@ -305,6 +305,16 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Cycles: BASELINE hand-written Karp mean, full table, G(500, 2000)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(handWrittenKarpMean(500, karpArcs)) }
     }
+    Benchmark("Cycles: minimumFeedbackArcSet, G(18, 60)") { benchmark in
+        var generator = SeededRandomNumberGenerator(seed: 18)
+        let small = AdjacencyList(vertices: 0 ..< 18, edges: (0 ..< 60).map { _ in DirectedEdge(from: Int.random(in: 0 ..< 18, using: &generator), to: Int.random(in: 0 ..< 18, using: &generator)) })
+        for _ in benchmark.scaledIterations { blackHole(small.minimumFeedbackArcSet()) }
+    }
+    Benchmark("Cycles: minimumFeedbackVertexSet, G(22, 80)") { benchmark in
+        var generator = SeededRandomNumberGenerator(seed: 22)
+        let small = AdjacencyList(vertices: 0 ..< 22, edges: (0 ..< 80).map { _ in DirectedEdge(from: Int.random(in: 0 ..< 22, using: &generator), to: Int.random(in: 0 ..< 22, using: &generator)) })
+        for _ in benchmark.scaledIterations { blackHole(small.minimumFeedbackVertexSet()) }
+    }
     Benchmark("Cycles: minimumMeanCycle, G(500, 2000)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(karpGraph.minimumMeanCycle { karpWeights[$0] }) }
     }

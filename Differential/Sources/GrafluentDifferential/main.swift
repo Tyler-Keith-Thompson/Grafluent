@@ -229,6 +229,10 @@ struct Cycles: Encodable {
     var meanCycle: [Int]?
     var meanWeight: Int?
     var meanLength: Int?
+    /// On at most 14 vertices: minimumFeedbackArcSet() as [source, target] pairs (directed) and
+    /// minimumFeedbackVertexSet().
+    var feedbackArcs: [[Int]]?
+    var feedbackVertices: [Int]?
 }
 
 /// Traversal: allSimplePaths from the first source to the target, unbounded and with maxLength 3
@@ -851,6 +855,10 @@ for c in cases {
                 cycles.meanWeight = mean.weight(w)
                 cycles.meanLength = mean.length
             }
+            if c.n <= 14 {
+                cycles.feedbackArcs = graph.minimumFeedbackArcSet().map { [graph.edges[$0].source, graph.edges[$0].target] }
+                cycles.feedbackVertices = graph.minimumFeedbackVertexSet()
+            }
             results[results.count - 1].cycles = cycles
         }
         if wants("traversal") {
@@ -1024,6 +1032,7 @@ for c in cases {
             let chordless = c.n <= enumerationLimit ? listed(graph.chordlessCycles(), isValid, &cycles.valid) : nil
             cycles.chordless = chordless?.vertices
             cycles.chordlessEdges = chordless?.edges
+            if c.n <= 14 { cycles.feedbackVertices = graph.minimumFeedbackVertexSet() }
             result.cycles = cycles
         }
         if wants("traversal") {

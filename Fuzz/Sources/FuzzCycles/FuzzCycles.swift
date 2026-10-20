@@ -147,6 +147,20 @@ enum FuzzCycles {
             }
         }
 
+        // Minimum feedback vertex set on small graphs: hits every simple cycle, and no smaller
+        // vertex set does.
+        if n <= 8 {
+            let cycleVertices = all.map { Set(numbers($0).vertices) }
+            let feedback = graph.minimumFeedbackVertexSet().map { number[$0]! }
+            check(feedback == feedback.sorted() && cycleVertices.allSatisfy { !$0.isDisjoint(with: feedback) }, "\(name): minimumFeedbackVertexSet \(feedback) misses a cycle")
+            var smaller = false
+            for mask in 0 ..< 1 << n where mask.nonzeroBitCount < feedback.count {
+                let chosen = Set((0 ..< n).filter { mask >> $0 & 1 == 1 })
+                if cycleVertices.allSatisfy({ !$0.isDisjoint(with: chosen) }) { smaller = true }
+            }
+            check(!smaller, "\(name): minimumFeedbackVertexSet \(feedback) is not minimum")
+        }
+
         // Components, for m − n + c.
         var label = [Int](repeating: -1, count: n)
         var components = 0
@@ -243,6 +257,29 @@ enum FuzzCycles {
         }
         let girth = all.map(\.length).min()
         check(graph.girth() == girth, "\(name): girth \(String(describing: graph.girth())), expected \(String(describing: girth))")
+        // Minimum feedback sets on small graphs: each hits every simple cycle, and no smaller
+        // set of arcs or vertices does; every loop is in the arc set.
+        if listed.count <= 8 && positions.count <= 12 {
+            let cycleVertices = all.map { Set($0.vertices.map { number[$0]! }) }
+            let cycleEdges = all.map { Set($0.edges.map { edgeNumber[$0]! }) }
+            let feedback = graph.minimumFeedbackVertexSet().map { number[$0]! }
+            check(feedback == feedback.sorted() && cycleVertices.allSatisfy { !$0.isDisjoint(with: feedback) }, "\(name): minimumFeedbackVertexSet \(feedback) misses a cycle")
+            var smaller = false
+            for mask in 0 ..< 1 << listed.count where mask.nonzeroBitCount < feedback.count {
+                let chosen = Set((0 ..< listed.count).filter { mask >> $0 & 1 == 1 })
+                if cycleVertices.allSatisfy({ !$0.isDisjoint(with: chosen) }) { smaller = true }
+            }
+            check(!smaller, "\(name): minimumFeedbackVertexSet \(feedback) is not minimum")
+            let arcSet = graph.minimumFeedbackArcSet().map { edgeNumber[$0]! }
+            check(arcSet == arcSet.sorted() && cycleEdges.allSatisfy { !$0.isDisjoint(with: arcSet) }, "\(name): minimumFeedbackArcSet \(arcSet) misses a cycle")
+            check(arcSet.count <= graph.feedbackArcSet().count, "\(name): minimumFeedbackArcSet is larger than the heuristic's")
+            smaller = false
+            for mask in 0 ..< 1 << positions.count where mask.nonzeroBitCount < arcSet.count {
+                let chosen = Set((0 ..< positions.count).filter { mask >> $0 & 1 == 1 })
+                if cycleEdges.allSatisfy({ !$0.isDisjoint(with: chosen) }) { smaller = true }
+            }
+            check(!smaller, "\(name): minimumFeedbackArcSet \(arcSet) is not minimum")
+        }
     }
 
     static func fuzz(_ input: inout FuzzInput) {

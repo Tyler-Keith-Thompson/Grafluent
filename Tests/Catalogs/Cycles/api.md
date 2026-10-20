@@ -50,6 +50,10 @@ extension DirectedGraph {
     /// Eades–Lin–Smyth's greedy feedback arc set, ascending positions, every self-loop included.
     func feedbackArcSet() -> [Edges.Index]
     func feedbackArcSet(weight: (Edges.Index) -> Double) -> [Edges.Index]
+    /// Exact minimum sets by dynamic programming over vertex subsets: at most 28 (arcs) or 32 vertices.
+    func minimumFeedbackArcSet() -> [Edges.Index]
+    func minimumFeedbackArcSet(weight: (Edges.Index) -> Double) -> [Edges.Index]
+    func minimumFeedbackVertexSet() -> [Vertex]      // also on Graph: the fewest vertices leaving a forest
 }
 
 @frozen public struct DirectedSimpleCycles<G: DirectedGraph>: Sequence {
@@ -192,6 +196,17 @@ Eades, Lin and Smyth's greedy heuristic: a feedback arc set, small in practice b
 ascending positions. Every self-loop is in it. Removing the returned edges leaves no directed
 cycle; on an acyclic graph the result is empty. The weighted form compares weighted out-degree
 minus weighted in-degree; every weight must be finite. O((n + m) log n) time.
+
+### `minimumFeedbackArcSet()`, `minimumFeedbackVertexSet()`
+
+Exact minimum sets. The arc set orders the vertices to minimize the arcs pointing leftward, by
+dynamic programming over the vertex subsets (Θ(2ⁿ · m) time, 2ⁿ entries of 9 bytes: at most 28
+vertices); every self-loop is in it, and the weighted form minimizes the total weight, every
+weight finite and at least zero. The vertex set marks every subset inducing an acyclic subgraph
+(directed) or a forest (undirected) by peeling sources, or vertices of degree at most one, and
+takes the largest, with the complement listing first by `vertices` offsets on ties (Θ(2ⁿ · n)
+time, 2ⁿ bytes: at most 32 vertices). A vertex with a self-loop, or one end of parallel undirected
+edges, is always in it.
 
 ## Index space
 

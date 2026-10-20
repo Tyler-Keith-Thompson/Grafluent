@@ -118,4 +118,21 @@ MUTANTS = [
     Mutant("mm_fulllevel", "MinimumMeanCycle.swift", "checkpoints[k + 1]", "checkpoints[k]"),
     Mutant("mm_rotate", "MinimumMeanCycle.swift", "                slots = Array(slots[least...] + slots[..<least])", "", mode="stmt"),
     Mutant("mm_relax", "MinimumMeanCycle.swift", "dw <= candidate", "dw >= candidate"),
+
+    # Minimum feedback sets.
+    Mutant("fs_cost", "MinimumFeedbackSets.swift", "without >> heads[k] & 1 == 1", "true"),
+    Mutant("fs_loopskip", "MinimumFeedbackSets.swift", "sources[e] != targets[e]", "true", nth=0),
+    Mutant("fs_weights", "MinimumFeedbackSets.swift", "if let weights { costs[slot[sources[e]]] = weights[e] }", "", mode="stmt"),
+    Mutant("fs_backward", "MinimumFeedbackSets.swift", "rank[arcs.targets[e]] <= rank[arcs.sources[e]]", "rank[arcs.targets[e]] < rank[arcs.sources[e]]"),
+    Mutant("fs_order", "MinimumFeedbackSets.swift", "        order[position] = v", "        order[n - 1 - position] = v", mode="stmt"),
+    Mutant("fs_source", "MinimumFeedbackSets.swift", "inMasks[v] & set == 0", "inMasks[v] & set & ~(1 << v) == 0"),
+    Mutant("fs_acyclicrest", "MinimumFeedbackSets.swift", "acyclic[set & ~(1 << v)]", "true"),
+    Mutant("fs_leaf", "MinimumFeedbackSets.swift", "(neighborMasks[v] & set).nonzeroBitCount <= 1", "(neighborMasks[v] & set).nonzeroBitCount <= 2"),
+    Mutant("fs_doubled", "MinimumFeedbackSets.swift", "doubledMasks[v] & set == 0", "true"),
+    Mutant("fs_looped", "MinimumFeedbackSets.swift", "!looped[v]", "true"),
+    Mutant("fs_smaller", "MinimumFeedbackSets.swift", "size < bestRemoved.nonzeroBitCount", "size <= bestRemoved.nonzeroBitCount"),
+    Mutant("fs_tie", "MinimumFeedbackSets.swift", "if removed >> differing & 1 == 1 { bestRemoved = removed }", "if removed >> differing & 1 == 0 { bestRemoved = removed }", mode="stmt"),
+    Mutant("fs_table", "MinimumFeedbackSets.swift", "n <= 32 && (1 << n) * perEntry <= 4 << 30", "n <= 62"),
+    Mutant("fs_nonnegative", "MinimumFeedbackSets.swift", "w.isFinite && w >= 0", "w.isFinite"),
+    Mutant("fs_undirectedloop", "MinimumFeedbackSets.swift", "a == b", "false"),
 ]
