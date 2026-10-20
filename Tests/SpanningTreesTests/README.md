@@ -35,6 +35,8 @@ extension Graph
     func steinerTree(checkedTerminals:weight:) throws(VertexNotFound) -> SteinerTree<Self, W>?
     func kouSteinerTree(terminals:weight:) -> SteinerTree<Self, W>?                          // Kou–Markowsky–Berman
     func kouSteinerTree(checkedTerminals:weight:) throws(VertexNotFound) -> SteinerTree<Self, W>?
+    func spanningForests(weight:) -> SpanningForests<Self, W>                               // lazy; every forest, nondecreasing weight (Sörensen–Janssens)
+    func spanningForests() -> SpanningForests<Self, Int>                                     // every edge weighing 1
 
 extension DirectedGraph
     func minimumSpanningArborescence(from root: Vertex, weight:) -> Branching<Self, W>?     // nil unless root reaches every vertex

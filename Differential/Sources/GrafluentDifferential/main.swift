@@ -300,6 +300,8 @@ struct Spanning: Encodable {
     let maximum: [Int]
     let maximumWeight: Int
     let unweighted: [Int]
+    /// The weights of the first 64 spanning forests in nondecreasing weight, on at most 12 edges.
+    let forestWeights: [Int]?
 }
 
 struct Single: Encodable {
@@ -981,7 +983,8 @@ for c in cases {
                 prim: prim.edges, primWeight: prim.weight,
                 primFromFirstSource: graph.primMinimumSpanningTree(from: c.sources[0], weight: w).edges,
                 maximum: maximum.edges, maximumWeight: maximum.weight,
-                unweighted: graph.minimumSpanningTree().edges)
+                unweighted: graph.minimumSpanningTree().edges,
+                forestWeights: c.edges.count <= 12 ? graph.spanningForests(weight: w).prefix(64).map(\.weight) : nil)
             result.spanning = spanning
             var terminals: [Int] = []
             for v in c.sources + [c.target] where !terminals.contains(v) { terminals.append(v) }

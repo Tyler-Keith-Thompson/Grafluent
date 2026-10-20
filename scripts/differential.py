@@ -698,6 +698,18 @@ def compare_spanning(case, mine, G):
         problems.append(f"unweighted forest {mine['unweighted']}, first forest {unweighted}")
     if mine["minimumWeight"] != nx_min or weight(mine["minimum"]) != nx_min:
         problems.append(f"minimum weight {mine['minimumWeight']}, NetworkX {nx_min}")
+    forest_weights = mine.get("forestWeights")
+    if forest_weights is not None:
+        # NetworkX's iterator runs on simple graphs; our enumeration lists parallel edges separately
+        # and skips loops, so compare the weights where the case is simple.
+        pairs = [(min(u, v), max(u, v)) for u, v, _ in edges]
+        # NetworkX's iterator lists one forest on a disconnected graph, so compare connected cases.
+        if len(set(pairs)) == len(pairs) and all(u != v for u, v in pairs) and G.number_of_nodes() > 0 and nx.is_connected(G):
+            theirs = sorted(tree.size(weight="weight") for tree in nx.SpanningTreeIterator(G, weight="weight", minimum=True))
+            if forest_weights != forest_weights[:] or forest_weights != theirs[:len(forest_weights)]:
+                problems.append(f"spanningForests weights {forest_weights}, NetworkX {theirs[:len(forest_weights)]}")
+            if len(forest_weights) < 64 and len(forest_weights) != len(theirs):
+                problems.append(f"spanningForests lists {len(forest_weights)} forests, NetworkX {len(theirs)}")
     if mine["maximumWeight"] != nx_max:
         problems.append(f"maximum weight {mine['maximumWeight']}, NetworkX {nx_max}")
     # Prim's ties are unspecified: its weight and that it is a spanning forest.

@@ -218,6 +218,12 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("SpanningTrees: kruskalMinimumSpanningTree on AdjacencyList.undirectedView, G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(view.kruskalMinimumSpanningTree { weights[$0] }) }
     }
+    Benchmark("SpanningTrees: spanningForests, the 1 000 lightest of G(60, 200)") { benchmark in
+        var generator = SeededRandomNumberGenerator(seed: 60)
+        let small = UndirectedAdjacencyList(vertices: 0 ..< 60, edges: (0 ..< 200).map { _ in UndirectedEdge(Int.random(in: 0 ..< 60, using: &generator), Int.random(in: 0 ..< 60, using: &generator)) })
+        let smallWeights = (0 ..< small.edgeCount).map { _ in Int.random(in: 1 ... 100, using: &generator) }
+        for _ in benchmark.scaledIterations { blackHole(Array(small.spanningForests(weight: { smallWeights[$0] }).prefix(1000))) }
+    }
     // Grids and dense graphs.
     Benchmark("SpanningTrees: kruskalMinimumSpanningTree, 500 × 500 grid") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(grid.kruskalMinimumSpanningTree { gridWeights[$0] }) }

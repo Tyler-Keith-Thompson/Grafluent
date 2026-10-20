@@ -3,6 +3,8 @@
 # Known equivalent mutants (they survive by design):
 #   (not planted) Dropping Kruskal's stop at n − 1 edges: no later edge can join two components,
 #                so only the time would change.
+#   (not planted) Sorting the enumeration's tree after Kruskal under constraints: the included
+#                edges are a prefix of it in sorted order, so the sort is a no-op (see the comment there).
 #   density      Picks the other algorithm for the default: both return the canonical forest in
 #                the same order, so only the time changes.
 #   primrootcheck  Drops `from:`'s own check of the root: looking the absent root up traps anyway
@@ -421,6 +423,14 @@ MUTANTS = [
     Mutant("pe_oneroot", "PrimEvents.swift",
            "base.root >= 0 ? base.root &+ 1 : n",
            "n"),
+    Mutant("sf_included", "SpanningTreeEnumeration.swift", "            tree.append(slot[rank])", "", mode="stmt"),
+    Mutant("sf_excluded", "SpanningTreeEnumeration.swift", "        for rank in excluding { excluded[rank] = round }", "", mode="stmt"),
+    Mutant("sf_size", "SpanningTreeEnumeration.swift", "child.tree.count == size", "true"),
+    Mutant("sf_skipincluded", "SpanningTreeEnumeration.swift", "            if partition.included.contains(rank) { continue }", "", mode="stmt"),
+    Mutant("sf_grow", "SpanningTreeEnumeration.swift", "            included.append(rank)", "", mode="stmt"),
+    Mutant("sf_order", "SpanningTreeEnumeration.swift", "a.weight < b.weight || (!(b.weight < a.weight) && a.number < b.number)", "a.number < b.number"),
+    Mutant("sf_heapup", "SpanningTreeEnumeration.swift", "precedes(heap[child], heap[parent])", "precedes(heap[parent], heap[child])"),
+    Mutant("sf_stamp", "SpanningTreeEnumeration.swift", "        round += 1", "", mode="stmt"),
     Mutant("pe_nan", "PrimEvents.swift",
            "w == w",
            "true"),

@@ -99,6 +99,22 @@ enum FuzzSpanningTrees {
             check(graph.minimumSpanningTree(weight: counted) == kruskal, "\(name) the default is Kruskal's forest")
             checkCalls("default")
 
+            // Every spanning forest, in nondecreasing weight: exactly the acyclic edge sets of full
+            // size, the first the canonical minimum.
+            if edges.count <= 9 {
+                let forests = Array(graph.spanningForests(weight: counted))
+                calls = [Int](repeating: 0, count: edges.count)
+                let size = n - componentCount
+                var expected = Set<[Int]>()
+                for mask in 0 ..< 1 << edges.count where mask.nonzeroBitCount == size {
+                    let chosen = edges.indices.filter { mask >> $0 & 1 == 1 }
+                    if chosen.allSatisfy({ edges[$0].0 != edges[$0].1 }) && components(n, chosen.map { edges[$0] }).count == componentCount { expected.insert(chosen) }
+                }
+                check(Set(forests.map { $0.edges.map(rankOf).sorted() }) == expected && forests.count == expected.count, "\(name) spanningForests lists \(forests.count), expected \(expected.count)")
+                check(forests.map(\.weight) == forests.map(\.weight).sorted(), "\(name) spanningForests out of order")
+                check(forests.first == kruskal, "\(name) spanningForests does not start with the minimum forest")
+                check(forests.allSatisfy { $0.weight == weightOf($0.edges.map(rankOf)) }, "\(name) spanningForests weight")
+            }
             let boruvka = graph.boruvkaMinimumSpanningTree(weight: counted)
             checkCalls("Borůvka")
             check(boruvka.edges.map(rankOf).sorted() == minimum.sorted() && boruvka.weight == kruskal.weight, "\(name) Borůvka \(boruvka.edges.map(rankOf))")
