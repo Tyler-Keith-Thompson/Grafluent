@@ -19,6 +19,7 @@ import GraphProtocols
 import IsomorphismModule
 import MatchingModule
 import Multigraphs
+import PackedCompressedSparseRowModule
 import ShortestPaths
 import SpanningTrees
 import Traversal
@@ -126,6 +127,60 @@ func main() {
     case "build-undirected":
         let (graph, t1) = measure(repeats) { UndirectedAdjacencyList(vertices: 0 ..< n, edges: undirectedEdges) }
         report("UndirectedAdjacencyList", "\(graph.vertexCount),\(graph.edgeCount)", t1)
+
+    case "insert", "insert-walk", "remove":
+        // The dynamic rows: n vertices, then the arcs inserted one at a time; a walk over every
+        // row afterwards; the first half of the arcs removed by their endpoints. Each repeat of
+        // the removals starts from a graph inserted afresh, outside the timed region.
+        func insertedList() -> AdjacencyList<Int> {
+            var graph = AdjacencyList<Int>(vertices: 0 ..< n)
+            for edge in directedEdges { graph.insert(edge: edge) }
+            return graph
+        }
+        func insertedPacked() -> PackedCompressedSparseRow<Int> {
+            var graph = PackedCompressedSparseRow<Int>(vertices: 0 ..< n)
+            for edge in directedEdges { graph.insert(edge: edge) }
+            return graph
+        }
+        func walk(_ graph: some DirectedGraph<Int>) -> String {
+            var count = 0, sum = 0
+            for v in 0 ..< n {
+                for w in graph.successorIndices(ofIndex: v) { sum &+= v &* n &+ w; count += 1 }
+            }
+            return "\(count),\(sum)"
+        }
+        func timedRemovals<G: MutableDirectedGraph<Int>>(_ build: () -> G) -> (G, [Double]) {
+            var times: [Double] = []
+            var last: G?
+            for _ in 0 ..< repeats {
+                var graph = build()
+                let start = DispatchTime.now().uptimeNanoseconds
+                for edge in directedEdges.prefix(g.m / 2) { graph.remove(edge: edge) }
+                let end = DispatchTime.now().uptimeNanoseconds
+                times.append(Double(end - start) / 1e6)
+                blackHole(graph)
+                last = graph
+            }
+            return (last!, times)
+        }
+        switch algorithm {
+        case "insert":
+            let (a, t1) = measure(repeats) { insertedList() }
+            report("AdjacencyList", "\(a.vertexCount),\(a.edgeCount)", t1)
+            let (b, t2) = measure(repeats) { insertedPacked() }
+            report("PackedCompressedSparseRow", "\(b.vertexCount),\(b.edgeCount)", t2)
+        case "insert-walk":
+            let list = insertedList(), packed = insertedPacked()
+            let (a, t1) = measure(repeats) { walk(list) }
+            report("AdjacencyList", a, t1)
+            let (b, t2) = measure(repeats) { walk(packed) }
+            report("PackedCompressedSparseRow", b, t2)
+        default:
+            let (a, t1) = timedRemovals(insertedList)
+            report("AdjacencyList", walk(a), t1)
+            let (b, t2) = timedRemovals(insertedPacked)
+            report("PackedCompressedSparseRow", walk(b), t2)
+        }
 
     case "bfs", "dfs":
         let list = AdjacencyList(vertices: 0 ..< n, edges: directedEdges)

@@ -29,11 +29,16 @@ DEPS = os.path.join(HERE, ".deps")
 LEMON_VERSION = "1.3.1"
 LEMON_URL = f"http://lemon.cs.elte.hu/pub/sources/lemon-{LEMON_VERSION}.tar.gz"
 LEMON_SHA256 = "71b7c725f4c0b4a8ccb92eb87b208701586cf7a96156ebd821ca3ed855bad3c8"
+# Wheatman and Xu's single-threaded PCSR: one header, pinned to a commit. Its bit scans are x86
+# inline assembly, so setup() writes a copy with the compiler builtins instead.
+PCSR_COMMIT = "46bfe503239483286b85345f7c916e8e6403dccf"
+PCSR_URL = f"https://raw.githubusercontent.com/wheatman/Packed-Compressed-Sparse-Row/{PCSR_COMMIT}/PCSR.hpp"
+PCSR_SHA256 = "5012fea1686e1c273f16df39558427cdd53fac9318dceb7ffef62378d53480ea"
 SWIFT = ["env", "-u", "TOOLCHAINS", "xcrun", "--toolchain", "default", "swift"]
 
-LIBS = ["grafluent", "petgraph", "rustworkx-core", "bgl", "lemon", "igraph"]
+LIBS = ["grafluent", "petgraph", "rustworkx-core", "bgl", "lemon", "igraph", "pcsr"]
 LIB_TITLES = {"grafluent": "Grafluent", "petgraph": "petgraph", "rustworkx-core": "rustworkx-core",
-              "bgl": "BGL", "lemon": "LEMON", "igraph": "igraph"}
+              "bgl": "BGL", "lemon": "LEMON", "igraph": "igraph", "pcsr": "PCSR"}
 
 # (algorithm, instances). Directed algorithms read each edge line as an arc; undirected ones as an
 # edge. See gen.py for the instances.
@@ -62,6 +67,11 @@ CASES = [
     ("articulation", ["art-sparse", "grid-1e6", "ba-1e6"]),
     ("bridges", ["art-sparse", "grid-1e6", "ba-1e6"]),
     ("fw", ["fw-gnm"]),
+    # The dynamic rows: a graph that changes between queries. Grafluent's second column is
+    # PackedCompressedSparseRow here.
+    ("insert", ["gnm-1e5", "gnm-1e6", "ba-1e6"]),
+    ("insert-walk", ["gnm-1e5", "gnm-1e6", "ba-1e6"]),
+    ("remove", ["gnm-1e5", "gnm-1e6", "ba-1e6"]),
 ]
 
 ALGORITHM_TITLES = {
@@ -75,6 +85,8 @@ ALGORITHM_TITLES = {
     "iso": "isomorphism (decision)", "bc": "betweenness", "pagerank": "PageRank",
     "triangles": "triangle count", "transitivity": "transitivity", "articulation": "articulation points",
     "bridges": "bridges", "fw": "Floyd–Warshall",
+    "insert": "insert the arcs one at a time", "insert-walk": "walk every row after the inserts",
+    "remove": "remove the first half of the arcs one at a time",
 }
 
 # Cases not run at full size, with the reason.
@@ -117,6 +129,7 @@ def tool_versions():
     for formula in ("boost", "igraph"):
         v[formula] = out(["brew", "list", "--versions", formula]) or "missing"
     v["lemon"] = LEMON_VERSION
+    v["pcsr"] = PCSR_COMMIT[:10]
     lock = os.path.join(HERE, "rust", "Cargo.lock")
     if os.path.exists(lock):
         text = open(lock).read()
@@ -152,10 +165,29 @@ def setup():
         # header-only apart from base.cc, so write the one generated header by hand.
         with open(os.path.join(lemon, "lemon", "config.h"), "w") as f:
             f.write(f'#define LEMON_VERSION "{LEMON_VERSION}"\n#define LEMON_HAVE_LONG_LONG 1\n')
-    return lemon
+    pcsr = os.path.join(DEPS, f"pcsr-{PCSR_COMMIT[:10]}")
+    if not os.path.exists(os.path.join(pcsr, "PCSR.hpp")):
+        os.makedirs(pcsr, exist_ok=True)
+        original = os.path.join(pcsr, "PCSR.original.hpp")
+        log(f"fetching {PCSR_URL}")
+        urllib.request.urlretrieve(PCSR_URL, original)
+        import hashlib
+        digest = hashlib.sha256(open(original, "rb").read()).hexdigest()
+        if digest != PCSR_SHA256:
+            sys.exit(f"{original}: sha256 {digest}, expected {PCSR_SHA256}")
+        text = open(original).read()
+        for name, builtin in (("bsf", "__builtin_ctz(word)"), ("bsr", "31 - __builtin_clz(word)")):
+            asm = (f"static inline int {name}_word(int word) {{\n  int result;\n"
+                   f'  __asm__ volatile("{name} %1, %0" : "=r"(result) : "r"(word));\n  return result;\n}}')
+            if asm not in text:
+                sys.exit(f"{original}: the {name}_word assembly to replace was not found")
+            text = text.replace(asm, f"static inline int {name}_word(int word) {{ return {builtin}; }}")
+        with open(os.path.join(pcsr, "PCSR.hpp"), "w") as f:
+            f.write(text)
+    return lemon, pcsr
 
 
-def build(libs, lemon):
+def build(libs, lemon, pcsr):
     os.makedirs(BUILD, exist_ok=True)
     boost = brew_prefix("boost")
     igraph = brew_prefix("igraph")
@@ -170,6 +202,9 @@ def build(libs, lemon):
         sh(["xcrun", "clang++", "-O3", "-DNDEBUG", "-std=c++14", "-w", f"-I{lemon}",
             os.path.join(HERE, "cpp", "lemon.cpp"), os.path.join(lemon, "lemon", "base.cc"),
             "-o", os.path.join(BUILD, "cross-lemon")])
+    if "pcsr" in libs:
+        sh(["xcrun", "clang++", "-O3", "-DNDEBUG", "-std=c++17", "-w", f"-I{pcsr}",
+            os.path.join(HERE, "cpp", "pcsr.cpp"), "-o", os.path.join(BUILD, "cross-pcsr")])
     if "igraph" in libs:
         sh(["xcrun", "clang", "-O3", "-DNDEBUG", "-std=gnu11", f"-I{igraph}/include/igraph",
             os.path.join(HERE, "c", "igraph.c"), f"-L{igraph}/lib", "-ligraph",
@@ -186,6 +221,7 @@ def command(lib, algorithm, path, repeat):
         "bgl": [os.path.join(BUILD, "cross-bgl"), algorithm, path, str(repeat)],
         "lemon": [os.path.join(BUILD, "cross-lemon"), algorithm, path, str(repeat)],
         "igraph": [os.path.join(BUILD, "cross-igraph"), algorithm, path, str(repeat)],
+        "pcsr": [os.path.join(BUILD, "cross-pcsr"), algorithm, path, str(repeat)],
     }[lib]
 
 
@@ -241,11 +277,11 @@ def main():
 
     load_start = os.getloadavg()
     started = datetime.datetime.now()
-    lemon = setup()
+    lemon, pcsr = setup()
     data = os.path.join(HERE, "data", args.scale)
     sh([sys.executable, os.path.join(HERE, "gen.py"), "--scale", args.scale, "--out", data])
     if not args.no_build:
-        build(args.libs, lemon)
+        build(args.libs, lemon, pcsr)
     versions = tool_versions()
     sys.path.insert(0, HERE)
     import gen
@@ -289,11 +325,12 @@ def main():
     lines.append("- Times in ms, algorithm only (the graph is built before timing, except in the build rows). "
                  "Grafluent has a column per representation (AL: AdjacencyList, or UndirectedAdjacencyList, "
                  "DirectedPseudograph or BipartiteGraph where the algorithm is undirected, flow or bipartite; "
-                 "CSR: CompressedSparseRow). Another library's cell is its fastest representation, marked "
+                 "CSR: CompressedSparseRow, or PackedCompressedSparseRow on the insert, walk and remove rows). "
+                 "Another library's cell is its fastest representation, marked "
                  "* when that is not its default one (see the representations list below). "
                  "Ratio = fastest Grafluent ÷ fastest other library (below 1: Grafluent is faster).")
     lines.append("- ✗ marks a library whose answer differs from the others (details below the table).\n")
-    header = ["algorithm", "instance", "Grafluent AL", "Grafluent CSR"] + [LIB_TITLES[l] for l in args.libs if l != "grafluent"] + ["ratio", "check"]
+    header = ["algorithm", "instance", "Grafluent AL", "Grafluent CSR / PCSR"] + [LIB_TITLES[l] for l in args.libs if l != "grafluent"] + ["ratio", "check"]
     lines.append("| " + " | ".join(header) + " |")
     lines.append("|" + "---|" * len(header))
     representations = {}
@@ -303,7 +340,7 @@ def main():
         al = csr = None
         if isinstance(g, list):
             for rep, check, ms, _ in g:
-                if rep == "CompressedSparseRow":
+                if rep in ("CompressedSparseRow", "PackedCompressedSparseRow"):
                     csr = ms
                 else:
                     al = ms

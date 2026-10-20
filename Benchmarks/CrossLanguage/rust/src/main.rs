@@ -12,7 +12,7 @@ use std::time::Instant;
 
 use petgraph::graph::{DiGraph, NodeIndex, UnGraph};
 use petgraph::stable_graph::{StableDiGraph, StableUnGraph};
-use petgraph::visit::{Bfs, Dfs};
+use petgraph::visit::{Bfs, Dfs, EdgeRef};
 
 struct Instance {
     n: usize,
@@ -105,6 +105,33 @@ fn ungraph(n: usize, u: &[usize], v: &[usize], w: &[i64]) -> UnGraph<(), i64> {
         gr.add_edge(NodeIndex::new(u[k]), NodeIndex::new(v[k]), w[k]);
     }
     gr
+}
+
+/// The walk check: the arcs seen and Σ (u·n + v) over every row, in the graph's own row order.
+fn walk_check(count: usize, sum: i64) -> String {
+    format!("{},{}", count, sum)
+}
+
+fn walk_digraph(gr: &DiGraph<(), i64>, n: usize) -> (usize, i64) {
+    let (mut count, mut sum) = (0usize, 0i64);
+    for v in gr.node_indices() {
+        for e in gr.edges(v) {
+            sum += (v.index() * n + e.target().index()) as i64;
+            count += 1;
+        }
+    }
+    (count, sum)
+}
+
+fn walk_stable(gr: &StableDiGraph<(), i64>, n: usize) -> (usize, i64) {
+    let (mut count, mut sum) = (0usize, 0i64);
+    for v in gr.node_indices() {
+        for e in gr.edges(v) {
+            sum += (v.index() * n + e.target().index()) as i64;
+            count += 1;
+        }
+    }
+    (count, sum)
 }
 
 fn stable_digraph(g: &Instance) -> StableDiGraph<(), i64> {
@@ -273,6 +300,35 @@ fn petgraph_case(alg: &str, g: &Instance, k: usize) {
             }
             report("Graph (f64 weights, HashMap result)", format!("{},{:.0}", finite, sum), &t);
         }
+        "insert" => {
+            // `Graph` is built by add_edge one at a time already, so this is the build row's work.
+            let (gr, t) = measure(k, || digraph(g, &g.w));
+            report("Graph", format!("{},{}", gr.node_count(), gr.edge_count()), &t);
+        }
+        "insert-walk" => {
+            let gr = digraph(g, &g.w);
+            let (r, t) = measure(k, || walk_digraph(&gr, g.n));
+            report("Graph", walk_check(r.0, r.1), &t);
+        }
+        "remove" => {
+            // By endpoints (find_edge, then remove_edge, which swap-removes); a fresh copy per repeat.
+            let built = digraph(g, &g.w);
+            let mut t = Vec::new();
+            let mut last = (0usize, 0i64);
+            for _ in 0..k {
+                let mut gr = built.clone();
+                let start = Instant::now();
+                for e in 0..g.m / 2 {
+                    if let Some(ix) = gr.find_edge(NodeIndex::new(g.u[e]), NodeIndex::new(g.v[e])) {
+                        gr.remove_edge(ix);
+                    }
+                }
+                t.push(start.elapsed().as_secs_f64() * 1e3);
+                last = walk_digraph(&gr, g.n);
+                black_box(&gr);
+            }
+            report("Graph", walk_check(last.0, last.1), &t);
+        }
         "pagerank" => println!("NA page_rank is O(n^2) per iteration with a fixed iteration count"),
         "maxflow-pr" | "maxflow-value" => println!("NA no push-relabel (dinics and ford_fulkerson only)"),
         _ => println!("NA not in petgraph"),
@@ -388,6 +444,35 @@ fn rustworkx_case(alg: &str, g: &Instance, k: usize) {
             let gr = stable_ungraph(g);
             let (c, t) = measure(k, || rustworkx_core::connectivity::bridges(&gr).len());
             report("StableGraph", c.to_string(), &t);
+        }
+        "insert" => {
+            let (gr, t) = measure(k, || stable_digraph(g));
+            report("StableGraph", format!("{},{}", gr.node_count(), gr.edge_count()), &t);
+        }
+        "insert-walk" => {
+            let gr = stable_digraph(g);
+            let (r, t) = measure(k, || walk_stable(&gr, g.n));
+            report("StableGraph", walk_check(r.0, r.1), &t);
+        }
+        "remove" => {
+            // By the edge indices insertion returned, which StableGraph keeps; a fresh copy per repeat.
+            let built = stable_digraph(g);
+            let handles: Vec<_> = (0..g.m)
+                .map(|e| built.find_edge(NodeIndex::new(g.u[e]), NodeIndex::new(g.v[e])).unwrap())
+                .collect();
+            let mut t = Vec::new();
+            let mut last = (0usize, 0i64);
+            for _ in 0..k {
+                let mut gr = built.clone();
+                let start = Instant::now();
+                for e in 0..g.m / 2 {
+                    gr.remove_edge(handles[e]);
+                }
+                t.push(start.elapsed().as_secs_f64() * 1e3);
+                last = walk_stable(&gr, g.n);
+                black_box(&gr);
+            }
+            report("StableGraph", walk_check(last.0, last.1), &t);
         }
         _ => println!("NA not in rustworkx-core"),
     }

@@ -12,7 +12,7 @@ let package = Package(
         .executableTarget(
             name: "CrossGrafluent",
             dependencies: [
-                "GraphProtocols", "AdjacencyListModule", "CompressedSparseRowModule", "Multigraphs",
+                "GraphProtocols", "AdjacencyListModule", "CompressedSparseRowModule", "PackedCompressedSparseRowModule", "Multigraphs",
                 "BipartiteGraphs", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees", "Flows",
                 "MatchingModule", "IsomorphismModule", "Centrality", "Cliques",
             ].map { .product(name: $0, package: "Grafluent") }

@@ -135,6 +135,39 @@ int main(int argc, char** argv) {
   } else if (alg == "build-undirected") {
     UndG a = measure(k, [&] { return make_und(g); }, t);
     report("adjacency_list", std::to_string(num_vertices(a)) + "," + std::to_string(num_edges(a)), t);
+  } else if (alg == "insert") {
+    DirG a = measure(k, [&] {
+      DirG d(g.n);
+      for (long e = 0; e < g.m; ++e) add_edge(g.u[e], g.v[e], g.w[e], d);
+      return d;
+    }, t);
+    report("adjacency_list", std::to_string(num_vertices(a)) + "," + std::to_string(num_edges(a)), t);
+  } else if (alg == "insert-walk") {
+    DirG d(g.n);
+    for (long e = 0; e < g.m; ++e) add_edge(g.u[e], g.v[e], g.w[e], d);
+    auto r = measure(k, [&] {
+      long count = 0; long long sum = 0;
+      for (long v = 0; v < g.n; ++v)
+        for (auto it = out_edges(v, d); it.first != it.second; ++it.first) { sum += (long long)v * g.n + (long long)target(*it.first, d); ++count; }
+      return std::make_pair(count, sum);
+    }, t);
+    report("adjacency_list", walk_check(r.first, r.second), t);
+  } else if (alg == "remove") {
+    // Each repeat removes from a fresh copy; the copy is made outside the timed region.
+    DirG built(g.n);
+    for (long e = 0; e < g.m; ++e) add_edge(g.u[e], g.v[e], g.w[e], built);
+    long count = 0; long long sum = 0;
+    for (int r = 0; r < k; ++r) {
+      DirG d = built;
+      auto t0 = std::chrono::steady_clock::now();
+      for (long e = 0; e < g.m / 2; ++e) remove_edge(g.u[e], g.v[e], d);
+      auto t1 = std::chrono::steady_clock::now();
+      t.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+      count = 0; sum = 0;
+      for (long v = 0; v < g.n; ++v)
+        for (auto it = out_edges(v, d); it.first != it.second; ++it.first) { sum += (long long)v * g.n + (long long)target(*it.first, d); ++count; }
+    }
+    report("adjacency_list", walk_check(count, sum), t);
   } else if (alg == "bfs" || alg == "dfs" || alg == "scc" || alg == "dijkstra" || alg == "bellman-ford" || alg == "topo") {
     DirG a = make_dir(g);
     directed_case(alg, g, a, get(edge_weight, a), k, "adjacency_list");

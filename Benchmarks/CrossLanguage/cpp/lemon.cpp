@@ -8,6 +8,7 @@
 #include <lemon/kruskal.h>
 #include <lemon/matching.h>
 #include <lemon/preflow.h>
+#include <lemon/list_graph.h>
 #include <lemon/smart_graph.h>
 
 #include "common.hpp"
@@ -49,6 +50,44 @@ int main(int argc, char** argv) {
   } else if (alg == "build-undirected") {
     long edges = measure(k, [&] { SmartGraph d; SmartGraph::EdgeMap<W> w(d); build_und(g, d, &w); return (long)countEdges(d); }, t);
     report("SmartGraph", std::to_string(g.n) + "," + std::to_string(edges), t);
+  } else if (alg == "insert") {
+    // ListDigraph, the representation with removal; SmartDigraph has none.
+    long arcs = measure(k, [&] {
+      ListDigraph d;
+      for (long i = 0; i < g.n; ++i) d.addNode();
+      for (long e = 0; e < g.m; ++e) d.addArc(d.nodeFromId(g.u[e]), d.nodeFromId(g.v[e]));
+      return (long)countArcs(d);
+    }, t);
+    report("ListDigraph", std::to_string(g.n) + "," + std::to_string(arcs), t);
+  } else if (alg == "insert-walk") {
+    ListDigraph d;
+    for (long i = 0; i < g.n; ++i) d.addNode();
+    for (long e = 0; e < g.m; ++e) d.addArc(d.nodeFromId(g.u[e]), d.nodeFromId(g.v[e]));
+    auto r = measure(k, [&] {
+      long count = 0; long long sum = 0;
+      for (ListDigraph::NodeIt v(d); v != INVALID; ++v)
+        for (ListDigraph::OutArcIt a(d, v); a != INVALID; ++a) { sum += (long long)d.id(v) * g.n + d.id(d.target(a)); ++count; }
+      return std::make_pair(count, sum);
+    }, t);
+    report("ListDigraph", walk_check(r.first, r.second), t);
+  } else if (alg == "remove") {
+    // Arcs are erased by the handles their insertion returned; each repeat rebuilds, untimed.
+    long count = 0; long long sum = 0;
+    for (int r = 0; r < k; ++r) {
+      ListDigraph d;
+      std::vector<ListDigraph::Arc> arcs;
+      arcs.reserve(g.m);
+      for (long i = 0; i < g.n; ++i) d.addNode();
+      for (long e = 0; e < g.m; ++e) arcs.push_back(d.addArc(d.nodeFromId(g.u[e]), d.nodeFromId(g.v[e])));
+      auto t0 = std::chrono::steady_clock::now();
+      for (long e = 0; e < g.m / 2; ++e) d.erase(arcs[e]);
+      auto t1 = std::chrono::steady_clock::now();
+      t.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+      count = 0; sum = 0;
+      for (ListDigraph::NodeIt v(d); v != INVALID; ++v)
+        for (ListDigraph::OutArcIt a(d, v); a != INVALID; ++a) { sum += (long long)d.id(v) * g.n + d.id(d.target(a)); ++count; }
+    }
+    report("ListDigraph", walk_check(count, sum), t);
   } else if (alg == "bfs" || alg == "dfs") {
     SmartDigraph d;
     build_dir(g, d, nullptr);

@@ -78,3 +78,7 @@ inline std::string topo_check(const Instance& g, const std::vector<long>& order)
     if (pos[g.u[k]] >= pos[g.v[k]]) return "invalid";
   return "valid," + std::to_string(order.size());
 }
+
+// The check of a walk over every row: the arcs seen and Σ (u·n + v) over them, which does not
+// depend on the order the rows are read in.
+inline std::string walk_check(long count, long long sum) { return std::to_string(count) + "," + std::to_string(sum); }

@@ -249,6 +249,8 @@ int main(int argc, char **argv) {
         printf("NA maximum matching is implemented for bipartite graphs only\n");
     } else if (IS("maxflow-dinic")) {
         printf("NA no Dinic (push-relabel only)\n");
+    } else if (IS("insert") || IS("insert-walk") || IS("remove")) {
+        printf("NA igraph_add_edge and igraph_delete_edges rebuild the edge index per call, O(n + m) each\n");
     } else {
         printf("NA not in igraph\n");
     }
