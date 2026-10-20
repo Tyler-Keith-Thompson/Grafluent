@@ -27,6 +27,7 @@ contents and the menu without a link.
 | `criticalpath` | `DirectedAcyclicGraph`, `lazy.kahn()`, `longestPath(weight:)`, `Path.weight(_:)` |
 | `cyclefinding` | `FunctionalGraph(successors:)`, `lazy.floydCycleDetection(from:)`, `lazy.brentCycleDetection(from:)` |
 | `components` | `connectedComponents()`, `lazy.breadthFirstSearch(from:)`, `stronglyConnectedComponents()`, `condensation()`, `lazy.depthFirstSearch()` |
+| `distances` | `eccentricities()`, `eccentricities(weight:)`, `radius`, `diameter`, `center`, `periphery`, `diameterPath(weight:)`, `dijkstraShortestPaths(from:weight:)` |
 | `bridges` | `bridges()`, `articulationPoints()`, `lazy.edgeDepthFirstSearch(from:)`, `connectedComponents()`; beside its figure, `biconnectedComponents()` |
 | `dominators` | `dominatorTree(root:)`, `postDominatorTree(exit:)`, `dominators(of:)`, `immediateDominator(of:)`, `children(of:)`, `lazy.breadthFirstSearch(from:)` |
 | `euler` | `degree(of:)`, `eulerianCircuit()`, `eulerianTrail()`, `incidentEdges(of:)` on a `Multigraph`; beside its figure, `hasEulerianTrail` |
@@ -43,8 +44,10 @@ contents and the menu without a link.
 | `cliques` | `lazy.bronKerbosch()`, `maximalCliques()`, `maximumClique()` |
 | `cores` | `coreNumbers()`, `kCore(_:)`, `degeneracy`, `trussNumbers()`, `kTruss(_:)`, `onionLayers()`, `layer(of:)` |
 | `chordal` | `isChordal`, `perfectEliminationOrdering()`, `findHole()`, `maximumCardinalitySearch()`, `lexicographicBreadthFirstSearch()` |
+| `cyclebasis` | `cycleBasis()`, `minimumCycleBasis()`, `minimumCycleBasis(weight:)` |
 | `isomorphism` | `weisfeilerLehmanGraphHash()`, `weisfeilerLehmanSubgraphHashes(iterations:)`, `isomorphism(to:)` |
 | `communities` | `lazy.louvain()`, `louvainCommunities()`, `modularity(of:)` |
+| `hierarchy` | `hierarchicalLeidenCommunities(maximumCommunitySize:using:)` with `Xoshiro256StarStar`, `communities(atLevel:)`, `leaves`, `parent(of:)`, `children(of:)`, `community(of:)` |
 | `girvannewman` | `girvanNewmanCommunities()`, `edgeBetweennessCentrality(normalized:)`, `connectedComponents()`, `modularity(of:)` |
 | `labelpropagation` | `asynchronousLabelPropagationCommunities()`, `labelPropagationCommunities()`, `asynchronousLabelPropagationCommunities(using:)` with `Xoshiro256StarStar`, `modularity(of:)`, `neighbors(of:)` |
 | `flow` | `lazy.edmondsKarp(from:to:capacity:)`, `edmondsKarpMaximumFlow(from:to:capacity:)`, `minimumCut` |

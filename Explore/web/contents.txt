@@ -14,6 +14,7 @@ toposort|Topological sort|Getting around|An order for tasks with dependencies.|p
 criticalpath|Critical path|Getting around|How soon a project can finish, and what can’t slip.|page
 cyclefinding|Tortoise and hare|Getting around|Finding a loop with only two bookmarks.|page
 components|Connected components|Structure|Which parts can reach each other.|page
+distances|Centre and diameter|Structure|The middle of a network, and its far ends.|page
 bridges|Bridges and articulation points|Structure|Which single closure splits the network.|page
 dominators|Dominators|Structure|The blocks every path through a program must pass.|page
 euler|Euler tours|Structure|Crossing every bridge exactly once.|page
@@ -30,8 +31,10 @@ planarity|Planarity|Structure|Whether a network can be drawn without crossings.|
 cliques|Cliques|Structure|Groups where everyone is connected.|page
 cores|Cores and trusses|Structure|Peeling a network down to its tight centre.|page
 chordal|Chordal graphs|Structure|Every loop has a shortcut.|page
+cyclebasis|Cycle bases|Structure|A few loops that explain every loop.|page
 isomorphism|Isomorphism|Structure|Whether two drawings are the same graph.|page
 communities|Communities|Structure|Where a network splits into groups.|page
+hierarchy|Community hierarchy|Structure|Groups inside groups, down to a size you choose.|page
 girvannewman|Girvan–Newman|Structure|Communities by cutting the busiest links.|page
 labelpropagation|Label propagation|Structure|Communities that spread like a rumour.|page
 flow|Maximum flow|Assignment|How much a network of pipes can carry.|page

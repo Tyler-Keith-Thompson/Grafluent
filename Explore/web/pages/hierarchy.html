@@ -1,0 +1,47 @@
+<!-- title: Community hierarchy · Explore Grafluent -->
+<!-- description: Communities inside communities: cluster a network with Leiden, then cluster every community over a size cap again, with Grafluent’s hierarchicalLeidenCommunities(maximumCommunitySize:). -->
+<header class="sign">
+  <h1>Community hierarchy</h1>
+  <p class="question">A company has departments, and departments have teams. Can an algorithm find both layers?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Groups at more than one size</h2>
+  <p>Community detection splits a network into groups. But real groups nest: teams inside departments, neighbourhoods inside cities, topics inside fields. A <b>community hierarchy</b> keeps every layer and remembers which group each smaller group came from.</p>
+  <p>Reach for it when you want summaries at several scales, as retrieval over a knowledge graph does: a short summary per department and a detailed one per team. Or when one community is simply too big to be useful and you want it broken down.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to get layered groups</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *Hierarchical Leiden | Groups must fit a size cap | Levels that split only the groups over the cap, with parents | Leiden on the whole, then on each piece | Depends on the cap you choose |
+  | [Louvain’s levels](communities.html) | You want the algorithm’s own coarsening | Each pass’s groups, coarser each time | One Louvain run | The levels are a by-product, not a target |
+  | [Girvan–Newman](girvannewman.html) | Small networks, every split | A full tree of splits | Very slow | Impractical past a few hundred links |
+  -->
+  <p>Hierarchical Leiden gives you control through the cap. Louvain’s levels come free but you don’t choose them. Girvan–Newman gives the richest tree on networks small enough to afford it.</p>
+</section>
+
+<p class="example lead">Example: twenty-four people in six teams of four, two teams to a department, with a liaison between each pair of departments.</p>
+
+<h2 class="labhead"><small>Step through</small>One level at a time</h2>
+<div id="app"></div>
+
+<section class="prose">
+  <h2><small>The idea</small>Cluster, then cluster again inside anything too big</h2>
+  <p>Run <a href="communities.html">Leiden</a> on the whole network. Every community that has more people than the cap is taken on its own, as a network by itself with only the pairs inside it, and Leiden runs again on that. Its communities become the children of the big one. Repeat until every community fits under the cap, or Leiden keeps a community in one piece, in which case it is final however big.</p>
+  <p>Running on a piece by itself matters. Inside a department, the pairs to other departments are gone, so modularity sees the two teams clearly and splits them. On the whole network those same teams were worth keeping together.</p>
+  <p>The result numbers its communities level by level. <code>communities(atLevel:)</code> gives a level’s communities, <code>parent(of:)</code> and <code>children(of:)</code> walk the tree, <code>leaves</code> are the final communities, and <code>community(of:)</code> gives a person’s final community.</p>
+
+  <h2><small>Where it breaks</small>The cap decides what you see</h2>
+  <p>Set the cap to 24 in the lab and there is one level: whatever Leiden finds first. Set it to 3 and the teams of four are over the cap, but a team of four is a clique, and Leiden will not split a clique, so they stay final at four. The cap is a request, not a promise.</p>
+  <p>Leiden is randomised, so two runs can split a borderline community differently. The lab uses a fixed seed. For stable results in your own code, pass a seeded generator, as the code panel does.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The company, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>
