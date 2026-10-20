@@ -189,7 +189,7 @@ func namedFamilies(_ input: inout FuzzInput) {
         let arcs = model.flatMap { [$0, [$0[1], $0[0]]] }.sorted { $0.lexicographicallyPrecedes($1) }
         check(checkedDirected(d, name) == arcs, "\(name) directed is not both arcs")
     }
-    switch input.int(below: 7) {
+    switch input.int(below: 8) {
     case 0:
         let n = input.int(in: 0 ... 14)
         let offsets = (0 ..< input.int(in: 0 ... 3)).map { _ in input.int(in: -14 ... 14) }
@@ -251,6 +251,37 @@ func namedFamilies(_ input: inout FuzzInput) {
         var model = (0 ..< n).map { [$0, ($0 + 1) % n] }
         for i in 0 ..< shifts.count * r { model.append([i % n, ((i + shifts[i % shifts.count]) % n + n) % n]) }
         both("lcf", sortedPairs(model), .lcf(vertexCount: n, shifts: shifts, repeatCount: r), .lcf(vertexCount: n, shifts: shifts, repeatCount: r))
+    case 6:
+        // Expanders: Margulis–Gabber–Galil against its four steps, the chordal cycle against the
+        // inverses, Paley against the squares and the tournament's one arc per pair.
+        let n = input.int(in: 1 ... 9)
+        var model: [[Int]] = []
+        for x in 0 ..< n {
+            for y in 0 ..< n {
+                let v = x * n + y
+                for (a, b) in [((x + 2 * y) % n, y), ((x + 2 * y + 1) % n, y), (x, (y + 2 * x) % n), (x, (y + 2 * x + 1) % n)] where a * n + b != v {
+                    model.append([v, a * n + b])
+                }
+            }
+        }
+        both("margulisGabberGalil", sortedPairs(model), .margulisGabberGalil(side: n), .margulisGabberGalil(side: n))
+        let primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97]
+        let p = primes[input.int(below: primes.count)]
+        model = (0 ..< p).filter { (($0 + 1) % p) != $0 }.map { [$0, ($0 + 1) % p] }
+        for x in 1 ..< p {
+            let inverse = (1 ..< p).first { x * $0 % p == 1 }!
+            if inverse != x { model.append([x, inverse]) }
+        }
+        both("chordalCycle", sortedPairs(model), .chordalCycle(prime: p), .chordalCycle(prime: p))
+        var square = [Bool](repeating: false, count: p)
+        for x in 1 ..< p { square[x * x % p] = true }
+        let arcs = (0 ..< p).flatMap { x in (0 ..< p).filter { square[(($0 - x) % p + p) % p] }.map { [x, $0] } }
+        check(checkedDirected(CompressedSparseRow.paley(prime: p), "paley") == arcs, "paley(\(p)) directed")
+        if p % 4 == 1 {
+            both("paley", arcs.filter { $0[0] < $0[1] }, .paley(prime: p), .paley(prime: p))
+        } else if p > 2 {
+            check(arcs.count == p * (p - 1) / 2 && arcs.allSatisfy { !square[(($0[0] - $0[1]) % p + p) % p] }, "paley(\(p)) tournament")
+        }
     default:
         // De Bruijn and Kautz graphs against their words.
         let m = input.int(in: 1 ... 3), length = input.int(in: 1 ... 4), s = input.int(in: 2 ... 4)

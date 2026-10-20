@@ -4,7 +4,7 @@ The named families are static factories on the representation types, for example
 `CompressedSparseRow.complete(vertexCount: 5)`. This file fixes where those factories live, the
 vertex numbering of every family, the directed forms, the edge order, the traps and the complexity.
 
-`cases.md` (NG-001 – NG-236, 236 rows) pins the values. `ref.py` builds every family from its
+`cases.md` (NG-001 – NG-266, 266 rows) pins the values. `ref.py` builds every family from its
 definition and checks each row against NetworkX 3.7 (exact edge set under the numbering below),
 igraph 1.0 (exact where igraph numbers the same way, isomorphism for Petersen) and the count and
 degree laws. For grids it checks the mapping to NetworkX's `grid_2d_graph(r, c)` (node `(i, j)` is
@@ -95,6 +95,9 @@ extension _GraphConstruction {            // and the same names on _DirectedGrap
     public static func heawood() -> Self                      // and moebiusKantor(), pappus(), desargues(),
     public static func icosahedral() -> Self                  // dodecahedral(), frucht(), tutte(), chvatal(),
                                                               // hoffmanSingleton()
+    public static func margulisGabberGalil(side n: Int) -> Self
+    public static func chordalCycle(prime p: Int) -> Self
+    public static func paley(prime p: Int) -> Self             // undirected: p ≡ 1 (mod 4)
 }
 extension _DirectedGraphConstruction {
     public static func kautz(alphabetSize s: Int, wordLength L: Int) -> Self   // directed only
@@ -148,6 +151,9 @@ extension BipartiteGraph where Vertex == Int {
 | `lcf(vertexCount:shifts:repeatCount:)` | `0..<n`, n ≥ 3 | the n-cycle and the chords (i mod n) – (i + s_{i mod k}) mod n, i < k·r | both arcs | n, n + distinct chords | NG-215 – NG-223 |
 | `heawood()`, `moebiusKantor()`, `pappus()`, `desargues()`, `dodecahedral()`, `frucht()` | their LCF notation | NetworkX's graphs, Frucht up to isomorphism | both arcs | 14, 16, 18, 20, 20, 12 vertices, cubic | NG-224 – NG-230 |
 | `icosahedral()`, `tutte()`, `chvatal()`, `hoffmanSingleton()` | their constructions (apices and pentagons; three Tutte fragments; NetworkX's numbering; Robertson's pentagons and pentagrams) | isomorphic to NetworkX's | both arcs | 12/30, 46/69, 12/24, 50/175 | NG-231 – NG-235 |
+| `margulisGabberGalil(side:)` | (x, y) of ℤₙ² is x·n + y | (x, y) – (x + 2y, y), (x + 2y + 1, y), (x, y + 2x), (x, y + 2x + 1) mod n; a step back to (x, y) dropped, two steps that meet one edge | both arcs | n², at most 4n² | NG-237 – NG-244 |
+| `chordalCycle(prime:)` | ℤ_p | x – x ± 1 and x – x⁻¹ for x ≠ 0 (no chord at 1 and p − 1, their own inverses) | both arcs | p, at most 3p/2 | NG-245 – NG-253 |
+| `paley(prime:)` | ℤ_p | x – y when y − x is a nonzero square mod p | x → y when y − x is a nonzero square: both arcs for p ≡ 1 (mod 4), the Paley tournament (one arc per pair) for p ≡ 3 (mod 4) | p, p(p − 1)/4 (tournament p(p − 1)/2 arcs) | NG-254 – NG-266 |
 
 **The directed form.** Families with a natural orientation (path, cycle, star, wheel, balanced,
 binomial and full r-ary tree) get one arc per edge along it. The others (complete, complete bipartite, complete
@@ -184,6 +190,7 @@ predictable. Cycle's closing edge is `UndirectedEdge(0, n − 1)`, second in the
 | `binomialTree` order outside 0…62; `fullRaryTree` with r < 1 or n < 0 (`Tree`: n < 1) | NG-174, NG-175, NG-183 – NG-185 | |
 | `deBruijn` with m < 1 or n < 1; `kautz` with s < 2 or L < 1 | NG-191, NG-192, NG-197, NG-198 | |
 | Negative lattice counts | NG-206, NG-214 | |
+| `margulisGabberGalil` with side < 1; `chordalCycle` or `paley` with a composite, or `paley` undirected with p ≢ 1 (mod 4) | NG-244, NG-252, NG-253, NG-262 – NG-266 | the undirected Paley graph exists only when −1 is a square |
 
 Behaviours that are not traps: `complete(0)`, `path(0)`, `empty(0)` and `completeBipartite(0, 0)` are
 the null graph; a dimension of 0 gives the null graph (NG-056); a periodic dimension of length 1 or

@@ -42,6 +42,10 @@
 #   itself (k ≥ 1), so `rank >= u` keeps the same neighbors.
 #   hexpresent — low(i + 1) is 1 only for the last column of an even n, and row 0 joins column i to
 #   i + 1 only for even i, while the last column's left neighbor n − 1 is odd.
+#   Expanders (equivalent, removed): ccnext — (x + 1) mod p equals x only for p = 1, never a prime;
+#   cczero — 0^(p − 2) is 0 for p > 2 (its own "inverse", dropped as a loop) and 1 for p = 2 (the
+#   edge 0–1, already in the cycle); paleyhalf — y − x = 0 is never a nonzero square, so no arc is a
+#   loop and `<=` admits nothing more.
 
 TESTS = ["NamedGraphsTests"]
 
@@ -56,6 +60,7 @@ LD = "Ladders.swift"
 BB = "BarbellAndLollipop.swift"
 CM = "CompleteMultipartite.swift"
 BT = "BalancedTree.swift"
+EX = "Expanders.swift"
 
 MUTANTS = [
     # Size checks.
@@ -374,4 +379,25 @@ MUTANTS = [
     Mutant("chvatal", "NamedConstructions.swift", "(9, 11)", "(8, 11)"),
     Mutant("hspentagram", "NamedConstructions.swift", "25 + 5 * h + (j + 2) % 5", "25 + 5 * h + (j + 1) % 5"),
     Mutant("hscross", "NamedConstructions.swift", "25 + 5 * i + (h * i + j) % 5", "25 + 5 * i + (h + i + j) % 5"),
+
+    # Expanders.
+    Mutant("primesmall", EX, "p < 2", "p < 1"),
+    Mutant("primeeven", EX, "p % 2 == 0", "false"),
+    Mutant("primebound", EX, "d <= p / d", "d < p / d"),
+    Mutant("primestep", EX, "d += 2", "d += 4", mode="stmt"),
+    Mutant("mggside", EX, "n >= 1", "n >= 0"),
+    Mutant("mggstep1", EX, "((x + 2 * y) % n, y)", "((x + y) % n, y)"),
+    Mutant("mggstep2", EX, "((x + 2 * y + 1) % n, y)", "((x + 2 * y + 2) % n, y)"),
+    Mutant("mggstep3", EX, "(x, (y + 2 * x) % n)", "(x, (y + x) % n)"),
+    Mutant("mggstep4", EX, "(x, (y + 2 * x + 1) % n)", "(x, (y + 2 * x + 2) % n)"),
+    Mutant("mggloop", EX, "w != v", "true"),
+    Mutant("mggnumber", EX, "a * n + b", "b * n + a"),
+    Mutant("ccprime", EX, '    precondition(_isPrime(p), "a chordal cycle graph needs a prime, not \\(p)")', "", mode="stmt"),
+    Mutant("ccexponent", EX, "p - 2", "p - 3"),
+    Mutant("ccbit", EX, "exponent & 1 == 1", "exponent & 2 == 2"),
+    Mutant("ccinverse", EX, "inverse != x", "true"),
+    Mutant("squaresfrom", EX, "1 ..< max(p, 1)", "2 ..< max(p, 2)"),
+    Mutant("paleyprime", EX, '    precondition(_isPrime(p), "a Paley graph needs a prime, not \\(p)")', "", mode="stmt"),
+    Mutant("paleydiff", EX, "square[((y - x) % p + p) % p]", "square[((x - y) % p + p) % p]"),
+    Mutant("paleymod4", EX, "p % 4 == 1", "p % 2 == 1"),
 ]

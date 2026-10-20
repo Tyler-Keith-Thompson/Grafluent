@@ -32,7 +32,7 @@ for line in TEXT.splitlines():
         parts = [p.strip() for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 236
+assert N == 266
 
 
 def group(n): return CELLS[n][1]
@@ -79,6 +79,9 @@ FAMILIES = {
     "tutte": lambda d: ref.tutte(d),
     "chvatal": lambda d: ref.chvatal(d),
     "hoffmanSingleton": lambda d: ref.hoffman_singleton(d),
+    "margulisGabberGalil": lambda d, side: ref.margulis_gabber_galil(side, d),
+    "chordalCycle": lambda d, prime: ref.chordal_cycle(prime, d),
+    "paley": lambda d, prime: ref.paley(prime, d),
 }
 # The conformers of each kind a family is built on, when not every one: de Bruijn graphs have
 # self-loops, and Kautz graphs are directed only.
@@ -94,7 +97,9 @@ ORIENTATION = {
     "deBruijn": "word → its shifts", "kautz": "word → its shifts",
     **{name: "both arcs" for name in ("circulant", "generalizedPetersen", "kneser", "windmill", "triangularLattice",
                                       "hexagonalLattice", "lcf", "heawood", "moebiusKantor", "pappus", "desargues",
-                                      "dodecahedral", "frucht", "icosahedral", "tutte", "chvatal", "hoffmanSingleton")},
+                                      "dodecahedral", "frucht", "icosahedral", "tutte", "chvatal", "hoffmanSingleton",
+                                      "margulisGabberGalil", "chordalCycle")},
+    "paley": "x → y when y − x is a nonzero square mod p; a tournament for p ≡ 3 (mod 4)",
 }
 
 
@@ -181,6 +186,8 @@ def undirected_check(g, fam, kwargs, ind):
         L.append(i + "#expect(graph.edges.allSatisfy { e in e.u < e.v && e.v < %d%s }, \"\\(type)\")" % (n, " && " + rule if rule else ""))
         if min(d) == max(d):
             L.append(i + "#expect((0 ..< %d).allSatisfy { graph.degree(of: $0) == %d }, \"\\(type)\")" % (n, d[0]))
+        elif fam in ref.NEW_FAMILIES:
+            L.append(i + "#expect((0 ..< %d).allSatisfy { (%d ... %d).contains(graph.degree(of: $0)) }, \"\\(type)\")" % (n, min(d), max(d)))
         else:
             assert fam == "grid" and len(kwargs["dimensions"]) == 2
             r, c = kwargs["dimensions"]
@@ -221,6 +228,9 @@ def directed_check(g, fam, kwargs, ind):
                  % (n, n, " && " + rule if rule else ""))
         if min(out) == max(out) and min(inn) == max(inn):
             L.append(i + "#expect((0 ..< %d).allSatisfy { graph.outDegree(of: $0) == %d } && inDegrees.allSatisfy { $0 == %d }, \"\\(type)\")" % (n, out[0], inn[0]))
+        elif fam in ref.NEW_FAMILIES:
+            L.append(i + "#expect((0 ..< %d).allSatisfy { (%d ... %d).contains(graph.outDegree(of: $0)) && inDegrees[$0] == graph.outDegree(of: $0) }, \"\\(type)\")" % (n, min(out), max(out)))
+            assert out == inn
         else:
             assert fam == "grid" and len(kwargs["dimensions"]) == 2
             r, c = kwargs["dimensions"]
@@ -394,6 +404,17 @@ TRAPS.update({
     222: (every("lcf", "vertexCount: 6, shifts: [3, 6], repeatCount: 3"),
           "UndirectedAdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3, -3], repeatCount: 3)", (6, 9)),
     236: (every("kneser", "setSize: 70, subsetSize: 35"), "UndirectedAdjacencyList<Int>.kneser(setSize: 70, subsetSize: 69)", (70, 0)),
+    244: (every("margulisGabberGalil", "side: 0") + every("margulisGabberGalil", "side: -3"),
+          "UndirectedAdjacencyList<Int>.margulisGabberGalil(side: 2)", (4, 4)),
+    252: (every("chordalCycle", "prime: 1") + every("chordalCycle", "prime: 0") + every("chordalCycle", "prime: -7"),
+          "UndirectedAdjacencyList<Int>.chordalCycle(prime: 5)", (5, 5)),
+    253: (every("chordalCycle", "prime: 9") + every("chordalCycle", "prime: 91"),
+          "CompressedSparseRow.chordalCycle(prime: 5)", (5, 10)),
+    262: (every("paley", "prime: 7", "U") + every("paley", "prime: 3", "U"), "UndirectedAdjacencyList<Int>.paley(prime: 5)", (5, 5)),
+    263: (every("paley", "prime: 2", "U"), "UndirectedAdjacencyList<Int>.paley(prime: 13)", (13, 39)),
+    264: (every("paley", "prime: 0") + every("paley", "prime: -5"), "UndirectedAdjacencyList<Int>.paley(prime: 5)", (5, 5)),
+    265: (every("paley", "prime: 15") + every("paley", "prime: 25"), "UndirectedAdjacencyList<Int>.paley(prime: 17)", (17, 68)),
+    266: (every("paley", "prime: 1", "D") + every("paley", "prime: 49", "D"), "CompressedSparseRow.paley(prime: 7)", (7, 21)),
     223: (every("lcf", "vertexCount: 6, shifts: [3], repeatCount: -1"),
           "UndirectedAdjacencyList<Int>.lcf(vertexCount: 6, shifts: [3], repeatCount: 0)", (6, 6)),
 })
@@ -496,6 +517,12 @@ FILES = [
      "LCF notation and named graphs (catalog NG-215 – NG-235): the n-cycle and its chords; Heawood,\n"
      "// Möbius–Kantor, Pappus, Desargues, dodecahedral and Frucht in LCF; icosahedral, Tutte, Chvátal and\n"
      "// Hoffman–Singleton from their constructions. Both arcs when directed."),
+    ("ExpanderTests.swift", "NamedGraphs expander families",
+     ids("MargulisGabberGalil", "ChordalCycle", "Paley"),
+     "Expander families (catalog NG-237 – NG-266): Margulis–Gabber–Galil on ℤₙ² as a simple graph (returning\n"
+     "// steps dropped, meeting steps merged), the chordal cycle on a prime field (the cycle and a chord to each\n"
+     "// inverse), and the Paley graph (y − x a nonzero square), undirected for p ≡ 1 (mod 4) and the Paley\n"
+     "// tournament for p ≡ 3 (mod 4). Both arcs when directed, except the tournament."),
     ("NamedGraphPreconditionTests.swift", "NamedGraphs preconditions", [n for n in range(1, N + 1) if is_trap(n)],
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test), on every\n"
      "// conformer the rule covers. A valid neighbour of the call then runs in this process."),

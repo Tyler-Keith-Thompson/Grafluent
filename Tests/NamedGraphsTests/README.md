@@ -6,7 +6,7 @@
 `balancedTree`, `circulant`, `generalizedPetersen`, `kneser`, `windmill`, `binomialTree`,
 `fullRaryTree`, `triangularLattice`, `hexagonalLattice`, `lcf`, the named graphs (`heawood`,
 `moebiusKantor`, `pappus`, `desargues`, `dodecahedral`, `frucht`, `icosahedral`, `tutte`, `chvatal`,
-`hoffmanSingleton`), `kautz`, and `deBruijn` on the representations that allow self-loops. The API is described in `api.md` in
+`hoffmanSingleton`), the expanders (`margulisGabberGalil`, `chordalCycle`, `paley`), `kautz`, and `deBruijn` on the representations that allow self-loops. The API is described in `api.md` in
 [`Tests/Catalogs/NamedGraphs/`](../Catalogs/NamedGraphs/). The factories live on the underscored
 `_GraphConstruction` and `_DirectedGraphConstruction` protocols, so each family reaches every
 conformer. Vertices are `Int`s `0..<n`, with each family's numbering fixed.
@@ -29,7 +29,8 @@ extension _GraphConstruction, _DirectedGraphConstruction {   // 3 undirected and
         windmill(cliqueCount:cliqueVertexCount:), binomialTree(order:), fullRaryTree(branchingFactor:vertexCount:),
         triangularLattice(rowCount:columnCount:), hexagonalLattice(rowCount:columnCount:),
         lcf(vertexCount:shifts:repeatCount:), heawood(), moebiusKantor(), pappus(), desargues(), dodecahedral(),
-        frucht(), icosahedral(), tutte(), chvatal(), hoffmanSingleton()
+        frucht(), icosahedral(), tutte(), chvatal(), hoffmanSingleton(), margulisGabberGalil(side:),
+        chordalCycle(prime:), paley(prime:)
 }
 extension _DirectedGraphConstruction { static func kautz(alphabetSize:wordLength:) }
 extension AdjacencyList, DirectedPseudograph where Vertex == Int { static func deBruijn(alphabetSize:wordLength:) }
@@ -128,7 +129,8 @@ C(k, d) vertices at depth d), full r-ary trees (and `balancedTree` when the last
 Bruijn and Kautz graphs against their words, triangular and hexagonal lattices by Euler's formula,
 their degree bounds and connectivity (the honeycomb 2-coloured), LCF graphs against their chords,
 and the named graphs by order, size, regularity, girth, bipartiteness, the icosahedron's two
-triangles per edge and Hoffman–Singleton's strong regularity (50, 7, 0, 1).
+triangles per edge and Hoffman–Singleton's strong regularity (50, 7, 0, 1); the expanders against their
+four steps, their inverses and their squares, Paley's self-complementarity and the Paley tournament's one arc per pair.
 
 Every property builds the conformers of its kind and requires the same edges in the same order.
 

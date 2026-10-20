@@ -94,6 +94,7 @@ def generator_case(case):
     kneser_n = rng.randint(1, 8)
     lcf_n = max(min(n, 40), 3)
     shifts = [s for s in (rng.randint(-lcf_n, lcf_n) for _ in range(rng.randint(0, 4))) if s % lcf_n != 0]
+    primes = [p for p in range(2, 60) if all(p % d for d in range(2, p))]
     return {
         "degrees": degrees, "inDegrees": ins, "outDegrees": outs,
         "seed": rng.randrange(1 << 63),
@@ -112,6 +113,8 @@ def generator_case(case):
         "words": [rng.randint(1, 3), rng.randint(1, 4), rng.randint(2, 4), rng.randint(1, 3)],
         "lattice": [rng.randint(0, 5), rng.randint(0, 6)],
         "lcf": [lcf_n, rng.randint(0, 3)] + shifts,
+        "expanders": [rng.randint(1, 7), rng.choice(primes), rng.choice([p for p in primes if p % 4 == 1]),
+                      rng.choice([p for p in primes if p % 4 == 3])],
         "named": rng.random() < 0.05,
     }
 
@@ -256,6 +259,17 @@ def compare_generators(case, mine):
     exact("triangularLattice", nx.convert_node_labels_to_integers(nx.triangular_lattice_graph(rows, columns, with_positions=False)))
     exact("hexagonalLattice", nx.convert_node_labels_to_integers(nx.hexagonal_lattice_graph(rows, columns, with_positions=False)))
     exact("lcf", nx.LCF_graph(g["lcf"][0], g["lcf"][2:], g["lcf"][1]))
+    # NetworkX builds the first two as multigraphs with loops: the simple graph drops the loops.
+    side, chordal_p, paley_p, tournament_p = g["expanders"]
+    def simple(H):
+        G = nx.Graph()
+        G.add_nodes_from(H.nodes())
+        G.add_edges_from((u, v) for u, v in H.edges() if u != v)
+        return G
+    exact("margulisGabberGalil", simple(nx.relabel_nodes(nx.margulis_gabber_galil_graph(side), lambda xy: xy[0] * side + xy[1])))
+    exact("chordalCycle", simple(nx.chordal_cycle_graph(chordal_p)))
+    exact("paley", nx.paley_graph(paley_p).to_undirected())
+    check("paley tournament differs from NetworkX", tup(mine["paleyTournament"]) == _arcs(nx.paley_graph(tournament_p)))
     m_, length = g["words"][0], g["words"][1]
     check("deBruijn differs from igraph", sorted(tup(named["deBruijn"])) == sorted(igraph.Graph.De_Bruijn(m_, length).get_edgelist()))
     s_, length = g["words"][2], g["words"][3]

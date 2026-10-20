@@ -2006,4 +2006,428 @@ struct NamedGraphPreconditionTests {
         let graph = UndirectedAdjacencyList<Int>.kneser(setSize: 70, subsetSize: 69)
         #expect(graph.vertexCount == 70 && graph.edgeCount == 0)
     }
+
+    @Test("NG-244 side 0")
+    func ng244() async {
+        // UndirectedAdjacencyList<Int>.margulisGabberGalil(side: 0) → **trap**: a Margulis–Gabber–Galil graph needs a side of at least 1, not 0
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.margulisGabberGalil(side: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.margulisGabberGalil(side: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.margulisGabberGalil(side: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.margulisGabberGalil(side: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.margulisGabberGalil(side: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.margulisGabberGalil(side: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.margulisGabberGalil(side: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.margulisGabberGalil(side: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.margulisGabberGalil(side: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.margulisGabberGalil(side: -3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.margulisGabberGalil(side: -3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.margulisGabberGalil(side: -3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.margulisGabberGalil(side: -3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.margulisGabberGalil(side: -3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.margulisGabberGalil(side: -3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.margulisGabberGalil(side: -3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.margulisGabberGalil(side: -3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.margulisGabberGalil(side: -3)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.margulisGabberGalil(side: 2)
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 4)
+    }
+
+    @Test("NG-252 1 is not prime")
+    func ng252() async {
+        // UndirectedAdjacencyList<Int>.chordalCycle(prime: 1) → **trap**: a chordal cycle graph needs a prime, not 1
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.chordalCycle(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.chordalCycle(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.chordalCycle(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.chordalCycle(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.chordalCycle(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.chordalCycle(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.chordalCycle(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.chordalCycle(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.chordalCycle(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.chordalCycle(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.chordalCycle(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.chordalCycle(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.chordalCycle(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.chordalCycle(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.chordalCycle(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.chordalCycle(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.chordalCycle(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.chordalCycle(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.chordalCycle(prime: -7)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.chordalCycle(prime: -7)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.chordalCycle(prime: -7)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.chordalCycle(prime: -7)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.chordalCycle(prime: -7)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.chordalCycle(prime: -7)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.chordalCycle(prime: -7)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.chordalCycle(prime: -7)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.chordalCycle(prime: -7)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.chordalCycle(prime: 5)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 5)
+    }
+
+    @Test("NG-253 9 is not prime")
+    func ng253() async {
+        // UndirectedAdjacencyList<Int>.chordalCycle(prime: 9) → **trap**: a chordal cycle graph needs a prime, not 9
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.chordalCycle(prime: 9)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.chordalCycle(prime: 9)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.chordalCycle(prime: 9)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.chordalCycle(prime: 9)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.chordalCycle(prime: 9)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.chordalCycle(prime: 9)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.chordalCycle(prime: 9)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.chordalCycle(prime: 9)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.chordalCycle(prime: 9)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.chordalCycle(prime: 91)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.chordalCycle(prime: 91)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.chordalCycle(prime: 91)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.chordalCycle(prime: 91)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.chordalCycle(prime: 91)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.chordalCycle(prime: 91)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.chordalCycle(prime: 91)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.chordalCycle(prime: 91)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.chordalCycle(prime: 91)
+        }
+        // Without the fault: accepted.
+        let graph = CompressedSparseRow.chordalCycle(prime: 5)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 10)
+    }
+
+    @Test("NG-262 undirected needs p ≡ 1 (mod 4): 7")
+    func ng262() async {
+        // UndirectedAdjacencyList<Int>.paley(prime: 7) → **trap**: the Paley graph is undirected only for a prime ≡ 1 (mod 4), not 7
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.paley(prime: 7)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.paley(prime: 7)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.paley(prime: 7)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.paley(prime: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.paley(prime: 3)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.paley(prime: 3)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.paley(prime: 5)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 5)
+    }
+
+    @Test("NG-263 undirected needs p ≡ 1 (mod 4): 2")
+    func ng263() async {
+        // UndirectedAdjacencyList<Int>.paley(prime: 2) → **trap**: the Paley graph is undirected only for a prime ≡ 1 (mod 4), not 2
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.paley(prime: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.paley(prime: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.paley(prime: 2)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.paley(prime: 13)
+        #expect(graph.vertexCount == 13 && graph.edgeCount == 39)
+    }
+
+    @Test("NG-264 0 is not prime")
+    func ng264() async {
+        // UndirectedAdjacencyList<Int>.paley(prime: 0) → **trap**: a Paley graph needs a prime, not 0
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.paley(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.paley(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.paley(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.paley(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.paley(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.paley(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.paley(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.paley(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.paley(prime: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.paley(prime: -5)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.paley(prime: -5)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.paley(prime: -5)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.paley(prime: -5)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.paley(prime: -5)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.paley(prime: -5)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.paley(prime: -5)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.paley(prime: -5)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.paley(prime: -5)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.paley(prime: 5)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 5)
+    }
+
+    @Test("NG-265 15 is not prime")
+    func ng265() async {
+        // UndirectedAdjacencyList<Int>.paley(prime: 15) → **trap**: a Paley graph needs a prime, not 15
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.paley(prime: 15)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.paley(prime: 15)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.paley(prime: 15)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.paley(prime: 15)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.paley(prime: 15)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.paley(prime: 15)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.paley(prime: 15)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.paley(prime: 15)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.paley(prime: 15)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = UndirectedAdjacencyList<Int>.paley(prime: 25)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Pseudograph<Int>.paley(prime: 25)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = Multigraph<Int>.paley(prime: 25)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.paley(prime: 25)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.paley(prime: 25)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.paley(prime: 25)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.paley(prime: 25)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.paley(prime: 25)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.paley(prime: 25)
+        }
+        // Without the fault: accepted.
+        let graph = UndirectedAdjacencyList<Int>.paley(prime: 17)
+        #expect(graph.vertexCount == 17 && graph.edgeCount == 68)
+    }
+
+    @Test("NG-266 directed: 1 is not prime")
+    func ng266() async {
+        // CompressedSparseRow.paley(prime: 1) → **trap**: a Paley graph needs a prime, not 1
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.paley(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.paley(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.paley(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.paley(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.paley(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.paley(prime: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = CompressedSparseRow.paley(prime: 49)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyMatrix.paley(prime: 49)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = AdjacencyList<Int>.paley(prime: 49)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedPseudograph<Int>.paley(prime: 49)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = DirectedMultigraph<Int>.paley(prime: 49)
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = StableDirectedGraph<Int>.paley(prime: 49)
+        }
+        // Without the fault: accepted.
+        let graph = CompressedSparseRow.paley(prime: 7)
+        #expect(graph.vertexCount == 7 && graph.edgeCount == 21)
+    }
 }

@@ -173,4 +173,13 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("NamedGraphs: UndirectedAdjacencyList.hoffmanSingleton") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.hoffmanSingleton()) }
     }
+    Benchmark("NamedGraphs: CompressedSparseRow.margulisGabberGalil, side 500 (≈ 10⁶ edges)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.margulisGabberGalil(side: 500)) }
+    }
+    Benchmark("NamedGraphs: UndirectedAdjacencyList.chordalCycle, p = 1 000 003") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(UndirectedAdjacencyList<Int>.chordalCycle(prime: 1_000_003)) }
+    }
+    Benchmark("NamedGraphs: CompressedSparseRow.paley, p = 1409 (≈ 10⁶ arcs)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.paley(prime: 1409)) }
+    }
 }

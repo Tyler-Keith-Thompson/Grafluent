@@ -30,6 +30,7 @@ struct GeneratorCase: Decodable {
     let words: [Int]                // de Bruijn m, L; Kautz s, L
     let lattice: [Int]              // rows, columns
     let lcf: [Int]                  // n, repeats, shifts…
+    let expanders: [Int]            // Margulis–Gabber–Galil side, chordal cycle prime, Paley prime ≡ 1 (mod 4), Paley prime ≡ 3 (mod 4)
     let named: Bool
 }
 
@@ -56,6 +57,7 @@ struct GeneratorAnswers: Encodable {
     var conformersAgree = true
     var named: [String: [[Int]]] = [:]
     var namedCounts: [String: [Int]] = [:]
+    var paleyTournament: [[Int]] = []
 }
 
 func undirectedPairs(_ graph: some Graph<Int>) -> [[Int]] { graph.edges.map { [min($0.u, $0.v), max($0.u, $0.v)] } }
@@ -134,6 +136,10 @@ func generatorAnswers(_ g: GeneratorCase) -> GeneratorAnswers {
          .hexagonalLattice(rowCount: g.lattice[0], columnCount: g.lattice[1]))
     both("lcf", .lcf(vertexCount: g.lcf[0], shifts: Array(g.lcf.dropFirst(2)), repeatCount: g.lcf[1]),
          .lcf(vertexCount: g.lcf[0], shifts: Array(g.lcf.dropFirst(2)), repeatCount: g.lcf[1]))
+    both("margulisGabberGalil", .margulisGabberGalil(side: g.expanders[0]), .margulisGabberGalil(side: g.expanders[0]))
+    both("chordalCycle", .chordalCycle(prime: g.expanders[1]), .chordalCycle(prime: g.expanders[1]))
+    both("paley", .paley(prime: g.expanders[2]), .paley(prime: g.expanders[2]))
+    a.paleyTournament = directedPairs(CompressedSparseRow.paley(prime: g.expanders[3]))
     a.named["deBruijn"] = directedPairs(AdjacencyList<Int>.deBruijn(alphabetSize: g.words[0], wordLength: g.words[1]))
     a.named["kautz"] = directedPairs(CompressedSparseRow.kautz(alphabetSize: g.words[2], wordLength: g.words[3]))
     if g.named {

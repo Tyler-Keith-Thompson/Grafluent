@@ -449,10 +449,44 @@ def hoffman_singleton(directed=False):
     return _both_arcs(g) if directed else g
 
 
+def _is_prime(p):
+    return isinstance(p, int) and p >= 2 and all(p % d for d in range(2, int(p ** 0.5) + 1))
+
+
+def margulis_gabber_galil(n, directed=False):
+    require(isinstance(n, int) and n >= 1, f"a Margulis–Gabber–Galil graph needs a side of at least 1, not {n}")
+    pairs = []
+    for x in range(n):
+        for y in range(n):
+            for a, b in (((x + 2 * y) % n, y), ((x + 2 * y + 1) % n, y), (x, (y + 2 * x) % n), (x, (y + 2 * x + 1) % n)):
+                if (a, b) != (x, y):
+                    pairs.append((x * n + y, a * n + b))
+    g = _undirected(n * n, pairs)
+    return _both_arcs(g) if directed else g
+
+
+def chordal_cycle(p, directed=False):
+    require(_is_prime(p), f"a chordal cycle graph needs a prime, not {p}")
+    pairs = [(x, (x + 1) % p) for x in range(p) if (x + 1) % p != x]
+    pairs += [(x, pow(x, p - 2, p)) for x in range(1, p) if pow(x, p - 2, p) != x]
+    g = _undirected(p, pairs)
+    return _both_arcs(g) if directed else g
+
+
+def paley(p, directed=False):
+    require(_is_prime(p), f"a Paley graph needs a prime, not {p}")
+    squares = {(x * x) % p for x in range(1, p)}
+    arcs = sorted((x, y) for x in range(p) for y in range(p) if (y - x) % p in squares)
+    if directed:
+        return G(p, arcs, True)
+    require(p % 4 == 1, f"the Paley graph is undirected only for a prime ≡ 1 (mod 4), not {p}")
+    return _undirected(p, arcs)
+
+
 NEW_FAMILIES = {"circulant", "generalizedPetersen", "kneser", "windmill", "binomialTree", "fullRaryTree",
                 "deBruijn", "kautz", "triangularLattice", "hexagonalLattice", "lcf", "heawood", "moebiusKantor",
                 "pappus", "desargues", "dodecahedral", "frucht", "icosahedral", "tutte", "chvatal",
-                "hoffmanSingleton"}
+                "hoffmanSingleton", "margulisGabberGalil", "chordalCycle", "paley"}
 
 
 def new_oracle(family, args, directed, g):
@@ -466,6 +500,14 @@ def new_oracle(family, args, directed, g):
     if directed and family in ("binomialTree", "fullRaryTree"):
         H = (nx.binomial_tree if family == "binomialTree" else nx.full_rary_tree)(*args, create_using=nx.DiGraph)
         assert (H.number_of_nodes(), set(H.edges())) == (g.n, mine), f"NetworkX disagrees on {family}{args} directed"
+        return
+    if family == "paley":
+        H = nx.paley_graph(*args)
+        arcs = set(H.edges())
+        if not directed:
+            assert arcs == {(v, u) for u, v in arcs}, "Paley is not symmetric"
+            arcs = {(u, v) for u, v in arcs if u < v}
+        assert (H.number_of_nodes(), arcs) == (g.n, mine), f"NetworkX disagrees on paley{args} directed={directed}"
         return
     if directed:
         und = {(min(u, v), max(u, v)) for u, v in mine}
@@ -485,6 +527,10 @@ def new_oracle(family, args, directed, g):
         "lcf": lambda: nx.LCF_graph(*args),
         "heawood": nx.heawood_graph, "moebiusKantor": nx.moebius_kantor_graph, "pappus": nx.pappus_graph,
         "desargues": nx.desargues_graph, "dodecahedral": nx.dodecahedral_graph, "chvatal": nx.chvatal_graph,
+        # NetworkX builds these as multigraphs with loops: the simple graph is the loops dropped.
+        "margulisGabberGalil": lambda: nx.Graph(nx.relabel_nodes(nx.margulis_gabber_galil_graph(*args),
+                                                                 lambda xy: xy[0] * args[0] + xy[1])),
+        "chordalCycle": lambda: nx.Graph(nx.chordal_cycle_graph(*args)),
     }
     iso = {"frucht": nx.frucht_graph, "icosahedral": nx.icosahedral_graph, "tutte": nx.tutte_graph,
            "hoffmanSingleton": nx.hoffman_singleton_graph}
@@ -494,7 +540,7 @@ def new_oracle(family, args, directed, g):
         return
     if family in exact:
         H = exact[family]()
-        assert (H.number_of_nodes(), {(min(u, v), max(u, v)) for u, v in H.edges()}) == (g.n, mine), \
+        assert (H.number_of_nodes(), {(min(u, v), max(u, v)) for u, v in H.edges() if u != v}) == (g.n, mine), \
             f"NetworkX disagrees on {family}{args}"
     else:
         H = iso[family]()
@@ -841,6 +887,7 @@ def build_rows():
     # the families added after the first catalog
     more_rows(U, C)
     lattice_rows(U, C)
+    expander_rows(U, C)
 
 
 def representation_rows(U, C):
@@ -1046,6 +1093,44 @@ def lattice_rows(U, C):
     row("NamedConstructions", "icosahedral directed: both arcs", f"{C}.icosahedral()", lambda: icosahedral(True),
         family="icosahedral", args=(), directed=True)
     row("Kneser", "C(70, 35) vertices overflow Int", f"{U}.kneser(setSize: 70, subsetSize: 35)", lambda: kneser(70, 35))
+
+
+def expander_rows(U, C):
+    # Margulis–Gabber–Galil
+    for n, what in ((1, ": every step returns to the vertex, no edges"), (2, ""), (3, ": 4-regular"),
+                    (4, ": a step that meets another is one edge, degrees 4 to 6"), (5, ": degrees 4 to 8")):
+        row("MargulisGabberGalil", f"side {n}{what}", f"{U}.margulisGabberGalil(side: {n})",
+            lambda n=n: margulis_gabber_galil(n), family="margulisGabberGalil", args=(n,), full=n <= 4)
+    row("MargulisGabberGalil", "directed: both arcs", f"{C}.margulisGabberGalil(side: 3)",
+        lambda: margulis_gabber_galil(3, True), family="margulisGabberGalil", args=(3,), directed=True)
+    row("MargulisGabberGalil", "side 7", f"{U}.margulisGabberGalil(side: 7)",
+        lambda: margulis_gabber_galil(7), family="margulisGabberGalil", args=(7,), full=False)
+    row("MargulisGabberGalil", "side 0", f"{U}.margulisGabberGalil(side: 0)", lambda: margulis_gabber_galil(0))
+    # chordal cycle
+    for p, what in ((2, ": K2"), (3, ": a triangle, 1 and 2 are their own inverses"), (5, ""), (7, ""), (11, "")):
+        row("ChordalCycle", f"p = {p}{what}", f"{U}.chordalCycle(prime: {p})", lambda p=p: chordal_cycle(p),
+            family="chordalCycle", args=(p,))
+    row("ChordalCycle", "directed: both arcs", f"{C}.chordalCycle(prime: 7)", lambda: chordal_cycle(7, True),
+        family="chordalCycle", args=(7,), directed=True)
+    row("ChordalCycle", "p = 101", f"{U}.chordalCycle(prime: 101)", lambda: chordal_cycle(101),
+        family="chordalCycle", args=(101,), full=False)
+    for p in (1, 9):
+        row("ChordalCycle", f"{p} is not prime", f"{U}.chordalCycle(prime: {p})", lambda p=p: chordal_cycle(p))
+    # Paley
+    for p, what in ((5, ": C5"), (13, ": 6-regular"), (17, "")):
+        row("Paley", f"p = {p}{what}", f"{U}.paley(prime: {p})", lambda p=p: paley(p), family="paley", args=(p,),
+            full=p <= 13)
+    row("Paley", "directed, p = 13: both arcs", f"{C}.paley(prime: 13)", lambda: paley(13, True),
+        family="paley", args=(13,), directed=True)
+    for p, what in ((3, ": the Paley tournament, one arc per pair"), (7, ": the Paley tournament"), (2, ": both arcs of K2")):
+        row("Paley", f"directed, p = {p}{what}", f"{C}.paley(prime: {p})", lambda p=p: paley(p, True),
+            family="paley", args=(p,), directed=True)
+    row("Paley", "p = 101", f"{U}.paley(prime: 101)", lambda: paley(101), family="paley", args=(101,), full=False)
+    row("Paley", "undirected needs p ≡ 1 (mod 4): 7", f"{U}.paley(prime: 7)", lambda: paley(7))
+    row("Paley", "undirected needs p ≡ 1 (mod 4): 2", f"{U}.paley(prime: 2)", lambda: paley(2))
+    for p in (0, 15):
+        row("Paley", f"{p} is not prime", f"{U}.paley(prime: {p})", lambda p=p: paley(p))
+    row("Paley", "directed: 1 is not prime", f"{C}.paley(prime: 1)", lambda: paley(1, True))
 
 
 # ---------------------------------------------------------------- catalog
