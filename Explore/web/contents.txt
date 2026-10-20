@@ -58,6 +58,7 @@ betweenness|Betweenness|Importance and shape|Who sits on the most shortest paths
 assortativity|Assortativity|Importance and shape|Whether the busy link to the busy.|page
 linkprediction|Friend suggestions|Importance and shape|Who you might know, from the friends you share.|page
 neighbourhood|Neighbourhoods|Importance and shape|The facts near a question, cut to a budget.|page
+knowledge|Knowledge graphs|Importance and shape|From extracted claims to a prompt.|page
 layout|Force-directed layout|Importance and shape|Drawing a graph so its shape shows.|page
 spectral|Spectral drawing|Importance and shape|Drawing and cutting a network with its eigenvectors.|page
 layered|Layered drawing|Importance and shape|Flowcharts and org charts, drawn in rows.|page

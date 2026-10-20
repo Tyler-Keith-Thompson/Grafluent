@@ -71,6 +71,7 @@ contents and the menu without a link.
 | `assortativity` | `degreeAssortativityCoefficient()`, `averageNeighborDegrees()`, `averageNeighborDegree(of:)`, `averageDegreeConnectivity()` |
 | `linkprediction` | `jaccardCoefficient(of:and:)`, `adamicAdarIndex(of:and:)` |
 | `neighbourhood` | `egoGraphView(of:radius:)`, `egoGraphView(of:radius:maximumVertexCount:priority:)`, `degree(of:)` |
+| `knowledge` | `quotient(of:byKey:)`, `addEdgeMap(default:)`, `pageRank(personalization:)`, `egoGraphView(of:radius:undirected:maximumVertexCount:priority:)`, `writeEdgeList(to:columns:delimiter:edgeAttributes:)` |
 | `layout` | `FruchtermanReingoldLayout(_:iterations:using:)` with `Xoshiro256StarStar`, `step()`, named graphs |
 | `spectral` | `spectralLayout()`, `fiedlerVector()`, `algebraicConnectivity`, `value(of:)`, `spectralOrdering()` |
 | `layered` | `sugiyamaLayout()`, `LayeredDrawing` (`layer(of:)`, `bends(ofEdgeAt:)`, `reversedEdges`, `crossingCount`), `RootedTree`, `reingoldTilfordLayout()`, `reingoldTilfordCircularLayout()` |
