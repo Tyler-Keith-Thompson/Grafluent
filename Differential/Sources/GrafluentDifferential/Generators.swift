@@ -19,6 +19,7 @@ struct GeneratorCase: Decodable {
     let weights: [Double]
     let holmeKim: [Double]          // n, m, p
     let duplication: [Double]       // n, p
+    let kronecker: [Double]         // k, then the 2 × 2 initiator row by row
     let smallWorld: [Double]        // n, k, p, tries
     let kOut: [Int]                 // n, k
     let scaleFree: [Double]         // n, alpha, beta, gamma, deltaIn, deltaOut
@@ -50,6 +51,8 @@ struct GeneratorAnswers: Encodable {
     var holmeKimDirected: [[Int]] = []
     var duplicationDivergence: [[Int]] = []
     var duplicationDivergenceDirected: [[Int]] = []
+    var stochasticKronecker: [[Int]] = []
+    var stochasticKroneckerDirected: [[Int]] = []
     var newmanWattsStrogatz: [[Int]] = []
     var connectedWattsStrogatz: [[Int]]?
     var kOut: [[Int]] = []
@@ -98,6 +101,11 @@ func generatorAnswers(_ g: GeneratorCase) -> GeneratorAnswers {
     a.duplicationDivergence = undirectedPairs(UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: dn, retentionProbability: dp, using: &r))
     r = Xoshiro256StarStar(seed: g.seed)
     a.duplicationDivergenceDirected = directedPairs(CompressedSparseRow.duplicationDivergence(vertexCount: dn, retentionProbability: dp, using: &r))
+    let initiator = [[g.kronecker[1], g.kronecker[2]], [g.kronecker[3], g.kronecker[4]]]
+    r = Xoshiro256StarStar(seed: g.seed)
+    a.stochasticKronecker = undirectedPairs(UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: initiator, iterations: Int(g.kronecker[0]), using: &r))
+    r = Xoshiro256StarStar(seed: g.seed)
+    a.stochasticKroneckerDirected = directedPairs(CompressedSparseRow.stochasticKronecker(initiator: initiator, iterations: Int(g.kronecker[0]), using: &r))
     let (wn, wk, wp, wt) = (Int(g.smallWorld[0]), Int(g.smallWorld[1]), g.smallWorld[2], Int(g.smallWorld[3]))
     r = Xoshiro256StarStar(seed: g.seed)
     a.newmanWattsStrogatz = undirectedPairs(UndirectedAdjacencyList<Int>.newmanWattsStrogatz(

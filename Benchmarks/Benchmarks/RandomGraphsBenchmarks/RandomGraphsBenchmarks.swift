@@ -251,6 +251,12 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: 100_000, retentionProbability: 0.3, using: &g))
         }
     }
+    Benchmark("RandomGraphs: CompressedSparseRow stochastic Kronecker, [[0.9, 0.5], [0.5, 0.3]]^11 (2048 vertices)") { benchmark in
+        var g = Xoshiro256StarStar(seed: 1)
+        for _ in benchmark.scaledIterations {
+            blackHole(CompressedSparseRow.stochasticKronecker(initiator: [[0.9, 0.5], [0.5, 0.3]], iterations: 11, using: &g))
+        }
+    }
     Benchmark("RandomGraphs: UndirectedAdjacencyList Newman–Watts–Strogatz, n = 10⁵, k = 10, p = 0.1") { benchmark in
         var g = Xoshiro256StarStar(seed: 1)
         for _ in benchmark.scaledIterations {

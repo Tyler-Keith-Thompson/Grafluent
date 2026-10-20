@@ -63,7 +63,7 @@ for line in TEXT.splitlines():
         parts = [p.strip() for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 293
+assert N == 303
 
 
 def group(n): return CELLS[n][1]
@@ -882,6 +882,8 @@ def later_call(kind, args, typ):
         return "%s.holmeKim(vertexCount: %d, edgesPerVertex: %d, triangleProbability: %r, using: &generator)" % (typ, *args)
     if kind == "dd":
         return "%s.duplicationDivergence(vertexCount: %d, retentionProbability: %r, using: &generator)" % (typ, *args)
+    if kind == "sk":
+        return "%s.stochasticKronecker(initiator: [%s], iterations: %d, using: &generator)" % (typ, ", ".join(lit(row) for row in args[0]), args[1])
     if kind == "nws":
         return "%s.newmanWattsStrogatz(vertexCount: %d, nearestNeighborCount: %d, shortcutProbability: %r, using: &generator)" % (typ, *args)
     if kind == "cws":
@@ -901,7 +903,7 @@ def later_call(kind, args, typ):
 LATER_TYPES = {
     "hh": (UNDIRECTED, None), "dhh": (None, DIRECTED), "cm": (["Pseudograph<Int>"], None),
     "dcm": (None, ["DirectedPseudograph<Int>"]), "sf": (None, ["DirectedPseudograph<Int>"]),
-    "chunglu": (UNDIRECTED, DIRECTED), "hk": (UNDIRECTED, DIRECTED), "dd": (UNDIRECTED, DIRECTED), "nws": (UNDIRECTED, DIRECTED),
+    "chunglu": (UNDIRECTED, DIRECTED), "hk": (UNDIRECTED, DIRECTED), "dd": (UNDIRECTED, DIRECTED), "sk": (UNDIRECTED, DIRECTED), "nws": (UNDIRECTED, DIRECTED),
     "cws": (UNDIRECTED, DIRECTED), "kout": (UNDIRECTED, DIRECTED), "bipm": (UNDIRECTED, DIRECTED),
 }
 
@@ -1013,6 +1015,7 @@ LATER_VALID = {
     272: (2, 2, 4), 273: (0, 2, 0),
     278: ([1, 1, 0],),
     291: (2, 0.5), 292: (5, 0.5), 293: (5, 1.0),
+    300: ([[0.5, 0.5], [0.5, 0.5]], 2), 301: ([[0.5, 0.5], [0.5, 0.5]], 2), 302: ([[0.9, 0.6], [0.6, 0.2]], 1),
 }
 
 
@@ -1200,6 +1203,10 @@ FILES = [
      later_ids("DuplicationDivergence"),
      "Duplication–divergence for fixed seeds (catalog RG-284 – RG-290): a uniform vertex copied, each of its\n"
      "// neighbors kept with the retention probability, a copy keeping nothing drawn again."),
+    ("StochasticKroneckerTests.swift", "RandomGraphs stochastic Kronecker exact outputs",
+     later_ids("StochasticKronecker"),
+     "Stochastic Kronecker graphs for fixed seeds (catalog RG-294 – RG-299, RG-303): one draw per pair in row-major\n"
+     "// order with the product of the initiator's entries over the digits of the ends, loops skipped."),
     ("RandomGraphPreconditionTests.swift", "RandomGraphs preconditions", [n for n in range(1, N + 1) if is_trap(n)],
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test), on every\n"
      "// conformer the rule covers. A valid neighbour of the call then runs in this process."),

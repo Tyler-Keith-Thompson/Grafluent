@@ -102,6 +102,7 @@ def generator_case(case):
         "weights": weights,
         "holmeKim": [hn, hm, rng.choice([0.0, 0.3, 0.7, 1.0])],
         "duplication": [max(min(n, 60), 2), rng.choice([0.1, 0.3, 0.7, 1.0])],
+        "kronecker": [rng.randint(0, 5)] + [rng.choice([0.0, 0.25, 0.5, 0.9, 1.0]) for _ in range(4)],
         "smallWorld": [sn, sk, rng.choice([0.0, 0.2, 0.5, 1.0]), rng.randint(0, 5)],
         "kOut": [kn, kk],
         "scaleFree": [min(n, 80) + 3, *preset],
@@ -198,6 +199,10 @@ def compare_generators(case, mine):
     check("duplicationDivergence start", tup(mine["duplicationDivergence"])[:1] == [(0, 1)])
     check("duplicationDivergence older neighbors", all(any(u < v == w for u, w in tup(mine["duplicationDivergence"])) for v in range(2, dn)))
     check("duplicationDivergence directed", tup(mine["duplicationDivergenceDirected"]) == sorted((v, u) for u, v in mine["duplicationDivergence"]))
+    # Stochastic Kronecker: the port, undirected and directed.
+    kk, kp = int(g["kronecker"][0]), [[g["kronecker"][1], g["kronecker"][2]], [g["kronecker"][3], g["kronecker"][4]]]
+    check("stochasticKronecker differs from the port", tup(mine["stochasticKronecker"]) == REF.stochastic_kronecker(kp, kk, REF.Xoshiro256StarStar(seed)).edges)
+    check("stochasticKronecker directed differs from the port", tup(mine["stochasticKroneckerDirected"]) == REF.stochastic_kronecker(kp, kk, REF.Xoshiro256StarStar(seed), True).edges)
     H = nx.powerlaw_cluster_graph(hn, hm, hp, seed=stream())
     covered("Holme–Kim = NetworkX", _pairs(H) == tup(mine["holmeKim"]))
     # Newman–Watts–Strogatz and connected Watts–Strogatz.

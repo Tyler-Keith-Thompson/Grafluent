@@ -6,7 +6,7 @@
 - `erdosRenyi` (G(n, p) and G(n, m)), `barabasiAlbert`, `wattsStrogatz`, `randomGeometric`,
   `stochasticBlockModel`, `randomRegular` and `randomBipartite` on the protocols;
 - the degree sequences: `isGraphical`, `isDigraphical` and `havelHakimi` (both kinds);
-- `chungLu`, `holmeKim`, `duplicationDivergence`, `newmanWattsStrogatz`, `connectedWattsStrogatz`, `randomKOut` and
+- `chungLu`, `holmeKim`, `duplicationDivergence`, `stochasticKronecker`, `newmanWattsStrogatz`, `connectedWattsStrogatz`, `randomKOut` and
   `randomBipartite(…edgeCount:…)` on the protocols; `Pseudograph.configurationModel`,
   `DirectedPseudograph.configurationModel` and `DirectedPseudograph.scaleFree`;
 - `BipartiteGraph.randomBipartite`;

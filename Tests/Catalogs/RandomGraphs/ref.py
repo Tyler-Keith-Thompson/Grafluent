@@ -769,6 +769,32 @@ def duplication_divergence(n, p, rng, directed=False):
     return R(n, edges, directed)
 
 
+def stochastic_kronecker(initiator, k, rng, directed=False):
+    """Leskovec et al.'s stochastic Kronecker graph: base^k vertices, each pair once in row-major
+    order with the product of the initiator's entries over the base-`base` digits, loops skipped;
+    undirected, the pairs with u < v only."""
+    base = len(initiator)
+    require(base >= 1 and all(len(row) == base for row in initiator), "The initiator must be a square matrix with at least one row")
+    for row in initiator:
+        for x in row:
+            require(isinstance(x, float) and not math.isnan(x) and 0.0 <= x <= 1.0, f"An initiator entry must be in 0...1, not {x}")
+    require(isinstance(k, int) and k >= 0, f"iterations {k} is negative")
+    n = base ** k
+    edges = []
+    for u in range(n):
+        for v in (range(n) if directed else range(u + 1, n)):
+            if v == u:
+                continue
+            p, a, b = 1.0, u, v
+            for _ in range(k):
+                p *= initiator[a % base][b % base]
+                a //= base
+                b //= base
+            if rng.uniform01() < p:
+                edges.append((u, v))
+    return R(n, edges, directed)
+
+
 def newman_watts_strogatz(n, k, p, rng, directed=False):
     """NetworkX newman_watts_strogatz_graph, draw for draw; directed, both arcs of every edge."""
     if directed:
@@ -1474,6 +1500,7 @@ NEW_MODELS = {
     "chunglu": lambda a, rng, d: chung_lu(a[0], rng, d),
     "hk": lambda a, rng, d: holme_kim(*a, rng, d),
     "dd": lambda a, rng, d: duplication_divergence(*a, rng, d),
+    "sk": lambda a, rng, d: stochastic_kronecker(*a, rng, d),
     "nws": lambda a, rng, d: newman_watts_strogatz(*a, rng, d),
     "cws": lambda a, rng, d: connected_watts_strogatz(*a, rng, d),
     "kout": lambda a, rng, d: random_k_out(*a, rng, d),
@@ -1499,6 +1526,8 @@ def nx_same_new(kind, args, seed, directed, r):
     rand = StreamRandom(0 if seed is None else seed)
     if kind == "dd":
         return None  # NetworkX draws from its own list of nodes; the port follows it on our stream
+    if kind == "sk":
+        return None  # NetworkX has no Kronecker generator
     if kind == "graphical":
         return nx.is_graphical(args[0]) == r
     if kind == "digraphical":
@@ -1775,6 +1804,27 @@ def later_rows():
             "dd", (5, 0.0), 0)
     new_row("DuplicationDivergence", "p > 1", f"{U}.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: {G_ % 0})",
             "dd", (5, 1.5), 0)
+    # ---- stochastic Kronecker
+    P = [[0.9, 0.6], [0.6, 0.2]]
+    for k, seed in ((2, 0), (2, 1), (3, 0)):
+        new_row("StochasticKronecker", f"[[0.9, 0.6], [0.6, 0.2]]^{k}, seed {seed}",
+                f"{U}.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: {k}, using: {G_ % seed})", "sk", (P, k), seed)
+    new_row("StochasticKronecker", "directed: every ordered pair once, loops skipped",
+            f"{C}.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: 2, using: {G_ % 0})", "sk", (P, 2), 0, directed=True)
+    new_row("StochasticKronecker", "a 3 × 3 initiator, one iteration",
+            f"{U}.stochasticKronecker(initiator: [[1.0, 0.5, 0.0], [0.5, 1.0, 0.5], [0.0, 0.5, 1.0]], iterations: 1, using: {G_ % 0})",
+            "sk", ([[1.0, 0.5, 0.0], [0.5, 1.0, 0.5], [0.0, 0.5, 1.0]], 1), 0)
+    new_row("StochasticKronecker", "no iterations: one vertex",
+            f"{U}.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: 0, using: {G_ % 0})", "sk", (P, 0), 0)
+    new_row("StochasticKronecker", "ragged initiator",
+            f"{U}.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: {G_ % 0})", "sk", ([[0.5, 0.5], [0.5]], 2), 0)
+    new_row("StochasticKronecker", "entry above 1",
+            f"{U}.stochasticKronecker(initiator: [[1.5, 0.5], [0.5, 0.5]], iterations: 2, using: {G_ % 0})", "sk", ([[1.5, 0.5], [0.5, 0.5]], 2), 0)
+    new_row("StochasticKronecker", "negative iterations",
+            f"{C}.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: -1, using: {G_ % 0})", "sk", (P, -1), 0, directed=True)
+    new_row("StochasticKronecker", "directed, asymmetric initiator: the source's digits against the target's",
+            f"{C}.stochasticKronecker(initiator: [[0.9, 0.1], [0.7, 0.3]], iterations: 3, using: {G_ % 0})",
+            "sk", ([[0.9, 0.1], [0.7, 0.3]], 3), 0, directed=True)
 
 
 HEADER = [

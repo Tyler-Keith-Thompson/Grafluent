@@ -42,7 +42,8 @@
 
 # Duplication–divergence mutants left out as equivalent: ddcount (n = 1 traps on neighbors[1] with or
 # without the check), ddkeep (`<` against `<=` differs only when a draw equals p exactly, probability
-# 2⁻⁵³).
+# 2⁻⁵³). Stochastic Kronecker likewise: skiterations (a negative k traps on its range anyway),
+# skhalf (starting the inner range at u adds only the loop, skipped before any draw), skdraw (as ddkeep).
 
 TESTS = ["RandomGraphsTests"]
 
@@ -63,6 +64,7 @@ CM = "ConfigurationModel.swift"
 CL = "ChungLu.swift"
 HK = "HolmeKim.swift"
 DD = "DuplicationDivergence.swift"
+SK = "StochasticKronecker.swift"
 NWS = "NewmanWattsStrogatz.swift"
 KO = "RandomKOut.swift"
 SF = "ScaleFree.swift"
@@ -393,7 +395,12 @@ MUTANTS = [
 
     # Holme–Kim.
     Mutant("ddpositive", DD, "p > 0", "true"),
-    Mutant("ddretry", DD, "if kept { s += 1 }", "s += 1"),
+    Mutant("sksquare", SK, "base >= 1 && initiator.allSatisfy { $0.count == base }", "base >= 1"),
+    Mutant("skentry", SK, "p.isFinite && p >= 0 && p <= 1", "p.isFinite && p >= 0"),
+    Mutant("skloop", SK, "v != u", "true"),
+    Mutant("skdigit", SK, "initiator[a % base][b % base]", "initiator[b % base][a % base]"),
+    Mutant("skshift", SK, "                a /= base", "", mode="stmt"),
+    Mutant("ddretry", DD, "        if kept { s += 1 }", "        s += 1", mode="stmt"),
     Mutant("ddseed", DD, "directed ? DirectedEdge(from: 1, to: 0) : DirectedEdge(from: 0, to: 1)", "DirectedEdge(from: 0, to: 1)"),
     Mutant("ddmodel", DD, "_below(s, &g)", "_below(s - 1, &g)"),
     Mutant("dddirection", DD, "directed ? DirectedEdge(from: s, to: w) : DirectedEdge(from: w, to: s)", "DirectedEdge(from: w, to: s)"),

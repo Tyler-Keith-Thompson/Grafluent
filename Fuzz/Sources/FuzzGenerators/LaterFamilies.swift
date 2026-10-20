@@ -85,7 +85,28 @@ func degreeSequences(_ input: inout FuzzInput) {
 
 func randomFamilies(_ input: inout FuzzInput, seed: UInt64) {
     let fresh = Xoshiro256StarStar(seed: seed)
-    switch input.int(below: 9) {
+    switch input.int(below: 10) {
+    case 9:
+        // Stochastic Kronecker: the same draws replayed by hand, undirected and directed.
+        let base = input.int(in: 1 ... 3), k = input.int(in: 0 ... 3)
+        let initiator = (0 ..< base).map { _ in (0 ..< base).map { _ in Double(input.int(in: 0 ... 4)) / 4 } }
+        var g = fresh
+        let edges = checkedUndirected(UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: initiator, iterations: k, using: &g), "stochasticKronecker")
+        var replay = fresh
+        var n = 1
+        for _ in 0 ..< k { n *= base }
+        var expected: [[Int]] = []
+        for u in 0 ..< n {
+            for v in u + 1 ..< n {
+                var p = 1.0, a = u, b = v
+                for _ in 0 ..< k { p *= initiator[a % base][b % base]; a /= base; b /= base }
+                if Double(replay.next() >> 11) * 0x1p-53 < p { expected.append([u, v]) }
+            }
+        }
+        check(edges == expected && g == replay, "stochasticKronecker \(initiator) \(k)")
+        var h = fresh
+        let arcs = checkedDirected(CompressedSparseRow.stochasticKronecker(initiator: initiator, iterations: k, using: &h), "stochasticKronecker")
+        check(arcs.allSatisfy { $0[0] != $0[1] } && arcs == arcs.sorted { $0.lexicographicallyPrecedes($1) }, "stochasticKronecker directed")
     case 8:
         // Duplication–divergence: the seed edge, an older neighbor for every later vertex, no loops,
         // the directed form with the same draws.

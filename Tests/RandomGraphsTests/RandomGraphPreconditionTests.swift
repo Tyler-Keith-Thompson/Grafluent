@@ -2621,4 +2621,139 @@ struct RandomGraphPreconditionTests {
         let graph = UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 1.0, using: &generator)
         #expect(graph.vertexCount == 5 && graph.edgeCount == 4)
     }
+
+    @Test("RG-300 ragged initiator")
+    func rg300() async {
+        // UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: &Xoshiro256StarStar(seed: 0)) → **trap**: The initiator must be a square matrix with at least one row
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5, 0.5]], iterations: 2, using: &generator)
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 1)
+    }
+
+    @Test("RG-301 entry above 1")
+    func rg301() async {
+        // UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: [[1.5, 0.5], [0.5, 0.5]], iterations: 2, using: &Xoshiro256StarStar(seed: 0)) → **trap**: An initiator entry must be in 0...1, not 1.5
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: [[1.5, 0.5], [0.5, 0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.stochasticKronecker(initiator: [[1.5, 0.5], [0.5, 0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.stochasticKronecker(initiator: [[1.5, 0.5], [0.5, 0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.stochasticKronecker(initiator: [[1.5, 0.5], [0.5, 0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.stochasticKronecker(initiator: [[1.5, 0.5], [0.5, 0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.stochasticKronecker(initiator: [[1.5, 0.5], [0.5, 0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.stochasticKronecker(initiator: [[1.5, 0.5], [0.5, 0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.stochasticKronecker(initiator: [[1.5, 0.5], [0.5, 0.5]], iterations: 2, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.stochasticKronecker(initiator: [[1.5, 0.5], [0.5, 0.5]], iterations: 2, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5, 0.5]], iterations: 2, using: &generator)
+        #expect(graph.vertexCount == 4 && graph.edgeCount == 1)
+    }
+
+    @Test("RG-302 negative iterations")
+    func rg302() async {
+        // CompressedSparseRow.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: -1, using: &Xoshiro256StarStar(seed: 0)) → **trap**: iterations -1 is negative
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: -1, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: -1, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: [[0.9, 0.6], [0.6, 0.2]], iterations: 1, using: &generator)
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 0)
+    }
 }
