@@ -41,6 +41,7 @@ communities|Communities|Structure|Where a network splits into groups.|page
 hierarchy|Community hierarchy|Structure|Groups inside groups, down to a size you choose.|page
 girvannewman|Girvan–Newman|Structure|Communities by cutting the busiest links.|page
 labelpropagation|Label propagation|Structure|Communities that spread like a rumour.|page
+infomap|Infomap|Structure|Communities where a random walk lingers.|page
 flow|Maximum flow|Assignment|How much a network of pipes can carry.|page
 mincut|Minimum cut|Assignment|The fewest links to cut to split a network.|page
 mincostflow|Minimum-cost flow|Assignment|Shipping from warehouses to shops at least cost.|page

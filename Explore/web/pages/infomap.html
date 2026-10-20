@@ -1,0 +1,46 @@
+<!-- title: Infomap · Explore Grafluent -->
+<!-- description: Communities as the modules that make a random walk shortest to describe: the map equation, Infomap’s trials and code lengths with Grafluent’s infomapCommunities(trials:using:) and codeLength(of:). -->
+<header class="sign">
+  <h1>Infomap</h1>
+  <p class="question">A walker wanders a park’s footpaths at random. Which way of naming the clearings makes the story of the walk shortest?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Communities from where a walk lingers</h2>
+  <p>Most community methods ask where the links are dense. Infomap asks where a random walker gets caught. It gives each module a name and each place a name inside its module, like area codes and local numbers, and measures how many bits per step it takes to tell the walk. Modules the walker rarely leaves make the telling short. The modules that make it shortest are the communities. The measure is the <b>map equation</b>, and its value the <b>code length</b>.</p>
+  <p>Reach for Infomap when flow is what matters: traffic, citations, money, where a link means something passes along it. It works on directed networks as naturally as undirected ones.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find communities</h2>
+  <!-- compare
+  | Method | When to use | Rewards | Cost | Weakness |
+  | *Infomap | Something flows along the links | Modules a random walk stays inside | A local search, repeated over trials | Randomised; needs trials to be reliable |
+  | [Louvain](communities.html) | Density is what matters | More links inside groups than chance predicts | A few passes over the links | Can split a community in two, and has a resolution limit |
+  | [Label propagation](labelpropagation.html) | You need something very fast | Agreeing with your neighbours | Nearly linear | Unstable; one big community is easy to fall into |
+  | [Girvan–Newman](girvannewman.html) | Small networks, a full tree of splits | Cutting the links on most shortest paths | Very slow | Impractical past a few hundred links |
+  -->
+  <p>Infomap and Louvain usually agree on clear communities and differ on borderline ones; Infomap reads flow, Louvain reads density.</p>
+</section>
+
+<p class="example lead">Example: thirteen clearings in three knots of footpaths, joined by three long trails.</p>
+
+<h2 class="labhead"><small>Step through</small>One trial at a time</h2>
+<div id="app"></div>
+
+<section class="prose">
+  <h2><small>The idea</small>A two-level code for a random walk</h2>
+  <p>Give every place a codeword, and the walk is a string of codewords. Short codewords for places visited often, as Huffman would, give the one-level cost. Now group the places into modules: a step inside a module spells only the place’s name within the module, which is shorter because the module is small; a step out spells the exit, the new module and the entrance. The map equation adds up the expected bits per step over the walk’s stationary distribution. Good modules trap the walk, so exits are rare and the inside names are short.</p>
+  <p>Infomap finds modules by a greedy search like Louvain’s, moving each place to the neighbouring module that most shortens the code, then merging modules into super-places and repeating. The start is random, so <code>infomapCommunities(trials:using:)</code> runs several trials from the generator you pass and keeps the shortest. <code>codeLength(of:)</code> scores any grouping, so the lab compares the modules with Louvain’s communities and with the two extremes: everything in one module, and every clearing on its own.</p>
+
+  <h2><small>Where it breaks</small>Flow where there is none</h2>
+  <p>On a network where links don’t carry anything, the walk is a fiction, and modularity may fit the question better. Very sparse networks, or a star, trap no walk, and Infomap may leave everything in one module. The search is randomised: two runs can differ on a borderline place, so pass a seeded generator for a repeatable answer and raise the trials when it matters.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The trails, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names"></div>
+</section>

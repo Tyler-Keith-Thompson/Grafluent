@@ -54,6 +54,7 @@ contents and the menu without a link.
 | `hierarchy` | `hierarchicalLeidenCommunities(maximumCommunitySize:using:)` with `Xoshiro256StarStar`, `communities(atLevel:)`, `leaves`, `parent(of:)`, `children(of:)`, `community(of:)` |
 | `girvannewman` | `girvanNewmanCommunities()`, `edgeBetweennessCentrality(normalized:)`, `connectedComponents()`, `modularity(of:)` |
 | `labelpropagation` | `asynchronousLabelPropagationCommunities()`, `labelPropagationCommunities()`, `asynchronousLabelPropagationCommunities(using:)` with `Xoshiro256StarStar`, `modularity(of:)`, `neighbors(of:)` |
+| `infomap` | `infomapCommunities(trials:using:)` with `Xoshiro256StarStar`, `codeLength(of:)`, `louvainCommunities()`, `modularity(of:)` |
 | `flow` | `lazy.edmondsKarp(from:to:capacity:)`, `edmondsKarpMaximumFlow(from:to:capacity:)`, `minimumCut` |
 | `mincut` | `minimumCut(capacity:)`, `gomoryHuTree(capacity:)`, `minimumCut(between:and:)` |
 | `mincostflow` | `minimumCostFlow(supply:capacity:cost:)` |
