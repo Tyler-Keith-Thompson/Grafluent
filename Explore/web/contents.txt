@@ -28,6 +28,7 @@ steiner|Steiner trees|Structure|The cheapest way to connect a few chosen places.
 huffman|Huffman coding|Structure|Shorter codes for common letters, from a tree.|page
 lca|Lowest common ancestor|Structure|The most recent ancestor two people share.|page
 prefixtree|Prefix tree|Structure|Autocomplete from a list of words.|page
+treeedit|Tree edit distance|Structure|How far apart two org charts, or two documents, are.|page
 giant|The giant component|Structure|When random links suddenly join almost everyone.|page
 networkmodels|Network growth models|Structure|Hubs from the rich getting richer; small worlds from a few shortcuts.|page
 planarity|Planarity|Structure|Whether a network can be drawn without crossings.|page

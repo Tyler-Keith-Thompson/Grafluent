@@ -49,6 +49,7 @@ func mountPage(_ page: String) -> Bool {
     case "assortativity": AssortativityPage.mount()
     case "resilience": ResiliencePage.mount()
     case "infomap": InfomapPage.mount()
+    case "treeedit": TreeEditPage.mount()
     case "chordal": ChordalPage.mount()
     case "isomorphism": IsomorphismPage.mount()
     case "communities": CommunitiesPage.mount()
