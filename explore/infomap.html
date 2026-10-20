@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infomap · Explore Grafluent</title>
+<meta name="description" content="Communities as the modules that make a random walk shortest to describe: the map equation, Infomap’s trials and code lengths with Grafluent’s infomapCommunities(trials:using:) and codeLength(of:).">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="infomap">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a><a href="products.html">Graph products</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html" aria-current="page">Infomap</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Infomap</h1>
+  <p class="question">A walker wanders a park’s footpaths at random. Which way of naming the clearings makes the story of the walk shortest?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Communities from where a walk lingers</h2>
+  <p>Most community methods ask where the links are dense. Infomap asks where a random walker gets caught. It gives each module a name and each place a name inside its module, like area codes and local numbers, and measures how many bits per step it takes to tell the walk. Modules the walker rarely leaves make the telling short. The modules that make it shortest are the communities. The measure is the <b>map equation</b>, and its value the <b>code length</b>.</p>
+  <p>Reach for Infomap when flow is what matters: traffic, citations, money, where a link means something passes along it. It works on directed networks as naturally as undirected ones.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find communities</h2>
+<div class="compare">
+<table>
+  <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Rewards</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
+  <tbody>
+    <tr class="self"><th scope="row">Infomap <span class="this">This page</span></th><td data-label="When to use">Something flows along the links</td><td data-label="Rewards">Modules a random walk stays inside</td><td data-label="Cost">A local search, repeated over trials</td><td data-label="Weakness">Randomised; needs trials to be reliable</td></tr>
+    <tr><th scope="row"><a href="communities.html">Louvain</a></th><td data-label="When to use">Density is what matters</td><td data-label="Rewards">More links inside groups than chance predicts</td><td data-label="Cost">A few passes over the links</td><td data-label="Weakness">Can split a community in two, and has a resolution limit</td></tr>
+    <tr><th scope="row"><a href="labelpropagation.html">Label propagation</a></th><td data-label="When to use">You need something very fast</td><td data-label="Rewards">Agreeing with your neighbours</td><td data-label="Cost">Nearly linear</td><td data-label="Weakness">Unstable; one big community is easy to fall into</td></tr>
+    <tr><th scope="row"><a href="girvannewman.html">Girvan–Newman</a></th><td data-label="When to use">Small networks, a full tree of splits</td><td data-label="Rewards">Cutting the links on most shortest paths</td><td data-label="Cost">Very slow</td><td data-label="Weakness">Impractical past a few hundred links</td></tr>
+  </tbody>
+</table>
+</div>
+  <p>Infomap and Louvain usually agree on clear communities and differ on borderline ones; Infomap reads flow, Louvain reads density.</p>
+</section>
+
+<p class="example lead">Example: thirteen clearings in three knots of footpaths, joined by three long trails.</p>
+
+<h2 class="labhead"><small>Step through</small>One trial at a time</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="Infomap's modules of the trails"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 470" role="img" aria-label="Thirteen clearings joined by footpaths, coloured by the modules a trial of Infomap finds"><g class="edge " data-edge="0"><path d="M85.3,85.4 L154.7,64.6" class="hit" /><path d="M85.3,85.4 L154.7,64.6" class="stroke" /></g><g class="edge " data-edge="1"><path d="M83.3,98.9 L176.7,161.1" class="hit" /><path d="M83.3,98.9 L176.7,161.1" class="stroke" /></g><g class="edge " data-edge="2"><path d="M73.1,105.7 L86.9,174.3" class="hit" /><path d="M73.1,105.7 L86.9,174.3" class="stroke" /></g><g class="edge " data-edge="3"><path d="M172.9,75.7 L187.1,154.3" class="hit" /><path d="M172.9,75.7 L187.1,154.3" class="stroke" /></g><g class="edge " data-edge="4"><path d="M161.6,73.6 L98.4,176.4" class="hit" /><path d="M161.6,73.6 L98.4,176.4" class="stroke" /></g><g class="edge " data-edge="5"><path d="M174.3,173.1 L105.7,186.9" class="hit" /><path d="M174.3,173.1 L105.7,186.9" class="stroke" /></g><g class="edge " data-edge="6"><path d="M324.5,305.0 L295.5,385.0" class="hit" /><path d="M324.5,305.0 L295.5,385.0" class="stroke" /></g><g class="edge " data-edge="7"><path d="M339.8,302.6 L390.2,367.4" class="hit" /><path d="M339.8,302.6 L390.2,367.4" class="stroke" /></g><g class="edge " data-edge="8"><path d="M305.7,397.1 L384.3,382.9" class="hit" /><path d="M305.7,397.1 L384.3,382.9" class="stroke" /></g><g class="edge " data-edge="9"><path d="M301.3,411.3 L338.7,448.7" class="hit" /><path d="M301.3,411.3 L338.7,448.7" class="stroke" /></g><g class="edge " data-edge="10"><path d="M391.5,393.6 L358.5,446.4" class="hit" /><path d="M391.5,393.6 L358.5,446.4" class="stroke" /></g><g class="edge " data-edge="11"><path d="M365.7,456.9 L434.3,443.1" class="hit" /><path d="M365.7,456.9 L434.3,443.1" class="stroke" /></g><g class="edge " data-edge="12"><path d="M410.2,392.3 L439.8,427.7" class="hit" /><path d="M410.2,392.3 L439.8,427.7" class="stroke" /></g><g class="edge " data-edge="13"><path d="M564.7,314.7 L595.3,215.3" class="hit" /><path d="M564.7,314.7 L595.3,215.3" class="stroke" /></g><g class="edge " data-edge="14"><path d="M554.7,314.9 L505.3,175.1" class="hit" /><path d="M554.7,314.9 L505.3,175.1" class="stroke" /></g><g class="edge " data-edge="15"><path d="M585.1,194.1 L514.9,165.9" class="hit" /><path d="M585.1,194.1 L514.9,165.9" class="stroke" /></g><g class="edge " data-edge="16"><path d="M487.2,150.4 L432.8,109.6" class="hit" /><path d="M487.2,150.4 L432.8,109.6" class="stroke" /></g><g class="edge " data-edge="17"><path d="M586.0,192.2 L434.0,107.8" class="hit" /><path d="M586.0,192.2 L434.0,107.8" class="stroke" /></g><g class="edge " data-edge="18"><path d="M104.8,196.2 L315.2,283.8" class="hit" /><path d="M104.8,196.2 L315.2,283.8" class="stroke" /></g><g class="edge " data-edge="19"><path d="M461.3,428.7 L548.7,341.3" class="hit" /><path d="M461.3,428.7 L548.7,341.3" class="stroke" /></g><g class="edge " data-edge="20"><path d="M205.3,165.3 L404.7,104.7" class="hit" /><path d="M205.3,165.3 L404.7,104.7" class="stroke" /></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="A1"><circle cx="70.0" cy="90.0" r="14.0" /><text x="70.0" y="122.0" text-anchor="middle" class="name">A1</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="A2"><circle cx="170.0" cy="60.0" r="14.0" /><text x="170.0" y="92.0" text-anchor="middle" class="name">A2</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="A3"><circle cx="190.0" cy="170.0" r="14.0" /><text x="190.0" y="202.0" text-anchor="middle" class="name">A3</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="A4"><circle cx="90.0" cy="190.0" r="14.0" /><text x="90.0" y="222.0" text-anchor="middle" class="name">A4</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="B1"><circle cx="330.0" cy="290.0" r="14.0" /><text x="330.0" y="322.0" text-anchor="middle" class="name">B1</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="B2"><circle cx="290.0" cy="400.0" r="14.0" /><text x="290.0" y="432.0" text-anchor="middle" class="name">B2</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="B3"><circle cx="400.0" cy="380.0" r="14.0" /><text x="400.0" y="412.0" text-anchor="middle" class="name">B3</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="B4"><circle cx="350.0" cy="460.0" r="14.0" /><text x="350.0" y="492.0" text-anchor="middle" class="name">B4</text></g><g class="node " data-node="8" tabindex="-1" role="presentation" aria-label="B5"><circle cx="450.0" cy="440.0" r="14.0" /><text x="450.0" y="472.0" text-anchor="middle" class="name">B5</text></g><g class="node " data-node="9" tabindex="-1" role="presentation" aria-label="C1"><circle cx="560.0" cy="330.0" r="14.0" /><text x="560.0" y="362.0" text-anchor="middle" class="name">C1</text></g><g class="node " data-node="10" tabindex="-1" role="presentation" aria-label="C2"><circle cx="600.0" cy="200.0" r="14.0" /><text x="600.0" y="232.0" text-anchor="middle" class="name">C2</text></g><g class="node " data-node="11" tabindex="-1" role="presentation" aria-label="C3"><circle cx="500.0" cy="160.0" r="14.0" /><text x="500.0" y="192.0" text-anchor="middle" class="name">C3</text></g><g class="node " data-node="12" tabindex="-1" role="presentation" aria-label="C4"><circle cx="420.0" cy="100.0" r="14.0" /><text x="420.0" y="132.0" text-anchor="middle" class="name">C4</text></g></svg><div class="legend"><span><i class="dot pal0"></i>one module</span><span><i class="line faint"></i>a path between modules</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Before we start</span><p class="narration">A walker wanders the paths at random. Describe the walk with a code: one name per module, and one per clearing inside its module. Modules the walker stays in for a while make the description short. Infomap searches for the modules that make it shortest. Press Step to run its trials.</p></div><div class="panel"><span class="label">Compared with modularity</span><p class="note">Louvain finds 3 communities on these trails, at modularity 0.52; their code length is 2.96 bits. Infomap’s best is 2.96.</p></div><div class="panel"><span class="label">Trials so far</span><div class="queue"><p class="empty">None yet</p></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="10.920119948450493" class="m-pal3" /><text x="22" y="36" text-anchor="middle">3</text><title>Trial 1: 3 modules, 2.96 bits per step. The shortest so far.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="10.920119948450493" class="m-pal3" /><text x="48" y="36" text-anchor="middle">3</text><title>Trial 2: 3 modules, 2.96 bits per step. No shorter than the best so far, 2.96 bits.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="10.920119948450493" class="m-pal3" /><text x="74" y="36" text-anchor="middle">3</text><title>Trial 3: 3 modules, 2.96 bits per step. No shorter than the best so far, 2.96 bits.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="10.920119948450493" class="m-pal3" /><text x="100" y="36" text-anchor="middle">3</text><title>Trial 4: 3 modules, 2.96 bits per step. No shorter than the best so far, 2.96 bits.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="10.920119948450493" class="m-pal3" /><text x="126" y="36" text-anchor="middle">3</text><title>Trial 5: 3 modules, 2.96 bits per step. No shorter than the best so far, 2.96 bits.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="10.920119948450493" class="m-pal3" /><text x="152" y="36" text-anchor="middle">3</text><title>Trial 6: 3 modules, 2.96 bits per step. No shorter than the best so far, 2.96 bits.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="10.920119948450493" class="m-pal3" /><text x="178" y="36" text-anchor="middle">3</text><title>Trial 7: 3 modules, 2.96 bits per step. No shorter than the best so far, 2.96 bits.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="10.920119948450493" class="m-pal3" /><text x="204" y="36" text-anchor="middle">3</text><title>Trial 8: 3 modules, 2.96 bits per step. No shorter than the best so far, 2.96 bits.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-infomap" class="scrub" type="range" min="0" max="8" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-pal3" /></svg>one trial, with its module count; bigger for a longer code</span></div><p class="note">infomapCommunities(trials:using:) runs its trials at once and keeps the shortest code. The page runs one per step, each from its own seed.</p></section></div></div>
+
+<section class="prose">
+  <h2><small>The idea</small>A two-level code for a random walk</h2>
+  <p>Give every place a codeword, and the walk is a string of codewords. Short codewords for places visited often, as Huffman would, give the one-level cost. Now group the places into modules: a step inside a module spells only the place’s name within the module, which is shorter because the module is small; a step out spells the exit, the new module and the entrance. The map equation adds up the expected bits per step over the walk’s stationary distribution. Good modules trap the walk, so exits are rare and the inside names are short.</p>
+  <p>Infomap finds modules by a greedy search like Louvain’s, moving each place to the neighbouring module that most shortens the code, then merging modules into super-places and repeating. The start is random, so <code>infomapCommunities(trials:using:)</code> runs several trials from the generator you pass and keeps the shortest. <code>codeLength(of:)</code> scores any grouping, so the lab compares the modules with Louvain’s communities and with the two extremes: everything in one module, and every clearing on its own.</p>
+
+  <h2><small>Where it breaks</small>Flow where there is none</h2>
+  <p>On a network where links don’t carry anything, the walk is a fiction, and modularity may fit the question better. Very sparse networks, or a star, trap no walk, and Infomap may leave everything in one module. The search is randomised: two runs can differ on a borderline place, so pass a seeded generator for a repeatable answer and raise the trials when it matters.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The trails, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">CommunityDetection</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">RandomGraphs</span>
+
+<span class="c">/// A park's footpaths: three clearings, each a knot of paths, joined by a few long trails.</span>
+<span class="k">let</span> footways = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"A1"</span>, <span class="s">"A2"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"A1"</span>, <span class="s">"A3"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"A1"</span>, <span class="s">"A4"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"A2"</span>, <span class="s">"A3"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"A2"</span>, <span class="s">"A4"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"A3"</span>, <span class="s">"A4"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"B1"</span>, <span class="s">"B2"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"B1"</span>, <span class="s">"B3"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"B2"</span>, <span class="s">"B3"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"B2"</span>, <span class="s">"B4"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"B3"</span>, <span class="s">"B4"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"B4"</span>, <span class="s">"B5"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"B3"</span>, <span class="s">"B5"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"C1"</span>, <span class="s">"C2"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"C1"</span>, <span class="s">"C3"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"C2"</span>, <span class="s">"C3"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"C3"</span>, <span class="s">"C4"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"C2"</span>, <span class="s">"C4"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"A4"</span>, <span class="s">"B1"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"B5"</span>, <span class="s">"C1"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"A3"</span>, <span class="s">"C4"</span>),
+]
+
+<span class="k">let</span> trails = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> footway <span class="k">in</span> footways { footway }
+}
+
+<span class="k">let</span> trials = <span class="n">8</span>
+
+<span class="k">var</span> generator = <span class="t">Xoshiro256StarStar</span>(seed: <span class="n">2</span>)
+<span class="k">let</span> modules = trails.infomapCommunities(trials: trials, using: &amp;generator)
+<span class="k">let</span> bits = trails.codeLength(of: modules)  <span class="c">// 2.96</span>
+<span class="k">let</span> oneModule = trails.codeLength(of: [<span class="t">Array</span>(trails.vertices)])  <span class="c">// 3.69</span>
+<span class="k">let</span> apart = trails.codeLength(of: trails.vertices.map { [$<span class="n">0</span>] })  <span class="c">// 5.69</span>
+
+<span class="k">let</span> byModularity = trails.louvainCommunities()
+<span class="k">let</span> bitsByModularity = trails.codeLength(of: byModularity)  <span class="c">// 2.96</span>
+<span class="k">let</span> q = trails.modularity(of: byModularity)  <span class="c">// 0.52</span>
+</span></pre>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Louvain</b><span class="how">loo-VAN</span><span class="ipa">/luvɛ̃/</span><span class="what">Communities by repeatedly merging what raises modularity</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="labelpropagation.html"><span>Previous</span>Label propagation</a><a class="next" href="flow.html"><span>Next</span>Maximum flow</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>
