@@ -262,10 +262,8 @@ extension AdjacencyList {
         self.init()
         _slots = slots
         _vertices = vertices
-        _out = rows.out
-        _outEdges = rows.outEdges
-        _in = rows.in
-        _inEdges = rows.inEdges
+        _out = _PairedRowPool(storage: rows.out.storage, positions: rows.outEdges.storage, rows: rows.out.rows)
+        _in = _PairedRowPool(storage: rows.in.storage, positions: rows.inEdges.storage, rows: rows.in.rows)
         _records = rows.records
         _deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)
         _generation.stamp()
@@ -309,8 +307,7 @@ extension UndirectedAdjacencyList {
         self.init()
         _slots = slots
         _vertices = vertices
-        _neighbors = rows.neighbors
-        _incident = rows.incident
+        _neighbors = _PairedRowPool(storage: rows.neighbors.storage, positions: rows.incident.storage, rows: rows.neighbors.rows)
         _records = rows.records
         _positions._insertDistinct(count: us.count) { (us[$0] <= vs[$0] ? _SlotPair(us[$0], vs[$0]) : _SlotPair(vs[$0], us[$0]), $0) }
         _generation.stamp()

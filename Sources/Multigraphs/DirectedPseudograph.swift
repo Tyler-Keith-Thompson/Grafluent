@@ -22,21 +22,15 @@ public struct DirectedPseudograph<Vertex: Hashable> {
     @usableFromInline
     internal var _slots: _VertexSlots<Vertex>
 
-    /// For each slot, a row of the slots of its out-neighbors.
+    /// For each slot, a row of the slots of its out-neighbors, with the positions of the edges
+    /// beside them.
     @usableFromInline
-    internal var _out: _RowPool
+    internal var _out: _PairedRowPool
 
-    /// For each slot, the positions of its out-edges, parallel to `_out`.
+    /// For each slot, a row of the slots of its in-neighbors, with the positions of the edges
+    /// beside them.
     @usableFromInline
-    internal var _outEdges: _RowPool
-
-    /// For each slot, a row of the slots of its in-neighbors.
-    @usableFromInline
-    internal var _in: _RowPool
-
-    /// For each slot, the positions of its in-edges, parallel to `_in`.
-    @usableFromInline
-    internal var _inEdges: _RowPool
+    internal var _in: _PairedRowPool
 
     /// Every edge, at its position: its slots, and where it sits in its source's out-row and its
     /// target's in-row.
@@ -65,10 +59,8 @@ public struct DirectedPseudograph<Vertex: Hashable> {
     public init() {
         _vertices = []
         _slots = _VertexSlots()
-        _out = _RowPool()
-        _outEdges = _RowPool()
-        _in = _RowPool()
-        _inEdges = _RowPool()
+        _out = _PairedRowPool()
+        _in = _PairedRowPool()
         _records = []
         _parallel = _ParallelClasses()
         _vertexMaps = _AttachedMaps()
@@ -247,7 +239,7 @@ extension DirectedPseudograph {
     @inlinable
     public func outEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
         guard let slot = _slots[vertex] else { throw VertexNotFound() }
-        return _outEdges[row: slot]
+        return _out.positionRow(slot)
     }
 
     /// `inEdges(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
@@ -256,7 +248,7 @@ extension DirectedPseudograph {
     @inlinable
     public func inEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
         guard let slot = _slots[vertex] else { throw VertexNotFound() }
-        return _inEdges[row: slot]
+        return _in.positionRow(slot)
     }
 
     /// `outDegree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
@@ -377,10 +369,8 @@ extension DirectedPseudograph {
     @discardableResult
     internal mutating func _insertEdge(slots source: Int, _ target: Int) -> Int {
         let position = _records.count
-        let out = _out.append(target, toRow: source)
-        _outEdges.append(position, toRow: source)
-        let into = _in.append(source, toRow: target)
-        _inEdges.append(position, toRow: target)
+        let out = _out.append(target, position, toRow: source)
+        let into = _in.append(source, position, toRow: target)
         _records.append(_ArcRecord(source: source, target: target, out: out, in: into))
         _parallel.append(position, key: _SlotPair(source, target))
         _generation.advance(writing: _out.rows)
@@ -406,10 +396,10 @@ extension DirectedPseudograph {
 
         // Detach every edge incident to the vertex, last entry first, so nothing moves in its own
         // rows. A self-loop leaves both rows with the first loop.
-        while let position = _outEdges.last(ofRow: slot) {
+        while let position = _out.lastPosition(ofRow: slot) {
             _detach(position)
         }
-        while let position = _inEdges.last(ofRow: slot) {
+        while let position = _in.lastPosition(ofRow: slot) {
             _detach(position)
         }
 
@@ -420,8 +410,8 @@ extension DirectedPseudograph {
         if slot != last {
             let moved = _vertices[last]
             var renamed: [Int] = []
-            for position in _outEdges[row: last] { renamed.append(position) }
-            for position in _inEdges[row: last] where _records[position].source != last { renamed.append(position) }
+            for position in _out.positionRow(last) { renamed.append(position) }
+            for position in _in.positionRow(last) where _records[position].source != last { renamed.append(position) }
             for position in renamed {
                 var record = _records[position]
                 let oldKey = record.pair
@@ -441,9 +431,7 @@ extension DirectedPseudograph {
         }
         _vertices.removeLast()
         _out.swapRemoveRow(slot)
-        _outEdges.swapRemoveRow(slot)
         _in.swapRemoveRow(slot)
-        _inEdges.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
         _generation.advance(writing: _out.rows)
         if !_vertexMaps.isEmpty { _vertexMaps.swapRemoveInOwnTable(at: slot) }
@@ -508,20 +496,18 @@ extension DirectedPseudograph {
     internal mutating func _detach(_ position: Int, classIndex: Int? = nil) {
         let record = _records[position]
         if let classIndex { _parallel.unlink(position, at: classIndex) } else { _parallel.unlink(position, key: record.pair) }
-        _ = _out.swapRemove(at: record.out, fromRow: record.source)
-        if let moved = _outEdges.swapRemove(at: record.out, fromRow: record.source) {
+        if let moved = _out.swapRemove(at: record.out, fromRow: record.source) {
             _records[moved].out = record.out
         }
-        _ = _in.swapRemove(at: record.in, fromRow: record.target)
-        if let moved = _inEdges.swapRemove(at: record.in, fromRow: record.target) {
+        if let moved = _in.swapRemove(at: record.in, fromRow: record.target) {
             _records[moved].in = record.in
         }
         let last = _records.count - 1
         if position != last {
             let moved = _records[last]
             _records[position] = moved
-            _outEdges[row: moved.source, moved.out] = position
-            _inEdges[row: moved.target, moved.in] = position
+            _out[positionsOfRow: moved.source, moved.out] = position
+            _in[positionsOfRow: moved.target, moved.in] = position
             _parallel.move(from: last, to: position, key: moved.pair)
         }
         _records.removeLast()
@@ -538,9 +524,7 @@ extension DirectedPseudograph {
         _vertices.removeAll(keepingCapacity: keepingCapacity)
         _slots.removeAll(keepingCapacity: keepingCapacity)
         _out.removeAll(keepingCapacity: keepingCapacity)
-        _outEdges.removeAll(keepingCapacity: keepingCapacity)
         _in.removeAll(keepingCapacity: keepingCapacity)
-        _inEdges.removeAll(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
         _parallel.removeAll(keepingCapacity: keepingCapacity)
         if !_vertexMaps.isEmpty { _vertexMaps.removeAll(keepingCapacity: keepingCapacity) }
@@ -553,9 +537,7 @@ extension DirectedPseudograph {
     public mutating func removeAllEdges(keepingCapacity: Bool = false) {
         guard !_records.isEmpty else { return }
         _out.removeAllEntries(keepingCapacity: keepingCapacity)
-        _outEdges.removeAllEntries(keepingCapacity: keepingCapacity)
         _in.removeAllEntries(keepingCapacity: keepingCapacity)
-        _inEdges.removeAllEntries(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
         _parallel.removeAll(keepingCapacity: keepingCapacity)
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
@@ -571,9 +553,7 @@ extension DirectedPseudograph {
         _slots.reserveCapacity(vertexCount)
         _out.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _generation.storageMayHaveMoved(_out.rows)
-        _outEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _in.reserveCapacity(rows: vertexCount, entries: edgeCount)
-        _inEdges.reserveCapacity(rows: vertexCount, entries: edgeCount)
         _records.reserveCapacity(edgeCount)
         _parallel.reserveCapacity(edgeCount)
         if !_vertexMaps.isEmpty { _vertexMaps.reserveCapacity(vertexCount) }
@@ -587,9 +567,7 @@ extension DirectedPseudograph {
         _vertices.append(vertex)
         _slots[vertex] = slot
         _out.appendRow()
-        _outEdges.appendRow()
         _in.appendRow()
-        _inEdges.appendRow()
         _generation.advance(writing: _out.rows)
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }
         return slot
@@ -810,7 +788,7 @@ extension DirectedPseudograph: BidirectionalDirectedGraph {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func outEdges(of vertex: Vertex) -> ArraySlice<Int> {
-        _outEdges[row: _slot(of: vertex)]
+        _out.positionRow(_slot(of: vertex))
     }
 
     /// The positions in `edges` of the edges entering `vertex`, in the order of
@@ -819,7 +797,7 @@ extension DirectedPseudograph: BidirectionalDirectedGraph {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func inEdges(of vertex: Vertex) -> ArraySlice<Int> {
-        _inEdges[row: _slot(of: vertex)]
+        _in.positionRow(_slot(of: vertex))
     }
 
     /// The source of the edge at `position`. O(1).
@@ -854,11 +832,11 @@ extension DirectedPseudograph: BidirectionalDirectedGraph {
 
     /// The positions of the edges leaving the vertex in slot `index`: the stored row. O(1).
     @inlinable
-    public func outEdges(ofIndex index: Int) -> ArraySlice<Int> { _outEdges[row: index] }
+    public func outEdges(ofIndex index: Int) -> ArraySlice<Int> { _out.positionRow(index) }
 
     /// The positions of the edges entering the vertex in slot `index`: the stored row. O(1).
     @inlinable
-    public func inEdges(ofIndex index: Int) -> ArraySlice<Int> { _inEdges[row: index] }
+    public func inEdges(ofIndex index: Int) -> ArraySlice<Int> { _in.positionRow(index) }
 
     /// The length of the stored out-row of the vertex in slot `index`. O(1), no lookup.
     @inlinable
@@ -884,7 +862,8 @@ extension DirectedPseudograph: BidirectionalDirectedGraph {
     @inlinable
     public func edgeIndex(of position: Int) -> Int { position }
 
-    /// The stored rows: `_out` and `_outEdges`, whose entries are slots and edge positions.
+    /// The stored out-rows: slots and edge positions over one row table, which is lent as both,
+    /// so an algorithm reads one table entry per vertex.
     @inlinable
     public func _withOutIndexRows<Result>(
         _ body: (
@@ -892,11 +871,7 @@ extension DirectedPseudograph: BidirectionalDirectedGraph {
             _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
         ) -> Result
     ) -> Result? {
-        // The two pools grow, move and pack their rows together, so their row tables are equal,
-        // and `_out`'s is lent as both: an algorithm then reads one table entry per vertex.
-        _out.withUnsafeRows { targets, targetRows in
-            _outEdges.withUnsafeRows { edges, _ in body(targets, targetRows, edges, targetRows) }
-        }
+        _out.withUnsafeRows { targets, targetRows, edges in body(targets, targetRows, edges, targetRows) }
     }
 }
 
@@ -910,8 +885,8 @@ extension DirectedPseudograph: MutableDirectedGraph {
     @inlinable public func _predecessors(ofKey key: Int) -> Neighbors { Neighbors(vertices: _vertices, slots: _in[row: key]) }
     @inlinable public func _successorKeys(ofKey key: Int) -> ArraySlice<Int> { _out[row: key] }
     @inlinable public func _predecessorKeys(ofKey key: Int) -> ArraySlice<Int> { _in[row: key] }
-    @inlinable public func _outEdges(ofKey key: Int) -> ArraySlice<Int> { _outEdges[row: key] }
-    @inlinable public func _inEdges(ofKey key: Int) -> ArraySlice<Int> { _inEdges[row: key] }
+    @inlinable public func _outEdges(ofKey key: Int) -> ArraySlice<Int> { _out.positionRow(key) }
+    @inlinable public func _inEdges(ofKey key: Int) -> ArraySlice<Int> { _in.positionRow(key) }
     @inlinable public func _outDegree(ofKey key: Int) -> Int { _out.count(ofRow: key) }
     @inlinable public func _inDegree(ofKey key: Int) -> Int { _in.count(ofRow: key) }
     @inlinable public func _sourceKey(ofEdgeAt position: Int) -> Int { _records[position].source }

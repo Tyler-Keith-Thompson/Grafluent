@@ -32,13 +32,10 @@ public struct UndirectedAdjacencyList<Vertex: Hashable> {
     @usableFromInline
     internal var _slots: _VertexSlots<Vertex>
 
-    /// For each slot, a row of the slots of its neighbors, the far end of each edge end there.
+    /// For each slot, a row of the slots of its neighbors, with the positions of the edges beside
+    /// them (a self-loop twice).
     @usableFromInline
-    internal var _neighbors: _RowPool
-
-    /// For each slot, a row of the positions of its incident edges, parallel to `_neighbors`.
-    @usableFromInline
-    internal var _incident: _RowPool
+    internal var _neighbors: _PairedRowPool
 
     /// Every edge, at its position.
     @usableFromInline
@@ -66,8 +63,7 @@ public struct UndirectedAdjacencyList<Vertex: Hashable> {
     public init() {
         _vertices = []
         _slots = _VertexSlots()
-        _neighbors = _RowPool()
-        _incident = _RowPool()
+        _neighbors = _PairedRowPool()
         _records = []
         _positions = _SlotPairTable()
         _vertexMaps = _AttachedMaps()
@@ -238,7 +234,7 @@ extension UndirectedAdjacencyList {
     /// - Precondition: `vertex` is a vertex of the graph.
     @inlinable
     public func incidentEdges(of vertex: Vertex) -> ArraySlice<Int> {
-        _incident[row: _slot(of: vertex)]
+        _neighbors.positionRow(_slot(of: vertex))
     }
 
     /// The endpoint of the edge at `position` that is not `vertex`, or `vertex` for a self-loop.
@@ -284,7 +280,7 @@ extension UndirectedAdjacencyList {
     @inlinable
     public func incidentEdges(checked vertex: Vertex) throws(VertexNotFound) -> ArraySlice<Int> {
         guard let slot = _slots[vertex] else { throw VertexNotFound() }
-        return _incident[row: slot]
+        return _neighbors.positionRow(slot)
     }
 
     /// `degree(of: vertex)`, throwing instead of trapping when `vertex` is not a vertex. O(1).
@@ -369,7 +365,7 @@ extension UndirectedAdjacencyList {
         if !_vertexMaps.isEmpty { _vertexMaps.swapRemove(at: slot) }
 
         // Detach every incident edge, last entry first, so nothing moves in the vertex's own row.
-        while let position = _incident.last(ofRow: slot) {
+        while let position = _neighbors.lastPosition(ofRow: slot) {
             _detach(position)
         }
 
@@ -378,8 +374,8 @@ extension UndirectedAdjacencyList {
         let last = _vertices.count - 1
         if slot != last {
             let moved = _vertices[last]
-            for k in 0 ..< _incident.count(ofRow: last) {
-                let position = _incident[row: last, k]
+            for k in 0 ..< _neighbors.count(ofRow: last) {
+                let position = _neighbors[positionsOfRow: last, k]
                 var record = _records[position]
                 // A self-loop is met twice; the first visit renames both its ends.
                 guard record.u == last || record.v == last else { continue }
@@ -400,7 +396,6 @@ extension UndirectedAdjacencyList {
         }
         _vertices.removeLast()
         _neighbors.swapRemoveRow(slot)
-        _incident.swapRemoveRow(slot)
         _slots.removeValue(forKey: removed)
         _generation.advance(writing: _neighbors.rows)
         return removed
@@ -451,8 +446,8 @@ extension UndirectedAdjacencyList {
         if position != last {
             let moved = _records[last]
             _records[position] = moved
-            _incident[row: moved.u, moved.uOffset] = position
-            _incident[row: moved.v, moved.vOffset] = position
+            _neighbors[positionsOfRow: moved.u, moved.uOffset] = position
+            _neighbors[positionsOfRow: moved.v, moved.vOffset] = position
             _positions.updateValue(position, forKey: moved.key)
         }
         _records.removeLast()
@@ -463,8 +458,7 @@ extension UndirectedAdjacencyList {
     @inlinable
     internal mutating func _removeEnd(row: Int, offset: Int) {
         let lastOffset = _neighbors.count(ofRow: row) - 1
-        _ = _neighbors.swapRemove(at: offset, fromRow: row)
-        guard let moved = _incident.swapRemove(at: offset, fromRow: row) else { return }
+        guard let moved = _neighbors.swapRemove(at: offset, fromRow: row) else { return }
         // The end that was at `lastOffset` is now at `offset`.
         if _records[moved].u == row && _records[moved].uOffset == lastOffset {
             _records[moved].uOffset = offset
@@ -482,7 +476,6 @@ extension UndirectedAdjacencyList {
         _vertices.removeAll(keepingCapacity: keepingCapacity)
         _slots.removeAll(keepingCapacity: keepingCapacity)
         _neighbors.removeAll(keepingCapacity: keepingCapacity)
-        _incident.removeAll(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
         _positions.removeAll(keepingCapacity: keepingCapacity)
         if changes { _generation.advance(writing: _neighbors.rows) } else { _generation.storageMayHaveMoved(_neighbors.rows) }
@@ -495,7 +488,6 @@ extension UndirectedAdjacencyList {
         if !_edgeMaps.isEmpty { _edgeMaps.removeAll(keepingCapacity: keepingCapacity) }
         _neighbors.removeAllEntries(keepingCapacity: keepingCapacity)
         _generation.advance(writing: _neighbors.rows)
-        _incident.removeAllEntries(keepingCapacity: keepingCapacity)
         _records.removeAll(keepingCapacity: keepingCapacity)
         _positions.removeAll(keepingCapacity: keepingCapacity)
     }
@@ -512,7 +504,6 @@ extension UndirectedAdjacencyList {
         _slots.reserveCapacity(vertexCount)
         _neighbors.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
         _generation.storageMayHaveMoved(_neighbors.rows)
-        _incident.reserveCapacity(rows: vertexCount, entries: 2 * edgeCount)
         _records.reserveCapacity(edgeCount)
         _positions.reserveCapacity(edgeCount)
     }
@@ -526,7 +517,6 @@ extension UndirectedAdjacencyList {
         _neighbors.appendRow()
         _generation.advance(writing: _neighbors.rows)
         if !_vertexMaps.isEmpty { _vertexMaps.appendDefaultsToOwnTable(count: 1) }
-        _incident.appendRow()
         return slot
     }
 }
@@ -756,12 +746,12 @@ extension UndirectedAdjacencyList: Graph {
 
     /// The positions of the edges at the vertex in slot `index`: the stored row. O(1).
     @inlinable
-    public func incidentEdges(ofIndex index: Int) -> ArraySlice<Int> { _incident[row: index] }
+    public func incidentEdges(ofIndex index: Int) -> ArraySlice<Int> { _neighbors.positionRow(index) }
 
     /// The positions of the edges at the vertex in slot `index`: the stored row, parallel to
     /// `neighborIndices(ofIndex:)`. O(1).
     @inlinable
-    public func incidentEdgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _incident[row: index] }
+    public func incidentEdgeIndices(ofIndex index: Int) -> ArraySlice<Int> { _neighbors.positionRow(index) }
 
     /// The length of the stored row of the vertex in slot `index`, a self-loop twice. O(1), no
     /// lookup.
@@ -779,7 +769,8 @@ extension UndirectedAdjacencyList: Graph {
     @inlinable
     public static var _lendsIncidentRowsInConstantTime: Bool { true }
 
-    /// The stored rows: `_neighbors` and `_incident`, whose entries are slots and edge positions,
+    /// The stored rows: slots and edge positions over one row table, which is lent as both, so an
+    /// algorithm reads one table entry per vertex. The entries are slots and edge positions,
     /// which are the vertex and edge indices.
     @inlinable
     public func _withIncidentIndexRows<Result>(
@@ -788,11 +779,7 @@ extension UndirectedAdjacencyList: Graph {
             _ edges: UnsafeBufferPointer<Int>, _ edgeRows: UnsafeBufferPointer<Int>
         ) -> Result
     ) -> Result? {
-        // The two pools grow, move and pack their rows together, so their row tables are equal,
-        // and `_neighbors`' is lent as both: an algorithm then reads one table entry per vertex.
-        _neighbors.withUnsafeRows { neighbors, neighborRows in
-            _incident.withUnsafeRows { edges, _ in body(neighbors, neighborRows, edges, neighborRows) }
-        }
+        _neighbors.withUnsafeRows { neighbors, neighborRows, edges in body(neighbors, neighborRows, edges, neighborRows) }
     }
 }
 
@@ -822,12 +809,10 @@ extension UndirectedAdjacencyList {
             return (false, UndirectedEdge(_vertices[record.u], _vertices[record.v]))
         }
         let position = _records.count
-        let uOffset = _neighbors.append(v, toRow: u)
-        _incident.append(position, toRow: u)
-        let vOffset = _neighbors.append(u, toRow: v)
+        let uOffset = _neighbors.append(v, position, toRow: u)
+        let vOffset = _neighbors.append(u, position, toRow: v)
         _generation.advance(writing: _neighbors.rows)
         if !_edgeMaps.isEmpty { _edgeMaps.appendDefaultToOwnTableInline() }
-        _incident.append(position, toRow: v)
         _records.append(_EdgeRecord(u: u, v: v, uOffset: uOffset, vOffset: vOffset))
         _positions.insert(key, position)
         return (true, UndirectedEdge(_vertices[u], _vertices[v]))

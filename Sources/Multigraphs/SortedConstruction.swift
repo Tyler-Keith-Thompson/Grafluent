@@ -25,10 +25,8 @@ extension DirectedPseudograph where Vertex == Int {
         self.init()
         _vertices = ContiguousArray(0 ..< n)
         _slots = _VertexSlots(identityCount: n)
-        _out = rows.out
-        _outEdges = rows.outEdges
-        _in = rows.in
-        _inEdges = rows.inEdges
+        _out = _PairedRowPool(storage: rows.out.storage, positions: rows.outEdges.storage, rows: rows.out.rows)
+        _in = _PairedRowPool(storage: rows.in.storage, positions: rows.inEdges.storage, rows: rows.in.rows)
         _records = rows.records
         let records = rows.records
         _parallel = _ParallelClasses(singleCopies: records.count) { _SlotPair(records[$0].source, records[$0].target) }
@@ -64,8 +62,7 @@ extension Pseudograph where Vertex == Int {
         self.init()
         _vertices = ContiguousArray(0 ..< n)
         _slots = _VertexSlots(identityCount: n)
-        _neighbors = rows.neighbors
-        _incident = rows.incident
+        _neighbors = _PairedRowPool(storage: rows.neighbors.storage, positions: rows.incident.storage, rows: rows.neighbors.rows)
         _records = rows.records
         let records = rows.records
         _parallel = _ParallelClasses(singleCopies: records.count) { _SlotPair(records[$0].u, records[$0].v) }

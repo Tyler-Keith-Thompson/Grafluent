@@ -35,7 +35,7 @@ MUTANTS = [
     # The `checked:` spellings
     Mutant("pcheckedinsert", "Pseudograph.swift", "_slots[edge.v]", "Optional(_slots[edge.v] ?? 0)", nth=1),
     Mutant("pcheckeddegree", "Pseudograph.swift", "        return _neighbors.count(ofRow: slot)", "        return _neighbors.count(ofRow: slot) &- 1", mode="stmt"),
-    Mutant("pcheckedincident", "Pseudograph.swift", "        return _incident[row: slot]", "        return _neighbors[row: slot]", mode="stmt"),
+    Mutant("pcheckedincident", "Pseudograph.swift", "        return _neighbors.positionRow(slot)", "        return _neighbors[row: slot]", mode="stmt"),
     Mutant("pcheckedindex", "Pseudograph.swift", "        return slot\n", "        return slot &+ 1\n", mode="stmt", nth=0),
     Mutant("dpcheckedinsert", "DirectedPseudograph.swift", "_slots[edge.target]", "Optional(_slots[edge.target] ?? 0)", nth=1),
     Mutant("dpcheckedsourcebound", "DirectedPseudograph.swift", "UInt(bitPattern: position) < UInt(bitPattern: _records.count)", "position <= _records.count", nth=0),
@@ -43,7 +43,7 @@ MUTANTS = [
     Mutant("dpcheckedsourceend", "DirectedPseudograph.swift", "        return _vertices[_records[position].source]", "        return _vertices[_records[position].target]", mode="stmt"),
     Mutant("dpcheckeddegree", "DirectedPseudograph.swift", "        return _out.count(ofRow: slot) + _in.count(ofRow: slot)", "        return _out.count(ofRow: slot)", mode="stmt", nth=1),
     Mutant("dpcheckedpredecessors", "DirectedPseudograph.swift", "_in[row: slot]", "_out[row: slot]"),
-    Mutant("dpcheckedinedges", "DirectedPseudograph.swift", "_inEdges[row: slot]", "_outEdges[row: slot]"),
+    Mutant("dpcheckedinedges", "DirectedPseudograph.swift", "_in.positionRow(slot)", "_out.positionRow(slot)"),
     Mutant("dpcheckedindex", "DirectedPseudograph.swift", "        return slot\n", "        return slot &+ 1\n", mode="stmt", nth=0),
     Mutant("mcheckedmissing", "Multigraph.swift", "_base._slots[edge.v]", "Optional(_base._slots[edge.v] ?? 0)"),
     Mutant("mcheckedloop", "Multigraph.swift", "        if u == v { throw .selfLoop }", "", mode="stmt"),

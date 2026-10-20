@@ -182,10 +182,8 @@ extension AdjacencyList where Vertex == Int {
         self.init()
         _vertices = ContiguousArray(0 ..< n)
         _slots = _VertexSlots(identityCount: n)
-        _out = rows.out
-        _outEdges = rows.outEdges
-        _in = rows.in
-        _inEdges = rows.inEdges
+        _out = _PairedRowPool(storage: rows.out.storage, positions: rows.outEdges.storage, rows: rows.out.rows)
+        _in = _PairedRowPool(storage: rows.in.storage, positions: rows.inEdges.storage, rows: rows.in.rows)
         _records = rows.records
         _deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)
         _generation.stamp()
@@ -210,8 +208,7 @@ extension UndirectedAdjacencyList where Vertex == Int {
         self.init()
         _vertices = ContiguousArray(0 ..< n)
         _slots = _VertexSlots(identityCount: n)
-        _neighbors = rows.neighbors
-        _incident = rows.incident
+        _neighbors = _PairedRowPool(storage: rows.neighbors.storage, positions: rows.incident.storage, rows: rows.neighbors.rows)
         _records = rows.records
         let records = rows.records
         _positions._insertDistinct(count: records.count) { (_SlotPair(records[$0].u, records[$0].v), $0) }
@@ -241,10 +238,8 @@ extension AdjacencyList {
         _vertices = vertices
         _slots.reserveCapacity(vertices.count)
         for (slot, vertex) in vertices.enumerated() { _slots[vertex] = slot }
-        _out = rows.out
-        _outEdges = rows.outEdges
-        _in = rows.in
-        _inEdges = rows.inEdges
+        _out = _PairedRowPool(storage: rows.out.storage, positions: rows.outEdges.storage, rows: rows.out.rows)
+        _in = _PairedRowPool(storage: rows.in.storage, positions: rows.inEdges.storage, rows: rows.in.rows)
         _records = rows.records
         _deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)
         _generation.stamp()
@@ -264,8 +259,7 @@ extension UndirectedAdjacencyList {
         _vertices = vertices
         _slots.reserveCapacity(vertices.count)
         for (slot, vertex) in vertices.enumerated() { _slots[vertex] = slot }
-        _neighbors = rows.neighbors
-        _incident = rows.incident
+        _neighbors = _PairedRowPool(storage: rows.neighbors.storage, positions: rows.incident.storage, rows: rows.neighbors.rows)
         _records = rows.records
         let records = rows.records
         _positions._insertDistinct(count: records.count) { (_SlotPair(records[$0].u, records[$0].v), $0) }

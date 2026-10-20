@@ -85,11 +85,11 @@ MUTANTS = [
     Mutant("checkedsourceend", AL, "        return _vertices[_records[position].source]", "        return _vertices[_records[position].target]", mode="stmt"),
     Mutant("checkeddegree", AL, "        return _out.count(ofRow: slot) + _in.count(ofRow: slot)", "        return _out.count(ofRow: slot)", mode="stmt", nth=1),
     Mutant("checkedpredecessors", AL, "_in[row: slot]", "_out[row: slot]"),
-    Mutant("checkedinedges", AL, "_inEdges[row: slot]", "_outEdges[row: slot]"),
+    Mutant("checkedinedges", AL, "_in.positionRow(slot)", "_out.positionRow(slot)"),
     Mutant("checkedindex", AL, "        return slot\n", "        return slot &+ 1\n", mode="stmt", nth=0),
     Mutant("checkedinsert", AL, "_slots[edge.target]", "Optional(_slots[edge.target] ?? 0)", nth=2),
     Mutant("ucheckeddegree", UAL, "        return _neighbors.count(ofRow: slot)", "        return _neighbors.count(ofRow: slot) &- 1", mode="stmt"),
-    Mutant("ucheckedincident", UAL, "        return _incident[row: slot]", "        return _neighbors[row: slot]", mode="stmt"),
+    Mutant("ucheckedincident", UAL, "        return _neighbors.positionRow(slot)", "        return _neighbors[row: slot]", mode="stmt"),
     Mutant("ucheckedindex", UAL, "        return slot\n", "        return slot &+ 1\n", mode="stmt", nth=0),
     Mutant("ucheckedinsert", UAL, "_slots[edge.v]", "Optional(_slots[edge.v] ?? 0)", nth=2),
 
@@ -170,7 +170,9 @@ MUTANTS = [
     )
 ] + [
     # reuse pass (C): the pooled out-rows lent to algorithms, and their copy into compressed rows.
-    Mutant("outrowsedges", AL, "            _outEdges.withUnsafeRows { edges, _ in body(targets, targetRows, edges, targetRows) }", "            _out.withUnsafeRows { edges, _ in body(targets, targetRows, edges, targetRows) }", mode="stmt"),
+    Mutant("outrowsedges", AL, "        _out.withUnsafeRows { targets, targetRows, edges in body(targets, targetRows, edges, targetRows) }", "        _out.withUnsafeRows { targets, targetRows, _ in body(targets, targetRows, targets, targetRows) }", mode="stmt"),
+    Mutant("pairedswap", "PairedRowPool.swift", "        storage[block.start + offset] = storage[block.start + lastOffset]", "", mode="stmt"),
+    Mutant("pairedgrowpositions", "PairedRowPool.swift", "            for k in 0 ..< block.count { positions[start + k] = positions[block.start + k] }", "", mode="stmt"),
     Mutant("pooledloops", "CompressedRows.swift", "k &+= w == v ? 0 : 1", "k &+= 1", module="GraphProtocols"),
     Mutant("pooledbulkedges", "CompressedRows.swift", "edges.append(edgeIndex(of: unsafeBitCast(pooledEdges[edgeStart + k], to: Edges.Index.self)))", "edges.append(k)", module="GraphProtocols"),
     Mutant("pooledloopedges", "CompressedRows.swift", "!dropsLoops || pooled[start + k] != v", "true", module="GraphProtocols"),
@@ -195,10 +197,9 @@ MUTANTS = [
     Mutant("decoderepeat", AL, "first != i", "false"),
     Mutant("udecoderepeat", UAL, "first != i", "false"),
     Mutant("udecodeorient", UAL, "_firstCopies(pairs.firsts, pairs.seconds, vertexCount: vertices.count, undirected: true)", "_firstCopies(pairs.firsts, pairs.seconds, vertexCount: vertices.count, undirected: false)"),
-    Mutant("sharedoutrows", AL, "            _outEdges.withUnsafeRows { edges, _ in body(targets, targetRows, edges, targetRows) }", "            _outEdges.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", mode="stmt"),
-    Mutant("usharedrows", UAL, "            _incident.withUnsafeRows { edges, _ in body(neighbors, neighborRows, edges, neighborRows) }", "            _incident.withUnsafeRows { edges, edgeRows in body(neighbors, neighborRows, edges, edgeRows) }", mode="stmt"),
-    Mutant("psharedrows", "Pseudograph.swift", "            _incident.withUnsafeRows { edges, _ in body(neighbors, neighborRows, edges, neighborRows) }", "            _incident.withUnsafeRows { edges, edgeRows in body(neighbors, neighborRows, edges, edgeRows) }", mode="stmt", module="Multigraphs"),
-    Mutant("dpsharedrows", "DirectedPseudograph.swift", "            _outEdges.withUnsafeRows { edges, _ in body(targets, targetRows, edges, targetRows) }", "            _outEdges.withUnsafeRows { edges, edgeRows in body(targets, targetRows, edges, edgeRows) }", mode="stmt", module="Multigraphs"),
+    Mutant("urowsrows", UAL, "        _neighbors.withUnsafeRows { neighbors, neighborRows, edges in body(neighbors, neighborRows, edges, neighborRows) }", "        _neighbors.withUnsafeRows { neighbors, neighborRows, _ in body(neighbors, neighborRows, neighbors, neighborRows) }", mode="stmt"),
+    Mutant("prowsrows", "Pseudograph.swift", "        _neighbors.withUnsafeRows { neighbors, neighborRows, edges in body(neighbors, neighborRows, edges, neighborRows) }", "        _neighbors.withUnsafeRows { neighbors, neighborRows, _ in body(neighbors, neighborRows, neighbors, neighborRows) }", mode="stmt", module="Multigraphs"),
+    Mutant("dpoutrowsedges", "DirectedPseudograph.swift", "        _out.withUnsafeRows { targets, targetRows, edges in body(targets, targetRows, edges, targetRows) }", "        _out.withUnsafeRows { targets, targetRows, _ in body(targets, targetRows, targets, targetRows) }", mode="stmt", module="Multigraphs"),
     Mutant("pbulkvertices", "Pseudograph.swift", "        for v in vertices { pairs.insert(v) }", "", mode="stmt", module="Multigraphs"),
     Mutant("dpbulkvertices", "DirectedPseudograph.swift", "        for v in vertices { pairs.insert(v) }", "", mode="stmt", module="Multigraphs"),
 ]

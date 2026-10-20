@@ -20,12 +20,12 @@ package struct _Row {
 /// Each row owns a block of `storage`. A full row grows in place when its block is the last one,
 /// and otherwise moves to the end with twice the capacity, leaving its old block as garbage. Once
 /// garbage is more than half the storage and at least the number of rows, the live blocks are
-/// packed together again. Doubling abandons less than a row's current capacity, so growth alone
-/// never triggers packing. Only removed rows do, and the garbage they left pays for packing's
-/// O(rows + storage). The row table never shrinks under `clearRow`, so without the second bound a
-/// long run of cleared rows would pack on nearly every clear.
+/// packed together again, the garbage since the last pack paying for the O(rows + storage).
 ///
-/// Positions within a row are offsets from its start, which moving and packing preserve.
+/// Positions within a row are offsets from its start, which moving and packing preserve. The
+/// graphs keep a row of slots and a row of edge positions together in a `_PairedRowPool`; this
+/// pool holds a single row of each kind (a hypergraph's incidences) and the bulk-built rows the
+/// paired pools are assembled from.
 @frozen
 @usableFromInline
 package struct _RowPool {
@@ -76,12 +76,6 @@ package struct _RowPool {
         set { storage[rows[row].start + offset] = newValue }
     }
 
-    @inlinable
-    package func last(ofRow row: Int) -> Int? {
-        let block = rows[row]
-        return block.count == 0 ? nil : storage[block.start + block.count - 1]
-    }
-
     /// Adds an empty row; it takes no storage until its first entry.
     @inlinable
     package mutating func appendRow() {
@@ -125,50 +119,6 @@ package struct _RowPool {
     @inlinable
     package mutating func _packIfWasteful() {
         if garbage > storage.count / 2, garbage >= rows.count { _pack() }
-    }
-
-    /// Removes the entry at `offset` in `row` by moving the row's last entry into its place.
-    ///
-    /// - Returns: The entry that moved to `offset`, or `nil` if the removed entry was the last.
-    @inlinable
-    package mutating func swapRemove(at offset: Int, fromRow row: Int) -> Int? {
-        let block = rows[row]
-        let lastOffset = block.count - 1
-        rows[row].count = lastOffset
-        guard offset < lastOffset else { return nil }
-        let moved = storage[block.start + lastOffset]
-        storage[block.start + offset] = moved
-        return moved
-    }
-
-    /// Empties `row` and gives up its block, keeping the row.
-    @inlinable
-    package mutating func clearRow(_ row: Int) {
-        garbage += rows[row].capacity
-        rows[row] = _Row(start: storage.count, count: 0, capacity: 0)
-        _packIfWasteful()
-    }
-
-    /// Removes `row`, moving the last row into its place.
-    @inlinable
-    package mutating func swapRemoveRow(_ row: Int) {
-        garbage += rows[row].capacity
-        let last = rows.count - 1
-        if row != last { rows[row] = rows[last] }
-        rows.removeLast()
-        _packIfWasteful()
-    }
-
-    /// Empties every row.
-    @inlinable
-    package mutating func removeAllEntries(keepingCapacity: Bool) {
-        if keepingCapacity {
-            for row in rows.indices { rows[row].count = 0 }
-        } else {
-            storage.removeAll()
-            for row in rows.indices { rows[row] = _Row(start: 0, count: 0, capacity: 0) }
-            garbage = 0
-        }
     }
 
     @inlinable

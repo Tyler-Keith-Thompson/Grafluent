@@ -66,10 +66,8 @@ extension DirectedPseudograph {
         var graph = Self()
         graph._slots = _vertexSlots(of: vertices)
         graph._vertices = vertices
-        graph._out = rows.out
-        graph._outEdges = rows.outEdges
-        graph._in = rows.in
-        graph._inEdges = rows.inEdges
+        graph._out = _PairedRowPool(storage: rows.out.storage, positions: rows.outEdges.storage, rows: rows.out.rows)
+        graph._in = _PairedRowPool(storage: rows.in.storage, positions: rows.inEdges.storage, rows: rows.in.rows)
         graph._records = rows.records
         graph._parallel = _ParallelClasses(firsts: sourceKeys, seconds: targetKeys, vertexCount: n, undirected: false)
         graph._generation.stamp()
@@ -92,8 +90,7 @@ extension Pseudograph {
         var graph = Self()
         graph._slots = _vertexSlots(of: vertices)
         graph._vertices = vertices
-        graph._neighbors = rows.neighbors
-        graph._incident = rows.incident
+        graph._neighbors = _PairedRowPool(storage: rows.neighbors.storage, positions: rows.incident.storage, rows: rows.neighbors.rows)
         graph._records = rows.records
         graph._parallel = _ParallelClasses(firsts: uKeys, seconds: vKeys, vertexCount: n, undirected: true)
         graph._generation.stamp()
