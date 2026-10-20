@@ -370,6 +370,12 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("GraphOperations: CompressedSparseRow.egoGraphView(of: 0, radius: 2), G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(csr.egoGraphView(of: 0, radius: 2)) }
     }
+    Benchmark("GraphOperations: CompressedSparseRow.egoGraphView(of: [0, 1, 2], radius: 2), G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(csr.egoGraphView(of: [0, 1, 2], radius: 2)) }
+    }
+    Benchmark("GraphOperations: CompressedSparseRow.egoGraphView(of: [0, 1, 2], radius: 2, maximumVertexCount: 1000, priority:), G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(csr.egoGraphView(of: [0, 1, 2], radius: 2, maximumVertexCount: 1000, priority: { -$0 })) }
+    }
 
     var blocks = (0 ..< n).map { [$0] }
     blocks[0] = [0, n - 1]

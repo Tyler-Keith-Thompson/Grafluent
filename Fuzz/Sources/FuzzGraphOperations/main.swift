@@ -70,6 +70,38 @@ enum FuzzGraphOperations {
         let uview = undirected.egoGraphView(of: names[center], radius: radius)
         check(Array(uview.vertices) == (0 ..< n).filter { dBoth[center][$0] <= radius }.map { names[$0] }, "undirected ego \(raw) \(center) \(radius)")
 
+        // Ego graphs of several centers, with a vertex budget: layers by least distance to any
+        // center, whole while they fit, the overflowing layer cut by priority (the vertex number,
+        // reversed) then index.
+        let centerCount = input.int(in: 0 ... 3)
+        let centers = (0 ..< centerCount).map { _ in input.int(below: n) }
+        let cap = input.int(in: 0 ... 9)
+        func kept(_ d: [[Int]], _ limit: Int?) -> [Int] {
+            guard !centers.isEmpty else { return [] }
+            var out: [Int] = []
+            for layer in 0 ... radius {
+                let members = (0 ..< n).filter { v in centers.map { d[$0][v] }.min()! == layer }
+                if let limit, out.count + members.count > limit {
+                    out += members.sorted { (n - $0) > (n - $1) || ((n - $0) == (n - $1) && $0 < $1) }.prefix(limit - out.count)
+                    break
+                }
+                out += members
+            }
+            return out.sorted()
+        }
+        let centerNames = centers.map { names[$0] }
+        func rank(_ v: String) -> Int { n - names.firstIndex(of: v)! }
+        for (view, want) in [(directed.egoGraphView(of: centerNames, radius: radius), kept(dOut, nil)),
+                             (directed.egoGraphView(of: centerNames, radius: radius, undirected: true), kept(dBoth, nil)),
+                             (directed.egoGraphView(of: centerNames, radius: radius, maximumVertexCount: cap, priority: rank), kept(dOut, cap)),
+                             (directed.egoGraphView(of: centerNames, radius: radius, undirected: true, maximumVertexCount: cap, priority: rank), kept(dBoth, cap))] {
+            let induced = directed.inducedSubgraphView(on: want.map { names[$0] })
+            check(Array(view.vertices) == want.map { names[$0] }, "ego centers \(raw) \(centers) \(radius) \(cap)")
+            check(Array(view.edges.indices) == Array(induced.edges.indices), "ego centers edges \(raw) \(centers) \(radius) \(cap)")
+        }
+        check(Array(undirected.egoGraphView(of: centerNames, radius: radius).vertices) == kept(dBoth, nil).map { names[$0] }, "undirected ego centers \(raw) \(centers) \(radius)")
+        check(Array(undirected.egoGraphView(of: centerNames, radius: radius, maximumVertexCount: cap, priority: rank).vertices) == kept(dBoth, cap).map { names[$0] }, "undirected ego budget \(raw) \(centers) \(radius) \(cap)")
+
         // Contractions.
         let u = input.int(below: n), v = input.int(below: n)
         func contracted(_ i: Int, _ j: Int, directed: Bool) -> (Int, [[Int]]) {

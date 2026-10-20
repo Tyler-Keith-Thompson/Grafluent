@@ -557,6 +557,34 @@ struct GraphOperationsPreconditionTests {
         #expect(graph.vertexIndexBound == 2)
     }
 
+    @Test("GO-186 a center not a vertex among several traps")
+    func go186() async {
+        // AL V [a, b]; E [a→b] / .egoGraphView(of: [a, z]) → **trap** (z is not a vertex)
+        await #expect(processExitsWith: .failure) {
+            let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+            _ = graph.egoGraphView(of: ["a", "z"])
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = AdjacencyList<String>(vertices: ["a", "b"], edges: [DirectedEdge(from: "a", to: "b")])
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.edges.map { [$0.source, $0.target] } == [["a", "b"]])
+        #expect(graph.vertexIndexBound == 2)
+    }
+
+    @Test("GO-187 negative maximum vertex count traps")
+    func go187() async {
+        // UL V [a, b]; E [a–b] / .egoGraphView(of: [a], radius: 1, maximumVertexCount: -1, priority: { _ in 0 }) → **trap** (the maximum vertex count must not be negative)
+        await #expect(processExitsWith: .failure) {
+            let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+            _ = graph.egoGraphView(of: ["a"], radius: 1, maximumVertexCount: -1, priority: { _ in 0 })
+        }
+        // Without the fault: the same setup, accepted.
+        let graph = UndirectedAdjacencyList<String>(vertices: ["a", "b"], edges: [UndirectedEdge("a", "b")])
+        #expect(Array(graph.vertices) == ["a", "b"])
+        #expect(graph.edges.map { [$0.u, $0.v] } == [["a", "b"]])
+        #expect(graph.vertexIndexBound == 2)
+    }
+
     @Test("Label-space rows of a vertex outside a subgraph view trap; index-space reads past the bound trap")
     func subgraphOutsideVertices() async {
         await #expect(processExitsWith: .failure) {

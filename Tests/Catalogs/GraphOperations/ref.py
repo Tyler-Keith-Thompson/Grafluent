@@ -747,6 +747,51 @@ def ego(g, center, radius=1, undirected=False):
     return SubgraphView(g, keep, None)
 
 
+def ego_multi(g, centers, radius=1, undirected=False, limit=None, priority=None):
+    """`g.egoGraphView(of: centers, radius:, undirected:, maximumVertexCount:, priority:)`: the induced
+    subgraph on the vertices within the radius of any center; with a cap, the centers and then each
+    layer are kept whole while they fit, and the layer that would overflow is cut to its vertices of
+    greatest priority (ties to the lower base index), nothing beyond it kept."""
+    require(g.has_vertex_indices, "the base has no vertex indices (vertexIndexBound is nil)")
+    cs = [g.vertex_index(c) for c in centers]
+    require(radius >= 0, "the radius must not be negative")
+    if limit is not None:
+        require(limit >= 0, "the maximum vertex count must not be negative")
+    priority = priority or {}
+    seen = []
+    for c in cs:
+        if c not in seen:
+            seen.append(c)
+    layer = list(seen)
+    kept = []
+    d = 0
+    while True:
+        if limit is not None and len(kept) + len(layer) > limit:
+            room = limit - len(kept)
+            layer.sort(key=lambda i: (-priority.get(g.label(i), 0), i))
+            kept += layer[:room]
+            break
+        kept += layer
+        if d == radius or not layer:
+            break
+        nxt = []
+        for v in layer:
+            for w in _row(g, v, undirected):
+                if w not in kept and w not in nxt:
+                    nxt.append(w)
+        layer = nxt
+        d += 1
+    return SubgraphView(g, set(kept), None)
+
+
+def spec_ego_multi(g, centers, radius, undirected, view):
+    G = to_nx(g)
+    nodes = set()
+    for c in centers:
+        nodes |= set(nx.ego_graph(G, c, radius=radius, undirected=undirected).nodes())
+    same(view, G.subgraph(nodes))
+
+
 def contraction(g, u, v):
     """`Target.contraction(of: g, u, v)`: the two merged at the smaller index, later vertices down by
     one, loops dropped, parallel edges merged."""
@@ -1648,6 +1693,33 @@ def define():
             target = "AdjacencyList<String>" if a[0].directed else "UndirectedAdjacencyList<String>"
             built_case(G, title, [a, b], lambda g, h, op=op: combined(g, h, op), f"{target}.{op}(g, h)",
                        lambda g, h, r, op=op: spec_combined(g, h, op, r))
+
+    # ---- egoGraphView of several centers, and with a vertex budget
+    G = "EgoGraph"
+    for title, base, centers, radius, undirected, limit, priority in [
+        ("two centers: the union of their ego graphs", AL("a b c d e", "a>b c>d d>e"), ["a", "c"], None, None, None, None),
+        ("two centers, radius 0: the centers alone, in index order", UL("a b c d", "a-b b-c c-d"), ["d", "a"], 0, None, None, None),
+        ("a center listed twice counts once", UL("a b c", "a-b b-c"), ["b", "b"], 1, None, None, None),
+        ("no centers: the empty view", AL("a b", "a>b"), [], None, None, None, None),
+        ("undirected: true from two centers follows arcs backwards", AL("a b c d e", "b>a d>c e>c"), ["a", "c"], None, True, None, None),
+        ("a cap no layer reaches changes nothing", UL("a b c d e", "a-b b-c c-d d-e"), ["c"], 1, None, 3, {}),
+        ("the overflowing layer is cut to the greatest priorities", UL("a b c d e f", "a-b a-c a-d a-e a-f"), ["a"], 1, None, 3, {"c": 2, "e": 5, "f": 1}),
+        ("ties in priority keep the lower index", UL("a b c d e", "a-b a-c a-d a-e"), ["a"], 1, None, 2, {}),
+        ("the search stops after the cut layer, within the radius", UL("a b c d e f", "a-b a-c b-d c-e d-f"), ["a"], 3, None, 2, {"c": 1}),
+        ("more centers than the cap: the centers are cut", UL("a b c d", "a-b b-c c-d"), ["a", "b", "d"], 1, None, 2, {"d": 9}),
+        ("a cap of 0: the empty view", AL("a b c", "a>b b>c"), ["a"], 1, None, 0, {}),
+        ("directed, undirected: true, cut by priority among predecessors and successors", AL("a b c d e", "a>b c>a d>a a>e"), ["a"], 1, True, 3, {"c": 1, "d": 2}),
+        ("a center not a vertex among several traps", AL("a b", "a>b"), ["a", "z"], None, None, None, None),
+        ("negative maximum vertex count traps", UL("a b", "a-b"), ["a"], 1, None, -1, {}),
+    ]:
+        args = "of: [" + ", ".join(centers) + "]" + (f", radius: {radius}" if radius is not None else "") + (f", undirected: {'true' if undirected else 'false'}" if undirected is not None else "")
+        if limit is not None:
+            entries = ", ".join(f'"{k}": {v}' for k, v in priority.items())
+            args += f", maximumVertexCount: {limit}, priority: {{ [{entries}][$0, default: 0] }}" if entries else f", maximumVertexCount: {limit}, priority: {{ _ in 0 }}"
+        view_case(G, title, base,
+                  lambda g, c=centers, r=radius, u=undirected, l=limit, pr=priority: ego_multi(g, c, 1 if r is None else r, bool(u), l, pr),
+                  f".egoGraphView({args})",
+                  None if limit is not None else (lambda g, v, c=centers, r=radius, u=undirected: spec_ego_multi(g, c, 1 if r is None else r, bool(u), v)))
 
 # ---------------------------------------------------------------- output
 

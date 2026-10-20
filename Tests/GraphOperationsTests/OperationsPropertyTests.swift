@@ -187,6 +187,75 @@ struct OperationsPropertyTests {
         }
     }
 
+    @Test("egoGraphView(of:radius:maximumVertexCount:priority:) with several centers: the union of the ego graphs by Floyd–Warshall, and the budget cuts the overflowing layer by priority then index")
+    func egoGraphCentersLaws() async {
+        let input = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6)).array(of: 0 ... 14)
+        let centers = Gen.int(in: 0 ... 6).array(of: 0 ... 3)
+        let priorities = Gen.int(in: 0 ... 2).array(of: 7 ... 7)
+        await propertyCheck(count: 300, input: input, centers, Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 8), priorities) { raw, rawCenters, radius, cap, rawPriority in
+            let names = (0 ..< 7).map { "e\($0)" }
+            let unreachable = 100
+            func distances(_ forward: Bool, _ backward: Bool) -> [[Int]] {
+                var d = [[Int]](repeating: [Int](repeating: unreachable, count: 7), count: 7)
+                for i in 0 ..< 7 { d[i][i] = 0 }
+                for (a, b) in raw {
+                    if forward { d[a][b] = Swift.min(d[a][b], 1) }
+                    if backward { d[b][a] = Swift.min(d[b][a], 1) }
+                }
+                for m in 0 ..< 7 { for i in 0 ..< 7 { for j in 0 ..< 7 where d[i][m] + d[m][j] < d[i][j] { d[i][j] = d[i][m] + d[m][j] } } }
+                return d
+            }
+            // The oracle: layers by least distance to any center, kept whole while they fit; the
+            // overflowing layer cut to the greatest priorities, ties to the lower index.
+            func kept(_ d: [[Int]], limit: Int?) -> [Int] {
+                guard !rawCenters.isEmpty else { return [] }
+                var out: [Int] = []
+                for layer in 0 ... radius {
+                    let members = (0 ..< 7).filter { v in rawCenters.map { d[$0][v] }.min()! == layer }
+                    if let limit, out.count + members.count > limit {
+                        let ranked = members.sorted { rawPriority[$0] > rawPriority[$1] || (rawPriority[$0] == rawPriority[$1] && $0 < $1) }
+                        out += ranked.prefix(limit - out.count)
+                        break
+                    }
+                    out += members
+                }
+                return out.sorted()
+            }
+            let centerNames = rawCenters.map { names[$0] }
+            let priority = { (v: String) -> Int in rawPriority[names.firstIndex(of: v)!] }
+            let context = "\(raw) centers \(rawCenters) radius \(radius) cap \(cap) priorities \(rawPriority)"
+            let directed = DirectedPseudograph<String>(vertices: names, edges: raw.map { DirectedEdge(from: names[$0.0], to: names[$0.1]) })
+            let forward = distances(true, false), both = distances(true, true)
+            for (view, want) in [(directed.egoGraphView(of: centerNames, radius: radius), kept(forward, limit: nil)),
+                                 (directed.egoGraphView(of: centerNames, radius: radius, undirected: true), kept(both, limit: nil)),
+                                 (directed.egoGraphView(of: centerNames, radius: radius, maximumVertexCount: cap, priority: priority), kept(forward, limit: cap)),
+                                 (directed.egoGraphView(of: centerNames, radius: radius, undirected: true, maximumVertexCount: cap, priority: priority), kept(both, limit: cap))] {
+                let induced = directed.inducedSubgraphView(on: want.map { names[$0] })
+                #expect(Array(view.vertices) == want.map { names[$0] }, "\(context)")
+                #expect(Array(view.edges.indices) == Array(induced.edges.indices), "\(context)")
+                for i in want.indices {
+                    #expect(Array(view.successorIndices(ofIndex: i)) == Array(induced.successorIndices(ofIndex: i)), "\(context)")
+                    #expect(Array(view.predecessorIndices(ofIndex: i)) == Array(induced.predecessorIndices(ofIndex: i)), "\(context)")
+                }
+            }
+            let undirected = Pseudograph<String>(vertices: names, edges: raw.map { UndirectedEdge(names[$0.0], names[$0.1]) })
+            for (view, want) in [(undirected.egoGraphView(of: centerNames, radius: radius), kept(both, limit: nil)),
+                                 (undirected.egoGraphView(of: centerNames, radius: radius, maximumVertexCount: cap, priority: priority), kept(both, limit: cap))] {
+                let induced = undirected.inducedSubgraphView(on: want.map { names[$0] })
+                #expect(Array(view.vertices) == want.map { names[$0] }, "\(context)")
+                #expect(Array(view.edges.indices) == Array(induced.edges.indices), "\(context)")
+                for i in want.indices {
+                    #expect(Array(view.neighborIndices(ofIndex: i)) == Array(induced.neighborIndices(ofIndex: i)), "\(context)")
+                }
+            }
+            // One center is the single-center spelling, and a cap of 7 changes nothing.
+            if let first = rawCenters.first {
+                #expect(Array(directed.egoGraphView(of: [names[first]], radius: radius).vertices) == Array(directed.egoGraphView(of: names[first], radius: radius).vertices), "\(context)")
+                #expect(Array(undirected.egoGraphView(of: centerNames, radius: radius, maximumVertexCount: 7, priority: priority).vertices) == Array(undirected.egoGraphView(of: centerNames, radius: radius).vertices), "\(context)")
+            }
+        }
+    }
+
     @Test("contraction(of:_:_:) and contraction(of:edgeAt:): the ends merged at the smaller index, later vertices moved down, loops dropped")
     func contractionLaws() async {
         let input = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 1 ... 14)

@@ -442,6 +442,22 @@ def compare_operations(case, mine):
         U = nx.ego_graph(G, s, radius=2, undirected=True)
         if mine["egoUndirected"] != sorted(U.nodes()):
             problems.append(f"operations: egoGraphView(undirected: true) {mine['egoUndirected']}, NetworkX {sorted(U.nodes())}")
+    # Several centers: the union of their ego graphs; the budget keeps bfs_layers whole while they
+    # fit and cuts the overflowing layer to the greatest vertex numbers.
+    sources = case["sources"]
+    nodes = set()
+    for c in sources:
+        nodes |= set(nx.ego_graph(G, c, radius=2).nodes())
+    if mine["egoCenters"] != sorted(nodes):
+        problems.append(f"operations: egoGraphView(of: {sources}) {mine['egoCenters']}, NetworkX {sorted(nodes)}")
+    budget, kept = 4, []
+    for layer in list(nx.bfs_layers(G, sources))[:3]:
+        if len(kept) + len(layer) > budget:
+            kept += sorted(layer, reverse=True)[: budget - len(kept)]
+            break
+        kept += layer
+    if mine["egoBudget"] != sorted(kept):
+        problems.append(f"operations: egoGraphView(of: {sources}, maximumVertexCount: 4) {mine['egoBudget']}, NetworkX layers {sorted(kept)}")
     a, b = min(s, t), max(s, t)
     new = {x: (x if a == b or x < b else (a if x == b else x - 1)) for x in range(n)}
     C = loopless.copy() if a == b else nx.contracted_nodes(G, s, t, self_loops=False)

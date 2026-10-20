@@ -18,6 +18,10 @@ struct OperationsAnswers: Encodable {
     var ego: [Int] = []
     var egoEdges: [[Int]] = []
     var egoUndirected: [Int]?
+    /// The ego graph of every source at radius 2, and the same cut to 4 vertices with the vertex
+    /// number as the priority.
+    var egoCenters: [Int] = []
+    var egoBudget: [Int] = []
     var contraction: [[Int]] = []
     var contractionCount = 0
     var closure: [[Int]]?
@@ -30,9 +34,10 @@ struct OperationsAnswers: Encodable {
     var symmetricDifference: [[Int]] = []
 }
 
-func directedOperationsAnswers(n: Int, edges: [[Int]], source: Int, target: Int) -> OperationsAnswers {
+func directedOperationsAnswers(n: Int, edges: [[Int]], sources: [Int], target: Int) -> OperationsAnswers {
     var a = OperationsAnswers()
     guard n > 0 else { return a }
+    let source = sources[0]
     let graph = AdjacencyList(vertices: 0 ..< n, edges: edges.map { DirectedEdge(from: $0[0], to: $0[1]) })
     func pairs(_ g: some DirectedGraph<Int>) -> [[Int]] { g.edges.map { [$0.source, $0.target] } }
     a.square = pairs(CompressedSparseRow.power(of: graph, 2))
@@ -41,6 +46,8 @@ func directedOperationsAnswers(n: Int, edges: [[Int]], source: Int, target: Int)
     a.ego = Array(ego.vertices)
     a.egoEdges = pairs(ego)
     a.egoUndirected = Array(graph.egoGraphView(of: source, radius: 2, undirected: true).vertices)
+    a.egoCenters = Array(graph.egoGraphView(of: sources, radius: 2).vertices)
+    a.egoBudget = Array(graph.egoGraphView(of: sources, radius: 2, maximumVertexCount: 4, priority: { $0 }).vertices)
     let contraction = CompressedSparseRow.contraction(of: graph, source, target)
     a.contraction = pairs(contraction)
     a.contractionCount = contraction.vertexCount
@@ -57,9 +64,10 @@ func directedOperationsAnswers(n: Int, edges: [[Int]], source: Int, target: Int)
     return a
 }
 
-func undirectedOperationsAnswers(n: Int, edges: [[Int]], source: Int, target: Int) -> OperationsAnswers {
+func undirectedOperationsAnswers(n: Int, edges: [[Int]], sources: [Int], target: Int) -> OperationsAnswers {
     var a = OperationsAnswers()
     guard n > 0 else { return a }
+    let source = sources[0]
     let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges.map { UndirectedEdge($0[0], $0[1]) })
     func pairs(_ g: some Graph<Int>) -> [[Int]] { g.edges.map { [$0.u, $0.v] } }
     a.square = pairs(UndirectedAdjacencyList<Int>.power(of: graph, 2))
@@ -67,6 +75,8 @@ func undirectedOperationsAnswers(n: Int, edges: [[Int]], source: Int, target: In
     let ego = graph.egoGraphView(of: source, radius: 2)
     a.ego = Array(ego.vertices)
     a.egoEdges = pairs(ego)
+    a.egoCenters = Array(graph.egoGraphView(of: sources, radius: 2).vertices)
+    a.egoBudget = Array(graph.egoGraphView(of: sources, radius: 2, maximumVertexCount: 4, priority: { $0 }).vertices)
     let contraction = UndirectedAdjacencyList<Int>.contraction(of: graph, source, target)
     a.contraction = pairs(contraction)
     a.contractionCount = contraction.vertexCount

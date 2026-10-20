@@ -51,7 +51,7 @@ To run it:
 | Quotient (vertex contraction) | `Target.quotient(of:by:)`, the partition as a sequence of blocks |
 | Disjoint union | `Target.disjointUnion(_:_:)` |
 | Join | `Target.join(_:_:)` |
-| Ego graph | `egoGraphView(of:radius:)`, with `undirected:` on a bidirectional base; a `SubgraphView` |
+| Ego graph | `egoGraphView(of:radius:)` of one center or of several, with `undirected:` on a bidirectional base and `maximumVertexCount:priority:` for a vertex budget; a `SubgraphView` |
 | Power Gᵏ | `Target.power(of:_:)` |
 | Vertex identification | `Target.contraction(of:_:_:)` |
 | Edge contraction G/e | `Target.contraction(of:edgeAt:)` |
@@ -252,6 +252,9 @@ extension _GraphConstruction { /* the same four over Graph */ }
 extension DirectedGraph {
     public func egoGraphView(of center: Vertex, radius: Int = 1) -> SubgraphView<Self>
     public func egoGraphView(checkedOf center: Vertex, radius: Int = 1) throws(VertexNotFound) -> SubgraphView<Self>
+    public func egoGraphView(of centers: some Sequence<Vertex>, radius: Int = 1) -> SubgraphView<Self>
+    public func egoGraphView<S: Comparable>(of centers: some Sequence<Vertex>, radius: Int = 1, maximumVertexCount: Int, priority: (Vertex) -> S) -> SubgraphView<Self>
+    // and their checkedOf: forms; BidirectionalDirectedGraph adds undirected: to each
 }
 extension BidirectionalDirectedGraph {
     public func egoGraphView(of center: Vertex, radius: Int = 1, undirected: Bool) -> SubgraphView<Self>
@@ -330,7 +333,7 @@ Result numbering:
 | Mutating the base after making a view | Impossible: the view holds a copy, so mutating the original never shows through | — |
 | `spanningSubgraphView` / `subgraph` over a base without edge indices | Sorted kept positions, binary search per row entry and per rank; dense edge indices still | hand-written test |
 | A materialized operation over a graph without vertex indices | **Trap**, like the views | GO-118, extra traps |
-| `egoGraphView`: center not a vertex, negative radius | **Trap**; `checkedOf:` throws `VertexNotFound` for the center | GO-116, GO-117 |
+| `egoGraphView`: a center not a vertex, negative radius, negative maximum vertex count | **Trap**; `checkedOf:` throws `VertexNotFound` for a center | GO-116, GO-117, GO-186, GO-187 |
 | `power(of:_:)` with k < 1 | **Trap** | GO-127, extra traps |
 | `power`: self-loops, parallel edges | Ignored | GO-121, GO-126 |
 | `contraction`: a vertex not in the graph | **Trap**; `checked:` throws `VertexNotFound` | GO-133 |

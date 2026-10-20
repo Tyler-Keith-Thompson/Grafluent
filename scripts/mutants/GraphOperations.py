@@ -10,6 +10,10 @@
 # Known equivalent mutants (removed): dropping `relabeled(_:ordering:)`'s directed self-loop
 # precondition. The loop then reaches the construction hook, whose debug-build check of its input
 # (`_isSortedSimple`) traps on it, so in the debug build the suites run the trap is the same.
+# Also: dropping the ego graph budget's non-negative precondition (a negative cap leaves a negative
+# room, and slicing the layer at it traps a line later: the same trap with a worse message); and
+# cutting a layer that exactly fills the budget (the room is the whole layer, so it keeps every
+# vertex, as not cutting does).
 
 TESTS = ["GraphOperationsTests", "GraphProtocolsTests"]
 
@@ -92,6 +96,14 @@ MUTANTS = [
     Mutant("egonegative", EG, "precondition(radius >= 0, \"The radius must not be negative\")", "", mode="stmt"),
     Mutant("egobackward", EG, "new[w] = 0", "", mode="stmt", nth=1),
     Mutant("egokeepall", EG, "if tail == n { return ([], [], n) }", "", mode="stmt"),
+    Mutant("egocenters", EG, "queue.append(c)", "if queue.isEmpty { queue.append(c) }", mode="stmt"),
+    Mutant("egoroom", EG, "limit - start", "limit"),
+    Mutant("egopriority", EG, "return pa > pb || (pa == pb && a < b)", "return pa < pb || (pa == pb && a < b)", mode="stmt"),
+    Mutant("egotie", EG, "return pa > pb || (pa == pb && a < b)", "return pa > pb || (pa == pb && a > b)", mode="stmt"),
+    Mutant("egouncut", EG, "for w in layer[room...] { new[w] = -1 }", "", mode="stmt"),
+    Mutant("egotail", EG, "tail = start + room", "", mode="stmt"),
+    Mutant("egocontinue", EG, "break", "", mode="stmt", nth=0),
+    Mutant("egostart", EG, "start = tail", "", mode="stmt"),
     # The contractions.
     Mutant("contractshift", CT, "i < b ? i : (i == b ? a : i &- 1)", "i < b ? i : (i == b ? a : i)"),
     Mutant("contractold", CT, "r >= merged", "r > merged", nth=0),

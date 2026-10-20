@@ -933,7 +933,7 @@ for c in cases {
         if wants("similarity") { results[results.count - 1].similarity = directedSimilarityAnswers(n: c.n, edges: c.edges) }
         if wants("isomorphism") { results[results.count - 1].isomorphism = isomorphismAnswers(directed: true, n: c.n, edges: c.edges) }
         if wants("drawing") { results[results.count - 1].drawing = drawingAnswers(n: c.n, edges: c.edges) }
-        if wants("operations") { results[results.count - 1].operations = directedOperationsAnswers(n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
+        if wants("operations") { results[results.count - 1].operations = directedOperationsAnswers(n: c.n, edges: c.edges, sources: c.sources, target: c.target) }
         if wants("generators"), let g = c.generators { results[results.count - 1].generators = generatorAnswers(g) }
         if wants("spectral") { results[results.count - 1].spectral = spectralAnswers(directed: true, n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
     } else {
@@ -1165,7 +1165,7 @@ for c in cases {
         if wants("similarity") { result.similarity = undirectedSimilarityAnswers(graph, n: c.n) }
         if wants("isomorphism") { result.isomorphism = isomorphismAnswers(directed: false, n: c.n, edges: c.edges) }
         if wants("drawing") { result.drawing = drawingAnswers(n: c.n, edges: c.edges) }
-        if wants("operations") { result.operations = undirectedOperationsAnswers(n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
+        if wants("operations") { result.operations = undirectedOperationsAnswers(n: c.n, edges: c.edges, sources: c.sources, target: c.target) }
         if wants("generators"), let g = c.generators { result.generators = generatorAnswers(g) }
         if wants("spectral") { result.spectral = spectralAnswers(directed: false, n: c.n, edges: c.edges, source: c.sources[0], target: c.target) }
         results.append(result)

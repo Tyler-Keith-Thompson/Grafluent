@@ -1,5 +1,5 @@
 // The `checked:` lookups on the GraphOperations views: `transposedView`, `complementView` and the
-// subgraph views. Each returns what the trapping spelling returns for a vertex of the view and
+// subgraph views, and `egoGraphView(checkedOf:)` of several centers. Each returns what the trapping spelling returns for a vertex of the view and
 // throws `VertexNotFound` for any other value, a vertex the subgraph drops included. The directed
 // complement's `source(checkedEdgeAt:)` and `target(checkedEdgeAt:)` throw `EdgeNotFound` for a
 // cell that is out of range, on the diagonal, or joined in the base.
@@ -11,6 +11,28 @@ import Testing
 
 @Suite("Checked lookups on the GraphOperations views")
 struct ViewCheckedLookupTests {
+    @Test("egoGraphView(checkedOf:) with several centers: the trapping spelling's view, VertexNotFound for a center that is not a vertex, with and without a budget")
+    func egoGraphCenters() throws {
+        let base = AdjacencyList(vertices: ["a", "b", "c", "d", "e"], edges: [
+            DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "c", to: "d"), DirectedEdge(from: "d", to: "e"), DirectedEdge(from: "e", to: "a"),
+        ])
+        let priority = { (v: String) -> Int in v == "d" ? 1 : 0 }
+        #expect(try Array(base.egoGraphView(checkedOf: ["a", "c"]).vertices) == Array(base.egoGraphView(of: ["a", "c"]).vertices))
+        #expect(try Array(base.egoGraphView(checkedOf: ["a", "c"], radius: 2, undirected: true).vertices) == ["a", "b", "c", "d", "e"])
+        #expect(try Array(base.egoGraphView(checkedOf: ["a", "c"], maximumVertexCount: 3, priority: priority).vertices) == ["a", "c", "d"])
+        #expect(try Array(base.egoGraphView(checkedOf: ["a"], radius: 1, undirected: true, maximumVertexCount: 2, priority: priority).vertices) == ["a", "b"])
+        #expect(try Array(base.egoGraphView(checkedOf: [] as [String]).vertices) == [] as [String])
+        #expect(throws: VertexNotFound.self) { try base.egoGraphView(checkedOf: ["a", "z"]) }
+        #expect(throws: VertexNotFound.self) { try base.egoGraphView(checkedOf: ["z"], radius: 2, undirected: true) }
+        #expect(throws: VertexNotFound.self) { try base.egoGraphView(checkedOf: ["a", "z"], maximumVertexCount: 3, priority: priority) }
+        #expect(throws: VertexNotFound.self) { try base.egoGraphView(checkedOf: ["z"], undirected: false, maximumVertexCount: 3, priority: priority) }
+        let undirected = UndirectedAdjacencyList(vertices: ["a", "b", "c", "d"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("c", "d")])
+        #expect(try Array(undirected.egoGraphView(checkedOf: ["b", "d"]).vertices) == ["a", "b", "c", "d"])
+        #expect(try Array(undirected.egoGraphView(checkedOf: ["b", "d"], maximumVertexCount: 3, priority: priority).vertices) == ["a", "b", "d"])
+        #expect(throws: VertexNotFound.self) { try undirected.egoGraphView(checkedOf: ["b", "q"]) }
+        #expect(throws: VertexNotFound.self) { try undirected.egoGraphView(checkedOf: ["q"], maximumVertexCount: 3, priority: priority) }
+    }
+
     @Test("transposedView: the checked reads are the base's with directions swapped")
     func transposed() throws {
         let base = AdjacencyList(vertices: ["a", "b", "c"], edges: [

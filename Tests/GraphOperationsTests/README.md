@@ -29,6 +29,7 @@ view.base
 Target.lineGraph(of:), Target.quotient(of:by:), Target.disjointUnion(_:_:), Target.join(_:_:)
 DirectedAcyclicGraph<Base>(_ condensation: Condensation<G>)
 g.egoGraphView(of:radius:), g.egoGraphView(of:radius:undirected:), and their checkedOf: forms -> SubgraphView<G>
+g.egoGraphView(of: centers, radius:), g.egoGraphView(of: centers, radius:maximumVertexCount:priority:), each with undirected: on a bidirectional base, and their checkedOf: forms -> SubgraphView<G>
 Target.power(of:_:), Target.contraction(of:_:_:), Target.contraction(of:checked:_:), Target.contraction(of:edgeAt:)
 Target.transitiveClosure(of:), Target.transitiveReduction(of:), Target.relabeled(_:ordering:)
 Mutable.relabeled(_:by:), Mutable.union(_:_:), Mutable.intersection(_:_:), Mutable.difference(_:_:), Mutable.symmetricDifference(_:_:)
@@ -51,7 +52,7 @@ Mutable.relabeled(_:by:), Mutable.union(_:_:), Mutable.intersection(_:_:), Mutab
 | Condensation | Vertex i is component i; the order is n−1, …, 0 | GO-078 – GO-084 |
 | Quotient | Block i is vertex i; edges merged; none inside a block; an empty block is isolated | GO-085 – GO-091 |
 | Union and join | `g`'s vertices, then `h`'s offset by `|V(g)|`; parallel edges merge | GO-095 – GO-104 |
-| Ego graph | The induced subgraph on the vertices within the radius, numbered as there; `undirected: true` steps along arcs backwards | GO-106 – GO-115 |
+| Ego graph | The induced subgraph on the vertices within the radius of the center, or of any of several centers, numbered as there; `undirected: true` steps along arcs backwards; `maximumVertexCount:` keeps the centers and then each layer whole while they fit and cuts the overflowing layer by `priority` | GO-106 – GO-115, GO-174 – GO-185 |
 | Power | An edge between distinct vertices at distance ≤ k; loops and parallel edges ignored | GO-119 – GO-126 |
 | Contraction | The merged vertex at the smaller index, later ones down by one; loops dropped | GO-128 – GO-137 |
 | Closure and reduction | No loops; the reduction a cycle per component in index order plus first-member arcs | GO-138 – GO-150 |

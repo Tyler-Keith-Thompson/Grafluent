@@ -71,7 +71,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 173 and sorted(REC) == list(range(1, N + 1))
+assert N == 187 and sorted(REC) == list(range(1, N + 1))
 
 
 def group(n): return CELLS[n][1]
@@ -141,7 +141,7 @@ def swift_chain(call_text):
     def ints_(m):
         items = [x.strip() for x in m.group(2).split(",") if x.strip()]
         return m.group(1) + ("[" + ", ".join(items) + "]" if items else "[] as [Int]")
-    t = re.sub(r"((?:on|vertices): )\[([^\]]*)\]", quote, call_text)
+    t = re.sub(r"((?:on|vertices|of): )\[([^\]]*)\]", quote, call_text)
     t = re.sub(r"(edges: )\[([^\]]*)\]", ints_, t)
     t = re.sub(r"(of: )(\w+)(?=[,)])", lambda m: m.group(1) + s(m.group(2)), t)
     return t
@@ -629,9 +629,11 @@ FILES = [
      "disjointUnion and join (catalog GO-095 – GO-104): g's vertices first, then h's offset by |V(g)|;\n"
      "// parallel edges merge; the join adds every edge across (both ways, directed)."),
     ("EgoGraphTests.swift", "GraphOperations egoGraphView(of:radius:)", ids("EgoGraph"),
-     "egoGraphView(of:radius:) (catalog GO-106 – GO-115): the subgraph induced on the vertices within\n"
-     "// the radius, numbered and positioned as inducedSubgraphView(on:) does; with undirected: true a\n"
-     "// step may follow an arc backwards."),
+     "egoGraphView(of:radius:) (catalog GO-106 – GO-115, GO-174 – GO-185): the subgraph induced on the\n"
+     "// vertices within the radius of the center, or of any of several centers, numbered and positioned\n"
+     "// as inducedSubgraphView(on:) does; with undirected: true a step may follow an arc backwards; with\n"
+     "// maximumVertexCount: the centers and then each layer are kept whole while they fit, and the\n"
+     "// layer that would overflow is cut to its vertices of greatest priority."),
     ("PowerTests.swift", "GraphOperations power(of:_:)", ids("Power"),
      "power(of:_:) (catalog GO-119 – GO-126): an edge between distinct vertices at distance at most k,\n"
      "// vertex i the base's vertex at index i; loops and parallel edges ignored."),

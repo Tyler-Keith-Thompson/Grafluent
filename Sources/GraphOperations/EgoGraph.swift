@@ -7,14 +7,48 @@ import GraphProtocols
 func _egoRenumbering<A: Sequence<Int>, B: Sequence<Int>>(
     count n: Int, center: Int, radius: Int, first: (Int) -> A, second: ((Int) -> B)?
 ) -> (old: [Int], new: [Int], count: Int) {
+    _egoRenumbering(count: n, centers: [center], radius: radius, limit: nil, priority: { _ in 0 }, first: first, second: second)
+}
+
+/// The renumbering of an ego graph of several centers: the vertices within `radius` steps of any
+/// of `centers` over `first` and `second` rows, kept in base index order, at most `limit` of them
+/// when given. The centers, then each layer of the breadth-first search, are kept whole while they
+/// fit; the layer that would overflow is cut to the vertices of greatest `priority`, ties to the
+/// lower base index, and the search stops once the budget is full. Both arrays are empty when every vertex is kept, as
+/// `_renumbering` gives them. O(n + the rows walked), plus sorting the cut layer.
+@inlinable
+func _egoRenumbering<A: Sequence<Int>, B: Sequence<Int>, S: Comparable>(
+    count n: Int, centers: [Int], radius: Int, limit: Int?, priority: (Int) -> S, first: (Int) -> A, second: ((Int) -> B)?
+) -> (old: [Int], new: [Int], count: Int) {
     precondition(radius >= 0, "The radius must not be negative")
+    if let limit { precondition(limit >= 0, "The maximum vertex count must not be negative") }
     var new = [Int](repeating: -1, count: n)
     // The queue grows with the vertices found, so a small ego graph of a large graph costs no
     // O(n) queue on top of the renumbering array.
-    var queue = [center]
-    new[center] = 0
-    var head = 0, tail = 1, depth = 0
-    while depth < radius && head < tail {
+    var queue: [Int] = []
+    for c in centers where new[c] < 0 {
+        new[c] = 0
+        queue.append(c)
+    }
+    var head = 0, tail = queue.count, depth = 0, start = 0
+    while true {
+        // The centers, then each layer, are `queue[start ..< tail]`; one over the budget is cut
+        // to the vertices of greatest priority, and the search ends once the budget is full.
+        if let limit, tail >= limit {
+            if tail > limit {
+                let room = limit - start
+                var layer = Array(queue[start ..< tail])
+                layer.sort { a, b in
+                    let pa = priority(a), pb = priority(b)
+                    return pa > pb || (pa == pb && a < b)
+                }
+                for w in layer[room...] { new[w] = -1 }
+                tail = start + room
+            }
+            break
+        }
+        guard depth < radius, head < tail else { break }
+        start = tail
         let end = tail
         while head < end {
             let v = queue[head]
@@ -89,6 +123,78 @@ extension DirectedGraph {
             base: self, old: old, new: new, vertexCount: count, edgeTest: nil, edgeCount: nil,
             rowState: new.isEmpty ? nil : _RowState<Edges.Index>(new: new, test: nil))
     }
+    /// The ego graph of several centers: the subgraph induced on the vertices a directed path of at most `radius` arcs reaches from any of `centers`,
+    /// the centers included, as a lazy view. It is the `inducedSubgraphView(on:)` of those vertices,
+    /// numbered and positioned as there. No centers give an empty view.
+    ///
+    /// - Parameters:
+    ///   - centers: The vertices the distances are measured from.
+    ///   - radius: The greatest distance kept; 0 keeps the centers alone.
+    /// - Returns: The view.
+    /// - Complexity: O(n + the rows walked), a breadth-first search from the centers stopped after
+    ///   `radius` layers, with one hash per center.
+    /// - Precondition: every center is a vertex, `radius >= 0`, and the graph has vertex indices.
+    @inlinable
+    public func egoGraphView(of centers: some Sequence<Vertex>, radius: Int = 1) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        return _egoGraphView(count: n, centers: centers.map { _requiredVertexIndex(of: $0, "\($0) is not a vertex of the graph") }, radius: radius, limit: nil, priority: { _ in 0 })
+    }
+
+    /// `egoGraphView(of:radius:)` of several centers, throwing instead of trapping when a center is
+    /// not a vertex.
+    ///
+    /// - Throws: `VertexNotFound` when a center is not a vertex.
+    @inlinable
+    public func egoGraphView(checkedOf centers: some Sequence<Vertex>, radius: Int = 1) throws(VertexNotFound) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        var indices: [Int] = []
+        for center in centers { indices.append(try vertexIndex(checked: center)) }
+        return _egoGraphView(count: n, centers: indices, radius: radius, limit: nil, priority: { _ in 0 })
+    }
+
+    /// The ego graph of several centers, cut to at most `maximumVertexCount` vertices: the centers,
+    /// then each layer of the breadth-first search, are kept whole while they fit, and the layer
+    /// that would overflow is cut to its vertices of greatest `priority` (ties to the lower vertex
+    /// index); nothing beyond that layer is kept. With a cap no layer reaches, this is
+    /// `egoGraphView(of:radius:)`.
+    ///
+    /// - Parameters:
+    ///   - centers: The vertices the distances are measured from.
+    ///   - radius: The greatest distance kept; 0 keeps the centers alone.
+    ///   - maximumVertexCount: The most vertices kept; 0 gives an empty view.
+    ///   - priority: Ranks the vertices of the layer that is cut; greater is kept first. Called once
+    ///     per vertex of that layer, and not at all when no layer is cut.
+    /// - Returns: The view.
+    /// - Complexity: O(n + the rows walked), plus sorting the cut layer, with one hash per center.
+    /// - Precondition: every center is a vertex, `radius >= 0`, `maximumVertexCount >= 0`, and the
+    ///   graph has vertex indices.
+    @inlinable
+    public func egoGraphView<S: Comparable>(of centers: some Sequence<Vertex>, radius: Int = 1, maximumVertexCount: Int, priority: (Vertex) -> S) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        return _egoGraphView(count: n, centers: centers.map { _requiredVertexIndex(of: $0, "\($0) is not a vertex of the graph") }, radius: radius, limit: maximumVertexCount, priority: { priority(vertex(atIndex: $0)) })
+    }
+
+    /// `egoGraphView(of:radius:maximumVertexCount:priority:)`, throwing instead of trapping when a
+    /// center is not a vertex.
+    ///
+    /// - Throws: `VertexNotFound` when a center is not a vertex.
+    @inlinable
+    public func egoGraphView<S: Comparable>(checkedOf centers: some Sequence<Vertex>, radius: Int = 1, maximumVertexCount: Int, priority: (Vertex) -> S) throws(VertexNotFound) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        var indices: [Int] = []
+        for center in centers { indices.append(try vertexIndex(checked: center)) }
+        return _egoGraphView(count: n, centers: indices, radius: radius, limit: maximumVertexCount, priority: { priority(vertex(atIndex: $0)) })
+    }
+
+    @inlinable
+    func _egoGraphView<S: Comparable>(count n: Int, centers: [Int], radius: Int, limit: Int?, priority: (Int) -> S) -> SubgraphView<Self> {
+        let (old, new, count) = _egoRenumbering(
+            count: n, centers: centers, radius: radius, limit: limit, priority: priority, first: { successorIndices(ofIndex: $0) },
+            second: nil as ((Int) -> EmptyCollection<Int>)?)
+        return SubgraphView(
+            base: self, old: old, new: new, vertexCount: count, edgeTest: nil, edgeCount: nil,
+            rowState: new.isEmpty ? nil : _RowState<Edges.Index>(new: new, test: nil))
+    }
 }
 
 extension BidirectionalDirectedGraph {
@@ -128,6 +234,80 @@ extension BidirectionalDirectedGraph {
             base: self, old: old, new: new, vertexCount: count, edgeTest: nil, edgeCount: nil,
             rowState: new.isEmpty ? nil : _RowState<Edges.Index>(new: new, test: nil))
     }
+    /// The ego graph of several centers: the subgraph induced on the vertices within distance `radius` of any of `centers`, along arcs in either direction when `undirected` is true,
+    /// the centers included, as a lazy view. It is the `inducedSubgraphView(on:)` of those vertices,
+    /// numbered and positioned as there. No centers give an empty view.
+    ///
+    /// - Parameters:
+    ///   - centers: The vertices the distances are measured from.
+    ///   - radius: The greatest distance kept; 0 keeps the centers alone.
+    ///   - undirected: Whether a step may follow an arc backwards.
+    /// - Returns: The view.
+    /// - Complexity: O(n + the rows walked), a breadth-first search from the centers stopped after
+    ///   `radius` layers, with one hash per center.
+    /// - Precondition: every center is a vertex, `radius >= 0`, and the graph has vertex indices.
+    @inlinable
+    public func egoGraphView(of centers: some Sequence<Vertex>, radius: Int = 1, undirected: Bool) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        return _egoGraphView(count: n, centers: centers.map { _requiredVertexIndex(of: $0, "\($0) is not a vertex of the graph") }, radius: radius, limit: nil, priority: { _ in 0 }, undirected: undirected)
+    }
+
+    /// `egoGraphView(of:radius:undirected:)` of several centers, throwing instead of trapping when a center is
+    /// not a vertex.
+    ///
+    /// - Throws: `VertexNotFound` when a center is not a vertex.
+    @inlinable
+    public func egoGraphView(checkedOf centers: some Sequence<Vertex>, radius: Int = 1, undirected: Bool) throws(VertexNotFound) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        var indices: [Int] = []
+        for center in centers { indices.append(try vertexIndex(checked: center)) }
+        return _egoGraphView(count: n, centers: indices, radius: radius, limit: nil, priority: { _ in 0 }, undirected: undirected)
+    }
+
+    /// The ego graph of several centers, cut to at most `maximumVertexCount` vertices: the centers,
+    /// then each layer of the breadth-first search, are kept whole while they fit, and the layer
+    /// that would overflow is cut to its vertices of greatest `priority` (ties to the lower vertex
+    /// index); nothing beyond that layer is kept. With a cap no layer reaches, this is
+    /// `egoGraphView(of:radius:undirected:)`.
+    ///
+    /// - Parameters:
+    ///   - centers: The vertices the distances are measured from.
+    ///   - radius: The greatest distance kept; 0 keeps the centers alone.
+    ///   - undirected: Whether a step may follow an arc backwards.
+    ///   - maximumVertexCount: The most vertices kept; 0 gives an empty view.
+    ///   - priority: Ranks the vertices of the layer that is cut; greater is kept first. Called once
+    ///     per vertex of that layer, and not at all when no layer is cut.
+    /// - Returns: The view.
+    /// - Complexity: O(n + the rows walked), plus sorting the cut layer, with one hash per center.
+    /// - Precondition: every center is a vertex, `radius >= 0`, `maximumVertexCount >= 0`, and the
+    ///   graph has vertex indices.
+    @inlinable
+    public func egoGraphView<S: Comparable>(of centers: some Sequence<Vertex>, radius: Int = 1, undirected: Bool, maximumVertexCount: Int, priority: (Vertex) -> S) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        return _egoGraphView(count: n, centers: centers.map { _requiredVertexIndex(of: $0, "\($0) is not a vertex of the graph") }, radius: radius, limit: maximumVertexCount, priority: { priority(vertex(atIndex: $0)) }, undirected: undirected)
+    }
+
+    /// `egoGraphView(of:radius:undirected:maximumVertexCount:priority:)`, throwing instead of trapping when a
+    /// center is not a vertex.
+    ///
+    /// - Throws: `VertexNotFound` when a center is not a vertex.
+    @inlinable
+    public func egoGraphView<S: Comparable>(checkedOf centers: some Sequence<Vertex>, radius: Int = 1, undirected: Bool, maximumVertexCount: Int, priority: (Vertex) -> S) throws(VertexNotFound) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        var indices: [Int] = []
+        for center in centers { indices.append(try vertexIndex(checked: center)) }
+        return _egoGraphView(count: n, centers: indices, radius: radius, limit: maximumVertexCount, priority: { priority(vertex(atIndex: $0)) }, undirected: undirected)
+    }
+
+    @inlinable
+    func _egoGraphView<S: Comparable>(count n: Int, centers: [Int], radius: Int, limit: Int?, priority: (Int) -> S, undirected: Bool) -> SubgraphView<Self> {
+        let (old, new, count) = _egoRenumbering(
+            count: n, centers: centers, radius: radius, limit: limit, priority: priority, first: { successorIndices(ofIndex: $0) },
+            second: undirected ? { predecessorIndices(ofIndex: $0) } : nil)
+        return SubgraphView(
+            base: self, old: old, new: new, vertexCount: count, edgeTest: nil, edgeCount: nil,
+            rowState: new.isEmpty ? nil : _RowState<Edges.Index>(new: new, test: nil))
+    }
 }
 
 extension Graph {
@@ -161,6 +341,78 @@ extension Graph {
     func _egoGraphView(count n: Int, center: Int, radius: Int) -> SubgraphView<Self> {
         let (old, new, count) = _egoRenumbering(
             count: n, center: center, radius: radius, first: { neighborIndices(ofIndex: $0) },
+            second: nil as ((Int) -> EmptyCollection<Int>)?)
+        return SubgraphView(
+            base: self, old: old, new: new, vertexCount: count, edgeTest: nil, edgeCount: nil,
+            rowState: new.isEmpty ? nil : _RowState<Edges.Index>(new: new, test: nil))
+    }
+    /// The ego graph of several centers: the subgraph induced on the vertices within distance `radius` of any of `centers`,
+    /// the centers included, as a lazy view. It is the `inducedSubgraphView(on:)` of those vertices,
+    /// numbered and positioned as there. No centers give an empty view.
+    ///
+    /// - Parameters:
+    ///   - centers: The vertices the distances are measured from.
+    ///   - radius: The greatest distance kept; 0 keeps the centers alone.
+    /// - Returns: The view.
+    /// - Complexity: O(n + the rows walked), a breadth-first search from the centers stopped after
+    ///   `radius` layers, with one hash per center.
+    /// - Precondition: every center is a vertex, `radius >= 0`, and the graph has vertex indices.
+    @inlinable
+    public func egoGraphView(of centers: some Sequence<Vertex>, radius: Int = 1) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        return _egoGraphView(count: n, centers: centers.map { _requiredVertexIndex(of: $0, "\($0) is not a vertex of the graph") }, radius: radius, limit: nil, priority: { _ in 0 })
+    }
+
+    /// `egoGraphView(of:radius:)` of several centers, throwing instead of trapping when a center is
+    /// not a vertex.
+    ///
+    /// - Throws: `VertexNotFound` when a center is not a vertex.
+    @inlinable
+    public func egoGraphView(checkedOf centers: some Sequence<Vertex>, radius: Int = 1) throws(VertexNotFound) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        var indices: [Int] = []
+        for center in centers { indices.append(try vertexIndex(checked: center)) }
+        return _egoGraphView(count: n, centers: indices, radius: radius, limit: nil, priority: { _ in 0 })
+    }
+
+    /// The ego graph of several centers, cut to at most `maximumVertexCount` vertices: the centers,
+    /// then each layer of the breadth-first search, are kept whole while they fit, and the layer
+    /// that would overflow is cut to its vertices of greatest `priority` (ties to the lower vertex
+    /// index); nothing beyond that layer is kept. With a cap no layer reaches, this is
+    /// `egoGraphView(of:radius:)`.
+    ///
+    /// - Parameters:
+    ///   - centers: The vertices the distances are measured from.
+    ///   - radius: The greatest distance kept; 0 keeps the centers alone.
+    ///   - maximumVertexCount: The most vertices kept; 0 gives an empty view.
+    ///   - priority: Ranks the vertices of the layer that is cut; greater is kept first. Called once
+    ///     per vertex of that layer, and not at all when no layer is cut.
+    /// - Returns: The view.
+    /// - Complexity: O(n + the rows walked), plus sorting the cut layer, with one hash per center.
+    /// - Precondition: every center is a vertex, `radius >= 0`, `maximumVertexCount >= 0`, and the
+    ///   graph has vertex indices.
+    @inlinable
+    public func egoGraphView<S: Comparable>(of centers: some Sequence<Vertex>, radius: Int = 1, maximumVertexCount: Int, priority: (Vertex) -> S) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        return _egoGraphView(count: n, centers: centers.map { _requiredVertexIndex(of: $0, "\($0) is not a vertex of the graph") }, radius: radius, limit: maximumVertexCount, priority: { priority(vertex(atIndex: $0)) })
+    }
+
+    /// `egoGraphView(of:radius:maximumVertexCount:priority:)`, throwing instead of trapping when a
+    /// center is not a vertex.
+    ///
+    /// - Throws: `VertexNotFound` when a center is not a vertex.
+    @inlinable
+    public func egoGraphView<S: Comparable>(checkedOf centers: some Sequence<Vertex>, radius: Int = 1, maximumVertexCount: Int, priority: (Vertex) -> S) throws(VertexNotFound) -> SubgraphView<Self> {
+        let n = _viewBound(vertexIndexBound)
+        var indices: [Int] = []
+        for center in centers { indices.append(try vertexIndex(checked: center)) }
+        return _egoGraphView(count: n, centers: indices, radius: radius, limit: maximumVertexCount, priority: { priority(vertex(atIndex: $0)) })
+    }
+
+    @inlinable
+    func _egoGraphView<S: Comparable>(count n: Int, centers: [Int], radius: Int, limit: Int?, priority: (Int) -> S) -> SubgraphView<Self> {
+        let (old, new, count) = _egoRenumbering(
+            count: n, centers: centers, radius: radius, limit: limit, priority: priority, first: { neighborIndices(ofIndex: $0) },
             second: nil as ((Int) -> EmptyCollection<Int>)?)
         return SubgraphView(
             base: self, old: old, new: new, vertexCount: count, edgeTest: nil, edgeCount: nil,
