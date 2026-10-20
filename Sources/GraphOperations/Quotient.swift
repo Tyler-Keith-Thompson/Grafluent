@@ -21,6 +21,41 @@ func _blocks<Blocks: Sequence>(
     return (owner, k)
 }
 
+/// The block of every vertex index of a graph, grouping vertices by `key`: block `k` is the
+/// vertices sharing the `k`th distinct key in `vertices` order. One hash per vertex.
+@inlinable
+func _keyBlocks<G: DirectedGraph, Key: Hashable>(_ graph: G, count n: Int, _ key: (G.Vertex) -> Key) -> (owner: [Int], count: Int) {
+    var owner = [Int](repeating: 0, count: n)
+    var block: [Key: Int] = [:]
+    for v in graph.vertices {
+        let k = key(v)
+        if let b = block[k] {
+            owner[graph.vertexIndex(of: v)] = b
+        } else {
+            owner[graph.vertexIndex(of: v)] = block.count
+            block[k] = block.count
+        }
+    }
+    return (owner, block.count)
+}
+
+/// `_keyBlocks` for an undirected graph.
+@inlinable
+func _keyBlocks<G: Graph, Key: Hashable>(_ graph: G, count n: Int, _ key: (G.Vertex) -> Key) -> (owner: [Int], count: Int) {
+    var owner = [Int](repeating: 0, count: n)
+    var block: [Key: Int] = [:]
+    for v in graph.vertices {
+        let k = key(v)
+        if let b = block[k] {
+            owner[graph.vertexIndex(of: v)] = b
+        } else {
+            owner[graph.vertexIndex(of: v)] = block.count
+            block[k] = block.count
+        }
+    }
+    return (owner, block.count)
+}
+
 /// Pairs sorted row-major with repeats removed.
 @inlinable
 func _sortedUnique(_ pairs: inout [(Int, Int)]) {
@@ -56,6 +91,29 @@ extension _DirectedGraphConstruction {
         _sortedUnique(&pairs)
         return Self(_vertexCount: k, sortedEdges: pairs.lazy.map { DirectedEdge(from: $0.0, to: $0.1) }, _ConstructionToken())
     }
+
+    /// The quotient of `graph` by a key: the vertices with equal keys merge into one, and an arc
+    /// goes from block a to block b ≠ a when some arc of the graph goes from a vertex of a to a
+    /// vertex of b. Block `k` is the vertices sharing the `k`th distinct key in `vertices` order,
+    /// and is vertex `k`. Arcs inside a block vanish, and parallel crossings merge.
+    ///
+    /// Merging duplicate entities of a knowledge graph is a quotient by a normalized name.
+    ///
+    /// O(n + m + the sort), with one hash per vertex; `key` is called once per vertex.
+    ///
+    /// - Precondition: the graph has vertex indices.
+    @inlinable
+    public static func quotient<G: DirectedGraph, Key: Hashable>(of graph: G, byKey key: (G.Vertex) -> Key) -> Self {
+        let n = _requireIndices(graph.vertexIndexBound, "quotient(of:byKey:)")
+        let (owner, k) = _keyBlocks(graph, count: n, key)
+        var pairs: [(Int, Int)] = []
+        for v in 0 ..< n {
+            let a = owner[v]
+            for w in graph.successorIndices(ofIndex: v) where owner[w] != a { pairs.append((a, owner[w])) }
+        }
+        _sortedUnique(&pairs)
+        return Self(_vertexCount: k, sortedEdges: pairs.lazy.map { DirectedEdge(from: $0.0, to: $0.1) }, _ConstructionToken())
+    }
 }
 
 extension _GraphConstruction {
@@ -72,6 +130,29 @@ extension _GraphConstruction {
     where Blocks.Element: Sequence<G.Vertex> {
         let n = _requireIndices(graph.vertexIndexBound, "quotient(of:by:)")
         let (owner, k) = _blocks(count: n, partition) { graph.vertexIndex(of: $0) }
+        var pairs: [(Int, Int)] = []
+        for v in 0 ..< n {
+            let a = owner[v]
+            for w in graph.neighborIndices(ofIndex: v) where a < owner[w] { pairs.append((a, owner[w])) }
+        }
+        _sortedUnique(&pairs)
+        return Self(_vertexCount: k, sortedEdges: pairs.lazy.map { UndirectedEdge($0.0, $0.1) }, _ConstructionToken())
+    }
+
+    /// The quotient of `graph` by a key: the vertices with equal keys merge into one, and an edge
+    /// joins two blocks when some edge of the graph joins them. Block `k` is the vertices sharing
+    /// the `k`th distinct key in `vertices` order, and is vertex `k`. Edges inside a block vanish,
+    /// and parallel crossings merge.
+    ///
+    /// Merging duplicate entities of a knowledge graph is a quotient by a normalized name.
+    ///
+    /// O(n + m + the sort), with one hash per vertex; `key` is called once per vertex.
+    ///
+    /// - Precondition: the graph has vertex indices.
+    @inlinable
+    public static func quotient<G: Graph, Key: Hashable>(of graph: G, byKey key: (G.Vertex) -> Key) -> Self {
+        let n = _requireIndices(graph.vertexIndexBound, "quotient(of:byKey:)")
+        let (owner, k) = _keyBlocks(graph, count: n, key)
         var pairs: [(Int, Int)] = []
         for v in 0 ..< n {
             let a = owner[v]

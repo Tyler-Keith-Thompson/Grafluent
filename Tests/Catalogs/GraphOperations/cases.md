@@ -234,3 +234,9 @@ Conventions:
 | GO-202 | CoronaProduct | g without edges: copies hanging from isolated vertices | UL V [a, b]; E [] ; UL V [x, y, z]; E [x–y] / UndirectedAdjacencyList<Int>.coronaProduct(g, h) | n 8; E [0–2, 0–3, 0–4, 1–5, 1–6, 1–7, 2–3, 5–6] |
 | GO-203 | CoronaProduct | g empty: the empty graph | UL V []; E [] ; UL V [x, y]; E [x–y] / UndirectedAdjacencyList<Int>.coronaProduct(g, h) | n 0; E [] |
 | GO-204 | CoronaProduct | a self-loop in g traps | UL V [a]; E [a–a] ; UL V [x]; E [] / UndirectedAdjacencyList<Int>.coronaProduct(g, h) | **trap** (a self-loop, which the construction targets do not take) |
+| GO-205 | QuotientByKey | entities merged by their first letter | UL V [a1, b1, a2, b2, c]; E [a1–b1, b1–a2, a2–b2, b2–c, c–a1] / UndirectedAdjacencyList<Int>.quotient(of: g, byKey: { String($0.prefix(1)) }) | n 3; E [0–1, 0–2, 1–2] |
+| GO-206 | QuotientByKey | directed: both directions kept, parallel crossings merge | AL V [a1, a2, b1, b2]; E [a1→b1, a2→b1, b2→a1] / CompressedSparseRow.quotient(of: g, byKey: { String($0.prefix(1)) }) | n 2; E [0→1, 1→0] |
+| GO-207 | QuotientByKey | every key distinct: a copy with Int vertices | AL V [a, b, c]; E [a→b, b→c, c→a] / CompressedSparseRow.quotient(of: g, byKey: { String($0.prefix(1)) }) | n 3; E [0→1, 1→2, 2→0] |
+| GO-208 | QuotientByKey | one key: a single vertex, no edges | UL V [a1, a2, a3]; E [a1–a2, a2–a3] / UndirectedAdjacencyList<Int>.quotient(of: g, byKey: { String($0.prefix(1)) }) | n 1; E [] |
+| GO-209 | QuotientByKey | block order is the first vertex of each key | UL V [b1, a1, b2, a2]; E [b1–a1, a1–b2] / UndirectedAdjacencyList<Int>.quotient(of: g, byKey: { String($0.prefix(1)) }) | n 2; E [0–1] |
+| GO-210 | QuotientByKey | no vertices | UL V []; E [] / UndirectedAdjacencyList<Int>.quotient(of: g, byKey: { String($0.prefix(1)) }) | n 0; E [] |

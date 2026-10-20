@@ -390,6 +390,12 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("GraphOperations: BASELINE CompressedSparseRow.quotient(of:by:) merging two vertices, G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.quotient(of: csr, by: blocks)) }
     }
+    Benchmark("GraphOperations: CompressedSparseRow.quotient(of:byKey:) merging two vertices, G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.quotient(of: csr) { $0 == n - 1 ? 0 : $0 }) }
+    }
+    Benchmark("GraphOperations: CompressedSparseRow.quotient(of:byKey:) by v / 10, G(10⁵, 10⁶)") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.quotient(of: csr) { $0 / 10 }) }
+    }
     Benchmark("GraphOperations: CompressedSparseRow.contraction(of: g, 0, n − 1), G(10⁵, 10⁶)") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(CompressedSparseRow.contraction(of: csr, 0, n - 1)) }
     }

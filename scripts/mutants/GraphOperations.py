@@ -32,7 +32,15 @@ RP = "RootedAndCoronaProducts.swift"
 CT = "Contraction.swift"
 TC = "TransitiveClosure.swift"
 
+Q = "Quotient.swift"
+
 MUTANTS = [
+    # Quotients.
+    Mutant("quotientinside", Q, "owner[w] != a", "true", nth=1),
+    Mutant("quotientcover", Q, '    precondition(!owner.contains(-1), "The blocks do not cover every vertex")', "", mode="stmt"),
+    Mutant("quotientkeyreuse", Q, "            owner[graph.vertexIndex(of: v)] = b", "            owner[graph.vertexIndex(of: v)] = block.count", mode="stmt", nth=0),
+    Mutant("quotientkeynext", Q, "block[k] = block.count", "block[k] = block.count - 1", nth=0),
+    Mutant("quotientkeyhalf", Q, "a < owner[w]", "a <= owner[w]", nth=1),
     # The directed complement: a cell is an edge when both ends are in range, distinct, and unjoined.
     Mutant("celledgesourcerange", C, "UInt(bitPattern: position.source) < n", "true"),
     Mutant("celledgetargetrange", C, "UInt(bitPattern: position.target) < n", "true"),

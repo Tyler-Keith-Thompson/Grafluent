@@ -589,6 +589,19 @@ def quotient(g, blocks):
     return Built(len(blocks), sorted(es), g.directed)
 
 
+def quotient_by_key(g, key):
+    """`Target.quotient(of: g, byKey: key)`: the vertices with equal keys are one block, blocks in
+    order of their first vertex; then the quotient by those blocks."""
+    blocks, index = [], {}
+    for l in g.labels():
+        k = key(l)
+        if k not in index:
+            index[k] = len(blocks)
+            blocks.append([])
+        blocks[index[k]].append(l)
+    return quotient(g, blocks)
+
+
 def _simple_edges(g, offset):
     es = set()
     for p in g.positions():
@@ -1064,6 +1077,22 @@ def spec_condensation(g, dag):
     assert ours == members, (ours, members)  # same Tarjan order as NetworkX
     want = {(u, v) for u, v in C.edges()}
     assert set(dag.es) == want
+
+
+def spec_quotient_by_key(g, Q):
+    """NetworkX's quotient by the relation "same first letter", relabeled; the block numbering is
+    checked through the explicit partition."""
+    blocks, index = [], {}
+    for l in g.labels():
+        if l[:1] not in index:
+            index[l[:1]] = len(blocks)
+            blocks.append([])
+        blocks[index[l[:1]]].append(l)
+    spec_quotient(g, blocks, Q)
+    G = to_nx(g)
+    S = nx.DiGraph(G) if g.directed else nx.Graph(G)
+    QG = nx.quotient_graph(S, lambda u, v: u[:1] == v[:1])
+    assert QG.number_of_nodes() == Q.n() and QG.number_of_edges() == len(Q.es)
 
 
 def spec_quotient(g, blocks, Q):
@@ -1804,6 +1833,21 @@ def define():
     ]:
         target = "CompressedSparseRow" if a[0].directed else "UndirectedAdjacencyList<Int>"
         built_case(G, title, [a, b], corona_product, f"{target}.coronaProduct(g, h)", spec_corona_product)
+
+    # ---- quotient by key: the first letter of each label
+    G = "QuotientByKey"
+    for title, base in [
+        ("entities merged by their first letter", UL("a1 b1 a2 b2 c", "a1-b1 b1-a2 a2-b2 b2-c c-a1")),
+        ("directed: both directions kept, parallel crossings merge", AL("a1 a2 b1 b2", "a1>b1 a2>b1 b2>a1")),
+        ("every key distinct: a copy with Int vertices", AL("a b c", "a>b b>c c>a")),
+        ("one key: a single vertex, no edges", UL("a1 a2 a3", "a1-a2 a2-a3")),
+        ("block order is the first vertex of each key", UL("b1 a1 b2 a2", "b1-a1 a1-b2")),
+        ("no vertices", UL("", "")),
+    ]:
+        built_case(G, title, [base], lambda g: quotient_by_key(g, lambda l: l[:1]),
+                   "CompressedSparseRow.quotient(of: g, byKey: { String($0.prefix(1)) })" if base[0].directed
+                   else "UndirectedAdjacencyList<Int>.quotient(of: g, byKey: { String($0.prefix(1)) })",
+                   lambda g, r: spec_quotient_by_key(g, r))
 
 # ---------------------------------------------------------------- output
 

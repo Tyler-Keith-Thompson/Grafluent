@@ -123,6 +123,16 @@ enum FuzzGraphOperations {
             check((ue.vertexCount, ue.edges.map { [$0.u, $0.v] }) == contracted(raw[p].0, raw[p].1, directed: false), "undirected edge contraction \(raw) \(p)")
         }
 
+        // The quotient by a key: the blocks of equal keys, numbered by first vertex.
+        let keys = (0 ..< n).map { _ in input.int(below: 3) }
+        var seen: [Int] = []
+        for k in keys where !seen.contains(k) { seen.append(k) }
+        let blocks = seen.map { k in (0 ..< n).filter { keys[$0] == k }.map { names[$0] } }
+        let keyed = CompressedSparseRow.quotient(of: directed) { keys[Int($0.dropFirst())!] }
+        check(keyed == CompressedSparseRow.quotient(of: directed, by: blocks), "quotient by key \(raw) \(keys)")
+        let keyedUndirected = UndirectedAdjacencyList<Int>.quotient(of: undirected) { keys[Int($0.dropFirst())!] }
+        check(keyedUndirected == UndirectedAdjacencyList<Int>.quotient(of: undirected, by: blocks), "undirected quotient by key \(raw) \(keys)")
+
         // Closure and reduction.
         let reach = (0 ..< n).map { i in (0 ..< n).map { dOut[i][$0] < far } }
         var closure: Set<[Int]> = []

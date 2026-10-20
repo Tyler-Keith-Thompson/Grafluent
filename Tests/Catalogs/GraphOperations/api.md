@@ -49,6 +49,7 @@ To run it:
 | Line graph | `Target.lineGraph(of:)` |
 | Condensation as a DAG | `DirectedAcyclicGraph<Base>(_ condensation: Condensation<G>)` |
 | Quotient (vertex contraction) | `Target.quotient(of:by:)`, the partition as a sequence of blocks |
+| Quotient by key (entity merging) | `Target.quotient(of:byKey:)`, vertices with equal keys as one block, blocks by first vertex |
 | Disjoint union | `Target.disjointUnion(_:_:)` |
 | Rooted and corona products | `Target.rootedProduct(_:_:root:)` (and `checkedRoot:`), `Target.coronaProduct(_:_:)` |
 | Join | `Target.join(_:_:)` |
@@ -125,6 +126,7 @@ GO-054, GO-060), so the complement of the complement is the simple, loopless bas
 | `lineGraph(of:)` | Materialized | `Target` |
 | condensation | Materialized | `DirectedAcyclicGraph<Base>` |
 | `quotient(of:by:)` | Materialized | `Target` |
+| `quotient(of:byKey:)` | Materialized | `Target` |
 | `disjointUnion`, `join` | Materialized | `Target` |
 | `rootedProduct`, `coronaProduct` | Materialized | `Target` |
 | `egoGraphView(of:radius:)` | Lazy, O(n + rows walked) to build | `SubgraphView<Base>` |

@@ -26,7 +26,7 @@ g.transposedView -> TransposedView<G>                     // G: BidirectionalDir
 g.inducedSubgraphView(on:), g.spanningSubgraphView(edges:), g.subgraphView(vertices:edges:) -> SubgraphView<G>
 g.complementView -> ComplementView<G>                   // DirectedGraph and Graph bases
 view.base
-Target.lineGraph(of:), Target.quotient(of:by:), Target.disjointUnion(_:_:), Target.join(_:_:)
+Target.lineGraph(of:), Target.quotient(of:by:), Target.quotient(of:byKey:), Target.disjointUnion(_:_:), Target.join(_:_:)
 Target.rootedProduct(_:_:root:), Target.rootedProduct(_:_:checkedRoot:), Target.coronaProduct(_:_:)
 DirectedAcyclicGraph<Base>(_ condensation: Condensation<G>)
 g.egoGraphView(of:radius:), g.egoGraphView(of:radius:undirected:), and their checkedOf: forms -> SubgraphView<G>
@@ -52,6 +52,7 @@ Mutable.relabeled(_:by:), Mutable.union(_:_:), Mutable.intersection(_:_:), Mutab
 | Line graph | Vertex k is the edge with `edgeIndex` k, or the k-th position of `edges` | GO-064 – GO-077 |
 | Condensation | Vertex i is component i; the order is n−1, …, 0 | GO-078 – GO-084 |
 | Quotient | Block i is vertex i; edges merged; none inside a block; an empty block is isolated | GO-085 – GO-091 |
+| Quotient by key | Vertices with equal keys are one block, blocks by first vertex; then as the quotient | GO-205 – GO-210 |
 | Union and join | `g`'s vertices, then `h`'s offset by `|V(g)|`; parallel edges merge | GO-095 – GO-104 |
 | Rooted and corona products | A copy of `h` per vertex of `g`, vertex `(a, b)` at `a·|V(h)| + b`, the roots joined as `g` joins their vertices; the corona keeps `g` at `0..<|V(g)|`, copies after it, each vertex joined to its whole copy | GO-188 – GO-204 |
 | Ego graph | The induced subgraph on the vertices within the radius of the center, or of any of several centers, numbered as there; `undirected: true` steps along arcs backwards; `maximumVertexCount:` keeps the centers and then each layer whole while they fit and cuts the overflowing layer by `priority` | GO-106 – GO-115, GO-174 – GO-185 |

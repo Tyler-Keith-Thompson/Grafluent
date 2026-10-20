@@ -71,7 +71,7 @@ for line in TEXT.splitlines():
         parts = [p.strip().replace("\\|", "|") for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 204 and sorted(REC) == list(range(1, N + 1))
+assert N == 210 and sorted(REC) == list(range(1, N + 1))
 
 
 def group(n): return CELLS[n][1]
@@ -421,7 +421,7 @@ def view_test(n):
 def built_swift(n, call_text):
     """The Swift call of a materialized row: `Type.member(of: g ...)`."""
     t = call_text
-    t = t.replace("(of: g)", "(of: graph)").replace("(of: g, by:", "(of: graph, by:").replace("(g, h)", "(graph, other)")
+    t = t.replace("(of: g)", "(of: graph)").replace("(of: g, by:", "(of: graph, by:").replace("(of: g, byKey:", "(of: graph, byKey:").replace("(g, h)", "(graph, other)")
     t = re.sub(r"\(g, h, root: (\w+)\)", lambda m: "(graph, other, root: %s)" % s(m.group(1)), t)
     t = t.replace("DirectedAcyclicGraph<AdjacencyList<Int>>(g.condensation())", "DirectedAcyclicGraph<AdjacencyList<Int>>(graph.condensation())")
 
@@ -626,6 +626,9 @@ FILES = [
     ("QuotientTests.swift", "GraphOperations quotient(of:by:)", ids("Quotient"),
      "quotient(of:by:) (catalog GO-085 – GO-091): block i is vertex i; an edge between two blocks\n"
      "// wherever the graph has one, merged; edges inside a block dropped; an empty block isolated."),
+    ("QuotientByKeyTests.swift", "GraphOperations quotient(of:byKey:)", ids("QuotientByKey"),
+     "quotient(of:byKey:) (catalog GO-205 – GO-210): the vertices with equal keys are one block, blocks in\n"
+     "// order of their first vertex; then as quotient(of:by:). Here the key is the label's first letter."),
     ("DisjointUnionJoinTests.swift", "GraphOperations disjointUnion and join", ids("DisjointUnion", "Join"),
      "disjointUnion and join (catalog GO-095 – GO-104): g's vertices first, then h's offset by |V(g)|;\n"
      "// parallel edges merge; the join adds every edge across (both ways, directed)."),

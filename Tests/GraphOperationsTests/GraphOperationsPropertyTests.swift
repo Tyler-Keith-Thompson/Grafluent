@@ -235,6 +235,27 @@ struct GraphOperationsPropertyTests {
         }
     }
 
+    @Test("quotient(of:byKey:): the quotient by the blocks of equal keys, numbered by first vertex")
+    func quotientByKey() async {
+        let input = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6)).array(of: 0 ... 20)
+        await propertyCheck(count: 300, input: input, Gen.int(in: 0 ... 3).array(of: 7 ... 7)) { raw, keys in
+            let names = (0 ..< 7).map { "k\($0)" }
+            // Blocks in order of their first vertex, as the key form numbers them.
+            var order: [Int] = []
+            for k in keys where !order.contains(k) { order.append(k) }
+            let blocks = order.map { k in names.indices.filter { keys[$0] == k }.map { names[$0] } }
+            let directed = DirectedPseudograph<String>(vertices: names, edges: raw.map { DirectedEdge(from: names[$0.0], to: names[$0.1]) })
+            let byKey = CompressedSparseRow.quotient(of: directed) { keys[Int($0.dropFirst())!] }
+            let byBlocks = CompressedSparseRow.quotient(of: directed, by: blocks)
+            #expect(byKey == byBlocks, "\(raw) \(keys)")
+            let undirected = Pseudograph<String>(vertices: names, edges: raw.map { UndirectedEdge(names[$0.0], names[$0.1]) })
+            let mergedByKey = UndirectedAdjacencyList<Int>.quotient(of: undirected) { keys[Int($0.dropFirst())!] }
+            #expect(mergedByKey == UndirectedAdjacencyList<Int>.quotient(of: undirected, by: blocks), "\(raw) \(keys)")
+            // A key that tells every vertex apart gives the singleton quotient.
+            #expect(CompressedSparseRow.quotient(of: directed) { $0 } == CompressedSparseRow.quotient(of: directed, by: names.map { [$0] }), "\(raw)")
+        }
+    }
+
     @Test("disjointUnion and join: g's vertices, then h's offset by |V(g)|; the join adds every edge across")
     func unionAndJoinLaws() async {
         let pairs = zip(Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 4)).array(of: 0 ... 10)
