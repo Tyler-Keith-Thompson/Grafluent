@@ -58,6 +58,8 @@ struct Result: Encodable {
     var single: Single?
     /// Bellman–Ford from the sources, or nil when it reports a negative cycle.
     var bellmanFord: [Int?]?
+    /// Goldberg–Radzik from the sources: the same answer as Bellman–Ford.
+    var goldbergRadzik: [Int?]?
     var witness: [Int]?
     var wholeGraphWitness: [Int]?
     var unweighted: [Int?]?
@@ -774,6 +776,7 @@ func answer<G: DirectedGraph<Int>>(_ graph: G, _ c: Case, _ weight: (G.Edges.Ind
                                    _ dijkstraTree: () -> ShortestPathTree<G, Int>,
                                    _ single: () -> (path: Path<Int, G.Edges.Index>, distance: Int)?,
                                    _ bellmanFord: () -> ShortestPathTree<G, Int>?,
+                                   _ goldbergRadzik: () -> ShortestPathTree<G, Int>?,
                                    _ witness: () -> [Int]?, _ wholeGraph: () -> [Int]?, _ unweighted: () -> ShortestPathTree<G, Int>) -> Result {
     guard wants("shortestpaths") else { return Result() }
     let nonnegative = c.edges.allSatisfy { $0[2] >= 0 }
@@ -785,6 +788,7 @@ func answer<G: DirectedGraph<Int>>(_ graph: G, _ c: Case, _ weight: (G.Edges.Ind
         result.single = Single(reached: s != nil, distance: s?.distance, path: s?.path.vertices)
     }
     result.bellmanFord = bellmanFord().map { tree in (0 ..< c.n).map { tree.distance(to: $0) } }
+    result.goldbergRadzik = goldbergRadzik().map { tree in (0 ..< c.n).map { tree.distance(to: $0) } }
     result.witness = witness()
     result.wholeGraphWitness = wholeGraph()
     return result
@@ -825,6 +829,7 @@ for c in cases {
             { graph.dijkstraShortestPaths(from: c.sources, cutoff: c.cutoff, weight: w) },
             { graph.dijkstraShortestPath(from: c.sources[0], to: c.target, weight: w) },
             { graph.bellmanFordShortestPaths(from: c.sources, weight: w) },
+            { graph.goldbergRadzikShortestPaths(from: c.sources, weight: w) },
             { graph.findNegativeCycle(from: c.sources, weight: w)?.vertices },
             { graph.findNegativeCycle(weight: w)?.vertices },
             { graph.shortestPaths(from: c.sources) }))
@@ -951,6 +956,7 @@ for c in cases {
             { graph.dijkstraShortestPaths(from: c.sources, cutoff: c.cutoff, weight: w) },
             { graph.dijkstraShortestPath(from: c.sources[0], to: c.target, weight: w) },
             { graph.bellmanFordShortestPaths(from: c.sources, weight: w) },
+            { graph.goldbergRadzikShortestPaths(from: c.sources, weight: w) },
             { graph.findNegativeCycle(from: c.sources, weight: w)?.vertices },
             { graph.findNegativeCycle(weight: w)?.vertices },
             { graph.shortestPaths(from: c.sources) })

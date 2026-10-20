@@ -636,6 +636,8 @@ def compare_shortest_paths(case, mine, ref):
         problems.append(f"Bellman–Ford: library {'nil' if mine.get('bellmanFord') is None else 'a tree'}, NetworkX {'unbounded' if unbounded else 'bounded'}")
     elif not unbounded and mine["bellmanFord"] != ref["bellmanFord"]:
         problems.append(f"Bellman–Ford: library {mine['bellmanFord']}, NetworkX {ref['bellmanFord']}")
+    if mine.get("goldbergRadzik") != mine.get("bellmanFord"):
+        problems.append(f"Goldberg–Radzik: library {mine.get('goldbergRadzik')}, its Bellman–Ford {mine.get('bellmanFord')}")
     if unbounded != (mine.get("witness") is not None):
         problems.append(f"witness {mine.get('witness')} but NetworkX says {'unbounded' if unbounded else 'bounded'}")
     G = ref["graph"]

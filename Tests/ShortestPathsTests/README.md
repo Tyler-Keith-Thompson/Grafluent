@@ -45,6 +45,7 @@ extension DirectedGraph
     func lazy.aStar(from:to:weight: @escaping (Edges.Index) -> W, heuristic: @escaping (Vertex) -> W)
         -> AStarSearch<Self, W>                        // lazy; Element AStarSearchEvent<Vertex, Edges.Index, W>
     func bellmanFordShortestPaths(from: Vertex | some Sequence<Vertex>, weight:) -> ShortestPathTree<Self, W>?
+    func goldbergRadzikShortestPaths(from: Vertex | some Sequence<Vertex>, weight:) -> ShortestPathTree<Self, W>?
     func findNegativeCycle(from: Vertex | some Sequence<Vertex>, weight:) -> Cycle<Vertex, Edges.Index>?
     func findNegativeCycle(weight:) -> Cycle<Vertex, Edges.Index>?   // every vertex a source
     func lazy.bellmanFord(from: Vertex | some Sequence<Vertex>, weight: @escaping (Edges.Index) -> W)

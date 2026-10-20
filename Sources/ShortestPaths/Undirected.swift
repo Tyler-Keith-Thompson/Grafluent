@@ -163,6 +163,25 @@ extension Graph {
         return directedView.bellmanFordShortestPaths(from: sources) { weight($0.position) }
     }
 
+    /// `directedView.goldbergRadzikShortestPaths(from:weight:)`: `nil` when a negative edge is
+    /// reachable, since it is a negative 2-cycle, found in one O(V + E) pass.
+    @inlinable
+    public func goldbergRadzikShortestPaths<W: Comparable & AdditiveArithmetic>(
+        from source: Vertex, weight: (Edges.Index) -> W
+    ) -> ShortestPathTree<DirectedView<Self>, W>? {
+        goldbergRadzikShortestPaths(from: CollectionOfOne(source), weight: weight)
+    }
+
+    /// `directedView.goldbergRadzikShortestPaths(from:weight:)` from several sources.
+    @inlinable
+    public func goldbergRadzikShortestPaths<W: Comparable & AdditiveArithmetic>(
+        from sources: some Sequence<Vertex>, weight: (Edges.Index) -> W
+    ) -> ShortestPathTree<DirectedView<Self>, W>? {
+        let sources = Array(sources)
+        guard _reachableNegativeEdge(from: sources, weight: weight) == nil else { return nil }
+        return directedView.goldbergRadzikShortestPaths(from: sources) { weight($0.position) }
+    }
+
     /// `directedView.findNegativeCycle(from:weight:)`.
     @inlinable
     public func findNegativeCycle<W: Comparable & AdditiveArithmetic>(

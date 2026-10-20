@@ -327,6 +327,9 @@ enum FuzzShortestPaths {
         let bellmanFord = list.bellmanFordShortestPaths(from: sources, weight: w)
         check((bellmanFord == nil) == cycleReachable, "Bellman–Ford returned \(bellmanFord == nil ? "nil" : "a tree"), a negative cycle is \(cycleReachable ? "" : "not ")reachable")
         if let bellmanFord { checkTree(bellmanFord, list, w, expected, "Bellman–Ford") }
+        let goldbergRadzik = list.goldbergRadzikShortestPaths(from: sources, weight: w)
+        check((goldbergRadzik == nil) == cycleReachable, "Goldberg–Radzik returned \(goldbergRadzik == nil ? "nil" : "a tree"), a negative cycle is \(cycleReachable ? "" : "not ")reachable")
+        if let goldbergRadzik { checkTree(goldbergRadzik, list, w, expected, "Goldberg–Radzik") }
 
         func checkWitness(_ cycle: Cycle<Int, Int>?, _ exists: Bool, _ name: String) {
             check((cycle != nil) == exists, "\(name) found \(String(describing: cycle))")

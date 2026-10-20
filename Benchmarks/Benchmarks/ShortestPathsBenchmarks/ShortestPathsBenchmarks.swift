@@ -169,6 +169,9 @@ let benchmarks: @Sendable () -> Void = {
     // `edges` is sorted and unique, so CSR slot k and AdjacencyList position k are both edges[k].
     let weights = edges.map { _ in Int.random(in: 1 ... 1000, using: &generator) }
     let undirectedWeights = (0 ..< undirected.edgeCount).map { _ in Int.random(in: 1 ... 1000, using: &generator) }
+    // Negative weights with no negative cycle: a random potential shifts each weight by π(source) − π(target).
+    let potential = (0 ..< n).map { _ in Int.random(in: 0 ... 500, using: &generator) }
+    let shiftedWeights = edges.indices.map { weights[$0] + potential[edges[$0].source] - potential[edges[$0].target] }
     precondition(Array(list.edges) == edges && Array(csr.edges) == edges)
     let expected = handWrittenDijkstra(csr, weights).0
     let tree = csr.dijkstraShortestPaths(from: 0) { weights[$0] }
@@ -271,6 +274,30 @@ let benchmarks: @Sendable () -> Void = {
     // SP-B03: Bellman–Ford with nonnegative weights stops after about one pass.
     Benchmark("ShortestPaths: bellmanFordShortestPaths on CompressedSparseRow, nonnegative weights") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(csr.bellmanFordShortestPaths(from: 0) { weights[$0] }) }
+    }
+    Benchmark("ShortestPaths: goldbergRadzikShortestPaths on CompressedSparseRow, nonnegative weights") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(csr.goldbergRadzikShortestPaths(from: 0) { weights[$0] }) }
+    }
+    // Weights −20…100 on a graph kept free of negative cycles by a potential: w(u → v) = raw + π(u) − π(v).
+    Benchmark("ShortestPaths: bellmanFordShortestPaths on CompressedSparseRow, negative weights without negative cycles") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(csr.bellmanFordShortestPaths(from: 0) { shiftedWeights[$0] }) }
+    }
+    Benchmark("ShortestPaths: goldbergRadzikShortestPaths on CompressedSparseRow, negative weights without negative cycles") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(csr.goldbergRadzikShortestPaths(from: 0) { shiftedWeights[$0] }) }
+    }
+    // A chain of 10 000 arcs of weight −1 fed by a hub with arcs of weight 0, the chain numbered
+    // against its direction: every Bellman–Ford round improves the whole chain by one (quadratic),
+    // while a Goldberg–Radzik pass scans it in topological order.
+    let chainLength = 10_000
+    var chainEdges: [DirectedEdge<Int>] = (1 ... chainLength).map { DirectedEdge(from: 0, to: $0) }
+    for k in 2 ... chainLength { chainEdges.append(DirectedEdge(from: k, to: k - 1)) }
+    let hubChain = CompressedSparseRow(vertexCount: chainLength + 1, edges: chainEdges)
+    let hubChainWeights = hubChain.edges.map { $0.source == 0 ? 0 : -1 }
+    Benchmark("ShortestPaths: bellmanFordShortestPaths on a hub-fed chain numbered against its direction") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(hubChain.bellmanFordShortestPaths(from: 0) { hubChainWeights[$0] }) }
+    }
+    Benchmark("ShortestPaths: goldbergRadzikShortestPaths on a hub-fed chain numbered against its direction") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(hubChain.goldbergRadzikShortestPaths(from: 0) { hubChainWeights[$0] }) }
     }
     // SP-B04: unweighted.
     Benchmark("ShortestPaths: shortestPaths (breadth-first) on CompressedSparseRow") { benchmark in

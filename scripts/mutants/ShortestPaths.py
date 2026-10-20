@@ -19,6 +19,14 @@
 #
 # Caught only by the time limit: queuedonce (queuing a vertex more than once per round multiplies
 # the work without changing any result).
+#
+# Goldberg–Radzik mutants equivalent in every result, removed: the pass structure only decides the
+# order and amount of work. Dropping the improving-arc check before the walk (grimproving), walking
+# every arc instead of the admissible ones (gradmissible), admitting only strictly improving arcs
+# (grstrict), queuing a vertex twice for the next pass (grrelabel) and keeping unlabeled vertices
+# in the pending list (grpending) change which vertices a pass scans and in what order, never the
+# distances, since every labeled vertex is still scanned once per pass; five more passes before
+# giving up (grpasses) only matter with a negative cycle, where the result is nil either way.
 
 TESTS = ["ShortestPathsTests"]
 
@@ -52,6 +60,17 @@ MUTANTS = [
     Mutant("rotate", "BellmanFord.swift",
            "cycle.indices.min { cycle[$0] < cycle[$1] }!",
            "cycle.startIndex"),
+
+    # Goldberg–Radzik
+    Mutant("grorder", "GoldbergRadzik.swift",
+           "order[i]",
+           "order[order.count - 1 - i]"),
+    Mutant("grunlabel", "GoldbergRadzik.swift",
+           "                labeled[u] = false",
+           "", mode="stmt", nth=1),
+    Mutant("grrelax", "GoldbergRadzik.swift",
+           "parent[v] == -2 || candidate < distance[v]",
+           "parent[v] == -2 || candidate <= distance[v]"),
 
     # Dijkstra as an event sequence
     Mutant("dsequal", "DijkstraSearch.swift",
