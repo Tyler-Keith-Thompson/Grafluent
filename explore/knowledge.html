@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge graphs · Explore Grafluent</title>
+<meta name="description" content="From extracted claims to a prompt: entities merged by a key, ranked from a question by personalized PageRank, cut to a budget around the question’s entities and written as triples, with Grafluent’s quotient(of:byKey:), pageRank(personalization:), egoGraphView and writeEdgeList.">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="knowledge">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a><a href="products.html">Graph products</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html" aria-current="page">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Knowledge graphs</h1>
+  <p class="question">A model read a few paragraphs and wrote down fourteen claims, spelling Ada Lovelace three ways. Which of them belong in the prompt for a question about her and the Analytical Engine?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Facts as a graph, and the right few back out</h2>
+  <p>A <b>knowledge graph</b> stores facts as triples: a subject, a relation and an object, which are a directed edge with its relation attached. Retrieval that works from such a graph, often called GraphRAG, answers a question by finding the entities it names, taking the facts around them and writing those facts into a prompt. The graph side is four small steps: merge the duplicate entities, rank the entities from the question, cut the neighbourhood to a budget, and write it out.</p>
+  <p>Reach for it when a question needs facts that sit several hops apart, which a plain search over passages tends to miss, or when the same entity is named in many documents and the answer should join them.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to pick facts for a prompt</h2>
+<div class="compare">
+<table>
+  <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Gives</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
+  <tbody>
+    <tr class="self"><th scope="row">Ranked neighbourhood <span class="this">This page</span></th><td data-label="When to use">A question that names entities</td><td data-label="Gives">The facts near them, best ranked first</td><td data-label="Cost">A PageRank and a search</td><td data-label="Weakness">Needs the entities found in the graph first</td></tr>
+    <tr><th scope="row"><a href="neighbourhood.html">Neighbourhood by degree</a></th><td data-label="When to use">No question-specific ranking</td><td data-label="Gives">The best-connected facts nearby</td><td data-label="Cost">A search</td><td data-label="Weakness">Hubs win whatever the question</td></tr>
+    <tr><th scope="row"><a href="hierarchy.html">Community summaries</a></th><td data-label="When to use">A question about a whole topic</td><td data-label="Gives">A summary per community</td><td data-label="Cost">Clustering once, then a lookup</td><td data-label="Weakness">Loses the single fact</td></tr>
+    <tr><th scope="row">Passage search</th><td data-label="When to use">The answer sits in one passage</td><td data-label="Gives">The closest passages</td><td data-label="Cost">An embedding lookup</td><td data-label="Weakness">Facts spread over passages stay apart</td></tr>
+  </tbody>
+</table>
+</div>
+  <p>Ranking from the question’s entities favours facts on the paths between them; a degree cut favours hubs. Community summaries answer broad questions, and passage search answers narrow ones.</p>
+</section>
+
+<p class="example lead">Example: fourteen claims about Ada Lovelace, Charles Babbage and their engines, as an extractor wrote them, with Lovelace spelled three ways and Babbage three ways.</p>
+
+<h2 class="labhead"><small>Step through</small>Merge, rank, retrieve, write</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="A knowledge graph from claims to a prompt"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 470" role="img" aria-label="Entities and their relations, every spelling at first, merged, ranked from the question and cut to a budget"><g class="edge " data-edge="0"><path d="M222.8,177.9 L326.4,241.6" class="hit" /><path d="M222.8,177.9 L326.4,241.6" class="stroke" /><polygon points="326.4,241.6 314.1,240.5 319.9,231.2" class="head" /><text x="268.18673346636365" y="226.07155811715907" text-anchor="middle" class="weight">wrote notes on</text></g><g class="edge " data-edge="1"><path d="M111.7,255.1 L128.2,105.9" class="hit" /><path d="M111.7,255.1 L128.2,105.9" class="stroke" /><polygon points="128.2,105.9 132.5,117.4 121.6,116.2" class="head" /><text x="132.92048855075706" y="186.435609838973" text-anchor="middle" class="weight">daughter of</text></g><g class="edge " data-edge="2"><path d="M262.3,38.6 L336.9,90.8" class="hit" /><path d="M262.3,38.6 L336.9,90.8" class="stroke" /><polygon points="336.9,90.8 324.7,89.0 331.0,80.0" class="head" /><text x="292.54498952327674" y="80.65001496674753" text-anchor="middle" class="weight">corresponded with</text></g><g class="edge " data-edge="3"><path d="M349.0,115.0 L341.1,234.0" class="hit" /><path d="M349.0,115.0 L341.1,234.0" class="stroke" /><polygon points="341.1,234.0 336.3,222.7 347.3,223.4" class="head" /><text x="332.0287929478641" y="179.13525286319094" text-anchor="middle" class="weight">designed</text></g><g class="edge " data-edge="4"><path d="M470.6,40.6 L508.7,78.7" class="hit" /><path d="M470.6,40.6 L508.7,78.7" class="stroke" /><polygon points="508.7,78.7 497.0,74.8 504.8,67.0" class="head" /><text x="480.80761184457486" y="74.19238815542512" text-anchor="middle" class="weight">designed</text></g><g class="edge " data-edge="5"><path d="M340.0,265.0 L340.0,364.0" class="hit" /><path d="M340.0,265.0 L340.0,364.0" class="stroke" /><polygon points="340.0,364.0 334.5,353.0 345.5,353.0" class="head" /><text x="327.0" y="320.0" text-anchor="middle" class="weight">read</text></g><g class="edge " data-edge="6"><path d="M353.8,385.9 L465.3,433.7" class="hit" /><path d="M353.8,385.9 L465.3,433.7" class="stroke" /><polygon points="465.3,433.7 453.0,434.4 457.3,424.3" class="head" /><text x="404.87904911847085" y="426.94888539023475" text-anchor="middle" class="weight">came from</text></g><g class="edge " data-edge="7"><path d="M120.0,101.1 L50.7,178.1" class="hit" /><path d="M120.0,101.1 L50.7,178.1" class="stroke" /><polygon points="50.7,178.1 54.0,166.3 62.2,173.6" class="head" /><text x="75.33717609878684" y="136.30345848890815" text-anchor="middle" class="weight">wrote</text></g><g class="edge " data-edge="8"><path d="M116.9,82.7 L54.0,47.8" class="hit" /><path d="M116.9,82.7 L54.0,47.8" class="stroke" /><polygon points="54.0,47.8 66.3,48.3 60.9,57.9" class="head" /><text x="91.31335810532222" y="58.63595541042001" text-anchor="middle" class="weight">died in</text></g><g class="edge " data-edge="9"><path d="M530.6,100.6 L598.7,168.7" class="hit" /><path d="M530.6,100.6 L598.7,168.7" class="stroke" /><polygon points="598.7,168.7 587.0,164.8 594.8,157.0" class="head" /><text x="555.8076118445749" y="149.1923881554251" text-anchor="middle" class="weight">tabulated</text></g><g class="edge " data-edge="10"><path d="M450.6,180.6 L498.7,228.7" class="hit" /><path d="M450.6,180.6 L498.7,228.7" class="stroke" /><polygon points="498.7,228.7 487.0,224.8 494.8,217.0" class="head" /><text x="465.80761184457486" y="219.1923881554251" text-anchor="middle" class="weight">fellow of</text></g><g class="edge " data-edge="11"><path d="M521.7,249.4 L597.5,310.0" class="hit" /><path d="M521.7,249.4 L597.5,310.0" class="stroke" /><polygon points="597.5,310.0 585.5,307.4 592.4,298.8" class="head" /><text x="551.8789643817925" y="295.1512945227594" text-anchor="middle" class="weight">once led by</text></g><g class="edge " data-edge="12"><path d="M193.1,332.6 L326.1,257.8" class="hit" /><path d="M193.1,332.6 L326.1,257.8" class="stroke" /><polygon points="326.1,257.8 319.2,268.0 313.8,258.4" class="head" /><text x="266.3733961152233" y="311.3304819826191" text-anchor="middle" class="weight">built on</text></g><g class="edge " data-edge="13"><path d="M168.4,349.5 L82.4,419.9" class="hit" /><path d="M168.4,349.5 L82.4,419.9" class="stroke" /><polygon points="82.4,419.9 87.4,408.6 94.4,417.2" class="head" /><text x="116.76790872665559" y="379.93855511035684" text-anchor="middle" class="weight">worked at</text></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="Ada Lovelace"><circle cx="210.0" cy="170.0" r="13.0" /><text x="210.0" y="201.0" text-anchor="middle" class="name">Ada Lovelace</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Analytical Engine"><circle cx="340.0" cy="250.0" r="13.0" /><text x="340.0" y="281.0" text-anchor="middle" class="name">Analytical Engine</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="Lord Byron"><circle cx="130.0" cy="90.0" r="13.0" /><text x="130.0" y="121.0" text-anchor="middle" class="name">Lord Byron</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Charles Babbage"><circle cx="350.0" cy="100.0" r="13.0" /><text x="350.0" y="131.0" text-anchor="middle" class="name">Charles Babbage</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Difference Engine"><circle cx="520.0" cy="90.0" r="13.0" /><text x="520.0" y="121.0" text-anchor="middle" class="name">Difference Engine</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Punched cards"><circle cx="340.0" cy="380.0" r="13.0" /><text x="340.0" y="411.0" text-anchor="middle" class="name">Punched cards</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Jacquard loom"><circle cx="480.0" cy="440.0" r="13.0" /><text x="480.0" y="471.0" text-anchor="middle" class="name">Jacquard loom</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="Poetry"><circle cx="40.0" cy="190.0" r="13.0" /><text x="40.0" y="221.0" text-anchor="middle" class="name">Poetry</text></g><g class="node " data-node="8" tabindex="-1" role="presentation" aria-label="Greece"><circle cx="40.0" cy="40.0" r="13.0" /><text x="40.0" y="71.0" text-anchor="middle" class="name">Greece</text></g><g class="node " data-node="9" tabindex="-1" role="presentation" aria-label="Logarithms"><circle cx="610.0" cy="180.0" r="13.0" /><text x="610.0" y="211.0" text-anchor="middle" class="name">Logarithms</text></g><g class="node " data-node="10" tabindex="-1" role="presentation" aria-label="Royal Society"><circle cx="510.0" cy="240.0" r="13.0" /><text x="510.0" y="271.0" text-anchor="middle" class="name">Royal Society</text></g><g class="node " data-node="11" tabindex="-1" role="presentation" aria-label="Isaac Newton"><circle cx="610.0" cy="320.0" r="13.0" /><text x="610.0" y="351.0" text-anchor="middle" class="name">Isaac Newton</text></g><g class="node " data-node="12" tabindex="-1" role="presentation" aria-label="Alan Turing"><circle cx="180.0" cy="340.0" r="13.0" /><text x="180.0" y="371.0" text-anchor="middle" class="name">Alan Turing</text></g><g class="node " data-node="13" tabindex="-1" role="presentation" aria-label="Bletchley Park"><circle cx="70.0" cy="430.0" r="13.0" /><text x="70.0" y="461.0" text-anchor="middle" class="name">Bletchley Park</text></g><g class="node " data-node="14" tabindex="-1" role="presentation" aria-label="A. Lovelace"><circle cx="110.0" cy="270.0" r="13.0" /><text x="110.0" y="301.0" text-anchor="middle" class="name">A. Lovelace</text></g><g class="node " data-node="15" tabindex="-1" role="presentation" aria-label="Lovelace, Ada"><circle cx="250.0" cy="30.0" r="13.0" /><text x="250.0" y="61.0" text-anchor="middle" class="name">Lovelace, Ada</text></g><g class="node " data-node="16" tabindex="-1" role="presentation" aria-label="Babbage"><circle cx="460.0" cy="30.0" r="13.0" /><text x="460.0" y="61.0" text-anchor="middle" class="name">Babbage</text></g><g class="node " data-node="17" tabindex="-1" role="presentation" aria-label="C. Babbage"><circle cx="440.0" cy="170.0" r="13.0" /><text x="440.0" y="201.0" text-anchor="middle" class="name">C. Babbage</text></g></svg><div class="legend"><span><i class="dot current"></i>named in the question</span><span><i class="dot done"></i>retrieved; number: rank from the question</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">As extracted</span><p class="narration">An extractor turned a few paragraphs into 14 claims, each a subject, a relation and an object, and spelled two people three ways each. The question asks about Ada Lovelace and the Analytical Engine. Press Step to clean the graph, rank it from the question, cut it to a budget and write what remains.</p></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="7.0" class="m-current" /><text x="22" y="36" text-anchor="middle">1</text><title>Merged: 18 spellings become 14 entities, so each relation now joins the right pair.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="7.0" class="m-current" /><text x="48" y="36" text-anchor="middle">2</text><title>Ranked from the question’s entities by personalized PageRank: Analytical Engine 0.24, Punched cards 0.21 and Ada Lovelace 0.18.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="7.0" class="m-current" /><text x="74" y="36" text-anchor="middle">3</text><title>Retrieved: within two hops, the 7 best-ranked entities and every relation among them.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="7.0" class="m-done" /><text x="100" y="36" text-anchor="middle">4</text><title>Written as one line per relation, ready to paste into a prompt.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-knowledge" class="scrub" type="range" min="0" max="4" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-current" /></svg>merge, rank, retrieve</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-done" /></svg>write the prompt</span></div><p class="note">Each stage is one call: quotient(of:byKey:), pageRank(personalization:), egoGraphView(of:radius:undirected:maximumVertexCount:priority:) and writeEdgeList(to:columns:delimiter:edgeAttributes:).</p></section></div></div>
+
+<section class="prose">
+  <h2><small>The idea</small>Four calls, one graph</h2>
+  <p>The relations live in an edge map on a directed pseudograph, so two claims about the same pair stay separate edges with their own relation. Merging is a quotient by a key: <code>quotient(of:byKey:)</code> makes one vertex of every spelling that maps to the same canonical name, and the page rebuilds the graph from those names so the relations come along. Ranking is <code>pageRank(personalization:)</code> with the question’s entities as the places a random reader keeps jumping back to, so entities on the paths between them score high and far corners score low. Retrieval is <code>egoGraphView</code> from the question’s entities, two hops out, ignoring the arrows’ direction and keeping the best-ranked entities when the budget runs out. Writing is <code>writeEdgeList</code> with the relation as a column and a delimiter that allows spaces in names: one line per fact, subject, object and relation.</p>
+
+  <h2><small>Where it breaks</small>The key, and the budget</h2>
+  <p>The merge is only as good as the key. A key that maps two different people to one name joins their facts, and one that misses a spelling leaves a duplicate with its own facts; in practice the key comes from an entity-resolution step, and the quotient applies it. The budget is a count of entities, not of facts, so a hub inside the budget brings every relation it has. And personalized PageRank ranks by structure alone: a fact that matters to the question but sits three hops away stays out, which is where community summaries help.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The claims, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">Centrality</span>
+<span class="k">import</span> <span class="t">GraphFormats</span>
+<span class="k">import</span> <span class="t">GraphOperations</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">Multigraphs</span>
+
+<span class="c">/// Facts pulled out of a few paragraphs as subject, relation, object. The extractor spelled some</span>
+<span class="c">/// names more than one way.</span>
+<span class="k">let</span> claims: [(subject: <span class="t">String</span>, relation: <span class="t">String</span>, object: <span class="t">String</span>)] = [
+    (<span class="s">"Ada Lovelace"</span>, <span class="s">"wrote notes on"</span>, <span class="s">"Analytical Engine"</span>), (<span class="s">"A. Lovelace"</span>, <span class="s">"daughter of"</span>, <span class="s">"Lord Byron"</span>),
+    (<span class="s">"Lovelace, Ada"</span>, <span class="s">"corresponded with"</span>, <span class="s">"Charles Babbage"</span>), (<span class="s">"Charles Babbage"</span>, <span class="s">"designed"</span>, <span class="s">"Analytical Engine"</span>),
+    (<span class="s">"Babbage"</span>, <span class="s">"designed"</span>, <span class="s">"Difference Engine"</span>), (<span class="s">"Analytical Engine"</span>, <span class="s">"read"</span>, <span class="s">"Punched cards"</span>),
+    (<span class="s">"Punched cards"</span>, <span class="s">"came from"</span>, <span class="s">"Jacquard loom"</span>), (<span class="s">"Lord Byron"</span>, <span class="s">"wrote"</span>, <span class="s">"Poetry"</span>),
+    (<span class="s">"Lord Byron"</span>, <span class="s">"died in"</span>, <span class="s">"Greece"</span>), (<span class="s">"Difference Engine"</span>, <span class="s">"tabulated"</span>, <span class="s">"Logarithms"</span>),
+    (<span class="s">"C. Babbage"</span>, <span class="s">"fellow of"</span>, <span class="s">"Royal Society"</span>), (<span class="s">"Royal Society"</span>, <span class="s">"once led by"</span>, <span class="s">"Isaac Newton"</span>),
+    (<span class="s">"Alan Turing"</span>, <span class="s">"built on"</span>, <span class="s">"Analytical Engine"</span>), (<span class="s">"Alan Turing"</span>, <span class="s">"worked at"</span>, <span class="s">"Bletchley Park"</span>),
+]
+
+<span class="c">/// One spelling per entity: the key that merges duplicates.</span>
+<span class="k">func</span> canonicalName(_ name: <span class="t">String</span>) -&gt; <span class="t">String</span> {
+    <span class="k">switch</span> name {
+    <span class="k">case</span> <span class="s">"A. Lovelace"</span>, <span class="s">"Lovelace, Ada"</span>: <span class="s">"Ada Lovelace"</span>
+    <span class="k">case</span> <span class="s">"Babbage"</span>, <span class="s">"C. Babbage"</span>: <span class="s">"Charles Babbage"</span>
+    default: name
+    }
+}
+
+<span class="k">let</span> spellings = <span class="t">DirectedPseudograph</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> claim <span class="k">in</span> claims { <span class="t">DirectedEdge</span>(from: claim.subject, to: claim.object) }
+}
+<span class="k">let</span> merged = <span class="t">DirectedPseudograph</span>&lt;<span class="t">Int</span>&gt;.quotient(of: spellings, byKey: canonicalName)
+<span class="k">let</span> entities = merged.vertexCount  <span class="c">// 14</span>
+
+<span class="c">/// The knowledge graph on canonical names, each relation kept in an edge map.</span>
+<span class="k">let</span> (knowledgeGraph, relationOf): (<span class="t">DirectedPseudograph</span>&lt;<span class="t">String</span>&gt;, <span class="t">EdgeMap</span>&lt;<span class="t">String</span>&gt;) = {
+    <span class="k">var</span> graph = <span class="t">DirectedPseudograph</span>&lt;<span class="t">String</span>&gt;()
+    <span class="k">let</span> relation = graph.addEdgeMap(default: <span class="s">""</span>)
+    <span class="k">for</span> claim <span class="k">in</span> claims {
+        _ = graph.insert(canonicalName(claim.subject))
+        _ = graph.insert(canonicalName(claim.object))
+        <span class="k">let</span> position = graph.insert(edge: <span class="t">DirectedEdge</span>(from: canonicalName(claim.subject), to: canonicalName(claim.object)))
+        graph[relation, ofEdgeAt: position] = claim.relation
+    }
+    <span class="k">return</span> (graph, relation)
+}()
+
+<span class="k">let</span> budget = <span class="n">7</span>
+
+<span class="k">let</span> ranks = <span class="k">try</span> knowledgeGraph.pageRank(personalization: { questionSeeds.contains($<span class="n">0</span>) ? <span class="n">1</span> : <span class="n">0</span> })
+<span class="k">let</span> nearby = knowledgeGraph.egoGraphView(of: questionSeeds, radius: <span class="n">2</span>, undirected: <span class="k">true</span>, maximumVertexCount: budget) { ranks.score(of: $<span class="n">0</span>) }
+<span class="k">let</span> kept = <span class="t">Array</span>(nearby.vertices)  <span class="c">// ["Ada Lovelace", "Analytical Engine", "Lord Byron", "Charles Babbage", "Punched cards", "Jacquard loom", "Alan Turing"]</span>
+<span class="k">var</span> prompt = <span class="s">""</span>
+<span class="k">try</span> nearby.writeEdgeList(to: &amp;prompt, columns: [<span class="s">"relation"</span>], delimiter: <span class="s">"|"</span>) { [(<span class="s">"relation"</span>, .string(knowledgeGraph[relationOf, ofEdgeAt: $<span class="n">0</span>]))] }
+</span></pre>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="neighbourhood.html"><span>Previous</span>Neighbourhoods</a><a class="next" href="layout.html"><span>Next</span>Force-directed layout</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>
