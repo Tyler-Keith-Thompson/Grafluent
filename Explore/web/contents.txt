@@ -38,6 +38,7 @@ cores|Cores and trusses|Structure|Peeling a network down to its tight centre.|pa
 hypergraphs|Hypergraphs|Structure|Links that join more than two things at once.|page
 chordal|Chordal graphs|Structure|Every loop has a shortcut.|page
 cyclebasis|Cycle bases|Structure|A few loops that explain every loop.|page
+feedback|Feedback sets|Structure|The fewest cuts that leave no loop.|page
 isomorphism|Isomorphism|Structure|Whether two drawings are the same graph.|page
 communities|Communities|Structure|Where a network splits into groups.|page
 hierarchy|Community hierarchy|Structure|Groups inside groups, down to a size you choose.|page

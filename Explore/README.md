@@ -51,6 +51,7 @@ contents and the menu without a link.
 | `hypergraphs` | `UndirectedIncidenceList(hyperedges:)`, `size(ofHyperedgeAt:)`, `degree(of:)`, `neighbors(of:)`, `connectedComponents()`, `rank`, `cliqueExpansion()` |
 | `chordal` | `isChordal`, `perfectEliminationOrdering()`, `findHole()`, `maximumCardinalitySearch()`, `lexicographicBreadthFirstSearch()` |
 | `cyclebasis` | `cycleBasis()`, `minimumCycleBasis()`, `minimumCycleBasis(weight:)` |
+| `feedback` | `minimumFeedbackArcSet()`, `feedbackArcSet()`, `minimumFeedbackVertexSet()`, `simpleCycles()`, `topologicalSort()` |
 | `isomorphism` | `weisfeilerLehmanGraphHash()`, `weisfeilerLehmanSubgraphHashes(iterations:)`, `isomorphism(to:)` |
 | `communities` | `lazy.louvain()`, `louvainCommunities()`, `modularity(of:)` |
 | `hierarchy` | `hierarchicalLeidenCommunities(maximumCommunitySize:using:)` with `Xoshiro256StarStar`, `communities(atLevel:)`, `leaves`, `parent(of:)`, `children(of:)`, `community(of:)` |

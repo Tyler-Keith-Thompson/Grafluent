@@ -1,0 +1,44 @@
+<!-- title: Feedback sets · Explore Grafluent -->
+<!-- description: The fewest arrows or vertices whose removal leaves no directed cycle: exact minimum feedback arc and vertex sets, the Eades–Lin–Smyth heuristic and a build order after the cuts, with Grafluent’s minimumFeedbackArcSet(), minimumFeedbackVertexSet() and feedbackArcSet(). -->
+<header class="sign">
+  <h1>Feedback sets</h1>
+  <p class="question">Nine packages import each other in four loops, so nothing can be built first. What is the smallest number of imports to cut, and which?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Breaking every loop at the least cost</h2>
+  <p>A <b>feedback arc set</b> is a set of arrows whose removal leaves no directed cycle; a <b>feedback vertex set</b> does the same with vertices. The minimum ones are the cheapest way to make a graph acyclic: the fewest imports to untangle, the fewest tables to drop from a chain of foreign keys, the fewest matches to discount when ranking teams from who beat whom, or where to put the backward edges when drawing a graph in layers.</p>
+  <p>Both minimum problems are NP-hard, so the exact answers take time exponential in the number of vertices and are for small graphs: a dependency graph of a few dozen packages, not a web crawl. For large graphs there is a fast heuristic that is usually close.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Ways to get rid of cycles</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *Minimum feedback arc set | At most 28 vertices, and the answer must be best | The fewest arrows, or the lightest | Θ(2ⁿ · m) | Exponential: the table doubles with each vertex |
+  | Minimum feedback vertex set | At most 32 vertices | The fewest vertices | Θ(2ⁿ · n) | Exponential too |
+  | Eades–Lin–Smyth heuristic (`feedbackArcSet()`) | Any size | A small set, often the minimum | O((n + m) log n) | No promise on the size |
+  | [Topological sort](toposort.html) | The graph is already acyclic | An order, or one cycle as a witness | O(n + m) | Stops at the first cycle |
+  | [Condensation](components.html) | Loops may stay, grouped | Each strongly connected piece as one vertex | O(n + m) | Nothing is cut |
+  -->
+  <p>Take the exact set when the graph is small and the count matters; take the heuristic otherwise. A condensation keeps the loops and works around them.</p>
+</section>
+
+<p class="example lead">Example: nine packages whose imports form four loops: tests that import the app and the app that imports its tests, a cache behind an auth package behind a database behind the cache, and a logger that imports the core that imports it, with a detour through the network package.</p>
+
+<h2 class="labhead"><small>Step through</small>One cut a step</h2>
+<div id="app"></div>
+
+<section class="prose">
+  <h2><small>The idea</small>Order the vertices, then count the arrows pointing backward</h2>
+  <p>Write the vertices in a line. Every arrow then points forward or backward, and the backward ones are a feedback arc set: remove them and every remaining arrow points forward, so no cycle can close. Every feedback arc set arises this way from some order, so the minimum one is the order with the fewest backward arrows. <code>minimumFeedbackArcSet()</code> finds that order by dynamic programming over subsets of vertices: the best order of a subset ends with the vertex whose arrows into the rest cost least, after the best order of the rest. Each subset is one entry in a table with 2ⁿ rows, which is why the search stops at 28 vertices. The weighted form adds up weights instead of counting, and a self-loop is always in the set, since no order can point it forward.</p>
+  <p><code>minimumFeedbackVertexSet()</code> fills a table of the same size with a yes or no: a subset of vertices induces an acyclic subgraph when one of its vertices has no arrow coming in from the subset and the rest is acyclic, peeled one source at a time. The largest acyclic subset is the complement of the answer; on an undirected graph the peeling takes vertices with at most one neighbour left and finds the fewest vertices leaving a forest. <code>feedbackArcSet()</code> is Eades, Lin and Smyth’s heuristic: it builds an order greedily, placing sinks at the end and sources at the start and otherwise the vertex with the most arrows out relative to in, and takes the backward arrows of that order.</p>
+
+  <h2><small>Where it breaks</small>The table doubles with every vertex</h2>
+  <p>Thirty vertices would need a table of a billion rows, so the exact searches stop at 28 and 32 and trap beyond. On a bigger graph, condense it first: only the strongly connected pieces hold cycles, and each piece can be solved on its own if it is small enough. The heuristic has no such limit but no promise either; on this example it matches the minimum, and on others it can take a few more arrows than needed. And when several minimum sets exist, which arrows the exact search returns is unspecified: the vertices it returns are the set that lists first.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The packages, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>

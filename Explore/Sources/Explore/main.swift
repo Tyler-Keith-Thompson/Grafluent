@@ -40,6 +40,7 @@ func mountPage(_ page: String) -> Bool {
     case "cliques": CliquesPage.mount()
     case "cores": CoresPage.mount()
     case "cyclebasis": CycleBasisPage.mount()
+    case "feedback": FeedbackPage.mount()
     case "distances": DistancesPage.mount()
     case "hierarchy": HierarchyPage.mount()
     case "steiner": SteinerPage.mount()
