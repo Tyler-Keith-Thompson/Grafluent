@@ -1,0 +1,43 @@
+<!-- title: Assortativity · Explore Grafluent -->
+<!-- description: Do busy vertices link to busy vertices? Degree assortativity, average neighbour degree and degree connectivity with Grafluent’s degreeAssortativityCoefficient() and averageNeighborDegrees(). -->
+<header class="sign">
+  <h1>Assortativity</h1>
+  <p class="question">In a newsroom the editors all talk to each other. In an airline the small airports all fly to one hub. Which network is which, from the numbers alone?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Whether like links to like</h2>
+  <p>A network is <b>assortative</b> when vertices with many links tend to link to other vertices with many links, and <b>disassortative</b> when the busy ones link to the quiet ones. The <b>degree assortativity coefficient</b> puts a number on it, from −1 to 1, like a correlation.</p>
+  <p>Reach for it to tell a social network, where popular people know each other, from a technological one, where hubs serve leaves. It also says how a network will fail: an assortative network keeps a tough core when its edge frays, a disassortative one falls apart when a hub goes.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to read the mixing</h2>
+  <!-- compare
+  | Method | When to use | Gives | Cost | Weakness |
+  | *Assortativity coefficient | One number for the whole network | A correlation between the two ends’ degrees | O(m) | Hides which vertices drive it |
+  | *Average neighbour degree | A number per vertex | How busy each vertex’s neighbours are | O(m) | Many numbers to read |
+  | *Degree connectivity | The trend by degree | Neighbours’ average for each degree | O(m) | Needs a plot to read well |
+  | [Cores](cores.html) | The dense centre | Who survives the peeling | O(n + m) | Says nothing about mixing |
+  -->
+  <p>The coefficient is the summary. The per-vertex and per-degree numbers show the shape behind it.</p>
+</section>
+
+<p class="example lead">Example: a newsroom of three editors, three reporters and three juniors, and an airline of one hub and eight small airports.</p>
+
+<h2 class="labhead"><small>Step through</small>Each vertex against its neighbours</h2>
+<div id="app"></div>
+
+<section class="prose">
+  <h2><small>The idea</small>Correlate the two ends of every link</h2>
+  <p>Take every link and write down the degrees of its two ends. The assortativity coefficient is the correlation of those pairs, the same formula as for any two columns of numbers. In the newsroom the editors’ links join degree 3 to degree 3, each reporter’s link to an editor joins 2 to 3, and each junior’s link joins 1 to 2: the busy sit with the busy and the quiet with the quiet, so the coefficient is positive. In the airline every link to the hub joins 8 to 1 or 2, so the coefficient is strongly negative. <code>degreeAssortativityCoefficient()</code> computes it, and returns <code>nil</code> when every degree is the same, since a constant has no correlation.</p>
+  <p><code>averageNeighborDegrees()</code> gives each vertex the mean degree of its neighbours; the lab shows that number as “near”. <code>averageDegreeConnectivity()</code> groups those means by the vertex’s own degree. In an assortative network the means rise with the degree; in a disassortative one they fall.</p>
+
+  <h2><small>Where it breaks</small>One number for a whole network</h2>
+  <p>The coefficient is a correlation, so it is pulled by whatever is common. A network with one huge hub and many leaves is disassortative however the rest is wired. And a network can be assortative in one region and disassortative in another, which one number cannot show; the per-degree averages can. Directed networks have four coefficients, one for each choice of in- or out-degree at each end, and <code>averageNeighborDegrees(source:target:)</code> picks them.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The two networks, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>

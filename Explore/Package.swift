@@ -52,6 +52,8 @@ let package = Package(
                 .product(name: "Cliques", package: "Grafluent"),
                 .product(name: "Cycles", package: "Grafluent"),
                 .product(name: "GraphProducts", package: "Grafluent"),
+                .product(name: "Hypergraphs", package: "Grafluent"),
+                .product(name: "Assortativity", package: "Grafluent"),
                 .product(name: "GraphOperations", package: "Grafluent"),
                 .product(name: "Distances", package: "Grafluent"),
                 .product(name: "CommunityDetection", package: "Grafluent"),

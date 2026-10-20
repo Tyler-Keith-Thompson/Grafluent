@@ -45,6 +45,7 @@ contents and the menu without a link.
 | `planarity` | `isPlanar`, `findKuratowskiSubgraph()`, `planarLayout()`, `planarEmbedding()` |
 | `cliques` | `lazy.bronKerbosch()`, `maximalCliques()`, `maximumClique()` |
 | `cores` | `coreNumbers()`, `kCore(_:)`, `degeneracy`, `trussNumbers()`, `kTruss(_:)`, `onionLayers()`, `layer(of:)` |
+| `hypergraphs` | `UndirectedIncidenceList(hyperedges:)`, `size(ofHyperedgeAt:)`, `degree(of:)`, `neighbors(of:)`, `connectedComponents()`, `rank`, `cliqueExpansion()` |
 | `chordal` | `isChordal`, `perfectEliminationOrdering()`, `findHole()`, `maximumCardinalitySearch()`, `lexicographicBreadthFirstSearch()` |
 | `cyclebasis` | `cycleBasis()`, `minimumCycleBasis()`, `minimumCycleBasis(weight:)` |
 | `isomorphism` | `weisfeilerLehmanGraphHash()`, `weisfeilerLehmanSubgraphHashes(iterations:)`, `isomorphism(to:)` |
@@ -62,6 +63,7 @@ contents and the menu without a link.
 | `covering` | `minimumVertexCover()`, `lexicographicallyFirstMinimumVertexCover()`, `approximateMinimumVertexCover()`, `isVertexCover(_:)`, `minimumDominatingSet()`, `lexicographicallyFirstMinimumDominatingSet()`, `approximateMinimumDominatingSet()`, `isDominatingSet(_:)` |
 | `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |
 | `betweenness` | `betweennessCentrality(normalized:)`, `edgeBetweennessCentrality(normalized:)`, `shortestSimplePaths(from:to:)` |
+| `assortativity` | `degreeAssortativityCoefficient()`, `averageNeighborDegrees()`, `averageNeighborDegree(of:)`, `averageDegreeConnectivity()` |
 | `linkprediction` | `jaccardCoefficient(of:and:)`, `adamicAdarIndex(of:and:)` |
 | `neighbourhood` | `egoGraphView(of:radius:)`, `egoGraphView(of:radius:maximumVertexCount:priority:)`, `degree(of:)` |
 | `layout` | `FruchtermanReingoldLayout(_:iterations:using:)` with `Xoshiro256StarStar`, `step()`, named graphs |

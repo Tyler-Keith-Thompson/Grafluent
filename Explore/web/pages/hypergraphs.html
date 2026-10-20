@@ -1,0 +1,42 @@
+<!-- title: Hypergraphs · Explore Grafluent -->
+<!-- description: When a link joins more than two things at once: committees, co-authors and ingredients as hyperedges, with Grafluent’s UndirectedIncidenceList, size(ofHyperedgeAt:), degree(of:) and cliqueExpansion(). -->
+<header class="sign">
+  <h1>Hypergraphs</h1>
+  <p class="question">A committee has five members. Which single edge of a graph could say that they meet as a group?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Links that join more than two things</h2>
+  <p>An edge joins two vertices. A <b>hyperedge</b> joins any number of them at once: the members of a committee, the authors of a paper, the ingredients of a recipe, the stops of a bus route. A graph can only hint at such a group with pairs. A <b>hypergraph</b> keeps the group itself.</p>
+  <p>Reach for one when the group is the fact: who was in the room together, which items were bought in one basket, which proteins form one complex. You can always flatten it to a graph later, and the page shows what that loses.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to store groups</h2>
+  <!-- compare
+  | Method | When to use | Keeps | Cost | Weakness |
+  | *Hypergraph | The group is the fact | Each group as one hyperedge | One entry per membership | Fewer algorithms than for graphs |
+  | Clique expansion | You need graph algorithms | A pair for every two members of a group | Grows with the square of a group’s size | Forgets which pairs came from one group |
+  | [Bipartite graph](matching.html) | Two kinds of vertex, members and groups | A vertex per group, an edge per membership | One edge per membership | Groups become vertices, which algorithms treat as the same kind |
+  -->
+  <p>The incidence graph, with a vertex for every committee, is the hypergraph in disguise and loses nothing; the clique expansion is handy and lossy.</p>
+</section>
+
+<p class="example lead">Example: a council of ten people on six committees, one of which has a single member.</p>
+
+<h2 class="labhead"><small>Step through</small>Add the committees</h2>
+<div id="app"></div>
+
+<section class="prose">
+  <h2><small>The idea</small>A hyperedge is a set of vertices</h2>
+  <p><code>UndirectedIncidenceList</code> stores a hypergraph as rows: for each hyperedge its members, and for each vertex the hyperedges it is in. A hyperedge may hold one vertex, or none, and two hyperedges may hold the same members, since two committees can share a roster. <code>size(ofHyperedgeAt:)</code> is a hyperedge’s number of members, <code>degree(of:)</code> is the number of hyperedges a vertex is in, and the <b>rank</b> is the largest size.</p>
+  <p>Two vertices are neighbours when some hyperedge holds both, and the hypergraph is connected when every vertex can reach every other through shared hyperedges. <code>neighbors(of:)</code> and <code>connectedComponents()</code> answer those. <code>cliqueExpansion()</code> is the graph with a pair for every two members of a hyperedge, which the lab draws in its second mode. <code>incidenceGraphView</code> is the bipartite graph of memberships, drawn in the first.</p>
+
+  <h2><small>Where it breaks</small>Most algorithms want pairs</h2>
+  <p>Shortest paths, centrality and community detection are defined on graphs. To run them you flatten: the clique expansion when pairs are what matter, the incidence graph when the groups must survive as vertices. A committee of fifty becomes 1,225 pairs in the expansion, so large hyperedges make it big. Directed hypergraphs, where a hyperedge has a tail set and a head set, as in a chemical reaction, are a separate type with their own reachability.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The council, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
