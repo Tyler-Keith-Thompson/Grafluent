@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cycle bases · Explore Grafluent</title>
+<meta name="description" content="Every loop in a network is a combination of a few basic ones. Find a fundamental cycle basis and a minimum cycle basis with Grafluent’s cycleBasis() and minimumCycleBasis().">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="cyclebasis">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html" aria-current="page">Cycle bases</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="linkprediction.html">Friend suggestions</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Cycle bases</h1>
+  <p class="question">A park has paths that loop in many ways. What is the smallest set of loops that explains every other?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>A few loops that make every loop</h2>
+  <p>Add two loops that share a stretch of path, and the shared stretch cancels: you get the loop around both. So loops combine. A <b>cycle basis</b> is a small set of loops from which every loop in the network can be built this way. A network with n places, m paths and one connected piece needs exactly m − n + 1 of them.</p>
+  <p>Reach for a cycle basis to find the rings in a molecule, the independent loops in an electrical circuit, or the faces of a map drawn from its roads. A <b>minimum</b> basis uses the shortest loops, which is usually the one you want to look at.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to pick the loops</h2>
+<div class="compare">
+<table>
+  <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Gives</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
+  <tbody>
+    <tr class="self"><th scope="row">Fundamental basis <span class="this">This page</span></th><td data-label="When to use">You only need some basis, fast</td><td data-label="Gives">One loop per path outside a spanning tree</td><td data-label="Cost">O(n + m) plus the loops’ lengths</td><td data-label="Weakness">The loops can be long and overlap a lot</td></tr>
+    <tr class="self"><th scope="row">Minimum basis <span class="this">This page</span></th><td data-label="When to use">The loops should be short</td><td data-label="Gives">The basis with the fewest paths, or the least weight, in total</td><td data-label="Cost">About O(m² n)</td><td data-label="Weakness">Slower</td></tr>
+    <tr><th scope="row"><a href="chordal.html">Chordless cycles</a></th><td data-label="When to use">You want every loop without a short cut</td><td data-label="Gives">All of them</td><td data-label="Cost">Can be exponential</td><td data-label="Weakness">Many more loops than a basis</td></tr>
+  </tbody>
+</table>
+</div>
+  <p>A fundamental basis is nearly free and always valid. The minimum basis costs more but reads like the faces of a map.</p>
+</section>
+
+<p class="example lead">Example: eight places in a park, joined by eleven paths.</p>
+
+<h2 class="labhead"><small>Step through</small>The loops in the basis</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="A cycle basis of the park"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 470" role="img" aria-label="Eight places in a park joined by eleven paths, with the basis cycles shown one at a time"><g class="edge " data-edge="0"><path d="M82.0,228.0 L188.0,122.0" class="hit" /><path d="M82.0,228.0 L188.0,122.0" class="stroke" /></g><g class="edge " data-edge="1"><path d="M200.0,127.0 L200.0,353.0" class="hit" /><path d="M200.0,127.0 L200.0,353.0" class="stroke" /></g><g class="edge " data-edge="2"><path d="M188.0,358.0 L82.0,252.0" class="hit" /><path d="M188.0,358.0 L82.0,252.0" class="stroke" /></g><g class="edge " data-edge="3"><path d="M217.0,370.0 L313.0,370.0" class="hit" /><path d="M217.0,370.0 L313.0,370.0" class="stroke" /></g><g class="edge " data-edge="4"><path d="M330.0,353.0 L330.0,127.0" class="hit" /><path d="M330.0,353.0 L330.0,127.0" class="stroke" /></g><g class="edge " data-edge="5"><path d="M313.0,110.0 L217.0,110.0" class="hit" /><path d="M313.0,110.0 L217.0,110.0" class="stroke" /></g><g class="edge " data-edge="6"><path d="M347.0,370.0 L443.0,370.0" class="hit" /><path d="M347.0,370.0 L443.0,370.0" class="stroke" /></g><g class="edge " data-edge="7"><path d="M460.0,353.0 L460.0,127.0" class="hit" /><path d="M460.0,353.0 L460.0,127.0" class="stroke" /></g><g class="edge " data-edge="8"><path d="M443.0,110.0 L347.0,110.0" class="hit" /><path d="M443.0,110.0 L347.0,110.0" class="stroke" /></g><g class="edge " data-edge="9"><path d="M472.0,358.0 L578.0,252.0" class="hit" /><path d="M472.0,358.0 L578.0,252.0" class="stroke" /></g><g class="edge " data-edge="10"><path d="M578.0,228.0 L472.0,122.0" class="hit" /><path d="M578.0,228.0 L472.0,122.0" class="stroke" /></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="Gate"><circle cx="70.0" cy="240.0" r="15.0" /><text x="70.0" y="273.0" text-anchor="middle" class="name">Gate</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Pond"><circle cx="200.0" cy="110.0" r="15.0" /><text x="200.0" y="143.0" text-anchor="middle" class="name">Pond</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="Oak"><circle cx="200.0" cy="370.0" r="15.0" /><text x="200.0" y="403.0" text-anchor="middle" class="name">Oak</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Kiosk"><circle cx="330.0" cy="370.0" r="15.0" /><text x="330.0" y="403.0" text-anchor="middle" class="name">Kiosk</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Bridge"><circle cx="330.0" cy="110.0" r="15.0" /><text x="330.0" y="143.0" text-anchor="middle" class="name">Bridge</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Lawn"><circle cx="460.0" cy="370.0" r="15.0" /><text x="460.0" y="403.0" text-anchor="middle" class="name">Lawn</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Fountain"><circle cx="460.0" cy="110.0" r="15.0" /><text x="460.0" y="143.0" text-anchor="middle" class="name">Fountain</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="Shed"><circle cx="590.0" cy="240.0" r="15.0" /><text x="590.0" y="273.0" text-anchor="middle" class="name">Shed</text></g></svg><div class="legend"><span><i class="line tree"></i>the cycle just added</span><span><i class="line pal0"></i>an earlier cycle of the basis</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Cycle 0 of 4</span><p class="narration">The park has 8 places and 11 paths, so its cycle space has 4 dimensions. Every closed loop is a combination of 4 basis cycles. Press Step to see them.</p></div><div class="panel"><div class="buttons"><label class="field" for="basis-mode">Basis: <select id="basis-mode"><option value="0">fundamental</option><option value="1" selected>minimum</option><option value="2">lightest by metres</option></select></label></div></div><div class="panel"><span class="label">Cycles so far</span><div class="queue"><p class="empty">None yet</p></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="8.0" class="m-pal0" /><text x="22" y="36" text-anchor="middle">3</text><title>Cycle 1: Gate, Pond and Oak, back to Gate. 3 paths.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="8.0" class="m-pal1" /><text x="48" y="36" text-anchor="middle">3</text><title>Cycle 2: Lawn, Fountain and Shed, back to Lawn. 3 paths.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="9.0" class="m-pal2" /><text x="74" y="36" text-anchor="middle">4</text><title>Cycle 3: Pond, Oak, Kiosk and Bridge, back to Pond. 4 paths.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="9.0" class="m-pal3" /><text x="100" y="36" text-anchor="middle">4</text><title>Cycle 4: Kiosk, Bridge, Fountain and Lawn, back to Kiosk. 4 paths.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-basis" class="scrub" type="range" min="0" max="4" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-pal1" /></svg>one cycle of the basis, with how many paths it has</span></div><p class="note">Each step shows one more cycle. The library returns the whole basis at once.</p></section></div></div>
+
+<section class="prose">
+  <h2><small>The idea</small>A spanning tree, then one more path at a time</h2>
+  <p>Take any spanning tree of the network. It reaches every place and has no loop. Each path left out of the tree closes exactly one loop with it. Those loops are a <b>fundamental basis</b>. They are independent, because each has a path no other has, and there are m − n + 1 of them. <code>cycleBasis()</code> uses the breadth-first tree from the first place.</p>
+  <p>A fundamental basis can be ungainly. The loop a far-off path closes may wander across the whole tree. De Pina’s method finds a <b>minimum basis</b> instead. It keeps one marker set per dimension and, for each in turn, finds the shortest loop that crosses that marker set an odd number of times. The shortest such loop is found by searching two copies of the network, one for “crossed an even number of times so far” and one for “odd”. Then every later marker set is adjusted so it stays independent of the loops already chosen. <code>minimumCycleBasis()</code> is that method, and <code>minimumCycleBasis(weight:)</code> weighs the paths.</p>
+  <p>In the park the minimum basis is the four small loops: two triangles and two squares, 14 paths in all. The fundamental basis from the Gate has the same number of loops, but three of them go the long way round, and together they use 23 paths.</p>
+
+  <h2><small>Where it breaks</small>Loops are not faces</h2>
+  <p>A minimum basis is not unique when loops tie in length, and it need not be the faces of any drawing. Give the Kiosk–Bridge path 90 metres in the lab, and the lightest basis swaps one square for the loop around both squares, because that loop avoids the long path. Weights must be positive. A path of weight zero would let a loop cost nothing, and the shortest loop through it would no longer be simple.</p>
+  <p>The minimum basis takes time that grows with m² n in the worst case, so it is for networks of thousands of paths, not millions. The fundamental basis takes time in step with the network.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The park, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">Cycles</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">Walks</span>
+
+<span class="k">let</span> footpaths = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Gate"</span>, <span class="s">"Pond"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Pond"</span>, <span class="s">"Oak"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Oak"</span>, <span class="s">"Gate"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Oak"</span>, <span class="s">"Kiosk"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Kiosk"</span>, <span class="s">"Bridge"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Bridge"</span>, <span class="s">"Pond"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Kiosk"</span>, <span class="s">"Lawn"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Lawn"</span>, <span class="s">"Fountain"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Fountain"</span>, <span class="s">"Bridge"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Lawn"</span>, <span class="s">"Shed"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Shed"</span>, <span class="s">"Fountain"</span>),
+]
+
+<span class="k">let</span> commons = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> path <span class="k">in</span> footpaths { path }
+}
+
+<span class="k">let</span> minimum = commons.minimumCycleBasis()  <span class="c">// [[Gate, Pond, Oak], [Lawn, Fountain, Shed], [Pond, Oak, Kiosk, Bridge], [Kiosk, Bridge, Fountain, Lawn]]</span>
+<span class="k">let</span> length = minimum.reduce(<span class="n">0</span>) { $<span class="n">0</span> + $<span class="n">1</span>.edges.count }  <span class="c">// 14</span>
+</span></pre>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="chordal.html"><span>Previous</span>Chordal graphs</a><a class="next" href="isomorphism.html"><span>Next</span>Isomorphism</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

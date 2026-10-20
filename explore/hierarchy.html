@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Community hierarchy · Explore Grafluent</title>
+<meta name="description" content="Communities inside communities: cluster a network with Leiden, then cluster every community over a size cap again, with Grafluent’s hierarchicalLeidenCommunities(maximumCommunitySize:).">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="hierarchy">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html" aria-current="page">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="linkprediction.html">Friend suggestions</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Community hierarchy</h1>
+  <p class="question">A company has departments, and departments have teams. Can an algorithm find both layers?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Groups at more than one size</h2>
+  <p>Community detection splits a network into groups. But real groups nest: teams inside departments, neighbourhoods inside cities, topics inside fields. A <b>community hierarchy</b> keeps every layer and remembers which group each smaller group came from.</p>
+  <p>Reach for it when you want summaries at several scales, as retrieval over a knowledge graph does: a short summary per department and a detailed one per team. Or when one community is simply too big to be useful and you want it broken down.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to get layered groups</h2>
+<div class="compare">
+<table>
+  <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Gives</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
+  <tbody>
+    <tr class="self"><th scope="row">Hierarchical Leiden <span class="this">This page</span></th><td data-label="When to use">Groups must fit a size cap</td><td data-label="Gives">Levels that split only the groups over the cap, with parents</td><td data-label="Cost">Leiden on the whole, then on each piece</td><td data-label="Weakness">Depends on the cap you choose</td></tr>
+    <tr><th scope="row"><a href="communities.html">Louvain’s levels</a></th><td data-label="When to use">You want the algorithm’s own coarsening</td><td data-label="Gives">Each pass’s groups, coarser each time</td><td data-label="Cost">One Louvain run</td><td data-label="Weakness">The levels are a by-product, not a target</td></tr>
+    <tr><th scope="row"><a href="girvannewman.html">Girvan–Newman</a></th><td data-label="When to use">Small networks, every split</td><td data-label="Gives">A full tree of splits</td><td data-label="Cost">Very slow</td><td data-label="Weakness">Impractical past a few hundred links</td></tr>
+  </tbody>
+</table>
+</div>
+  <p>Hierarchical Leiden gives you control through the cap. Louvain’s levels come free but you don’t choose them. Girvan–Newman gives the richest tree on networks small enough to afford it.</p>
+</section>
+
+<p class="example lead">Example: twenty-four people in six teams of four, two teams to a department, with a liaison between each pair of departments.</p>
+
+<h2 class="labhead"><small>Step through</small>One level at a time</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="The company's community hierarchy"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 470" role="img" aria-label="Twenty-four people in six teams, coloured by the community of the level shown"><g class="edge " data-edge="0"><path d="M84.0,69.0 L106.0,69.0" class="hit" /><path d="M84.0,69.0 L106.0,69.0" class="stroke" /></g><g class="edge " data-edge="1"><path d="M69.0,84.0 L69.0,106.0" class="hit" /><path d="M69.0,84.0 L69.0,106.0" class="stroke" /></g><g class="edge " data-edge="2"><path d="M79.6,79.6 L110.4,110.4" class="hit" /><path d="M79.6,79.6 L110.4,110.4" class="stroke" /></g><g class="edge " data-edge="3"><path d="M110.4,79.6 L79.6,110.4" class="hit" /><path d="M110.4,79.6 L79.6,110.4" class="stroke" /></g><g class="edge " data-edge="4"><path d="M121.0,84.0 L121.0,106.0" class="hit" /><path d="M121.0,84.0 L121.0,106.0" class="stroke" /></g><g class="edge " data-edge="5"><path d="M84.0,121.0 L106.0,121.0" class="hit" /><path d="M84.0,121.0 L106.0,121.0" class="stroke" /></g><g class="edge " data-edge="6"><path d="M204.0,69.0 L226.0,69.0" class="hit" /><path d="M204.0,69.0 L226.0,69.0" class="stroke" /></g><g class="edge " data-edge="7"><path d="M189.0,84.0 L189.0,106.0" class="hit" /><path d="M189.0,84.0 L189.0,106.0" class="stroke" /></g><g class="edge " data-edge="8"><path d="M199.6,79.6 L230.4,110.4" class="hit" /><path d="M199.6,79.6 L230.4,110.4" class="stroke" /></g><g class="edge " data-edge="9"><path d="M230.4,79.6 L199.6,110.4" class="hit" /><path d="M230.4,79.6 L199.6,110.4" class="stroke" /></g><g class="edge " data-edge="10"><path d="M241.0,84.0 L241.0,106.0" class="hit" /><path d="M241.0,84.0 L241.0,106.0" class="stroke" /></g><g class="edge " data-edge="11"><path d="M204.0,121.0 L226.0,121.0" class="hit" /><path d="M204.0,121.0 L226.0,121.0" class="stroke" /></g><g class="edge " data-edge="12"><path d="M84.0,349.0 L106.0,349.0" class="hit" /><path d="M84.0,349.0 L106.0,349.0" class="stroke" /></g><g class="edge " data-edge="13"><path d="M69.0,364.0 L69.0,386.0" class="hit" /><path d="M69.0,364.0 L69.0,386.0" class="stroke" /></g><g class="edge " data-edge="14"><path d="M79.6,359.6 L110.4,390.4" class="hit" /><path d="M79.6,359.6 L110.4,390.4" class="stroke" /></g><g class="edge " data-edge="15"><path d="M110.4,359.6 L79.6,390.4" class="hit" /><path d="M110.4,359.6 L79.6,390.4" class="stroke" /></g><g class="edge " data-edge="16"><path d="M121.0,364.0 L121.0,386.0" class="hit" /><path d="M121.0,364.0 L121.0,386.0" class="stroke" /></g><g class="edge " data-edge="17"><path d="M84.0,401.0 L106.0,401.0" class="hit" /><path d="M84.0,401.0 L106.0,401.0" class="stroke" /></g><g class="edge " data-edge="18"><path d="M204.0,349.0 L226.0,349.0" class="hit" /><path d="M204.0,349.0 L226.0,349.0" class="stroke" /></g><g class="edge " data-edge="19"><path d="M189.0,364.0 L189.0,386.0" class="hit" /><path d="M189.0,364.0 L189.0,386.0" class="stroke" /></g><g class="edge " data-edge="20"><path d="M199.6,359.6 L230.4,390.4" class="hit" /><path d="M199.6,359.6 L230.4,390.4" class="stroke" /></g><g class="edge " data-edge="21"><path d="M230.4,359.6 L199.6,390.4" class="hit" /><path d="M230.4,359.6 L199.6,390.4" class="stroke" /></g><g class="edge " data-edge="22"><path d="M241.0,364.0 L241.0,386.0" class="hit" /><path d="M241.0,364.0 L241.0,386.0" class="stroke" /></g><g class="edge " data-edge="23"><path d="M204.0,401.0 L226.0,401.0" class="hit" /><path d="M204.0,401.0 L226.0,401.0" class="stroke" /></g><g class="edge " data-edge="24"><path d="M459.0,69.0 L481.0,69.0" class="hit" /><path d="M459.0,69.0 L481.0,69.0" class="stroke" /></g><g class="edge " data-edge="25"><path d="M444.0,84.0 L444.0,106.0" class="hit" /><path d="M444.0,84.0 L444.0,106.0" class="stroke" /></g><g class="edge " data-edge="26"><path d="M454.6,79.6 L485.4,110.4" class="hit" /><path d="M454.6,79.6 L485.4,110.4" class="stroke" /></g><g class="edge " data-edge="27"><path d="M485.4,79.6 L454.6,110.4" class="hit" /><path d="M485.4,79.6 L454.6,110.4" class="stroke" /></g><g class="edge " data-edge="28"><path d="M496.0,84.0 L496.0,106.0" class="hit" /><path d="M496.0,84.0 L496.0,106.0" class="stroke" /></g><g class="edge " data-edge="29"><path d="M459.0,121.0 L481.0,121.0" class="hit" /><path d="M459.0,121.0 L481.0,121.0" class="stroke" /></g><g class="edge " data-edge="30"><path d="M549.0,309.0 L571.0,309.0" class="hit" /><path d="M549.0,309.0 L571.0,309.0" class="stroke" /></g><g class="edge " data-edge="31"><path d="M534.0,324.0 L534.0,346.0" class="hit" /><path d="M534.0,324.0 L534.0,346.0" class="stroke" /></g><g class="edge " data-edge="32"><path d="M544.6,319.6 L575.4,350.4" class="hit" /><path d="M544.6,319.6 L575.4,350.4" class="stroke" /></g><g class="edge " data-edge="33"><path d="M575.4,319.6 L544.6,350.4" class="hit" /><path d="M575.4,319.6 L544.6,350.4" class="stroke" /></g><g class="edge " data-edge="34"><path d="M586.0,324.0 L586.0,346.0" class="hit" /><path d="M586.0,324.0 L586.0,346.0" class="stroke" /></g><g class="edge " data-edge="35"><path d="M549.0,361.0 L571.0,361.0" class="hit" /><path d="M549.0,361.0 L571.0,361.0" class="stroke" /></g><g class="edge " data-edge="36"><path d="M84.0,69.0 L174.0,69.0" class="hit" /><path d="M84.0,69.0 L174.0,69.0" class="stroke" /></g><g class="edge " data-edge="37"><path d="M84.0,121.0 L174.0,121.0" class="hit" /><path d="M84.0,121.0 L174.0,121.0" class="stroke" /></g><g class="edge " data-edge="38"><path d="M136.0,121.0 L226.0,121.0" class="hit" /><path d="M136.0,121.0 L226.0,121.0" class="stroke" /></g><g class="edge " data-edge="39"><path d="M84.0,349.0 L174.0,349.0" class="hit" /><path d="M84.0,349.0 L174.0,349.0" class="stroke" /></g><g class="edge " data-edge="40"><path d="M84.0,401.0 L174.0,401.0" class="hit" /><path d="M84.0,401.0 L174.0,401.0" class="stroke" /></g><g class="edge " data-edge="41"><path d="M136.0,401.0 L226.0,401.0" class="hit" /><path d="M136.0,401.0 L226.0,401.0" class="stroke" /></g><g class="edge " data-edge="42"><path d="M449.3,83.0 L528.7,295.0" class="hit" /><path d="M449.3,83.0 L528.7,295.0" class="stroke" /></g><g class="edge " data-edge="43"><path d="M449.3,135.0 L528.7,347.0" class="hit" /><path d="M449.3,135.0 L528.7,347.0" class="stroke" /></g><g class="edge " data-edge="44"><path d="M501.3,135.0 L580.7,347.0" class="hit" /><path d="M501.3,135.0 L580.7,347.0" class="stroke" /></g><g class="edge " data-edge="45"><path d="M121.0,84.0 L121.0,334.0" class="hit" /><path d="M121.0,84.0 L121.0,334.0" class="stroke" /></g><g class="edge " data-edge="46"><path d="M256.0,69.0 L481.0,69.0" class="hit" /><path d="M256.0,69.0 L481.0,69.0" class="stroke" /></g><g class="edge " data-edge="47"><path d="M255.9,347.3 L571.1,310.7" class="hit" /><path d="M255.9,347.3 L571.1,310.7" class="stroke" /></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="Ada"><circle cx="69.0" cy="69.0" r="13.0" /><text x="69.0" y="100.0" text-anchor="middle" class="name">Ada</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Bo"><circle cx="121.0" cy="69.0" r="13.0" /><text x="121.0" y="100.0" text-anchor="middle" class="name">Bo</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="Cal"><circle cx="69.0" cy="121.0" r="13.0" /><text x="69.0" y="152.0" text-anchor="middle" class="name">Cal</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Di"><circle cx="121.0" cy="121.0" r="13.0" /><text x="121.0" y="152.0" text-anchor="middle" class="name">Di</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Eve"><circle cx="189.0" cy="69.0" r="13.0" /><text x="189.0" y="100.0" text-anchor="middle" class="name">Eve</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Flo"><circle cx="241.0" cy="69.0" r="13.0" /><text x="241.0" y="100.0" text-anchor="middle" class="name">Flo</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Gil"><circle cx="189.0" cy="121.0" r="13.0" /><text x="189.0" y="152.0" text-anchor="middle" class="name">Gil</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="Hu"><circle cx="241.0" cy="121.0" r="13.0" /><text x="241.0" y="152.0" text-anchor="middle" class="name">Hu</text></g><g class="node " data-node="8" tabindex="-1" role="presentation" aria-label="Ira"><circle cx="69.0" cy="349.0" r="13.0" /><text x="69.0" y="380.0" text-anchor="middle" class="name">Ira</text></g><g class="node " data-node="9" tabindex="-1" role="presentation" aria-label="Jed"><circle cx="121.0" cy="349.0" r="13.0" /><text x="121.0" y="380.0" text-anchor="middle" class="name">Jed</text></g><g class="node " data-node="10" tabindex="-1" role="presentation" aria-label="Kim"><circle cx="69.0" cy="401.0" r="13.0" /><text x="69.0" y="432.0" text-anchor="middle" class="name">Kim</text></g><g class="node " data-node="11" tabindex="-1" role="presentation" aria-label="Lou"><circle cx="121.0" cy="401.0" r="13.0" /><text x="121.0" y="432.0" text-anchor="middle" class="name">Lou</text></g><g class="node " data-node="12" tabindex="-1" role="presentation" aria-label="Mia"><circle cx="189.0" cy="349.0" r="13.0" /><text x="189.0" y="380.0" text-anchor="middle" class="name">Mia</text></g><g class="node " data-node="13" tabindex="-1" role="presentation" aria-label="Ned"><circle cx="241.0" cy="349.0" r="13.0" /><text x="241.0" y="380.0" text-anchor="middle" class="name">Ned</text></g><g class="node " data-node="14" tabindex="-1" role="presentation" aria-label="Oz"><circle cx="189.0" cy="401.0" r="13.0" /><text x="189.0" y="432.0" text-anchor="middle" class="name">Oz</text></g><g class="node " data-node="15" tabindex="-1" role="presentation" aria-label="Pia"><circle cx="241.0" cy="401.0" r="13.0" /><text x="241.0" y="432.0" text-anchor="middle" class="name">Pia</text></g><g class="node " data-node="16" tabindex="-1" role="presentation" aria-label="Quin"><circle cx="444.0" cy="69.0" r="13.0" /><text x="444.0" y="100.0" text-anchor="middle" class="name">Quin</text></g><g class="node " data-node="17" tabindex="-1" role="presentation" aria-label="Rae"><circle cx="496.0" cy="69.0" r="13.0" /><text x="496.0" y="100.0" text-anchor="middle" class="name">Rae</text></g><g class="node " data-node="18" tabindex="-1" role="presentation" aria-label="Sol"><circle cx="444.0" cy="121.0" r="13.0" /><text x="444.0" y="152.0" text-anchor="middle" class="name">Sol</text></g><g class="node " data-node="19" tabindex="-1" role="presentation" aria-label="Tam"><circle cx="496.0" cy="121.0" r="13.0" /><text x="496.0" y="152.0" text-anchor="middle" class="name">Tam</text></g><g class="node " data-node="20" tabindex="-1" role="presentation" aria-label="Uma"><circle cx="534.0" cy="309.0" r="13.0" /><text x="534.0" y="340.0" text-anchor="middle" class="name">Uma</text></g><g class="node " data-node="21" tabindex="-1" role="presentation" aria-label="Vic"><circle cx="586.0" cy="309.0" r="13.0" /><text x="586.0" y="340.0" text-anchor="middle" class="name">Vic</text></g><g class="node " data-node="22" tabindex="-1" role="presentation" aria-label="Wen"><circle cx="534.0" cy="361.0" r="13.0" /><text x="534.0" y="392.0" text-anchor="middle" class="name">Wen</text></g><g class="node " data-node="23" tabindex="-1" role="presentation" aria-label="Xi"><circle cx="586.0" cy="361.0" r="13.0" /><text x="586.0" y="392.0" text-anchor="middle" class="name">Xi</text></g></svg><div class="legend"><span><i class="dot pal0"></i>one community of this level</span><span><i class="line faint"></i>a pair across communities</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Before we start</span><p class="narration">Leiden finds communities. Any community with more than 6 people is clustered again on its own, and so on, until every community fits or will not split. Press Step to see each level.</p></div><div class="panel"><div class="buttons"><label class="field" for="hierarchy-cap">Cap: at most <select id="hierarchy-cap"><option value="3">3</option><option value="4">4</option><option value="6" selected>6</option><option value="8">8</option><option value="12">12</option><option value="24">24</option></select> people</label></div></div><div class="panel"><span class="label">The tree so far</span><div class="queue"><p class="empty">None yet</p></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="9.0" class="m-pal0" /><text x="22" y="36" text-anchor="middle">3</text><title>Level 0: Leiden on the whole company finds 3 communities, of 8, 8 and 8 people. 3 of them are over the cap of 6 and get clustered again on their own.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="12.0" class="m-pal1" /><text x="48" y="36" text-anchor="middle">6</text><title>Level 1: 6 communities, of 4, 4, 4, 4, 4 and 4 people, split from the ones over the cap. None is over the cap of 6, so this is the last level.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-hierarchy" class="scrub" type="range" min="0" max="2" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-pal1" /></svg>one level, with its number of communities</span></div><p class="note">hierarchicalLeidenCommunities(maximumCommunitySize:) computes every level at once. Each step shows one.</p></section></div></div>
+
+<section class="prose">
+  <h2><small>The idea</small>Cluster, then cluster again inside anything too big</h2>
+  <p>Run <a href="communities.html">Leiden</a> on the whole network. Every community that has more people than the cap is taken on its own, as a network by itself with only the pairs inside it, and Leiden runs again on that. Its communities become the children of the big one. Repeat until every community fits under the cap, or Leiden keeps a community in one piece, in which case it is final however big.</p>
+  <p>Running on a piece by itself matters. Inside a department, the pairs to other departments are gone, so modularity sees the two teams clearly and splits them. On the whole network those same teams were worth keeping together.</p>
+  <p>The result numbers its communities level by level. <code>communities(atLevel:)</code> gives a level’s communities, <code>parent(of:)</code> and <code>children(of:)</code> walk the tree, <code>leaves</code> are the final communities, and <code>community(of:)</code> gives a person’s final community.</p>
+
+  <h2><small>Where it breaks</small>The cap decides what you see</h2>
+  <p>Set the cap to 24 in the lab and there is one level: whatever Leiden finds first. Set it to 3 and the teams of four are over the cap, but a team of four is a clique, and Leiden will not split a clique, so they stay final at four. The cap is a request, not a promise.</p>
+  <p>Leiden is randomised, so two runs can split a borderline community differently. The lab uses a fixed seed. For stable results in your own code, pass a seeded generator, as the code panel does.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The company, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">CommunityDetection</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">RandomGraphs</span>
+
+<span class="c">/// Three departments of two teams each: teams are tight, departments are linked, the company is thin.</span>
+<span class="k">let</span> companyTeams: [[<span class="t">String</span>]] = [
+    [<span class="s">"Ada"</span>, <span class="s">"Bo"</span>, <span class="s">"Cal"</span>, <span class="s">"Di"</span>], [<span class="s">"Eve"</span>, <span class="s">"Flo"</span>, <span class="s">"Gil"</span>, <span class="s">"Hu"</span>],
+    [<span class="s">"Ira"</span>, <span class="s">"Jed"</span>, <span class="s">"Kim"</span>, <span class="s">"Lou"</span>], [<span class="s">"Mia"</span>, <span class="s">"Ned"</span>, <span class="s">"Oz"</span>, <span class="s">"Pia"</span>],
+    [<span class="s">"Quin"</span>, <span class="s">"Rae"</span>, <span class="s">"Sol"</span>, <span class="s">"Tam"</span>], [<span class="s">"Uma"</span>, <span class="s">"Vic"</span>, <span class="s">"Wen"</span>, <span class="s">"Xi"</span>],
+]
+
+<span class="k">let</span> company = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="c">// Everyone in a team works with everyone in it.</span>
+    <span class="k">for</span> team <span class="k">in</span> companyTeams {
+        <span class="k">for</span> i <span class="k">in</span> team.indices {
+            <span class="k">for</span> j <span class="k">in</span> team.indices <span class="k">where</span> j &gt; i { <span class="t">UndirectedEdge</span>(team[i], team[j]) }
+        }
+    }
+    <span class="c">// Each department's two teams share a few pairs.</span>
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ada"</span>, <span class="s">"Eve"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Cal"</span>, <span class="s">"Gil"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Di"</span>, <span class="s">"Hu"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ira"</span>, <span class="s">"Mia"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Kim"</span>, <span class="s">"Oz"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Lou"</span>, <span class="s">"Pia"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"Quin"</span>, <span class="s">"Uma"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Sol"</span>, <span class="s">"Wen"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Tam"</span>, <span class="s">"Xi"</span>)
+    <span class="c">// One liaison between each pair of departments.</span>
+    <span class="t">UndirectedEdge</span>(<span class="s">"Bo"</span>, <span class="s">"Jed"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Flo"</span>, <span class="s">"Rae"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Ned"</span>, <span class="s">"Vic"</span>)
+}
+
+<span class="k">let</span> cap = <span class="n">6</span>
+
+<span class="k">var</span> generator = <span class="t">Xoshiro256StarStar</span>(seed: <span class="n">7</span>)
+<span class="k">let</span> tree = company.hierarchicalLeidenCommunities(maximumCommunitySize: cap, using: &amp;generator)
+<span class="k">let</span> levels = tree.levelCount  <span class="c">// 2</span>
+<span class="k">let</span> top = tree.communities(atLevel: <span class="n">0</span>).map { <span class="t">Array</span>(tree[$<span class="n">0</span>]) }  <span class="c">// [[Ada, Bo, Cal, Di, Eve, Flo, Gil, Hu], [Ira, Jed, Kim, Lou, Mia, Ned, Oz, Pia], [Quin, Rae, Sol, Tam, Uma, Vic, Wen, Xi]]</span>
+<span class="k">let</span> leaves = tree.leaves.map { <span class="t">Array</span>(tree[$<span class="n">0</span>]) }  <span class="c">// [[Ada, Bo, Cal, Di], [Eve, Flo, Gil, Hu], [Ira, Jed, Kim, Lou], [Mia, Ned, Oz, Pia], [Quin, Rae, Sol, Tam], [Uma, Vic, Wen, Xi]]</span>
+<span class="k">let</span> parent = tree.parent(of: tree.community(of: <span class="s">"Ada"</span>))  <span class="c">// Optional(0)</span>
+</span></pre>
+
+  <h2><small>Names you’ll meet</small>Say them with confidence</h2>
+  <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Leiden</b><span class="how">LIE-den</span><span class="ipa">/ˈlɛidə(n)/</span><span class="what">Louvain with a refinement step, so every group is connected</span></div><div class="name"><b>Louvain</b><span class="how">loo-VAN</span><span class="ipa">/luvɛ̃/</span><span class="what">Communities by repeatedly merging what raises modularity</span></div></div></div>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="communities.html"><span>Previous</span>Communities</a><a class="next" href="girvannewman.html"><span>Next</span>Girvan–Newman</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>

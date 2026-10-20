@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centre and diameter · Explore Grafluent</title>
+<meta name="description" content="Which village is in the middle of a county, and how far apart are the two farthest? Eccentricity, radius, diameter, centre and periphery with Grafluent’s eccentricities() and diameterPath().">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="distances">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html" aria-current="page">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="linkprediction.html">Friend suggestions</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Centre and diameter</h1>
+  <p class="question">Where should the county put its ambulance station, and how long is the longest drive it could face?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Finding the middle and the far ends of a network</h2>
+  <p>A village’s <b>eccentricity</b> is the distance to the village farthest from it. The smallest eccentricity anywhere is the network’s <b>radius</b>, and the villages that have it are its <b>centre</b>. The largest eccentricity is the <b>diameter</b>, and the villages that have it are the <b>periphery</b>.</p>
+  <p>Reach for these when you place something that must be near everyone, when you want to know the worst case for a delivery, or when you want one number for how spread out a network is. They work by hops, or by any weight such as minutes or metres.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to find the middle</h2>
+<div class="compare">
+<table>
+  <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Picks</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
+  <tbody>
+    <tr class="self"><th scope="row">Centre by eccentricity <span class="this">This page</span></th><td data-label="When to use">The worst case matters, as for an ambulance</td><td data-label="Picks">The place whose farthest place is nearest</td><td data-label="Cost">One shortest-path search per place</td><td data-label="Weakness">One far-off village moves the centre</td></tr>
+    <tr class="self"><th scope="row">Centroid <span class="this">This page</span></th><td data-label="When to use">The average matters, as for a warehouse</td><td data-label="Picks">The place with the least total distance to all</td><td data-label="Cost">One search per place</td><td data-label="Weakness">A cluster of villages pulls it their way</td></tr>
+    <tr><th scope="row"><a href="pagerank.html">PageRank</a></th><td data-label="When to use">Importance, not distance</td><td data-label="Picks">Places many paths lead to</td><td data-label="Cost">A few passes over the links</td><td data-label="Weakness">Says nothing about how far things are</td></tr>
+    <tr><th scope="row"><a href="betweenness.html">Betweenness</a></th><td data-label="When to use">Who sits on the way between others</td><td data-label="Picks">Places on many shortest paths</td><td data-label="Cost">One search per place, with bookkeeping</td><td data-label="Weakness">Not about reach</td></tr>
+  </tbody>
+</table>
+</div>
+  <p>The centre minimises the worst trip. The centroid minimises the average one. They are often the same village, and often not.</p>
+</section>
+
+<p class="example lead">Example: nine villages in a county, joined by twelve roads with driving times.</p>
+
+<h2 class="labhead"><small>Step through</small>Measure every village</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="Eccentricity, centre and diameter of the county"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 470" role="img" aria-label="Nine villages joined by twelve roads, each village marked with how far its farthest village is"><g class="edge " data-edge="0"><path d="M67.5,124.4 L152.5,145.6" class="hit" /><path d="M67.5,124.4 L152.5,145.6" class="stroke" /></g><g class="edge " data-edge="1"><path d="M182.0,136.5 L238.0,73.5" class="hit" /><path d="M182.0,136.5 L238.0,73.5" class="stroke" /></g><g class="edge " data-edge="2"><path d="M267.4,64.6 L382.6,95.4" class="hit" /><path d="M267.4,64.6 L382.6,95.4" class="stroke" /></g><g class="edge " data-edge="3"><path d="M416.1,108.0 L523.9,162.0" class="hit" /><path d="M416.1,108.0 L523.9,162.0" class="stroke" /></g><g class="edge " data-edge="4"><path d="M549.4,185.3 L610.6,284.7" class="hit" /><path d="M549.4,185.3 L610.6,284.7" class="stroke" /></g><g class="edge " data-edge="5"><path d="M185.3,159.4 L284.7,220.6" class="hit" /><path d="M185.3,159.4 L284.7,220.6" class="stroke" /></g><g class="edge " data-edge="6"><path d="M311.0,215.7 L389.0,114.3" class="hit" /><path d="M311.0,215.7 L389.0,114.3" class="stroke" /></g><g class="edge " data-edge="7"><path d="M316.1,238.0 L423.9,292.0" class="hit" /><path d="M316.1,238.0 L423.9,292.0" class="stroke" /></g><g class="edge " data-edge="8"><path d="M451.0,285.7 L529.0,184.3" class="hit" /><path d="M451.0,285.7 L529.0,184.3" class="stroke" /></g><g class="edge " data-edge="9"><path d="M452.1,313.3 L527.9,396.7" class="hit" /><path d="M452.1,313.3 L527.9,396.7" class="stroke" /></g><g class="edge " data-edge="10"><path d="M550.6,395.4 L609.4,314.6" class="hit" /><path d="M550.6,395.4 L609.4,314.6" class="stroke" /></g><g class="edge " data-edge="11"><path d="M255.1,77.3 L294.9,212.7" class="hit" /><path d="M255.1,77.3 L294.9,212.7" class="stroke" /></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="Ash"><circle cx="50.0" cy="120.0" r="16.0" /><text x="50.0" y="154.0" text-anchor="middle" class="name">Ash</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Birch"><circle cx="170.0" cy="150.0" r="16.0" /><text x="170.0" y="184.0" text-anchor="middle" class="name">Birch</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="Cedar"><circle cx="250.0" cy="60.0" r="16.0" /><text x="250.0" y="94.0" text-anchor="middle" class="name">Cedar</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Dale"><circle cx="400.0" cy="100.0" r="16.0" /><text x="400.0" y="134.0" text-anchor="middle" class="name">Dale</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Elm"><circle cx="540.0" cy="170.0" r="16.0" /><text x="540.0" y="204.0" text-anchor="middle" class="name">Elm</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Glen"><circle cx="300.0" cy="230.0" r="16.0" /><text x="300.0" y="264.0" text-anchor="middle" class="name">Glen</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Holt"><circle cx="440.0" cy="300.0" r="16.0" /><text x="440.0" y="334.0" text-anchor="middle" class="name">Holt</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="Ivy"><circle cx="540.0" cy="410.0" r="16.0" /><text x="540.0" y="444.0" text-anchor="middle" class="name">Ivy</text></g><g class="node " data-node="8" tabindex="-1" role="presentation" aria-label="Fir"><circle cx="620.0" cy="300.0" r="16.0" /><text x="620.0" y="334.0" text-anchor="middle" class="name">Fir</text></g></svg><div class="legend"><span><i class="dot current"></i>this village</span><span><i class="dot frontier"></i>its farthest village</span><span><i class="line tree"></i>the shortest way there</span></div><p class="note">Each circle shows the village’s eccentricity once it has been measured.</p></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Before we start</span><p class="narration">A village’s eccentricity is how far its farthest village is. Measure every village, and the smallest eccentricity is the radius, the largest the diameter. Press Step to measure them one by one.</p></div><div class="panel"><div class="buttons"><label class="field" for="distances-unit">Measure in <select id="distances-unit"><option value="0" selected>hops</option><option value="1">minutes</option></select></label></div></div><div class="panel"><span class="label">Eccentricities so far</span><div class="queue"><p class="empty">None yet</p></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="10.0" class="m-frontier" /><text x="22" y="36" text-anchor="middle">5</text><title>Ash: the farthest village is Fir, 5 hops away by Birch, Cedar, Dale, Elm and Fir. So Ash’s eccentricity is 5.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="9.0" class="m-done" /><text x="48" y="36" text-anchor="middle">4</text><title>Birch: the farthest village is Fir, 4 hops away by Glen, Holt, Ivy and Fir. So Birch’s eccentricity is 4.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="8.0" class="m-current" /><text x="74" y="36" text-anchor="middle">3</text><title>Cedar: the farthest village is Fir, 3 hops away by Dale, Elm and Fir. So Cedar’s eccentricity is 3.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="8.0" class="m-current" /><text x="100" y="36" text-anchor="middle">3</text><title>Dale: the farthest village is Ash, 3 hops away by Cedar, Birch and Ash. So Dale’s eccentricity is 3.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="9.0" class="m-done" /><text x="126" y="36" text-anchor="middle">4</text><title>Elm: the farthest village is Ash, 4 hops away by Dale, Cedar, Birch and Ash. So Elm’s eccentricity is 4.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="10.0" class="m-current" /><text x="152" y="36" text-anchor="middle">5</text><title>Glen: the farthest village is Ash, 5 hops away by Elm, Holt, Glen, Birch and Ash. So Glen’s eccentricity is 5.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="8.0" class="m-current" /><text x="178" y="36" text-anchor="middle">3</text><title>Holt: the farthest village is Fir, 3 hops away by Dale, Elm and Fir. So Holt’s eccentricity is 3.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="8.0" class="m-done" /><text x="204" y="36" text-anchor="middle">3</text><title>Ivy: the farthest village is Ash, 3 hops away by Glen, Birch and Ash. So Ivy’s eccentricity is 3.</title></g><g class="marble future" data-step="8"><circle cx="230" cy="32" r="9.0" class="m-frontier" /><text x="230" y="36" text-anchor="middle">4</text><title>Fir: the farthest village is Ash, 4 hops away by Holt, Glen, Birch and Ash. So Fir’s eccentricity is 4.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-distances" class="scrub" type="range" min="0" max="9" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-current" /></svg>a village of the centre</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-frontier" /></svg>a village of the periphery</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-done" /></svg>another village, bigger for a larger eccentricity</span></div><p class="note">eccentricities() measures every village at once with a shortest-path search from each. The page shows one search per step.</p></section></div></div>
+
+<section class="prose">
+  <h2><small>The idea</small>One shortest-path search from each place</h2>
+  <p>From each village, run a shortest-path search to every other. The largest distance it finds is that village’s eccentricity. If some village cannot be reached at all, the eccentricity is infinite, written <code>nil</code> here. Do this from every village, and the radius, the diameter, the centre and the periphery all fall out of the list. <code>eccentricities()</code> does the searches and keeps the list; <code>radius()</code>, <code>diameter()</code>, <code>center()</code> and <code>periphery()</code> read it.</p>
+  <p>By hops the search is breadth-first and costs time in step with the roads. By minutes it is Dijkstra’s. Either way there is one search per village, so a county of n villages costs n searches. <code>diameterPath()</code> returns the longest of all the shortest drives, with its stops.</p>
+  <p>In the county, four villages tie for the centre by hops: Cedar, Dale, Glen and Holt, each three roads from its farthest village. By minutes only Glen is the centre, 19 minutes from its farthest, because the short Cedar–Glen road and the long Elm–Fir road change which villages are far. Ash and Fir are the periphery either way.</p>
+
+  <h2><small>Where it breaks</small>One search per place adds up</h2>
+  <p>A network of a million places needs a million searches, which is too slow. For a rough diameter, search from one place, then from the farthest place that search found, and take the larger of the two: it is never more than twice too small, and in practice it is usually right. For the exact value on a big network, the searches can be pruned with bounds, which is a different algorithm.</p>
+  <p>If the network is in pieces, every eccentricity is infinite and the diameter is <code>nil</code>. Measure each <a href="components.html">component</a> on its own instead.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The county, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">Distances</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+<span class="k">import</span> <span class="t">ShortestPaths</span>
+<span class="k">import</span> <span class="t">Walks</span>
+
+<span class="k">let</span> lanes = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ash"</span>, <span class="s">"Birch"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Birch"</span>, <span class="s">"Cedar"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Cedar"</span>, <span class="s">"Dale"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Dale"</span>, <span class="s">"Elm"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Elm"</span>, <span class="s">"Fir"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Birch"</span>, <span class="s">"Glen"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Glen"</span>, <span class="s">"Dale"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Glen"</span>, <span class="s">"Holt"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Holt"</span>, <span class="s">"Elm"</span>),
+    <span class="t">UndirectedEdge</span>(<span class="s">"Holt"</span>, <span class="s">"Ivy"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Ivy"</span>, <span class="s">"Fir"</span>), <span class="t">UndirectedEdge</span>(<span class="s">"Cedar"</span>, <span class="s">"Glen"</span>),
+]
+
+<span class="k">let</span> drivingMinutes: [<span class="t">UndirectedEdge</span>&lt;<span class="t">String</span>&gt;: <span class="t">Int</span>] = [
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ash"</span>, <span class="s">"Birch"</span>): <span class="n">12</span>, <span class="t">UndirectedEdge</span>(<span class="s">"Birch"</span>, <span class="s">"Cedar"</span>): <span class="n">7</span>, <span class="t">UndirectedEdge</span>(<span class="s">"Cedar"</span>, <span class="s">"Dale"</span>): <span class="n">9</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Dale"</span>, <span class="s">"Elm"</span>): <span class="n">6</span>, <span class="t">UndirectedEdge</span>(<span class="s">"Elm"</span>, <span class="s">"Fir"</span>): <span class="n">14</span>, <span class="t">UndirectedEdge</span>(<span class="s">"Birch"</span>, <span class="s">"Glen"</span>): <span class="n">5</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Glen"</span>, <span class="s">"Dale"</span>): <span class="n">11</span>, <span class="t">UndirectedEdge</span>(<span class="s">"Glen"</span>, <span class="s">"Holt"</span>): <span class="n">8</span>, <span class="t">UndirectedEdge</span>(<span class="s">"Holt"</span>, <span class="s">"Elm"</span>): <span class="n">4</span>,
+    <span class="t">UndirectedEdge</span>(<span class="s">"Holt"</span>, <span class="s">"Ivy"</span>): <span class="n">6</span>, <span class="t">UndirectedEdge</span>(<span class="s">"Ivy"</span>, <span class="s">"Fir"</span>): <span class="n">5</span>, <span class="t">UndirectedEdge</span>(<span class="s">"Cedar"</span>, <span class="s">"Glen"</span>): <span class="n">3</span>,
+]
+
+<span class="k">let</span> county = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="k">for</span> lane <span class="k">in</span> lanes { lane }
+}
+
+<span class="k">let</span> hops = county.eccentricities()
+<span class="k">let</span> radius = hops.radius  <span class="c">// 3</span>
+<span class="k">let</span> diameter = hops.diameter  <span class="c">// 5</span>
+<span class="k">let</span> center = hops.center  <span class="c">// ["Cedar", "Dale", "Glen", "Holt"]</span>
+<span class="k">let</span> periphery = hops.periphery  <span class="c">// ["Ash", "Fir"]</span>
+</span></pre>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="components.html"><span>Previous</span>Connected components</a><a class="next" href="bridges.html"><span>Next</span>Bridges and articulation points</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>
