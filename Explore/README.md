@@ -70,7 +70,7 @@ contents and the menu without a link.
 | `spectral` | `spectralLayout()`, `fiedlerVector()`, `algebraicConnectivity`, `value(of:)`, `spectralOrdering()` |
 | `layered` | `sugiyamaLayout()`, `LayeredDrawing` (`layer(of:)`, `bends(ofEdgeAt:)`, `reversedEdges`, `crossingCount`), `RootedTree`, `reingoldTilfordLayout()`, `reingoldTilfordCircularLayout()` |
 | `randomwalks` | `randomWalk(from:length:returnParameter:inOutParameter:using:)` with `Xoshiro256StarStar`, `Walk` |
-| `paste` | `init(dot:edgeAttribute:)`, `init(graphML:edgeAttribute:)`, `init(graph6:vertex:)`, `init(edgeList:edgeAttribute:)`, `ParseError`, `fruchtermanReingoldLayout(iterations:using:)`, `lazy.edgeBreadthFirstSearch(from:)`, `lazy.dijkstra(from:weight:)`, `connectedComponents()` |
+| `paste` | `init(dot:edgeAttribute:)`, `init(graphML:edgeAttribute:)`, `init(graph6:vertex:)`, `init(digraph6:vertex:)`, `init(edgeList:edgeAttribute:)` on `UndirectedAdjacencyList` and `AdjacencyList`, `weaklyConnectedComponents()`, `ParseError`, `fruchtermanReingoldLayout(iterations:using:)`, `lazy.edgeBreadthFirstSearch(from:)`, `lazy.dijkstra(from:weight:)`, `connectedComponents()` |
 
 ## Requirements
 

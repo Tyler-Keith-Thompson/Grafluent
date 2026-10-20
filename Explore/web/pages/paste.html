@@ -4,7 +4,7 @@
   <h1>Paste a graph</h1>
   <p class="question">Got a graph of your own? Paste it, see it, and search it.</p>
 </header>
-<p class="example lead">Example: a small town, written in DOT. Change it, pick another format for an example in that one, or paste your own. The page takes up to 120 vertices and reads every edge as undirected. When an edge has a <code>weight</code> attribute that is a whole number, Dijkstra uses it. Other edges weigh 1.</p>
+<p class="example lead">Example: a small town, written in DOT. Change it, pick another format for an example in that one, or paste your own. The page takes up to 200 vertices. A DOT <code>digraph</code>, a GraphML graph with <code>edgedefault="directed"</code> or a digraph6 line is read as directed, with arrows; everything else as undirected. When an edge has a <code>weight</code> attribute that is a whole number, Dijkstra uses it. Other edges weigh 1.</p>
 
 <div id="input"></div>
 <div id="app"></div>
@@ -23,7 +23,7 @@
 
 <section class="prose">
   <h2><small>The idea</small>Read, draw, run</h2>
-  <p>Each format has an initializer on any graph that can be built up: <code>UndirectedAdjacencyList&lt;String&gt;(dot:)</code>, <code>(graphML:)</code>, <code>(graph6:vertex:)</code> and <code>(edgeList:)</code>. They read bytes, so a file’s contents go straight in. Attributes come out through closures as the reader meets them, keyed by the new edge’s position. Nothing about the text is kept once the graph is built.</p>
+  <p>Each format has an initializer on any graph that can be built up: <code>UndirectedAdjacencyList&lt;String&gt;(dot:)</code>, <code>(graphML:)</code>, <code>(graph6:vertex:)</code> and <code>(edgeList:)</code>, and the same on <code>AdjacencyList&lt;String&gt;</code> for a directed text, with <code>(digraph6:vertex:)</code>; a text whose kind does not match the graph it is read into throws, and the page then reads it as the other kind. They read bytes, so a file’s contents go straight in. Attributes come out through closures as the reader meets them, keyed by the new edge’s position. Nothing about the text is kept once the graph is built.</p>
   <p>The drawing is a <a href="layout.html">force-directed layout</a> from a fixed seed, so the same text always draws the same way. Breadth-first search and Dijkstra are the lazy, step-by-step forms the <a href="bfs.html">BFS</a> and <a href="dijkstra.html">Dijkstra</a> pages use. The components are coloured as on the <a href="components.html">components</a> page.</p>
 
   <h2><small>Where it breaks</small>Errors, and what readers leave out</h2>

@@ -49,7 +49,7 @@ let pasteExamples: [PasteFormat: String] = [
 ]
 
 /// The most vertices the page draws.
-let pasteVertexLimit = 120
+let pasteVertexLimit = 200
 
 /// What to run on the pasted graph.
 enum PasteAlgorithm: Int, CaseIterable {
@@ -78,7 +78,7 @@ final class PasteModel {
     var text = pasteExamples[.dot]!
     var algorithm = PasteAlgorithm.bfs
     var start = ""
-    var outcome: Result<(graph: UndirectedAdjacencyList<String>, weights: [Int: Int]), ParseError> = .failure(ParseError(kind: .syntax, line: 1, column: 1, byteOffset: 0))
+    var outcome: Result<(graph: PastedGraph, weights: [Int: Int]), ParseError> = .failure(ParseError(kind: .syntax, line: 1, column: 1, byteOffset: 0))
     var drawing: Drawing<String>?
     var steps: [PasteStep] = []
     var eventCount = 0
@@ -86,14 +86,14 @@ final class PasteModel {
 
     init() { read() }
 
-    var graph: UndirectedAdjacencyList<String>? { if case .success(let g) = outcome { g.graph } else { nil } }
+    var graph: PastedGraph? { if case .success(let g) = outcome { g.graph } else { nil } }
 
     /// Reads the text again, draws it and reruns the search.
     func read() {
         outcome = readPasted(text, as: format)
         drawing = nil
         if let g = graph, g.vertexCount > 0, g.vertexCount <= pasteVertexLimit {
-            drawing = pastedDrawing(g)
+            drawing = pastedDrawing(g.vertices, (0 ..< g.edgeCount).map { g.ends($0) })
             if !g.contains(start) { start = g.vertices.first! }
         }
         run()
@@ -116,13 +116,12 @@ final class PasteModel {
                     }
                 }
             case .dijkstra:
-                let events = pastedDijkstra(g, weights: read.weights, from: start)
-                eventCount = events.count
-                for event in events {
+                let (count, kept) = pastedDijkstra(g, weights: read.weights, from: start)
+                eventCount = count
+                for event in kept {
                     switch event {
                     case .examine(let v, let d): steps.append(.reach(vertex: v, distance: d, piece: 0))
-                    case .edgeRelaxed(let e, _): steps.append(.take(edge: e.position, piece: 0))
-                    default: break
+                    case .relaxed(let e): steps.append(.take(edge: e, piece: 0))
                     }
                 }
             case .components:
@@ -132,7 +131,7 @@ final class PasteModel {
                 for event in events {
                     switch event {
                     case .discover(let v): steps.append(.reach(vertex: v, distance: nil, piece: pieceOf[v]!))
-                    case .treeEdge(let e): steps.append(.take(edge: e, piece: pieceOf[g.edges[e].u]!))
+                    case .treeEdge(let e): steps.append(.take(edge: e, piece: pieceOf[g.ends(e).0]!))
                     default: break
                     }
                 }
@@ -163,7 +162,7 @@ func parseErrorText(_ kind: ParseError.Kind) -> String {
     switch kind {
     case .syntax: "Something here isn’t allowed by the format."
     case .unexpectedEndOfInput: "The text ends in the middle of something."
-    case .kindMismatch: "This page reads only undirected graphs. In DOT, write graph, not digraph."
+    case .kindMismatch: "The text says one kind of graph and its edges say another."
     case .invalidUTF8: "The text isn’t valid UTF-8."
     case .undeclaredVertex: "An edge names a node that was never declared."
     case .duplicateVertex: "A node is declared twice."
@@ -228,7 +227,8 @@ struct PasteLab {
                 if read.graph.vertexCount == 0 {
                     section(.class("panel")) { p(.class("narration")) { "The text reads fine, but it has no vertices to draw." } }
                 } else if let drawing = model.drawing {
-                    let names = Array(read.graph.vertices)
+                    let names = read.graph.vertices
+                    let arrow = read.graph.isDirected ? "→" : "–"
                     let index: [String: Int] = Dictionary(uniqueKeysWithValues: names.enumerated().map { ($0.element, $0.offset) })
                     let placed = names.map { drawing.positions[drawing.vertices.firstIndex(of: $0)!] }
                     let xs = placed.map(\.x), ys = placed.map(\.y)
@@ -251,24 +251,24 @@ struct PasteLab {
                         return CanvasNode(x: x, y: y, name: small ? "" : v, badge: state?.distance.map { "\($0)" } ?? "", radius: small ? 7 : 14,
                                           classes: cls + (v == model.start && !components ? " source" : "") + (isLast ? " current" : ""))
                     }
-                    let edges = read.graph.edges.indices.map { p in
-                        let e = read.graph.edges[p]
+                    let edges = (0 ..< read.graph.edgeCount).map { p in
+                        let (u, v) = read.graph.ends(p)
                         let isLast: Bool = { if case .take(let f, _)? = last { return f == p } else { return false } }()
-                        return CanvasEdge(from: index[e.u]!, to: index[e.v]!, label: read.weights[p].map { "\($0)" } ?? "",
+                        return CanvasEdge(from: index[u]!, to: index[v]!, directed: read.graph.isDirected, label: read.weights[p].map { "\($0)" } ?? "",
                                           classes: isLast ? "active" : taken[p].map { components ? "pal\($0 % 8)" : "tree" } ?? "")
                     }
                     section(.class("lab"), .custom(name: "aria-label", value: "The pasted graph")) {
                         div(.class("panel stage")) {
-                            GraphCanvas(label: "The pasted graph, \(names.count) vertices and \(read.graph.edgeCount) edges, drawn by Fruchterman–Reingold",
+                            GraphCanvas(label: "The pasted \(read.graph.isDirected ? "directed " : "")graph, \(names.count) vertices and \(read.graph.edgeCount) edges, drawn by Fruchterman–Reingold",
                                         width: 640, height: 440, nodes: nodes, edges: edges,
                                         onNode: { i in
-                                            if let g = pasteModel.graph { pasteModel.start = Array(g.vertices)[i]; pasteModel.run() }
+                                            if let g = pasteModel.graph { pasteModel.start = g.vertices[i]; pasteModel.run() }
                                         }, nodeAction: "Start from")
                             p(.class("note")) { components ? "Same colour, same component." : "Click a vertex to start from it. Numbers on edges are their weight attributes; edges without one weigh 1." }
                         }
                         div(.class("side")) {
                             div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
-                                span(.class("label")) { "\(names.count) vertices · \(read.graph.edgeCount) edges" }
+                                span(.class("label")) { "\(names.count) vertices · \(read.graph.edgeCount) \(read.graph.isDirected ? "arcs" : "edges")" }
                                 p(.class("narration")) {
                                     switch last {
                                     case nil:
@@ -276,7 +276,7 @@ struct PasteLab {
                                     case .reach(let v, let d, let n)?:
                                         components ? "Reach \(v), in component \(n + 1)." : d.map { "Settle \(v) at distance \($0)." } ?? "Reach \(v)."
                                     case .take(let e, _)?:
-                                        "Take \(read.graph.edges[e].u)–\(read.graph.edges[e].v) into the search tree."
+                                        "Take \(read.graph.ends(e).0)\(arrow)\(read.graph.ends(e).1) into the search tree."
                                     }
                                 }
                                 label(.class("field"), .for("paste-algorithm")) {
@@ -302,7 +302,7 @@ struct PasteLab {
                                 case .reach(let v, let d, let n):
                                     return Marble(kind: components ? "m-pal\(n % 8)" : "m-blue", radius: 8, letter: d.map { "\($0)" } ?? "", title: "Reach \(v)")
                                 case .take(let e, let n):
-                                    return Marble(kind: components ? "m-pal\(n % 8)" : "m-blue", radius: 3.5, title: "Take \(read.graph.edges[e].u)–\(read.graph.edges[e].v)")
+                                    return Marble(kind: components ? "m-pal\(n % 8)" : "m-blue", radius: 3.5, title: "Take \(read.graph.ends(e).0)\(read.graph.isDirected ? "→" : "–")\(read.graph.ends(e).1)")
                                 }
                             },
                             legend: [(Marble(kind: "m-blue", radius: 6), model.algorithm == .dijkstra ? "a vertex settled, with its distance" : "a vertex reached"), (Marble(kind: "m-blue", radius: 3.5), "an edge into the tree")])
@@ -321,10 +321,19 @@ struct PasteLab {
 struct PasteCodePanel {
     var body: some View {
         let model = pasteModel
-        let read: Snippet = [.pasteReadDot, .pasteReadGraphml, .pasteReadGraph6, .pasteReadEdgelist][model.format.rawValue]
+        let directed = model.graph?.isDirected == true
+        let read: Snippet = switch (model.format, directed) {
+        case (.dot, false): .pasteReadDot
+        case (.dot, true): .pasteReadDigraph
+        case (.graphML, false): .pasteReadGraphml
+        case (.graphML, true): .pasteReadGraphmlDirected
+        case (.graph6, false): .pasteReadGraph6
+        case (.graph6, true): .pasteReadDigraph6
+        case (.edgeList, _): .pasteReadEdgelist
+        }
         let shown = model.text.count > 60 ? String(model.text.prefix(57)) + "…" : model.text
         let binding = Snippet(lines: ["let text = \"" + shown.replacingNewlines() + "\""] + (model.algorithm == .components ? [] : ["let start = \"\(model.start)\""]))
-        let algorithm: Snippet = [.pasteBfs, .pasteDijkstra, .pasteComponents][model.algorithm.rawValue]
+        let algorithm: Snippet = [.pasteBfs, .pasteDijkstra, directed ? .pasteWeakComponents : .pasteComponents][model.algorithm.rawValue]
         let result: String = {
             switch model.outcome {
             case .failure(let error): return "throws \(error)"
