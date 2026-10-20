@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assortativity · Explore Grafluent</title>
+<meta name="description" content="Do busy vertices link to busy vertices? Degree assortativity, average neighbour degree and degree connectivity with Grafluent’s degreeAssortativityCoefficient() and averageNeighborDegrees().">
+<script>
+  // The theme the reader picked last time, before anything is drawn.
+  try { const t = localStorage.getItem("explore-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  // A new page opens at its top, even where the host keeps the previous page's scroll position.
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231d4f9c%22/%3E%3Cpath d=%22M9 22L16 9l7 13z%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/%3E%3Ccircle cx=%229%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2216%22 cy=%229%22 r=%223.5%22 fill=%22white%22/%3E%3Ccircle cx=%2223%22 cy=%2222%22 r=%223.5%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="explore.css">
+<link rel="modulepreload" href="index.js">
+<link rel="preload" href="Explore.wasm" as="fetch" type="application/wasm" crossorigin>
+</head>
+<body data-page="assortativity">
+<div class="wrap">
+  <nav class="topbar" aria-label="Site">
+    <a class="home" href="./">Explore <b>Grafluent</b></a>
+    <span class="spacer"></span>
+    <details class="menu"><summary><span class="burger" aria-hidden="true"></span><span class="mlabel">All pages</span></summary>
+      <nav class="mpanel" aria-label="All pages"><a class="mhome" href="./">Contents</a>
+        <div class="mgroup"><span>Start here</span><a href="basics.html">Graph basics</a><a href="representations.html">Storing a graph</a><a href="products.html">Graph products</a></div>
+        <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
+        <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a></div>
+        <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html" aria-current="page">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
+      </nav>
+    </details>
+    <a href="../documentation/">Docs</a>
+    <button type="button" class="theme" id="theme" aria-label="Switch between light and dark">◐<span class="tlabel"> Theme</span></button>
+  </nav>
+<header class="sign">
+  <h1>Assortativity</h1>
+  <p class="question">In a newsroom the editors all talk to each other. In an airline the small airports all fly to one hub. Which network is which, from the numbers alone?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Whether like links to like</h2>
+  <p>A network is <b>assortative</b> when vertices with many links tend to link to other vertices with many links, and <b>disassortative</b> when the busy ones link to the quiet ones. The <b>degree assortativity coefficient</b> puts a number on it, from −1 to 1, like a correlation.</p>
+  <p>Reach for it to tell a social network, where popular people know each other, from a technological one, where hubs serve leaves. It also says how a network will fail: an assortative network keeps a tough core when its edge frays, a disassortative one falls apart when a hub goes.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to read the mixing</h2>
+<div class="compare">
+<table>
+  <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Gives</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
+  <tbody>
+    <tr class="self"><th scope="row">Assortativity coefficient <span class="this">This page</span></th><td data-label="When to use">One number for the whole network</td><td data-label="Gives">A correlation between the two ends’ degrees</td><td data-label="Cost">O(m)</td><td data-label="Weakness">Hides which vertices drive it</td></tr>
+    <tr class="self"><th scope="row">Average neighbour degree <span class="this">This page</span></th><td data-label="When to use">A number per vertex</td><td data-label="Gives">How busy each vertex’s neighbours are</td><td data-label="Cost">O(m)</td><td data-label="Weakness">Many numbers to read</td></tr>
+    <tr class="self"><th scope="row">Degree connectivity <span class="this">This page</span></th><td data-label="When to use">The trend by degree</td><td data-label="Gives">Neighbours’ average for each degree</td><td data-label="Cost">O(m)</td><td data-label="Weakness">Needs a plot to read well</td></tr>
+    <tr><th scope="row"><a href="cores.html">Cores</a></th><td data-label="When to use">The dense centre</td><td data-label="Gives">Who survives the peeling</td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">Says nothing about mixing</td></tr>
+  </tbody>
+</table>
+</div>
+  <p>The coefficient is the summary. The per-vertex and per-degree numbers show the shape behind it.</p>
+</section>
+
+<p class="example lead">Example: a newsroom of three editors, three reporters and three juniors, and an airline of one hub and eight small airports.</p>
+
+<h2 class="labhead"><small>Step through</small>Each vertex against its neighbours</h2>
+<div id="app" data-loading aria-busy="true"><div><section class="lab" aria-label="Degree assortativity of a network"><div class="panel stage"><svg class="canvas" viewBox="0 0 640 470" role="img" aria-label="A network with each vertex's number of links, and the average number its neighbours have"><g class="edge " data-edge="0"><path d="M237.0,170.0 L403.0,170.0" class="hit" /><path d="M237.0,170.0 L403.0,170.0" class="stroke" /></g><g class="edge " data-edge="1"><path d="M411.0,184.4 L329.0,315.6" class="hit" /><path d="M411.0,184.4 L329.0,315.6" class="stroke" /></g><g class="edge " data-edge="2"><path d="M311.0,315.6 L229.0,184.4" class="hit" /><path d="M311.0,315.6 L229.0,184.4" class="stroke" /></g><g class="edge " data-edge="3"><path d="M205.3,161.4 L114.7,108.6" class="hit" /><path d="M205.3,161.4 L114.7,108.6" class="stroke" /></g><g class="edge " data-edge="4"><path d="M91.9,114.9 L48.1,195.1" class="hit" /><path d="M91.9,114.9 L48.1,195.1" class="stroke" /></g><g class="edge " data-edge="5"><path d="M434.7,161.4 L525.3,108.6" class="hit" /><path d="M434.7,161.4 L525.3,108.6" class="stroke" /></g><g class="edge " data-edge="6"><path d="M548.1,114.9 L591.9,195.1" class="hit" /><path d="M548.1,114.9 L591.9,195.1" class="stroke" /></g><g class="edge " data-edge="7"><path d="M310.9,344.3 L259.1,425.7" class="hit" /><path d="M310.9,344.3 L259.1,425.7" class="stroke" /></g><g class="edge " data-edge="8"><path d="M267.0,440.0 L403.0,440.0" class="hit" /><path d="M267.0,440.0 L403.0,440.0" class="stroke" /></g><g class="node " data-node="0" tabindex="-1" role="presentation" aria-label="Ed"><circle cx="220.0" cy="170.0" r="15.0" /><text x="220.0" y="203.0" text-anchor="middle" class="name">Ed</text></g><g class="node " data-node="1" tabindex="-1" role="presentation" aria-label="Flo"><circle cx="420.0" cy="170.0" r="15.0" /><text x="420.0" y="203.0" text-anchor="middle" class="name">Flo</text></g><g class="node " data-node="2" tabindex="-1" role="presentation" aria-label="Gil"><circle cx="320.0" cy="330.0" r="15.0" /><text x="320.0" y="363.0" text-anchor="middle" class="name">Gil</text></g><g class="node " data-node="3" tabindex="-1" role="presentation" aria-label="Ana"><circle cx="100.0" cy="100.0" r="15.0" /><text x="100.0" y="133.0" text-anchor="middle" class="name">Ana</text></g><g class="node " data-node="4" tabindex="-1" role="presentation" aria-label="Ben"><circle cx="40.0" cy="210.0" r="15.0" /><text x="40.0" y="243.0" text-anchor="middle" class="name">Ben</text></g><g class="node " data-node="5" tabindex="-1" role="presentation" aria-label="Cat"><circle cx="540.0" cy="100.0" r="15.0" /><text x="540.0" y="133.0" text-anchor="middle" class="name">Cat</text></g><g class="node " data-node="6" tabindex="-1" role="presentation" aria-label="Dan"><circle cx="600.0" cy="210.0" r="15.0" /><text x="600.0" y="243.0" text-anchor="middle" class="name">Dan</text></g><g class="node " data-node="7" tabindex="-1" role="presentation" aria-label="Eve"><circle cx="250.0" cy="440.0" r="15.0" /><text x="250.0" y="473.0" text-anchor="middle" class="name">Eve</text></g><g class="node " data-node="8" tabindex="-1" role="presentation" aria-label="Hal"><circle cx="420.0" cy="440.0" r="15.0" /><text x="420.0" y="473.0" text-anchor="middle" class="name">Hal</text></g></svg><div class="legend"><span><i class="dot current"></i>this vertex</span><span><i class="dot frontier"></i>its neighbours</span><span>number: links; “near”: the neighbours’ average</span></div></div><div class="side"><div class="panel" aria-live="polite"><span class="label">Before we start</span><p class="narration">Do busy vertices link to busy vertices? Compare each vertex’s number of links with the average of its neighbours. Press Step to go through them.</p></div><div class="panel"><div class="buttons"><label class="field" for="assortativity-network">Network: <select id="assortativity-network"><option value="0" selected>the newsroom</option><option value="1">the airline</option></select></label></div></div><div class="panel"><span class="label">By number of links</span><div class="queue"><div class="qrow plain"><span>vertices with 1 link</span><span class="num">neighbours average 2.0</span></div><div class="qrow plain"><span>vertices with 2 links</span><span class="num">neighbours average 2.0</span></div><div class="qrow plain"><span>vertices with 3 links</span><span class="num">neighbours average 2.7</span></div></div></div></div></section><section class="panel controls" aria-label="Playback"><div class="buttons"><button type="button" aria-label="Step back">◀ Back</button><button type="button" class="primary">▶ Play</button><button type="button">Step ▶</button><button type="button">Reset</button></div><div class="timeline-scroll"><svg class="timeline" width="300" viewBox="0 0 300 64" aria-label="Timeline of events"><line x1="8" y1="32" x2="292" y2="32" class="axis" /><g class="marble future" data-step="0"><circle cx="22" cy="32" r="7.0" class="m-current" /><text x="22" y="36" text-anchor="middle">3</text><title>Ed has 3 links; Ed’s neighbours have 2.7 on average. They are quieter than Ed.</title></g><g class="marble future" data-step="1"><circle cx="48" cy="32" r="7.0" class="m-current" /><text x="48" y="36" text-anchor="middle">3</text><title>Flo has 3 links; Flo’s neighbours have 2.7 on average. They are quieter than Flo.</title></g><g class="marble future" data-step="2"><circle cx="74" cy="32" r="7.0" class="m-current" /><text x="74" y="36" text-anchor="middle">3</text><title>Gil has 3 links; Gil’s neighbours have 2.7 on average. They are quieter than Gil.</title></g><g class="marble future" data-step="3"><circle cx="100" cy="32" r="6.0" class="m-done" /><text x="100" y="36" text-anchor="middle">2</text><title>Ana has 2 links; Ana’s neighbours have 2.0 on average. They are as busy as Ana.</title></g><g class="marble future" data-step="4"><circle cx="126" cy="32" r="5.0" class="m-frontier" /><text x="126" y="36" text-anchor="middle">1</text><title>Ben has 1 link; Ben’s neighbours have 2.0 on average. They are busier than Ben.</title></g><g class="marble future" data-step="5"><circle cx="152" cy="32" r="6.0" class="m-done" /><text x="152" y="36" text-anchor="middle">2</text><title>Cat has 2 links; Cat’s neighbours have 2.0 on average. They are as busy as Cat.</title></g><g class="marble future" data-step="6"><circle cx="178" cy="32" r="5.0" class="m-frontier" /><text x="178" y="36" text-anchor="middle">1</text><title>Dan has 1 link; Dan’s neighbours have 2.0 on average. They are busier than Dan.</title></g><g class="marble future" data-step="7"><circle cx="204" cy="32" r="6.0" class="m-done" /><text x="204" y="36" text-anchor="middle">2</text><title>Eve has 2 links; Eve’s neighbours have 2.0 on average. They are as busy as Eve.</title></g><g class="marble future" data-step="8"><circle cx="230" cy="32" r="5.0" class="m-frontier" /><text x="230" y="36" text-anchor="middle">1</text><title>Hal has 1 link; Hal’s neighbours have 2.0 on average. They are busier than Hal.</title></g><line x1="9" y1="8" x2="9" y2="56" class="playhead" /></svg></div><input id="scrub-assortativity" class="scrub" type="range" min="0" max="9" value="0" aria-label="Scrub through the steps"><div class="tl-legend"><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-frontier" /></svg>neighbours busier than it</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-current" /></svg>neighbours quieter than it</span><span><svg width="16" height="16" viewBox="0 0 16 16" class="swatch"><circle cx="8" cy="8" r="7.0" class="m-done" /></svg>about the same</span></div><p class="note">averageNeighborDegrees() and degreeAssortativityCoefficient() read the whole network at once. Each step shows one vertex.</p></section></div></div>
+
+<section class="prose">
+  <h2><small>The idea</small>Correlate the two ends of every link</h2>
+  <p>Take every link and write down the degrees of its two ends. The assortativity coefficient is the correlation of those pairs, the same formula as for any two columns of numbers. In the newsroom the editors’ links join degree 3 to degree 3, each reporter’s link to an editor joins 2 to 3, and each junior’s link joins 1 to 2: the busy sit with the busy and the quiet with the quiet, so the coefficient is positive. In the airline every link to the hub joins 8 to 1 or 2, so the coefficient is strongly negative. <code>degreeAssortativityCoefficient()</code> computes it, and returns <code>nil</code> when every degree is the same, since a constant has no correlation.</p>
+  <p><code>averageNeighborDegrees()</code> gives each vertex the mean degree of its neighbours; the lab shows that number as “near”. <code>averageDegreeConnectivity()</code> groups those means by the vertex’s own degree. In an assortative network the means rise with the degree; in a disassortative one they fall.</p>
+
+  <h2><small>Where it breaks</small>One number for a whole network</h2>
+  <p>The coefficient is a correlation, so it is pulled by whatever is common. A network with one huge hub and many leaves is disassortative however the rest is wired. And a network can be assortative in one region and disassortative in another, which one number cannot show; the per-degree averages can. Directed networks have four coefficients, one for each choice of in- or out-degree at each end, and <code>averageNeighborDegrees(source:target:)</code> picks them.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The two networks, in Grafluent</h2>
+  <pre id="code" data-loading aria-busy="true" aria-label="Swift code"><span><span class="k">import</span> <span class="t">AdjacencyListModule</span>
+<span class="k">import</span> <span class="t">Assortativity</span>
+<span class="k">import</span> <span class="t">GraphProtocols</span>
+
+<span class="c">/// A newsroom: three editors who talk to each other, each with a reporter who has a junior.</span>
+<span class="k">let</span> newsroom = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ed"</span>, <span class="s">"Flo"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Flo"</span>, <span class="s">"Gil"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Gil"</span>, <span class="s">"Ed"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ed"</span>, <span class="s">"Ana"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Ana"</span>, <span class="s">"Ben"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Flo"</span>, <span class="s">"Cat"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"Cat"</span>, <span class="s">"Dan"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Gil"</span>, <span class="s">"Eve"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Eve"</span>, <span class="s">"Hal"</span>)
+}
+
+<span class="c">/// An airline: one hub that every small airport flies to, and nothing between the small ones.</span>
+<span class="k">let</span> airline = <span class="t">UndirectedAdjacencyList</span>&lt;<span class="t">String</span>&gt; {
+    <span class="t">UndirectedEdge</span>(<span class="s">"Hub"</span>, <span class="s">"Ames"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Hub"</span>, <span class="s">"Bend"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Hub"</span>, <span class="s">"Cody"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"Hub"</span>, <span class="s">"Dale"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Hub"</span>, <span class="s">"Elko"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Hub"</span>, <span class="s">"Fargo"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"Hub"</span>, <span class="s">"Gary"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Hub"</span>, <span class="s">"Hilo"</span>)
+    <span class="t">UndirectedEdge</span>(<span class="s">"Ames"</span>, <span class="s">"Bend"</span>); <span class="t">UndirectedEdge</span>(<span class="s">"Cody"</span>, <span class="s">"Dale"</span>)
+}
+
+<span class="k">let</span> graph = newsroom
+
+<span class="k">let</span> r = graph.degreeAssortativityCoefficient()  <span class="c">// 0.40</span>
+<span class="k">let</span> around = graph.averageNeighborDegrees()
+<span class="k">let</span> friendsOfFriends = graph.vertices.map { around.averageNeighborDegree(of: $<span class="n">0</span>) }  <span class="c">// [2.7, 2.7, 2.7, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]</span>
+<span class="k">let</span> byDegree = graph.averageDegreeConnectivity()  <span class="c">// [1: 2.0, 2: 2.0, 3: 2.7]</span>
+</span></pre>
+</section>
+<nav class="pager" aria-label="Pages"><a class="prev" href="betweenness.html"><span>Previous</span>Betweenness</a><a class="next" href="linkprediction.html"><span>Next</span>Friend suggestions</a></nav>
+</div>
+<script>
+  if (!location.hash) window.scrollTo(0, 0);
+  // Until the reader scrolls, keep the page at its top while the fonts and the interactive parts
+  // come in. `pinned` is read again once the interactive parts have mounted.
+  let pinned = !location.hash;
+  if (pinned) {
+    const release = () => { pinned = false; };
+    for (const kind of ["wheel", "touchstart", "keydown", "mousedown"]) addEventListener(kind, release, { once: true, passive: true });
+    const pin = new ResizeObserver(() => { if (pinned) window.scrollTo(0, 0); });
+    pin.observe(document.body);
+    setTimeout(() => { pinned = false; pin.disconnect(); }, 3000);
+  }
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("explore-theme", root.dataset.theme); } catch {}
+  });
+</script>
+<script type="module">
+  // Grafluent and the interface run as WebAssembly; this loads them.
+  import { init } from "./index.js";
+  // The page's first frame is already drawn; these views mount in its place. Return to the top
+  // once they are drawn, unless the link named a section or the reader has scrolled.
+  const toTop = () => { if (pinned) window.scrollTo(0, 0); };
+  init().then(() => requestAnimationFrame(() => requestAnimationFrame(toTop))).catch((error) => {
+    console.error("The explorer failed to start:", error);
+    for (const part of document.querySelectorAll("[data-loading]")) { part.removeAttribute("data-loading"); part.removeAttribute("aria-busy"); }
+    const app = document.getElementById("app");
+    if (app) app.textContent = "The interactive part of this page could not start in this browser.";
+  });
+</script>
+</body>
+</html>
