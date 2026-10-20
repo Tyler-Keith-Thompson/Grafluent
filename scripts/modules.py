@@ -35,7 +35,7 @@ MODULES = [
     ("AdjacencyListModule", "Representations", "AdjacencyList: a directed graph stored as out- and in-adjacency per vertex.", ["GraphProtocols", "swift-atomics/Atomics"]),
     ("AdjacencyMatrixModule", "Representations", "AdjacencyMatrix: a directed graph on vertices 0..<n stored as an n×n bit matrix.", ["GraphProtocols", "swift-collections/BitCollections"]),
     ("IncidenceMatrixModule", "Representations", "IncidenceMatrix and OrientedIncidenceMatrix: a hypergraph's incidence as bit planes, conforming to Hypergraph and DirectedHypergraph.", ["GraphProtocols", "swift-collections/BitCollections"]),
-    ("CompressedSparseRowModule", "Representations", "CompressedSparseRow: an immutable directed graph on vertices 0..<n in compressed sparse row form.", ["GraphProtocols"]),
+    ("CompressedSparseRowModule", "Representations", "CompressedSparseRow: an immutable directed graph on vertices 0..<n in compressed sparse row form; BidirectionalCompressedSparseRow adds its column form for predecessors and in-edges.", ["GraphProtocols"]),
     ("EdgeListModule", "Representations", "EdgeList: a directed multigraph as an ordered, mutable list of edges.", ["GraphProtocols"]),
     ("ImplicitGraphs", "Representations", "ImplicitDirectedGraph: out-neighbors computed on demand, never stored.", ["GraphProtocols"]),
     ("LabeledGraphs", "Representations", "LabeledGraph: Hashable vertex labels over CompressedSparseRow or AdjacencyMatrix, kept in an OrderedSet whose element i names base vertex i, with every index-space member forwarded to the base.", ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyMatrixModule", "swift-collections/OrderedCollections"]),

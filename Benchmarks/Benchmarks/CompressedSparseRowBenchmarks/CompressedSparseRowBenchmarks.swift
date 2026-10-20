@@ -149,6 +149,32 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    Benchmark("BidirectionalCompressedSparseRow: build from the 1M-edge graph") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(BidirectionalCompressedSparseRow(graph)) }
+    }
+    let bidirectional = BidirectionalCompressedSparseRow(graph)
+    let column = graph.transposed()
+    Benchmark("BidirectionalCompressedSparseRow: BASELINE walk every row of transposed()") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for v in 0 ..< column.vertexCount { for w in column.successors(of: v) { sum &+= w } }
+            blackHole(sum)
+        }
+    }
+    Benchmark("BidirectionalCompressedSparseRow: walk every predecessor row") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for v in 0 ..< bidirectional.vertexCount { for w in bidirectional.predecessors(of: v) { sum &+= w } }
+            blackHole(sum)
+        }
+    }
+    Benchmark("BidirectionalCompressedSparseRow: walk every in-edge position") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var sum = 0
+            for v in 0 ..< bidirectional.vertexCount { for p in bidirectional.inEdges(of: v) { sum &+= p } }
+            blackHole(sum)
+        }
+    }
     Benchmark("CompressedSparseRow: transposed()") { benchmark in
         for _ in benchmark.scaledIterations {
             blackHole(graph.transposed())

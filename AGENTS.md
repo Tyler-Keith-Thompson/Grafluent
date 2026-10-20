@@ -383,9 +383,10 @@ isomorphism, not insertion order), except `EdgeList`, whose order is part of its
 | `AdjacencyList<V>` | Directed, simple (self-loops allowed); out- and in-rows per vertex | O(1) expected `contains(edge:)`, `edges(from:to:)` (`edges(between:and:)` undirected) and edge removal; O(degree) vertex removal. Removals swap-remove, so positions may change. Bulk initializers lay rows out packed in slot order. `MutableDirectedGraph`, `PropertyGraph` |
 | `UndirectedAdjacencyList<V>` | Undirected counterpart of `AdjacencyList` | `Graph`, `PropertyGraph` |
 | `AdjacencyMatrix` | Directed on `0..<n`, n×n bit matrix | O(1) adjacency; rows are `BitSet`s; vertices appended (`appendVertex()`), never removed; edge positions are cells; edge maps are dense, n² values each |
-| `CompressedSparseRow` | Directed on `0..<n`, offsets plus targets | Immutable (initializers only); edge positions `0..<m`; binary-search `contains(edge:)`; not bidirectional (use `transposed()`) |
+| `CompressedSparseRow` | Directed on `0..<n`, offsets plus targets | Immutable (initializers only); edge positions `0..<m`; binary-search `contains(edge:)`; not bidirectional (`BidirectionalCompressedSparseRow` or `transposed()`) |
 | `EdgeList<V>` | Ordered list of directed edges | A `RandomAccessCollection`/`MutableCollection`/`RangeReplaceableCollection`; queries are O(m) scans; not a `DirectedGraph` |
 | `ImplicitDirectedGraph<Row>` | Directed on `0..<n`, successors from a closure | Never stored; not `Equatable`/`Sendable`; no attached maps |
+| `BidirectionalCompressedSparseRow` | `CompressedSparseRow` plus its column form | Immutable; `GraphDelegator` over the row form, same positions; `predecessors`, `inEdges` (positions) and `inDegree` in O(1); `transposed()` is O(1); about twice the memory |
 | `LabeledGraph<Label, Base>` | `Hashable` labels over `CompressedSparseRow` or `AdjacencyMatrix` | Label `i` names base vertex `i`; index-space members are the base's; positions are the base's |
 | `IncidenceMatrix` / `OrientedIncidenceMatrix` | Hypergraph incidence as bit planes | `Hypergraph` / `DirectedHypergraph` |
 | `UndirectedIncidenceList<V>` / `IncidenceList<V>` | Hypergraphs as incidence lists | Hyperedges may be empty or repeated |

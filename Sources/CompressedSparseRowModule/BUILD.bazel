@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# CompressedSparseRow: an immutable directed graph on vertices 0..<n in compressed sparse row form.
+# CompressedSparseRow: an immutable directed graph on vertices 0..<n in compressed sparse row form; BidirectionalCompressedSparseRow adds its column form for predecessors and in-edges.
 swift_library(
     name = "CompressedSparseRowModule",
     srcs = glob(["**/*.swift"]),

@@ -2,9 +2,12 @@
 # guard of each row lookup and of the checked edge endpoints, and each twin calling its own
 # trapping spelling. Run with `just mutate CompressedSparseRowModule`. See scripts/mutate.py.
 #
-# The rest of the representation has no mutants.
+# The rest of the row form has no mutants; the column form (BidirectionalCompressedSparseRow)
+# has its sources, positions, guards and degrees.
 #
-# Known equivalent mutants (they survive by design): none.
+# Known equivalent mutants (they survive by design): dropping the column form's range guards in
+# predecessors(of:), inEdges(of:) and inDegree(of:), whose slice index then traps on the same
+# vertex with a worse message.
 
 TESTS = ["CompressedSparseRowTests"]
 
@@ -13,7 +16,21 @@ C = "CompressedSparseRow.swift"
 ROW_GUARD = "guard contains(vertex) else { throw VertexNotFound() }"
 EDGE_GUARD = "guard edgeIndex >= 0 && edgeIndex < edgeCount else { throw EdgeNotFound() }"
 
+B = "BidirectionalCompressedSparseRow.swift"
+
 MUTANTS = [
+    # The column form: its sources, its positions, its guards and its degrees.
+    Mutant("bidisources", B, "_inSources = column._targets", "_inSources = column._offsets", mode="stmt"),
+    Mutant("bidipositions", B, "_inPositions = positions", "_inPositions = Array(0 ..< positions.count)", mode="stmt"),
+    Mutant("bidiindegree", B, "_inOffsets[vertex &+ 1] &- _inOffsets[vertex]", "_inOffsets[vertex &+ 1]"),
+    Mutant("bididegree", B, "outDegree(of: vertex) &+ inDegree(of: vertex)", "outDegree(of: vertex)"),
+    Mutant("bidiforeach", B, "for v in predecessors(of: index) { body(v) }", "", mode="stmt"),
+    Mutant("biditransposed", B, "CompressedSparseRow(_offsets: _inOffsets, _targets: _inSources)", "_base"),
+    Mutant("bidicheckedpred", B, "guard UInt(bitPattern: vertex) < UInt(bitPattern: vertexCount) else { throw VertexNotFound() }", "", mode="stmt", nth=0),
+    Mutant("bidicheckedinedges", B, "guard UInt(bitPattern: vertex) < UInt(bitPattern: vertexCount) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
+    Mutant("bidicheckedindegree", B, "guard UInt(bitPattern: vertex) < UInt(bitPattern: vertexCount) else { throw VertexNotFound() }", "", mode="stmt", nth=2),
+    Mutant("bidiequal", B, "lhs._base == rhs._base", "lhs._base.vertexCount == rhs._base.vertexCount"),
+    Mutant("bidimapwrite", B, "_base[map, ofEdgeAt: position] = newValue", "_ = newValue", mode="stmt"),
     # Each row lookup's range guard, in file order.
     Mutant("successorsguard", C, ROW_GUARD, "", mode="stmt", nth=0),
     Mutant("outedgesguard", C, ROW_GUARD, "", mode="stmt", nth=1),

@@ -1,5 +1,9 @@
 # CompressedSparseRow test suite
 
+`BidirectionalCompressedSparseRow` (`BidirectionalCompressedSparseRowTests.swift`) wraps the row form
+with its column form, so predecessors, in-edges (positions of `edges`) and in-degrees read in O(1);
+it is a `GraphDelegator` whose other reads and attached maps are the base's.
+
 `CompressedSparseRow` is an immutable directed graph on the vertices `0..<vertexCount`, stored as
 `offsets` (`vertexCount + 1` entries) and `targets` (`edgeCount` entries): the successors of `v`
 are `targets[offsets[v] ..< offsets[v + 1]]`. Rows are canonical (strictly ascending), self-loops
