@@ -8,7 +8,7 @@ import GraphProtocols
 ///
 /// A row that has used its spare cells gets more by rebalancing: the smallest aligned window of
 /// cells around it whose density stays under a threshold after the insertion is laid out again,
-/// its spare cells spread evenly over its rows. The thresholds fall from 0.92 at a leaf window to
+/// its spare cells shared out in proportion to the rows' entries. The thresholds fall from 0.92 at a leaf window to
 /// 0.7 at the whole storage; when the whole storage would be too dense it doubles. So rows stay in
 /// order, an insertion moves O(log² n) cells amortized, and a walk over the rows reads the
 /// storage once, forward. A graph built in bulk keeps its rows packed, with no spare cells, until
@@ -263,7 +263,8 @@ package struct _PackedRowPool {
     }
 
     /// Lays every row out over a storage of at least `minimumCapacity` cells, sized so the rows
-    /// and `needed` more cells fill at most 0.7 of it, the spare cells spread evenly.
+    /// and `needed` more cells fill at most 0.7 of it, the spare cells shared out in proportion to
+    /// the rows' entries.
     @inlinable
     @inline(never)
     package mutating func _layOut(minimumCapacity: Int, needed: Int, favouring row: Int, shrinking: Bool = false) {
@@ -285,19 +286,23 @@ package struct _PackedRowPool {
         var newPositions = ContiguousArray<Int>(repeating: 0, count: size)
         let gaps = size - live
         let k = rows.count
-        let share = _Share(of: gaps, among: k, favouring: row, needed: needed)
+        let share = _Share(of: gaps, among: k, entries: live, favouring: row, needed: needed)
         var cursor = 0
         newTargets.withUnsafeMutableBufferPointer { newTargets in
             newPositions.withUnsafeMutableBufferPointer { newPositions in
                 targets.withUnsafeBufferPointer { oldTargets in
                     positions.withUnsafeBufferPointer { oldPositions in
+                        var before = 0, cut = 0
                         for r in 0 ..< k {
                             let block = rows[r]
                             for c in 0 ..< block.count {
                                 newTargets[cursor + c] = oldTargets[block.start + c]
                                 newPositions[cursor + c] = oldPositions[block.start + c]
                             }
-                            let extra = share[r]
+                            before += block.count
+                            let next = share.cut(after: before, row: r + 1)
+                            let extra = share.spare(ofRow: r, between: cut, and: next)
+                            cut = next
                             rows[r] = _Row(start: cursor, count: block.count, capacity: block.count + extra)
                             cursor += block.count + extra
                         }
@@ -310,9 +315,10 @@ package struct _PackedRowPool {
         positions = newPositions
     }
 
-    /// Lays the rows `range` out over the cells `cells`, their entries kept, the spare cells spread
-    /// evenly with `needed` of them going to `row` first. In place: the entries first close up at
-    /// the window's start, row by row, then move out to their new starts from the last row back.
+    /// Lays the rows `range` out over the cells `cells`, their entries kept, the spare cells shared
+    /// out in proportion to the rows' entries after `needed` of them go to `row`. In place: the
+    /// entries first close up at the window's start, row by row, then move out to their new
+    /// starts from the last row back.
     @inlinable
     @inline(never)
     package mutating func _redistribute(rows range: Range<Int>, in cells: Range<Int>, favouring row: Int, needed: Int) {
@@ -322,7 +328,7 @@ package struct _PackedRowPool {
             for r in range { count += rows[r].count }
             let gaps = cells.count - count
             precondition(gaps >= needed, "A window too dense to rebalance")
-            let share = _Share(of: gaps, among: k, favouring: row - range.lowerBound, needed: needed)
+            let share = _Share(of: gaps, among: k, entries: count, favouring: row - range.lowerBound, needed: needed)
             targets.withUnsafeMutableBufferPointer { targets in
                 positions.withUnsafeMutableBufferPointer { positions in
                     var cursor = cells.lowerBound
@@ -339,9 +345,13 @@ package struct _PackedRowPool {
                     }
                     var end = cells.upperBound
                     var i = k - 1
+                    var after = count, cut = share.cut(after: count, row: k)
                     for r in range.reversed() {
                         let block = rows[r]
-                        let capacity = block.count + share[i]
+                        after -= block.count
+                        let previous = share.cut(after: after, row: i)
+                        let capacity = block.count + share.spare(ofRow: i, between: previous, and: cut)
+                        cut = previous
                         let start = end - capacity
                         if start != block.start {
                             var c = block.count - 1
@@ -361,29 +371,42 @@ package struct _PackedRowPool {
         }
     }
 
-    /// The spare cells of each of `k` rows when `gaps` are spread evenly, after `needed` of them go
-    /// to the row `favoured` (an index in `0..<k`, or none).
+    /// How a window's spare cells are shared out among its `k` rows: `needed` of them to the row
+    /// `favoured` (an index in `0..<k`, or none), the rest in proportion to each row's entries, so
+    /// the density is even across the window's cells whatever the rows' sizes. A window with no
+    /// entries shares them out evenly by row instead.
+    ///
+    /// Row `i`'s share is the difference of the cuts after and before its entries, so the shares
+    /// add up to the spare cells exactly.
     @frozen
     @usableFromInline
     package struct _Share {
-        @usableFromInline package let base: Int
-        @usableFromInline package let remainder: Int
+        @usableFromInline package let gaps: Int
+        @usableFromInline package let entries: Int
+        @usableFromInline package let rows: Int
         @usableFromInline package let favoured: Int
         @usableFromInline package let reserved: Int
 
         @inlinable
-        package init(of gaps: Int, among k: Int, favouring favoured: Int, needed: Int) {
+        package init(of gaps: Int, among k: Int, entries: Int, favouring favoured: Int, needed: Int) {
             reserved = favoured >= 0 && favoured < k ? needed : 0
-            let rest = gaps - reserved
-            base = rest / k
-            remainder = rest % k
+            self.gaps = gaps - reserved
+            self.entries = entries
+            rows = k
             self.favoured = favoured
         }
 
-        /// The spare cells of the `i`-th row.
+        /// The spare cells before the cut after `after` entries, with `row` rows before it. O(1).
         @inlinable
-        package subscript(i: Int) -> Int {
-            (i == favoured ? reserved : 0) + base + (i < remainder ? 1 : 0)
+        package func cut(after: Int, row: Int) -> Int {
+            if entries == 0 { return rows == 0 ? 0 : (gaps / rows) * row + Swift.min(row, gaps % rows) }
+            return Int(Int64(gaps) * Int64(after) / Int64(entries))
+        }
+
+        /// The spare cells of row `i`, which the cuts `before` and `after` bracket.
+        @inlinable
+        package func spare(ofRow i: Int, between before: Int, and after: Int) -> Int {
+            (i == favoured ? reserved : 0) + after - before
         }
     }
 }

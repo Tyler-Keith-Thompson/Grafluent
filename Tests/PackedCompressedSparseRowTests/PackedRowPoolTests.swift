@@ -60,3 +60,41 @@ struct PackedRowPoolTests {
         #expect(cursor <= spread)
     }
 }
+
+extension PackedRowPoolTests {
+    @Test("Spare cells go to rows in proportion to their entries, so empty rows take none and a big row among many empty ones gets them all")
+    func proportionalSpare() {
+        // 1999 empty rows and one row of 300 entries: the layout sizes the storage to 512 cells
+        // (300 is over 0.7 of 256) and the 300-entry row takes every spare cell but the one the
+        // appended-to row needs. Sharing by row would have handed the first rows one cell each
+        // and left the big row packed, where every later append would rebalance a window of
+        // thousands of rows.
+        var targets: ContiguousArray<Int> = [], positions: ContiguousArray<Int> = []
+        var rows: ContiguousArray<_Row> = []
+        let big = 1000, rowCount = 2000, entries = 300
+        for r in 0 ..< rowCount {
+            let count = r == big ? entries : 0
+            rows.append(_Row(start: targets.count, count: count, capacity: count))
+            for i in 0 ..< count {
+                targets.append(i)
+                positions.append(i)
+            }
+        }
+        var pool = _PackedRowPool(packedTargets: targets, positions: positions, rows: rows)
+        pool.append(target: 5, position: entries, toRow: 0)
+        let size = 512, bigCapacity = entries + (size - entries - 1) - 1
+        #expect(pool.capacity == size)
+        #expect(pool.rows[0].count == 1 && pool.rows[0].capacity == 1)
+        #expect(pool.rows[big].count == entries)
+        #expect(pool.rows[big].capacity >= bigCapacity, "the big row has \(pool.rows[big].capacity) cells")
+        #expect((1 ..< rowCount).filter { $0 != big }.allSatisfy { pool.rows[$0].capacity == 0 })
+        #expect(Array(pool.targetRow(big)) == Array(0 ..< entries))
+        // Appending to the big row then costs nothing but its own spare cells for hundreds of
+        // entries: no other row moves.
+        let before = (0 ..< rowCount).map { pool.rows[$0].start }
+        for i in 0 ..< 100 { pool.append(target: entries + i, position: entries + 1 + i, toRow: big) }
+        #expect(pool.capacity == size)
+        #expect((0 ..< rowCount).map { pool.rows[$0].start } == before)
+        #expect(pool.count(ofRow: big) == entries + 100)
+    }
+}

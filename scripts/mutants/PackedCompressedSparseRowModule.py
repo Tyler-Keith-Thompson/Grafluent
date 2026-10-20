@@ -1,5 +1,5 @@
 # Planted bugs for PackedCompressedSparseRowModule: the packed row pool's rebalancing (the window
-# search, the density thresholds, the even spread of spare cells with the favoured row's share,
+# search, the density thresholds, the proportional share of spare cells with the favoured row's cells,
 # growth and shrinking, moving the last row into a removed slot) and the graph's bookkeeping over it
 # (records, the pair table, maps). Run with `just mutate PackedCompressedSparseRowModule`; see
 # scripts/mutate.py.
@@ -30,10 +30,12 @@ MUTANTS = [
     Mutant("windowto", RP, "Swift.max(b, rows[r1 - 1].start + rows[r1 - 1].capacity)", "rows[r1 - 1].start + rows[r1 - 1].capacity"),
     Mutant("density", RP, "Double(count + needed) <= threshold * Double(to - from)", "Double(count) <= threshold * Double(to - from)"),
     Mutant("compactstart", RP, "                            rows[r].start = cursor", "", mode="stmt"),
-    Mutant("sharereserved", RP, "(i == favoured ? reserved : 0) + base + (i < remainder ? 1 : 0)", "base + (i < remainder ? 1 : 0)"),
+    Mutant("sharereserved", RP, "(i == favoured ? reserved : 0) + after - before", "after - before"),
+    Mutant("sharecut", RP, "Int(Int64(gaps) * Int64(after) / Int64(entries))", "Int(Int64(gaps) * Int64(after) / Int64(entries + 1))"),
+    Mutant("shareempty", RP, "(gaps / rows) * row + Swift.min(row, gaps % rows)", "(gaps / rows) * row"),
     Mutant("sharerest", RP, "gaps - reserved", "gaps"),
     Mutant("layoutextra", RP, "rows[r] = _Row(start: cursor, count: block.count, capacity: block.count + extra)", "rows[r] = _Row(start: cursor, count: block.count, capacity: block.count)"),
-    Mutant("redistributeextra", RP, "block.count + share[i]", "block.count + share[k - 1 - i]"),
+    Mutant("redistributeextra", RP, "block.count + share.spare(ofRow: i, between: previous, and: cut)", "block.count + share.spare(ofRow: i, between: previous, and: previous)"),
     Mutant("layoutcursor", RP, "                            cursor += block.count + extra", "                            cursor += block.count", mode="stmt"),
     Mutant("redistributeread", RP, "                                positions[start + c] = positions[block.start + c]", "", mode="stmt"),
     Mutant("spreadend", RP, "                        end = start", "", mode="stmt"),
