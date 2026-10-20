@@ -35,6 +35,7 @@ contents and the menu without a link.
 | `tsp` | `nearestNeighborTour(from:weight:)`, `twoOptTour(improving:weight:)`, `simulatedAnnealingTour(improving:weight:using:)`, `christofidesTour(weight:)`, `shortestTour(weight:)`, `Cycle.weight(_:)` |
 | `hamiltonian` | `hamiltonianCycle()`, `hamiltonianPath(from:to:)`, `neighbors(of:)` |
 | `mst` | `lazy.kruskal(weight:)`, `lazy.prim(from:weight:)`, `kruskalMinimumSpanningTree(weight:)`, `primMinimumSpanningTree(from:weight:)` |
+| `steiner` | `steinerTree(terminals:weight:)`, `kruskalMinimumSpanningTree(weight:)` |
 | `huffman` | `BinaryTree.huffman(weights:)`, `parent(of:)`, `left(of:)`, `depth(of:)`, `inorder` |
 | `lca` | `RootedTree`, `depth(of:)`, `parent(of:)`, `lowestCommonAncestor(of:_:)`, `LowestCommonAncestors`, `distance(from:to:)` |
 | `prefixtree` | `prefixTree(of:)`, `children(of:)`, `isAncestor(_:of:)`, `isSequenceEnd(_:)`, `sequenceEnds` |
@@ -61,6 +62,7 @@ contents and the menu without a link.
 | `pagerank` | `pageRank(dampingFactor:maxIterations:)`, `randomWalk(from:length:using:)` |
 | `betweenness` | `betweennessCentrality(normalized:)`, `edgeBetweennessCentrality(normalized:)`, `shortestSimplePaths(from:to:)` |
 | `linkprediction` | `jaccardCoefficient(of:and:)`, `adamicAdarIndex(of:and:)` |
+| `neighbourhood` | `egoGraphView(of:radius:)`, `egoGraphView(of:radius:maximumVertexCount:priority:)`, `degree(of:)` |
 | `layout` | `FruchtermanReingoldLayout(_:iterations:using:)` with `Xoshiro256StarStar`, `step()`, named graphs |
 | `spectral` | `spectralLayout()`, `fiedlerVector()`, `algebraicConnectivity`, `value(of:)`, `spectralOrdering()` |
 | `layered` | `sugiyamaLayout()`, `LayeredDrawing` (`layer(of:)`, `bends(ofEdgeAt:)`, `reversedEdges`, `crossingCount`), `RootedTree`, `reingoldTilfordLayout()`, `reingoldTilfordCircularLayout()` |

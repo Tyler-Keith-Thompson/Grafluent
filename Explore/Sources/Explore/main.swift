@@ -42,6 +42,8 @@ func mountPage(_ page: String) -> Bool {
     case "cyclebasis": CycleBasisPage.mount()
     case "distances": DistancesPage.mount()
     case "hierarchy": HierarchyPage.mount()
+    case "steiner": SteinerPage.mount()
+    case "neighbourhood": NeighbourhoodPage.mount()
     case "chordal": ChordalPage.mount()
     case "isomorphism": IsomorphismPage.mount()
     case "communities": CommunitiesPage.mount()

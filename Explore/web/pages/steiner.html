@@ -1,0 +1,43 @@
+<!-- title: Steiner trees · Explore Grafluent -->
+<!-- description: Connect a few chosen places at the least cost, going through other places on the way. Mehlhorn’s Steiner tree approximation with Grafluent’s steinerTree(terminals:weight:). -->
+<header class="sign">
+  <h1>Steiner trees</h1>
+  <p class="question">A company must run cable to three customers across a grid of possible routes. What is the cheapest network that reaches all three?</p>
+</header>
+
+<section class="prose purpose">
+  <h2><small>What it’s for</small>Connecting some places, not all</h2>
+  <p>A <a href="mst.html">minimum spanning tree</a> connects every place. Often you only need some of them, and the rest may help as stepping stones or may be skipped. The cheapest network that connects the chosen places is a <b>Steiner tree</b>, and the places it must reach are its <b>terminals</b>.</p>
+  <p>Reach for it when you lay cable, pipe or road to a few customers, route a signal to a few pins on a chip, or connect a handful of entities in a knowledge graph with the shortest explanation that joins them.</p>
+</section>
+
+<section class="prose compared">
+  <h2><small>Compared with</small>Other ways to connect places</h2>
+  <!-- compare
+  | Method | When to use | Connects | Cost | Weakness |
+  | *Steiner tree | Only some places matter | The terminals, through any others | O(m log m) for Mehlhorn’s tree | Within a factor of two of the best, not the best |
+  | [Minimum spanning tree](mst.html) | Every place matters | Everything | O(m log n) | Pays for places nobody asked for |
+  | [Shortest path](dijkstra.html) | Exactly two places matter | A pair | O(m log n) | With three or more terminals, paths overlap wastefully |
+  -->
+  <p>With two terminals a Steiner tree is a shortest path. With every place a terminal it is a spanning tree. In between it is a hard problem, and the fast method gets within a factor of two.</p>
+</section>
+
+<p class="example lead">Example: eight places, twelve possible cables with their lengths, and a request to connect three of the places.</p>
+
+<h2 class="labhead"><small>Step through</small>Lay the cables</h2>
+<div id="app"></div>
+
+<section class="prose">
+  <h2><small>The idea</small>Shortest paths between terminals, then a spanning tree of those</h2>
+  <p>Finding the cheapest Steiner tree exactly is NP-hard, so the usual method settles for a good one. Mehlhorn’s version first finds, for every place, its nearest terminal, with one shortest-path search that starts from all the terminals at once. That splits the network into regions, one around each terminal. Then it looks at every cable that crosses from one region into another: such a cable, plus the two paths back to the regions’ terminals, joins two terminals. Take the cheapest set of those joins that connects all the terminals, which is a <a href="mst.html">minimum spanning tree</a> on the terminals, and expand each join into its paths.</p>
+  <p>The tree it gives costs at most twice the best possible, and in practice much less. <code>steinerTree(terminals:weight:)</code> returns its cables and their total; the lab lays them shortest first so you can watch the tree grow. The last line of the code panel connects every place instead, for comparison.</p>
+
+  <h2><small>Where it breaks</small>It is an approximation</h2>
+  <p>The method can miss a cheaper tree that routes through a place no terminal is nearest to. On small networks you can check it against a search over every possibility; on large ones you accept the bound. If you need the exact answer for a few terminals, a dynamic-programming method over subsets of terminals exists, but its cost doubles with every terminal added.</p>
+  <p>Weights must not be negative. A place that no cable reaches makes the tree impossible, and the result is <code>nil</code>.</p>
+</section>
+
+<section class="prose in-swift">
+  <h2><small>In Swift</small>The grid, in Grafluent</h2>
+  <pre id="code" aria-label="Swift code"></pre>
+</section>
