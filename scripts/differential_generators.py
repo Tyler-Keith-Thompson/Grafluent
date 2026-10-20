@@ -101,6 +101,7 @@ def generator_case(case):
         "stubDegrees": stub, "stubIn": stub_in, "stubOut": stub_out,
         "weights": weights,
         "holmeKim": [hn, hm, rng.choice([0.0, 0.3, 0.7, 1.0])],
+        "duplication": [max(min(n, 60), 2), rng.choice([0.1, 0.3, 0.7, 1.0])],
         "smallWorld": [sn, sk, rng.choice([0.0, 0.2, 0.5, 1.0]), rng.randint(0, 5)],
         "kOut": [kn, kk],
         "scaleFree": [min(n, 80) + 3, *preset],
@@ -190,6 +191,13 @@ def compare_generators(case, mine):
     older = Counter(max(u, v) for u, v in mine["holmeKim"])
     check("holmeKim's older neighbors", all(older[v] == (hm if v >= hm else 0) for v in range(hn)))
     check("holmeKim directed", tup(mine["holmeKimDirected"]) == sorted((v, u) for u, v in mine["holmeKim"]))
+    # Duplication–divergence: the port, the seed edge and an older neighbor for every later vertex.
+    dn, dp = int(g["duplication"][0]), g["duplication"][1]
+    model = REF.duplication_divergence(dn, dp, REF.Xoshiro256StarStar(seed))
+    check("duplicationDivergence differs from the port", tup(mine["duplicationDivergence"]) == model.edges)
+    check("duplicationDivergence start", tup(mine["duplicationDivergence"])[:1] == [(0, 1)])
+    check("duplicationDivergence older neighbors", all(any(u < v == w for u, w in tup(mine["duplicationDivergence"])) for v in range(2, dn)))
+    check("duplicationDivergence directed", tup(mine["duplicationDivergenceDirected"]) == sorted((v, u) for u, v in mine["duplicationDivergence"]))
     H = nx.powerlaw_cluster_graph(hn, hm, hp, seed=stream())
     covered("Holme–Kim = NetworkX", _pairs(H) == tup(mine["holmeKim"]))
     # Newman–Watts–Strogatz and connected Watts–Strogatz.

@@ -742,6 +742,33 @@ def holme_kim(n, m, p, rng, directed=False):
     return R(n, edges, directed)
 
 
+def duplication_divergence(n, p, rng, directed=False):
+    """NetworkX duplication_divergence_graph on our stream: a uniform vertex to copy, one
+    uniform01 per neighbor in the order the edges were added, a copy keeping nothing redrawn."""
+    require(isinstance(n, int) and n >= 2, f"vertexCount {n} is less than 2")
+    _probability(p, "retentionProbability")
+    require(p > 0, "retentionProbability must be greater than zero: a copy keeping no edge is drawn again")
+    adj = [[] for _ in range(n)]
+    adj[0] = [1]
+    adj[1] = [0]
+    edges = [(1, 0) if directed else (0, 1)]
+    s = 2
+    while s < n:
+        u = rng.below(s)
+        kept = False
+        for w in list(adj[u]):
+            if rng.uniform01() < p:
+                adj[s].append(w)
+                adj[w].append(s)
+                edges.append((s, w) if directed else (w, s))
+                kept = True
+        if kept:
+            s += 1
+        else:
+            adj[s] = []
+    return R(n, edges, directed)
+
+
 def newman_watts_strogatz(n, k, p, rng, directed=False):
     """NetworkX newman_watts_strogatz_graph, draw for draw; directed, both arcs of every edge."""
     if directed:
@@ -1446,6 +1473,7 @@ NEW_MODELS = {
     "dcm": lambda a, rng, d: directed_configuration_model(a[0], a[1], rng),
     "chunglu": lambda a, rng, d: chung_lu(a[0], rng, d),
     "hk": lambda a, rng, d: holme_kim(*a, rng, d),
+    "dd": lambda a, rng, d: duplication_divergence(*a, rng, d),
     "nws": lambda a, rng, d: newman_watts_strogatz(*a, rng, d),
     "cws": lambda a, rng, d: connected_watts_strogatz(*a, rng, d),
     "kout": lambda a, rng, d: random_k_out(*a, rng, d),
@@ -1469,6 +1497,8 @@ def nx_same_new(kind, args, seed, directed, r):
     cannot be compared."""
     from collections import Counter
     rand = StreamRandom(0 if seed is None else seed)
+    if kind == "dd":
+        return None  # NetworkX draws from its own list of nodes; the port follows it on our stream
     if kind == "graphical":
         return nx.is_graphical(args[0]) == r
     if kind == "digraphical":
@@ -1733,6 +1763,18 @@ def later_rows():
     new_row("ScaleFree", "n 40: the default parameters, a longer run",
             f"{DP}.scaleFree(vertexCount: 40, alpha: 0.41, beta: 0.54, gamma: 0.05, deltaIn: 0.2, deltaOut: 0.0, using: {G_ % 0})",
             "sf", (40, 0.41, 0.54, 0.05, 0.2, 0.0), 0, directed=True)
+    # ---- duplication–divergence
+    for n, p, seed in ((10, 0.5, 0), (10, 0.5, 1), (12, 0.3, 0), (8, 1.0, 0), (2, 0.5, 0), (3, 0.1, 0)):
+        new_row("DuplicationDivergence", f"n {n}, p {p}", f"{U}.duplicationDivergence(vertexCount: {n}, retentionProbability: {p}, using: {G_ % seed})",
+                "dd", (n, p), seed)
+    new_row("DuplicationDivergence", "directed: new vertex → copied neighbor",
+            f"{C}.duplicationDivergence(vertexCount: 10, retentionProbability: 0.5, using: {G_ % 0})", "dd", (10, 0.5), 0, directed=True)
+    new_row("DuplicationDivergence", "n = 1", f"{U}.duplicationDivergence(vertexCount: 1, retentionProbability: 0.5, using: {G_ % 0})",
+            "dd", (1, 0.5), 0)
+    new_row("DuplicationDivergence", "p = 0 would draw forever", f"{U}.duplicationDivergence(vertexCount: 5, retentionProbability: 0.0, using: {G_ % 0})",
+            "dd", (5, 0.0), 0)
+    new_row("DuplicationDivergence", "p > 1", f"{U}.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: {G_ % 0})",
+            "dd", (5, 1.5), 0)
 
 
 HEADER = [

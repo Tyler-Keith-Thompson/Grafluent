@@ -63,7 +63,7 @@ for line in TEXT.splitlines():
         parts = [p.strip() for p in line.strip().strip("|").split(" | ")]
         CELLS[int(parts[0][3:])] = parts
 N = len(CELLS)
-assert N == 283
+assert N == 293
 
 
 def group(n): return CELLS[n][1]
@@ -880,6 +880,8 @@ def later_call(kind, args, typ):
         return "%s.chungLu(expectedDegrees: %s, using: &generator)" % (typ, lit(args[0]))
     if kind == "hk":
         return "%s.holmeKim(vertexCount: %d, edgesPerVertex: %d, triangleProbability: %r, using: &generator)" % (typ, *args)
+    if kind == "dd":
+        return "%s.duplicationDivergence(vertexCount: %d, retentionProbability: %r, using: &generator)" % (typ, *args)
     if kind == "nws":
         return "%s.newmanWattsStrogatz(vertexCount: %d, nearestNeighborCount: %d, shortcutProbability: %r, using: &generator)" % (typ, *args)
     if kind == "cws":
@@ -899,7 +901,7 @@ def later_call(kind, args, typ):
 LATER_TYPES = {
     "hh": (UNDIRECTED, None), "dhh": (None, DIRECTED), "cm": (["Pseudograph<Int>"], None),
     "dcm": (None, ["DirectedPseudograph<Int>"]), "sf": (None, ["DirectedPseudograph<Int>"]),
-    "chunglu": (UNDIRECTED, DIRECTED), "hk": (UNDIRECTED, DIRECTED), "nws": (UNDIRECTED, DIRECTED),
+    "chunglu": (UNDIRECTED, DIRECTED), "hk": (UNDIRECTED, DIRECTED), "dd": (UNDIRECTED, DIRECTED), "nws": (UNDIRECTED, DIRECTED),
     "cws": (UNDIRECTED, DIRECTED), "kout": (UNDIRECTED, DIRECTED), "bipm": (UNDIRECTED, DIRECTED),
 }
 
@@ -1010,6 +1012,7 @@ LATER_VALID = {
     264: (5, 0.41, 0.54, 0.05, 0.0, 0.0),
     272: (2, 2, 4), 273: (0, 2, 0),
     278: ([1, 1, 0],),
+    291: (2, 0.5), 292: (5, 0.5), 293: (5, 1.0),
 }
 
 
@@ -1193,6 +1196,10 @@ FILES = [
      "Random k-out graphs, directed scale-free graphs and G(a, b, m) for fixed seeds (catalog RG-247 –\n"
      "// RG-271, RG-275): CPython's sample per vertex; Bollobás–Borgs–Chayes–Riordan from the 3-cycle; the\n"
      "// bipartite rejection loop."),
+    ("DuplicationDivergenceTests.swift", "RandomGraphs duplication–divergence exact outputs",
+     later_ids("DuplicationDivergence"),
+     "Duplication–divergence for fixed seeds (catalog RG-284 – RG-290): a uniform vertex copied, each of its\n"
+     "// neighbors kept with the retention probability, a copy keeping nothing drawn again."),
     ("RandomGraphPreconditionTests.swift", "RandomGraphs preconditions", [n for n in range(1, N + 1) if is_trap(n)],
      "Preconditions (catalog trap rows): each trapping call runs in a child process (exit test), on every\n"
      "// conformer the rule covers. A valid neighbour of the call then runs in this process."),

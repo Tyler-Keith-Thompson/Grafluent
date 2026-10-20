@@ -40,6 +40,10 @@
 #   rgmargin — the 2⁻²⁰ margin matters only for a pair whose rounded distance lands within 2⁻²⁰ of
 #   a cell side, which uniform points do not reach.
 
+# Duplication–divergence mutants left out as equivalent: ddcount (n = 1 traps on neighbors[1] with or
+# without the check), ddkeep (`<` against `<=` differs only when a draw equals p exactly, probability
+# 2⁻⁵³).
+
 TESTS = ["RandomGraphsTests"]
 
 X = "Xoshiro256StarStar.swift"
@@ -58,6 +62,7 @@ DS = "DegreeSequences.swift"
 CM = "ConfigurationModel.swift"
 CL = "ChungLu.swift"
 HK = "HolmeKim.swift"
+DD = "DuplicationDivergence.swift"
 NWS = "NewmanWattsStrogatz.swift"
 KO = "RandomKOut.swift"
 SF = "ScaleFree.swift"
@@ -387,6 +392,11 @@ MUTANTS = [
     Mutant("clends", CL, "order[u]", "u"),
 
     # Holme–Kim.
+    Mutant("ddpositive", DD, "p > 0", "true"),
+    Mutant("ddretry", DD, "if kept { s += 1 }", "s += 1"),
+    Mutant("ddseed", DD, "directed ? DirectedEdge(from: 1, to: 0) : DirectedEdge(from: 0, to: 1)", "DirectedEdge(from: 0, to: 1)"),
+    Mutant("ddmodel", DD, "_below(s, &g)", "_below(s - 1, &g)"),
+    Mutant("dddirection", DD, "directed ? DirectedEdge(from: s, to: w) : DirectedEdge(from: w, to: s)", "DirectedEdge(from: w, to: s)"),
     Mutant("hkrange", HK, "m >= 1 && m <= n", "m >= 1 && m < n"),
     Mutant("hkstart", HK, "Array(0 ..< m)", "[Int](repeating: 0, count: m)"),
     Mutant("hkdistinct", HK, "chosen[t] != s", "true"),

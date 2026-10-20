@@ -2486,4 +2486,139 @@ struct RandomGraphPreconditionTests {
         let graph = UndirectedAdjacencyList<Int>.havelHakimi(degreeSequence: [1, 1, 0])
         #expect(graph.vertexCount == 3 && graph.edgeCount == 1)
     }
+
+    @Test("RG-291 n = 1")
+    func rg291() async {
+        // UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: 1, retentionProbability: 0.5, using: &Xoshiro256StarStar(seed: 0)) → **trap**: vertexCount 1 is less than 2
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: 1, retentionProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.duplicationDivergence(vertexCount: 1, retentionProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.duplicationDivergence(vertexCount: 1, retentionProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.duplicationDivergence(vertexCount: 1, retentionProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.duplicationDivergence(vertexCount: 1, retentionProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.duplicationDivergence(vertexCount: 1, retentionProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.duplicationDivergence(vertexCount: 1, retentionProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.duplicationDivergence(vertexCount: 1, retentionProbability: 0.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.duplicationDivergence(vertexCount: 1, retentionProbability: 0.5, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: 2, retentionProbability: 0.5, using: &generator)
+        #expect(graph.vertexCount == 2 && graph.edgeCount == 1)
+    }
+
+    @Test("RG-292 p = 0 would draw forever")
+    func rg292() async {
+        // UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 0.0, using: &Xoshiro256StarStar(seed: 0)) → **trap**: retentionProbability must be greater than zero: a copy keeping no edge is drawn again
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 0.0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 0.0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 0.0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.duplicationDivergence(vertexCount: 5, retentionProbability: 0.0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.duplicationDivergence(vertexCount: 5, retentionProbability: 0.0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 0.0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 0.0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 0.0, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 0.0, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 0.5, using: &generator)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 4)
+    }
+
+    @Test("RG-293 p > 1")
+    func rg293() async {
+        // UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: &Xoshiro256StarStar(seed: 0)) → **trap**: retentionProbability 1.5 is not in 0...1
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Pseudograph<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = Multigraph<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = CompressedSparseRow.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyMatrix.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = AdjacencyList<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedPseudograph<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = DirectedMultigraph<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: &generator)
+        }
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = StableDirectedGraph<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 1.5, using: &generator)
+        }
+        // Without the fault: accepted.
+        var generator = Xoshiro256StarStar(seed: 0)
+        let graph = UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: 5, retentionProbability: 1.0, using: &generator)
+        #expect(graph.vertexCount == 5 && graph.edgeCount == 4)
+    }
 }

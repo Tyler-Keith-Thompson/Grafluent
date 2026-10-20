@@ -18,6 +18,7 @@ struct GeneratorCase: Decodable {
     let stubOut: [Int]
     let weights: [Double]
     let holmeKim: [Double]          // n, m, p
+    let duplication: [Double]       // n, p
     let smallWorld: [Double]        // n, k, p, tries
     let kOut: [Int]                 // n, k
     let scaleFree: [Double]         // n, alpha, beta, gamma, deltaIn, deltaOut
@@ -47,6 +48,8 @@ struct GeneratorAnswers: Encodable {
     var chungLuDirected: [[Int]] = []
     var holmeKim: [[Int]] = []
     var holmeKimDirected: [[Int]] = []
+    var duplicationDivergence: [[Int]] = []
+    var duplicationDivergenceDirected: [[Int]] = []
     var newmanWattsStrogatz: [[Int]] = []
     var connectedWattsStrogatz: [[Int]]?
     var kOut: [[Int]] = []
@@ -90,6 +93,11 @@ func generatorAnswers(_ g: GeneratorCase) -> GeneratorAnswers {
     a.holmeKim = undirectedPairs(UndirectedAdjacencyList<Int>.holmeKim(vertexCount: hn, edgesPerVertex: hm, triangleProbability: hp, using: &r))
     r = Xoshiro256StarStar(seed: g.seed)
     a.holmeKimDirected = directedPairs(CompressedSparseRow.holmeKim(vertexCount: hn, edgesPerVertex: hm, triangleProbability: hp, using: &r))
+    let (dn, dp) = (Int(g.duplication[0]), g.duplication[1])
+    r = Xoshiro256StarStar(seed: g.seed)
+    a.duplicationDivergence = undirectedPairs(UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: dn, retentionProbability: dp, using: &r))
+    r = Xoshiro256StarStar(seed: g.seed)
+    a.duplicationDivergenceDirected = directedPairs(CompressedSparseRow.duplicationDivergence(vertexCount: dn, retentionProbability: dp, using: &r))
     let (wn, wk, wp, wt) = (Int(g.smallWorld[0]), Int(g.smallWorld[1]), g.smallWorld[2], Int(g.smallWorld[3]))
     r = Xoshiro256StarStar(seed: g.seed)
     a.newmanWattsStrogatz = undirectedPairs(UndirectedAdjacencyList<Int>.newmanWattsStrogatz(

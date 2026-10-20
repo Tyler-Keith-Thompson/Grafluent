@@ -85,7 +85,18 @@ func degreeSequences(_ input: inout FuzzInput) {
 
 func randomFamilies(_ input: inout FuzzInput, seed: UInt64) {
     let fresh = Xoshiro256StarStar(seed: seed)
-    switch input.int(below: 8) {
+    switch input.int(below: 9) {
+    case 8:
+        // Duplication–divergence: the seed edge, an older neighbor for every later vertex, no loops,
+        // the directed form with the same draws.
+        let n = input.int(in: 2 ... 40), p = Double(input.int(in: 1 ... 10)) / 10
+        var g = fresh
+        let edges = checkedUndirected(UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: n, retentionProbability: p, using: &g), "duplicationDivergence")
+        check(edges.first == [0, 1] && edges.allSatisfy { $0[0] != $0[1] }, "duplicationDivergence start \(edges.prefix(2))")
+        check((2 ..< n).allSatisfy { v in edges.contains { $0[1] == v && $0[0] < v } }, "duplicationDivergence: a vertex without an older neighbor")
+        var h = fresh
+        let arcs = checkedDirected(CompressedSparseRow.duplicationDivergence(vertexCount: n, retentionProbability: p, using: &h), "duplicationDivergence")
+        check(arcs == edges.map { [$0[1], $0[0]] }.sorted { $0.lexicographicallyPrecedes($1) } && g == h, "duplicationDivergence directed")
     case 0:
         // The configuration models: every degree exactly.
         let degrees = (0 ..< input.int(in: 0 ... 12)).map { _ in input.int(in: 0 ... 5) }

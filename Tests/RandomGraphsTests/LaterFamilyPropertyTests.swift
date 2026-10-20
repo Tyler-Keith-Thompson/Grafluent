@@ -101,6 +101,34 @@ struct LaterFamilyPropertyTests {
         }
     }
 
+    @Test("duplicationDivergence: connected, every later vertex joined to an older one, its neighbors among the copied vertex's; directed newer → older with the same draws")
+    func duplicationDivergence() async {
+        await propertyCheck(count: 120, input: Gen.int(in: 2 ... 40), Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { n, tenths, seed in
+            let p = Double(tenths) / 10
+            var generator = Xoshiro256StarStar(seed: UInt64(seed))
+            let graph = UndirectedAdjacencyList<Int>.duplicationDivergence(vertexCount: n, retentionProbability: p, using: &generator)
+            #expect(graph.vertexCount == n && graph.edgeCount >= n - 1, "n \(n), p \(p)")
+            #expect(graph.contains(edge: UndirectedEdge(0, 1)), "n \(n), p \(p)")
+            // Every vertex after the first has an older neighbor, so the graph is connected.
+            let older = (2 ..< n).map { v in graph.neighbors(of: v).filter { $0 < v }.count }
+            #expect(older.allSatisfy { $0 >= 1 }, "n \(n), p \(p)")
+            #expect(graph.edges.allSatisfy { $0.u != $0.v }, "n \(n), p \(p)")
+            if p == 1 {
+                // Every copy keeps all of its model's neighbors: each later vertex's older neighbors are
+                // exactly some older vertex's older-or-equal neighbor set at that time, so degrees only grow.
+                #expect(graph.edgeCount >= n - 1, "n \(n)")
+            }
+            var directedGenerator = Xoshiro256StarStar(seed: UInt64(seed))
+            let directed = CompressedSparseRow.duplicationDivergence(vertexCount: n, retentionProbability: p, using: &directedGenerator)
+            let arcs = Set(directed.edges.map { [$0.source, $0.target] })
+            let reversed = Set(graph.edges.map { [$0.v, $0.u] })
+            #expect(arcs == reversed && directedGenerator == generator, "n \(n), p \(p)")
+            var multigraphGenerator = Xoshiro256StarStar(seed: UInt64(seed))
+            let multigraph = Multigraph<Int>.duplicationDivergence(vertexCount: n, retentionProbability: p, using: &multigraphGenerator)
+            #expect(multigraph.edges.map { [$0.u, $0.v] } == graph.edges.map { [$0.u, $0.v] } && multigraphGenerator == generator)
+        }
+    }
+
     @Test("holmeKim: m(n − m) edges, each later vertex joined to m older ones; directed newer → older with the same draws")
     func holmeKim() async {
         await propertyCheck(count: 120, input: Gen.int(in: 1 ... 40), Gen.int(in: 1 ... 5), Gen.int(in: 0 ... 10), Gen.int(in: 0 ... 1_000_000)) { n, rawM, tenths, seed in
