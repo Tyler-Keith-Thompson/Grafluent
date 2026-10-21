@@ -25,7 +25,7 @@ import WASILibc
 
 @Suite("simulatedAnnealingTour and thresholdAcceptingTour")
 struct MetaheuristicTourTests {
-    @Test("Undirected, integer weights: the procedure written out, for both moves and both rules", .tags(.randomized))
+    @Test("Undirected, integer weights: the procedure written out with the default settings, for both moves and both rules", .tags(.randomized))
     func undirectedAgainstProcedure() async {
         await propertyCheck(count: 120, input: Gen.int(in: 3 ... 9), Gen.int(in: 0 ... 1_000_000), Gen.int(in: 0 ... 3)) { n, seed, variant in
             var draw = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
@@ -58,12 +58,13 @@ struct MetaheuristicTourTests {
             var reference = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed) &+ 1)
             var cycle = start, cost = length(start)
             var best = cycle, bestCost = cost
-            var temperature = 100.0, threshold = 1.0
+            // The defaults: a third of the starting tour's mean edge weight, ten moves per vertex.
+            var temperature = Double(length(start)) / Double(n) / 3, threshold = Double(length(start)) / Double(n) / 3
             var count = 0
-            while count <= 10 && (!annealing || temperature > 0) {
+            while count <= 50 && (!annealing || temperature > 0) {
                 count += 1
                 var accepted = false
-                for _ in 0 ..< 100 {
+                for _ in 0 ..< 10 * n {
                     let a = 1 + Int(reference.next(upperBound: UInt64(n - 1)))
                     var b = 1 + Int(reference.next(upperBound: UInt64(n - 2)))
                     if b >= a { b += 1 }
@@ -232,7 +233,7 @@ struct MetaheuristicTourTests {
                 }
             }
             var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
-            let found = graph.thresholdAcceptingTour(improving: Cycle(start, in: graph)!, threshold: 4, alpha: 0.5, maximumIterations: 8, innerIterations: 1,
+            let found = graph.thresholdAcceptingTour(improving: Cycle(start, in: graph)!, move: .swap, threshold: 4, alpha: 0.5, maximumIterations: 8, innerIterations: 1,
                                                      weight: { weights[$0] }, using: &generator)
             let same = found?.vertices == best
             #expect(same, "n \(n), seed \(seed)")

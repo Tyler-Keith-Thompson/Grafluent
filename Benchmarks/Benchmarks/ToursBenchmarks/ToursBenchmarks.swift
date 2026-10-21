@@ -223,33 +223,30 @@ func handWrittenOddDijkstra(_ offsets: [Int], _ targets: [Int], _ edgeWeights: [
     return total
 }
 
-/// Simulated annealing with swap moves by hand over a flat matrix, NetworkX's procedure with O(1)
-/// move evaluation: the baseline for `simulatedAnnealingTour`.
+/// Simulated annealing with relocation moves by hand over a flat matrix, NetworkX's procedure
+/// with O(1) move evaluation and `simulatedAnnealingTour`'s default settings (a third of the
+/// starting tour's mean edge weight, ten moves per vertex, 50 rounds without improvement): the
+/// baseline for `simulatedAnnealingTour`.
 func handWrittenAnnealing(_ d: [Double], _ n: Int, _ start: [Int], seed: UInt64) -> Double {
     var rng = SplitMix64(state: seed)
     var t = start, best = start
     var cost = 0.0
     for i in 0 ..< n { cost += d[t[i] * n + t[(i + 1) % n]] }
-    var bestCost = cost, temperature = 100.0, count = 0
-    while count <= 10 && temperature > 0 {
+    var bestCost = cost, temperature = cost / Double(n) / 3, count = 0
+    while count <= 50 && temperature > 0 {
         count += 1
-        for _ in 0 ..< 100 {
+        for _ in 0 ..< 10 * n {
             let a = Int.random(in: 1 ..< n, using: &rng)
             var b = Int.random(in: 1 ..< n - 1, using: &rng)
             if b >= a { b += 1 }
-            let i = min(a, b), j = max(a, b)
-            let p = t[i - 1], x = t[i], y = t[j], s = t[(j + 1) % n]
-            let removed: Double, added: Double
-            if j == i + 1 {
-                removed = d[p * n + x] + d[x * n + y] + d[y * n + s]
-                added = d[p * n + y] + d[y * n + x] + d[x * n + s]
-            } else {
-                let xs = t[i + 1], yp = t[j - 1]
-                removed = d[p * n + x] + d[x * n + xs] + d[yp * n + y] + d[y * n + s]
-                added = d[p * n + y] + d[y * n + xs] + d[yp * n + x] + d[x * n + s]
-            }
+            // Remove t[a], then insert it before position b of the shortened tour.
+            let x = t[a], p = t[a - 1], s = t[(a + 1) % n]
+            let before = b - 1 < a ? t[(b - 1) % n] : t[b % n]
+            let after = b < a ? t[b % n] : t[(b + 1) % n]
+            let removed = d[p * n + x] + d[x * n + s] + d[before * n + after]
+            let added = d[p * n + s] + d[before * n + x] + d[x * n + after]
             if added <= removed || Double.random(in: 0 ..< 1, using: &rng) <= exp(-(added - removed) / temperature) {
-                t.swapAt(a, b)
+                t.insert(t.remove(at: a), at: b)
                 cost = (cost - removed) + added
                 if cost < bestCost {
                     bestCost = cost

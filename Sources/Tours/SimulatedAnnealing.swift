@@ -75,6 +75,14 @@ func _applyTourMove(_ move: TourMove, _ t: UnsafeMutablePointer<Int>, _ a: Int, 
     }
 }
 
+/// Which rule decides whether a worse tour is taken, before its level is known.
+@frozen
+@usableFromInline
+enum _TourRule: Sendable {
+    case annealing
+    case threshold
+}
+
 /// What decides whether a worse tour is taken.
 @frozen
 @usableFromInline
@@ -85,6 +93,15 @@ enum _TourAcceptance: Sendable {
     /// Threshold accepting: when Δ ≤ threshold, the threshold lowered by `alpha` × itself after
     /// each round in which a move was taken.
     case threshold(threshold: Double, alpha: Double)
+}
+
+/// The length of the tour visiting `order` in turn and closing. O(n).
+@inlinable
+func _tourOrderLength<W: AdditiveArithmetic>(_ matrix: _TourMatrix<W>, _ order: [Int]) -> W {
+    let n = matrix.n
+    var cost = W.zero
+    for i in 0 ..< n { cost += matrix.weights[order[i] * n + order[i + 1 == n ? 0 : i + 1]] }
+    return cost
 }
 
 /// The metaheuristic local search, as NetworkX's `simulated_annealing_tsp` and
@@ -103,8 +120,7 @@ func _metaheuristicOrder<W: Comparable & AdditiveArithmetic>(
     let n = matrix.n
     var tour = order
     var best = order
-    var cost = W.zero
-    for i in 0 ..< n { cost += matrix.weights[order[i] * n + order[i + 1 == n ? 0 : i + 1]] }
+    var cost = _tourOrderLength(matrix, order)
     var bestCost = cost
     var acceptance = acceptance
     matrix.weights.withUnsafeBufferPointer { weights in
@@ -156,26 +172,39 @@ func _metaheuristicOrder<W: Comparable & AdditiveArithmetic>(
 
 /// Traps unless the search's parameters are valid.
 @inlinable
-func _checkMetaheuristic(_ acceptance: _TourAcceptance, rounds: Int, inner: Int) {
+func _checkMetaheuristic(_ rule: _TourRule, level: Double?, alpha: Double, rounds: Int, inner: Int?) {
     precondition(rounds >= 0, "maximumIterations is negative")
-    precondition(inner >= 0, "innerIterations is negative")
-    switch acceptance {
-    case .annealing(let temperature, let alpha):
-        precondition(temperature >= 0 && temperature.isFinite, "The temperature must be finite and at least zero")
+    precondition(inner ?? 0 >= 0, "innerIterations is negative")
+    switch rule {
+    case .annealing:
+        precondition(level.map { $0 >= 0 && $0.isFinite } ?? true, "The temperature must be finite and at least zero")
         precondition(alpha > 0 && alpha <= 1, "alpha must be in (0, 1]")
-    case .threshold(let threshold, let alpha):
-        precondition(threshold >= 0 && threshold.isFinite, "The threshold must be finite and at least zero")
+    case .threshold:
+        precondition(level.map { $0 >= 0 && $0.isFinite } ?? true, "The threshold must be finite and at least zero")
         precondition(alpha >= 0 && alpha <= 1, "alpha must be in [0, 1]")
+    }
+}
+
+/// The search's level and round size once the starting tour is known: a level not given is a
+/// third of the starting tour's mean edge weight (`startLength` as a `Double`), and a round not
+/// given is ten moves per vertex.
+@inlinable
+func _metaheuristicSettings(_ rule: _TourRule, level: Double?, alpha: Double, inner: Int?, startLength: Double, n: Int) -> (acceptance: _TourAcceptance, inner: Int) {
+    let level = level ?? startLength / Double(n) / 3
+    let inner = inner ?? 10 * n
+    switch rule {
+    case .annealing: return (.annealing(temperature: level, alpha: alpha), inner)
+    case .threshold: return (.threshold(threshold: level, alpha: alpha), inner)
     }
 }
 
 extension Graph {
     @inlinable
     func _metaheuristicTour<W: Comparable & AdditiveArithmetic>(
-        improving tour: Cycle<Vertex, Edges.Index>?, move: TourMove, acceptance: _TourAcceptance, rounds: Int, inner: Int,
+        improving tour: Cycle<Vertex, Edges.Index>?, move: TourMove, rule: _TourRule, level: Double?, alpha: Double, rounds: Int, inner: Int?,
         weight: (Edges.Index) -> W, delta: (W, W) -> Double, _ generator: inout some RandomNumberGenerator
     ) -> Cycle<Vertex, Edges.Index>? {
-        _checkMetaheuristic(acceptance, rounds: rounds, inner: inner)
+        _checkMetaheuristic(rule, level: level, alpha: alpha, rounds: rounds, inner: inner)
         let numbering = _tourNumbering()
         let n = numbering.isIndexed ? vertexIndexBound! : numbering.listed.count
         guard n >= 3 else { return nil }
@@ -188,7 +217,8 @@ extension Graph {
         }
         let matrix = _completeTourMatrix(weight, numbering)
         let start = order ?? _nearestNeighborOrder(matrix, from: 0)
-        let result = _metaheuristicOrder(matrix, start, move: move, acceptance: acceptance, rounds: rounds, inner: inner, delta: delta, &generator)
+        let settings = _metaheuristicSettings(rule, level: level, alpha: alpha, inner: inner, startLength: delta(_tourOrderLength(matrix, start), .zero), n: n)
+        let result = _metaheuristicOrder(matrix, start, move: move, acceptance: settings.acceptance, rounds: rounds, inner: settings.inner, delta: delta, &generator)
         return _tourCycle(result, matrix, numbering)
     }
 
@@ -205,27 +235,35 @@ extension Graph {
     /// the tour, so a seeded generator gives the same tour every time. Tours read the simple
     /// graph, as `nearestNeighborTour(weight:)` documents; nil below three vertices.
     ///
+    /// The defaults scale with the input: the temperature starts at a third of the starting
+    /// tour's mean edge weight, so a move adding one typical edge's weight is taken about once in
+    /// twenty at first and ever more rarely as the temperature falls, and a round tries ten moves
+    /// per vertex. Starting from a `twoOptTour(improving:weight:)` rather than the nearest-neighbour
+    /// tour gives the search a shorter tour to improve on.
+    ///
     /// - Parameters:
     ///   - tour: The tour to start from; nil starts from the nearest-neighbour tour.
     ///   - move: The kind of move tried.
-    ///   - temperature: The starting temperature.
+    ///   - temperature: The starting temperature; nil is a third of the starting tour's mean edge
+    ///     weight.
     ///   - alpha: The fraction of the temperature lost after each round.
     ///   - maximumIterations: The rounds without a new shortest tour, less one, before stopping.
-    ///   - innerIterations: The moves tried in each round.
+    ///   - innerIterations: The moves tried in each round; nil is ten per vertex.
     ///   - weight: The length of the edge at a position.
     ///   - generator: The source of randomness.
     /// - Returns: The shortest tour met, from the first vertex of the starting tour.
     /// - Precondition: the graph is complete; `tour`, when given, lists every vertex exactly
-    ///   once; `temperature` is finite and at least zero; 0 < `alpha` ≤ 1; `maximumIterations` and
-    ///   `innerIterations` are at least zero; the tour's length fits in `W`.
+    ///   once; `temperature`, when given, is finite and at least zero; 0 < `alpha` ≤ 1;
+    ///   `maximumIterations` and `innerIterations` are at least zero; the tour's length fits in
+    ///   `W`.
     /// - Complexity: O(n²) to read the weights, then O(1) per move tried, plus O(n) for each
     ///   relocation taken and each new shortest tour.
     @inlinable
     public func simulatedAnnealingTour<W: BinaryInteger>(
-        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .swap, temperature: Double = 100, alpha: Double = 0.01,
-        maximumIterations: Int = 10, innerIterations: Int = 100, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
+        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .relocate, temperature: Double? = nil, alpha: Double = 0.01,
+        maximumIterations: Int = 50, innerIterations: Int? = nil, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
     ) -> Cycle<Vertex, Edges.Index>? {
-        _metaheuristicTour(improving: tour, move: move, acceptance: .annealing(temperature: temperature, alpha: alpha), rounds: maximumIterations,
+        _metaheuristicTour(improving: tour, move: move, rule: .annealing, level: temperature, alpha: alpha, rounds: maximumIterations,
                            inner: innerIterations, weight: weight, delta: { Double($0 - $1) }, &generator)
     }
 
@@ -237,10 +275,10 @@ extension Graph {
     /// - Complexity: O(n²), then O(1) per move tried.
     @inlinable
     public func simulatedAnnealingTour<W: BinaryFloatingPoint>(
-        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .swap, temperature: Double = 100, alpha: Double = 0.01,
-        maximumIterations: Int = 10, innerIterations: Int = 100, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
+        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .relocate, temperature: Double? = nil, alpha: Double = 0.01,
+        maximumIterations: Int = 50, innerIterations: Int? = nil, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
     ) -> Cycle<Vertex, Edges.Index>? {
-        _metaheuristicTour(improving: tour, move: move, acceptance: .annealing(temperature: temperature, alpha: alpha), rounds: maximumIterations,
+        _metaheuristicTour(improving: tour, move: move, rule: .annealing, level: temperature, alpha: alpha, rounds: maximumIterations,
                            inner: innerIterations, weight: weight, delta: { Double($0 - $1) }, &generator)
     }
 
@@ -251,29 +289,33 @@ extension Graph {
     /// The search of `simulatedAnnealingTour`, except that a move lengthening the tour by Δ is
     /// taken when Δ ≤ the threshold, which starts at `threshold` and loses `alpha` × itself after
     /// each round in which some move was taken. Each step draws two positions from `generator`
-    /// and nothing else. Tours read the simple graph; nil below three vertices.
+    /// and nothing else. Tours read the simple graph; nil below three vertices. The defaults
+    /// scale with the input as `simulatedAnnealingTour`'s do: the threshold starts at a third of
+    /// the starting tour's mean edge weight, and a round tries ten moves per vertex.
     ///
     /// - Parameters:
     ///   - tour: The tour to start from; nil starts from the nearest-neighbour tour.
     ///   - move: The kind of move tried.
-    ///   - threshold: The starting threshold.
+    ///   - threshold: The starting threshold; nil is a third of the starting tour's mean edge
+    ///     weight.
     ///   - alpha: The fraction of the threshold lost after each round with a move taken.
     ///   - maximumIterations: The rounds without a new shortest tour, less one, before stopping.
-    ///   - innerIterations: The moves tried in each round.
+    ///   - innerIterations: The moves tried in each round; nil is ten per vertex.
     ///   - weight: The length of the edge at a position.
     ///   - generator: The source of randomness.
     /// - Returns: The shortest tour met, from the first vertex of the starting tour.
     /// - Precondition: the graph is complete; `tour`, when given, lists every vertex exactly
-    ///   once; `threshold` is finite and at least zero; 0 ≤ `alpha` ≤ 1; `maximumIterations` and
-    ///   `innerIterations` are at least zero; the tour's length fits in `W`.
+    ///   once; `threshold`, when given, is finite and at least zero; 0 ≤ `alpha` ≤ 1;
+    ///   `maximumIterations` and `innerIterations` are at least zero; the tour's length fits in
+    ///   `W`.
     /// - Complexity: O(n²) to read the weights, then O(1) per move tried, plus O(n) for each
     ///   relocation taken and each new shortest tour.
     @inlinable
     public func thresholdAcceptingTour<W: BinaryInteger>(
-        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .swap, threshold: Double = 1, alpha: Double = 0.1,
-        maximumIterations: Int = 10, innerIterations: Int = 100, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
+        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .relocate, threshold: Double? = nil, alpha: Double = 0.1,
+        maximumIterations: Int = 50, innerIterations: Int? = nil, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
     ) -> Cycle<Vertex, Edges.Index>? {
-        _metaheuristicTour(improving: tour, move: move, acceptance: .threshold(threshold: threshold, alpha: alpha), rounds: maximumIterations,
+        _metaheuristicTour(improving: tour, move: move, rule: .threshold, level: threshold, alpha: alpha, rounds: maximumIterations,
                            inner: innerIterations, weight: weight, delta: { Double($0 - $1) }, &generator)
     }
 
@@ -285,10 +327,10 @@ extension Graph {
     /// - Complexity: O(n²), then O(1) per move tried.
     @inlinable
     public func thresholdAcceptingTour<W: BinaryFloatingPoint>(
-        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .swap, threshold: Double = 1, alpha: Double = 0.1,
-        maximumIterations: Int = 10, innerIterations: Int = 100, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
+        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .relocate, threshold: Double? = nil, alpha: Double = 0.1,
+        maximumIterations: Int = 50, innerIterations: Int? = nil, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
     ) -> Cycle<Vertex, Edges.Index>? {
-        _metaheuristicTour(improving: tour, move: move, acceptance: .threshold(threshold: threshold, alpha: alpha), rounds: maximumIterations,
+        _metaheuristicTour(improving: tour, move: move, rule: .threshold, level: threshold, alpha: alpha, rounds: maximumIterations,
                            inner: innerIterations, weight: weight, delta: { Double($0 - $1) }, &generator)
     }
 }
@@ -296,10 +338,10 @@ extension Graph {
 extension DirectedGraph {
     @inlinable
     func _metaheuristicTour<W: Comparable & AdditiveArithmetic>(
-        improving tour: Cycle<Vertex, Edges.Index>?, move: TourMove, acceptance: _TourAcceptance, rounds: Int, inner: Int,
+        improving tour: Cycle<Vertex, Edges.Index>?, move: TourMove, rule: _TourRule, level: Double?, alpha: Double, rounds: Int, inner: Int?,
         weight: (Edges.Index) -> W, delta: (W, W) -> Double, _ generator: inout some RandomNumberGenerator
     ) -> Cycle<Vertex, Edges.Index>? {
-        _checkMetaheuristic(acceptance, rounds: rounds, inner: inner)
+        _checkMetaheuristic(rule, level: level, alpha: alpha, rounds: rounds, inner: inner)
         let numbering = _directedTourNumbering()
         let n = numbering.isIndexed ? vertexIndexBound! : numbering.listed.count
         guard n >= 3 else { return nil }
@@ -318,7 +360,8 @@ extension DirectedGraph {
             }
         }
         let start = order ?? _nearestNeighborOrder(matrix, from: 0)
-        let result = _metaheuristicOrder(matrix, start, move: move, acceptance: acceptance, rounds: rounds, inner: inner, delta: delta, &generator)
+        let settings = _metaheuristicSettings(rule, level: level, alpha: alpha, inner: inner, startLength: delta(_tourOrderLength(matrix, start), .zero), n: n)
+        let result = _metaheuristicOrder(matrix, start, move: move, acceptance: settings.acceptance, rounds: rounds, inner: settings.inner, delta: delta, &generator)
         return Cycle(_uncheckedVertices: _tourVertices(result, numbering), edges: _tourEdgePositions(_tourArcNumbers(result, matrix)))
     }
 
@@ -334,10 +377,10 @@ extension DirectedGraph {
     ///   relocation taken and each new shortest tour.
     @inlinable
     public func simulatedAnnealingTour<W: BinaryInteger>(
-        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .swap, temperature: Double = 100, alpha: Double = 0.01,
-        maximumIterations: Int = 10, innerIterations: Int = 100, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
+        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .relocate, temperature: Double? = nil, alpha: Double = 0.01,
+        maximumIterations: Int = 50, innerIterations: Int? = nil, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
     ) -> Cycle<Vertex, Edges.Index>? {
-        _metaheuristicTour(improving: tour, move: move, acceptance: .annealing(temperature: temperature, alpha: alpha), rounds: maximumIterations,
+        _metaheuristicTour(improving: tour, move: move, rule: .annealing, level: temperature, alpha: alpha, rounds: maximumIterations,
                            inner: innerIterations, weight: weight, delta: { Double($0 - $1) }, &generator)
     }
 
@@ -347,10 +390,10 @@ extension DirectedGraph {
     /// - Complexity: O(n²), then O(1) per move tried.
     @inlinable
     public func simulatedAnnealingTour<W: BinaryFloatingPoint>(
-        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .swap, temperature: Double = 100, alpha: Double = 0.01,
-        maximumIterations: Int = 10, innerIterations: Int = 100, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
+        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .relocate, temperature: Double? = nil, alpha: Double = 0.01,
+        maximumIterations: Int = 50, innerIterations: Int? = nil, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
     ) -> Cycle<Vertex, Edges.Index>? {
-        _metaheuristicTour(improving: tour, move: move, acceptance: .annealing(temperature: temperature, alpha: alpha), rounds: maximumIterations,
+        _metaheuristicTour(improving: tour, move: move, rule: .annealing, level: temperature, alpha: alpha, rounds: maximumIterations,
                            inner: innerIterations, weight: weight, delta: { Double($0 - $1) }, &generator)
     }
 
@@ -363,10 +406,10 @@ extension DirectedGraph {
     ///   relocation taken and each new shortest tour.
     @inlinable
     public func thresholdAcceptingTour<W: BinaryInteger>(
-        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .swap, threshold: Double = 1, alpha: Double = 0.1,
-        maximumIterations: Int = 10, innerIterations: Int = 100, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
+        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .relocate, threshold: Double? = nil, alpha: Double = 0.1,
+        maximumIterations: Int = 50, innerIterations: Int? = nil, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
     ) -> Cycle<Vertex, Edges.Index>? {
-        _metaheuristicTour(improving: tour, move: move, acceptance: .threshold(threshold: threshold, alpha: alpha), rounds: maximumIterations,
+        _metaheuristicTour(improving: tour, move: move, rule: .threshold, level: threshold, alpha: alpha, rounds: maximumIterations,
                            inner: innerIterations, weight: weight, delta: { Double($0 - $1) }, &generator)
     }
 
@@ -377,10 +420,10 @@ extension DirectedGraph {
     /// - Complexity: O(n²), then O(1) per move tried.
     @inlinable
     public func thresholdAcceptingTour<W: BinaryFloatingPoint>(
-        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .swap, threshold: Double = 1, alpha: Double = 0.1,
-        maximumIterations: Int = 10, innerIterations: Int = 100, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
+        improving tour: Cycle<Vertex, Edges.Index>? = nil, move: TourMove = .relocate, threshold: Double? = nil, alpha: Double = 0.1,
+        maximumIterations: Int = 50, innerIterations: Int? = nil, weight: (Edges.Index) -> W, using generator: inout some RandomNumberGenerator
     ) -> Cycle<Vertex, Edges.Index>? {
-        _metaheuristicTour(improving: tour, move: move, acceptance: .threshold(threshold: threshold, alpha: alpha), rounds: maximumIterations,
+        _metaheuristicTour(improving: tour, move: move, rule: .threshold, level: threshold, alpha: alpha, rounds: maximumIterations,
                            inner: innerIterations, weight: weight, delta: { Double($0 - $1) }, &generator)
     }
 }

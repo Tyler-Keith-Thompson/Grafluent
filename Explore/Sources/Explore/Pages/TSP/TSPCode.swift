@@ -46,8 +46,7 @@ func tourMenu(from start: String) -> [(name: String, tour: TownTour)] {
     // snippet end
     // snippet: tsp-menu
     var generator = Xoshiro256StarStar(seed: 1)
-    let annealed = tourMap.simulatedAnnealingTour(
-        improving: greedy, move: .relocate, temperature: 50, maximumIterations: 200, innerIterations: 500, weight: { km[$0] }, using: &generator)!
+    let annealed = tourMap.simulatedAnnealingTour(improving: greedy, weight: { km[$0] }, using: &generator)!
     let christofides = tourMap.christofidesTour { km[$0] }!
     let shortest = tourMap.shortestTour { km[$0] }!
     // snippet end
