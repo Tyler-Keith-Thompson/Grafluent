@@ -1,8 +1,8 @@
 # GraphFormats: API
 
-Readers and writers for sixteen text formats: DOT, GraphML, node-link JSON, Matrix Market
+Readers and writers for seventeen text formats: DOT, GraphML, node-link JSON, Matrix Market
 (coordinate), edge list, adjacency list, Mermaid flowcharts, GML, Pajek `.net`, graph6, sparse6,
-digraph6, DIMACS (shortest path and clique), METIS, Cytoscape JSON and GEXF. A reader is a throwing initializer
+digraph6, DIMACS (shortest path and clique), METIS, Cytoscape JSON, GEXF and LEDA `.gw`. A reader is a throwing initializer
 on any mutable representation (`AdjacencyList`, `DirectedPseudograph`, `StableDirectedGraph`,
 `UndirectedAdjacencyList`, `Pseudograph`). It reports vertex, edge and graph attributes through
 closures, by vertex and by edge position. A writer is a method on any `DirectedGraph` or `Graph`
@@ -12,10 +12,10 @@ builds on Linux with the standard library and `GraphProtocols` only. It draws no
 styling statements are skipped on reading and never written, unless the caller passes them as
 plain attributes.
 
-`cases.md` (GF-001 – GF-660: 570 read rows, 326 of them errors, and 90 write rows) pins the values.
+`cases.md` (GF-001 – GF-701: 606 read rows, 350 of them errors, and 95 write rows) pins the values.
 `ref.py` is an independent Python implementation of everything below. Every row is compared with
 NetworkX 3.7 (GraphML, node-link JSON, edge list, adjacency list, GML, Pajek, graph6, sparse6,
-Cytoscape JSON, GEXF), SciPy 1.18.1 (Matrix Market) or pydot 4.0.1 (DOT), where that library reads or
+Cytoscape JSON, GEXF, LEDA), SciPy 1.18.1 (Matrix Market) or pydot 4.0.1 (DOT), where that library reads or
 writes the format; digraph6, DIMACS and METIS have no Python implementation, and their rules follow
 nauty's `formats.txt`, the DIMACS challenge pages and the METIS 5 manual. `ref.py` checks the write
 rows byte for byte against `json.dumps(nx.node_link_data(G, edges="edges"))`, SciPy's `mmwrite`,
@@ -52,6 +52,7 @@ follow the flowchart syntax page and `flow.jison` of mermaid-js 11.
 | METIS | the header `n m [fmt [ncon]]`, vertex sizes and weights (ncon = 1), edge weights, `%` comments | unweighted or with edge weights |
 | Cytoscape JSON | `directed`, `multigraph`, `data` (object or NetworkX's pairs), `elements` as `{nodes, edges}` or an array with `group` | NetworkX's `cytoscape_data` layout |
 | GEXF | one static `<graph>` (1.1 to 1.3), its `<attributes>` declarations with `<default>`s, `<nodes>` (nested ones too) and `<edges>` with `label`, `weight` and `<attvalues>`; `<meta>`, `viz`, `parents` and `spells` skipped | GEXF 1.2 (the `1.2draft` namespace NetworkX writes): declarations, nodes, edges |
+| LEDA | `LEDA.GRAPH`, the node and edge information types, `-1`/`-2`, the counted `\|{…}\|` node lines and `source target reversal \|{…}\|` edge lines, `#` comments | the same, reversal 0, the types from the labels |
 
 These are read as `unsupported`, at the construct:
 
@@ -139,9 +140,11 @@ extension MutableDirectedGraph {
                 vertexAttribute:, edgeAttribute:, graphAttribute:) throws(ParseError)
     public init(gexf input: some Sequence<UInt8>, vertex: (String) -> Vertex?,  // the node id
                 vertexAttribute:, edgeAttribute:, graphAttribute:) throws(ParseError)
+    public init(leda input: some Sequence<UInt8>, maximumVertexCount: Int? = nil,
+                vertex: (Int) -> Vertex?, vertexAttribute:, edgeAttribute:) throws(ParseError)     // key "label"
 }
 extension MutableDirectedGraph where Vertex == String { /* the same, without vertex:, for dot, graphML, nodeLinkJSON, edgeList, adjacencyList, mermaid, gml, pajek, cytoscapeJSON, gexf */ }
-extension MutableDirectedGraph where Vertex == Int    { /* matrixMarket, nodeLinkJSON, edgeList, adjacencyList, digraph6, dimacs without vertex: */ }
+extension MutableDirectedGraph where Vertex == Int    { /* matrixMarket, nodeLinkJSON, edgeList, adjacencyList, digraph6, dimacs, leda without vertex: */ }
 extension MutableGraph {
     /* the same, undirected, but digraph6; and: */
     public init(graph6 input: some Sequence<UInt8>, vertex: (Int) -> Vertex?) throws(ParseError)
@@ -164,6 +167,7 @@ extension DirectedGraph {
     ) throws(WriteError)
     public func writeGraphML(to:, vertexID:, vertexAttributes:, edgeAttributes:, graphAttributes:) throws(WriteError)
     public func writeGEXF(to:, vertexID:, vertexAttributes:, edgeAttributes:) throws(WriteError)       // no graph attributes
+    public func writeLEDA(to:, vertexLabel: (Vertex) -> AttributeValue? = …, edgeLabel: (Edges.Index) -> AttributeValue? = …) throws(WriteError)
     public func writeNodeLinkJSON(to:, vertexID: (Vertex) -> AttributeValue = …, vertexAttributes:, edgeAttributes:, graphAttributes:) throws(WriteError)
         // default vertexID: .integer for Vertex == Int, .string(String(describing:)) otherwise
     public func writeMatrixMarket(to output: inout some TextOutputStream)                                       // pattern
@@ -490,6 +494,55 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
   containing a character XML 1.0 cannot represent (C0 controls other than tab, LF, CR; U+FFFE,
   U+FFFF) throws `invalidID`, `invalidKey` or `invalidValue`. Every check runs in the first pass
   and on the IDs, before anything is written.
+
+### LEDA
+
+- **Scope**: LEDA's native graph format (`.gw`, the LEDA guide's "graph file format"): lines, a
+  carriage return before a line feed not content; blank lines and lines whose first character
+  other than space or tab is `#` are skipped everywhere (GF-661, GF-672). In order: `LEDA.GRAPH`
+  alone on a line (`syntax` at the line otherwise, GF-673); the node information type and the edge
+  information type, one word each (`syntax` at a second word, GF-674): `void`; `int`, `long`,
+  `short` (`.integer`); `double`, `float` (`.double`); `bool` (`.boolean`); `string` and any other
+  word (`.string`, GF-664, GF-665); the direction, `-1` directed or `-2` undirected (`invalidValue`
+  at another word, `kindMismatch` at the other kind: GF-675 – GF-677); the node count n (an unsigned
+  integer: `syntax`, `numberOutOfRange`, `limitExceeded` above `maximumVertexCount`, by default 16
+  per input byte plus 4,096: GF-678 – GF-680; the vertices `0..<n` are inserted at it, `invalidVertex`
+  there when `vertex` declines one); n node lines; the edge count m; m edge lines; nothing else
+  (`syntax` at a further line, GF-693). Lines running out is `unexpectedEndOfInput` at the end
+  (GF-686, GF-692, GF-694).
+- **Information**: a node line, and an edge line's fourth field to the end of the line, is `|{…}|`
+  with blanks around it not content (`syntax` at its start otherwise, GF-681, GF-691, GF-696); the last
+  `}|` of the line closes it, so `|{` and `}|` may appear inside (GF-666). Its text is reported
+  under `label`, as a value of the side's type: a string as it stands; a number or a boolean with
+  GraphML's rules (whitespace around it, `INF`, `NaN`; `invalidValue` or `numberOutOfRange` at
+  the information: GF-663, GF-682 – GF-685); `void` information is not reported, whatever it holds.
+- **Edges**: `source target reversal |{…}|`: `syntax` at the line's end with fewer than four
+  fields (GF-687); `source` and `target` are 1-based indices in `1...n` (`syntax` when not digits,
+  `indexOutOfRange` otherwise: GF-688, GF-689), `reversal` an unsigned integer at most m (the
+  reverse edge's number, or 0; `indexOutOfRange` above m, GF-690; not otherwise used). Edges are
+  read in file order, each once, as written (GF-668 – GF-670).
+- **Writer**:
+
+  ```
+  LEDA.GRAPH
+  string              the node information type: the labels' type, void when every label is nil
+  int                 the edge information type
+  -1                  -2 for a Graph
+  3
+  |{a}|               one line per vertex, in vertices order; |{}| for nil
+  |{b c}|
+  |{}|
+  2
+  1 2 0 |{7}|         1-based indices in vertices order, reversal 0, the edge's information
+  2 3 0 |{-2}|
+  ```
+
+  Types: `.string` → `string`, `.integer` → `int`, `.double` → `double` (also for integers mixed
+  with doubles, which are then written as doubles), `.boolean` → `bool`; any other mix is
+  `typeMismatch`, as is a nil label beside labels of a type other than `string` (a nil string is
+  written empty). A string holding a line feed or a carriage return is `invalidValue`. Doubles in
+  the short form, `INF`, `-INF`, `NaN`. The closures are called twice per element. Every check runs
+  before anything is written.
 
 ### GEXF
 
@@ -852,6 +905,7 @@ What `read(write(g))` gives back, into a target of the same kind and type:
 | DOT | all, same order | same | every key; values come back as `.string` (`.integer(2)` → `"2"`, `.double(2.0)` → `"2.0"`, `.boolean(true)` → `"true"`) |
 | GraphML | all, same order | same | exact, typed; an integer under a key that also holds doubles comes back `.double` |
 | GEXF | all, same order | same | exact, typed, as GraphML; an edge's `weight` comes back `.double`; graph attributes are not written |
+| LEDA | all as `0..<n` | same | `label` only: typed by its side, an integer beside doubles `.double`, a nil beside strings `""` |
 | node-link JSON | all, same order | same | exact, typed |
 | Matrix Market | all as indices `0..<n` in `vertices` order | same; undirected edges come back as (larger index, smaller index) | `weight` only, exact (reals print shortest round-trip digits) |
 | edge list | isolated vertices lost; order = first appearance in edges | same | the `columns`, re-typed by their text (`.string("12")` → `.integer(12)`) |
@@ -968,6 +1022,7 @@ differently from this module.
 | GraphML integrity | NetworkX adds an undeclared edge endpoint as a node, merges a duplicate node id, reads only the first `<graph>`, requires `attr.name`, decodes ISO-8859-1, and has no depth limit | GF-047, GF-066, GF-067, GF-074, GF-077, GF-079 |
 | GraphML writer | NetworkX writes two `<key>`s with the same `attr.name` (`long` and `double`) when one attribute holds Python ints and floats; here one `double` key | GF-198 |
 | GEXF (NetworkX 3.7 `read_gexf`) | NetworkX has no target and reads any `defaultedgetype` but `directed` as undirected and any `mode` but `dynamic` as static; reads dynamic graphs and attributes (values as lists); reads the first `<graph>` only; adds an undeclared endpoint as a node, merges a duplicate node id, reads every node before any edge, and adds a nested node before its parent; adds a `mutual` edge in both directions and ignores an unknown edge type; stores defaults in `G.graph["node_default"]` without applying them; requires an attribute `type` and a graph `timeformat` for spells (`KeyError` otherwise), and declares an attribute without an id under `None`; expands internal DTD entities; gives every node a `label` (`None` without one) and every edge its `id`, and takes a weight as a float | GF-596, GF-598 – GF-600, GF-607 – GF-610, GF-613, GF-616 – GF-622, GF-625 – GF-628, GF-632, GF-633, GF-641, GF-642, GF-644, GF-645, GF-647 |
+| LEDA (NetworkX 3.7 `parse_leda`, no writer) | NetworkX skips the first three lines unread, reads any direction but `-1` as undirected and has no target; names each node by its information stripped of `\|`, `{`, `}` and spaces (its number when that is empty), so equal informations merge, and reads every information as a string; splits edge lines at whitespace, so information with spaces fails; cuts two characters from each end of the fourth field; ignores the reversal field; stops after m edges; reads into a `DiGraph` or `Graph`, merging parallel edges. `ref.py` compares rows by the names NetworkX gives, without attributes | GF-663, GF-668, GF-673 – GF-677, GF-681 – GF-685, GF-690, GF-691, GF-693, GF-696 – GF-698 |
 | node-link JSON | NetworkX 3.7 raises `KeyError: 'edges'` on files with `links` (its own pre-3.4 default) unless told `edges="links"`; here either is read | GF-089 |
 | JSON parsing | Python's `json.loads` accepts `NaN`/`Infinity`, keeps the last of duplicate keys, keeps lone surrogates, and reads integers of any size; NetworkX adds undeclared edge endpoints, keeps `null`/list attributes, and names a node without `id` `None` | GF-093 – GF-104, GF-110 |
 | Matrix Market | SciPy truncates `3.5` in an `integer` file to `3`, reads `0x1p3` as `0.0`, ignores extra columns, accepts `+1` as an index, a skew-symmetric diagonal, and `pattern skew-symmetric` (which the spec forbids); writes field `real` for any empty matrix, even with `field="pattern"` | GF-137 – GF-146, GF-213 |

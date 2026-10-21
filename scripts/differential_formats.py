@@ -422,6 +422,74 @@ def build_requests(rng, case):
         return [] if G.unwire(ans["graph"]).canon() == gexf_expected().canon() else ["GEXF: the library reads generate_gexf's text as another graph"]
     add({"op": "read", "format": "gexf", "text": nx_text}, gexf_read, "gexf read")
 
+    # LEDA (NetworkX: parse_leda only, nodes named by their information, every information a string,
+    # edge lines split at whitespace, a DiGraph or Graph): the library's text read back by NetworkX,
+    # and a file in the format read by the library.
+    edges = with_parallels(rng, case, simple=True)
+    kind = rng.choice(["void", "string", "int", "double", "bool"])
+    def leda_label(kind):
+        if kind == "void":
+            return None
+        if kind == "string":
+            return rng.choice([s for s in NAMES if "\t" not in s] + ["a b", ""])
+        if kind == "int":
+            return rng.randint(-10**6, 10**6)
+        if kind == "double":
+            return rng.choice([-0.5, 1e-7, 2.0, rng.random() * 100])
+        return rng.random() < 0.5
+    ekind = rng.choice(["void", "string", "int"])
+    vlabels = [leda_label(kind) for _ in range(n)]
+    elabels = [leda_label(ekind) for _ in edges]
+    g = G(directed, list(range(n)), [e[:2] for e in edges],
+          [({} if x is None else {"label": x}) for x in vlabels], [({} if x is None else {"label": x}) for x in elabels])
+
+    def leda_names(vlabels=vlabels):
+        names = []
+        for i, x in enumerate(vlabels):
+            text = "" if x is None else (("true" if x else "false") if type(x) is bool else (repr(float(x)) if type(x) is float else str(x)))
+            text = text.strip("|{} ")
+            names.append(text if text else str(i + 1))
+        return names
+
+    def leda_nx_edges(G, names, g=g):
+        mine = Counter((names[u], names[v]) if directed or names[u] <= names[v] else (names[v], names[u]) for u, v in g.edges)
+        theirs = Counter((u, v) if directed or u <= v else (v, u) for u, v in G.edges)
+        return mine == theirs
+
+    def leda_write(ans, g=g):
+        text = ans.get("text")
+        if text is None:
+            return [f"LEDA write failed: {ans.get('error')}"]
+        names = leda_names()
+        if len(set(names)) < len(names) or any(len(f"|{{{s}}}|".split()) != 1 for s in names) or any(type(x) is str and len(f"|{{{x}}}|".split()) != 1 for x in elabels):
+            COVERED["LEDA written (not checked)"] += 1
+            return []  # NetworkX merges equal names and splits a line at the spaces in a label
+        H = nx.parse_leda(text)
+        COVERED["LEDA written"] += 1
+        return [] if list(H.nodes) == names and leda_nx_edges(H, names) else ["LEDA: NetworkX reads the library's text as another graph"]
+    add({"op": "write", "format": "leda", "graph": g.wire()}, leda_write, "leda write")
+
+    def leda_text(x):
+        if x is None:
+            return ""
+        if type(x) is bool:
+            return "true" if x else "false"
+        if type(x) is float:
+            return repr(x)
+        return str(x)
+    text = ["LEDA.GRAPH", kind, ekind, "-1" if directed else "-2", "# nodes", str(n)] + [f"|{{{leda_text(x)}}}|" for x in vlabels] + ["# edges", str(len(edges))]
+    text += [f"{u + 1} {v + 1} 0 |{{{leda_text(x)}}}|" for (u, v, _), x in zip(edges, elabels)]
+    leda_file = "\n".join(text) + "\n"
+
+    def leda_read(ans, g=g):
+        if ans.get("graph") is None:
+            return [f"LEDA: the library cannot read the file: {ans.get('error')}"]
+        mine = G.unwire(ans["graph"])
+        expected = G(directed, [str(v) for v in g.vertices], g.edges, g.vattrs, g.eattrs)
+        COVERED["LEDA read"] += 1
+        return [] if mine.canon() == expected.canon() else [f"LEDA: the library reads the file as another graph\n{leda_file[:300]}"]
+    add({"op": "read", "format": "leda", "text": leda_file}, leda_read, "leda read")
+
     # Pajek (NetworkX: string extras only, no apostrophe in labels it writes).
     names = name_pool(rng, n, forbidden="'\t")
     edges = with_parallels(rng, case)

@@ -137,6 +137,9 @@ func readFormat(_ r: FormatRequest) -> FormatAnswer {
             case "dimacs":
                 let g = try DirectedPseudograph<Int>(dimacs: input, edgeAttribute: edge)
                 return FormatAnswer(graph: readAnswer(g, vertices: via, edges: ea, graphAttributes: ga))
+            case "leda":
+                let g = try DirectedPseudograph<Int>(leda: input, vertexAttribute: vertexInt, edgeAttribute: edge)
+                return FormatAnswer(graph: readAnswer(g, vertices: via, edges: ea, graphAttributes: ga))
             default:
                 return FormatAnswer(error: "no directed reader for \(r.format)")
             }
@@ -148,6 +151,9 @@ func readFormat(_ r: FormatRequest) -> FormatAnswer {
         case "gexf":
             let g = try Pseudograph<String>(gexf: input, vertexAttribute: vertex, edgeAttribute: edge, graphAttribute: graph)
             return FormatAnswer(graph: readAnswer(g, vertices: va, edges: ea, graphAttributes: ga))
+        case "leda":
+            let g = try Pseudograph<Int>(leda: input, vertexAttribute: vertexInt, edgeAttribute: edge)
+            return FormatAnswer(graph: readAnswer(g, vertices: via, edges: ea, graphAttributes: ga))
         case "pajek":
             let g = try Pseudograph<String>(pajek: input, vertexAttribute: vertex, edgeAttribute: edge, graphAttribute: graph)
             return FormatAnswer(graph: readAnswer(g, vertices: va, edges: ea, graphAttributes: ga))
@@ -192,6 +198,8 @@ func writeFormat(_ r: FormatRequest) -> FormatAnswer {
     }
     let delimiter = r.delimiter.map { $0.unicodeScalars.first! }
     let header = r.header ?? false
+    let vertexLabel: (Int) -> AttributeValue? = { formatPairs(fg.vertexAttributes[$0]).first { $0.key == "label" }?.value }
+    let edgeLabel: (Int) -> AttributeValue? = { formatPairs(fg.edgeAttributes[$0]).first { $0.key == "label" }?.value }
     var out = ""
     do {
         if fg.directed {
@@ -200,6 +208,7 @@ func writeFormat(_ r: FormatRequest) -> FormatAnswer {
             switch r.format {
             case "gml": try g.writeGML(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: graphAttributes)
             case "gexf": try g.writeGEXF(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
+            case "leda": try gi.writeLEDA(to: &out, vertexLabel: vertexLabel, edgeLabel: edgeLabel)
             case "pajek": try g.writePajek(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
             case "cytoscape": try g.writeCytoscapeJSON(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: graphAttributes)
             case "edgelist": try g.writeEdgeList(to: &out, columns: r.columns ?? [], delimiter: delimiter, edgeAttributes: edgeAttributes)
@@ -213,6 +222,7 @@ func writeFormat(_ r: FormatRequest) -> FormatAnswer {
             switch r.format {
             case "gml": try g.writeGML(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: graphAttributes)
             case "gexf": try g.writeGEXF(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
+            case "leda": try gi.writeLEDA(to: &out, vertexLabel: vertexLabel, edgeLabel: edgeLabel)
             case "pajek": try g.writePajek(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
             case "cytoscape": try g.writeCytoscapeJSON(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: graphAttributes)
             case "edgelist": try g.writeEdgeList(to: &out, columns: r.columns ?? [], delimiter: delimiter, edgeAttributes: edgeAttributes)

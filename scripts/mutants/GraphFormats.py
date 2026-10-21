@@ -1,4 +1,4 @@
-# Planted bugs for GraphFormats (GML, Pajek, the nauty formats, DIMACS, METIS, Cytoscape JSON, GEXF and
+# Planted bugs for GraphFormats (GML, Pajek, the nauty formats, DIMACS, METIS, Cytoscape JSON, GEXF, LEDA and
 # delimited and dict edge lists included): the scanners (UTF-8, lines, XML, JSON, the shared key index), every
 # reader and writer, node-link's one-pass read and GraphML's lookahead, the limits (Matrix Market's
 # vertex bound, the expansion budget), the decimal parser and Schubfach, and the bulk hooks in
@@ -49,6 +49,7 @@ PJ = "Pajek.swift"
 CY = "CytoscapeJSON.swift"
 PY = "PythonLiterals.swift"
 GX = "GEXF.swift"
+LD = "LEDA.swift"
 
 MUTANTS = [
     # UTF-8 and positions.
@@ -476,4 +477,28 @@ MUTANTS = [
     Mutant("gexfwinf", GX, 'out.appendASCII(x < 0 ? "-INF" : "INF")', 'out.appendASCII("INF")', mode="stmt"),
     Mutant("gexfwdirected", GX, 'Source.isDirected ? "  <graph defaultedgetype=\\"directed\\" mode=\\"static\\">\\n" : "  <graph defaultedgetype=\\"undirected\\" mode=\\"static\\">\\n"',
            '"  <graph defaultedgetype=\\"directed\\" mode=\\"static\\">\\n"'),
+
+    # LEDA: the header, the counted lines, the information, and the writer.
+    Mutant("ledaheader", LD, 'guard fields.count == 1, _matches(text, fields[0].0, fields[0].1, "LEDA.GRAPH") else { throw ParseError(.syntax, at: line.start) }', "", mode="stmt"),
+    Mutant("ledacomment", LD, 'if q < line.end && text[q] != UInt8(ascii: "#") { return line }', "if q < line.end { return line }", mode="stmt"),
+    Mutant("ledatypeint", LD, 'self = .integer', 'self = .string', mode="stmt"),
+    Mutant("ledatypedouble", LD, 'self = .double', 'self = .integer', mode="stmt"),
+    Mutant("ledakind", LD, "if directed != Direction.isDirected { throw ParseError(.kindMismatch, at: fields[0].0) }", "", mode="stmt"),
+    Mutant("ledadirection", LD, 'throw ParseError(.invalidValue, at: fields[0].0)', 'directed = true', mode="stmt"),
+    Mutant("ledabound", LD, "if n > _vertexBound(maximumVertexCount, inputCount: text.count) { throw ParseError(.limitExceeded, at: fields[0].0) }", "", mode="stmt"),
+    Mutant("ledabrackets", LD, 'text[e &- 2] == UInt8(ascii: "}")', 'true'),
+    Mutant("ledatrim", LD, "while e > s && _isBlank(text[e &- 1]) { e &-= 1 }", "", mode="stmt"),
+    Mutant("ledavoid", LD, "self = .void", "self = .string", mode="stmt"),
+    Mutant("ledanodelabel", LD, "if let value = try _ledaInformation(text, line.start, line.end, type: types[0]) { buffer.recordVertex(keys[i], 0, value) }", "_ = try _ledaInformation(text, line.start, line.end, type: types[0])", mode="stmt"),
+    Mutant("ledaedgefields", LD, "if fields.count < 4 { throw ParseError(.syntax, at: line.end) }", "", mode="stmt"),
+    Mutant("ledafast", LD, "a >= 1 && a <= n && b >= 1 && b <= n", "a >= 1 && b >= 1"),
+    Mutant("ledareversal", LD, "if reversal > m { throw ParseError(.indexOutOfRange, at: fields[2].0) }", "", mode="stmt"),
+    Mutant("ledaedgelabel", LD, "if let value = try _ledaInformation(text, fields[3].0, line.end, type: types[1]) { buffer.record(edge, 0, value) }", "_ = try _ledaInformation(text, fields[3].0, line.end, type: types[1])", mode="stmt"),
+    Mutant("ledaextra", LD, "if let extra = _nextLEDALine(text, &start) { throw ParseError(.syntax, at: extra.start) }", "", mode="stmt"),
+    Mutant("ledawnils", LD, "if nils && type != .void && type != .string { throw .typeMismatch }", "", mode="stmt"),
+    Mutant("ledawmixed", LD, "guard (type == .integer || type == .double) && (next == .integer || next == .double) else { throw .typeMismatch }", "", mode="stmt"),
+    Mutant("ledawpromote", LD, "if type == .double { _appendPythonDouble(Double(i), to: &out) } else { out.appendDecimal(i) }", "out.appendDecimal(i)", mode="stmt"),
+    Mutant("ledawlinefeed", LD, "for b in s.utf8 where b == 0x0A || b == 0x0D { throw .invalidValue }", "", mode="stmt"),
+    Mutant("ledawdirected", LD, 'Source.isDirected ? "-1\\n" : "-2\\n"', '"-1\\n"'),
+    Mutant("ledawone", LD, "out.appendDecimal(v &+ 1)", "out.appendDecimal(v)", mode="stmt"),
 ]

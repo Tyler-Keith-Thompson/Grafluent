@@ -43,7 +43,7 @@ for line in TEXT.split("\n"):
     if line.startswith("| GF-"):
         ROWS[line.split(" | ")[0][2:]] = line
 CASES = ref.CASES
-assert len(CASES) == len(ROWS) == 660
+assert len(CASES) == len(ROWS) == 701
 for c in CASES:
     r = ref.evaluate(c)
     cells = ROWS[c["id"]].split(" | ")
@@ -203,9 +203,9 @@ def read_test(c):
         lines.append("        }")
         lines.append("    }")
         return lines
-    has_va = fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "pajek", "metis", "cytoscapeJSON", "gexf")
+    has_va = fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "pajek", "metis", "cytoscapeJSON", "gexf", "leda")
     has_ea = fmt in ("dot", "graphML", "nodeLinkJSON", "matrixMarket", "edgeList", "gml", "pajek", "metis",
-                     "cytoscapeJSON", "gexf") or (fmt == "dimacs" and directed)
+                     "cytoscapeJSON", "gexf", "leda") or (fmt == "dimacs" and directed)
     has_ga = fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "pajek", "cytoscapeJSON", "gexf")
     closures = []
     if has_va:
@@ -320,6 +320,12 @@ def write_test(c):
         call = {"graph6": "writeGraph6", "sparse6": "writeSparse6", "digraph6": "writeDigraph6"}[fmt]
         if kw.get("header"):
             args.append("header: true")
+    elif fmt == "leda":
+        call = "writeLEDA"
+        for side, name in (("nodeLabels", "vertexLabel"), ("edgeLabels", "edgeLabel")):
+            if kw.get(side) is not None:
+                lines.append(f"        let {name}s: [AttributeValue?] = {arr('nil' if x is None else value(x) for x in kw[side])}")
+                args.append(f"{name}: {{ {name}s[$0] }}")
     elif fmt in ("dimacs", "metis"):
         call = {"dimacs": "writeDIMACS", "metis": "writeMETIS"}[fmt]
         if kw.get("weight") is not None:
@@ -434,6 +440,10 @@ FILES = [
     ("GraphFormatsCytoscapeJSONTests.swift", "GraphFormats Cytoscape JSON", ("cytoscapeJSON",), "Cytoscape JSON",
      "elements as an object or an array, data as an object or NetworkX's pairs, ids as text; ref.py checks the "
      "write rows byte for byte against json.dumps(cytoscape_data)."),
+    ("GraphFormatsLEDATests.swift", "GraphFormats LEDA", ("leda",), "LEDA",
+     "the header, the two information types, the direction, the counted node and edge lines, information between |{ "
+     "and }| typed by the declared type, blank and comment lines; the writer's types from the labels; NetworkX's "
+     "parse_leda reads every row by the names it gives nodes."),
     ("GraphFormatsGEXFTests.swift", "GraphFormats GEXF", ("gexf",), "GEXF",
      "one static graph over the XML subset, declared attributes with defaults, nodes (nested ones too) before the "
      "edges that name them, label and weight as attributes, dynamic data rejected; the writer's node class then "

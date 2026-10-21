@@ -21,6 +21,7 @@ KNOWN with the reason, and in api.md under disagreements):
 
   * GraphML: NetworkX `read_graphml` on read rows; every writer row read back by NetworkX.
   * GEXF: NetworkX `read_gexf` on read rows (less the label None and edge id it adds); every writer row read back by NetworkX.
+  * LEDA: NetworkX `parse_leda` on read and write rows, by the names it gives nodes (no attributes).
   * node-link JSON: NetworkX `node_link_graph` on read rows; writer rows byte-equal to
     `json.dumps(nx.node_link_data(G, edges="edges"))`.
   * Matrix Market: SciPy `mmread` on read rows; writer rows byte-equal to SciPy `mmwrite`.
@@ -1055,6 +1056,156 @@ def graphml_write(g):
             out.append(head + "/>\n")
     out.append("  </graph>\n</graphml>\n")
     return "".join(out)
+
+
+# ============================================================================ LEDA
+
+def leda_type(word):
+    if word == "void":
+        return "void"
+    if word in ("int", "long", "short"):
+        return "long"
+    if word in ("double", "float"):
+        return "double"
+    if word == "bool":
+        return "boolean"
+    return "string"
+
+
+def leda_lines(t):
+    """The lines that are neither blank nor comments (first non-blank character #)."""
+    return [(o, s) for o, s in lines_of(t) if s.strip(" \t") and not s.lstrip(" \t").startswith("#")]
+
+
+def leda_info(off, s, kind):
+    """`|{…}|` with blanks around it, as a value of `kind` (None for void): syntax at the start
+    otherwise, the value's errors at the information."""
+    start = off + (len(s) - len(s.lstrip(" \t")))
+    s = s.strip(" \t")
+    if len(s) < 4 or not s.startswith("|{") or not s.endswith("}|"):
+        raise ParseError("syntax", start)
+    if kind == "void":
+        return None
+    return graphml_value(kind, s[2:-2], start + 2)
+
+
+def leda_read(t, g, maximumVertexCount=None):
+    bound = mm_max_vertices(t) if maximumVertexCount is None else maximumVertexCount
+    ls = leda_lines(t)
+    k = 0
+
+    def next_line():
+        nonlocal k
+        if k >= len(ls):
+            raise ParseError("unexpectedEndOfInput", len(t))
+        k += 1
+        return ls[k - 1]
+
+    def one_word():
+        off, line = next_line()
+        toks = tokens_of(off, line)
+        if len(toks) != 1:
+            raise ParseError("syntax", toks[1][0] if len(toks) > 1 else off)
+        return toks[0]
+
+    off, line = next_line()
+    toks = tokens_of(off, line)
+    if len(toks) != 1 or toks[0][1] != "LEDA.GRAPH":
+        raise ParseError("syntax", off)
+    types = [leda_type(one_word()[1]) for _ in range(2)]
+    o, w = one_word()
+    if w not in ("-1", "-2"):
+        raise ParseError("invalidValue", o)
+    if (w == "-1") != g.directed:
+        raise ParseError("kindMismatch", o)
+    o, w = one_word()
+    n = mm_int(w, o, sign=False)
+    if n > bound:
+        raise ParseError("limitExceeded", o)
+    for i in range(n):
+        g.vertex(i if g.vtype is int else str(i))
+    for i in range(n):
+        off, line = next_line()
+        v = leda_info(off, line, types[0])
+        if v is not None:
+            g.vattrs[i]["label"] = v
+    o, w = one_word()
+    m = mm_int(w, o, sign=False)
+    for _ in range(m):
+        off, line = next_line()
+        toks = tokens_of(off, line)
+        if len(toks) < 4:
+            raise ParseError("syntax", off + len(line))
+        ends = []
+        for o2, s in toks[:2]:
+            x = mm_int(s, o2, sign=False)
+            if not 1 <= x <= n:
+                raise ParseError("indexOutOfRange", o2)
+            ends.append(x - 1)
+        r = mm_int(toks[2][1], toks[2][0], sign=False)
+        if r > m:
+            raise ParseError("indexOutOfRange", toks[2][0])
+        p = g.edge(*ends)
+        v = leda_info(toks[3][0], line[toks[3][0] - off:], types[1])
+        if v is not None:
+            g.eattrs[p]["label"] = v
+    if k < len(ls):
+        raise ParseError("syntax", ls[k][0])
+
+
+def leda_side_type(labels):
+    """The information type of one side's labels (None for none): void, string, int, double, bool."""
+    kind, nils = "void", False
+    for x in labels:
+        if x is None:
+            nils = True
+            continue
+        if type(x) is str:
+            assert "\n" not in x and "\r" not in x, "precondition: no line break in a label"
+        nxt = {str: "string", int: "int", float: "double", bool: "bool"}[type(x)]
+        if kind == "void":
+            kind = nxt
+        elif kind != nxt:
+            assert {kind, nxt} == {"int", "double"}, "precondition: one type per side"
+            kind = "double"
+    assert not (nils and kind not in ("void", "string")), "precondition: nil only under void or string"
+    return kind
+
+
+def leda_text(x, kind):
+    if x is None:
+        return ""
+    if kind == "double" and type(x) is int:
+        return py_double(float(x))
+    return graphml_text(x)
+
+
+def leda_write(g, node_labels=None, edge_labels=None):
+    node_labels = list(node_labels) if node_labels is not None else [None] * len(g.vertices)
+    edge_labels = list(edge_labels) if edge_labels is not None else [None] * len(g.edges)
+    nt, et = leda_side_type(node_labels), leda_side_type(edge_labels)
+    out = ["LEDA.GRAPH\n", nt + "\n", et + "\n", "-1\n" if g.directed else "-2\n", f"{len(g.vertices)}\n"]
+    out += [f"|{{{leda_text(x, nt)}}}|\n" for x in node_labels]
+    out.append(f"{len(g.edges)}\n")
+    out += [f"{u + 1} {v + 1} 0 |{{{leda_text(x, et)}}}|\n" for (u, v), x in zip(g.edges, edge_labels)]
+    return "".join(out)
+
+
+def leda_nx_check(ours, G):
+    """NetworkX's parse_leda names a node by its information, stripped of | { } and spaces, or by its
+    number when that is empty, reads every information as a string and splits edge lines at
+    whitespace. The same nodes in order and the same edges, by those names, without attributes."""
+    names = []
+    for i, a in enumerate(ours.vattrs):
+        label = a.get("label")
+        text = "" if label is None else (graphml_text(label) if type(label) is not str else label)
+        text = text.strip("|{} ")
+        names.append(text if text else str(i + 1))
+    if [str(v) for v in G.nodes] != names:
+        return "vertex order"
+    mine = edge_multiset([(names[u], names[v], {}) for u, v in ours.edges], ours.directed)
+    theirs = edge_multiset([(str(u), str(v), {}) for u, v, _ in nx_edges(G)], ours.directed)
+    return None if mine == theirs else "edges"
 
 
 # ============================================================================ GEXF
@@ -3386,7 +3537,7 @@ def cytoscape_write(g):
 def reader_for(fmt, **kw):
     if fmt == "edgeList":
         return lambda t, g: edge_list_read(t, g, kw.get("columns", ()), kw.get("delimiter"))
-    bounded = {"pajek": pajek_read, "sparse6": sparse6_read, "dimacs": dimacs_read, "metis": metis_read}
+    bounded = {"pajek": pajek_read, "sparse6": sparse6_read, "dimacs": dimacs_read, "metis": metis_read, "leda": leda_read}
     if fmt in bounded:
         return lambda t, g: bounded[fmt](t, g, kw.get("maximumVertexCount"))
     return {"dot": dot_read, "graphML": graphml_read, "nodeLinkJSON": node_link_read,
@@ -3409,19 +3560,19 @@ TARGETS = {
 LABEL = {"dot": "dot", "graphML": "graphML", "nodeLinkJSON": "nodeLinkJSON", "matrixMarket": "matrixMarket",
          "edgeList": "edgeList", "adjacencyList": "adjacencyList", "mermaid": "mermaid", "gml": "gml",
          "pajek": "pajek", "graph6": "graph6", "sparse6": "sparse6", "digraph6": "digraph6", "dimacs": "dimacs",
-         "metis": "metis", "cytoscapeJSON": "cytoscapeJSON", "gexf": "gexf"}
+         "metis": "metis", "cytoscapeJSON": "cytoscapeJSON", "gexf": "gexf", "leda": "leda"}
 WRITER = {"dot": "writeDOT(to:)", "graphML": "writeGraphML(to:)", "nodeLinkJSON": "writeNodeLinkJSON(to:)",
           "matrixMarket": "writeMatrixMarket(to:)", "edgeList": "writeEdgeList(to:)",
           "adjacencyList": "writeAdjacencyList(to:)", "mermaid": "writeMermaid(to:)", "gml": "writeGML(to:)",
           "pajek": "writePajek(to:)", "graph6": "writeGraph6(to:)", "sparse6": "writeSparse6(to:)",
           "digraph6": "writeDigraph6(to:)", "dimacs": "writeDIMACS(to:)", "metis": "writeMETIS(to:)",
-          "cytoscapeJSON": "writeCytoscapeJSON(to:)", "gexf": "writeGEXF(to:)"}
+          "cytoscapeJSON": "writeCytoscapeJSON(to:)", "gexf": "writeGEXF(to:)", "leda": "writeLEDA(to:)"}
 PREFIX = {"dot": "DT", "graphML": "GM", "nodeLinkJSON": "NL", "matrixMarket": "MM", "edgeList": "EL",
           "adjacencyList": "AL", "mermaid": "MD"}
 GROUP = {"dot": "DOT", "graphML": "GraphML", "nodeLinkJSON": "Node-link JSON", "matrixMarket": "Matrix Market",
          "edgeList": "Edge list", "adjacencyList": "Adjacency list", "mermaid": "Mermaid", "gml": "GML",
          "pajek": "Pajek", "graph6": "graph6", "sparse6": "sparse6", "digraph6": "digraph6", "dimacs": "DIMACS",
-         "metis": "METIS", "cytoscapeJSON": "Cytoscape JSON", "gexf": "GEXF"}
+         "metis": "METIS", "cytoscapeJSON": "Cytoscape JSON", "gexf": "GEXF", "leda": "LEDA"}
 
 
 def make_target(code):
@@ -4323,6 +4474,8 @@ def write_output(c):
         return graphml_write(g)
     if f == "gexf":
         return gexf_write(g)
+    if f == "leda":
+        return leda_write(g, kw.get("nodeLabels"), kw.get("edgeLabels"))
     if f == "nodeLinkJSON":
         return node_link_write(g)
     if f == "matrixMarket":
@@ -4516,6 +4669,59 @@ W("gexf", "INF, -INF, NaN, booleans", SPECIAL)
 W("gexf", "a weight written as its integer or double text, in the pairs' order with the label",
   graph(True, ["a", "b"], [("a", "b"), ("b", "a")], {}, {0: {"weight": 7, "label": "w first"}, 1: {"label": "l first", "weight": 0.25}}))
 
+# ---------------------------------------------------------------- LEDA read
+LH = "LEDA.GRAPH\n"
+R("leda", "DI", "the header, string nodes, int edges, comments and blank lines",
+  LH + "string\nint\n-1\n# nodes\n3\n|{Alpha}|\n|{B C}|\n|{}|\n\n# edges\n2\n1 2 0 |{7}|\n3 3 0 |{-1}|\n")
+R("leda", "UI", "undirected (-2), void information on both sides", LH + "void\nvoid\n-2\n2\n|{}|\n|{}|\n1\n2 1 0 |{}|\n")
+R("leda", "DI", "every information type: int, double, bool, string; whitespace around numbers; INF",
+  LH + "double\nbool\n-1\n3\n|{ 1.5 }|\n|{2}|\n|{INF}|\n2\n1 2 0 |{true}|\n2 3 0 |{ 0 }|\n")
+R("leda", "DI", "long and float are int and double; an unknown type is string",
+  LH + "long\nfloat\n-1\n1\n|{-9223372036854775808}|\n1\n1 1 0 |{0.25}|\n")
+R("leda", "DI", "a type the format does not list reads as string", LH + "point\nvoid\n-1\n1\n|{(1,2)}|\n0\n")
+R("leda", "DI", "information with |{ and }| inside: the last }| closes it", LH + "string\nstring\n-1\n1\n|{a}|b}|\n1\n1 1 0 |{|{c}|}|\n")
+R("leda", "DI", "blanks around the information and the reversal index; CR LF; tabs",
+  LH + "string\r\nvoid\r\n-1\r\n2\r\n  |{a}|  \r\n|{b}|\r\n2\r\n1\t2\t2 |{}|\r\n2 1 1 |{}|\r\n")
+R("leda", "DI", "parallel edges and loops kept", LH + "void\nvoid\n-1\n2\n|{}|\n|{}|\n3\n1 2 0 |{}|\n1 2 0 |{}|\n2 2 0 |{}|\n")
+R("leda", "DSI", "simple target: a repeated edge merges, last information wins",
+  LH + "void\nint\n-1\n2\n|{}|\n|{}|\n2\n1 2 0 |{1}|\n1 2 0 |{2}|\n")
+R("leda", "USI", "simple undirected target: 2 1 is 1 2", LH + "void\nvoid\n-2\n2\n|{}|\n|{}|\n2\n1 2 0 |{}|\n2 1 0 |{}|\n")
+R("leda", "DI", "no nodes, no edges", LH + "void\nvoid\n-1\n0\n0\n")
+R("leda", "DI", "a comment line between the edges and after them", LH + "void\nvoid\n-1\n1\n|{}|\n1\n# e\n1 1 0 |{}|\n# end\n")
+E("leda", "DI", "a first line that is not LEDA.GRAPH", "GRAPH\nvoid\nvoid\n-1\n0\n0\n")
+E("leda", "DI", "two words on a type line", LH + "void x\nvoid\n-1\n0\n0\n")
+E("leda", "DI", "a direction that is neither -1 nor -2", LH + "void\nvoid\n-3\n0\n0\n")
+E("leda", "UI", "-1 into an undirected target", LH + "void\nvoid\n-1\n0\n0\n")
+E("leda", "DI", "-2 into a directed target", LH + "void\nvoid\n-2\n0\n0\n")
+E("leda", "DI", "a node count that is not a number", LH + "void\nvoid\n-1\nx\n0\n")
+E("leda", "DI", "a node count beyond Int", LH + "void\nvoid\n-1\n99999999999999999999\n0\n")
+E("leda", "DI", "a node count over maximumVertexCount", LH + "void\nvoid\n-1\n5\n0\n", maximumVertexCount=4)
+E("leda", "DI", "a node line without the brackets", LH + "void\nvoid\n-1\n1\n{}\n0\n")
+E("leda", "DI", "int information that is not an integer", LH + "int\nvoid\n-1\n1\n|{x}|\n0\n")
+E("leda", "DI", "int information beyond Int", LH + "int\nvoid\n-1\n1\n|{9223372036854775808}|\n0\n")
+E("leda", "DI", "bool information that is not a boolean", LH + "bool\nvoid\n-1\n1\n|{yes}|\n0\n")
+E("leda", "DI", "double information that is not a number", LH + "double\nvoid\n-1\n1\n|{1,5}|\n0\n")
+E("leda", "DI", "fewer node lines than the count", LH + "void\nvoid\n-1\n2\n|{}|\n")
+E("leda", "DI", "an edge line with three fields", LH + "void\nvoid\n-1\n1\n|{}|\n1\n1 1 0\n")
+E("leda", "DI", "an endpoint outside 1...n", LH + "void\nvoid\n-1\n1\n|{}|\n1\n1 2 0 |{}|\n")
+E("leda", "DI", "an endpoint that is not a number", LH + "void\nvoid\n-1\n1\n|{}|\n1\na 1 0 |{}|\n")
+E("leda", "DI", "a reversal index above m", LH + "void\nvoid\n-1\n1\n|{}|\n1\n1 1 2 |{}|\n")
+E("leda", "DI", "an edge information without the brackets", LH + "void\nstring\n-1\n1\n|{}|\n1\n1 1 0 x\n")
+E("leda", "DI", "fewer edge lines than the count", LH + "void\nvoid\n-1\n1\n|{}|\n2\n1 1 0 |{}|\n")
+E("leda", "DI", "a line after the last edge", LH + "void\nvoid\n-1\n1\n|{}|\n0\n\n# c\nx\n")
+E("leda", "DI", "empty input", "")
+E("leda", "DI", "invalid UTF-8", LH.encode() + b"string\nvoid\n-1\n1\n|{\xc3\x28}|\n0\n")
+E("leda", "DI", "information closed by | alone", LH + "string\nvoid\n-1\n1\n|{a|\n0\n")
+
+# ---------------------------------------------------------------- LEDA write
+LEDA_D = graph(True, [0, 1, 2], [(0, 1), (1, 1), (0, 1)])
+W("leda", "void information on both sides; edges with reversal 0", LEDA_D)
+W("leda", "string nodes and int edges", LEDA_D, nodeLabels=["a", "b c", "|{d}|"], edgeLabels=[1, -2, 3])
+W("leda", "a nil string is empty; doubles with an integer among them are double; booleans",
+  graph(True, [0, 1, 2], [(0, 1), (1, 2)]), nodeLabels=["x", None, "z"], edgeLabels=[1.5, 2])
+W("leda", "undirected, booleans, INF and NaN", graph(False, [0, 1], [(1, 0), (0, 0)]), nodeLabels=[True, False], edgeLabels=[math.inf, math.nan])
+W("leda", "empty graph", graph(True, [], []))
+
 # ============================================================================ cross-checks
 
 def same(a, b):
@@ -4567,7 +4773,7 @@ def nx_create(g):
 TARGETS_SIMPLE = {}
 
 
-NEW_FORMATS = {"gml", "pajek", "graph6", "sparse6", "digraph6", "dimacs", "metis", "cytoscapeJSON", "gexf"}
+NEW_FORMATS = {"gml", "pajek", "graph6", "sparse6", "digraph6", "dimacs", "metis", "cytoscapeJSON", "gexf", "leda"}
 
 
 def known(c):
@@ -4635,6 +4841,10 @@ def library_read_new(c, raw, ours, directed, simple):
         strip_attrs(G, node_keys=("id",), edge_keys=("source", "target") + (("key",) if data.get("multigraph") else ()))
     elif f == "gexf":
         G = nx_gexf(raw)
+    elif f == "leda":
+        # A verdict rather than a graph: NetworkX names nodes by their information.
+        G = nx.parse_leda(text)
+        return leda_nx_check(ours, G) if not isinstance(ours, ParseError) else "library accepts it"
     else:
         return "no library"
     if G.is_directed() != directed:
@@ -4681,6 +4891,17 @@ def library_write_new(c, out):
             expect.eattrs[expect.edge(u, v)] = {k: (float(x) if k == "weight" else x) for k, x in a.items()}
         promote(expect)
         return nx_matches(expect, G)
+    if f == "leda":
+        expect = Target(g.directed, vtype=int)
+        for i in range(len(g.vertices)):
+            expect.vertex(i)
+        nl = kw.get("nodeLabels") or [None] * len(g.vertices)
+        for i, x in enumerate(nl):
+            if x is not None:
+                expect.vattrs[i]["label"] = x
+        for u, v in g.edges:
+            expect.edge(u, v)
+        return leda_nx_check(expect, nx.parse_leda(out))
     if f == "pajek":
         G = nx_graph(True)
         ref = "".join(line + "\n" for line in nx.generate_pajek(G))
@@ -4731,7 +4952,7 @@ def library_write_new(c, out):
 def round_trip_new(c, out):
     """round_trip for the formats added after the first seven."""
     g, kw, f = c["graph"], c["kw"], c["fmt"]
-    integral = f in ("graph6", "sparse6", "digraph6", "dimacs", "metis")
+    integral = f in ("graph6", "sparse6", "digraph6", "dimacs", "metis", "leda")
     vtype = int if integral else str
     back = run_reader(reader_for(f, **kw), out, Target(g.directed, False, vtype))
     if isinstance(back, ParseError):
@@ -4761,6 +4982,14 @@ def round_trip_new(c, out):
             expect.vattrs[i] = e
         elif f == "gexf":
             expect.vattrs[i] = dict(a)
+        elif f == "leda":
+            nl = kw.get("nodeLabels") or [None] * len(g.vertices)
+            nt = leda_side_type(nl)
+            x = nl[i]
+            if nt == "string":
+                expect.vattrs[i] = {"label": x if x is not None else ""}
+            elif x is not None:
+                expect.vattrs[i] = {"label": float(x) if nt == "double" else x}
     if f == "gml":
         expect.gattrs = {k: gml_back(x) for k, x in g.gattrs.items()}
     elif f == "cytoscapeJSON":
@@ -4780,6 +5009,14 @@ def round_trip_new(c, out):
             expect.eattrs[q] = dict(a)
         elif f == "gexf":
             expect.eattrs[q] = {k: (float(x) if k == "weight" else x) for k, x in a.items()}
+        elif f == "leda":
+            el = kw.get("edgeLabels") or [None] * len(g.edges)
+            et = leda_side_type(el)
+            x = el[p]
+            if et == "string":
+                expect.eattrs[q] = {"label": x if x is not None else ""}
+            elif x is not None:
+                expect.eattrs[q] = {"label": float(x) if et == "double" else x}
         elif f in ("dimacs", "metis") and kw.get("weight") is not None:
             expect.eattrs[q] = {"weight": kw["weight"][p]}
     if f == "gexf":
@@ -4803,7 +5040,7 @@ def library_read(c):
     try:
         if f in NEW_FORMATS:
             G = library_read_new(c, raw, ours, directed, simple)
-            if G == "no library":
+            if G == "no library" or G is None:
                 return None
             if isinstance(G, str):
                 return G
@@ -5215,6 +5452,26 @@ KNOWN = {
     ("gexf", "a mutual edge (unsupported)"): "NetworkX adds a mutual edge in both directions",
     ("gexf", "an edge type that is not a kind"): "NetworkX ignores an edge type it does not know",
     ("gexf", "DOCTYPE (no DTD)"): "NetworkX (expat) expands internal entities",
+    # LEDA (NetworkX 3.7 parse_leda: a DiGraph or Graph, nodes named by their information, fields split at whitespace, no checks)
+    ("leda", "every information type: int, double, bool, string; whitespace around numbers; INF"):
+        "NetworkX splits an edge line at whitespace, so information with spaces is too many fields",
+    ("leda", "parallel edges and loops kept"): "NetworkX reads into a DiGraph, which merges parallel edges",
+    ("leda", "void information on both sides; edges with reversal 0"): "NetworkX merges parallel edges",
+    ("leda", "string nodes and int edges"): "NetworkX merges parallel edges",
+    ("leda", "a first line that is not LEDA.GRAPH"): "NetworkX skips the first three lines unread",
+    ("leda", "two words on a type line"): "NetworkX skips the type lines unread",
+    ("leda", "a direction that is neither -1 nor -2"): "NetworkX reads any direction but -1 as undirected",
+    ("leda", "-1 into an undirected target"): "NetworkX has no target: it reads either kind",
+    ("leda", "-2 into a directed target"): "NetworkX has no target: it reads either kind",
+    ("leda", "a node line without the brackets"): "NetworkX strips | { } from the ends of a node line and takes the rest",
+    ("leda", "int information that is not an integer"): "NetworkX reads every information as a string",
+    ("leda", "int information beyond Int"): "NetworkX reads every information as a string",
+    ("leda", "bool information that is not a boolean"): "NetworkX reads every information as a string",
+    ("leda", "double information that is not a number"): "NetworkX reads every information as a string",
+    ("leda", "a reversal index above m"): "NetworkX ignores the reversal field",
+    ("leda", "an edge information without the brackets"): "NetworkX cuts two characters from each end of the fourth field",
+    ("leda", "a line after the last edge"): "NetworkX stops reading after m edges",
+    ("leda", "information closed by | alone"): "NetworkX strips | { } from the ends of a node line and takes the rest",
     ("gml", "a source that is not an integer"): "NetworkX takes any value as an endpoint (0.0 == 0)",
     ("gml", "a key where a value should be"): "NetworkX takes an unquoted word as the value of id, label, source and target",
     ("gml", "an integer beyond Int64"): "NetworkX reads an int of any size",

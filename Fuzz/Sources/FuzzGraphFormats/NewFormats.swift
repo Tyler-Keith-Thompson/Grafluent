@@ -1,4 +1,4 @@
-// The readers of GML, Pajek, graph6, sparse6, digraph6, DIMACS, METIS, Cytoscape JSON, GEXF and the
+// The readers of GML, Pajek, graph6, sparse6, digraph6, DIMACS, METIS, Cytoscape JSON, GEXF, LEDA and the
 // delimited edge list, on hostile bytes. A second byte picks the format and the target
 // (DirectedPseudograph, AdjacencyList, StableDirectedGraph, Pseudograph, UndirectedAdjacencyList;
 // a format of one kind runs on that kind's targets only), the edge list's columns, and for the
@@ -17,7 +17,7 @@ import Multigraphs
 import StableGraphs
 
 enum NewFormat: Int, CaseIterable {
-    case gml, pajek, graph6, sparse6, digraph6, dimacs, metis, cytoscapeJSON, delimited, gexf
+    case gml, pajek, graph6, sparse6, digraph6, dimacs, metis, cytoscapeJSON, delimited, gexf, leda
 
     /// Whether the format reads into directed targets, undirected ones, or both (`nil`).
     var directedOnly: Bool? {
@@ -61,6 +61,8 @@ func readNewDirected<G: MutableDirectedGraph>(_: G.Type, _ format: NewFormat, _ 
         case .cytoscapeJSON:
             graph = try G(cytoscapeJSON: bytes, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
         case .gexf: graph = try G(gexf: bytes, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        case .leda:
+            graph = try G(leda: bytes, maximumVertexCount: bound, vertex: { String($0) }, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute)
         case .delimited: graph = try G(edgeList: bytes, columns: columns, delimiter: delimiter, edgeAttribute: edgeAttribute)
         case .graph6, .sparse6, .metis: return nil
         }
@@ -103,6 +105,8 @@ func readNewUndirected<G: MutableGraph>(_: G.Type, _ format: NewFormat, _ bytes:
         case .cytoscapeJSON:
             graph = try G(cytoscapeJSON: bytes, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
         case .gexf: graph = try G(gexf: bytes, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute, graphAttribute: graphAttribute)
+        case .leda:
+            graph = try G(leda: bytes, maximumVertexCount: bound, vertex: { String($0) }, vertexAttribute: vertexAttribute, edgeAttribute: edgeAttribute)
         case .delimited: graph = try G(edgeList: bytes, columns: columns, delimiter: delimiter, edgeAttribute: edgeAttribute)
         case .digraph6: return nil
         }
@@ -242,6 +246,34 @@ func expected(_ format: NewFormat, _ first: Reading, columns: [String]) -> Readi
         a.vertexAttributes = Dictionary(uniqueKeysWithValues: zip(vertices, vertexRows))
         a.edgeAttributes = promoted(a.edgeAttributes)
         a.graphAttributes = Recorded()
+    case .leda:
+        // Only the label survives, typed by its side: integers among doubles come back doubles, a
+        // side of strings gives every element a label (an absent one empty).
+        func side(_ rows: [Recorded]) -> [Recorded] {
+            var integers = false, doubles = false, strings = false
+            for r in rows {
+                switch r.values["label"] {
+                case .integer?: integers = true
+                case .double?: doubles = true
+                case .string?: strings = true
+                default: break
+                }
+            }
+            return rows.map { r in
+                var s = Recorded()
+                switch r.values["label"] {
+                case .integer(let i)? where doubles: s.set("label", .double(Double(i)))
+                case let v?: s.set("label", v)
+                case nil where strings && !integers && !doubles: s.set("label", .string(""))
+                case nil: break
+                }
+                return s
+            }
+        }
+        let vertices = a.vertices
+        a.vertexAttributes = Dictionary(uniqueKeysWithValues: zip(vertices, side(vertices.map { a.vertexAttributes[$0] ?? Recorded() })))
+        a.edgeAttributes = side(a.edgeAttributes)
+        a.graphAttributes = Recorded()
     case .delimited:
         a.edgeAttributes = a.edgeAttributes.map { r in
             var kept = Recorded()
@@ -269,6 +301,7 @@ func writtenNew<G: DirectedGraph>(_ graph: G, _ format: NewFormat, _ reading: Re
         case .cytoscapeJSON:
             try graph.writeCytoscapeJSON(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
         case .gexf: try graph.writeGEXF(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
+        case .leda: try graph.writeLEDA(to: &out, vertexLabel: { reading.vertexAttributes[$0]?.values["label"] }, edgeLabel: { reading.edgeAttributes[position($0)].values["label"] })
         case .delimited: try graph.writeEdgeList(to: &out, columns: columns, delimiter: delimiter, edgeAttributes: edgeAttributes)
         case .graph6, .sparse6, .metis: return nil
         }
@@ -303,6 +336,7 @@ func writtenNew<G: Graph>(_ graph: G, _ format: NewFormat, _ reading: Reading, c
         case .cytoscapeJSON:
             try graph.writeCytoscapeJSON(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: reading.graphAttributes.pairs)
         case .gexf: try graph.writeGEXF(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
+        case .leda: try graph.writeLEDA(to: &out, vertexLabel: { reading.vertexAttributes[$0]?.values["label"] }, edgeLabel: { reading.edgeAttributes[position($0)].values["label"] })
         case .delimited: try graph.writeEdgeList(to: &out, columns: columns, delimiter: delimiter, edgeAttributes: edgeAttributes)
         case .digraph6: return nil
         }
@@ -333,6 +367,7 @@ func checkVariantsDirected(_ format: NewFormat, _ bytes: [UInt8], bound: Int?) {
         case .pajek: return shape(try DirectedPseudograph<String>(pajek: bytes, maximumVertexCount: bound), { $0 })
         case .cytoscapeJSON: return shape(try DirectedPseudograph<String>(cytoscapeJSON: bytes), { $0 })
         case .gexf: return shape(try DirectedPseudograph<String>(gexf: bytes), { $0 })
+        case .leda: return shape(try DirectedPseudograph<String>(leda: bytes, maximumVertexCount: bound, vertex: { String($0) }), { $0 })
         case .digraph6: return shape(try DirectedPseudograph<String>(digraph6: bytes, vertex: { String($0) }), { $0 })
         case .dimacs: return shape(try DirectedPseudograph<String>(dimacs: bytes, maximumVertexCount: bound, vertex: { String($0) }), { $0 })
         default: return ""
@@ -343,6 +378,7 @@ func checkVariantsDirected(_ format: NewFormat, _ bytes: [UInt8], bound: Int?) {
         case .pajek: return shape(try DirectedPseudograph<String>(pajek: bytes, maximumVertexCount: bound, vertex: { $0 }), { $0 })
         case .cytoscapeJSON: return shape(try DirectedPseudograph<String>(cytoscapeJSON: bytes, vertex: { $0 }), { $0 })
         case .gexf: return shape(try DirectedPseudograph<String>(gexf: bytes, vertex: { $0 }), { $0 })
+        case .leda: return shape(try DirectedPseudograph<Int>(leda: bytes, maximumVertexCount: bound), { String($0) })
         case .digraph6: return shape(try DirectedPseudograph<Int>(digraph6: bytes), { String($0) })
         case .dimacs: return shape(try DirectedPseudograph<Int>(dimacs: bytes, maximumVertexCount: bound), { String($0) })
         default: return ""
@@ -360,6 +396,7 @@ func checkVariantsUndirected(_ format: NewFormat, _ bytes: [UInt8], bound: Int?)
         case .pajek: return shape(try Pseudograph<String>(pajek: bytes, maximumVertexCount: bound), { $0 })
         case .cytoscapeJSON: return shape(try Pseudograph<String>(cytoscapeJSON: bytes), { $0 })
         case .gexf: return shape(try Pseudograph<String>(gexf: bytes), { $0 })
+        case .leda: return shape(try Pseudograph<String>(leda: bytes, maximumVertexCount: bound, vertex: { String($0) }), { $0 })
         case .graph6: return shape(try Pseudograph<String>(graph6: bytes, vertex: { String($0) }), { $0 })
         case .sparse6: return shape(try Pseudograph<String>(sparse6: bytes, maximumVertexCount: bound, vertex: { String($0) }), { $0 })
         case .dimacs: return shape(try Pseudograph<String>(dimacs: bytes, maximumVertexCount: bound, vertex: { String($0) }), { $0 })
@@ -372,6 +409,7 @@ func checkVariantsUndirected(_ format: NewFormat, _ bytes: [UInt8], bound: Int?)
         case .pajek: return shape(try Pseudograph<String>(pajek: bytes, maximumVertexCount: bound, vertex: { $0 }), { $0 })
         case .cytoscapeJSON: return shape(try Pseudograph<String>(cytoscapeJSON: bytes, vertex: { $0 }), { $0 })
         case .gexf: return shape(try Pseudograph<String>(gexf: bytes, vertex: { $0 }), { $0 })
+        case .leda: return shape(try Pseudograph<Int>(leda: bytes, maximumVertexCount: bound), { String($0) })
         case .graph6: return shape(try Pseudograph<Int>(graph6: bytes), { String($0) })
         case .sparse6: return shape(try Pseudograph<Int>(sparse6: bytes, maximumVertexCount: bound), { String($0) })
         case .dimacs: return shape(try Pseudograph<Int>(dimacs: bytes, maximumVertexCount: bound), { String($0) })

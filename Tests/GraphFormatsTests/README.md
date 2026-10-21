@@ -1,8 +1,8 @@
 # GraphFormats test suite
 
-`GraphFormats` reads and writes sixteen text formats: DOT, GraphML, node-link JSON, Matrix Market,
+`GraphFormats` reads and writes seventeen text formats: DOT, GraphML, node-link JSON, Matrix Market,
 edge list, adjacency list, Mermaid flowcharts, GML, Pajek, graph6, sparse6, digraph6, DIMACS
-(shortest path and clique), METIS, Cytoscape JSON and GEXF. A reader is a throwing initializer on any
+(shortest path and clique), METIS, Cytoscape JSON, GEXF and LEDA. A reader is a throwing initializer on any
 mutable representation. It reports vertex, edge and graph attributes through closures, by vertex
 and by edge position. A writer is a method on any `DirectedGraph` or `Graph` that streams text into
 an `inout some TextOutputStream`, and takes IDs and attributes from closures. The rules the tests
@@ -21,7 +21,7 @@ pin are in `api.md` in [`Tests/Catalogs/GraphFormats/`](../Catalogs/GraphFormats
   `delimiter:`), a boolean edge-list column, a Mermaid ID outside `[A-Za-z0-9_]+`, a non-finite
   double or a reserved name in node-link and Cytoscape JSON, a GraphML key of two types, a GML key
   outside `[A-Za-z][A-Za-z0-9_]*`, a Pajek line feed or a non-numeric coordinate, a GEXF label that
-  is not a string or weight that is not a number, a self-loop
+  is not a string or weight that is not a number, LEDA labels of two types or a line break in one, a self-loop
   (graph6, METIS) or a parallel edge (graph6, digraph6, METIS). A closure that breaks its contract
   traps, and so does an edge-list delimiter that is not ASCII or is a letter, a digit, `.`, `+`,
   `-`, `#`, LF or CR.
@@ -51,6 +51,7 @@ extension MutableDirectedGraph, MutableGraph {
     init(dimacs:maximumVertexCount:vertex:…) throws(ParseError)                                   // directed: p sp, edgeAttribute:; undirected: p edge, p col
     init(cytoscapeJSON:vertex:vertexAttribute:edgeAttribute:graphAttribute:) throws(ParseError)
     init(gexf:vertex:vertexAttribute:edgeAttribute:graphAttribute:) throws(ParseError)
+    init(leda:maximumVertexCount:vertex:vertexAttribute:edgeAttribute:) throws(ParseError)      // vertex: (Int) -> Vertex?
 }
 extension MutableDirectedGraph { init(digraph6:vertex:) throws(ParseError) }
 extension MutableGraph {
@@ -66,6 +67,7 @@ extension DirectedGraph, Graph {
         (to:vertexID:vertexAttributes:edgeAttributes:graphAttributes:) throws(WriteError)
     writePajek(to:vertexID:vertexAttributes:edgeAttributes:) throws(WriteError)
     writeGEXF(to:vertexID:vertexAttributes:edgeAttributes:) throws(WriteError)
+    writeLEDA(to:vertexLabel:edgeLabel:) throws(WriteError)
     writeMatrixMarket(to:), writeMatrixMarket(to:weight: (Edges.Index) -> Int), writeMatrixMarket(to:weight: (Edges.Index) -> Double)
     writeEdgeList(to:vertexID:columns:delimiter:edgeAttributes:) throws(WriteError)
     writeAdjacencyList(to:vertexID:) throws(WriteError)
