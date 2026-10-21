@@ -126,6 +126,19 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "ParallelCentralityBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "Centrality", package: "Grafluent"),
+                .product(name: "ParallelCentrality", package: "Grafluent"),
+                .product(name: "AdjacencyListModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/ParallelCentralityBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "CommunityDetectionBenchmarks",
             dependencies: [
                 "BenchmarkSupport",

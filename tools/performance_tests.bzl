@@ -7,6 +7,7 @@ PERFORMANCE_TEST_PACKAGES = [
     "Tests/AssortativityTests",
     "Tests/BipartiteGraphsTests",
     "Tests/CentralityTests",
+    "Tests/ParallelCentralityTests",
     "Tests/CliquesTests",
     "Tests/ColoringModuleTests",
     "Tests/CommunityDetectionTests",

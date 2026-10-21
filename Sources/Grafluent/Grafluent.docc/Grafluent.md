@@ -39,7 +39,7 @@ let order = build.topologicalSort()                // ["fetch", "compile", "test
 - **Operations:** `GraphOperations`, `GraphProducts`
 - **Algorithms:** `Traversal`, `ShortestPaths`, `SpanningTrees`, `Connectivity`, `Cycles`, `Tours`,
   `Flows`, `MatchingModule`, `ColoringModule`, `Cliques`, `Covering`, `Centrality`,
-  `CommunityDetection`, `IsomorphismModule`, `Planarity`, `TreeAlgorithms`, `Distances`,
+  `ParallelCentrality`, `CommunityDetection`, `IsomorphismModule`, `Planarity`, `TreeAlgorithms`, `Distances`,
   `SpectralGraphTheory`, `Assortativity`, `Similarity`
 - **Generators:** `NamedGraphs`, `RandomGraphs`
 - **Drawing and formats:** `GraphDrawing`, `GraphFormats`

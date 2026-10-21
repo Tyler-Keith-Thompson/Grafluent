@@ -37,6 +37,7 @@
 @_exported import Cliques
 @_exported import Covering
 @_exported import Centrality
+@_exported import ParallelCentrality
 @_exported import CommunityDetection
 @_exported import IsomorphismModule
 @_exported import Planarity

@@ -8,7 +8,7 @@ import PriorityQueueModule
 /// distinct shortest paths; a loop never satisfies d(w) = d(v) + 1. The searches start at each of
 /// `pivots`, or at every vertex when it is nil.
 @inlinable
-func _betweenness(_ rows: _CompressedRows, pivots: [Int]?, endpoints: Bool) -> [Double] {
+package func _betweenness(_ rows: _CompressedRows, pivots: [Int]?, endpoints: Bool) -> [Double] {
     let n = rows.count
     var result = [Double](repeating: 0, count: n)
     guard n > 0 else { return result }
@@ -88,7 +88,7 @@ func _betweenness(_ rows: _CompressedRows, pivots: [Int]?, endpoints: Bool) -> [
 /// dependency not yet computed. The searches start at each of `pivots`, or at every vertex when it
 /// is nil.
 @inlinable
-func _betweenness<W: Comparable & AdditiveArithmetic>(_ rows: _CompressedRows, slotWeights weights: [W], pivots: [Int]?, endpoints: Bool) -> [Double] {
+package func _betweenness<W: Comparable & AdditiveArithmetic>(_ rows: _CompressedRows, slotWeights weights: [W], pivots: [Int]?, endpoints: Bool) -> [Double] {
     let n = rows.count
     var result = [Double](repeating: 0, count: n)
     guard n > 0 else { return result }
@@ -172,7 +172,7 @@ func _betweenness<W: Comparable & AdditiveArithmetic>(_ rows: _CompressedRows, s
 
 /// The rescaling of the ordered-pair sums for `normalized` and `endpoints`.
 @inlinable
-func _rescaleBetweenness(_ scores: inout [Double], normalized: Bool, endpoints: Bool, directed: Bool) {
+package func _rescaleBetweenness(_ scores: inout [Double], normalized: Bool, endpoints: Bool, directed: Bool) {
     let n = Double(scores.count)
     let scale: Double
     if normalized {

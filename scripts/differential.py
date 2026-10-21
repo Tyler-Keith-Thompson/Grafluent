@@ -1461,6 +1461,11 @@ def compare_centrality(case, mine, G):
     check("betweennessCentrality(normalized: false)", mine["betweennessRaw"], nx.betweenness_centrality(H, normalized=False))
     check("betweennessCentrality(endpoints: true)", mine["betweennessEndpoints"], nx.betweenness_centrality(H, endpoints=True))
     check("weighted betweennessCentrality", mine["weightedBetweenness"], nx.betweenness_centrality(H, weight="b"))
+    # ParallelCentrality: the same measures with the searches shared among three tasks.
+    check("betweennessCentrality(parallelism: 3)", mine["parallelBetweenness"], nx.betweenness_centrality(H))
+    check("weighted betweennessCentrality(parallelism: 3)", mine["parallelWeightedBetweenness"], nx.betweenness_centrality(H, weight="b"))
+    check("closenessCentrality(parallelism: 3)", mine["parallelCloseness"], nx.closeness_centrality(H))
+    check("harmonicCentrality(parallelism: 3)", mine["parallelHarmonic"], nx.harmonic_centrality(H))
 
     # Edge betweenness, by edge (the library's rows are [u, v, score]); pivots are the case's sources
     # (NetworkX's `k=` with its sample fixed to them).

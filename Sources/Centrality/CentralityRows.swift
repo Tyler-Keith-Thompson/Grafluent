@@ -8,7 +8,7 @@ import PriorityQueueModule
 extension _CompressedRows {
     /// The reversed arcs, each source's in-arcs in increasing source index, then row order.
     @inlinable
-    func transposed() -> _CompressedRows {
+    package func transposed() -> _CompressedRows {
         let n = count
         let withEdges = !edges.isEmpty
         var start = [Int](repeating: 0, count: n + 1)
@@ -30,13 +30,13 @@ extension _CompressedRows {
 
     /// The weight of each slot, from the weights by edge number.
     @inlinable
-    func slotWeights<W>(_ weights: [W]) -> [W] { edges.map { weights[$0] } }
+    package func slotWeights<W>(_ weights: [W]) -> [W] { edges.map { weights[$0] } }
 }
 
 extension Graph {
     /// Every edge end, a loop twice; edge numbers only when `readsEdges`.
     @inlinable
-    func _centralityRows(readsEdges: Bool) -> _CompressedRows {
+    package func _centralityRows(readsEdges: Bool) -> _CompressedRows {
         _runOnUndirectedRows(_CopyRows(readsEdges: readsEdges, dropsLoops: false))
     }
 }
@@ -45,7 +45,7 @@ extension DirectedGraph {
     /// The rows, every arc kept (edge numbers only when `readsEdges`), and the vertex numbers when
     /// the graph has no vertex indices.
     @inlinable
-    func _centralityRows(readsEdges: Bool) -> (rows: _CompressedRows, numbers: [Vertex: Int]?) {
+    package func _centralityRows(readsEdges: Bool) -> (rows: _CompressedRows, numbers: [Vertex: Int]?) {
         let copied = _compressedRows(readsEdges: readsEdges, dropsLoops: false)
         return (copied.rows, copied.numbering?.numbers)
     }
@@ -60,7 +60,7 @@ public struct CentralityScores<G: DirectedGraph> {
     @usableFromInline let _scores: [Double]
 
     @inlinable
-    init(_ graph: G, numbers: [G.Vertex: Int]?, scores: [Double]) {
+    package init(_ graph: G, numbers: [G.Vertex: Int]?, scores: [Double]) {
         _graph = graph
         _numbers = numbers
         _scores = scores

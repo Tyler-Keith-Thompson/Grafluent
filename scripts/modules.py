@@ -67,6 +67,7 @@ MODULES = [
     ("Cliques", "Algorithms", "Bron–Kerbosch, every clique by size, maximum and maximum-weight cliques, k-cores, crusts and coronas, onion layers, k-trusses, triangle counting, clustering coefficient, chordal graphs (recognition, perfect elimination orderings, holes, cliques, treewidth), tree decompositions by the minimum-degree and minimum fill-in heuristics.", ["GraphProtocols", "Walks", "Traversal", "PriorityQueueModule"]),
     ("Covering", "Algorithms", "Vertex cover, independent set, dominating set, edge cover.", ["GraphProtocols", "MatchingModule", "BipartiteGraphs", "Cliques"]),
     ("Centrality", "Algorithms", "Degree, closeness, harmonic, betweenness (vertex and edge, exact or from pivots), load, percolation, current-flow betweenness and closeness, subgraph centrality and communicability, group centralities, VoteRank, eigenvector, Katz, PageRank, HITS.", ["GraphProtocols", "PriorityQueueModule"]),
+    ("ParallelCentrality", "Algorithms", "Betweenness, closeness and harmonic centrality with their searches shared among tasks of a task group, as async spellings of Centrality's measures.", ["GraphProtocols", "Centrality"]),
     ("CommunityDetection", "Algorithms", "Modularity, the constant Potts model and the map equation; Louvain, Leiden and hierarchical Leiden, Infomap, label propagation, greedy modularity, Girvan–Newman, Kernighan–Lin bisection, k-clique percolation, asynchronous fluid, Walktrap and leading-eigenvector communities; spectral clustering (Ng–Jordan–Weiss).", ["GraphProtocols", "PriorityQueueModule", "Centrality", "Cliques", "SpectralGraphTheory"]),
     ("IsomorphismModule", "Algorithms", "Isomorphism and subgraph isomorphism (VF2++), canonical labeling, automorphism groups, Weisfeiler–Leman hashing, graph edit distance.", ["GraphProtocols"]),
     ("Planarity", "Algorithms", "Planarity testing and planar embeddings by the left-right test, Kuratowski subgraphs by Boyer–Myrvold, outerplanarity, dual graphs.", ["GraphProtocols", "Walks", "Multigraphs"]),
@@ -116,6 +117,7 @@ TEST_TARGETS = [
     ("FlowsTests", ["GraphProtocols", "Flows", "Trees", "Walks", "Multigraphs", "StableGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("ToursTests", ["GraphProtocols", "Tours", "Walks", "Multigraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("CentralityTests", ["GraphProtocols", "Centrality", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("ParallelCentralityTests", ["GraphProtocols", "Centrality", "ParallelCentrality", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("ConnectivityTests", ["GraphProtocols", "Connectivity", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "GrafluentTestSupport", "swift-property-based/PropertyBased", "Trees"]),
     ("StableGraphsTests", ["GraphProtocols", "StableGraphs", "Multigraphs", "Traversal", "Connectivity", "ShortestPaths", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("LabeledGraphsTests", ["GraphProtocols", "LabeledGraphs", "CompressedSparseRowModule", "AdjacencyMatrixModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees", "Centrality", "Flows", "Distances", "GrafluentTestSupport", "swift-property-based/PropertyBased", "swift-collections/OrderedCollections"]),
@@ -159,7 +161,7 @@ TEST_SIZES = {name: "medium" for name in [
 # out under release. Debug runs both. A `.timeLimit` that only guards a small input against a hang
 # does not make a test speed-reliant.
 PERFORMANCE_TESTS = [
-    "AdjacencyListTests", "AssortativityTests", "BipartiteGraphsTests", "CentralityTests", "CliquesTests", "ColoringModuleTests", "CommunityDetectionTests",
+    "AdjacencyListTests", "AssortativityTests", "BipartiteGraphsTests", "CentralityTests", "ParallelCentralityTests", "CliquesTests", "ColoringModuleTests", "CommunityDetectionTests",
     "CoveringTests", "CyclesTests", "DistancesTests", "FlowsTests", "FunctionalGraphsTests", "GraphDrawingTests",
     "GraphFormatsTests", "GraphOperationsTests", "HypergraphsTests", "ImplicitGraphsTests", "IncidenceMatrixTests",
     "IsomorphismTests", "LabeledGraphsTests", "MatchingModuleTests", "MultigraphsTests", "PackedCompressedSparseRowTests", "PlanarityTests",
@@ -180,7 +182,7 @@ def performance_target(name):
 
 # The library modules the differential harness (Differential/, scripts/differential.py) links.
 # Both its Package.swift and its BUILD.bazel are written from this list.
-DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Planarity", "Similarity", "Assortativity", "Traversal", "GraphOperations", "NamedGraphs", "RandomGraphs", "IsomorphismModule", "GraphDrawing", "SpectralGraphTheory", "GraphFormats"]
+DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "ParallelCentrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Planarity", "Similarity", "Assortativity", "Traversal", "GraphOperations", "NamedGraphs", "RandomGraphs", "IsomorphismModule", "GraphDrawing", "SpectralGraphTheory", "GraphFormats"]
 
 PLATFORMS = '[.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)]'
 

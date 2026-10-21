@@ -22,6 +22,7 @@ swift_binary(
         "//Sources/Distances",
         "//Sources/Cliques",
         "//Sources/Centrality",
+        "//Sources/ParallelCentrality",
         "//Sources/CommunityDetection",
         "//Sources/BipartiteGraphs",
         "//Sources/MatchingModule",

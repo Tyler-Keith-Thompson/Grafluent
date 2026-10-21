@@ -5,7 +5,7 @@ import PriorityQueueModule
 /// reaches (itself included), the sum of their distances, and the sum of 1/d over those at a
 /// positive distance.
 @usableFromInline
-protocol _CentralitySearch {
+package protocol _CentralitySearch {
     var count: Int { get }
     mutating func sums(from s: Int) -> (reached: Int, total: Double, harmonic: Double)
 }
@@ -14,24 +14,24 @@ protocol _CentralitySearch {
 /// never reaches anything new, so the rows' self-loops cost a check and nothing else.
 @frozen
 @usableFromInline
-struct _UnweightedCentralitySearch: _CentralitySearch {
+package struct _UnweightedCentralitySearch: _CentralitySearch {
     @usableFromInline let rows: _CompressedRows
     @usableFromInline var distance: [Int]
     @usableFromInline var queue: [Int]
     @usableFromInline var reachedCount = 0
 
     @inlinable
-    init(_ rows: _CompressedRows) {
+    package init(_ rows: _CompressedRows) {
         self.rows = rows
         distance = [Int](repeating: -1, count: rows.count)
         queue = [Int](repeating: 0, count: rows.count)
     }
 
     @inlinable
-    var count: Int { rows.count }
+    package var count: Int { rows.count }
 
     @inlinable
-    mutating func sums(from s: Int) -> (reached: Int, total: Double, harmonic: Double) {
+    package mutating func sums(from s: Int) -> (reached: Int, total: Double, harmonic: Double) {
         var reached = reachedCount
         // In 64 bits: the distances from one vertex pass a 32-bit `Int` at about 65,000 vertices.
         var total: Int64 = 0
@@ -175,7 +175,7 @@ struct _WeightedCentralitySearch<C: _DoubleConversion>: _CentralitySearch {
 /// Closeness from one search's sums: (r − 1)/S, times (r − 1)/(n − 1) when `wfImproved`; 0 when S
 /// is 0.
 @inlinable
-func _closeness(reached r: Int, total: Double, count n: Int, wfImproved: Bool) -> Double {
+package func _closeness(reached r: Int, total: Double, count n: Int, wfImproved: Bool) -> Double {
     guard total > 0, n > 1 else { return 0 }
     let closeness = Double(r - 1) / total
     return wfImproved ? closeness * (Double(r - 1) / Double(n - 1)) : closeness

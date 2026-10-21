@@ -23,6 +23,7 @@ import Cycles
 import Distances
 import Foundation
 import MatchingModule
+import ParallelCentrality
 import GraphProtocols
 import IsomorphismModule
 import ShortestPaths
@@ -324,6 +325,11 @@ struct CentralityAnswers: Encodable {
     var betweennessRaw: [Double] = []
     var betweennessEndpoints: [Double] = []
     var weightedBetweenness: [Double] = []
+    /// ParallelCentrality's measures at three tasks.
+    var parallelBetweenness: [Double] = []
+    var parallelWeightedBetweenness: [Double] = []
+    var parallelCloseness: [Double] = []
+    var parallelHarmonic: [Double] = []
     /// Edge betweenness as [u, v, score] per edge; normalized, unnormalized, weighted (|w| + 1).
     var edgeBetweenness: [[Double]] = []
     var edgeBetweennessRaw: [[Double]] = []
@@ -355,7 +361,7 @@ func edgeRows<G: Graph<Int>>(_ graph: G, _ scores: EdgeCentralityScores<G.Edges.
     graph.edges.indices.map { [Double(graph.edges[$0].u), Double(graph.edges[$0].v), scores.score(ofEdgeAt: $0)] }
 }
 
-func directedCentrality<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Index) -> Int, pivots: [Int]) -> CentralityAnswers {
+func directedCentrality<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Index) -> Int, pivots: [Int]) async -> CentralityAnswers {
     var a = CentralityAnswers()
     a.degree = graph.degreeCentrality().scores
     a.inDegree = graph.inDegreeCentrality().scores
@@ -369,6 +375,12 @@ func directedCentrality<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edg
     a.betweennessRaw = graph.betweennessCentrality(normalized: false).scores
     a.betweennessEndpoints = graph.betweennessCentrality(endpoints: true).scores
     a.weightedBetweenness = graph.betweennessCentrality(weight: { abs(w($0)) + 1 }).scores
+    do {
+        a.parallelBetweenness = await graph.betweennessCentrality(parallelism: 3).scores
+        a.parallelWeightedBetweenness = await graph.betweennessCentrality(weight: { abs(w($0)) + 1 }, parallelism: 3).scores
+        a.parallelCloseness = await graph.closenessCentrality(parallelism: 3).scores
+        a.parallelHarmonic = await graph.harmonicCentrality(parallelism: 3).scores
+    }
     a.edgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality())
     a.edgeBetweennessRaw = edgeRows(graph, graph.edgeBetweennessCentrality(normalized: false))
     a.weightedEdgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality(weight: { abs(w($0)) + 1 }))
@@ -392,7 +404,7 @@ func directedCentrality<G: DirectedGraph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edg
     return a
 }
 
-func undirectedCentrality<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Index) -> Int, pivots: [Int]) -> CentralityAnswers {
+func undirectedCentrality<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Index) -> Int, pivots: [Int]) async -> CentralityAnswers {
     var a = CentralityAnswers()
     a.degree = graph.degreeCentrality().scores
     a.closeness = graph.closenessCentrality().scores
@@ -404,6 +416,12 @@ func undirectedCentrality<G: Graph<Int>>(_ graph: G, _ n: Int, _ w: (G.Edges.Ind
     a.betweennessRaw = graph.betweennessCentrality(normalized: false).scores
     a.betweennessEndpoints = graph.betweennessCentrality(endpoints: true).scores
     a.weightedBetweenness = graph.betweennessCentrality(weight: { abs(w($0)) + 1 }).scores
+    do {
+        a.parallelBetweenness = await graph.betweennessCentrality(parallelism: 3).scores
+        a.parallelWeightedBetweenness = await graph.betweennessCentrality(weight: { abs(w($0)) + 1 }, parallelism: 3).scores
+        a.parallelCloseness = await graph.closenessCentrality(parallelism: 3).scores
+        a.parallelHarmonic = await graph.harmonicCentrality(parallelism: 3).scores
+    }
     a.edgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality())
     a.edgeBetweennessRaw = edgeRows(graph, graph.edgeBetweennessCentrality(normalized: false))
     a.weightedEdgeBetweenness = edgeRows(graph, graph.edgeBetweennessCentrality(weight: { abs(w($0)) + 1 }))
@@ -946,7 +964,7 @@ for c in cases {
             }
             results[results.count - 1].distances = answers
         }
-        if wants("centrality") { results[results.count - 1].centrality = directedCentrality(graph, c.n, w, pivots: c.sources) }
+        if wants("centrality") { results[results.count - 1].centrality = await directedCentrality(graph, c.n, w, pivots: c.sources) }
         if wants("communities") { results[results.count - 1].communities = directedCommunities(graph, c.n, w) }
         if wants("communities"), let p = c.plantedPartition { results[results.count - 1].communities.extras.spectralClusters = plantedSpectralClusters(p) }
         if wants("bipartite") { results[results.count - 1].bipartite = bipartiteAnswers(graph.undirectedView, c.n) }
@@ -1190,7 +1208,7 @@ for c in cases {
         }
         if wants("cliques") { result.cliqueExtras = cliqueExtraAnswers(n: c.n, edges: c.edges, target: c.target) }
         if wants("connectivity") { result.edgeConnectivity = edgeConnectivityAnswers(n: c.n, edges: c.edges) }
-        if wants("centrality") { result.centrality = undirectedCentrality(graph, c.n, w, pivots: c.sources) }
+        if wants("centrality") { result.centrality = await undirectedCentrality(graph, c.n, w, pivots: c.sources) }
         if wants("communities") { result.communities = undirectedCommunities(graph, c.n, w) }
         if wants("communities"), let p = c.plantedPartition { result.communities.extras.spectralClusters = plantedSpectralClusters(p) }
         if wants("bipartite") { result.bipartite = bipartiteAnswers(graph, c.n) }
