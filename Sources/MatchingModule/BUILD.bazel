@@ -3,7 +3,7 @@
 load("//tools:docc.bzl", "docc_archive")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Matching: Hopcroft–Karp, Hungarian, Edmonds' blossom, Gale–Shapley.
+# Matching: Hopcroft–Karp, Hungarian, Edmonds' blossom, Gale–Shapley, bipartite b-matching.
 swift_library(
     name = "MatchingModule",
     srcs = glob(["**/*.swift"]),
@@ -11,6 +11,8 @@ swift_library(
     deps = [
         "//Sources/GraphProtocols",
         "//Sources/BipartiteGraphs",
+        "//Sources/Flows",
+        "//Sources/Multigraphs",
     ],
     visibility = ["//visibility:public"],
 )
@@ -23,6 +25,8 @@ docc_archive(
     deps = [
         "//Sources/GraphProtocols:GraphProtocolsDocumentation",
         "//Sources/BipartiteGraphs:BipartiteGraphsDocumentation",
+        "//Sources/Flows:FlowsDocumentation",
+        "//Sources/Multigraphs:MultigraphsDocumentation",
     ],
     tags = ["manual"],
     visibility = ["//visibility:public"],

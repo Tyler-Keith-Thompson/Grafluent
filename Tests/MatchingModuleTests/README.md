@@ -4,7 +4,8 @@ Tests for `MatchingModule`: the result type `Matching<G, Weight>` (edge position
 total weight, `mate(of:)`, `matchedEdge(of:)`, `mate(ofIndex:)`, `isPerfect`); the greedy maximal
 matching, Edmonds' blossom algorithm and Hopcroft–Karp; the maximum-weight matching (Galil) and the
 minimum-weight maximum-cardinality matching; the minimum-weight full bipartite matching and
-`linearSumAssignment` (shortest augmenting paths); `stableMatching` (Gale–Shapley); and the checks
+`linearSumAssignment` (shortest augmenting paths); the maximum-weight bipartite b-matching (a
+minimum-cost circulation); `stableMatching` (Gale–Shapley); and the checks
 `isMatching`, `isMaximalMatching`, `isPerfectMatching`. The API and its documented outputs are
 described in `api.md` in [`Tests/Catalogs/MatchingModule/`](../Catalogs/MatchingModule/). The
 suite uses only the public API, and each test is self-contained: the brute-force oracles, König searches and
@@ -26,6 +27,7 @@ extension Graph {
     func maximalMatching() -> Matching<Self, Int>                                      // greedy, position order
     func maximumMatching() -> Matching<Self, Int>                                      // Edmonds
     func maximumBipartiteMatching(bipartition:) -> Matching<Self, Int>                 // Hopcroft–Karp
+    func maximumWeightBMatching(bipartition:capacity:weight:) -> BMatching<Self, W>     // network simplex circulation; W: SignedInteger
     func lazy.hopcroftKarp(bipartition:) -> HopcroftKarpEvents<Self>                   // lazy; Element HopcroftKarpEvent<Edges.Index>:
                                                                                         // phase(length:), augmentingPath([Edge])
     func maximumWeightMatching(weight:maximumCardinality:) -> Matching<Self, W>        // W: SignedInteger or FloatingPoint

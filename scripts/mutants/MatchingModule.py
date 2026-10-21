@@ -15,6 +15,10 @@
 #   wclamp                  the final δ₁ ends the search at once (deltaType 1 breaks out), so the
 #                           duals it sets are never read again; only an optimality self-check would
 #                           notice (MA-1002 is an input where such a check fails).
+#   bmpositive              arcs for edges of weight zero or less: their costs are not negative,
+#                           so no negative cycle runs through them and the optimum's weight is
+#                           the same; only which zero-weight edges the simplex happens to carry
+#                           could differ.
 #   wmincost                `c = greatest` instead of 1 + greatest: the transform runs
 #                           with maximumCardinality, where every candidate has the same number of
 #                           edges, so a constant added to every weight moves no optimum (the
@@ -30,6 +34,8 @@
 # replacement then holds a `half(bestSlack[v])` ahead of δ₃'s, so wdelta3 takes nth=1.
 
 TESTS = ["MatchingModuleTests"]
+
+BM = "BMatching.swift"
 
 MUTANTS = [
     # Matching
@@ -118,4 +124,16 @@ MUTANTS = [
     Mutant("checkededge", "Matching.swift", "        guard _graph.contains(vertex) else { throw VertexNotFound() }", "", mode="stmt", nth=1),
     Mutant("checkedproposer", "StableMatching.swift", "proposer >= 0 && proposer < _proposerMates.count", "proposer < _proposerMates.count", nth=1),
     Mutant("checkedreviewer", "StableMatching.swift", "reviewer >= 0 && reviewer < _reviewerMates.count", "reviewer >= 0", nth=1),
+
+    # Bipartite b-matching: the network's arcs, the result's rows and the checks.
+    Mutant("bmorient", BM, "isLeft[u] ? (u, v) : (v, u)", "(u, v)"),
+    Mutant("bmcost", BM, "arcCost.append(-w)", "arcCost.append(w)", mode="stmt"),
+    Mutant("bmunit", BM, "arcCapacity.append(1)", "arcCapacity.append(2)", mode="stmt"),
+    Mutant("bmcapacity", BM, "arcCapacity.append(capacities[v])", "arcCapacity.append(1)", mode="stmt"),
+    Mutant("bmsidearc", BM, "arcs.append(isLeft[v] ? DirectedEdge(from: source, to: v) : DirectedEdge(from: v, to: sink))", "arcs.append(DirectedEdge(from: source, to: v))", mode="stmt"),
+    Mutant("bmreturn", BM, "arcCapacity.append(total)", "arcCapacity.append(1)", mode="stmt"),
+    Mutant("bmflow", BM, "flow.flow(ofEdgeAt: k) > 0", "true"),
+    Mutant("bmrows", BM, "slots[fill[structure.to[e]]] = k", "", mode="stmt"),
+    Mutant("bmweight", BM, "total += weights[e]", "", mode="stmt"),
+    Mutant("bmnegative", BM, 'precondition(b >= 0, "A capacity is negative")', "", mode="stmt"),
 ]

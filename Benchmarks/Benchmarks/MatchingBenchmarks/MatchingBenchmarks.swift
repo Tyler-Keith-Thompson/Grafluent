@@ -84,6 +84,15 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(paths)
         }
     }
+    // MA-B05: the b-matching, a minimum-cost circulation, on a 10⁴ + 10⁴ bipartite graph.
+    var seenSmall = Set<UndirectedEdge<Int>>()
+    let smallBipartiteEdges = Inputs.randomEdges(vertexCount: 10_000, edgeCount: 30_000, seed: 43)
+        .map { UndirectedEdge($0.source, 10_000 + $0.target) }.filter { seenSmall.insert($0).inserted }
+    let smallBipartite = BipartiteGraph(left: 0 ..< 10_000, right: 10_000 ..< 20_000, edges: smallBipartiteEdges)!
+    let bWeights = (0 ..< smallBipartite.edgeCount).map { 1 + ($0 &* 7919) % 97 }
+    Benchmark("Matching: maximumWeightBMatching(capacity: 2, weight:), 10⁴ + 10⁴ vertices, 3·10⁴ edges") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(smallBipartite.maximumWeightBMatching(capacity: { _ in 2 }, weight: { bWeights[$0] })) }
+    }
     Benchmark("Matching: maximumMatching() (Edmonds), same bipartite graph") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(bipartite.maximumMatching()) }
     }

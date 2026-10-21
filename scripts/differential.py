@@ -2054,6 +2054,30 @@ def compare_matching(case, mine, G):
         theirs = nx.min_weight_matching(Wmin)
         if weight_of(ours, Wmin) != weight_of(theirs, Wmin):
             problems.append(f"minimumWeight: weight {weight_of(ours, Wmin)}, NetworkX {weight_of(theirs, Wmin)}")
+    if mine.get("bMatching") is not None:
+        # The b-matching against the linear program over the case's edges (bipartite, so its
+        # optimum is integral): the optimal weight, the library's edges within the capacities.
+        from scipy.optimize import linprog
+        cap = mine["bMatchingCapacity"]
+        arcs = [(u, v, w) for u, v, w in case["edges"] if u != v]
+        ours_weight = mine["bMatchingWeight"]
+        if arcs:
+            A, b = [], []
+            for v in range(n):
+                A.append([1 if v in (x, y) else 0 for x, y, _ in arcs])
+                b.append(cap[v])
+            result = linprog([-w for _, _, w in arcs], A_ub=A, b_ub=b, bounds=[(0, 1)] * len(arcs), method="highs")
+            best = round(-result.fun) if result.success else 0
+        else:
+            best = 0
+        if ours_weight != best:
+            problems.append(f"b-matching weight {ours_weight}, linear program {best}")
+        degree = [0] * n
+        for u, v in mine["bMatching"]:
+            degree[u] += 1
+            degree[v] += 1
+        if any(degree[v] > cap[v] for v in range(n)):
+            problems.append("b-matching over a capacity")
     if mine.get("hopcroftKarp") is not None:
         side = {}
         for root in range(n):

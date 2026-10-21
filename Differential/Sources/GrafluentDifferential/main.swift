@@ -567,6 +567,9 @@ struct MatchingAnswers: Encodable {
     var maximumWeight: [[Int]] = []
     var maximumWeightCardinality: [[Int]] = []
     var minimumWeight: [[Int]] = []
+    var bMatching: [[Int]]?
+    var bMatchingWeight: Int?
+    var bMatchingCapacity: [Int]?
     var consistent = true
 }
 
@@ -591,6 +594,14 @@ func matchingAnswers<G: Graph<Int>>(_ graph: G, _ w: (G.Edges.Index) -> Int) -> 
             a.fullMatching = pairs(full.edges)
             a.fullWeight = full.weight
         }
+        // A b-matching with capacities 0, 1, 2 by vertex number, on the case's weights.
+        let capacity = graph.vertices.map { $0 % 3 }
+        let bMatching = graph.maximumWeightBMatching(bipartition: partition, capacity: { $0 % 3 }, weight: w)
+        a.bMatching = pairs(bMatching.edges)
+        a.bMatchingWeight = bMatching.weight
+        a.bMatchingCapacity = capacity
+        a.consistent = a.consistent && bMatching.edges.map(w).reduce(0, +) == bMatching.weight
+            && graph.vertices.allSatisfy { bMatching.degree(of: $0) <= $0 % 3 && bMatching.matchedEdges(of: $0).count == bMatching.degree(of: $0) }
     }
     return a
 }

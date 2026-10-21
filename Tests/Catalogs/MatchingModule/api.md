@@ -54,10 +54,23 @@ extension Graph {
     public func isMatching(_ edges: some Sequence<Edges.Index>) -> Bool
     public func isMaximalMatching(_ edges: some Sequence<Edges.Index>) -> Bool
     public func isPerfectMatching(_ edges: some Sequence<Edges.Index>) -> Bool
+    public func maximumWeightBMatching<W: SignedInteger>(
+        bipartition: Bipartition<Self>, capacity: (Vertex) -> Int, weight: (Edges.Index) -> W) -> BMatching<Self, W>
 }
+
+@frozen public struct BMatching<G: Graph, Weight: Comparable & AdditiveArithmetic> {
+    public let edges: [G.Edges.Index]   // ascending, each at most once
+    public let weight: Weight           // summed in `edges` order
+    public func degree(of vertex: G.Vertex) -> Int
+    public func matchedEdges(of vertex: G.Vertex) -> [G.Edges.Index]   // ascending
+    public func degree(checked vertex: G.Vertex) throws(VertexNotFound) -> Int
+    public func matchedEdges(checked vertex: G.Vertex) throws(VertexNotFound) -> [G.Edges.Index]
+}
+// Equatable and Hashable on the edges. Sendable when G, G.Vertex, G.Edges.Index and Weight are.
 
 extension BipartiteGraph {
     public func maximumBipartiteMatching() -> Matching<Self, Int>
+    public func maximumWeightBMatching<W: SignedInteger>(capacity: (Vertex) -> Int, weight: (Int) -> W) -> BMatching<Self, W>
     public func minimumWeightFullMatching<W: SignedNumeric & Comparable>(
         weight: (Int) -> W) -> Matching<Self, W>?
 }
@@ -178,6 +191,25 @@ Each edge in position order joins when neither end is matched (MA-024 – MA-034
   exists (MA-167, MA-181). An empty side gives the empty matching (MA-173, MA-174).
 * `cost` is called once per cell and again for each assigned pair; `weight` once per edge, in
   position order.
+
+### `maximumWeightBMatching`
+
+* A maximum-weight b-matching of a bipartite graph: edges, each taken at most once, meeting each
+  vertex `v` at most `capacity(v)` times, of greatest total weight. A minimum-cost circulation by
+  the network simplex: a source feeds each left vertex up to its capacity, each edge of positive
+  weight is an arc of capacity one and cost minus its weight from its left end to its right end,
+  each right vertex drains into a sink up to its capacity, and the sink returns to the source;
+  the arcs with flow are the matching, reported ascending.
+* Edges of weight zero or less are never taken, so the matching is a minimal optimum; self-loops
+  are ignored; parallel copies are distinct edges that may both be taken. Capacities of zero give
+  the empty matching. `capacity` is called once per vertex in `vertices` order, `weight` once per
+  edge in position order. Which optimum is returned among equal-weight ones is unspecified, but
+  the same input gives the same result.
+* Traps: a negative capacity; a bipartition that is not the graph's; an edge within one side;
+  capacities whose sum overflows `Int`; a weight outside the network simplex's bound (the
+  minimum-cost flow's preconditions).
+* Checked against brute force over edge subsets in the tests and the fuzz driver, and against
+  the linear program (integral on bipartite graphs) in the differential tests.
 
 ### `stableMatching`
 

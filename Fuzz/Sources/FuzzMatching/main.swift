@@ -133,6 +133,33 @@ enum FuzzMatching {
         } else {
             check(false, "no full matching where one exists on \(ends)")
         }
+        // b-matchings: capacities of 0 to 3 per vertex, the heaviest edge subset within them by
+        // enumeration (edges of weight zero or less never help), through the bipartition and
+        // through a BipartiteGraph built on it.
+        let capacity = graph.vertices.map { _ in input.int(below: 4) }
+        var capacityOf: [Int: Int] = [:]
+        for (v, c) in zip(graph.vertices, capacity) { capacityOf[v] = c }
+        var heaviestB = 0
+        for mask in 0 ..< (1 << ends.count) {
+            var degree: [Int: Int] = [:]
+            var total = 0
+            for k in 0 ..< ends.count where mask & (1 << k) != 0 {
+                degree[ends[k].0, default: 0] += 1
+                degree[ends[k].1, default: 0] += 1
+                total += signed[k]
+            }
+            if degree.allSatisfy({ $0.value <= capacityOf[$0.key]! }) && total > heaviestB { heaviestB = total }
+        }
+        let bMatching = graph.maximumWeightBMatching(bipartition: partition, capacity: { capacityOf[$0]! }, weight: { signed[$0] })
+        var degree: [Int: Int] = [:]
+        for p in bMatching.edges {
+            degree[ends[p].0, default: 0] += 1
+            degree[ends[p].1, default: 0] += 1
+        }
+        check(bMatching.weight == heaviestB && bMatching.edges.reduce(0, { $0 + signed[$1] }) == bMatching.weight, "b-matching weight \(bMatching.weight), expected \(heaviestB) on \(ends) \(signed) \(capacity)")
+        check(degree.allSatisfy { $0.value <= capacityOf[$0.key]! }, "b-matching over capacity on \(ends)")
+        check(graph.vertices.allSatisfy { v in bMatching.degree(of: v) == degree[v, default: 0] && bMatching.matchedEdges(of: v).allSatisfy { ends[$0].0 == v || ends[$0].1 == v } }, "b-matching rows")
+        check(bMatching.edges == bMatching.edges.sorted() && Set(bMatching.edges).count == bMatching.edges.count, "b-matching edges not ascending and distinct")
     }
 
     static func assignment(_ input: inout FuzzInput) {
