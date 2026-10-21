@@ -16,6 +16,7 @@ struct PathAnswers: Encodable {
     var shortestSample: [[Int]]?
     var bidirectional: Single?
     var contractionHierarchy: Single?
+    var altLandmarks: Single?
     var allPairs: [[Int?]]?
     var johnson: [[Int?]]?
     var johnsonNil = false
@@ -67,6 +68,12 @@ func pathAnswers<G: BidirectionalDirectedGraph<Int>>(_ graph: G, _ c: Case, _ we
         if let hierarchyPath { check(hierarchyPath, hierarchyDistance ?? -1) }
         if (hierarchyPath == nil) != (hierarchyDistance == nil) { a.valid = false }
         a.contractionHierarchy = Single(reached: hierarchyDistance != nil, distance: hierarchyDistance, path: hierarchyPath?.vertices)
+        let landmarks = graph.altLandmarks(count: c.n % 4, weight: weight)
+        let landmarkPath = landmarks.path(from: s, to: t)
+        let landmarkDistance = landmarks.distance(from: s, to: t)
+        if let landmarkPath { check(landmarkPath, landmarkDistance ?? -1) }
+        if (landmarkPath == nil) != (landmarkDistance == nil) { a.valid = false }
+        a.altLandmarks = Single(reached: landmarkDistance != nil, distance: landmarkDistance, path: landmarkPath?.vertices)
         if c.n <= allPairsLimit {
             let matrix = graph.allPairsDijkstraShortestPaths(weight: weight)
             a.allPairs = (0 ..< c.n).map { u in (0 ..< c.n).map { v in matrix.distance(from: u, to: v) } }

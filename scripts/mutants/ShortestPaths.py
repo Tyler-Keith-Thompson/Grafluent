@@ -26,6 +26,12 @@
 # contraction order, the same distances) and the equal-endpoints shortcut in distance(from:to:)
 # (chsame: the two searches meet at the vertex at zero).
 #
+# ALT landmark mutants equivalent in every result, removed: a weaker estimate (altboundto, dropping
+# the to-landmark bound; altpriority, no estimate at all, which is Dijkstra's algorithm) and a
+# missed early exit (altunreachable: the search then finds the target unreachable itself) only
+# change how much is searched; keeping self-loops (altselfloop) never shortens a path; asking for
+# more landmarks than vertices (altcap) stops when no candidate is left.
+#
 # Caught only by the time limit: queuedonce (queuing a vertex more than once per round multiplies
 # the work without changing any result).
 #
@@ -40,6 +46,7 @@
 TESTS = ["ShortestPathsTests"]
 
 CH = "ContractionHierarchy.swift"
+ALT = "ALTLandmarks.swift"
 
 MUTANTS = [
     # Index space
@@ -413,4 +420,16 @@ MUTANTS = [
     Mutant("chrankup", CH, "rank[storage.arcSource[k]] < rank[storage.arcTarget[k]]", "rank[storage.arcSource[k]] > rank[storage.arcTarget[k]]"),
     Mutant("chrows", CH, "if rank[u] < rank[x] {\n                up[upFill[u]] = k\n                upFill[u] &+= 1\n            } else {\n                down[downFill[x]] = k\n                downFill[x] &+= 1\n            }", "down[downFill[x]] = k\n            downFill[x] &+= 1", mode="stmt"),
     Mutant("chlimitcheck", CH, 'precondition(witnessLimit >= 0, "witnessLimit is negative")', "", mode="stmt"),
+
+    # ALT landmarks: the bounds, the unreachability shortcut, the search, the path's rows, the
+    # reverse rows and the landmark choice.
+    Mutant("altboundfrom", ALT, "_from[row &+ t] - _from[row &+ v]", "_from[row &+ v] - _from[row &+ t]"),
+    Mutant("altrelax", ALT, "parent[v] == -2 || candidate < distance[v]", "parent[v] == -2"),
+    Mutant("altrow", ALT, "if _offsets[mid] <= slot { low = mid } else { high = mid }", "if _offsets[mid] < slot { low = mid } else { high = mid }", mode="stmt"),
+    Mutant("altnegative", ALT, 'precondition(w >= .zero, "ALT landmarks need nonnegative weights (and no NaN)")', "", mode="stmt"),
+    Mutant("altreverse", ALT, "reverseTargets[fill[v]] = u", "reverseTargets[fill[v]] = v", mode="stmt"),
+    Mutant("altfirst", ALT, "for v in 0 ..< n where start.reached[v] && start.distance[v] > start.distance[first] { first = v }", "", mode="stmt"),
+    Mutant("altnearest", ALT, "forward.distance[v] < nearest[v]", "forward.distance[v] > nearest[v]"),
+    Mutant("altcountcheck", ALT, 'precondition(count >= 0, "count is negative")', "", mode="stmt"),
+    Mutant("altdijkstraclosed", ALT, "!reached[v] || (!closed[v] && candidate < distance[v])", "!reached[v]"),
 ]

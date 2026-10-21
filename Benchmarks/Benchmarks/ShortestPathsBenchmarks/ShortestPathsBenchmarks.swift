@@ -291,6 +291,17 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("ShortestPaths: contraction hierarchy path(from:to:) across a 150×150 grid") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(hierarchy.path(from: 0, to: chSide * chSide - 1)) }
     }
+    // SP-B08: ALT landmarks on the same grid: the build (8 landmarks), then queries across it.
+    Benchmark("ShortestPaths: altLandmarks(weight:) on a 150×150 grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(chGrid.altLandmarks { chWeights[$0] }) }
+    }
+    let landmarks = chGrid.altLandmarks { chWeights[$0] }
+    Benchmark("ShortestPaths: ALT landmarks distance(from:to:) across a 150×150 grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(landmarks.distance(from: 0, to: chSide * chSide - 1)) }
+    }
+    Benchmark("ShortestPaths: ALT landmarks path(from:to:) across a 150×150 grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(landmarks.path(from: 0, to: chSide * chSide - 1)) }
+    }
     Benchmark("ShortestPaths: BASELINE dijkstraShortestPath across the same 150×150 grid") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(chGrid.dijkstraShortestPath(from: 0, to: chSide * chSide - 1) { chWeights[$0] }) }
     }

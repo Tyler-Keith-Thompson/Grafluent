@@ -12,7 +12,7 @@
 //
 // Path enumeration and all pairs: Johnson's matrix is Floyd–Warshall's, nil exactly when a negative
 // cycle exists, and its paths weigh their distances. With nonnegative weights, all-pairs Dijkstra is
-// Floyd–Warshall's too, as is every contraction hierarchy query, whose paths weigh their distances;
+// Floyd–Warshall's too, as is every contraction hierarchy and ALT landmark query, whose paths weigh their distances;
 // bidirectional Dijkstra gives the target's distance; Yen's sequence lists every
 // simple path to the target once, in nondecreasing length, as a brute-force enumeration does; and
 // every shortest path is listed once, as brute force finds them.
@@ -297,6 +297,23 @@ enum FuzzShortestPaths {
                         }
                         check(Path(vertices: path.vertices, edges: path.edges, in: list) != nil && path.source == i && path.target == j && path.weight(w) == d[i][j],
                               "contraction hierarchy (\(limit)) path \(i)→\(j)")
+                    }
+                }
+            }
+            // ALT landmarks, none, one and more than the graph has: every pair's distance is
+            // Floyd–Warshall's, every path a path of that length.
+            for count in [0, 1, 12] {
+                let landmarks = list.altLandmarks(count: count, weight: w)
+                check(landmarks.landmarks.count == min(count, n), "ALT landmark count")
+                for i in 0 ..< n {
+                    for j in 0 ..< n {
+                        check(landmarks.distance(from: i, to: j) == d[i][j].nilIfInfinite, "ALT (\(count)) \(i)→\(j)")
+                        guard let path = landmarks.path(from: i, to: j) else {
+                            check(d[i][j] == infinity, "ALT (\(count)) path \(i)→\(j) missing")
+                            continue
+                        }
+                        check(Path(vertices: path.vertices, edges: path.edges, in: list) != nil && path.source == i && path.target == j && path.weight(w) == d[i][j],
+                              "ALT (\(count)) path \(i)→\(j)")
                     }
                 }
             }
