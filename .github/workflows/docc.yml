@@ -37,8 +37,16 @@ jobs:
     container: swift:6.3.3
     steps:
       - uses: actions/checkout@v7
-      - name: Install curl
-        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates curl
+        with:
+          # git-restore-mtime needs each file's last commit.
+          fetch-depth: 0
+      - name: Install curl and git-restore-mtime
+        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git-restore-mtime
+      - name: Give every source its commit time
+        # A fresh checkout stamps every file with the current time, and the build system would
+        # then rebuild everything the cache restored. The commit time is the same on every run
+        # until the file changes.
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE" && git restore-mtime
       - name: Cache the WebAssembly SDK and wasm-opt
         id: tools
         uses: actions/cache@v6
@@ -56,10 +64,19 @@ jobs:
           echo "$BINARYEN_SHA256  /tmp/binaryen.tar.gz" | sha256sum -c -
           # Only wasm-opt is needed, not the 100 MB of the rest.
           tar -xzf /tmp/binaryen.tar.gz -C /opt/explore-tools/bin --strip-components=2 "binaryen-$BINARYEN_VERSION/bin/wasm-opt"
+      - name: Cache the installed WebAssembly SDK
+        # Installing writes fresh timestamps on the SDK's modules, which the build system treats
+        # as changed inputs; the installed copy is cached so they stay the same between runs.
+        id: sdk
+        uses: actions/cache@v6
+        with:
+          path: ~/.swiftpm/swift-sdks
+          key: explore-sdk-${{ runner.arch }}-${{ env.WASM_SDK_SHA256 }}
       - name: Install the WebAssembly SDK
-        run: |
-          swift sdk install /opt/explore-tools/wasm-sdk.artifactbundle.tar.gz
-          echo /opt/explore-tools/bin >> "$GITHUB_PATH"
+        if: steps.sdk.outputs.cache-hit != 'true'
+        run: swift sdk install /opt/explore-tools/wasm-sdk.artifactbundle.tar.gz
+      - name: Add wasm-opt to the path
+        run: echo /opt/explore-tools/bin >> "$GITHUB_PATH"
       - name: Restore the explorer's build
         # Keyed on the dependency pins, the explorer's sources and the library's sources. A miss
         # falls back to the newest build with the same pins, so only what changed recompiles.
