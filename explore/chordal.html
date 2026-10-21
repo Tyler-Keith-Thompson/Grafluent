@@ -30,7 +30,7 @@
         <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
         <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html" aria-current="page">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
         <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="knowledge.html">Knowledge graphs</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
         <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
       </nav>
     </details>
@@ -45,7 +45,7 @@
 <section class="prose purpose">
   <h2><small>What it’s for</small>Spotting graphs where hard problems turn easy</h2>
   <p>Go round a loop of friends, each friends with the next. A <b>chord</b> is a friendship between two of them who aren’t next to each other on the loop. It is a shortcut across. A graph is <b>chordal</b> when every loop of four or more has one. A loop without one is a <b>hole</b>.</p>
-  <p>Chordal graphs are worth spotting because many hard problems turn easy on them. The largest clique, the fewest colours and the largest independent set all take linear time. They also come up in sparse matrix solvers, and in schedules where time slots overlap.</p>
+  <p>Chordal graphs are worth spotting because many hard problems turn easy on them. The largest clique, the fewest colours and the largest independent set, a group in which no two are friends, all take <a href="basics.html#speed">time in step with vertices plus edges</a>. They also come up in sparse matrix solvers, and in schedules where time slots overlap.</p>
 </section>
 
 <section class="prose compared">
@@ -54,13 +54,13 @@
 <table>
   <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Gives</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
   <tbody>
-    <tr class="self"><th scope="row">Maximum cardinality search <span class="this">This page</span></th><td data-label="When to use">A quick yes or no</td><td data-label="Gives"><code>isChordal</code>, <code>perfectEliminationOrdering()</code></td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">No proof when the answer is no</td></tr>
+    <tr class="self"><th scope="row">Maximum cardinality search, always visiting the vertex with the most visited neighbours <span class="this">This page</span></th><td data-label="When to use">A quick yes or no</td><td data-label="Gives"><code>isChordal</code>, <code>perfectEliminationOrdering()</code>, an order to take people away in</td><td data-label="Cost"><a href="basics.html#speed">O(n + m)</a></td><td data-label="Weakness">No proof when the answer is no</td></tr>
     <tr><th scope="row">Lexicographic breadth-first search</th><td data-label="When to use">You want a finer order to build on</td><td data-label="Gives"><code>lexicographicBreadthFirstSearch()</code></td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">A little more bookkeeping</td></tr>
     <tr><th scope="row">Find a hole</th><td data-label="When to use">You want proof of a no</td><td data-label="Gives"><code>findHole()</code>, a loop with no shortcut</td><td data-label="Cost">Slower than the test</td><td data-label="Weakness">Only useful when the answer is no</td></tr>
   </tbody>
 </table>
 </div>
-  <p>Both searches answer in linear time. Ask for a hole only when you need to show someone why the answer is no.</p>
+  <p>Both searches answer in time in step with the size of the graph. Ask for a hole only when you need to show someone why the answer is no.</p>
 </section>
 
 <p class="example lead">Example: eight friends and their friendships.</p>
@@ -75,12 +75,12 @@
   <h2><small>The idea</small>Taking people away one at a time</h2>
   <p>Checking every loop would take forever, because there can be exponentially many. Chordal graphs have another description that is quick to check. A vertex is <b>simplicial</b> when its neighbours all know each other. Every chordal graph has one. Take it away, and what is left is still chordal, so it has another. The order this gives is a <b>perfect elimination ordering</b>. A graph has one exactly when it is chordal.</p>
   <p>Finding the order is the clever part. A <b>maximum cardinality search</b> always visits next the vertex with the most visited neighbours. Tarjan and Yannakakis showed that it visits a chordal graph in the reverse of a perfect elimination ordering. So one search and one check decide the question, in time in step with vertices plus edges. That is <code>isChordal</code>.</p>
-  <p>Rose, Tarjan and Lueker’s lexicographic breadth-first search works the same way with a finer tie-break. It is the starting point for recognising other families of graphs.</p>
-  <p>Following a perfect elimination ordering gives the largest clique, a colouring with the fewest colours and the largest independent set. Sparse matrix solvers add “fill-in” edges to make a matrix’s graph chordal. Interval graphs, which show which time slots overlap, are always chordal.</p>
+  <p>Rose, Tarjan and Lueker’s lexicographic breadth-first search works the same way with a finer tie-break. It compares the lists of visit numbers of each vertex’s visited neighbours, like words in a dictionary. It is the starting point for recognising other families of graphs.</p>
+  <p>Following a perfect elimination ordering gives the largest clique, a colouring with the fewest colours and the largest independent set. Programs that solve large systems of equations, where each equation is a vertex, add “fill-in” edges to make the graph chordal. Interval graphs, which show which time slots overlap, are always chordal.</p>
 
   <h2><small>Where it breaks</small>A hole is the proof</h2>
   <p>When the test fails, it says no but not why. <code>findHole()</code> gives the why. It returns a loop of four or more with no shortcut, which anyone can check by eye. Finding it is slower than the plain test, because it searches around the vertices where the test failed.</p>
-  <p>Making a graph chordal by adding the fewest edges is called the <b>minimum fill-in</b> problem, and it is NP-hard. Any elimination order gives some chordal graph. That is why sparse solvers spend effort choosing a good order, and don’t look for the best one.</p>
+  <p>Making a graph chordal by adding the fewest edges is called the <b>minimum fill-in</b> problem, and it is <a href="basics.html#speed">NP-hard</a>. Any elimination order gives some chordal graph. That is why sparse solvers spend effort choosing a good order, and don’t look for the best one.</p>
 </section>
 
 <section class="prose in-swift">

@@ -30,7 +30,7 @@
         <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html" aria-current="page">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
         <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
         <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="knowledge.html">Knowledge graphs</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
         <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
       </nav>
     </details>
@@ -39,7 +39,7 @@
   </nav>
 <header class="sign">
   <h1>Dijkstra’s algorithm</h1>
-  <div class="say"><span>Say it</span><b>DIKE-struh</b><span class="ipa">/ˈdɛikstra/</span></div>
+  <div class="say"><span>Say Dijkstra</span><b>DIKE-struh</b><span class="ipa">/ˈdɛikstra/</span></div>
   <p class="question">What’s the quickest walk from your front door to every other place in town?</p>
 </header>
 
@@ -51,11 +51,12 @@
 
 <section class="prose compared">
   <h2><small>Compared with</small>Other ways to find quickest routes</h2>
+  <p>In the table, n is the number of places and m the number of streets.</p>
 <div class="compare">
 <table>
   <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Handles</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
   <tbody>
-    <tr class="self"><th scope="row">Dijkstra <span class="this">This page</span></th><td data-label="When to use">One start, and no cost is negative</td><td data-label="Handles">Costs of zero or more</td><td data-label="Cost">O(m log n)</td><td data-label="Weakness">Wrong answers when a cost is negative</td></tr>
+    <tr class="self"><th scope="row">Dijkstra <span class="this">This page</span></th><td data-label="When to use">One start, and no cost is negative</td><td data-label="Handles">Costs of zero or more</td><td data-label="Cost"><a href="basics.html#speed">O(m log n)</a></td><td data-label="Weakness">Wrong answers when a cost is negative</td></tr>
     <tr><th scope="row"><a href="bfs.html">Breadth-first search</a></th><td data-label="When to use">Every step costs the same</td><td data-label="Handles">Counting steps</td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">Ignores costs</td></tr>
     <tr><th scope="row"><a href="astar.html">A*</a></th><td data-label="When to use">One start and one goal, with a good guess of the distance left</td><td data-label="Handles">Costs of zero or more</td><td data-label="Cost">O(m log n), often much less</td><td data-label="Weakness">Needs a guess that never overestimates</td></tr>
     <tr><th scope="row"><a href="bellmanford.html">Bellman–Ford</a></th><td data-label="When to use">Some costs are negative</td><td data-label="Handles">Negative costs, and finds a loop that pays</td><td data-label="Cost">O(nm)</td><td data-label="Weakness">Slow on large graphs</td></tr>
@@ -63,7 +64,7 @@
   </tbody>
 </table>
 </div>
-  <p>Dijkstra is the usual choice for one start and costs of zero or more. It is fast, and it finds every place’s route in one run. In the table, n is the number of places and m the number of streets.</p>
+  <p>Dijkstra is the usual choice for one start and costs of zero or more. It is fast, and it finds every place’s route in one run.</p>
 </section>
 
 <p class="example lead">Example: eight places in a small town, with walking minutes on each street.</p>
@@ -72,7 +73,7 @@
 
 <section class="prose">
   <h2><small>The idea</small>Always settle the nearest unsettled place</h2>
-  <p>Keep a best guess for every place. Where you are gets zero minutes, and everywhere else gets infinity. Then repeat one move. Take the frontier place with the smallest guess and call it settled. Check each street out of it. If going through it reaches a neighbour sooner, lower that neighbour’s guess.</p>
+  <p>Keep a best guess for every place. Where you are gets zero minutes, and everywhere else gets infinity. Then repeat one move. The frontier is every place reached by some street but not yet settled. Take the frontier place with the smallest guess and call it settled. Check each street out of it. If going through it reaches a neighbour sooner, lower that neighbour’s guess.</p>
   <p>Why can the smallest guess be trusted? Any other walk to that place must leave the settled region through some frontier place. Every frontier place is already at least that far away. Streets only add time, so a detour can’t come back quicker. That short argument is the whole proof. It is also where the algorithm breaks.</p>
 
   <h2><small>Where it breaks</small>A street that gives you time back</h2>

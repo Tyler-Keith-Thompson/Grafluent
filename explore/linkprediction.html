@@ -30,7 +30,7 @@
         <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
         <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
         <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html" aria-current="page">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html" aria-current="page">Friend suggestions</a><a href="knowledge.html">Knowledge graphs</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
         <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
       </nav>
     </details>
@@ -39,7 +39,7 @@
   </nav>
 <header class="sign">
   <h1>Friend suggestions</h1>
-  <div class="say"><span>Say it</span><b>ah-DAH-mitch</b><span class="ipa">/aˈdaːmit͡ʃ/</span></div>
+  <div class="say"><span>Say Adamic</span><b>ah-DAH-mitch</b><span class="ipa">/aˈdaːmit͡ʃ/</span></div>
   <p class="question">Ana has three friends. Of the people she hasn’t met, who is she most likely to get on with?</p>
 </header>
 <p class="example lead">Example: nine people and a line between each pair of friends. Ben knows almost everyone. Dee knows only two people.</p>
@@ -62,21 +62,21 @@
     <tr class="self"><th scope="row">Jaccard coefficient <span class="this">This page</span></th><td data-label="When to use">People’s friend counts differ a lot</td><td data-label="Counts">The share of their friends they have in common</td><td data-label="Weakness">A friend who knows everybody counts as much as any other</td></tr>
     <tr class="self"><th scope="row">Adamic–Adar index <span class="this">This page</span></th><td data-label="When to use">Some friends know far more people than others</td><td data-label="Counts">Friends in common, each worth 1 / ln(its friend count)</td><td data-label="Weakness">Grows with the number of friends in common, so it has no fixed top</td></tr>
     <tr><th scope="row">Resource allocation index</th><td data-label="When to use">Hubs should count for even less</td><td data-label="Counts">Friends in common, each worth 1 / its friend count</td><td data-label="Weakness">Close to Adamic–Adar on most networks</td></tr>
-    <tr><th scope="row">Preferential attachment</th><td data-label="When to use">Popular people tend to meet popular people</td><td data-label="Counts">The product of their friend counts</td><td data-label="Weakness">Ignores whether they have anyone in common</td></tr>
+    <tr><th scope="row"><a href="networkmodels.html">Preferential attachment</a></th><td data-label="When to use">Popular people tend to meet popular people</td><td data-label="Counts">The product of their friend counts</td><td data-label="Weakness">Ignores whether they have anyone in common</td></tr>
   </tbody>
 </table>
 </div>
-  <p>All of these are local, so they score a pair in the time it takes to read two lists of friends. None of them can suggest someone three steps away.</p>
+  <p>In the table, ln is the natural logarithm, which grows slowly. All of these are local, so they score a pair in the time it takes to read two lists of friends. None of them can suggest someone three steps away.</p>
 </section>
 
 <section class="prose">
   <h2><small>The idea</small>Friends of friends, weighed</h2>
   <p>The <b>Jaccard coefficient</b> divides the friends two people share by all the friends either one has. It lies between 0 and 1. It doesn’t favour people who simply know a lot of others.</p>
-  <p>The <b>Adamic–Adar index</b> adds up the shared friends, but weighs each one by 1 / ln(its number of friends). A shared friend who knows only two people is a strong hint. One who knows everybody is a weak hint, because they connect almost everyone. So Adamic–Adar ranks Ivy, met through Cy and Dee, above Eli, met through Cy and the very popular Ben. Jaccard calls them even.</p>
+  <p>The <b>Adamic–Adar index</b> adds up the shared friends, but weighs each one by 1 / ln(its number of friends). ln, the natural logarithm, grows slowly. ln 2 is about 0.7 and ln 100 about 4.6, so a friend of 100 people counts about a sixth as much as a friend of 2. A shared friend who knows only two people is a strong hint. One who knows everybody is a weak hint, because they connect almost everyone. So Adamic–Adar ranks Ivy, met through Cy and Dee, above Eli, met through Cy and the very popular Ben. Jaccard calls them even.</p>
   <p>Each score looks only at the two people’s friends. So <code>jaccardCoefficients(of:)</code> and <code>adamicAdarIndices(of:)</code> score many pairs cheaply.</p>
 
   <h2><small>Where it breaks</small>Only two steps away</h2>
-  <p>Both scores are 0 for anyone without a friend in common. So they never suggest someone three steps away, and a newcomer with no friends gets no suggestions at all. Scores that count longer paths, such as the Katz index or random walks with restart, reach further at more cost. Real recommenders also use what the network doesn’t show, such as where people live, work or went to school, and which suggestions were accepted before.</p>
+  <p>Both scores are 0 for anyone without a friend in common. So they never suggest someone three steps away, and a newcomer with no friends gets no suggestions at all. Scores that count longer paths reach further at more cost. The Katz index is one. Another is personalised PageRank, walks that keep returning to the person, as on the <a href="knowledge.html">Knowledge graphs</a> page. Real recommenders also use what the network doesn’t show, such as where people live, work or went to school, and which suggestions were accepted before.</p>
 </section>
 
 <section class="prose in-swift">
@@ -110,7 +110,7 @@
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
   <div id="names" data-loading aria-busy="true"><div class="names"><div class="name"><b>Adamic</b><span class="how">ah-DAH-mitch</span><span class="ipa">/aˈdaːmit͡ʃ/</span><span class="what">Lada Adamic: shared friends who have few friends count for more</span></div><div class="name"><b>Jaccard</b><span class="how">zha-KAR</span><span class="ipa">/ʒakaʁ/</span><span class="what">Paul Jaccard: the share of two sets that they have in common</span></div></div></div>
 </section>
-<nav class="pager" aria-label="Pages"><a class="prev" href="assortativity.html"><span>Previous</span>Assortativity</a><a class="next" href="neighbourhood.html"><span>Next</span>Neighbourhoods</a></nav>
+<nav class="pager" aria-label="Pages"><a class="prev" href="assortativity.html"><span>Previous</span>Assortativity</a><a class="next" href="knowledge.html"><span>Next</span>Knowledge graphs</a></nav>
 </div>
 <script>
   if (!location.hash) window.scrollTo(0, 0);

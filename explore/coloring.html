@@ -30,7 +30,7 @@
         <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
         <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
         <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html" aria-current="page">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="knowledge.html">Knowledge graphs</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
         <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
       </nav>
     </details>
@@ -56,14 +56,14 @@
 <table>
   <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
   <tbody>
-    <tr class="self"><th scope="row">Greedy in a chosen order, <code>greedyColoring(order:)</code> <span class="this">This page</span></th><td data-label="When to use">You know a good order</td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">A bad order can need many more colours</td></tr>
+    <tr class="self"><th scope="row"><a href="basics.html#speed">Greedy</a> in a chosen order, <code>greedyColoring(order:)</code> <span class="this">This page</span></th><td data-label="When to use">You know a good order</td><td data-label="Cost"><a href="basics.html#speed">O(n + m)</a></td><td data-label="Weakness">A bad order can need many more colours</td></tr>
     <tr><th scope="row">Busiest first, <code>.largestFirst</code></th><td data-label="When to use">A quick default</td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">Still only a guess</td></tr>
     <tr><th scope="row">DSATUR, <code>.saturationLargestFirst</code></th><td data-label="When to use">Fewer colours for a little more work</td><td data-label="Cost">O((n + m) log n)</td><td data-label="Weakness">Still not always the fewest</td></tr>
-    <tr><th scope="row"><code>minimumColoring()</code></th><td data-label="When to use">You need the true fewest</td><td data-label="Cost">Exponential in the worst case</td><td data-label="Weakness">Slow on large, dense graphs</td></tr>
+    <tr><th scope="row"><code>minimumColoring()</code></th><td data-label="When to use">You need the true fewest</td><td data-label="Cost">Time can double with each exam added, <a href="basics.html#speed">exponential</a> in the worst case</td><td data-label="Weakness">Slow on large, dense graphs</td></tr>
   </tbody>
 </table>
 </div>
-  <p>Greedy colouring is fast and usually close. Only the exact search promises the fewest colours, and it can be slow. In the table, n is the number of exams and m the number of clashes.</p>
+  <p>Greedy colouring, always taking the move that helps most right now, is fast and usually close. Only the exact search promises the fewest colours, and it can be slow. In the table, n is the number of exams and m the number of clashes.</p>
 </section>
 
 <section class="prose">
@@ -72,7 +72,7 @@
 
   <h2><small>Where it breaks</small>A bad order</h2>
   <p>Greedy’s answer depends on its order. Here, in alphabetical order, it needs four slots. Two would be enough.</p>
-  <p>The exams fall into two groups. Each exam clashes with every exam in the other group except one partner. Alphabetical order keeps reaching a partner pair together, and it gives each pair a new slot. Picking the most constrained exam next (DSATUR) finds two slots. On a two-sided graph like this one it always does.</p>
+  <p>The exams fall into two groups. Each exam clashes with every exam in the other group except one partner. Alphabetical order keeps reaching a partner pair together, and it gives each pair a new slot. Picking next the exam whose clashing exams already use the most different slots, which is DSATUR, finds two slots. On a <a href="matching.html">bipartite</a> graph like this one it always does.</p>
 </section>
 
 <section class="prose in-swift">

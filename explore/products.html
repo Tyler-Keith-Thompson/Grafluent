@@ -30,7 +30,7 @@
         <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
         <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
         <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="knowledge.html">Knowledge graphs</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
         <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
       </nav>
     </details>
@@ -39,12 +39,12 @@
   </nav>
 <header class="sign">
   <h1>Graph products</h1>
-  <p class="question">A chess board is four files times three ranks. Which product of two paths gives the rook’s moves, and which the king’s?</p>
+  <p class="question">A chess board is four files (columns) times three ranks (rows). Which product of two paths gives the rook’s moves, and which the king’s?</p>
 </header>
 
 <section class="prose purpose">
-  <h2><small>What it’s for</small>Big regular graphs from small ones</h2>
-  <p>A <b>product</b> of two graphs has a vertex for every pair of vertices, one from each. Which pairs are joined is the rule that names the product. Grids, tori, hypercubes, boards and the state spaces of several machines running side by side are all products of small graphs.</p>
+  <h2><small>What it’s for</small>Big evenly patterned graphs from small ones</h2>
+  <p>A <b>product</b> of two graphs has a vertex for every pair of vertices, one from each. Each of the two graphs is called a <b>factor</b>. Which pairs are joined is the rule that names the product. Grids, boards, tori (grids that wrap around like a doughnut) and the state spaces of several machines running side by side are all products of small graphs.</p>
   <p>Reach for a product to build such a graph without listing its edges, to reason about it through its factors, or to model two things that move at once: one step in either factor, or in both.</p>
 </section>
 
@@ -54,14 +54,14 @@
 <table>
   <thead><tr><th scope="col">Product</th><th scope="col">A move changes</th><th scope="col">On the board</th><th scope="col">Edges</th><th scope="col">Also called</th></tr></thead>
   <tbody>
-    <tr class="self"><th scope="row">Cartesian <span class="this">This page</span></th><td data-label="A move changes">One factor, one step</td><td data-label="On the board">A rook’s single step</td><td data-label="Edges">m₁ n₂ + n₁ m₂</td><td data-label="Also called">Box product</td></tr>
+    <tr class="self"><th scope="row">Cartesian <span class="this">This page</span></th><td data-label="A move changes">One factor, one step</td><td data-label="On the board">A rook’s single step</td><td data-label="Edges"><a href="basics.html#speed">m₁ n₂ + n₁ m₂</a></td><td data-label="Also called">Box product</td></tr>
     <tr class="self"><th scope="row">Tensor <span class="this">This page</span></th><td data-label="A move changes">Both factors, one step each</td><td data-label="On the board">A bishop’s single step</td><td data-label="Edges">2 m₁ m₂</td><td data-label="Also called">Direct, categorical or Kronecker product</td></tr>
     <tr class="self"><th scope="row">Strong <span class="this">This page</span></th><td data-label="A move changes">One or both factors</td><td data-label="On the board">A king</td><td data-label="Edges">The two above added</td><td data-label="Also called">Normal product</td></tr>
-    <tr class="self"><th scope="row">Lexicographic <span class="this">This page</span></th><td data-label="A move changes">The first factor, landing anywhere; or the second alone</td><td data-label="On the board">A courier</td><td data-label="Edges">m₁ n₂² + n₁ m₂</td><td data-label="Also called">Composition</td></tr>
+    <tr class="self"><th scope="row">Lexicographic <span class="this">This page</span></th><td data-label="A move changes">The first factor, landing anywhere; or the second alone</td><td data-label="On the board">A made-up piece</td><td data-label="Edges">m₁ n₂² + n₁ m₂</td><td data-label="Also called">Composition</td></tr>
   </tbody>
 </table>
 </div>
-  <p>The Cartesian product keeps the factors apart, so most questions about it reduce to questions about the factors. The strong product is the Cartesian plus the tensor. The lexicographic product is the odd one: it is not symmetric in its factors.</p>
+  <p>The Cartesian product keeps the factors apart, so most questions about it reduce to questions about the factors. The strong product is the Cartesian plus the tensor. The lexicographic product is the odd one: it is not symmetric in its factors. In the table, n is the number of vertices and m the number of edges of each factor.</p>
 </section>
 
 <p class="example lead">Example: the files a to d, a path of four, and the ranks 1 to 3, a path of three.</p>
@@ -76,7 +76,7 @@
   <p>Products compose with everything else. A <a href="bfs.html">breadth-first search</a> on the Cartesian product of two paths measures rook distance; on the strong product it measures king distance, which is the larger of the two coordinate differences.</p>
 
   <h2><small>Where it breaks</small>Counting grows fast</h2>
-  <p>A product with n₁ n₂ vertices is easy to build but no easier to search. Every algorithm that visits all of it still pays for all of it, and three factors multiply again. Directed factors give directed products, with the same rules read along the arcs. Self-loops in a factor make the products join a square to itself; the views follow their factors and keep them.</p>
+  <p>A product with n₁ n₂ vertices is easy to build but no easier to search. Every algorithm that visits all of it still pays for all of it, and three factors multiply again. Directed factors give directed products, with the same rules read along the arrows. Self-loops in a factor make the products join a square to itself; the views follow their factors and keep them.</p>
 </section>
 
 <section class="prose in-swift">

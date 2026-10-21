@@ -469,6 +469,8 @@ figure.fig { margin: 0; }
    row becomes a card with its column names. "In Swift" closes the page, as wide as the lab. */
 .purpose { margin-top: 30px; }
 .purpose h2 { margin-top: 0; }
+.words dt { font-family: var(--display); font-weight: 800; margin-top: 12px; }
+.words dd { margin: 2px 0 0; }
 .purpose + .compared { margin-top: 36px; }
 .compared { max-width: none; }
 .compared > :not(.compare) { max-width: 68ch; }

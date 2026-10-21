@@ -30,7 +30,7 @@
         <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
         <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html" aria-current="page">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
         <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="knowledge.html">Knowledge graphs</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
         <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
       </nav>
     </details>
@@ -54,13 +54,13 @@
 <table>
   <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Gives</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
   <tbody>
-    <tr class="self"><th scope="row">Girvan–Newman <span class="this">This page</span></th><td data-label="When to use">A small network, and you want the hierarchy</td><td data-label="Gives">Every split, coarsest first</td><td data-label="Cost">O(m²n)</td><td data-label="Weakness">Far too slow for large networks</td></tr>
+    <tr class="self"><th scope="row">Girvan–Newman <span class="this">This page</span></th><td data-label="When to use">A small network, and you want the hierarchy</td><td data-label="Gives">Every split, coarsest first</td><td data-label="Cost"><a href="basics.html#speed">O(m²n)</a></td><td data-label="Weakness">Far too slow for large networks</td></tr>
     <tr><th scope="row"><a href="communities.html">Louvain</a></th><td data-label="When to use">A good split of a large network</td><td data-label="Gives">One split with high modularity</td><td data-label="Cost">About O(m) a pass</td><td data-label="Weakness">No clear reason for each group</td></tr>
     <tr><th scope="row"><a href="labelpropagation.html">Label propagation</a></th><td data-label="When to use">A very large network, fast</td><td data-label="Gives">One split</td><td data-label="Cost">About O(m) a sweep</td><td data-label="Weakness">Answers change from run to run</td></tr>
   </tbody>
 </table>
 </div>
-  <p>Girvan–Newman is the easiest to reason about and the slowest. Louvain is the usual choice once a network has more than a few hundred people.</p>
+  <p>Girvan–Newman is the easiest to reason about and the slowest. Louvain is the usual choice once a network has more than a few hundred people. In the table, n is the number of people and m the number of links.</p>
 </section>
 
 <p class="example lead">Example: twelve friends from a band, a climbing gym and a book club. A line joins each pair who hang out. A few friendships cross between the groups.</p>
@@ -69,7 +69,7 @@
 
 <section class="prose">
   <h2><small>The idea</small>Links between groups carry the traffic</h2>
-  <p>Inside a close group there are many ways between any two people. So the shortest paths spread over many links. Between groups there are only a few links, and every shortest path from one group to another has to use one of them. So those links have the highest <a href="betweenness.html">edge betweenness</a>.</p>
+  <p>Inside a close group there are many ways between any two people. So the shortest paths spread over many links. Between groups there are only a few links, and every shortest path from one group to another has to use one of them. The number of shortest paths that cross a link is its <a href="betweenness.html">edge betweenness</a>. So those links have the highest edge betweenness.</p>
   <p>Girvan and Newman’s method takes out the link with the highest betweenness. Then it <em>recomputes</em> every score, and repeats. Recomputing matters. Once one link between two groups is gone, the paths it carried move to the others. Those become the busiest next.</p>
   <p>Each time the network falls into more pieces, you get a finer split. Run to the end and every person is alone. The result is a whole hierarchy of splits, coarsest first.</p>
   <p>Which level is the answer? A common choice is the one with the highest <b>modularity</b>. Modularity is the share of links inside groups, minus the share you’d expect if links were placed at random. <code>girvanNewmanCommunities()</code> is a lazy sequence of the splits. You can stop at the first with as many groups as you want, or take the best by <code>modularity(of:)</code>.</p>
@@ -101,7 +101,7 @@
     <span class="k">for</span> pair <span class="k">in</span> hangOut { pair }
 }
 
-<span class="k">let</span> partitions = <span class="t">Array</span>(crowd.girvanNewmanCommunities())  <span class="c">// 11 partitions</span>
+<span class="k">let</span> partitions = <span class="t">Array</span>(crowd.girvanNewmanCommunities())  <span class="c">// 11 splits</span>
 <span class="k">let</span> best = partitions.max { crowd.modularity(of: $<span class="n">0</span>) &lt; crowd.modularity(of: $<span class="n">1</span>) }!  <span class="c">// [["Abe", "Bea", "Cam", "Dan"], ["Ela", "Fox", "Gil", "Hal"], ["Ian", "Jo", "Kai", "Lu"]]</span>
 
 <span class="k">var</span> left = hangOut

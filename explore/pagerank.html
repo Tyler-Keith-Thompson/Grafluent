@@ -30,7 +30,7 @@
         <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
         <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
         <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html" aria-current="page">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html" aria-current="page">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="knowledge.html">Knowledge graphs</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
         <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
       </nav>
     </details>
@@ -44,7 +44,7 @@
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>Importance from links</h2>
-  <p>PageRank scores every page in a network of links. A page scores high when pages that score high link to it. The scores add up to 1, so each one reads as a share of the attention.</p>
+  <p>PageRank scores every page in a network of links. Such a score is called a <b>centrality</b>. A page scores high when pages that score high link to it. The scores add up to 1, so each one reads as a share of the attention.</p>
   <p>Reach for it when a link works like a vote, as with web pages, citations between papers, or who follows whom. It needs nothing but the links.</p>
 </section>
 
@@ -54,15 +54,15 @@
 <table>
   <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Rewards</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
   <tbody>
-    <tr class="self"><th scope="row">PageRank <span class="this">This page</span></th><td data-label="When to use">Links work like votes</td><td data-label="Rewards">Links from pages that score high themselves</td><td data-label="Cost">O(m) a round, a few dozen rounds</td><td data-label="Weakness">A ring of pages that link to each other can lift its own scores</td></tr>
+    <tr class="self"><th scope="row">PageRank <span class="this">This page</span></th><td data-label="When to use">Links work like votes</td><td data-label="Rewards">Links from pages that score high themselves</td><td data-label="Cost"><a href="basics.html#speed">O(m)</a> a round, a few dozen rounds</td><td data-label="Weakness">A ring of pages that link to each other can lift its own scores</td></tr>
     <tr><th scope="row">Counting links in</th><td data-label="When to use">A quick first look</td><td data-label="Rewards">Every link in, all the same</td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">A link from a junk page counts as much as any other</td></tr>
-    <tr><th scope="row">HITS</th><td data-label="When to use">Some pages list good pages and others are the good pages</td><td data-label="Rewards">Two scores, hubs and authorities</td><td data-label="Cost">O(m) a round</td><td data-label="Weakness">A tight cluster can take over both scores</td></tr>
-    <tr><th scope="row">Eigenvector centrality</th><td data-label="When to use">Friendships and other two-way links</td><td data-label="Rewards">Neighbours that score high</td><td data-label="Cost">O(m) a round</td><td data-label="Weakness">On one-way links, a page that nobody links to scores 0, so its links count for nothing</td></tr>
+    <tr><th scope="row">HITS</th><td data-label="When to use">Some pages list good pages and others are the good pages</td><td data-label="Rewards">Two scores, hubs (pages that link to good pages) and authorities (pages good hubs link to)</td><td data-label="Cost">O(m) a round</td><td data-label="Weakness">A tight cluster can take over both scores</td></tr>
+    <tr><th scope="row">Neighbour-weighted score (eigenvector centrality)</th><td data-label="When to use">Friendships and other two-way links</td><td data-label="Rewards">Neighbours that score high</td><td data-label="Cost">O(m) a round</td><td data-label="Weakness">On one-way links, a page that nobody links to scores 0, so its links count for nothing</td></tr>
     <tr><th scope="row"><a href="betweenness.html">Betweenness</a></th><td data-label="When to use">Who sits between the others</td><td data-label="Rewards">Being on shortest paths</td><td data-label="Cost">O(nm)</td><td data-label="Weakness">Says nothing about popularity</td></tr>
   </tbody>
 </table>
 </div>
-  <p>PageRank is cheap and needs no tuning beyond the damping factor. The random jump keeps every score above 0 and makes the iteration settle. In the table, n is the number of pages and m the number of links.</p>
+  <p>In the table, n is the number of pages and m the number of links.</p>
 </section>
 
 <p class="example lead">Example: six web pages linking to each other. Add a link and see the ranks shift.</p>
@@ -73,7 +73,8 @@
   <h2><small>The idea</small>A bored random surfer</h2>
   <p>Imagine someone browsing at random. They follow a link, and every so often they get bored and jump to any page at all. Over a long session, the share of time they spend on each page is its rank. So a link from a busy page is worth more than a link from a quiet one.</p>
   <p>The <b>damping factor</b> is how often the surfer keeps clicking instead of jumping. It is usually 0.85.</p>
-  <p>Grafluent doesn’t simulate the surfer. It uses power iteration. Every page starts with an equal share. Each round, every page passes its share along its links. This repeats until no score moves by more than the tolerance. A page with no links out shares its rank with every page. The surfer on this page is there to show that the two agree.</p>
+  <p>Grafluent doesn’t simulate the surfer. It uses power iteration. Every page starts with an equal share. Each round, every page passes its share along its links. This repeats until no score moves by more than a small threshold you set, the tolerance. A page with no links out shares its rank with every page. The surfer on this page is there to show that the two agree.</p>
+  <p>PageRank is cheap and needs no tuning beyond the damping factor. The random jump keeps every score above 0 and makes the iteration settle.</p>
 
   <h2><small>Where it breaks</small>Pages that hoard rank</h2>
   <p>A tight cluster of pages that link only to each other can soak up rank. The random jump keeps that in check. Turn the damping all the way up to see what happens without it: here the Forum, which nobody links to, drops to nothing. On some graphs the surfer goes round a loop for ever and the scores never settle; then <code>pageRank</code> throws <code>NoConvergence</code>.</p>

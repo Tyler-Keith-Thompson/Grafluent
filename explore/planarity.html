@@ -30,7 +30,7 @@
         <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
         <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html" aria-current="page">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
         <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="knowledge.html">Knowledge graphs</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
         <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
       </nav>
     </details>
@@ -39,7 +39,7 @@
   </nav>
 <header class="sign">
   <h1>Planarity</h1>
-  <div class="say"><span>Say it</span><b>koo-rah-TOV-skee</b><span class="ipa">/kuraˈtɔfskʲi/</span></div>
+  <div class="say"><span>Say Kuratowski</span><b>koo-rah-TOV-skee</b><span class="ipa">/kuraˈtɔfskʲi/</span></div>
   <p class="question">Can three houses each get water, gas and power without any two pipes crossing?</p>
 </header>
 
@@ -55,7 +55,7 @@
 <table>
   <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Gives</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
   <tbody>
-    <tr><th scope="row">Count the edges</th><td data-label="When to use">A quick first check</td><td data-label="Gives">“No” when there are more than 3n − 6 edges</td><td data-label="Cost">O(1)</td><td data-label="Weakness">Can never say yes</td></tr>
+    <tr><th scope="row">Count the edges</th><td data-label="When to use">A quick first check</td><td data-label="Gives">“No” when there are more than 3n − 6 edges on n vertices</td><td data-label="Cost"><a href="basics.html#speed">O(1)</a></td><td data-label="Weakness">Can never say yes</td></tr>
     <tr class="self"><th scope="row">Left-right test <span class="this">This page</span></th><td data-label="When to use">You want a yes or no, and a drawing</td><td data-label="Gives"><code>isPlanar</code>, <code>planarEmbedding()</code>, <code>planarLayout()</code></td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">No proof when the answer is no</td></tr>
     <tr><th scope="row">Edge addition</th><td data-label="When to use">You want proof of a no</td><td data-label="Gives"><code>findKuratowskiSubgraph()</code></td><td data-label="Cost">O(n + m)</td><td data-label="Weakness">More work than a plain yes or no</td></tr>
   </tbody>
@@ -72,12 +72,12 @@
   <h2><small>The idea</small>Two small graphs are behind every failure</h2>
   <p>The drawing you start with doesn’t matter. The cube looks tangled as first drawn, yet <code>planarLayout()</code> finds a drawing of it with no crossings. What matters is whether <em>some</em> drawing exists.</p>
   <p>The puzzle has no solution. Its graph is K₃,₃, where three vertices are each joined to the same other three. Five towns all joined to each other make K₅. In 1930 Kuratowski proved that these two are the only obstacles. A graph is planar exactly when it contains no copy of either. The copy may be stretched out, with extra stops along its paths. So a “no” always comes with a proof you can check by eye. <code>findKuratowskiSubgraph()</code> returns it, drawn in red.</p>
-  <p>A planar drawing splits the paper into <b>faces</b>, and the outside counts as one. For a connected planar graph, Euler’s formula says vertices − edges + faces = 2. Every face needs at least three edges round it. So a simple planar graph has at most 3n − 6 edges. That already rules out K₅, which has 10 edges, one more than 3 × 5 − 6 = 9.</p>
-  <p><code>isPlanar</code> and <code>planarEmbedding()</code> run de Fraysseix and Rosenstiehl’s left-right test, built on depth-first search. <code>findKuratowskiSubgraph()</code> runs Boyer and Myrvold’s edge addition, which keeps the proof when it fails.</p>
+  <p>A planar drawing splits the paper into <b>faces</b>, and the outside counts as one. For a connected planar graph, Euler’s formula says vertices − edges + faces = 2. Every face needs at least three edges round it, and each edge borders at most two faces. So a <a href="basics.html#words">simple</a> planar graph has at most 3n − 6 edges. That already rules out K₅, which has 10 edges, one more than 3 × 5 − 6 = 9.</p>
+  <p><code>isPlanar</code> and <code>planarEmbedding()</code>, which gives an embedding, the order of edges around each vertex in a crossing-free drawing, run de Fraysseix and Rosenstiehl’s left-right test, built on depth-first search. <code>findKuratowskiSubgraph()</code> runs Boyer and Myrvold’s edge addition, which keeps the proof when it fails.</p>
 
   <h2><small>Where it breaks</small>Planar isn’t the same as easy to read</h2>
   <p>A planar layout avoids crossings, but it can squeeze vertices close together and stretch edges out. The cube’s layout shows this. For a drawing that shows a graph’s shape, crossings and all, use a <a href="layout.html">force-directed layout</a>. When a graph isn’t planar, finding the fewest crossings any drawing can have is much harder. No fast method is known.</p>
-  <p>Planarity is also a gift for other problems. Every planar graph can be <a href="coloring.html">coloured</a> with four colours. That is the four-colour theorem.</p>
+  <p>Planarity is also a gift for other problems. Every planar graph can be <a href="coloring.html">coloured</a> with four colours, so that no two joined vertices share a colour. That is the four-colour theorem.</p>
 </section>
 
 <section class="prose in-swift">

@@ -30,7 +30,7 @@
         <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
         <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html" aria-current="page">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
         <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="knowledge.html">Knowledge graphs</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
         <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
       </nav>
     </details>
@@ -45,7 +45,7 @@
 <section class="prose purpose">
   <h2><small>What it’s for</small>Connecting some places, not all</h2>
   <p>A <a href="mst.html">minimum spanning tree</a> connects every place. Often you only need some of them, and the rest may help as stepping stones or may be skipped. The cheapest network that connects the chosen places is a <b>Steiner tree</b>, and the places it must reach are its <b>terminals</b>.</p>
-  <p>Reach for it when you lay cable, pipe or road to a few customers, route a signal to a few pins on a chip, or connect a handful of entities in a knowledge graph with the shortest explanation that joins them.</p>
+  <p>Reach for it when you lay cable, pipe or road to a few customers, route a signal to a few pins on a chip, or connect a handful of facts in a knowledge graph (a graph of things and how they relate) with the shortest explanation that joins them.</p>
 </section>
 
 <section class="prose compared">
@@ -54,13 +54,13 @@
 <table>
   <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Connects</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
   <tbody>
-    <tr class="self"><th scope="row">Steiner tree <span class="this">This page</span></th><td data-label="When to use">Only some places matter</td><td data-label="Connects">The terminals, through any others</td><td data-label="Cost">O(m log m) for Mehlhorn’s tree</td><td data-label="Weakness">Within a factor of two of the best, not the best</td></tr>
+    <tr class="self"><th scope="row">Steiner tree <span class="this">This page</span></th><td data-label="When to use">Only some places matter</td><td data-label="Connects">The terminals, through any others</td><td data-label="Cost"><a href="basics.html#speed">O(m log m)</a> for Mehlhorn’s tree</td><td data-label="Weakness">Within a factor of two of the best, not the best</td></tr>
     <tr><th scope="row"><a href="mst.html">Minimum spanning tree</a></th><td data-label="When to use">Every place matters</td><td data-label="Connects">Everything</td><td data-label="Cost">O(m log n)</td><td data-label="Weakness">Pays for places nobody asked for</td></tr>
     <tr><th scope="row"><a href="dijkstra.html">Shortest path</a></th><td data-label="When to use">Exactly two places matter</td><td data-label="Connects">A pair</td><td data-label="Cost">O(m log n)</td><td data-label="Weakness">With three or more terminals, paths overlap wastefully</td></tr>
   </tbody>
 </table>
 </div>
-  <p>With two terminals a Steiner tree is a shortest path. With every place a terminal it is a spanning tree. In between it is a hard problem, and the fast method gets within a factor of two.</p>
+  <p>With two terminals a Steiner tree is a shortest path. With every place a terminal it is a spanning tree. In between it is a hard problem, and the fast method gets within a factor of two. In the table, n is the number of places and m the number of possible cables.</p>
 </section>
 
 <p class="example lead">Example: eight places, twelve possible cables with their lengths, and a request to connect three of the places.</p>
@@ -70,11 +70,11 @@
 
 <section class="prose">
   <h2><small>The idea</small>Shortest paths between terminals, then a spanning tree of those</h2>
-  <p>Finding the cheapest Steiner tree exactly is NP-hard, so the usual method settles for a good one. Mehlhorn’s version first finds, for every place, its nearest terminal, with one shortest-path search that starts from all the terminals at once. That splits the network into regions, one around each terminal. Then it looks at every cable that crosses from one region into another: such a cable, plus the two paths back to the regions’ terminals, joins two terminals. Take the cheapest set of those joins that connects all the terminals, which is a <a href="mst.html">minimum spanning tree</a> on the terminals, and expand each join into its paths.</p>
+  <p>Finding the cheapest Steiner tree exactly is <a href="basics.html#speed">NP-hard</a>, so the usual method settles for a good one. Mehlhorn’s version first finds, for every place, its nearest terminal, with one shortest-path search that starts from all the terminals at once, as if they were one start. That splits the network into regions, one around each terminal. Then it looks at every cable that crosses from one region into another: such a cable, plus the two paths back to the regions’ terminals, joins two terminals. Take the cheapest set of those joins that connects all the terminals, which is a <a href="mst.html">minimum spanning tree</a> on the terminals, and expand each join into its paths.</p>
   <p>The tree it gives costs at most twice the best possible, and in practice much less. <code>steinerTree(terminals:weight:)</code> returns its cables and their total; the lab lays them shortest first so you can watch the tree grow. The last line of the code panel connects every place instead, for comparison.</p>
 
   <h2><small>Where it breaks</small>It is an approximation</h2>
-  <p>The method can miss a cheaper tree that routes through a place no terminal is nearest to. On small networks you can check it against a search over every possibility; on large ones you accept the bound. If you need the exact answer for a few terminals, a dynamic-programming method over subsets of terminals exists, but its cost doubles with every terminal added.</p>
+  <p>The method can miss a cheaper tree that routes through a place no terminal is nearest to. On small networks you can check it against a search over every possibility; on large ones you accept the bound. If you need the exact answer for a few terminals, a dynamic-programming method over subsets of terminals exists, solving small sets of terminals first as on <a href="tsp.html">Travelling salesman</a>, but its cost doubles with every terminal added.</p>
   <p>Weights must not be negative. A place that no cable reaches makes the tree impossible, and the result is <code>nil</code>.</p>
 </section>
 

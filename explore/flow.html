@@ -30,7 +30,7 @@
         <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
         <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
         <div class="mgroup"><span>Assignment</span><a href="flow.html" aria-current="page">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="knowledge.html">Knowledge graphs</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
         <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
       </nav>
     </details>
@@ -44,7 +44,7 @@
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>The most a network can carry, and its bottleneck</h2>
-  <p>A maximum flow is the most that can travel from one place, the <b>source</b>, to another, the <b>sink</b>. Each link can carry only so much. The answer also comes with a <b>minimum cut</b>. That is the set of full links that holds the flow back, so it shows what to widen first.</p>
+  <p>A maximum flow is the most that can travel from one place, the <b>source</b>, to another, the <b>sink</b>. Each link can carry only so much. The most a link can carry is its <b>capacity</b>. The answer also comes with a <b>minimum cut</b>. That is the set of full links that holds the flow back, so it shows what to widen first.</p>
   <p>Reach for it with pipes, roads, data links or anything else with a limit per link. Many other problems turn into a flow, such as pairing people with jobs or splitting an image into foreground and background.</p>
 </section>
 
@@ -54,10 +54,10 @@
 <table>
   <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
   <tbody>
-    <tr class="self"><th scope="row">Edmonds–Karp <span class="this">This page</span></th><td data-label="When to use">Small networks, or to see each step</td><td data-label="Cost">O(nm²)</td><td data-label="Weakness">Slow on large networks</td></tr>
+    <tr class="self"><th scope="row">Edmonds–Karp <span class="this">This page</span></th><td data-label="When to use">Small networks, or to see each step</td><td data-label="Cost"><a href="basics.html#speed">O(nm²)</a></td><td data-label="Weakness">Slow on large networks</td></tr>
     <tr><th scope="row">Push–relabel, <code>maximumFlow</code></th><td data-label="When to use">The default for most networks</td><td data-label="Cost">O(n²√m)</td><td data-label="Weakness">Its steps are hard to follow by hand</td></tr>
     <tr><th scope="row">Dinic, <code>dinicMaximumFlow</code></th><td data-label="When to use">Every link carries one unit, as in matching</td><td data-label="Cost">O(n²m), much less with unit links</td><td data-label="Weakness">Many rounds on long, thin networks</td></tr>
-    <tr><th scope="row">Boykov–Kolmogorov</th><td data-label="When to use">Grid networks from images</td><td data-label="Cost">Fast on grids, no good bound elsewhere</td><td data-label="Weakness">Slower on other networks</td></tr>
+    <tr><th scope="row">Boykov–Kolmogorov</th><td data-label="When to use">Grid networks from images</td><td data-label="Cost">Fast on grids, no speed promise elsewhere</td><td data-label="Weakness">Slower on other networks</td></tr>
   </tbody>
 </table>
 </div>
@@ -76,7 +76,7 @@
   <p><b>Edmonds–Karp</b> always picks a route with the fewest pipes, found by <a href="bfs.html">breadth-first search</a>. That rule keeps the work at O(nm²), whatever the capacities are.</p>
 
   <h2><small>Where it breaks</small>Pick routes carelessly and it crawls</h2>
-  <p>Without the fewest-pipes rule the method is Ford and Fulkerson’s. A bad choice of routes can then need as many rounds as the flow is large. With capacities that aren’t whole numbers or fractions, it may never finish.</p>
+  <p>Without the fewest-pipes rule the method is Ford and Fulkerson’s. A bad choice of routes can then need as many rounds as the flow is large. With capacities like √2 it may never finish.</p>
   <p>When each pipe also has a cost per unit, the question changes. You want the cheapest way to send a given amount. That is a <a href="mincostflow.html">minimum-cost flow</a>.</p>
 </section>
 

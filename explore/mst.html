@@ -30,7 +30,7 @@
         <div class="mgroup"><span>Getting around</span><a href="bfs.html">Breadth-first search</a><a href="dfs.html">Depth-first search</a><a href="dijkstra.html">Dijkstra’s algorithm</a><a href="astar.html">A* search</a><a href="bellmanford.html">Bellman–Ford</a><a href="kpaths.html">k shortest paths</a><a href="semirings.html">Semirings</a><a href="toposort.html">Topological sort</a><a href="criticalpath.html">Critical path</a><a href="cyclefinding.html">Tortoise and hare</a></div>
         <div class="mgroup"><span>Structure</span><a href="components.html">Connected components</a><a href="distances.html">Centre and diameter</a><a href="bridges.html">Bridges and articulation points</a><a href="resilience.html">Resilience</a><a href="expanders.html">Expanders</a><a href="dominators.html">Dominators</a><a href="euler.html">Euler tours</a><a href="postman.html">Chinese postman</a><a href="tsp.html">Travelling salesman</a><a href="hamiltonian.html">Hamiltonian cycles</a><a href="mst.html" aria-current="page">Minimum spanning trees</a><a href="steiner.html">Steiner trees</a><a href="huffman.html">Huffman coding</a><a href="lca.html">Lowest common ancestor</a><a href="prefixtree.html">Prefix tree</a><a href="treeedit.html">Tree edit distance</a><a href="giant.html">The giant component</a><a href="networkmodels.html">Network growth models</a><a href="planarity.html">Planarity</a><a href="cliques.html">Cliques</a><a href="cores.html">Cores and trusses</a><a href="hypergraphs.html">Hypergraphs</a><a href="chordal.html">Chordal graphs</a><a href="cyclebasis.html">Cycle bases</a><a href="feedback.html">Feedback sets</a><a href="isomorphism.html">Isomorphism</a><a href="communities.html">Communities</a><a href="hierarchy.html">Community hierarchy</a><a href="girvannewman.html">Girvan–Newman</a><a href="labelpropagation.html">Label propagation</a><a href="infomap.html">Infomap</a></div>
         <div class="mgroup"><span>Assignment</span><a href="flow.html">Maximum flow</a><a href="mincut.html">Minimum cut</a><a href="mincostflow.html">Minimum-cost flow</a><a href="matching.html">Bipartite matching</a><a href="stablematching.html">Stable matching</a><a href="coloring.html">Graph coloring</a><a href="edgecoloring.html">Edge coloring</a><a href="covering.html">Covers and dominating sets</a></div>
-        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="neighbourhood.html">Neighbourhoods</a><a href="knowledge.html">Knowledge graphs</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
+        <div class="mgroup"><span>Importance and shape</span><a href="pagerank.html">PageRank</a><a href="betweenness.html">Betweenness</a><a href="assortativity.html">Assortativity</a><a href="linkprediction.html">Friend suggestions</a><a href="knowledge.html">Knowledge graphs</a><a href="neighbourhood.html">Neighbourhoods</a><a href="layout.html">Force-directed layout</a><a href="spectral.html">Spectral drawing</a><a href="layered.html">Layered drawing</a><a href="randomwalks.html">Random walks and node2vec</a></div>
         <div class="mgroup"><span>Your own graph</span><a href="paste.html">Paste a graph</a></div>
       </nav>
     </details>
@@ -44,7 +44,7 @@
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>The cheapest network that reaches everyone</h2>
-  <p>A minimum spanning tree joins every place using the cheapest set of links. It has no loops, because a loop would mean one link could go without cutting anyone off. Reach for it to plan cables, pipes or roads, and as a first step in clustering and in tour planning.</p>
+  <p>A minimum spanning tree joins every place using the cheapest set of links. A <a href="basics.html#words">tree</a> is a connected network with no cycles, so n places need n − 1 links, and “spanning” means it reaches every place. It has no cycles, because a cycle would mean one link could go without cutting anyone off. Reach for it to plan cables, pipes or roads, and as a first step in clustering, grouping similar items, and in tour planning.</p>
 </section>
 
 <section class="prose compared">
@@ -53,13 +53,13 @@
 <table>
   <thead><tr><th scope="col">Method</th><th scope="col">When to use</th><th scope="col">How it grows</th><th scope="col">Cost</th><th scope="col">Weakness</th></tr></thead>
   <tbody>
-    <tr class="self"><th scope="row">Kruskal <span class="this">This page</span></th><td data-label="When to use">Sparse graphs, or edges already sorted</td><td data-label="How it grows">Cheapest cables first, anywhere</td><td data-label="Cost">O(m log m)</td><td data-label="Weakness">Sorts every cable first</td></tr>
-    <tr class="self"><th scope="row">Prim <span class="this">This page</span></th><td data-label="When to use">Dense graphs</td><td data-label="How it grows">One network, outward from a start</td><td data-label="Cost">O(m log n)</td><td data-label="Weakness">Needs a start, and one connected piece</td></tr>
+    <tr class="self"><th scope="row">Kruskal <span class="this">This page</span></th><td data-label="When to use"><a href="basics.html#words">Sparse</a> graphs, few possible cables per house, or edges already sorted</td><td data-label="How it grows">Cheapest cables first, anywhere</td><td data-label="Cost"><a href="basics.html#speed">O(m log m)</a></td><td data-label="Weakness">Sorts every cable first</td></tr>
+    <tr class="self"><th scope="row">Prim <span class="this">This page</span></th><td data-label="When to use">Dense graphs, where most pairs could be joined</td><td data-label="How it grows">One network, outward from a start</td><td data-label="Cost">O(m log n)</td><td data-label="Weakness">Needs a start, and one connected piece</td></tr>
     <tr><th scope="row">Borůvka</th><td data-label="When to use">Many processors at once</td><td data-label="How it grows">Every group adds its cheapest cable each round</td><td data-label="Cost">O(m log n)</td><td data-label="Weakness">More bookkeeping per round</td></tr>
   </tbody>
 </table>
 </div>
-  <p>All three find a tree of the same total cost. They differ in the order they lay cables. In the table, n is the number of houses and m the number of possible cables.</p>
+  <p>All three find a tree of the same total cost. They differ in the order they lay cables. In the table, n is the number of houses and m the number of possible cables, and log n grows very slowly.</p>
 </section>
 
 <p class="example lead">Example: six houses, and the cost of laying cable between each pair that can be joined.</p>
@@ -69,8 +69,8 @@
 <section class="prose">
   <h2><small>The idea</small>Two ways to the same cheapest network</h2>
   <p><b>Kruskal</b> sorts every possible cable from cheapest to dearest. It lays each one, unless the cable would only join two houses that are already connected. <b>Prim</b> grows a single network outward from one house. It always adds the cheapest cable that reaches a house not yet connected. The routes differ, but the total cost is the same.</p>
-  <p>Either way the result is a <b>spanning tree</b>. Every house is connected, and there are no loops. So six houses need exactly five cables.</p>
-  <p>The cheapest network is one of many. <code>spanningForests(weight:)</code> lists every spanning tree from the cheapest up, so the runners-up are there when the cheapest cable cannot be laid; the code at the end shows the three cheapest totals.</p>
+  <p>Either way the result is a <b>spanning tree</b>. Every house is connected, and there are no cycles. So six houses need exactly five cables.</p>
+  <p>The cheapest network is one of many. <code>spanningForests(weight:)</code> lists every spanning tree from the cheapest up, so the runners-up are there when the cheapest cable cannot be laid; the code at the end shows the three cheapest totals. A forest is several trees, and on a connected network it is one tree, which is why the name says forests.</p>
   <p>Kruskal tracks who is already connected with a union–find structure. It answers “same group?” almost at once. Prim keeps a queue of the houses waiting to join, each with the cheapest price on offer so far. Dijkstra keeps its frontier the same way.</p>
 
   <h2><small>Where it breaks</small>Cheapest isn’t shortest</h2>
