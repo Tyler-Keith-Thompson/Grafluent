@@ -12,7 +12,8 @@
 //
 // Path enumeration and all pairs: Johnson's matrix is Floyd–Warshall's, nil exactly when a negative
 // cycle exists, and its paths weigh their distances. With nonnegative weights, all-pairs Dijkstra is
-// Floyd–Warshall's too; bidirectional Dijkstra gives the target's distance; Yen's sequence lists every
+// Floyd–Warshall's too, as is every contraction hierarchy query, whose paths weigh their distances;
+// bidirectional Dijkstra gives the target's distance; Yen's sequence lists every
 // simple path to the target once, in nondecreasing length, as a brute-force enumeration does; and
 // every shortest path is listed once, as brute force finds them.
 
@@ -282,6 +283,22 @@ enum FuzzShortestPaths {
             check(both?.distance == d[source][target].nilIfInfinite, "bidirectional Dijkstra \(source)→\(target)")
             if let both {
                 check(Path(vertices: both.path.vertices, edges: both.path.edges, in: list) != nil && both.path.weight(w) == both.distance, "bidirectional Dijkstra path")
+            }
+            // A contraction hierarchy, with a tight and a loose witness budget: every pair's
+            // distance is Floyd–Warshall's, every path a path of that length.
+            for limit in [0, 2, 500] {
+                let hierarchy = list.contractionHierarchy(witnessLimit: limit, weight: w)
+                for i in 0 ..< n {
+                    for j in 0 ..< n {
+                        check(hierarchy.distance(from: i, to: j) == d[i][j].nilIfInfinite, "contraction hierarchy (\(limit)) \(i)→\(j)")
+                        guard let path = hierarchy.path(from: i, to: j) else {
+                            check(d[i][j] == infinity, "contraction hierarchy (\(limit)) path \(i)→\(j) missing")
+                            continue
+                        }
+                        check(Path(vertices: path.vertices, edges: path.edges, in: list) != nil && path.source == i && path.target == j && path.weight(w) == d[i][j],
+                              "contraction hierarchy (\(limit)) path \(i)→\(j)")
+                    }
+                }
             }
             // Brute force: every simple path from the source to the target, with its length.
             var lengths: [[Int]: Int] = [:]

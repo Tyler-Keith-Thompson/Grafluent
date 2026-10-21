@@ -5,7 +5,8 @@ cutoff, a single-target query that stops when the target is settled), Bellman–
 negative-cycle detection and a witness, A* with reopening, shortest paths in an acyclic graph,
 unweighted (breadth-first) shortest paths, and the `ShortestPathTree` result; the k shortest simple
 paths (Yen with Lawler's refinement), every shortest path between two vertices, bidirectional
-Dijkstra, and all pairs by Johnson's algorithm and by Dijkstra from every vertex. Everything is written once
+Dijkstra, contraction hierarchies for repeated point-to-point queries, and all pairs by Johnson's
+algorithm and by Dijkstra from every vertex. Everything is written once
 against `DirectedGraph`, with forwarding overloads on `Graph` that read an undirected graph
 through `directedView`. The suite uses only the public API and is self-contained per test; shared
 material is the fixtures, the `ReferenceDirectedMultigraph` and `ReferencePseudograph` test
@@ -60,6 +61,12 @@ extension DirectedGraph
     func johnsonShortestPaths(weight:) -> DistanceMatrix<Self, W>?             // nil on a negative cycle
 extension BidirectionalDirectedGraph
     func bidirectionalDijkstraShortestPath(from:to:weight:) -> (path: Path<Vertex, Edges.Index>, distance: W)?
+struct ContractionHierarchy<G, W>                     // from contractionHierarchy(witnessLimit: 500, weight:) on DirectedGraph and Graph
+    var shortcutCount: Int
+    func distance(from:to:) -> W?                      // nil when no path; zero to itself
+    func hasPath(from:to:) -> Bool
+    func path(from:to:) -> Path<G.Vertex, G.Edges.Index>?   // shortcuts unpacked; zero-weight cycles cut out
+    distance(checkedFrom:to:), hasPath(checkedFrom:to:), path(checkedFrom:to:)  // throw VertexNotFound
 struct ShortestSimplePaths<G, Distance>: Sequence     // Element (path: Path<G.Vertex, G.Edges.Index>, distance: Distance)
 struct AllShortestPaths<G, Distance>: Sequence        // Element Path<G.Vertex, G.Edges.Index>; distance: Distance?
 enum DijkstraSearchEvent<Vertex, Edge, Weight>        // discover, examine, examineEdge, edgeRelaxed,

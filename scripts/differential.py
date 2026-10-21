@@ -297,6 +297,8 @@ def compare_paths(case, mine, ref):
             problems.append(f"{key}: library {mine.get(key)}, NetworkX {ref[key]}")
     if "bidirectional" in ref and (mine.get("bidirectional") or {}).get("distance") != ref["bidirectional"]:
         problems.append(f"bidirectional Dijkstra: library {mine.get('bidirectional')}, NetworkX {ref['bidirectional']}")
+    if "shortestDistance" in ref and (mine.get("contractionHierarchy") or {}).get("distance") != ref["shortestDistance"]:
+        problems.append(f"contraction hierarchy: library {mine.get('contractionHierarchy')}, NetworkX {ref['shortestDistance']}")
     if "johnson" in ref:
         theirs = ref["johnson"]
         if (theirs is None) != mine.get("johnsonNil", False) or (theirs is not None and mine.get("johnson") != theirs):

@@ -17,6 +17,15 @@
 # taken and duplicates are dropped), and bidirectional Dijkstra always stepping forward (the
 # target's side is its root, so every meeting is still found).
 #
+# Contraction hierarchy mutants equivalent in every result, removed: stopping a search side at a
+# label equal to the best meeting (chforwardstop: a settle at that label cannot improve it), keeping
+# self-loops as arcs (chselfloop: a loop never shortens a path and a witness search from its vertex
+# still finds every target), rejecting a witness of exactly the shortcut's weight (chwitnessneed: an
+# extra shortcut of equal weight), dropping the frontier cutoff of the witness search (chwitnessfar:
+# a target past the cutoff is never improved), skipping the lazy priority update (chlazy: another
+# contraction order, the same distances) and the equal-endpoints shortcut in distance(from:to:)
+# (chsame: the two searches meet at the vertex at zero).
+#
 # Caught only by the time limit: queuedonce (queuing a vertex more than once per round multiplies
 # the work without changing any result).
 #
@@ -29,6 +38,8 @@
 # giving up (grpasses) only matter with a negative cycle, where the result is nil either way.
 
 TESTS = ["ShortestPathsTests"]
+
+CH = "ContractionHierarchy.swift"
 
 MUTANTS = [
     # Index space
@@ -384,4 +395,22 @@ MUTANTS = [
     Mutant("bfscycle", "BellmanFordSearch.swift", "_negativeCycle(parent: parent, active: active)", "Optional<[Int]>.none"),
     Mutant("bfsswap", "BellmanFordSearch.swift", "swap(&active, &upcoming)", "active.removeAll()", mode="stmt"),
     Mutant("bfsfrom", "BellmanFordSearch.swift", "currentDistance = distance[u]", "currentDistance = .zero", mode="stmt"),
+
+    # Contraction hierarchies: the query's two searches and stopping rule, the unpacking, the
+    # zero-weight cycle cut, the witness search and the rows.
+    Mutant("chmeetforward", CH, "if backwardArc[u] != -2 {\n                    let total = du + backwardDistance[u]\n                    if best.map({ total < $0 }) ?? true {\n                        best = total\n                        meeting = u\n                    }\n                }", "", mode="stmt"),
+    Mutant("chmeetbackward", CH, "if forwardArc[x] != -2 {\n                    let total = forwardDistance[x] + dx\n                    if best.map({ total < $0 }) ?? true {\n                        best = total\n                        meeting = x\n                    }\n                }", "", mode="stmt"),
+    Mutant("chbackwardrelax", CH, "backwardArc[y] == -2 || candidate < backwardDistance[y]", "backwardArc[y] == -2"),
+    Mutant("chunpackorder", CH, "[_arcSecond[arc], _arcFirst[arc]]", "[_arcFirst[arc], _arcSecond[arc]]"),
+    Mutant("chunpackdeep", CH, "stack.append(_arcSecond[next])\n                stack.append(_arcFirst[next])", "arcs.append(next)", mode="stmt"),
+    Mutant("chcycle", CH, "place[v] >= 0", "false"),
+    Mutant("chcycleedges", CH, "edges.removeSubrange(place[v] ..< edges.count)", "edges.removeSubrange(place[v] &+ 1 ..< edges.count)", mode="stmt"),
+    Mutant("chnegative", CH, 'precondition(w >= .zero, "A contraction hierarchy needs nonnegative weights (and no NaN)")', "", mode="stmt"),
+    Mutant("chwitnessavoid", CH, "if rank[z] >= 0 || z == v { continue }", "if rank[z] >= 0 { continue }", mode="stmt"),
+    Mutant("chwitnesslimit", CH, "if settled > witnessLimit { break }", "", mode="stmt"),
+    Mutant("chshortcutweight", CH, "storage.arcWeight.append(need[x])", "storage.arcWeight.append(wa)", mode="stmt"),
+    Mutant("chshortcutsecond", CH, "storage.arcTarget[other] == x && wa + storage.arcWeight[other] <= need[x]", "storage.arcTarget[other] == x"),
+    Mutant("chrankup", CH, "rank[storage.arcSource[k]] < rank[storage.arcTarget[k]]", "rank[storage.arcSource[k]] > rank[storage.arcTarget[k]]"),
+    Mutant("chrows", CH, "if rank[u] < rank[x] {\n                up[upFill[u]] = k\n                upFill[u] &+= 1\n            } else {\n                down[downFill[x]] = k\n                downFill[x] &+= 1\n            }", "down[downFill[x]] = k\n            downFill[x] &+= 1", mode="stmt"),
+    Mutant("chlimitcheck", CH, 'precondition(witnessLimit >= 0, "witnessLimit is negative")', "", mode="stmt"),
 ]

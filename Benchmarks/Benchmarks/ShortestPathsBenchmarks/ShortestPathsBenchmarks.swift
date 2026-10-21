@@ -271,6 +271,29 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(grid.aStarShortestPath(from: 0, to: target, weight: { _ in 1 }, heuristic: { (target / side - $0 / side) + (target % side - $0 % side) }))
         }
     }
+    // SP-B07: a contraction hierarchy on a 150×150 grid: the build, then queries to the far corner
+    // against Dijkstra's single-target search on the same grid.
+    let chSide = 150
+    let chGrid = CompressedSparseRow(vertexCount: chSide * chSide, edges: (0 ..< chSide * chSide).flatMap { v -> [DirectedEdge<Int>] in
+        var out: [DirectedEdge<Int>] = []
+        if v % chSide + 1 < chSide { out.append(DirectedEdge(from: v, to: v + 1)); out.append(DirectedEdge(from: v + 1, to: v)) }
+        if v + chSide < chSide * chSide { out.append(DirectedEdge(from: v, to: v + chSide)); out.append(DirectedEdge(from: v + chSide, to: v)) }
+        return out
+    })
+    let chWeights = (0 ..< chGrid.edgeCount).map { 1 + ($0 &* 7919) % 9 }
+    Benchmark("ShortestPaths: contractionHierarchy(weight:) on a 150×150 grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(chGrid.contractionHierarchy { chWeights[$0] }) }
+    }
+    let hierarchy = chGrid.contractionHierarchy { chWeights[$0] }
+    Benchmark("ShortestPaths: contraction hierarchy distance(from:to:) across a 150×150 grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(hierarchy.distance(from: 0, to: chSide * chSide - 1)) }
+    }
+    Benchmark("ShortestPaths: contraction hierarchy path(from:to:) across a 150×150 grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(hierarchy.path(from: 0, to: chSide * chSide - 1)) }
+    }
+    Benchmark("ShortestPaths: BASELINE dijkstraShortestPath across the same 150×150 grid") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(chGrid.dijkstraShortestPath(from: 0, to: chSide * chSide - 1) { chWeights[$0] }) }
+    }
     // SP-B03: Bellman–Ford with nonnegative weights stops after about one pass.
     Benchmark("ShortestPaths: bellmanFordShortestPaths on CompressedSparseRow, nonnegative weights") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(csr.bellmanFordShortestPaths(from: 0) { weights[$0] }) }
