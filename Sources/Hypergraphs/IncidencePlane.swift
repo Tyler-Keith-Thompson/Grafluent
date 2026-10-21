@@ -8,8 +8,8 @@ import OrderedCollections
 /// Incidence `q` is the `q`th entry of `members`: hyperedge `p` is
 /// `members[memberOffsets[p] ..< memberOffsets[p + 1]]`, ascending, and `hyperedgeOfIncidence[q]`
 /// is the hyperedge holding incidence `q`. Vertex `i`'s row in `incidences` lists the incidence
-/// numbers of its memberships, ascending, because hyperedges are only appended, and its row in
-/// `positions`, parallel to it, the hyperedges of those incidences. `incidentHyperedges` is
+/// numbers of its memberships, ascending, because hyperedges are only appended, and beside each
+/// one, in the pool's positions, the hyperedge of that incidence. `incidentHyperedges` is
 /// therefore a stored row, read without a dependent load per entry. The incidence graph views use
 /// the incidence numbers as edge positions.
 @frozen
@@ -21,10 +21,8 @@ package struct _IncidencePlane {
     @usableFromInline package var members: ContiguousArray<Int>
     /// The hyperedge of each incidence, parallel to `members`.
     @usableFromInline package var hyperedgeOfIncidence: ContiguousArray<Int>
-    /// For each vertex index, its incidence numbers.
-    @usableFromInline package var incidences: _RowPool
-    /// For each vertex index, its hyperedge positions, parallel to `incidences`.
-    @usableFromInline package var positions: _RowPool
+    /// For each vertex index, its incidence numbers, and beside each one its hyperedge position.
+    @usableFromInline package var incidences: _PairedRowPool
 
     /// No vertices and no hyperedges.
     @inlinable
@@ -32,8 +30,7 @@ package struct _IncidencePlane {
         memberOffsets = [0]
         members = []
         hyperedgeOfIncidence = []
-        incidences = _RowPool()
-        positions = _RowPool()
+        incidences = _PairedRowPool()
     }
 
     /// The plane of `vertexCount` vertices whose hyperedges are given as flat rows: hyperedge `p`
@@ -83,12 +80,12 @@ package struct _IncidencePlane {
         memberOffsets = offsets
         self.members = members
         self.hyperedgeOfIncidence = hyperedgeOfIncidence
-        incidences = _RowPool(storage: storage, offsets: rowOffsets)
-        positions = _RowPool(storage: positionStorage, offsets: rowOffsets)
+        incidences = _PairedRowPool(storage: storage, positions: positionStorage, rows: _RowPool._packedRows(offsets: rowOffsets))
     }
 
-    /// `Hypergraph._withIncidenceRows`, lent from the storage: the member rows and both vertex
-    /// row pools, whose row tables are (start, count, capacity).
+    /// `Hypergraph._withIncidenceRows`, lent from the storage: the member rows, the vertex rows
+    /// of incidences and of hyperedges, and their row table (start, count, capacity), passed
+    /// once for each.
     @inlinable
     package func withIncidenceRows<Result>(
         _ body: (
@@ -99,10 +96,8 @@ package struct _IncidencePlane {
     ) -> Result {
         memberOffsets.withUnsafeBufferPointer { offsets in
             members.withUnsafeBufferPointer { members in
-                incidences.withUnsafeRows { incidences, incidenceRows in
-                    positions.withUnsafeRows { positions, positionRows in
-                        body(offsets, members, incidences, incidenceRows, positions, positionRows)
-                    }
+                incidences.withUnsafeRows { incidences, rows, positions in
+                    body(offsets, members, incidences, rows, positions, rows)
                 }
             }
         }
@@ -148,7 +143,7 @@ package struct _IncidencePlane {
     /// The hyperedge positions of vertex `i`, ascending.
     @inlinable
     package func hyperedgeRow(_ i: Int) -> ArraySlice<Int> {
-        positions[row: i]
+        incidences.positionRow(i)
     }
 
     @inlinable
@@ -159,7 +154,6 @@ package struct _IncidencePlane {
     @inlinable
     package mutating func appendVertex() {
         incidences.appendRow()
-        positions.appendRow()
     }
 
     /// Appends a hyperedge of `sortedMembers`, strictly ascending vertex indices in range
@@ -171,8 +165,7 @@ package struct _IncidencePlane {
             let q = members.count
             members.append(i)
             hyperedgeOfIncidence.append(p)
-            incidences.append(q, toRow: i)
-            positions.append(p, toRow: i)
+            incidences.append(q, p, toRow: i)
         }
         memberOffsets.append(members.count)
     }
@@ -184,7 +177,6 @@ package struct _IncidencePlane {
         members.removeAll(keepingCapacity: keepingCapacity)
         hyperedgeOfIncidence.removeAll(keepingCapacity: keepingCapacity)
         incidences.removeAll(keepingCapacity: keepingCapacity)
-        positions.removeAll(keepingCapacity: keepingCapacity)
     }
 
     @inlinable
@@ -193,7 +185,6 @@ package struct _IncidencePlane {
         members.reserveCapacity(incidenceCount)
         hyperedgeOfIncidence.reserveCapacity(incidenceCount)
         incidences.reserveCapacity(rows: vertexCount, entries: incidenceCount)
-        positions.reserveCapacity(rows: vertexCount, entries: incidenceCount)
     }
 
     /// The hyperedges, each as an ascending row, by position.

@@ -36,7 +36,7 @@ class Thrown(Exception):
 
 
 def swap_remove(row, off):
-    """_RowPool.swapRemove: the last entry moves into `off`; returns it, or None if `off` was last."""
+    """_PairedRowPool.swapRemove: the last entry moves into `off`; returns it, or None if `off` was last."""
     last = row.pop()
     if off < len(row):
         row[off] = last

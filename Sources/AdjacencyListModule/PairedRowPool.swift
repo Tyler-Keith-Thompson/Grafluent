@@ -2,9 +2,10 @@
 /// `positions` sit at the same offsets, so a graph keeps a slot and the edge position beside it
 /// with one row lookup, one growth and one uniqueness check per storage rather than two pools'.
 ///
-/// The rows grow, move and pack as `_RowPool`'s do: a full row grows in place when its block is
-/// the last one, and otherwise moves to the end with twice the capacity, leaving garbage; once
-/// garbage outweighs the live storage and the row table, the live blocks are packed again.
+/// A full row grows in place when its block is the last one, and otherwise moves to the end with
+/// twice the capacity, leaving garbage; once garbage outweighs the live storage and the row
+/// table, the live blocks are packed again. A bulk build lays its rows out as `_RowPool`s,
+/// packed at their exact sizes, which the pool takes over without a copy.
 /// Positions within a row are offsets from its start, which moving and packing preserve.
 @frozen
 @usableFromInline

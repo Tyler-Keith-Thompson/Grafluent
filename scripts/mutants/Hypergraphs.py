@@ -46,8 +46,8 @@ MUTANTS = [
     Mutant("planecheckedgelow", P, "p >= 0 && p < memberOffsets.count &- 1", "p < memberOffsets.count &- 1"),
     Mutant("planecheckedgehigh", P, "p >= 0 && p < memberOffsets.count &- 1", "p >= 0"),
     Mutant("planeappendhyperedgeof", P, "hyperedgeOfIncidence.append(p)", "hyperedgeOfIncidence.append(0)", mode="stmt"),
-    Mutant("planeappendincidence", P, "incidences.append(q, toRow: i)", "", mode="stmt"),
-    Mutant("planeappendposition", P, "positions.append(p, toRow: i)", "positions.append(q, toRow: i)", mode="stmt"),
+    Mutant("planeappendincidence", P, "incidences.append(q, p, toRow: i)", "", mode="stmt"),
+    Mutant("planeappendposition", P, "incidences.append(q, p, toRow: i)", "incidences.append(q, q, toRow: i)", mode="stmt"),
     Mutant("planeremoveoffset", P, "        memberOffsets.append(0)", "", mode="stmt"),
     Mutant("sortuniqueascending", P, "indices[k &- 1] >= indices[k]", "indices[k &- 1] > indices[k]"),
     Mutant("sortuniquededupe", P, "indices[read] != indices[write &- 1]", "true"),
@@ -55,7 +55,7 @@ MUTANTS = [
     Mutant("indexerfast", P, "UInt(bitPattern: i) < UInt(bitPattern: identityCount)", "false"),
 
     Mutant("planefillposition", P, "positionStorage[slot] = p", "positionStorage[slot] = q", mode="stmt"),
-    Mutant("planerows", P, "body(offsets, members, incidences, incidenceRows, positions, positionRows)", "body(offsets, members, positions, positionRows, incidences, incidenceRows)"),
+    Mutant("planerows", P, "body(offsets, members, incidences, rows, positions, rows)", "body(offsets, members, positions, rows, incidences, rows)"),
     Mutant("indexerextend", P, "i == identityCount", "i == identityCount || i == identityCount &+ 1"),
     Mutant("indexerendset", P, "        set = OrderedSet<Int>(uncheckedUniqueElements: 0 ..< identityCount) as! OrderedSet<Vertex>", "        set = []", mode="stmt"),
     Mutant("indexervertices", P, "        if identityCount >= 0 { _endIdentity() }", "", mode="stmt"),
@@ -419,5 +419,5 @@ MUTANTS = [
     Mutant("slotsundirected", S, "for (slot, vertex) in vertices.enumerated() { _slots[vertex] = slot }", "for (slot, vertex) in vertices.enumerated() { _slots[vertex] = slot == 0 ? 0 : slot &- 1 }", mode="stmt", nth=1, module="AdjacencyListModule"),
     Mutant("pairsdirected", S, "        _deferredEdges = rows.records.isEmpty ? nil : _DeferredSlotPairTable(records: rows.records)", "        _deferredEdges = nil", mode="stmt", nth=1, module="AdjacencyListModule"),
     Mutant("pairsundirected", S, "        _positions._insertDistinct(count: records.count) { (_SlotPair(records[$0].u, records[$0].v), $0) }", "", mode="stmt", nth=1, module="AdjacencyListModule"),
-    Mutant("indirected", S, "        _in = rows.in", "        _in = rows.out", mode="stmt", nth=1, module="AdjacencyListModule"),
+    Mutant("indirected", S, "        _in = _PairedRowPool(storage: rows.in.storage, positions: rows.inEdges.storage, rows: rows.in.rows)", "        _in = _PairedRowPool(storage: rows.out.storage, positions: rows.outEdges.storage, rows: rows.out.rows)", mode="stmt", nth=1, module="AdjacencyListModule"),
 ]

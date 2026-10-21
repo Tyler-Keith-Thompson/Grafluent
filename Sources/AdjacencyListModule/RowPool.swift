@@ -14,139 +14,20 @@ package struct _Row {
     }
 }
 
-/// Variable-length rows of `Int` in one shared array, so a graph's adjacency costs a constant
-/// number of allocations however many vertices it has.
-///
-/// Each row owns a block of `storage`. A full row grows in place when its block is the last one,
-/// and otherwise moves to the end with twice the capacity, leaving its old block as garbage. Once
-/// garbage is more than half the storage and at least the number of rows, the live blocks are
-/// packed together again, the garbage since the last pack paying for the O(rows + storage).
-///
-/// Positions within a row are offsets from its start, which moving and packing preserve. The
-/// graphs keep a row of slots and a row of edge positions together in a `_PairedRowPool`; this
-/// pool holds a single row of each kind (a hypergraph's incidences) and the bulk-built rows the
-/// paired pools are assembled from.
+/// Rows of `Int` laid out by a bulk build: `storage` and the row table over it, which a
+/// `_PairedRowPool` takes as its own, sharing both arrays until a mutation changes a row. The
+/// builders lay rows out packed in order at their exact sizes (`_packedRows(offsets:)`), and two
+/// pools with the same layout, a row of slots and its row of positions, share one row table.
 @frozen
 @usableFromInline
 package struct _RowPool {
     @usableFromInline package var storage: ContiguousArray<Int>
     @usableFromInline package var rows: ContiguousArray<_Row>
-    /// Entries of `storage` in no row's block.
-    @usableFromInline package var garbage: Int
 
+    /// Rows over `storage` with the row table `rows`.
     @inlinable
-    package init() {
-        storage = []
-        rows = []
-        garbage = 0
-    }
-
-    @inlinable
-    package var rowCount: Int { rows.count }
-
-    /// Calls `body` with the storage and the row table (three `Int`s per row: start, count,
-    /// capacity), valid only during the call.
-    @inlinable
-    package func withUnsafeRows<Result>(_ body: (_ storage: UnsafeBufferPointer<Int>, _ rows: UnsafeBufferPointer<Int>) -> Result) -> Result {
-        storage.withUnsafeBufferPointer { storage in
-            rows.withUnsafeBufferPointer { rows in
-                // `_Row` is three stored `Int`s, so its array is laid out as `Int`s.
-                precondition(MemoryLayout<_Row>.stride == 3 * MemoryLayout<Int>.stride
-                    && MemoryLayout<_Row>.offset(of: \_Row.start) == 0
-                    && MemoryLayout<_Row>.offset(of: \_Row.count) == MemoryLayout<Int>.stride)
-                let raw = UnsafeRawBufferPointer(rows)
-                return raw.withMemoryRebound(to: Int.self) { table in body(storage, table) }
-            }
-        }
-    }
-
-    @inlinable
-    package func count(ofRow row: Int) -> Int { rows[row].count }
-
-    /// The live entries of `row`.
-    @inlinable
-    package subscript(row row: Int) -> ArraySlice<Int> {
-        let block = rows[row]
-        return storage[block.start ..< block.start + block.count]
-    }
-
-    @inlinable
-    package subscript(row row: Int, offset: Int) -> Int {
-        get { storage[rows[row].start + offset] }
-        set { storage[rows[row].start + offset] = newValue }
-    }
-
-    /// Adds an empty row; it takes no storage until its first entry.
-    @inlinable
-    package mutating func appendRow() {
-        rows.append(_Row(start: storage.count, count: 0, capacity: 0))
-    }
-
-    /// Appends `value` to `row` and returns its offset. Amortized O(1).
-    @inlinable
-    @discardableResult
-    package mutating func append(_ value: Int, toRow row: Int) -> Int {
-        if rows[row].count == rows[row].capacity { _grow(row) }
-        let block = rows[row]
-        storage[block.start + block.count] = value
-        rows[row].count = block.count + 1
-        return block.count
-    }
-
-    @inlinable
-    @inline(never)
-    package mutating func _grow(_ row: Int) {
-        let block = rows[row]
-        let capacity = Swift.max(4, block.capacity * 2)
-        if block.start + block.capacity == storage.count {
-            // The last block: extend it in place.
-            storage.append(contentsOf: repeatElement(0, count: capacity - block.capacity))
-            rows[row].capacity = capacity
-            return
-        }
-        let start = storage.count
-        storage.append(contentsOf: repeatElement(0, count: capacity))
-        storage.withUnsafeMutableBufferPointer { storage in
-            for k in 0 ..< block.count { storage[start + k] = storage[block.start + k] }
-        }
-        rows[row] = _Row(start: start, count: block.count, capacity: capacity)
-        garbage += block.capacity
-        _packIfWasteful()
-    }
-
-    /// Packs when garbage outweighs both the live storage and the row table, so each pack's
-    /// O(rows + storage) is paid for by the garbage since the last.
-    @inlinable
-    package mutating func _packIfWasteful() {
-        if garbage > storage.count / 2, garbage >= rows.count { _pack() }
-    }
-
-    @inlinable
-    package mutating func removeAll(keepingCapacity: Bool) {
-        storage.removeAll(keepingCapacity: keepingCapacity)
-        rows.removeAll(keepingCapacity: keepingCapacity)
-        garbage = 0
-    }
-
-    @inlinable
-    package mutating func reserveCapacity(rows rowCount: Int, entries: Int) {
-        rows.reserveCapacity(rowCount)
-        storage.reserveCapacity(entries)
-    }
-
-    /// Packs the blocks together, keeping each one's capacity.
-    @inlinable
-    @inline(never)
-    package mutating func _pack() {
-        var packed = ContiguousArray<Int>()
-        packed.reserveCapacity(storage.count - garbage)
-        for row in rows.indices {
-            let block = rows[row]
-            let start = packed.count
-            packed.append(contentsOf: storage[block.start ..< block.start + block.capacity])
-            rows[row].start = start
-        }
-        storage = packed
-        garbage = 0
+    package init(storage: ContiguousArray<Int>, rows: ContiguousArray<_Row>) {
+        self.storage = storage
+        self.rows = rows
     }
 }

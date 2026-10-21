@@ -14,16 +14,6 @@ extension _RowPool {
         self.init(storage: storage, rows: Self._packedRows(offsets: offsets))
     }
 
-    /// Rows over `storage` with the row table `rows`, which pools with the same layout share (an
-    /// out-row pool and its positions): the table is built once, and copied only if one of them
-    /// changes a row.
-    @inlinable
-    package init(storage: ContiguousArray<Int>, rows: ContiguousArray<_Row>) {
-        self.init()
-        self.storage = storage
-        self.rows = rows
-    }
-
     /// The row table of rows packed in order at their exact sizes: row `v` is
     /// `offsets[v] ..< offsets[v + 1]`.
     @inlinable
