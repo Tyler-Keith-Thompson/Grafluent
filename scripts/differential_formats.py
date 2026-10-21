@@ -23,6 +23,7 @@ format carries them, and parallel edges where it holds them. The library (Differ
 Answers that NetworkX gets wrong are not compared (KNOWN below).
 """
 
+import io
 import json
 import math
 import struct
@@ -360,6 +361,66 @@ def build_requests(rng, case):
         COVERED["GML read"] += 1
         return [] if mine.canon() == expected.canon() else ["GML: the library reads generate_gml's text as another graph"]
     add({"op": "read", "format": "gml", "text": nx_text}, gml_read, "gml read")
+
+    # GEXF (NetworkX: a static graph; its writer labels every node and keys every edge, its reader gives
+    # every node a label and every edge an id, and takes an edge's weight as a float).
+    names = name_pool(rng, n)
+    edges = with_parallels(rng, case)
+    vattrs = []
+    for v in names:
+        a = {}
+        if rng.random() < 0.5:
+            a["score"] = float(number(rng))
+        if rng.random() < 0.4:
+            a["kind"] = rng.choice(NAMES)
+        if rng.random() < 0.3:
+            a["label"] = rng.choice(NAMES)
+        if rng.random() < 0.2:
+            a["ok"] = rng.random() < 0.5
+        vattrs.append(a)
+    if n and rng.random() < 0.2:
+        vattrs[0]["big"] = 5_000_000_000
+    eattrs = []
+    for _, _, w in edges:
+        a = {"weight": float(w)} if rng.random() < 0.7 else {"count": int(round(float(w)))}
+        if rng.random() < 0.3:
+            a["label"] = rng.choice(NAMES)
+        eattrs.append(a)
+    g = G(directed, names, [e[:2] for e in edges], vattrs, eattrs)
+    multi = has_parallel(g)
+    H = to_nx(g, multi)
+    nx_text = "\n".join(nx.generate_gexf(H)) + "\n"
+
+    def gexf_expected(g=g, multi=multi, H=H):
+        """What the library reads from generate_gexf's text."""
+        va = [dict(a) | {"label": a.get("label", v)} for v, a in zip(g.vertices, g.vattrs)]
+        ea = [dict(a) for a in g.eattrs]
+        if multi:
+            seen = {}
+            for (u, v), a in zip(g.edges, ea):
+                key = (u, v) if g.directed else (min(u, v), max(u, v))
+                a["networkx_key"] = seen.get(key, 0)
+                seen[key] = a["networkx_key"] + 1
+        return G(g.directed, g.vertices, g.edges, va, ea)
+
+    def gexf_write(ans, g=g):
+        text = ans.get("text")
+        if text is None:
+            return [f"GEXF write failed: {ans.get('error')}"]
+        theirs = from_nx(nx.read_gexf(io.BytesIO(text.encode())), drop_e={"id"}, drop_g={"mode", "node_default", "edge_default"})
+        for a in theirs.vattrs:
+            if a.get("label") is None:
+                a.pop("label", None)
+        COVERED["GEXF written"] += 1
+        return [] if theirs.canon() == g.canon() else ["GEXF: NetworkX reads the library's text as another graph"]
+    add({"op": "write", "format": "gexf", "graph": g.wire()}, gexf_write, "gexf write")
+
+    def gexf_read(ans, gexf_expected=gexf_expected):
+        if ans.get("graph") is None:
+            return [f"GEXF: the library cannot read generate_gexf's text: {ans.get('error')}"]
+        COVERED["GEXF read"] += 1
+        return [] if G.unwire(ans["graph"]).canon() == gexf_expected().canon() else ["GEXF: the library reads generate_gexf's text as another graph"]
+    add({"op": "read", "format": "gexf", "text": nx_text}, gexf_read, "gexf read")
 
     # Pajek (NetworkX: string extras only, no apostrophe in labels it writes).
     names = name_pool(rng, n, forbidden="'\t")

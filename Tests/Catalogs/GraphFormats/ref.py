@@ -20,6 +20,7 @@ Cross-checks, per row where the library reads the input the same way (the rest a
 KNOWN with the reason, and in api.md under disagreements):
 
   * GraphML: NetworkX `read_graphml` on read rows; every writer row read back by NetworkX.
+  * GEXF: NetworkX `read_gexf` on read rows (less the label None and edge id it adds); every writer row read back by NetworkX.
   * node-link JSON: NetworkX `node_link_graph` on read rows; writer rows byte-equal to
     `json.dumps(nx.node_link_data(G, edges="edges"))`.
   * Matrix Market: SciPy `mmread` on read rows; writer rows byte-equal to SciPy `mmwrite`.
@@ -1053,6 +1054,258 @@ def graphml_write(g):
         else:
             out.append(head + "/>\n")
     out.append("  </graph>\n</graphml>\n")
+    return "".join(out)
+
+
+# ============================================================================ GEXF
+
+GEXF_TYPES = {"integer": "long", "long": "long", "float": "double", "double": "double", "boolean": "boolean",
+              "string": "string", "liststring": "string", "anyURI": "string"}
+
+
+def gexf_word(attr):
+    return attr[0].strip(" \t\n\r")
+
+
+def gexf_edge_type(attr):
+    """Whether an edge type word (defaultedgetype, an edge's type) is directed: mutual is
+    unsupported, any other word invalidValue."""
+    w = gexf_word(attr)
+    if w == "directed":
+        return True
+    if w == "undirected":
+        return False
+    raise ParseError("unsupported" if w == "mutual" else "invalidValue", attr[1])
+
+
+def gexf_static(el):
+    """A mode attribute, when present, must be static: dynamic is unsupported."""
+    if "mode" in el.attrs:
+        w = gexf_word(el.attrs["mode"])
+        if w != "static":
+            raise ParseError("unsupported" if w == "dynamic" else "invalidValue", el.attrs["mode"][1])
+
+
+def gexf_read(t, g):
+    root = xml_parse(t)
+    if root.local != "gexf":
+        raise ParseError("syntax", root.offset)
+    seen = False
+    for el in root.children:
+        if el.local != "graph":
+            continue
+        if seen:
+            raise ParseError("unsupported", el.offset)
+        seen = True
+        gexf_graph(el, g)
+    if not seen:
+        raise ParseError("syntax", root.offset)
+
+
+def gexf_graph(gr, g):
+    """One <graph>, its children in document order: declarations reach the elements after them."""
+    directed = gexf_edge_type(gr.attrs["defaultedgetype"]) if "defaultedgetype" in gr.attrs else False
+    if directed != g.directed:
+        raise ParseError("kindMismatch", gr.offset)
+    gexf_static(gr)
+    if "name" in gr.attrs and gr.attrs["name"][0] != "":
+        g.gattrs["name"] = gr.attrs["name"][0]
+    declared = [{}, {}]  # class (0 node, 1 edge) -> id -> index into attributes
+    attributes = [[], []]  # class -> [title, kind, default]
+
+    def declare(el):
+        if "class" not in el.attrs:
+            raise ParseError("syntax", el.offset)
+        w = gexf_word(el.attrs["class"])
+        if w == "node":
+            cls = 0
+        elif w == "edge":
+            cls = 1
+        else:
+            raise ParseError("invalidValue", el.attrs["class"][1])
+        gexf_static(el)
+        for a in el.children:
+            if a.local != "attribute":
+                continue
+            if "id" not in a.attrs:
+                raise ParseError("syntax", a.offset)
+            aid, off = a.attrs["id"]
+            if aid in declared[cls]:
+                raise ParseError("duplicateKey", off)
+            title = a.attrs["title"][0] if "title" in a.attrs else aid
+            kind = "string"
+            if "type" in a.attrs:
+                w = gexf_word(a.attrs["type"])
+                if w not in GEXF_TYPES:
+                    raise ParseError("invalidValue", a.attrs["type"][1])
+                kind = GEXF_TYPES[w]
+            declared[cls][aid] = len(attributes[cls])
+            entry = [title, kind, None]
+            attributes[cls].append(entry)
+            for d in a.children:
+                if d.local != "default":
+                    continue
+                if d.has_elements:
+                    raise ParseError("invalidValue", d.offset)
+                entry[2] = graphml_value(kind, "".join(d.text), d.offset)
+
+    def attvalues(el, cls, out, given):
+        for a in el.children:
+            if a.local != "attvalue":
+                continue
+            if "for" not in a.attrs:
+                raise ParseError("syntax", a.offset)
+            fid, foff = a.attrs["for"]
+            if fid not in declared[cls]:
+                raise ParseError("undeclaredKey", foff)
+            if "value" not in a.attrs:
+                raise ParseError("syntax", a.offset)
+            k = declared[cls][fid]
+            title, kind, _ = attributes[cls][k]
+            out[title] = graphml_value(kind, a.attrs["value"][0], a.offset)
+            given.add(k)
+
+    def defaults(cls, given, out):
+        for k, (title, kind, default) in enumerate(attributes[cls]):
+            if default is not None and k not in given:
+                out[title] = default
+
+    def nodes(el):
+        for c in el.children:
+            if c.local == "node":
+                node(c)
+
+    def node(el):
+        if "id" not in el.attrs:
+            raise ParseError("syntax", el.offset)
+        nid, off = el.attrs["id"]
+        if nid in g.index:
+            raise ParseError("duplicateVertex", off)
+        out = g.vattrs[g.vertex(nid)]
+        if "label" in el.attrs:
+            out["label"] = el.attrs["label"][0]
+        given = set()
+        for c in el.children:
+            if c.local == "attvalues":
+                attvalues(c, 0, out, given)
+            elif c.local == "nodes":
+                nodes(c)
+        defaults(0, given, out)
+
+    def edge(el):
+        if "source" not in el.attrs or "target" not in el.attrs:
+            raise ParseError("syntax", el.offset)
+        ends = []
+        for a in ("source", "target"):
+            name, off = el.attrs[a]
+            if name not in g.index:
+                raise ParseError("undeclaredVertex", off)
+            ends.append(g.index[name])
+        if "type" in el.attrs and gexf_edge_type(el.attrs["type"]) != g.directed:
+            raise ParseError("unsupported", el.attrs["type"][1])
+        out = g.eattrs[g.edge(*ends)]
+        if "label" in el.attrs:
+            out["label"] = el.attrs["label"][0]
+        if "weight" in el.attrs:
+            out["weight"] = graphml_value("double", el.attrs["weight"][0], el.attrs["weight"][1])
+        given = set()
+        for c in el.children:
+            if c.local == "attvalues":
+                attvalues(c, 1, out, given)
+        defaults(1, given, out)
+
+    for el in gr.children:
+        if el.local == "attributes":
+            declare(el)
+        elif el.local == "nodes":
+            nodes(el)
+        elif el.local == "edges":
+            for e in el.children:
+                if e.local == "edge":
+                    edge(e)
+
+
+def gexf_write(g):
+    """GEXF 1.2 as the writer lays it out: the node class's attributes then the edge class's,
+    numbered by first appearance; label and an edge's weight as XML attributes, in the pairs' order."""
+    tables = [{}, {}]  # class -> name -> [id, type]
+
+    def add(cls, a):
+        for k, x in a.items():
+            if k == "label":
+                assert type(x) is str, "precondition: a label is a string"
+                continue
+            if cls == 1 and k == "weight":
+                assert type(x) in (int, float) and type(x) is not bool, "precondition: a weight is a number"
+                continue
+            ty = graphml_type(x)
+            if k not in tables[cls]:
+                tables[cls][k] = [None, ty]
+            elif tables[cls][k][1] != ty:
+                assert {tables[cls][k][1], ty} == {"long", "double"}, "precondition: one type per key"
+                tables[cls][k][1] = "double"
+
+    for a in g.vattrs:
+        add(0, a)
+    for a in g.eattrs:
+        add(1, a)
+    n = 0
+    for cls in (0, 1):
+        for entry in tables[cls].values():
+            entry[0] = str(n)
+            n += 1
+    out = ['<?xml version="1.0" encoding="UTF-8"?>\n',
+           '<gexf xmlns="http://www.gexf.net/1.2draft" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+           'xsi:schemaLocation="http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd" version="1.2">\n',
+           f'  <graph defaultedgetype="{"directed" if g.directed else "undirected"}" mode="static">\n']
+    for name, cls in (("node", 0), ("edge", 1)):
+        if tables[cls]:
+            out.append(f'    <attributes class="{name}" mode="static">\n')
+            for k, (kid, ty) in tables[cls].items():
+                out.append(f'      <attribute id="{kid}" title="{xml_escape_attr(k)}" type="{ty}"/>\n')
+            out.append("    </attributes>\n")
+
+    def values(cls, rest):
+        return [f'          <attvalue for="{tables[cls][k][0]}" value="{xml_escape_attr(graphml_text(x))}"/>\n' for k, x in rest]
+
+    if not g.vertices:
+        out.append("    <nodes/>\n")
+    else:
+        out.append("    <nodes>\n")
+        for v, a in zip(g.vertices, g.vattrs):
+            head = f'      <node id="{xml_escape_attr(str(v))}"'
+            rest = []
+            for k, x in a.items():
+                if k == "label":
+                    head += f' label="{xml_escape_attr(x)}"'
+                else:
+                    rest.append((k, x))
+            if rest:
+                out += [head + ">\n        <attvalues>\n"] + values(0, rest) + ["        </attvalues>\n      </node>\n"]
+            else:
+                out.append(head + "/>\n")
+        out.append("    </nodes>\n")
+    if not g.edges:
+        out.append("    <edges/>\n")
+    else:
+        out.append("    <edges>\n")
+        for p, ((u, v), a) in enumerate(zip(g.edges, g.eattrs)):
+            head = (f'      <edge id="{p}" source="{xml_escape_attr(str(g.vertices[u]))}" '
+                    f'target="{xml_escape_attr(str(g.vertices[v]))}"')
+            rest = []
+            for k, x in a.items():
+                if k == "label":
+                    head += f' label="{xml_escape_attr(x)}"'
+                elif k == "weight":
+                    head += f' weight="{xml_escape_attr(graphml_text(x))}"'
+                else:
+                    rest.append((k, x))
+            if rest:
+                out += [head + ">\n        <attvalues>\n"] + values(1, rest) + ["        </attvalues>\n      </edge>\n"]
+            else:
+                out.append(head + "/>\n")
+        out.append("    </edges>\n")
+    out.append("  </graph>\n</gexf>\n")
     return "".join(out)
 
 
@@ -3139,7 +3392,7 @@ def reader_for(fmt, **kw):
     return {"dot": dot_read, "graphML": graphml_read, "nodeLinkJSON": node_link_read,
             "matrixMarket": mm_read, "adjacencyList": adjacency_list_read,
             "mermaid": mermaid_read, "gml": gml_read, "graph6": graph6_read, "digraph6": digraph6_read,
-            "cytoscapeJSON": cytoscape_read}[fmt]
+            "cytoscapeJSON": cytoscape_read, "gexf": gexf_read}[fmt]
 
 
 TARGETS = {
@@ -3156,19 +3409,19 @@ TARGETS = {
 LABEL = {"dot": "dot", "graphML": "graphML", "nodeLinkJSON": "nodeLinkJSON", "matrixMarket": "matrixMarket",
          "edgeList": "edgeList", "adjacencyList": "adjacencyList", "mermaid": "mermaid", "gml": "gml",
          "pajek": "pajek", "graph6": "graph6", "sparse6": "sparse6", "digraph6": "digraph6", "dimacs": "dimacs",
-         "metis": "metis", "cytoscapeJSON": "cytoscapeJSON"}
+         "metis": "metis", "cytoscapeJSON": "cytoscapeJSON", "gexf": "gexf"}
 WRITER = {"dot": "writeDOT(to:)", "graphML": "writeGraphML(to:)", "nodeLinkJSON": "writeNodeLinkJSON(to:)",
           "matrixMarket": "writeMatrixMarket(to:)", "edgeList": "writeEdgeList(to:)",
           "adjacencyList": "writeAdjacencyList(to:)", "mermaid": "writeMermaid(to:)", "gml": "writeGML(to:)",
           "pajek": "writePajek(to:)", "graph6": "writeGraph6(to:)", "sparse6": "writeSparse6(to:)",
           "digraph6": "writeDigraph6(to:)", "dimacs": "writeDIMACS(to:)", "metis": "writeMETIS(to:)",
-          "cytoscapeJSON": "writeCytoscapeJSON(to:)"}
+          "cytoscapeJSON": "writeCytoscapeJSON(to:)", "gexf": "writeGEXF(to:)"}
 PREFIX = {"dot": "DT", "graphML": "GM", "nodeLinkJSON": "NL", "matrixMarket": "MM", "edgeList": "EL",
           "adjacencyList": "AL", "mermaid": "MD"}
 GROUP = {"dot": "DOT", "graphML": "GraphML", "nodeLinkJSON": "Node-link JSON", "matrixMarket": "Matrix Market",
          "edgeList": "Edge list", "adjacencyList": "Adjacency list", "mermaid": "Mermaid", "gml": "GML",
          "pajek": "Pajek", "graph6": "graph6", "sparse6": "sparse6", "digraph6": "digraph6", "dimacs": "DIMACS",
-         "metis": "METIS", "cytoscapeJSON": "Cytoscape JSON"}
+         "metis": "METIS", "cytoscapeJSON": "Cytoscape JSON", "gexf": "GEXF"}
 
 
 def make_target(code):
@@ -4068,6 +4321,8 @@ def write_output(c):
         return dot_write(g)
     if f == "graphML":
         return graphml_write(g)
+    if f == "gexf":
+        return gexf_write(g)
     if f == "nodeLinkJSON":
         return node_link_write(g)
     if f == "matrixMarket":
@@ -4100,6 +4355,166 @@ def evaluate(c):
         return run_reader(reader_for(c["fmt"], **c["kw"]), c["text"], make_target(c["target"]))
     return write_output(c)
 
+
+# ---------------------------------------------------------------- GEXF read
+GX = '<gexf xmlns="http://www.gexf.net/1.2draft" version="1.2">'
+GXD = GX + '<graph defaultedgetype="directed">'
+R("gexf", "D", "nodes and edges in document order",
+  GXD + '<nodes><node id="a"/><node id="b"/></nodes><edges><edge id="0" source="a" target="b"/>'
+  '<edge id="1" source="b" target="a"/></edges></graph></gexf>')
+R("gexf", "U", "undirected; a missing defaultedgetype is undirected; b-a kept as written",
+  GX + '<graph><nodes><node id="a"/><node id="b"/></nodes><edges><edge source="b" target="a"/></edges></graph></gexf>')
+R("gexf", "D", "declared attributes: every type, surrounding whitespace in numbers, INF, 1 and 0 as booleans",
+  GXD + '<attributes class="node"><attribute id="0" title="i" type="integer"/><attribute id="1" title="l" type="long"/>'
+  '<attribute id="2" title="f" type="float"/><attribute id="3" title="d" type="double"/>'
+  '<attribute id="4" title="b" type="boolean"/><attribute id="5" title="s" type="string"/>'
+  '<attribute id="6" title="ls" type="liststring"/><attribute id="7" title="u" type="anyURI"/></attributes>'
+  '<nodes><node id="a"><attvalues><attvalue for="0" value=" -7 "/><attvalue for="1" value="9223372036854775807"/>'
+  '<attvalue for="2" value="0.5"/><attvalue for="3" value="INF"/><attvalue for="4" value="true"/>'
+  '<attvalue for="5" value=" x "/><attvalue for="6" value="p|q"/><attvalue for="7" value="http://x"/></attvalues></node>'
+  '<node id="b"><attvalues><attvalue for="4" value="0"/><attvalue for="3" value="1e-3"/><attvalue for="0" value="3"/>'
+  '</attvalues></node></nodes></graph></gexf>')
+R("gexf", "D", "a default applies where no attvalue gives it",
+  GXD + '<attributes class="node"><attribute id="c" title="color" type="string"><default>red</default></attribute></attributes>'
+  '<attributes class="edge"><attribute id="w" title="w" type="double"><default>1.0</default></attribute></attributes>'
+  '<nodes><node id="a"/><node id="b"><attvalues><attvalue for="c" value="blue"/></attvalues></node></nodes>'
+  '<edges><edge source="a" target="b"/><edge source="b" target="a"><attvalues><attvalue for="w" value="2"/></attvalues></edge>'
+  '</edges></graph></gexf>')
+R("gexf", "D", "label and weight are attributes: a node's label, an edge's label and weight (a double)",
+  GXD + '<nodes><node id="a" label="Alpha"/><node id="b"/></nodes>'
+  '<edges><edge id="e" source="a" target="b" label="ab" weight="2.5"/><edge source="b" target="a" weight="3"/>'
+  '</edges></graph></gexf>')
+R("gexf", "D", "attribute values are reported after the label and weight, then the defaults",
+  GXD + '<attributes class="edge"><attribute id="0" title="k" type="integer"><default>9</default></attribute>'
+  '<attribute id="1" title="m" type="string"/></attributes>'
+  '<nodes><node id="a"/></nodes><edges><edge source="a" target="a" weight="1" label="l">'
+  '<attvalues><attvalue for="1" value="x"/></attvalues></edge></edges></graph></gexf>')
+R("gexf", "D", "nested nodes (a hierarchy) are the graph's, in document order of their start tags",
+  GXD + '<nodes><node id="a"><nodes><node id="b"><nodes><node id="c"/></nodes></node></nodes></node><node id="d" pid="a"/>'
+  '</nodes><edges><edge source="c" target="d"/></edges></graph></gexf>')
+R("gexf", "D", "meta, viz, parents, spells, options and unknown elements are skipped",
+  '<gexf xmlns="http://gexf.net/1.3" xmlns:viz="http://gexf.net/1.3/viz" version="1.3">'
+  '<meta lastmodifieddate="2009-03-20"><creator>Gephi</creator><description>d</description></meta>'
+  '<graph defaultedgetype="directed" idtype="string">'
+  '<attributes class="node"><attribute id="0" title="t" type="string"><options>a|b</options></attribute></attributes>'
+  '<nodes><node id="a"><viz:color r="1" g="2" b="3"/><viz:position x="1" y="2"/><parents><parent for="b"/></parents>'
+  '<spells><spell start="1"/></spells><attvalues><attvalue for="0" value="a"/></attvalues></node><node id="b"/></nodes>'
+  '<edges><edge source="a" target="b"><viz:thickness value="2"/></edge></edges><extra/></graph><trailing/></gexf>')
+R("gexf", "D", "a non-empty graph name is a graph attribute",
+  GX + '<graph defaultedgetype="directed" mode="static" name="net" timeformat="date"><nodes><node id="a"/></nodes></graph></gexf>')
+R("gexf", "D", "an empty graph name is not reported",
+  GX + '<graph defaultedgetype="directed" name=""><nodes/><edges/></graph></gexf>')
+R("gexf", "D", "parallel edges and loops kept; edge ids are not attributes",
+  GXD + '<nodes><node id="a"/><node id="b"/></nodes><edges><edge id="x" source="a" target="b"/>'
+  '<edge id="y" source="a" target="b"/><edge id="z" source="a" target="a"/></edges></graph></gexf>')
+R("gexf", "DS", "simple target: parallel edges merge, last value wins",
+  GXD + '<attributes class="edge"><attribute id="0" title="k" type="integer"/></attributes>'
+  '<nodes><node id="a"/><node id="b"/></nodes><edges><edge source="a" target="b" weight="1">'
+  '<attvalues><attvalue for="0" value="1"/></attvalues></edge><edge source="a" target="b" weight="2"/></edges></graph></gexf>')
+R("gexf", "US", "simple undirected target: b-a is a-b",
+  GX + '<graph defaultedgetype="undirected"><nodes><node id="a"/><node id="b"/></nodes>'
+  '<edges><edge source="a" target="b"/><edge source="b" target="a" label="l"/></edges></graph></gexf>')
+R("gexf", "U", "an edge type equal to the graph's kind",
+  GX + '<graph defaultedgetype="undirected"><nodes><node id="a"/></nodes><edges><edge source="a" target="a" type="undirected"/>'
+  '</edges></graph></gexf>')
+R("gexf", "D", "declaration, comments, processing instructions, CDATA and references in a default",
+  '<?xml version="1.0" encoding="UTF-8"?>\n<!-- c -->\n<gexf xmlns="http://www.gexf.net/1.2draft"><?pi x?>'
+  '<graph defaultedgetype="directed"><attributes class="node"><attribute id="0" title="t"><default><![CDATA[a<b]]>&amp;&#99;</default>'
+  '</attribute></attributes><nodes><node id="a"/></nodes></graph></gexf>\n')
+R("gexf", "D", "predefined entities and character references in ids and values; attribute values are normalized",
+  GXD + '<attributes class="node"><attribute id="0" title="s"/></attributes>'
+  '<nodes><node id="a&amp;b" label="x&#10;y"><attvalues><attvalue for="0" value="p\tq&#9;r"/></attvalues></node></nodes>'
+  '<edges><edge source="a&amp;b" target="a&amp;b"/></edges></graph></gexf>')
+R("gexf", "D", "attributes declared after the nodes do not reach them",
+  GXD + '<nodes><node id="a"/></nodes><attributes class="node"><attribute id="0" title="t"><default>x</default></attribute></attributes>'
+  '<nodes><node id="b"/></nodes></graph></gexf>')
+R("gexf", "D", "a missing title is the id; a missing type is string; the same id in both classes",
+  GXD + '<attributes class="node"><attribute id="k"/></attributes><attributes class="edge"><attribute id="k" title="kk"/></attributes>'
+  '<nodes><node id="a"><attvalues><attvalue for="k" value="1"/></attvalues></node></nodes>'
+  '<edges><edge source="a" target="a"><attvalues><attvalue for="k" value="2"/></attvalues></edge></edges></graph></gexf>')
+R("gexf", "D", "an attvalue given twice: the last value; a title shared by two ids",
+  GXD + '<attributes class="node"><attribute id="0" title="t" type="integer"/><attribute id="1" title="t" type="string"/></attributes>'
+  '<nodes><node id="a"><attvalues><attvalue for="0" value="1"/><attvalue for="0" value="2"/><attvalue for="1" value="s"/>'
+  '</attvalues></node></nodes></graph></gexf>')
+R("gexf", "D", "mode static on the graph and its declarations; node and edge counts are ignored",
+  GX + '<graph defaultedgetype="directed" mode="static"><attributes class="node" mode="static"/>'
+  '<nodes count="9"><node id="a"/></nodes><edges count="0"><edge source="a" target="a"/></edges></graph></gexf>')
+R("gexf", "D", "a second default replaces the first, reported once",
+  GXD + '<attributes class="node"><attribute id="0" title="t" type="integer"><default>1</default><default>2</default></attribute>'
+  '</attributes><nodes><node id="a"/></nodes></graph></gexf>')
+E("gexf", "D", "the root is not gexf", '<graphml><graph defaultedgetype="directed"/></graphml>')
+E("gexf", "D", "no graph", GX + '<meta/></gexf>')
+E("gexf", "D", "a second graph (unsupported)", GXD + '</graph><graph defaultedgetype="directed"/></gexf>')
+E("gexf", "D", "defaultedgetype mutual (unsupported)", GX + '<graph defaultedgetype="mutual"/></gexf>')
+E("gexf", "D", "defaultedgetype that is not a kind", GX + '<graph defaultedgetype="both"/></gexf>')
+E("gexf", "U", "directed into an undirected target", GXD + '</graph></gexf>')
+E("gexf", "D", "undirected (by default) into a directed target", GX + '<graph/></gexf>')
+E("gexf", "D", "mode dynamic (unsupported)", GX + '<graph defaultedgetype="directed" mode="dynamic"/></gexf>')
+E("gexf", "D", "a mode that is neither", GX + '<graph defaultedgetype="directed" mode="slow"/></gexf>')
+E("gexf", "D", "attributes without a class", GXD + '<attributes><attribute id="0"/></attributes></graph></gexf>')
+E("gexf", "D", "an attribute class that is neither node nor edge", GXD + '<attributes class="graph"/></graph></gexf>')
+E("gexf", "D", "dynamic attributes (unsupported)", GXD + '<attributes class="node" mode="dynamic"/></graph></gexf>')
+E("gexf", "D", "an attribute without an id", GXD + '<attributes class="node"><attribute title="t"/></attributes></graph></gexf>')
+E("gexf", "D", "an attribute id declared twice in a class",
+  GXD + '<attributes class="node"><attribute id="0"/><attribute id="0"/></attributes></graph></gexf>')
+E("gexf", "D", "an attribute type that is not one of GEXF's",
+  GXD + '<attributes class="node"><attribute id="0" type="date"/></attributes></graph></gexf>')
+E("gexf", "D", "a default with element content",
+  GXD + '<attributes class="node"><attribute id="0"><default><b>x</b></default></attribute></attributes></graph></gexf>')
+E("gexf", "D", "a default that is not of its type",
+  GXD + '<attributes class="node"><attribute id="0" type="integer"><default>x</default></attribute></attributes></graph></gexf>')
+E("gexf", "D", "a node without an id", GXD + '<nodes><node label="a"/></nodes></graph></gexf>')
+E("gexf", "D", "duplicate node id", GXD + '<nodes><node id="a"/><node id="a"/></nodes></graph></gexf>')
+E("gexf", "D", "a node id declared again inside a nested nodes element",
+  GXD + '<nodes><node id="a"><nodes><node id="a"/></nodes></node></nodes></graph></gexf>')
+E("gexf", "D", "an attvalue without for", GXD + '<nodes><node id="a"><attvalues><attvalue value="1"/></attvalues></node></nodes></graph></gexf>')
+E("gexf", "D", "an attvalue for an undeclared attribute",
+  GXD + '<nodes><node id="a"><attvalues><attvalue for="0" value="1"/></attvalues></node></nodes></graph></gexf>')
+E("gexf", "D", "an attvalue for an attribute of the other class",
+  GXD + '<attributes class="edge"><attribute id="0"/></attributes>'
+  '<nodes><node id="a"><attvalues><attvalue for="0" value="1"/></attvalues></node></nodes></graph></gexf>')
+E("gexf", "D", "an attvalue without a value",
+  GXD + '<attributes class="node"><attribute id="0"/></attributes><nodes><node id="a"><attvalues><attvalue for="0"/></attvalues></node></nodes></graph></gexf>')
+E("gexf", "D", "an attvalue that is not of its type",
+  GXD + '<attributes class="node"><attribute id="0" type="boolean"/></attributes>'
+  '<nodes><node id="a"><attvalues><attvalue for="0" value="True"/></attvalues></node></nodes></graph></gexf>')
+E("gexf", "D", "an integer beyond Int",
+  GXD + '<attributes class="node"><attribute id="0" type="long"/></attributes>'
+  '<nodes><node id="a"><attvalues><attvalue for="0" value="9223372036854775808"/></attvalues></node></nodes></graph></gexf>')
+E("gexf", "D", "an edge without a source", GXD + '<nodes><node id="a"/></nodes><edges><edge target="a"/></edges></graph></gexf>')
+E("gexf", "D", "an edge to an undeclared node",
+  GXD + '<nodes><node id="a"/></nodes><edges><edge source="a" target="b"/></edges></graph></gexf>')
+E("gexf", "D", "edges before the nodes they name",
+  GXD + '<edges><edge source="a" target="a"/></edges><nodes><node id="a"/></nodes></graph></gexf>')
+E("gexf", "D", "an edge whose type differs from the graph's (unsupported)",
+  GXD + '<nodes><node id="a"/></nodes><edges><edge source="a" target="a" type="undirected"/></edges></graph></gexf>')
+E("gexf", "D", "a mutual edge (unsupported)",
+  GXD + '<nodes><node id="a"/></nodes><edges><edge source="a" target="a" type="mutual"/></edges></graph></gexf>')
+E("gexf", "D", "an edge type that is not a kind",
+  GXD + '<nodes><node id="a"/></nodes><edges><edge source="a" target="a" type="loop"/></edges></graph></gexf>')
+E("gexf", "D", "a weight that is not a number",
+  GXD + '<nodes><node id="a"/></nodes><edges><edge source="a" target="a" weight="heavy"/></edges></graph></gexf>')
+E("gexf", "D", "DOCTYPE (no DTD)", '<!DOCTYPE gexf [<!ENTITY e "x">]>' + GXD + '<nodes><node id="&e;"/></nodes></graph></gexf>')
+E("gexf", "D", "an entity that is not predefined", GXD + '<nodes><node id="&nbsp;"/></nodes></graph></gexf>')
+E("gexf", "D", "mismatched tags", GXD + '<nodes><node id="a"/></edges></graph></gexf>')
+E("gexf", "D", "cut short", GXD + '<nodes><node id="a"/>')
+E("gexf", "D", "a repeated XML attribute", GXD + '<nodes><node id="a" id="b"/></nodes></graph></gexf>')
+E("gexf", "D", "invalid UTF-8", GXD.encode() + b'<nodes><node id="\xc3\x28"/></nodes></graph></gexf>')
+
+# ---------------------------------------------------------------- GEXF write
+GEXF_TYPED = graph(True, ["a", "b"], [("a", "b"), ("b", "b")],
+                   {"a": {"label": "x y", "n": 3, "x": 2.0, "ok": True}}, {0: {"weight": 2, "w2": -0.5}, 1: {"label": "l", "weight": 1.5}})
+GEXF_ESCAPES = graph(True, ['a&<>"', "t\tn\nr\r"], [('a&<>"', "t\tn\nr\r")],
+                     {'a&<>"': {"label": "x & <y> \"z\" \r\n", "s": "<&>"}}, {0: {"label": "\t", "s": "\""}})
+W("gexf", "empty digraph", EMPTY_D)
+W("gexf", "nodes without attributes are empty elements; edge ids are positions", ISO)
+W("gexf", "typed attributes: the node class then the edge class, ids by first appearance; label and weight as XML attributes", GEXF_TYPED)
+W("gexf", "undirected, a loop, parallel edges", UNDIRECTED)
+W("gexf", "escaping in ids, labels and values", GEXF_ESCAPES)
+W("gexf", "integer and double values under one key: double", MIXED)
+W("gexf", "INF, -INF, NaN, booleans", SPECIAL)
+W("gexf", "a weight written as its integer or double text, in the pairs' order with the label",
+  graph(True, ["a", "b"], [("a", "b"), ("b", "a")], {}, {0: {"weight": 7, "label": "w first"}, 1: {"label": "l first", "weight": 0.25}}))
 
 # ============================================================================ cross-checks
 
@@ -4152,7 +4567,7 @@ def nx_create(g):
 TARGETS_SIMPLE = {}
 
 
-NEW_FORMATS = {"gml", "pajek", "graph6", "sparse6", "digraph6", "dimacs", "metis", "cytoscapeJSON"}
+NEW_FORMATS = {"gml", "pajek", "graph6", "sparse6", "digraph6", "dimacs", "metis", "cytoscapeJSON", "gexf"}
 
 
 def known(c):
@@ -4172,6 +4587,17 @@ def py_id_text(x):
     if x is None:
         return "null"
     return json_value(x)
+
+
+def nx_gexf(raw):
+    """NetworkX's reading of GEXF bytes, less what it adds: a None label on a node without one,
+    an edge's id (an identifier here, as a node's)."""
+    G = nx.read_gexf(io.BytesIO(raw))
+    strip_attrs(G, edge_keys=("id",))
+    for _, d in G.nodes(data=True):
+        if d.get("label") is None:
+            d.pop("label", None)
+    return G
 
 
 def strip_attrs(G, node_keys=(), edge_keys=()):
@@ -4207,6 +4633,8 @@ def library_read_new(c, raw, ours, directed, simple):
         data = json.loads(text)
         G = nx.cytoscape_graph(data)
         strip_attrs(G, node_keys=("id",), edge_keys=("source", "target") + (("key",) if data.get("multigraph") else ()))
+    elif f == "gexf":
+        G = nx_gexf(raw)
     else:
         return "no library"
     if G.is_directed() != directed:
@@ -4244,6 +4672,15 @@ def library_write_new(c, out):
                 blocks.append("\n".join(lines))
             return head, sorted(blocks)
         return None if split(ref) == split(out) else f"NetworkX writes {ref!r}"
+    if f == "gexf":
+        G = nx_gexf(out.encode())
+        expect = Target(g.directed)
+        for v, a in zip(g.vertices, g.vattrs):
+            expect.vattrs[expect.vertex(str(v))] = dict(a)
+        for (u, v), a in zip(g.edges, g.eattrs):
+            expect.eattrs[expect.edge(u, v)] = {k: (float(x) if k == "weight" else x) for k, x in a.items()}
+        promote(expect)
+        return nx_matches(expect, G)
     if f == "pajek":
         G = nx_graph(True)
         ref = "".join(line + "\n" for line in nx.generate_pajek(G))
@@ -4322,6 +4759,8 @@ def round_trip_new(c, out):
             for extra in ("value", "name"):
                 e.setdefault(extra, str(g.vertices[i]))
             expect.vattrs[i] = e
+        elif f == "gexf":
+            expect.vattrs[i] = dict(a)
     if f == "gml":
         expect.gattrs = {k: gml_back(x) for k, x in g.gattrs.items()}
     elif f == "cytoscapeJSON":
@@ -4339,8 +4778,12 @@ def round_trip_new(c, out):
             expect.eattrs[q] = e
         elif f == "cytoscapeJSON":
             expect.eattrs[q] = dict(a)
+        elif f == "gexf":
+            expect.eattrs[q] = {k: (float(x) if k == "weight" else x) for k, x in a.items()}
         elif f in ("dimacs", "metis") and kw.get("weight") is not None:
             expect.eattrs[q] = {"weight": kw["weight"][p]}
+    if f == "gexf":
+        promote(expect)
     if f in ("graph6", "sparse6", "digraph6", "metis"):
         same_edges = edge_multiset(our_edges(expect), g.directed) == edge_multiset(our_edges(back), g.directed)
         ok = expect.vertices == back.vertices and same_edges
@@ -4743,6 +5186,35 @@ KNOWN = {
     ("gml", "multigraph that is not 0 or 1"): "NetworkX reads any true value as a multigraph",
     ("gml", "an id that is not an integer"): "NetworkX takes any value as an id",
     ("gml", "a label equal to another node's id text"): "NetworkX compares a label with labels only",
+    # GEXF (NetworkX 3.7 read_gexf)
+    ("gexf", "a default applies where no attvalue gives it"):
+        "NetworkX stores defaults in G.graph['node_default'] and does not apply them (gexf.xsd: the value of elements lacking the attribute)",
+    ("gexf", "attribute values are reported after the label and weight, then the defaults"): "NetworkX does not apply defaults",
+    ("gexf", "a second default replaces the first, reported once"): "NetworkX does not apply defaults",
+    ("gexf", "nested nodes (a hierarchy) are the graph's, in document order of their start tags"): "NetworkX adds a nested node before its parent",
+    ("gexf", "meta, viz, parents, spells, options and unknown elements are skipped"): "NetworkX raises KeyError on a spell without a graph timeformat",
+    ("gexf", "declaration, comments, processing instructions, CDATA and references in a default"): "NetworkX requires an attribute type (KeyError without one)",
+    ("gexf", "predefined entities and character references in ids and values; attribute values are normalized"): "NetworkX requires an attribute type",
+    ("gexf", "attributes declared after the nodes do not reach them"): "NetworkX requires an attribute type",
+    ("gexf", "a missing title is the id; a missing type is string; the same id in both classes"): "NetworkX requires an attribute type",
+    ("gexf", "a second graph (unsupported)"): "NetworkX reads the first graph only",
+    ("gexf", "defaultedgetype mutual (unsupported)"): "NetworkX reads any defaultedgetype but directed as undirected",
+    ("gexf", "defaultedgetype that is not a kind"): "NetworkX reads any defaultedgetype but directed as undirected",
+    ("gexf", "directed into an undirected target"): "NetworkX has no target: it reads either kind",
+    ("gexf", "undirected (by default) into a directed target"): "NetworkX has no target: it reads either kind",
+    ("gexf", "mode dynamic (unsupported)"): "NetworkX reads dynamic graphs, their values as lists of (value, start, end)",
+    ("gexf", "a mode that is neither"): "NetworkX reads any mode but dynamic as static",
+    ("gexf", "dynamic attributes (unsupported)"): "NetworkX reads dynamic attributes as lists",
+    ("gexf", "an attribute without an id"): "NetworkX declares the attribute under the id None",
+    ("gexf", "an attribute id declared twice in a class"): "NetworkX keeps the last declaration",
+    ("gexf", "an attribute type that is not one of GEXF's"): "NetworkX fails only when a value of that type is read",
+    ("gexf", "duplicate node id"): "NetworkX merges the two nodes",
+    ("gexf", "a node id declared again inside a nested nodes element"): "NetworkX merges the two nodes",
+    ("gexf", "an edge to an undeclared node"): "NetworkX adds the node",
+    ("gexf", "edges before the nodes they name"): "NetworkX reads every node before any edge",
+    ("gexf", "a mutual edge (unsupported)"): "NetworkX adds a mutual edge in both directions",
+    ("gexf", "an edge type that is not a kind"): "NetworkX ignores an edge type it does not know",
+    ("gexf", "DOCTYPE (no DTD)"): "NetworkX (expat) expands internal entities",
     ("gml", "a source that is not an integer"): "NetworkX takes any value as an endpoint (0.0 == 0)",
     ("gml", "a key where a value should be"): "NetworkX takes an unquoted word as the value of id, label, source and target",
     ("gml", "an integer beyond Int64"): "NetworkX reads an int of any size",

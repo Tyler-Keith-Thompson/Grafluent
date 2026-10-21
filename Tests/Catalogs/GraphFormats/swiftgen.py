@@ -43,7 +43,7 @@ for line in TEXT.split("\n"):
     if line.startswith("| GF-"):
         ROWS[line.split(" | ")[0][2:]] = line
 CASES = ref.CASES
-assert len(CASES) == len(ROWS) == 592
+assert len(CASES) == len(ROWS) == 660
 for c in CASES:
     r = ref.evaluate(c)
     cells = ROWS[c["id"]].split(" | ")
@@ -203,10 +203,10 @@ def read_test(c):
         lines.append("        }")
         lines.append("    }")
         return lines
-    has_va = fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "pajek", "metis", "cytoscapeJSON")
+    has_va = fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "pajek", "metis", "cytoscapeJSON", "gexf")
     has_ea = fmt in ("dot", "graphML", "nodeLinkJSON", "matrixMarket", "edgeList", "gml", "pajek", "metis",
-                     "cytoscapeJSON") or (fmt == "dimacs" and directed)
-    has_ga = fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "pajek", "cytoscapeJSON")
+                     "cytoscapeJSON", "gexf") or (fmt == "dimacs" and directed)
+    has_ga = fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "pajek", "cytoscapeJSON", "gexf")
     closures = []
     if has_va:
         lines.append(f"        var vertexKeys: [{vt}: [String]] = [:]")
@@ -304,7 +304,7 @@ def write_test(c):
     vcases = [(vname(v), a) for v, a in zip(g.vertices, g.vattrs) if a]
     ecases = [(str(p), a) for p, a in enumerate(g.eattrs) if a]
     args = []
-    if fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "cytoscapeJSON", "pajek"):
+    if fmt in ("dot", "graphML", "nodeLinkJSON", "gml", "cytoscapeJSON", "pajek", "gexf"):
         vc = switch_closure("v", vcases)
         ec = switch_closure("e", ecases)
         if vc:
@@ -312,10 +312,10 @@ def write_test(c):
         if ec:
             args.append("edgeAttributes: " + ec)
         if g.gattrs:
-            assert fmt != "pajek"
+            assert fmt not in ("pajek", "gexf")
             args.append("graphAttributes: " + attribute_pairs([(lit(k), value(x)) for k, x in g.gattrs.items()]))
         call = {"dot": "writeDOT", "graphML": "writeGraphML", "nodeLinkJSON": "writeNodeLinkJSON", "gml": "writeGML",
-                "cytoscapeJSON": "writeCytoscapeJSON", "pajek": "writePajek"}[fmt]
+                "cytoscapeJSON": "writeCytoscapeJSON", "pajek": "writePajek", "gexf": "writeGEXF"}[fmt]
     elif fmt in ("graph6", "sparse6", "digraph6"):
         call = {"graph6": "writeGraph6", "sparse6": "writeSparse6", "digraph6": "writeDigraph6"}[fmt]
         if kw.get("header"):
@@ -434,6 +434,10 @@ FILES = [
     ("GraphFormatsCytoscapeJSONTests.swift", "GraphFormats Cytoscape JSON", ("cytoscapeJSON",), "Cytoscape JSON",
      "elements as an object or an array, data as an object or NetworkX's pairs, ids as text; ref.py checks the "
      "write rows byte for byte against json.dumps(cytoscape_data)."),
+    ("GraphFormatsGEXFTests.swift", "GraphFormats GEXF", ("gexf",), "GEXF",
+     "one static graph over the XML subset, declared attributes with defaults, nodes (nested ones too) before the "
+     "edges that name them, label and weight as attributes, dynamic data rejected; the writer's node class then "
+     "edge class, label and weight as XML attributes; ref.py has NetworkX read every write row back."),
 ]
 IMPORTS = {"AdjacencyListModule": ("AdjacencyList<", "UndirectedAdjacencyList<"),
            "Multigraphs": ("DirectedPseudograph<", "Pseudograph<")}

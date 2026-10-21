@@ -116,6 +116,9 @@ func readFormat(_ r: FormatRequest) -> FormatAnswer {
             case "gml":
                 let g = try DirectedPseudograph<String>(gml: input, vertexAttribute: vertex, edgeAttribute: edge, graphAttribute: graph)
                 return FormatAnswer(graph: readAnswer(g, vertices: va, edges: ea, graphAttributes: ga))
+            case "gexf":
+                let g = try DirectedPseudograph<String>(gexf: input, vertexAttribute: vertex, edgeAttribute: edge, graphAttribute: graph)
+                return FormatAnswer(graph: readAnswer(g, vertices: va, edges: ea, graphAttributes: ga))
             case "pajek":
                 let g = try DirectedPseudograph<String>(pajek: input, vertexAttribute: vertex, edgeAttribute: edge, graphAttribute: graph)
                 return FormatAnswer(graph: readAnswer(g, vertices: va, edges: ea, graphAttributes: ga))
@@ -141,6 +144,9 @@ func readFormat(_ r: FormatRequest) -> FormatAnswer {
         switch r.format {
         case "gml":
             let g = try Pseudograph<String>(gml: input, vertexAttribute: vertex, edgeAttribute: edge, graphAttribute: graph)
+            return FormatAnswer(graph: readAnswer(g, vertices: va, edges: ea, graphAttributes: ga))
+        case "gexf":
+            let g = try Pseudograph<String>(gexf: input, vertexAttribute: vertex, edgeAttribute: edge, graphAttribute: graph)
             return FormatAnswer(graph: readAnswer(g, vertices: va, edges: ea, graphAttributes: ga))
         case "pajek":
             let g = try Pseudograph<String>(pajek: input, vertexAttribute: vertex, edgeAttribute: edge, graphAttribute: graph)
@@ -193,6 +199,7 @@ func writeFormat(_ r: FormatRequest) -> FormatAnswer {
             let gi = DirectedPseudograph<Int>(vertices: 0 ..< fg.vertices.count, edges: fg.edges.map { DirectedEdge(from: $0[0], to: $0[1]) })
             switch r.format {
             case "gml": try g.writeGML(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: graphAttributes)
+            case "gexf": try g.writeGEXF(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
             case "pajek": try g.writePajek(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
             case "cytoscape": try g.writeCytoscapeJSON(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: graphAttributes)
             case "edgelist": try g.writeEdgeList(to: &out, columns: r.columns ?? [], delimiter: delimiter, edgeAttributes: edgeAttributes)
@@ -205,6 +212,7 @@ func writeFormat(_ r: FormatRequest) -> FormatAnswer {
             let gi = Pseudograph<Int>(vertices: 0 ..< fg.vertices.count, edges: fg.edges.map { UndirectedEdge($0[0], $0[1]) })
             switch r.format {
             case "gml": try g.writeGML(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: graphAttributes)
+            case "gexf": try g.writeGEXF(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
             case "pajek": try g.writePajek(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
             case "cytoscape": try g.writeCytoscapeJSON(to: &out, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes, graphAttributes: graphAttributes)
             case "edgelist": try g.writeEdgeList(to: &out, columns: r.columns ?? [], delimiter: delimiter, edgeAttributes: edgeAttributes)

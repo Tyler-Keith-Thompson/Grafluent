@@ -1,8 +1,8 @@
 # GraphFormats: API
 
-Readers and writers for fifteen text formats: DOT, GraphML, node-link JSON, Matrix Market
+Readers and writers for sixteen text formats: DOT, GraphML, node-link JSON, Matrix Market
 (coordinate), edge list, adjacency list, Mermaid flowcharts, GML, Pajek `.net`, graph6, sparse6,
-digraph6, DIMACS (shortest path and clique), METIS and Cytoscape JSON. A reader is a throwing initializer
+digraph6, DIMACS (shortest path and clique), METIS, Cytoscape JSON and GEXF. A reader is a throwing initializer
 on any mutable representation (`AdjacencyList`, `DirectedPseudograph`, `StableDirectedGraph`,
 `UndirectedAdjacencyList`, `Pseudograph`). It reports vertex, edge and graph attributes through
 closures, by vertex and by edge position. A writer is a method on any `DirectedGraph` or `Graph`
@@ -12,16 +12,16 @@ builds on Linux with the standard library and `GraphProtocols` only. It draws no
 styling statements are skipped on reading and never written, unless the caller passes them as
 plain attributes.
 
-`cases.md` (GF-001 – GF-592: 510 read rows, 287 of them errors, and 82 write rows) pins the values.
+`cases.md` (GF-001 – GF-660: 570 read rows, 326 of them errors, and 90 write rows) pins the values.
 `ref.py` is an independent Python implementation of everything below. Every row is compared with
 NetworkX 3.7 (GraphML, node-link JSON, edge list, adjacency list, GML, Pajek, graph6, sparse6,
-Cytoscape JSON), SciPy 1.18.1 (Matrix Market) or pydot 4.0.1 (DOT), where that library reads or
+Cytoscape JSON, GEXF), SciPy 1.18.1 (Matrix Market) or pydot 4.0.1 (DOT), where that library reads or
 writes the format; digraph6, DIMACS and METIS have no Python implementation, and their rules follow
 nauty's `formats.txt`, the DIMACS challenge pages and the METIS 5 manual. `ref.py` checks the write
 rows byte for byte against `json.dumps(nx.node_link_data(G, edges="edges"))`, SciPy's `mmwrite`,
 NetworkX's `write_edgelist` and `write_adjlist` (header comments removed), `generate_gml`,
 `generate_pajek`, `to_graph6_bytes`, `to_sparse6_bytes` and `json.dumps(cytoscape_data(G))` on the
-graphs those writers handle alike, and has NetworkX (GraphML) and pydot (DOT) read them back. The model also
+graphs those writers handle alike, and has NetworkX (GraphML, GEXF) and pydot (DOT) read them back. The model also
 reads back every write row. Rows where a library behaves differently are listed with the reason in
 `KNOWN` and under Library disagreements below. `--stress` writes 400 random graphs per format
 (strings with quotes, backslashes, newlines, `#`, `<&>`, non-ASCII; every value type; parallel
@@ -51,6 +51,7 @@ follow the flowchart syntax page and `flow.jison` of mermaid-js 11.
 | DIMACS | `p sp` (shortest path, `a u v w`) and `p edge`/`p col` (clique, colouring, `e u v`), `c` comments | `p sp` for a `DirectedGraph`, `p edge` for a `Graph` |
 | METIS | the header `n m [fmt [ncon]]`, vertex sizes and weights (ncon = 1), edge weights, `%` comments | unweighted or with edge weights |
 | Cytoscape JSON | `directed`, `multigraph`, `data` (object or NetworkX's pairs), `elements` as `{nodes, edges}` or an array with `group` | NetworkX's `cytoscape_data` layout |
+| GEXF | one static `<graph>` (1.1 to 1.3), its `<attributes>` declarations with `<default>`s, `<nodes>` (nested ones too) and `<edges>` with `label`, `weight` and `<attvalues>`; `<meta>`, `viz`, `parents` and `spells` skipped | GEXF 1.2 (the `1.2draft` namespace NetworkX writes): declarations, nodes, edges |
 
 These are read as `unsupported`, at the construct:
 
@@ -68,6 +69,7 @@ These are read as `unsupported`, at the construct:
 | DIMACS | flow and assignment problems (`p max`, `p min`, `p asn`, `p cut`), `n` lines |
 | METIS | more than one vertex weight (ncon > 1) |
 | Cytoscape JSON | `null`, arrays and objects as attribute values |
+| GEXF | `mode="dynamic"` on the graph or a declaration, `mutual` edges, an edge whose `type` differs from the graph's, a second `<graph>` |
 
 ## Summary
 
@@ -135,8 +137,10 @@ extension MutableDirectedGraph {
     public init(cytoscapeJSON input: some Sequence<UInt8>,
                 vertex: (String) -> Vertex?,                         // the id; an integer id as its text
                 vertexAttribute:, edgeAttribute:, graphAttribute:) throws(ParseError)
+    public init(gexf input: some Sequence<UInt8>, vertex: (String) -> Vertex?,  // the node id
+                vertexAttribute:, edgeAttribute:, graphAttribute:) throws(ParseError)
 }
-extension MutableDirectedGraph where Vertex == String { /* the same, without vertex:, for dot, graphML, nodeLinkJSON, edgeList, adjacencyList, mermaid, gml, pajek, cytoscapeJSON */ }
+extension MutableDirectedGraph where Vertex == String { /* the same, without vertex:, for dot, graphML, nodeLinkJSON, edgeList, adjacencyList, mermaid, gml, pajek, cytoscapeJSON, gexf */ }
 extension MutableDirectedGraph where Vertex == Int    { /* matrixMarket, nodeLinkJSON, edgeList, adjacencyList, digraph6, dimacs without vertex: */ }
 extension MutableGraph {
     /* the same, undirected, but digraph6; and: */
@@ -159,6 +163,7 @@ extension DirectedGraph {
         graphAttributes: [(key: String, value: AttributeValue)] = []
     ) throws(WriteError)
     public func writeGraphML(to:, vertexID:, vertexAttributes:, edgeAttributes:, graphAttributes:) throws(WriteError)
+    public func writeGEXF(to:, vertexID:, vertexAttributes:, edgeAttributes:) throws(WriteError)       // no graph attributes
     public func writeNodeLinkJSON(to:, vertexID: (Vertex) -> AttributeValue = …, vertexAttributes:, edgeAttributes:, graphAttributes:) throws(WriteError)
         // default vertexID: .integer for Vertex == Int, .string(String(describing:)) otherwise
     public func writeMatrixMarket(to output: inout some TextOutputStream)                                       // pattern
@@ -328,10 +333,10 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
 | `numberOutOfRange` | an integer outside `Int`, a double that overflows to infinity (GraphML `long`, JSON, Matrix Market, GML, an edge-list dict integer, a Pajek, DIMACS or METIS count) |
 | `invalidValue` | a value the grammar admits but the format does not: a GraphML `int` that is `1.5`, a boolean `True`, a character reference to `&#0;`, a JSON lone surrogate, a Matrix Market fraction in an `integer` file, a hexadecimal float, a skew-symmetric diagonal entry, a GML `id` that is not an integer or `directed 2`, a Pajek coordinate or weight that is not a number, nauty padding bits that are not 0, a DIMACS weight that is not an integer, a METIS `fmt` other than 0s and 1s, a METIS loop or an entry without its mirror, an object inside a node-link array id, a Cytoscape `group` other than `nodes`/`edges` |
 | `invalidVertex` | the `vertex` closure returned `nil` (at the ID; Matrix Market: at the size line's first field, where the indices are mapped), or a node-link id that is a string or an integer but not of the target's type under the default mapping (a string id into an `Int` target, GF-095; an edge-list field that is not a decimal `Int` into an `Int` target). A node-link id that is neither a string nor an integer (a double, a boolean, `null`, a container) is `invalidValue` at the id, before any mapping (GF-228) |
-| `duplicateVertex` | a GraphML, node-link, GML or Cytoscape node declared twice, a GML name given to two nodes, a Pajek vertex number given twice |
-| `undeclaredVertex` | an edge endpoint that is not a declared node (GraphML, node-link, GML, Cytoscape) |
-| `duplicateKey` | a repeated XML attribute, GraphML key id, JSON object key, or GML `id`, `label`, `source`, `target`, `directed`, `multigraph` within one list |
-| `undeclaredKey` | GraphML `<data>` whose key is not declared for that element kind |
+| `duplicateVertex` | a GraphML, node-link, GML, Cytoscape or GEXF node declared twice, a GML name given to two nodes, a Pajek vertex number given twice |
+| `undeclaredVertex` | an edge endpoint that is not a declared node (GraphML, node-link, GML, Cytoscape; GEXF, where the node must come before the edge) |
+| `duplicateKey` | a repeated XML attribute, GraphML key id, GEXF attribute id within a class, JSON object key, or GML `id`, `label`, `source`, `target`, `directed`, `multigraph` within one list |
+| `undeclaredKey` | GraphML `<data>` whose key is not declared for that element kind; a GEXF `<attvalue>` whose `for` is not declared for its class |
 | `kindMismatch` | the file's kind is not the target's |
 | `entryCountMismatch` | Matrix Market entries, or DIMACS edge lines, fewer or more than the size or problem line says (at the first extra line, or the end); a METIS edge count other than the header's `m` (at `m`) |
 | `indexOutOfRange` | a Matrix Market, DIMACS, METIS or Pajek index outside `1...n` (a Pajek integer of any size) |
@@ -485,6 +490,82 @@ and `CompressedSparseRow` (immutable) are read through a mutable representation 
   containing a character XML 1.0 cannot represent (C0 controls other than tab, LF, CR; U+FFFE,
   U+FFFF) throws `invalidID`, `invalidKey` or `invalidValue`. Every check runs in the first pass
   and on the IDs, before anything is written.
+
+### GEXF
+
+- **Scope**: static graphs of GEXF 1.1 to 1.3 (gexf.net), over the XML subset above; element names
+  match by local name, so the 1.2draft, 1.2 and 1.3 namespaces and the `viz` prefix all read.
+  The root's local name is `gexf` (`syntax` at it otherwise, GF-614). Exactly one `<graph>`
+  (`syntax` at the root without one, GF-615; `unsupported` at a second, GF-616). Its
+  `defaultedgetype` is `directed` or `undirected` (`undirected` when absent, GF-594), the target's
+  kind (`kindMismatch` at the graph, GF-619, GF-620); `mutual` is `unsupported` and any other word
+  `invalidValue`, at the attribute (GF-617, GF-618). `mode="dynamic"` on the graph or on an
+  `<attributes>` element is `unsupported` at the attribute, and a mode that is neither `static` nor
+  `dynamic` `invalidValue` (GF-621, GF-622, GF-625); `timeformat`, `start`, `end` and `idtype` are
+  ignored. A non-empty graph `name` is reported as the graph attribute `name`, before any vertex
+  (GF-601, GF-602).
+- **Declarations**: `<attributes class="node"|"edge">` (`syntax` without `class`, `invalidValue` at
+  another class: GF-623, GF-624) hold `<attribute id title type>`: `id` required (`syntax` at the
+  element, GF-626), once per class (`duplicateKey` at the id, GF-627; the two classes are separate,
+  GF-610), `title` defaulting to the id, `type` to `string` (GF-610); `integer` and `long` are
+  `.integer`, `float` and `double` `.double`, `boolean`, and `string`, `liststring` and `anyURI`
+  `.string` (GF-595); any other type is `invalidValue` at it (GF-628). A `<default>` child gives the
+  default, read as a value of the type at the element (GF-630); one with element content is
+  `invalidValue` (GF-629); a second `<default>` replaces the first (GF-613). Declarations reach the elements after them in the document (GF-609).
+- **Nodes**: `<node id label>` inside `<nodes>`, in document order; `id` required (`syntax` at the
+  element, GF-631), given once (`duplicateVertex` at the id, GF-632, GF-633). A `<nodes>` inside a
+  node (a hierarchy) is the graph's, each node numbered at its start tag (GF-599); `pid`,
+  `<parents>`, `<spells>` and `viz` elements are skipped (GF-600). A `label` is reported as the
+  attribute `label` (GF-597).
+- **Edges**: `<edge source target id label weight type>` inside `<edges>`, in document order,
+  resolved as read: `source` and `target` required (`syntax` at the element, GF-640) and declared
+  by an earlier node (`undeclaredVertex` at the attribute, GF-641, GF-642). `type`, when present,
+  must be the graph's kind (`unsupported` at it otherwise, also for `mutual`; another word is
+  `invalidValue`: GF-643 – GF-645). `id` is an identifier, not an attribute (GF-603). `label` is
+  reported as `label` and `weight`, read as a double (`invalidValue` at it otherwise, GF-646), as
+  `weight`, before the `<attvalue>`s (GF-597, GF-598).
+- **Values**: `<attvalue for value>` inside the element's `<attvalues>`: `for` names a declared
+  attribute of the element's class (`syntax` at the element without it, `undeclaredKey` at it
+  otherwise: GF-634 – GF-636), `value` is required (`syntax` at the element, GF-637) and read as a
+  value of the declared type, with GraphML's rules (whitespace collapsed around numbers and
+  booleans, `INF`, `NaN`; errors at the element: GF-638, GF-639). An attribute given twice is
+  reported twice (GF-611). After an element's values, every declared default it gave no value for is
+  reported, in declaration order (GF-596), within the expansion budget (`limitExceeded` at the
+  element). Every other element (`<meta>`, `<options>`, `viz`, unknown ones) is skipped with its
+  subtree (GF-600).
+- **Writer**:
+
+  ```
+  <?xml version="1.0" encoding="UTF-8"?>
+  <gexf xmlns="http://www.gexf.net/1.2draft" xmlns:xsi="…" xsi:schemaLocation="…" version="1.2">
+    <graph defaultedgetype="directed" mode="static">
+      <attributes class="node" mode="static">
+        <attribute id="0" title="…" type="…"/>          the node class's, then the edge class's, numbered on
+      </attributes>
+      <nodes>
+        <node id="a"/>                                    no values: an empty element
+        <node id="b" label="…">
+          <attvalues>
+            <attvalue for="0" value="…"/>
+          </attvalues>
+        </node>
+      </nodes>
+      <edges>
+        <edge id="0" source="a" target="b" weight="…"/>  id: the position
+      </edges>
+    </graph>
+  </gexf>
+  ```
+
+  Two-space indent; an empty graph writes `<nodes/>` and `<edges/>`; a class without attributes has
+  no `<attributes>` element. The `1.2draft` namespace is the one NetworkX reads and writes (and
+  Gephi reads). Types as GraphML's (`.integer` → `long`, mixed integers and doubles → `double`,
+  any other mix `typeMismatch`). A `label` pair is the element's `label` attribute and an edge's
+  `weight` pair its `weight` attribute, written where the pair falls among the element's pairs
+  (GF-660); a label that is not a string or a weight that is not a number is `invalidValue`. A
+  node's `weight` is an ordinary attribute. The closures are called twice per element, as
+  GraphML's; `vertexID` once per vertex. Escaping and the ID, name and value checks are GraphML's.
+  Graph attributes cannot be written (GEXF has none); the reader's `name` is not reproduced.
 
 ### Node-link JSON
 
@@ -770,6 +851,7 @@ What `read(write(g))` gives back, into a target of the same kind and type:
 |---|---|---|---|
 | DOT | all, same order | same | every key; values come back as `.string` (`.integer(2)` → `"2"`, `.double(2.0)` → `"2.0"`, `.boolean(true)` → `"true"`) |
 | GraphML | all, same order | same | exact, typed; an integer under a key that also holds doubles comes back `.double` |
+| GEXF | all, same order | same | exact, typed, as GraphML; an edge's `weight` comes back `.double`; graph attributes are not written |
 | node-link JSON | all, same order | same | exact, typed |
 | Matrix Market | all as indices `0..<n` in `vertices` order | same; undirected edges come back as (larger index, smaller index) | `weight` only, exact (reals print shortest round-trip digits) |
 | edge list | isolated vertices lost; order = first appearance in edges | same | the `columns`, re-typed by their text (`.string("12")` → `.integer(12)`) |
@@ -885,6 +967,7 @@ differently from this module.
 | GraphML `edgedefault` | NetworkX reads a missing `edgedefault` as undirected; graphml.xsd declares it `use="required"`. Here: `syntax` | GF-064 |
 | GraphML integrity | NetworkX adds an undeclared edge endpoint as a node, merges a duplicate node id, reads only the first `<graph>`, requires `attr.name`, decodes ISO-8859-1, and has no depth limit | GF-047, GF-066, GF-067, GF-074, GF-077, GF-079 |
 | GraphML writer | NetworkX writes two `<key>`s with the same `attr.name` (`long` and `double`) when one attribute holds Python ints and floats; here one `double` key | GF-198 |
+| GEXF (NetworkX 3.7 `read_gexf`) | NetworkX has no target and reads any `defaultedgetype` but `directed` as undirected and any `mode` but `dynamic` as static; reads dynamic graphs and attributes (values as lists); reads the first `<graph>` only; adds an undeclared endpoint as a node, merges a duplicate node id, reads every node before any edge, and adds a nested node before its parent; adds a `mutual` edge in both directions and ignores an unknown edge type; stores defaults in `G.graph["node_default"]` without applying them; requires an attribute `type` and a graph `timeformat` for spells (`KeyError` otherwise), and declares an attribute without an id under `None`; expands internal DTD entities; gives every node a `label` (`None` without one) and every edge its `id`, and takes a weight as a float | GF-596, GF-598 – GF-600, GF-607 – GF-610, GF-613, GF-616 – GF-622, GF-625 – GF-628, GF-632, GF-633, GF-641, GF-642, GF-644, GF-645, GF-647 |
 | node-link JSON | NetworkX 3.7 raises `KeyError: 'edges'` on files with `links` (its own pre-3.4 default) unless told `edges="links"`; here either is read | GF-089 |
 | JSON parsing | Python's `json.loads` accepts `NaN`/`Infinity`, keeps the last of duplicate keys, keeps lone surrogates, and reads integers of any size; NetworkX adds undeclared edge endpoints, keeps `null`/list attributes, and names a node without `id` `None` | GF-093 – GF-104, GF-110 |
 | Matrix Market | SciPy truncates `3.5` in an `integer` file to `3`, reads `0x1p3` as `0.0`, ignores extra columns, accepts `+1` as an index, a skew-symmetric diagonal, and `pattern skew-symmetric` (which the spec forbids); writes field `real` for any empty matrix, even with `field="pattern"` | GF-137 – GF-146, GF-213 |

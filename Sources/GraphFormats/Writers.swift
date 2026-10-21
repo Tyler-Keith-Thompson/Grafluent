@@ -88,6 +88,42 @@ extension DirectedGraph {
         }
     }
 
+    /// Writes the graph as GEXF 1.2 (a static graph).
+    ///
+    /// The output declares a typed `<attribute>` per attribute name and class, then every vertex
+    /// and edge with its `<attvalues>`. A `label` pair becomes the element's `label` and an edge's
+    /// `weight` pair its `weight`, as the reader reports them; an edge's `id` is its position. The
+    /// attribute closures are called twice per element (to type the declarations, then to write)
+    /// and must return the same pairs both times; `vertexID` is called once per vertex. GEXF has
+    /// no graph attributes.
+    ///
+    /// - Parameters:
+    ///   - output: The stream the text is appended to.
+    ///   - vertexID: Each vertex's ID, called once per vertex. Defaults to its description.
+    ///   - vertexAttributes: Each vertex's attribute pairs, in the order to write; each key once.
+    ///   - edgeAttributes: Each edge's attribute pairs, by position; each key once.
+    /// - Complexity: O(n + m + output size), plus the closures' cost.
+    /// - Throws: A `WriteError`, checked before anything is written:
+    ///   - `duplicateID` when two vertices have the same ID, compared by Unicode scalars;
+    ///   - `invalidID`, `invalidKey` or `invalidValue` when an ID, an attribute name or a string
+    ///     value holds a character XML 1.0 cannot represent (a C0 control other than tab, line feed
+    ///     and carriage return, U+FFFE or U+FFFF), and `invalidValue` for a `label` that is not a
+    ///     string or an edge `weight` that is not a number;
+    ///   - `typeMismatch` when one attribute name holds values of two types other than integers and
+    ///     doubles.
+    ///
+    /// Traps when an attribute closure gives one key twice for one element.
+    @inlinable public func writeGEXF(
+        to output: inout some TextOutputStream,
+        vertexID: (Vertex) -> String = { _defaultVertexID($0) },
+        vertexAttributes: (Vertex) -> [(key: String, value: AttributeValue)] = { _ in [] },
+        edgeAttributes: (Edges.Index) -> [(key: String, value: AttributeValue)] = { _ in [] }
+    ) throws(WriteError) {
+        try _withOutputBuffer(&output) { (out) throws(WriteError) in
+            try _writeGEXF(_DirectedSource(self), to: &out, vertexID: vertexID, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
+        }
+    }
+
     /// Writes the graph as node-link JSON.
     ///
     /// The output is one line, with `", "` and `": "` between items, every character outside ASCII
@@ -311,6 +347,42 @@ extension Graph {
         try _withOutputBuffer(&output) { (out) throws(WriteError) in
             try _writeGraphML(_UndirectedSource(self), to: &out, vertexID: vertexID, vertexAttributes: vertexAttributes,
                               edgeAttributes: edgeAttributes, graphAttributes: graphAttributes)
+        }
+    }
+
+    /// Writes the graph as GEXF 1.2 (a static graph).
+    ///
+    /// The output declares a typed `<attribute>` per attribute name and class, then every vertex
+    /// and edge with its `<attvalues>`. A `label` pair becomes the element's `label` and an edge's
+    /// `weight` pair its `weight`, as the reader reports them; an edge's `id` is its position. The
+    /// attribute closures are called twice per element (to type the declarations, then to write)
+    /// and must return the same pairs both times; `vertexID` is called once per vertex. GEXF has
+    /// no graph attributes.
+    ///
+    /// - Parameters:
+    ///   - output: The stream the text is appended to.
+    ///   - vertexID: Each vertex's ID, called once per vertex. Defaults to its description.
+    ///   - vertexAttributes: Each vertex's attribute pairs, in the order to write; each key once.
+    ///   - edgeAttributes: Each edge's attribute pairs, by position; each key once.
+    /// - Complexity: O(n + m + output size), plus the closures' cost.
+    /// - Throws: A `WriteError`, checked before anything is written:
+    ///   - `duplicateID` when two vertices have the same ID, compared by Unicode scalars;
+    ///   - `invalidID`, `invalidKey` or `invalidValue` when an ID, an attribute name or a string
+    ///     value holds a character XML 1.0 cannot represent (a C0 control other than tab, line feed
+    ///     and carriage return, U+FFFE or U+FFFF), and `invalidValue` for a `label` that is not a
+    ///     string or an edge `weight` that is not a number;
+    ///   - `typeMismatch` when one attribute name holds values of two types other than integers and
+    ///     doubles.
+    ///
+    /// Traps when an attribute closure gives one key twice for one element.
+    @inlinable public func writeGEXF(
+        to output: inout some TextOutputStream,
+        vertexID: (Vertex) -> String = { _defaultVertexID($0) },
+        vertexAttributes: (Vertex) -> [(key: String, value: AttributeValue)] = { _ in [] },
+        edgeAttributes: (Edges.Index) -> [(key: String, value: AttributeValue)] = { _ in [] }
+    ) throws(WriteError) {
+        try _withOutputBuffer(&output) { (out) throws(WriteError) in
+            try _writeGEXF(_UndirectedSource(self), to: &out, vertexID: vertexID, vertexAttributes: vertexAttributes, edgeAttributes: edgeAttributes)
         }
     }
 

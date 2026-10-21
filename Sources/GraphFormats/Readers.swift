@@ -50,6 +50,27 @@ extension MutableDirectedGraph {
         }
     }
 
+    /// Reads GEXF (static graphs): one `<graph>` whose `defaultedgetype` is the target's kind
+    /// (`undirected` when absent), its `<attributes>` declarations with defaults, `<node>`s in
+    /// document order (nested `<nodes>` are the graph's), then `<edge>`s, whose endpoints must be
+    /// declared before them. A node's or an edge's `label` is reported under `label`, an edge's
+    /// `weight` under `weight` as a double, then its `<attvalue>`s, then the declared defaults it
+    /// gave no value for; a non-empty graph `name` is a graph attribute. `mode="dynamic"` and
+    /// `mutual` edges are `unsupported`. No DTD, no entities but the predefined five and character
+    /// references, as GraphML.
+    @inlinable public init(
+        gexf input: some Sequence<UInt8>,
+        vertex: (String) -> Vertex?,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        self = try Self._readBulk(input, xmlCharacters: true, names: [], vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readGEXF(text, into: &target, buffer: &buffer, map: { vertex(_string($0)) }, graphAttribute: graphAttribute)
+        }
+    }
+
     /// Reads node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
     /// `links`). `vertex` maps each node `id` (a string or an integer; an array, NetworkX's tuple,
     /// as `.string` of its canonical JSON text, `[0, 1]`) once.
@@ -157,6 +178,19 @@ extension MutableDirectedGraph where Vertex == String {
         self = try Self._readBulk(input, xmlCharacters: true, names: [], vertexAttribute: vertexAttribute,
                                   edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readGraphML(text, into: &target, buffer: &buffer, map: _string, graphAttribute: graphAttribute)
+        }
+    }
+
+    /// Reads GEXF, each node `id` its own vertex.
+    @inlinable public init(
+        gexf input: some Sequence<UInt8>,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        self = try Self._readBulk(input, xmlCharacters: true, names: [], vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readGEXF(text, into: &target, buffer: &buffer, map: _string, graphAttribute: graphAttribute)
         }
     }
 
@@ -298,6 +332,27 @@ extension MutableGraph {
         }
     }
 
+    /// Reads GEXF (static graphs): one `<graph>` whose `defaultedgetype` is the target's kind
+    /// (`undirected` when absent), its `<attributes>` declarations with defaults, `<node>`s in
+    /// document order (nested `<nodes>` are the graph's), then `<edge>`s, whose endpoints must be
+    /// declared before them. A node's or an edge's `label` is reported under `label`, an edge's
+    /// `weight` under `weight` as a double, then its `<attvalue>`s, then the declared defaults it
+    /// gave no value for; a non-empty graph `name` is a graph attribute. `mode="dynamic"` and
+    /// `mutual` edges are `unsupported`. No DTD, no entities but the predefined five and character
+    /// references, as GraphML.
+    @inlinable public init(
+        gexf input: some Sequence<UInt8>,
+        vertex: (String) -> Vertex?,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        self = try Self._readBulk(input, xmlCharacters: true, names: [], vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readGEXF(text, into: &target, buffer: &buffer, map: { vertex(_string($0)) }, graphAttribute: graphAttribute)
+        }
+    }
+
     /// Reads node-link JSON: `directed`, `multigraph`, `graph`, `nodes`, and `edges` (or
     /// `links`). `vertex` maps each node `id` (a string or an integer; an array, NetworkX's tuple,
     /// as `.string` of its canonical JSON text, `[0, 1]`) once.
@@ -405,6 +460,19 @@ extension MutableGraph where Vertex == String {
         self = try Self._readBulk(input, xmlCharacters: true, names: [], vertexAttribute: vertexAttribute,
                                   edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
             try _readGraphML(text, into: &target, buffer: &buffer, map: _string, graphAttribute: graphAttribute)
+        }
+    }
+
+    /// Reads GEXF, each node `id` its own vertex.
+    @inlinable public init(
+        gexf input: some Sequence<UInt8>,
+        vertexAttribute: (Vertex, String, AttributeValue) -> Void = { _, _, _ in },
+        edgeAttribute: (Edges.Index, String, AttributeValue) -> Void = { _, _, _ in },
+        graphAttribute: (String, AttributeValue) -> Void = { _, _ in }
+    ) throws(ParseError) {
+        self = try Self._readBulk(input, xmlCharacters: true, names: [], vertexAttribute: vertexAttribute,
+                                  edgeAttribute: edgeAttribute) { (text, target, buffer) throws(ParseError) in
+            try _readGEXF(text, into: &target, buffer: &buffer, map: _string, graphAttribute: graphAttribute)
         }
     }
 

@@ -146,7 +146,7 @@ The full API reference is the [DocC documentation](https://tyler-keith-thompson.
 | Operations | `GraphOperations` (views, subgraphs, ego graphs, condensation, line graphs, set operations, powers, contraction, relabeling, transitive closure), `GraphProducts` |
 | Algorithms | `Traversal`, `ShortestPaths`, `SpanningTrees`, `Connectivity`, `Cycles`, `Tours`, `Flows`, `MatchingModule`, `ColoringModule`, `Cliques`, `Covering`, `Centrality`, `CommunityDetection`, `IsomorphismModule`, `Planarity`, `TreeAlgorithms`, `Distances`, `SpectralGraphTheory`, `Assortativity`, `Similarity` |
 | Generators | `NamedGraphs`, `RandomGraphs` |
-| Drawing and formats | `GraphDrawing` (layout coordinates), `GraphFormats` (DOT, GraphML, GML, node-link and Cytoscape JSON, Pajek, graph6/sparse6/digraph6, DIMACS, METIS, Matrix Market, edge and adjacency lists, Mermaid) |
+| Drawing and formats | `GraphDrawing` (layout coordinates), `GraphFormats` (DOT, GraphML, GEXF, GML, node-link and Cytoscape JSON, Pajek, graph6/sparse6/digraph6, DIMACS, METIS, Matrix Market, edge and adjacency lists, Mermaid) |
 
 ## Building and testing
 

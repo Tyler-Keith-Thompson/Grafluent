@@ -1,4 +1,4 @@
-# Planted bugs for GraphFormats (GML, Pajek, the nauty formats, DIMACS, METIS, Cytoscape JSON and
+# Planted bugs for GraphFormats (GML, Pajek, the nauty formats, DIMACS, METIS, Cytoscape JSON, GEXF and
 # delimited and dict edge lists included): the scanners (UTF-8, lines, XML, JSON, the shared key index), every
 # reader and writer, node-link's one-pass read and GraphML's lookahead, the limits (Matrix Market's
 # vertex bound, the expansion budget), the decimal parser and Schubfach, and the bulk hooks in
@@ -48,6 +48,7 @@ GF = "GML.swift"
 PJ = "Pajek.swift"
 CY = "CytoscapeJSON.swift"
 PY = "PythonLiterals.swift"
+GX = "GEXF.swift"
 
 MUTANTS = [
     # UTF-8 and positions.
@@ -429,4 +430,50 @@ MUTANTS = [
     Mutant("cy1sourcefirst", CY, "guard hasSource, noteID(node: false) else { return false }", "guard noteID(node: false) else { return false }", mode="stmt"),
     Mutant("pajekfastweight", PJ, "weight = d", "weight = -d", mode="stmt"),
     Mutant("metisfastrange", ME, "value >= 1 && value <= n", "value >= 1 && value <= n &+ 1"),
+
+    # GEXF: the one walk, its checks, the defaults, and the writer.
+    Mutant("gexfroot", GX, 'guard scanner.isLocal(tag, "gexf") else { throw ParseError(.syntax, at: tag.offset) }', "", mode="stmt"),
+    Mutant("gexfsecondgraph", GX, "if graphOffset != nil { throw ParseError(.unsupported, at: tag.offset) }", "", mode="stmt"),
+    Mutant("gexfkind", GX, "if isDirected != Direction.isDirected { throw ParseError(.kindMismatch, at: tag.offset) }", "", mode="stmt"),
+    Mutant("gexfmutual", GX, 'throw ParseError(word.elementsEqual("mutual".utf8) ? .unsupported : .invalidValue, at: attribute.nameStart)',
+           "throw ParseError(.invalidValue, at: attribute.nameStart)", mode="stmt"),
+    Mutant("gexfdynamic", GX, 'throw ParseError(word.elementsEqual("dynamic".utf8) ? .unsupported : .invalidValue, at: a.nameStart)',
+           "throw ParseError(.invalidValue, at: a.nameStart)", mode="stmt"),
+    Mutant("gexfname", GX, 'if !scratch.isEmpty { graphAttribute("name", .string(String(decoding: scratch, as: UTF8.self))) }',
+           'graphAttribute("name", .string(String(decoding: scratch, as: UTF8.self)))', mode="stmt"),
+    Mutant("gexfclass", GX, "domain = 1", "domain = 0", mode="stmt"),
+    Mutant("gexfdupattribute", GX, "if attributeNumbers[domain][scratch] != nil { throw ParseError(.duplicateKey, at: idAttribute.nameStart) }", "", mode="stmt"),
+    Mutant("gexftitle", GX, "title = String(decoding: id, as: UTF8.self)", 'title = ""', mode="stmt"),
+    Mutant("gexftypeinteger", GX, "type = .integer", "type = .string", mode="stmt"),
+    Mutant("gexftypedouble", GX, "type = .double", "type = .integer", mode="stmt"),
+    Mutant("gexftypeunknown", GX, "throw ParseError(.invalidValue, at: t.nameStart)", "type = .string", mode="stmt"),
+    Mutant("gexfdefaultelements", GX, "if defaultHasElements { throw ParseError(.invalidValue, at: defaultOffset) }", "", mode="stmt"),
+    Mutant("gexfdefaultonce", GX, "if attributes[d][k].defaultValue == nil { defaults[d].append(k) }", "defaults[d].append(k)", mode="stmt"),
+    Mutant("gexfdupnode", GX, "guard inserted else { throw ParseError(.duplicateVertex, at: idAttribute.nameStart) }", "", mode="stmt"),
+    Mutant("gexfnodelabel", GX, "record(element, labelNumber(), .string(String(decoding: scratch, as: UTF8.self)))", "", mode="stmt", nth=0),
+    Mutant("gexfedgelabel", GX, "record(element, labelNumber(), .string(String(decoding: scratch, as: UTF8.self)))", "", mode="stmt", nth=1),
+    Mutant("gexfnested", GX, "stack.append(.nodes)", "stack.append(.skip)", mode="stmt", nth=1),
+    Mutant("gexfstamp", GX, "stamps[element.domain][k] = element.generation", "", mode="stmt"),
+    Mutant("gexfundeclaredkey", GX, "ParseError(.undeclaredKey, at: f.nameStart)", "ParseError(.undeclaredKey, at: tag.offset)"),
+    Mutant("gexfundeclaredvertex", GX, "ParseError(.undeclaredVertex, at: attribute.nameStart)", "ParseError(.invalidVertex, at: attribute.nameStart)"),
+    Mutant("gexfedgetype", GX, 'if let a = scanner.attribute("type"), try edgeType(a, scanner) != Direction.isDirected {\n                throw ParseError(.unsupported, at: a.nameStart)\n            }', "", mode="stmt"),
+    Mutant("gexfweight", GX, "record(element, weightNumber(), value)", "", mode="stmt"),
+    Mutant("gexfweightat", GX, "try _graphMLValue(.double, bytes, at: w.nameStart)", "try _graphMLValue(.double, bytes, at: tag.offset)"),
+    Mutant("gexfscratch", GX, "scratch.removeAll(keepingCapacity: true)", "", mode="stmt"),
+    Mutant("gexfbudget", GX, "try budget.spend(1, at: element.offset)", "", mode="stmt"),
+    Mutant("gexfdefaultgiven", GX, "stamps[d][k] != element.generation", "true"),
+    Mutant("gexfnograph", GX, "guard reader.graphOffset != nil else { throw ParseError(.syntax, at: reader.rootOffset) }", "", mode="stmt"),
+    Mutant("gexfnames", GX, "buffer.names = reader.names", "", mode="stmt"),
+    Mutant("gexfwlabel", GX, "guard case .string(let s) = pair.value, _isXMLRepresentable(s) else { throw .invalidValue }", "_ = pair", mode="stmt", nth=0),
+    Mutant("gexfwweight", GX, "switch pair.value {\n                case .integer, .double: break\n                default: throw .invalidValue\n                }", "", mode="stmt"),
+    Mutant("gexfwids", GX, "numbering[d][local] = k", "numbering[d][local] = 0", mode="stmt"),
+    Mutant("gexfwedgeid", GX, "number += 1", "", mode="stmt"),
+    Mutant("gexfwclass", GX, '["node", "edge"]', '["node", "node"]'),
+    Mutant("gexfwnodelabel", GX, 'out.appendASCII("\\" label=\\"")', 'out.appendASCII("\\" title=\\"")', mode="stmt", nth=0),
+    Mutant("gexfwweightattr", GX, 'out.appendASCII("\\" weight=\\"")', 'out.appendASCII("\\" w=\\"")', mode="stmt"),
+    Mutant("gexfwvalues", GX, 'pair.key != "label" && pair.key != "weight"', 'pair.key != "label"'),
+    Mutant("gexfwnan", GX, 'out.appendASCII("NaN")', 'out.appendASCII("nan")', mode="stmt"),
+    Mutant("gexfwinf", GX, 'out.appendASCII(x < 0 ? "-INF" : "INF")', 'out.appendASCII("INF")', mode="stmt"),
+    Mutant("gexfwdirected", GX, 'Source.isDirected ? "  <graph defaultedgetype=\\"directed\\" mode=\\"static\\">\\n" : "  <graph defaultedgetype=\\"undirected\\" mode=\\"static\\">\\n"',
+           '"  <graph defaultedgetype=\\"directed\\" mode=\\"static\\">\\n"'),
 ]
