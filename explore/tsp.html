@@ -101,8 +101,7 @@
 <span class="k">let</span> improved = tourMap.twoOptTour(improving: greedy) { km[$<span class="n">0</span>] }!
 
 <span class="k">var</span> generator = <span class="t">Xoshiro256StarStar</span>(seed: <span class="n">1</span>)
-<span class="k">let</span> annealed = tourMap.simulatedAnnealingTour(
-    improving: greedy, move: .relocate, temperature: <span class="n">50</span>, maximumIterations: <span class="n">200</span>, innerIterations: <span class="n">500</span>, weight: { km[$<span class="n">0</span>] }, using: &amp;generator)!
+<span class="k">let</span> annealed = tourMap.simulatedAnnealingTour(improving: greedy, weight: { km[$<span class="n">0</span>] }, using: &amp;generator)!
 <span class="k">let</span> christofides = tourMap.christofidesTour { km[$<span class="n">0</span>] }!
 <span class="k">let</span> shortest = tourMap.shortestTour { km[$<span class="n">0</span>] }!
 
