@@ -114,6 +114,18 @@ let package = Package(
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
         ),
         .executableTarget(
+            name: "EliasFanoGraphBenchmarks",
+            dependencies: [
+                "BenchmarkSupport",
+                .product(name: "Benchmark", package: "benchmark"),
+                .product(name: "GraphProtocols", package: "Grafluent"),
+                .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "EliasFanoGraphModule", package: "Grafluent"),
+            ],
+            path: "Benchmarks/EliasFanoGraphBenchmarks",
+            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
+        ),
+        .executableTarget(
             name: "CentralityBenchmarks",
             dependencies: [
                 "BenchmarkSupport",

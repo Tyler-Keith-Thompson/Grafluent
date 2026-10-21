@@ -25,6 +25,7 @@ let package = Package(
         target("FuzzLinkCutTree", ["LinkCutTreeModule"]),
         target("FuzzAdjacencyList", ["GraphProtocols", "AdjacencyListModule"]),
         target("FuzzPackedCompressedSparseRow", ["GraphProtocols", "PackedCompressedSparseRowModule"]),
+        target("FuzzEliasFanoGraph", ["GraphProtocols", "CompressedSparseRowModule", "EliasFanoGraphModule"]),
         target("FuzzUndirectedAdjacencyList", ["GraphProtocols", "AdjacencyListModule"]),
         target("FuzzSpanningTrees", ["GraphProtocols", "AdjacencyListModule", "SpanningTrees", "Trees"]),
         target("FuzzUndirectedConnectivity", ["GraphProtocols", "AdjacencyListModule", "Connectivity"]),

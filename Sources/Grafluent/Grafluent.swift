@@ -15,6 +15,7 @@
 @_exported import CompressedSparseRowModule
 @_exported import EdgeListModule
 @_exported import ImplicitGraphs
+@_exported import EliasFanoGraphModule
 @_exported import LabeledGraphs
 @_exported import DirectedAcyclicGraphModule
 @_exported import Trees

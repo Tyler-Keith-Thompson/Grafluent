@@ -14,6 +14,7 @@ PERFORMANCE_TEST_PACKAGES = [
     "Tests/CoveringTests",
     "Tests/CyclesTests",
     "Tests/DistancesTests",
+    "Tests/EliasFanoGraphTests",
     "Tests/FlowsTests",
     "Tests/FunctionalGraphsTests",
     "Tests/GraphDrawingTests",

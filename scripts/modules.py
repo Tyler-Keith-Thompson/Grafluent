@@ -39,6 +39,7 @@ MODULES = [
     ("CompressedSparseRowModule", "Representations", "CompressedSparseRow: an immutable directed graph on vertices 0..<n in compressed sparse row form; BidirectionalCompressedSparseRow adds its column form for predecessors and in-edges.", ["GraphProtocols"]),
     ("EdgeListModule", "Representations", "EdgeList: a directed multigraph as an ordered, mutable list of edges.", ["GraphProtocols"]),
     ("ImplicitGraphs", "Representations", "ImplicitDirectedGraph: out-neighbors computed on demand, never stored.", ["GraphProtocols"]),
+    ("EliasFanoGraphModule", "Representations", "EliasFanoGraph: an immutable directed graph on vertices 0..<n whose rows of successors are Elias–Fano coded, a few bits per edge, read by sequential decoding; edge positions as CompressedSparseRow's.", ["GraphProtocols", "CompressedSparseRowModule"]),
     ("LabeledGraphs", "Representations", "LabeledGraph: Hashable vertex labels over CompressedSparseRow or AdjacencyMatrix, kept in an OrderedSet whose element i names base vertex i, with every index-space member forwarded to the base.", ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyMatrixModule", "swift-collections/OrderedCollections"]),
 
     # Graph classes with invariants
@@ -92,6 +93,7 @@ TEST_TARGETS = [
     ("GrafluentTestSupportTests", ["GraphProtocols", "GrafluentTestSupport"]),
     ("AdjacencyListTests", ["GraphProtocols", "AdjacencyListModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("UndirectedAdjacencyListTests", ["GraphProtocols", "AdjacencyListModule", "GrafluentTestSupport"]),
+    ("EliasFanoGraphTests", ["GraphProtocols", "EliasFanoGraphModule", "CompressedSparseRowModule", "AdjacencyListModule", "Traversal", "ShortestPaths", "Connectivity", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("PackedCompressedSparseRowTests", ["GraphProtocols", "PackedCompressedSparseRowModule", "AdjacencyListModule", "CompressedSparseRowModule", "Traversal", "ShortestPaths", "Connectivity", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("CompressedSparseRowTests", ["GraphProtocols", "CompressedSparseRowModule", "AdjacencyListModule", "AdjacencyMatrixModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("AdjacencyMatrixTests", ["GraphProtocols", "AdjacencyMatrixModule", "AdjacencyListModule", "GrafluentTestSupport", "swift-collections/BitCollections", "swift-property-based/PropertyBased"]),
@@ -162,7 +164,7 @@ TEST_SIZES = {name: "medium" for name in [
 # does not make a test speed-reliant.
 PERFORMANCE_TESTS = [
     "AdjacencyListTests", "AssortativityTests", "BipartiteGraphsTests", "CentralityTests", "ParallelCentralityTests", "CliquesTests", "ColoringModuleTests", "CommunityDetectionTests",
-    "CoveringTests", "CyclesTests", "DistancesTests", "FlowsTests", "FunctionalGraphsTests", "GraphDrawingTests",
+    "CoveringTests", "CyclesTests", "DistancesTests", "EliasFanoGraphTests", "FlowsTests", "FunctionalGraphsTests", "GraphDrawingTests",
     "GraphFormatsTests", "GraphOperationsTests", "HypergraphsTests", "ImplicitGraphsTests", "IncidenceMatrixTests",
     "IsomorphismTests", "LabeledGraphsTests", "MatchingModuleTests", "MultigraphsTests", "PackedCompressedSparseRowTests", "PlanarityTests",
     "RandomGraphsTests", "ShortestPathsTests", "SimilarityTests", "SpanningTreesTests", "SpectralGraphTheoryTests", "StableGraphsTests", "ToursTests",
