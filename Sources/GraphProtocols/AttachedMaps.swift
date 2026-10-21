@@ -348,6 +348,19 @@ package final class _DenseMapBufferOf<Value>: _DenseMapBuffer {
             isTrivial: _isPOD(Value.self), defaultAddress: UnsafeRawPointer(defaultValue), witnesses: witnesses)
     }
 
+    /// A buffer of its own with `values` (copied) and the default `value`, room for `capacity`.
+    @inlinable
+    package init(copying values: UnsafeBufferPointer<Value>, default value: Value, capacity: Int, witnesses: _MapWitnesses) {
+        let capacity = Swift.max(values.count, capacity)
+        let elements = UnsafeMutablePointer<Value>.allocate(capacity: capacity)
+        if let start = values.baseAddress { elements.initialize(from: start, count: values.count) }
+        let defaultValue = UnsafeMutablePointer<Value>.allocate(capacity: 1)
+        defaultValue.initialize(to: value)
+        super.init(
+            base: UnsafeMutableRawPointer(elements), count: values.count, capacity: capacity, stride: MemoryLayout<Value>.stride,
+            isTrivial: _isPOD(Value.self), defaultAddress: UnsafeRawPointer(defaultValue), witnesses: witnesses)
+    }
+
     /// A buffer of its own with `other`'s values and capacity.
     @inlinable
     package init(copying other: _DenseMapBufferOf<Value>) {
@@ -802,6 +815,28 @@ package struct _AttachedMaps: Sendable {
             layout == .dense
             ? _DenseMapBufferOf(repeating: value, count: count, capacity: capacity, witnesses: witnesses)
             : _PagedMapBuffer(_MapStorage(default: value), witnesses: witnesses)
+        _replaceTable(removing: nil, appending: _AttachedMap(token: token, buffer: buffer, releases: !_isPOD(Value.self)))
+        return (token, _entries.count &- 1)
+    }
+
+    /// Attaches a map holding `storage`'s values: a dense storage copied into a buffer of its own
+    /// with room for `capacity`, a paged storage shared page by page (copy-on-write).
+    ///
+    /// - Precondition: A dense `storage` holds exactly `count` values.
+    @inlinable
+    package mutating func add<Value: Sendable>(_ storage: _MapStorage<Value>, layout: _MapLayout, count: Int, capacity: Int = 0) -> (token: _MapToken, hint: Int) {
+        let token = _MapToken()
+        let witnesses = _MapWitnesses.of(Value.self, layout: layout)
+        let buffer: _AnyMapBuffer
+        if layout == .dense {
+            precondition(storage.dense.count == count, "The values do not match the graph: one per position is needed")
+            buffer = _DenseMapBufferOf(copying: storage.dense, default: storage.defaultValue, capacity: capacity, witnesses: witnesses)
+        } else {
+            var paged = storage
+            paged.dense = UnsafeBufferPointer(start: nil, count: 0)
+            paged.owner = nil
+            buffer = _PagedMapBuffer(paged, witnesses: witnesses)
+        }
         _replaceTable(removing: nil, appending: _AttachedMap(token: token, buffer: buffer, releases: !_isPOD(Value.self)))
         return (token, _entries.count &- 1)
     }

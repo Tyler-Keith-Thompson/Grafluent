@@ -186,6 +186,18 @@ extension BidirectionalCompressedSparseRow: PropertyGraph {
         _base.addEdgeMap(default: value)
     }
 
+    /// Attaches a map from the edges holding `values`, as the base does.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        _base.addEdgeMap(values: EdgeValues(values))
+    }
+
+    /// Attaches a map from the vertices holding `values`, as the base does.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        _base.addVertexMap(values: VertexValues(values))
+    }
+
     @inlinable
     public mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) {
         _base.removeVertexMap(map)

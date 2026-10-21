@@ -365,6 +365,18 @@ extension DirectedMultigraph: GraphDelegator, BidirectionalDirectedGraph, Proper
         _base.addEdgeMap(default: value)
     }
 
+    /// Attaches a map from the edges holding `values`, as the base does.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        _base.addEdgeMap(values: EdgeValues(values))
+    }
+
+    /// Attaches a map from the vertices holding `values`, as the base does.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        _base.addVertexMap(values: VertexValues(values))
+    }
+
     /// Detaches the vertex map from the base and frees its storage.
     ///
     /// - Precondition: `map` is attached to this graph.

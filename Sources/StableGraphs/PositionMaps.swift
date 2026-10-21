@@ -18,7 +18,8 @@ extension StableDirectedGraph: PropertyGraph {
     /// `changeTarget` and `changeSource` keep it. Copies of the graph carry the map, copy-on-write
     /// by page. O(1). Storage is allocated a page (1024 positions) at a time as values are set.
     ///
-    /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps.
+    /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps, and
+    /// `PropertyGraphBundle` carries chosen maps with the graph.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .paged, count: 0)
@@ -33,6 +34,28 @@ extension StableDirectedGraph: PropertyGraph {
         let (token, hint) = _vertexMaps.add(default: value, layout: .paged, count: 0)
         return VertexMap(_token: token, hint: hint)
     }
+
+    /// Attaches a map from the edges holding `values`, and returns its handle. O(1): the pages are shared, copy-on-write.
+    ///
+    /// - Precondition: `values` has one value per edge position.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        let (token, hint) = _edgeMaps.add(values._storage, layout: .paged, count: 0)
+        _edgeMapsRelease = _edgeMaps.releases
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    /// Attaches a map from the vertices holding `values`, and returns its handle. O(1): the pages are shared, copy-on-write.
+    ///
+    /// - Precondition: `values` has one value per vertex position.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        let (token, hint) = _vertexMaps.add(values._storage, layout: .paged, count: 0)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    @inlinable public var _vertexMapCount: Int { 0 }
+    @inlinable public var _edgeMapCount: Int { 0 }
 
     /// Detaches the edge map and frees its storage; the handle traps from then on (on this graph).
     ///

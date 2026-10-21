@@ -106,6 +106,18 @@ let distance = routes.distance(to: "C")           // 7
 let stops = routes.path(to: "C").map(Array.init)  // ["A", "B", "C"]
 ```
 
+Keep a graph and its maps together as one value with `PropertyGraphBundle`. It encodes the graph
+and the maps' values, and decoding reattaches the maps.
+
+```swift
+let network = PropertyGraphBundle(roads, maps: miles)
+let data = try JSONEncoder().encode(network)
+var decoded = try JSONDecoder().decode(PropertyGraphBundle<DirectedPseudograph<String>, EdgeMap<Int>>.self, from: data)
+let same = decoded == network                                           // true
+let edge = decoded.graph.insert(edge: DirectedEdge(from: "C", to: "D"))
+decoded.graph[decoded.maps, ofEdgeAt: edge] = 2                         // maps stay in step
+```
+
 Handle rejected mutations and missing vertices with typed errors:
 
 ```swift

@@ -639,6 +639,27 @@ extension IncidenceList: PropertyGraph {
         return VertexMap(_token: token, hint: hint)
     }
 
+    /// Attaches a map from the edges holding `values`, and returns its handle. O(`_edgeMapCount`).
+    ///
+    /// - Precondition: `values` has one value per edge position.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        let (token, hint) = _edgeMaps.add(values._storage, layout: .dense, count: _sources.hyperedgeCount)
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    /// Attaches a map from the vertices holding `values`, and returns its handle. O(`_vertexMapCount`).
+    ///
+    /// - Precondition: `values` has one value per vertex position.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        let (token, hint) = _vertexMaps.add(values._storage, layout: .dense, count: _vertices.count)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    @inlinable public var _vertexMapCount: Int { _vertices.count }
+    @inlinable public var _edgeMapCount: Int { _sources.hyperedgeCount }
+
     /// Detaches the edge map and frees its storage; the handle traps from then on.
     ///
     /// - Precondition: `map` is attached to this hypergraph.

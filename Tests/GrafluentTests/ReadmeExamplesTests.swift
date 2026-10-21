@@ -1,6 +1,7 @@
 // The code examples in README.md and the Grafluent DocC landing page, verbatim, each followed by
 // assertions of the results its comments state. Change an example here and in the README together.
 
+import Foundation
 import Grafluent
 import Testing
 
@@ -58,6 +59,28 @@ struct ReadmeExamplesTests {
 
         #expect(distance == 7)
         #expect(stops == ["A", "B", "C"])
+    }
+
+    @Test("A graph and its maps as one Codable value")
+    func propertyGraphBundle() throws {
+        var roads = DirectedPseudograph<String>()
+        let miles = roads.addEdgeMap(default: 0)
+        for (from, to, length) in [("A", "B", 4), ("B", "C", 3), ("A", "C", 9)] {
+            let edge = roads.insert(edge: DirectedEdge(from: from, to: to))
+            roads[miles, ofEdgeAt: edge] = length
+        }
+
+        let network = PropertyGraphBundle(roads, maps: miles)
+        let data = try JSONEncoder().encode(network)
+        var decoded = try JSONDecoder().decode(PropertyGraphBundle<DirectedPseudograph<String>, EdgeMap<Int>>.self, from: data)
+        let same = decoded == network                                           // true
+        let edge = decoded.graph.insert(edge: DirectedEdge(from: "C", to: "D"))
+        decoded.graph[decoded.maps, ofEdgeAt: edge] = 2                         // maps stay in step
+
+        #expect(same)
+        #expect(decoded.graph[decoded.maps, ofEdgeAt: edge] == 2)
+        let ab = decoded.graph.edges(from: "A", to: "B").first!
+        #expect(decoded.graph[decoded.maps, ofEdgeAt: ab] == 4)
     }
 
     @Test("Typed errors and checked lookups")

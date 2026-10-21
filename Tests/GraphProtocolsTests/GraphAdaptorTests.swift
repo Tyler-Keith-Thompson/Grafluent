@@ -122,6 +122,19 @@ private struct DenseDigraph: BidirectionalDirectedGraph, PropertyGraph {
         return EdgeMap(_token: token, hint: hint)
     }
 
+    mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        let (token, hint) = vertexMaps.add(values._storage, layout: .dense, count: vertexTotal)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        let (token, hint) = edgeMaps.add(values._storage, layout: .dense, count: arcs.count)
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    var _vertexMapCount: Int { vertexTotal }
+    var _edgeMapCount: Int { arcs.count }
+
     mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { vertexMaps.remove(map._token, hint: map._hint) }
     mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { edgeMaps.remove(map._token, hint: map._hint) }
 
@@ -204,6 +217,8 @@ private struct LooplessGraph<Base: BidirectionalDirectedGraph & PropertyGraph>: 
     // Attaching, detaching and writing maps change the base, so they are the wrapper's own.
     mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> { _base.addVertexMap(default: value) }
     mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> { _base.addEdgeMap(default: value) }
+    mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> { _base.addVertexMap(values: VertexValues(values)) }
+    mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> { _base.addEdgeMap(values: EdgeValues(values)) }
     mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { _base.removeVertexMap(map) }
     mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { _base.removeEdgeMap(map) }
     subscript<Value>(map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
@@ -243,6 +258,8 @@ private struct LooplessDenseDigraph: GraphDelegator, BidirectionalDirectedGraph,
     // Attaching, detaching and writing maps change the base, so they are the wrapper's own.
     mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> { _base.addVertexMap(default: value) }
     mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> { _base.addEdgeMap(default: value) }
+    mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> { _base.addVertexMap(values: VertexValues(values)) }
+    mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> { _base.addEdgeMap(values: EdgeValues(values)) }
     mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { _base.removeVertexMap(map) }
     mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { _base.removeEdgeMap(map) }
     subscript<Value>(map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
@@ -327,6 +344,19 @@ private struct DenseGraph: Graph, PropertyGraph {
         return EdgeMap(_token: token, hint: hint)
     }
 
+    mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        let (token, hint) = vertexMaps.add(values._storage, layout: .dense, count: vertexTotal)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        let (token, hint) = edgeMaps.add(values._storage, layout: .dense, count: links.count)
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    var _vertexMapCount: Int { vertexTotal }
+    var _edgeMapCount: Int { links.count }
+
     mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { vertexMaps.remove(map._token, hint: map._hint) }
     mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { edgeMaps.remove(map._token, hint: map._hint) }
 
@@ -402,6 +432,8 @@ private struct LooplessUndirectedGraph<Base: Graph & PropertyGraph>: GraphDelega
     // Attaching, detaching and writing maps change the base, so they are the wrapper's own.
     mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> { _base.addVertexMap(default: value) }
     mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> { _base.addEdgeMap(default: value) }
+    mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> { _base.addVertexMap(values: VertexValues(values)) }
+    mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> { _base.addEdgeMap(values: EdgeValues(values)) }
     mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { _base.removeVertexMap(map) }
     mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { _base.removeEdgeMap(map) }
     subscript<Value>(map: VertexMap<Value>, ofVertexAt position: Int) -> Value {
@@ -437,6 +469,8 @@ private struct LooplessDenseGraph: GraphDelegator, Graph, PropertyGraph {
     // Attaching, detaching and writing maps change the base, so they are the wrapper's own.
     mutating func addVertexMap<Value: Sendable>(default value: Value) -> VertexMap<Value> { _base.addVertexMap(default: value) }
     mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> { _base.addEdgeMap(default: value) }
+    mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> { _base.addVertexMap(values: VertexValues(values)) }
+    mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> { _base.addEdgeMap(values: EdgeValues(values)) }
     mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { _base.removeVertexMap(map) }
     mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { _base.removeEdgeMap(map) }
     subscript<Value>(map: VertexMap<Value>, ofVertexAt position: Int) -> Value {

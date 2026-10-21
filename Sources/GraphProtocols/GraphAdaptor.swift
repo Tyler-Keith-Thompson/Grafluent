@@ -374,6 +374,8 @@ extension GraphDelegator where Self: PropertyGraph, Base: PropertyGraph, Vertex 
     @inlinable public static var _vertexMapLayout: _MapLayout { Base._vertexMapLayout }
     @inlinable public static var _edgeMapLayout: _MapLayout { Base._edgeMapLayout }
     @inlinable public static func _edgeMapOffset(of position: EdgePosition) -> Int { Base._edgeMapOffset(of: position) }
+    @inlinable public var _vertexMapCount: Int { base._vertexMapCount }
+    @inlinable public var _edgeMapCount: Int { base._edgeMapCount }
 }
 
 extension GraphDelegator

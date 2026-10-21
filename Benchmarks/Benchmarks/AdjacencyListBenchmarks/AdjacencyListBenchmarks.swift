@@ -266,6 +266,24 @@ let benchmarks: @Sendable () -> Void = {
         }
     }
 
+    // Reattaching a snapshot: one copy of the values, against a map filled by one write per position.
+    Benchmark("AdjacencyList maps: attach a map of 100k values, BASELINE addEdgeMap(default:) and a write per edge") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var filled = big
+            let map = filled.addEdgeMap(default: 0.0)
+            for p in 0 ..< filled.edgeCount { filled[map, ofEdgeAt: p] = weightValues[p] }
+            blackHole(filled)
+        }
+    }
+
+    Benchmark("AdjacencyList maps: attach a map of 100k values, addEdgeMap(values:)") { benchmark in
+        for _ in benchmark.scaledIterations {
+            var filled = big
+            blackHole(filled.addEdgeMap(values: weightValues))
+            blackHole(filled)
+        }
+    }
+
     // Row layout: the stored rows read as the library's algorithms read them, on a graph built by
     // its bulk initializer (rows packed in slot order) and on the same graph built by inserting
     // the edges one at a time (rows that outgrew their blocks moved to the end), against packed

@@ -25,7 +25,11 @@
 /// at a time.
 ///
 /// Equality, hashing, `Codable` and descriptions ignore maps. Equal graphs may carry different
-/// maps, a decoded graph has none, and a conversion to another representation carries none.
+/// maps, a decoded graph has none, and a conversion to another representation carries none. To
+/// keep a graph and its maps together as one value, equal when the values are and `Codable` with
+/// the maps reattached by decoding, use `PropertyGraphBundle`. A snapshot (`values(of:)`) is a
+/// value of its own, `Codable` when its values are, and `addEdgeMap(values:)` or
+/// `addVertexMap(values:)` attaches one as a new map.
 ///
 /// `values(of:)` returns a snapshot of a map that reads as fast as an array. Pass `{ w[$0] }` where
 /// an algorithm asks for a weight closure:
@@ -99,6 +103,20 @@ public protocol PropertyGraph<Vertex> {
     /// - Throws: `EdgeNotFound` when no edge is at `position`.
     subscript<Value>(map: EdgeMap<Value>, checkedEdgeAt position: EdgePosition) -> Value { get throws(EdgeNotFound) }
 
+    /// Attaches a map from the vertices holding `values`, a snapshot of this graph's or of an
+    /// equal one's map, and returns its handle: `addVertexMap(default:)` with the values filled
+    /// in. O(`values.count`).
+    ///
+    /// - Precondition: `values` has one value per vertex position of this graph.
+    mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value>
+
+    /// Attaches a map from the edges holding `values`, a snapshot of this graph's or of an equal
+    /// one's map, and returns its handle: `addEdgeMap(default:)` with the values filled in.
+    /// O(`values.count`).
+    ///
+    /// - Precondition: `values` has one value per edge position of this graph.
+    mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value>
+
     /// A snapshot of `map`'s values, read by vertex position. O(1).
     ///
     /// - Precondition: `map` is attached to this graph.
@@ -118,6 +136,14 @@ public protocol PropertyGraph<Vertex> {
     /// The offset of the edge at `position` in an edge map's storage. Not for use outside the
     /// library. Default when `EdgePosition` is `Int`: the position itself.
     static func _edgeMapOffset(of position: EdgePosition) -> Int
+
+    /// The number of offsets a dense vertex map holds a value for: what `addVertexMap(values:)`
+    /// expects of a snapshot. Not for use outside the library; meaningless in the paged layout.
+    var _vertexMapCount: Int { get }
+
+    /// The number of offsets a dense edge map holds a value for: what `addEdgeMap(values:)`
+    /// expects of a snapshot. Not for use outside the library; meaningless in the paged layout.
+    var _edgeMapCount: Int { get }
 }
 
 extension PropertyGraph where EdgePosition == Int {
@@ -216,3 +242,149 @@ public struct VertexValues<Base: PropertyGraph, Value> {
 }
 
 extension VertexValues: Sendable where Value: Sendable {}
+
+// MARK: - Snapshots as values: Codable and equality
+
+extension _MapStorage {
+    @usableFromInline
+    enum _CodingKeys: String, CodingKey {
+        case defaultValue = "default"
+        case values
+        case firstPage
+        case pages
+    }
+
+    /// Encodes the storage: the default, then the dense values or the pages from `firstPage`
+    /// (an unallocated page as an empty array).
+    @inlinable
+    package func _encode(to encoder: any Encoder, layout: _MapLayout) throws where Value: Encodable {
+        var container = encoder.container(keyedBy: _CodingKeys.self)
+        try container.encode(defaultValue, forKey: .defaultValue)
+        if layout == .dense {
+            var values = container.nestedUnkeyedContainer(forKey: .values)
+            for value in dense { try values.encode(value) }
+        } else {
+            try container.encode(firstPage, forKey: .firstPage)
+            try container.encode(pages, forKey: .pages)
+        }
+    }
+
+    /// Decodes what `_encode(to:layout:)` wrote in `layout`. Throws `DecodingError.dataCorrupted`
+    /// for a page that is neither empty nor a full page.
+    @inlinable
+    package init(from decoder: any Decoder, layout: _MapLayout) throws where Value: Decodable {
+        let container = try decoder.container(keyedBy: _CodingKeys.self)
+        let value = try container.decode(Value.self, forKey: .defaultValue)
+        if layout == .dense {
+            let values = try container.decode([Value].self, forKey: .values)
+            let buffer = values.withUnsafeBufferPointer {
+                _DenseMapBufferOf(copying: $0, default: value, capacity: 0, witnesses: _MapWitnesses.of(Value.self, layout: .dense))
+            }
+            self.init(dense: buffer.values, owner: buffer, default: value)
+        } else {
+            self.init(default: value)
+            firstPage = try container.decode(Int.self, forKey: .firstPage)
+            pages = try container.decode(ContiguousArray<ContiguousArray<Value>>.self, forKey: .pages)
+            for page in pages where !page.isEmpty && page.count != _PositionPage.size {
+                throw DecodingError.dataCorruptedError(forKey: .pages, in: container, debugDescription: "A page has \(page.count) values, not \(_PositionPage.size)")
+            }
+            guard firstPage >= 0, firstPage <= Int.max &- pages.count else {
+                throw DecodingError.dataCorruptedError(forKey: .firstPage, in: container, debugDescription: "The first page is out of range")
+            }
+        }
+    }
+
+    /// Whether the defaults are equal and every position has the same value in both: a position
+    /// in an unallocated page reads as the default.
+    @inlinable
+    package func _elementsEqual(_ other: _MapStorage<Value>, layout: _MapLayout) -> Bool where Value: Equatable {
+        guard defaultValue == other.defaultValue else { return false }
+        if layout == .dense { return dense.elementsEqual(other.dense) }
+        let first = Swift.min(firstPage, other.firstPage)
+        let end = Swift.max(firstPage &+ pages.count, other.firstPage &+ other.pages.count)
+        for page in first ..< end {
+            let k = page &- firstPage, j = page &- other.firstPage
+            let mine = k >= 0 && k < pages.count ? pages[k] : []
+            let theirs = j >= 0 && j < other.pages.count ? other.pages[j] : []
+            if mine.isEmpty, theirs.isEmpty {
+                continue
+            } else if mine.isEmpty {
+                if theirs.contains(where: { $0 != defaultValue }) { return false }
+            } else if theirs.isEmpty {
+                if mine.contains(where: { $0 != defaultValue }) { return false }
+            } else if !mine.elementsEqual(theirs) {
+                return false
+            }
+        }
+        return true
+    }
+
+    @inlinable
+    package func _hash(into hasher: inout Hasher, layout: _MapLayout) where Value: Hashable {
+        hasher.combine(defaultValue)
+        if layout == .dense {
+            hasher.combine(dense.count)
+            for value in dense { hasher.combine(value) }
+            return
+        }
+        // Trailing and leading defaults are not part of the value, so hash only what is set.
+        var count = 0
+        for (k, page) in pages.enumerated() where !page.isEmpty {
+            for (i, value) in page.enumerated() where value != defaultValue {
+                hasher.combine((firstPage &+ k) &* _PositionPage.size &+ i)
+                hasher.combine(value)
+                count &+= 1
+            }
+        }
+        hasher.combine(count)
+    }
+}
+
+extension EdgeValues: Encodable where Value: Encodable {
+    /// Encodes the default and the values by position, in the layout of `Base`'s edge maps.
+    @inlinable
+    public func encode(to encoder: any Encoder) throws { try _storage._encode(to: encoder, layout: Base._edgeMapLayout) }
+}
+
+extension EdgeValues: Decodable where Value: Decodable {
+    /// Decodes a snapshot `encode(to:)` wrote, to attach with `addEdgeMap(values:)`.
+    @inlinable
+    public init(from decoder: any Decoder) throws { _storage = try _MapStorage(from: decoder, layout: Base._edgeMapLayout) }
+}
+
+extension EdgeValues: Equatable where Value: Equatable {
+    /// Whether the defaults are equal and every position holds the same value in both: dense
+    /// snapshots of different lengths differ, and in the paged layout an unallocated page reads
+    /// as the default.
+    @inlinable
+    public static func == (lhs: EdgeValues, rhs: EdgeValues) -> Bool { lhs._storage._elementsEqual(rhs._storage, layout: Base._edgeMapLayout) }
+}
+
+extension EdgeValues: Hashable where Value: Hashable {
+    @inlinable
+    public func hash(into hasher: inout Hasher) { _storage._hash(into: &hasher, layout: Base._edgeMapLayout) }
+}
+
+extension VertexValues: Encodable where Value: Encodable {
+    /// Encodes the default and the values by position, in the layout of `Base`'s vertex maps.
+    @inlinable
+    public func encode(to encoder: any Encoder) throws { try _storage._encode(to: encoder, layout: Base._vertexMapLayout) }
+}
+
+extension VertexValues: Decodable where Value: Decodable {
+    /// Decodes a snapshot `encode(to:)` wrote, to attach with `addVertexMap(values:)`.
+    @inlinable
+    public init(from decoder: any Decoder) throws { _storage = try _MapStorage(from: decoder, layout: Base._vertexMapLayout) }
+}
+
+extension VertexValues: Equatable where Value: Equatable {
+    /// Whether the defaults are equal and every position holds the same value in both, as for
+    /// `EdgeValues`.
+    @inlinable
+    public static func == (lhs: VertexValues, rhs: VertexValues) -> Bool { lhs._storage._elementsEqual(rhs._storage, layout: Base._vertexMapLayout) }
+}
+
+extension VertexValues: Hashable where Value: Hashable {
+    @inlinable
+    public func hash(into hasher: inout Hasher) { _storage._hash(into: &hasher, layout: Base._vertexMapLayout) }
+}

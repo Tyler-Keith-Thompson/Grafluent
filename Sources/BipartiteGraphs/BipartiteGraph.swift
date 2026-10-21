@@ -419,15 +419,30 @@ extension BipartiteGraph: PropertyGraph {
 
     @inlinable public static var _vertexMapLayout: _MapLayout { Base._vertexMapLayout }
     @inlinable public static var _edgeMapLayout: _MapLayout { Base._edgeMapLayout }
+    @inlinable public var _vertexMapCount: Int { _base._vertexMapCount }
+    @inlinable public var _edgeMapCount: Int { _base._edgeMapCount }
     @inlinable public static func _edgeMapOffset(of position: Int) -> Int { Base._edgeMapOffset(of: position) }
 
     /// Attaches a map from edge positions to `Value`, every edge's value `value`, and returns its
     /// handle: the base's `addEdgeMap(default:)`. A new edge has `value`, and when a removal moves
     /// the last edge into the removed one's position, its value moves too. O(`edgeCount`).
     ///
-    /// Map contents take no part in equality, hashing or `Codable`.
+    /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps, and
+    /// `PropertyGraphBundle` carries chosen maps with the graph.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> { _base.addEdgeMap(default: value) }
+
+    /// Attaches a map from the edges holding `values`, as the base does.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        _base.addEdgeMap(values: EdgeValues(values))
+    }
+
+    /// Attaches a map from the vertices holding `values`, as the base does.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        _base.addVertexMap(values: VertexValues(values))
+    }
 
     /// Attaches a map from vertices to `Value`, every vertex's value `value`, and returns its
     /// handle; it moves with the vertices' slots, on either side. O(`vertexCount`).

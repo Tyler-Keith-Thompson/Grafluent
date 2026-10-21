@@ -17,6 +17,8 @@ extension LabeledGraph: PropertyGraph where Base: DirectedGraph<Int> & PropertyG
 
     @inlinable public static var _vertexMapLayout: _MapLayout { Base._vertexMapLayout }
     @inlinable public static var _edgeMapLayout: _MapLayout { Base._edgeMapLayout }
+    @inlinable public var _vertexMapCount: Int { _base._vertexMapCount }
+    @inlinable public var _edgeMapCount: Int { _base._edgeMapCount }
     @inlinable public static func _edgeMapOffset(of position: Base.EdgePosition) -> Int { Base._edgeMapOffset(of: position) }
 
     /// Attaches a map from the edges to `Value` to the base, with every edge's value `value`, and
@@ -24,6 +26,18 @@ extension LabeledGraph: PropertyGraph where Base: DirectedGraph<Int> & PropertyG
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         _base.addEdgeMap(default: value)
+    }
+
+    /// Attaches a map from the edges holding `values`, as the base does.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        _base.addEdgeMap(values: EdgeValues(values))
+    }
+
+    /// Attaches a map from the vertices holding `values`, as the base does.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        _base.addVertexMap(values: VertexValues(values))
     }
 
     /// Attaches a map from the vertices to `Value` to the base, with every vertex's value `value`,

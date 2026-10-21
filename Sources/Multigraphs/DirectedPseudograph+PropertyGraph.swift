@@ -17,7 +17,8 @@ extension DirectedPseudograph: PropertyGraph {
     /// handle. Removing an edge removes its value, and the edge that moves into its position takes
     /// its own value along. Copies of the graph carry the map, copy-on-write. O(`edgeCount`).
     ///
-    /// Map contents take no part in equality, hashing or `Codable`. A decoded graph has no maps.
+    /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps, and
+    /// `PropertyGraphBundle` carries chosen maps with the graph.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _records.count, capacity: _records.capacity)
@@ -32,6 +33,27 @@ extension DirectedPseudograph: PropertyGraph {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _vertices.count, capacity: _vertices.capacity)
         return VertexMap(_token: token, hint: hint)
     }
+
+    /// Attaches a map from the edges holding `values`, and returns its handle. O(`_edgeMapCount`).
+    ///
+    /// - Precondition: `values` has one value per edge position.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        let (token, hint) = _edgeMaps.add(values._storage, layout: .dense, count: _records.count, capacity: _records.capacity)
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    /// Attaches a map from the vertices holding `values`, and returns its handle. O(`_vertexMapCount`).
+    ///
+    /// - Precondition: `values` has one value per vertex position.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        let (token, hint) = _vertexMaps.add(values._storage, layout: .dense, count: _vertices.count, capacity: _vertices.capacity)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    @inlinable public var _vertexMapCount: Int { _vertices.count }
+    @inlinable public var _edgeMapCount: Int { _records.count }
 
     /// Detaches the edge map and frees its storage; the handle traps from then on (on this graph).
     ///

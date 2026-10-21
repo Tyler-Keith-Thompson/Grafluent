@@ -16,7 +16,8 @@ extension CompressedSparseRow: PropertyGraph {
     /// its handle. Attaching is `mutating`, though the graph is immutable, because the map lives in
     /// this value and its copies. O(m), one value per edge allocated now.
     ///
-    /// Map contents take no part in equality, hashing or `Codable`. A decoded graph has no maps.
+    /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps, and
+    /// `PropertyGraphBundle` carries chosen maps with the graph.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: edgeCount)
@@ -30,6 +31,27 @@ extension CompressedSparseRow: PropertyGraph {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: vertexCount)
         return VertexMap(_token: token, hint: hint)
     }
+
+    /// Attaches a map from the edges holding `values`, and returns its handle. O(`_edgeMapCount`).
+    ///
+    /// - Precondition: `values` has one value per edge position.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        let (token, hint) = _edgeMaps.add(values._storage, layout: .dense, count: edgeCount)
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    /// Attaches a map from the vertices holding `values`, and returns its handle. O(`_vertexMapCount`).
+    ///
+    /// - Precondition: `values` has one value per vertex position.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        let (token, hint) = _vertexMaps.add(values._storage, layout: .dense, count: vertexCount)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    @inlinable public var _vertexMapCount: Int { vertexCount }
+    @inlinable public var _edgeMapCount: Int { edgeCount }
 
     /// Detaches the edge map and frees its storage. Using the handle on this graph traps from then
     /// on.

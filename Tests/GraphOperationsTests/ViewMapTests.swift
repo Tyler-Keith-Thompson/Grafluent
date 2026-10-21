@@ -71,6 +71,19 @@ private struct DenseGraph: Graph, PropertyGraph {
         return EdgeMap(_token: token, hint: hint)
     }
 
+    mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        let (token, hint) = vertexMaps.add(values._storage, layout: .dense, count: vertexTotal)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        let (token, hint) = edgeMaps.add(values._storage, layout: .dense, count: links.count)
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    var _vertexMapCount: Int { vertexTotal }
+    var _edgeMapCount: Int { links.count }
+
     mutating func removeVertexMap<Value>(_ map: VertexMap<Value>) { vertexMaps.remove(map._token, hint: map._hint) }
     mutating func removeEdgeMap<Value>(_ map: EdgeMap<Value>) { edgeMaps.remove(map._token, hint: map._hint) }
 

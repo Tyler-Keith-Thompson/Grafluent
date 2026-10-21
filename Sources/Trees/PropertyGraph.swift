@@ -20,7 +20,8 @@ extension Tree: PropertyGraph {
     /// handle. Attaching is `mutating`, though the tree is not: the map lives in this value and
     /// its copies. O(n): the values are allocated now, one per edge.
     ///
-    /// Map contents take no part in equality, hashing or `Codable`: a decoded tree has no maps.
+    /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps, and
+    /// `PropertyGraphBundle` carries chosen maps with the graph.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _layout.edgeCount)
@@ -34,6 +35,27 @@ extension Tree: PropertyGraph {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _layout.count)
         return VertexMap(_token: token, hint: hint)
     }
+
+    /// Attaches a map from the edges holding `values`, and returns its handle. O(`_edgeMapCount`).
+    ///
+    /// - Precondition: `values` has one value per edge position.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        let (token, hint) = _edgeMaps.add(values._storage, layout: .dense, count: _layout.edgeCount)
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    /// Attaches a map from the vertices holding `values`, and returns its handle. O(`_vertexMapCount`).
+    ///
+    /// - Precondition: `values` has one value per vertex position.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        let (token, hint) = _vertexMaps.add(values._storage, layout: .dense, count: _layout.count)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    @inlinable public var _vertexMapCount: Int { _layout.count }
+    @inlinable public var _edgeMapCount: Int { _layout.edgeCount }
 
     /// Detaches the edge map and frees its storage; the handle traps from then on (on this
     /// tree).
@@ -176,7 +198,8 @@ extension RootedTree: PropertyGraph {
     /// handle. Attaching is `mutating`, though the tree is not: the map lives in this value and
     /// its copies. O(n): the values are allocated now, one per edge.
     ///
-    /// Map contents take no part in equality, hashing or `Codable`: a decoded tree has no maps.
+    /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps, and
+    /// `PropertyGraphBundle` carries chosen maps with the graph.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _layout.edgeCount)
@@ -190,6 +213,27 @@ extension RootedTree: PropertyGraph {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _layout.count)
         return VertexMap(_token: token, hint: hint)
     }
+
+    /// Attaches a map from the edges holding `values`, and returns its handle. O(`_edgeMapCount`).
+    ///
+    /// - Precondition: `values` has one value per edge position.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        let (token, hint) = _edgeMaps.add(values._storage, layout: .dense, count: _layout.edgeCount)
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    /// Attaches a map from the vertices holding `values`, and returns its handle. O(`_vertexMapCount`).
+    ///
+    /// - Precondition: `values` has one value per vertex position.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        let (token, hint) = _vertexMaps.add(values._storage, layout: .dense, count: _layout.count)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    @inlinable public var _vertexMapCount: Int { _layout.count }
+    @inlinable public var _edgeMapCount: Int { _layout.edgeCount }
 
     /// Detaches the edge map and frees its storage; the handle traps from then on (on this
     /// tree).
@@ -332,7 +376,8 @@ extension Arborescence: PropertyGraph {
     /// handle. Attaching is `mutating`, though the arborescence is not: the map lives in this value and
     /// its copies. O(n): the values are allocated now, one per edge.
     ///
-    /// Map contents take no part in equality, hashing or `Codable`: a decoded arborescence has no maps.
+    /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps, and
+    /// `PropertyGraphBundle` carries chosen maps with the graph.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _layout.edgeCount)
@@ -346,6 +391,27 @@ extension Arborescence: PropertyGraph {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _layout.count)
         return VertexMap(_token: token, hint: hint)
     }
+
+    /// Attaches a map from the edges holding `values`, and returns its handle. O(`_edgeMapCount`).
+    ///
+    /// - Precondition: `values` has one value per edge position.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        let (token, hint) = _edgeMaps.add(values._storage, layout: .dense, count: _layout.edgeCount)
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    /// Attaches a map from the vertices holding `values`, and returns its handle. O(`_vertexMapCount`).
+    ///
+    /// - Precondition: `values` has one value per vertex position.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        let (token, hint) = _vertexMaps.add(values._storage, layout: .dense, count: _layout.count)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    @inlinable public var _vertexMapCount: Int { _layout.count }
+    @inlinable public var _edgeMapCount: Int { _layout.edgeCount }
 
     /// Detaches the edge map and frees its storage; the handle traps from then on (on this
     /// arborescence).
@@ -488,7 +554,8 @@ extension Forest: PropertyGraph {
     /// handle. Attaching is `mutating`, though the forest is not: the map lives in this value and
     /// its copies. O(n): the values are allocated now, one per edge.
     ///
-    /// Map contents take no part in equality, hashing or `Codable`: a decoded forest has no maps.
+    /// Map contents take no part in equality, hashing or `Codable`: a decoded graph has no maps, and
+    /// `PropertyGraphBundle` carries chosen maps with the graph.
     @inlinable
     public mutating func addEdgeMap<Value: Sendable>(default value: Value) -> EdgeMap<Value> {
         let (token, hint) = _edgeMaps.add(default: value, layout: .dense, count: _layout.edgeCount)
@@ -502,6 +569,27 @@ extension Forest: PropertyGraph {
         let (token, hint) = _vertexMaps.add(default: value, layout: .dense, count: _layout.count)
         return VertexMap(_token: token, hint: hint)
     }
+
+    /// Attaches a map from the edges holding `values`, and returns its handle. O(`_edgeMapCount`).
+    ///
+    /// - Precondition: `values` has one value per edge position.
+    @inlinable
+    public mutating func addEdgeMap<Value: Sendable>(values: EdgeValues<Self, Value>) -> EdgeMap<Value> {
+        let (token, hint) = _edgeMaps.add(values._storage, layout: .dense, count: _layout.edgeCount)
+        return EdgeMap(_token: token, hint: hint)
+    }
+
+    /// Attaches a map from the vertices holding `values`, and returns its handle. O(`_vertexMapCount`).
+    ///
+    /// - Precondition: `values` has one value per vertex position.
+    @inlinable
+    public mutating func addVertexMap<Value: Sendable>(values: VertexValues<Self, Value>) -> VertexMap<Value> {
+        let (token, hint) = _vertexMaps.add(values._storage, layout: .dense, count: _layout.count)
+        return VertexMap(_token: token, hint: hint)
+    }
+
+    @inlinable public var _vertexMapCount: Int { _layout.count }
+    @inlinable public var _edgeMapCount: Int { _layout.edgeCount }
 
     /// Detaches the edge map and frees its storage; the handle traps from then on (on this
     /// forest).
