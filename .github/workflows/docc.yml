@@ -70,7 +70,9 @@ jobs:
         id: sdk
         uses: actions/cache@v6
         with:
-          path: ~/.swiftpm/swift-sdks
+          # The container's home, where `swift sdk install` puts the bundle; `~` would be the
+          # runner's.
+          path: /github/home/.swiftpm/swift-sdks
           key: explore-sdk-${{ runner.arch }}-${{ env.WASM_SDK_SHA256 }}
       - name: Install the WebAssembly SDK
         if: steps.sdk.outputs.cache-hit != 'true'
