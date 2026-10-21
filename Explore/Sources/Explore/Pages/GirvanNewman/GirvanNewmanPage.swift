@@ -148,7 +148,7 @@ struct GirvanNewmanLab {
                         if finished {
                             p(.class("note")) {
                                 model.agrees
-                                    ? "Each split is one of the \(model.partitions.count) partitions girvanNewmanCommunities() lists, in the same order."
+                                    ? "Each split is one of the \(model.partitions.count) splits girvanNewmanCommunities() lists, in the same order."
                                     : "These splits differ from girvanNewmanCommunities()."
                             }
                         }
@@ -194,7 +194,7 @@ struct GirvanNewmanCodePanel {
                 .girvannewmanAfter,
             ],
             results: [
-                "\(model.partitions.count) partitions",
+                "\(model.partitions.count) splits",
                 groupsText(model.best),
                 groupsText(state.groups),
             ])

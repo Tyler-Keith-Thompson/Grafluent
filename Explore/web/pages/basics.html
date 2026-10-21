@@ -73,3 +73,36 @@
   <p>Try these ideas in the small graph at the start of the page. Pick a vertex to see its neighbours. Switch between undirected and directed, and show the weights.</p>
 
 </section>
+
+<section class="prose" id="words">
+<h2><small>Words you’ll meet</small>A few more terms, defined once</h2>
+  <p>Later pages lean on these. Each is explained again where it matters, and this list is here to come back to.</p>
+  <dl class="words">
+    <dt>Neighbours</dt>
+    <dd>Two vertices joined by an edge are neighbours. In a directed graph, the vertices a vertex’s arrows lead to are its successors, and the vertices whose arrows lead to it are its predecessors.</dd>
+    <dt>Degree</dt>
+    <dd>How many edges touch a vertex. In a directed graph, the in-degree counts the arrows coming in and the out-degree the arrows going out. A hub is a vertex with far more edges than most.</dd>
+    <dt>Sparse and dense</dt>
+    <dd>A graph is sparse when it has far fewer edges than it could, and dense when most pairs are joined. Most real graphs are sparse. A complete graph joins every pair.</dd>
+    <dt>Simple graph</dt>
+    <dd>A graph with no self-loops and no parallel edges.</dd>
+    <dt>Connected</dt>
+    <dd>An undirected graph is connected when there is a route between any two of its vertices. The largest pieces that are each connected are its <a href="components.html">components</a>.</dd>
+    <dt>Tree</dt>
+    <dd>A connected graph with no cycles. A tree on <i>n</i> vertices has exactly <i>n</i> − 1 edges. Choose one vertex as the root, and every other vertex has one parent, its next step toward the root. A vertex’s children are the vertices it is the parent of, a leaf has no children, its depth is its number of steps to the root, and its ancestors are its parent, its parent’s parent, and so on up. A subtree is a vertex with everything below it. A forest is several trees side by side. A <a href="mst.html">spanning tree</a> of a graph is a tree made from the graph’s own edges that reaches every vertex.</dd>
+    <dt>Directed acyclic graph</dt>
+    <dd>A directed graph with no cycles, such as tasks and the tasks each one waits for. The short name is DAG.</dd>
+    <dt>Bipartite</dt>
+    <dd>A graph whose vertices split into two sides, with every edge joining one side to the other, like workers and jobs.</dd>
+    <dt>Subgraph</dt>
+    <dd>Some of a graph’s vertices and some of the edges between them.</dd>
+    <dt>Hash table and binary search</dt>
+    <dd>A hash table is the structure behind a dictionary. It finds a key in about one step however many keys it holds. A binary search finds a value in a sorted row by halving the row again and again.</dd>
+  </dl>
+</section>
+
+<section class="prose" id="speed">
+<h2><small>Speed</small>How these pages talk about speed</h2>
+  <p>On these pages <i>n</i> is the number of vertices and <i>m</i> the number of edges. A cost written O(<i>n</i> + <i>m</i>) says how the work grows with the graph, leaving out constant factors. This one grows in step with vertices plus edges, so a graph twice the size takes about twice as long. O(<i>m</i> log <i>n</i>) grows a little faster than the edges, because log <i>n</i> stays small, about 20 for a million vertices. O(<i>n</i>²) grows with the square, so doubling the graph quadruples the work. Constant time, O(1), means the same few steps however big the graph. Exponential, such as O(2<sup><i>n</i></sup>), means the work can double with every vertex added, which suits only small graphs.</p>
+  <p>Some problems are <b>NP-hard</b>. No known method is fast on every input, and the exact methods are exponential. For those, a page offers a <b>heuristic</b>, a rule of thumb that gives a good answer quickly without promising the best one. A <b>greedy</b> method is the simplest heuristic. It always takes the move that looks best right now and never undoes it.</p>
+</section>

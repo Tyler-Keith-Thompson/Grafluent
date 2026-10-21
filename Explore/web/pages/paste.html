@@ -4,7 +4,7 @@
   <h1>Paste a graph</h1>
   <p class="question">Got a graph of your own? Paste it, see it, and search it.</p>
 </header>
-<p class="example lead">Example: a small town, written in DOT. Change it, pick another format for an example in that one, or paste your own. The page takes up to 200 vertices. A DOT <code>digraph</code>, a GraphML graph with <code>edgedefault="directed"</code> or a digraph6 line is read as directed, with arrows; everything else as undirected. When an edge has a <code>weight</code> attribute that is a whole number, Dijkstra uses it. Other edges weigh 1.</p>
+<p class="example lead">Example: a small town, written in DOT. DOT, GraphML, graph6 and edge lists are four text formats for graphs, compared below. Change it, pick another format for an example in that one, or paste your own. The page takes up to 200 vertices. A DOT <code>digraph</code>, a GraphML graph with <code>edgedefault="directed"</code> or a digraph6 line is read as directed, with arrows; everything else as undirected. A vertex or edge can carry attributes, extra data such as a label, colour or weight. When an edge has a <code>weight</code> attribute that is a whole number, Dijkstra uses it. Other edges weigh 1.</p>
 
 <div id="input"></div>
 <div id="app"></div>
@@ -13,12 +13,12 @@
   <h2><small>Compared with</small>Which format to use</h2>
   <!-- compare
   | Format | When to use | Carries | Weakness |
-  | DOT | Writing a graph by hand, or drawing it with Graphviz | Names, and any attributes as text | Each tool reads its own set of attributes |
-  | GraphML | Moving a graph between tools such as Gephi or yEd | Names, and attributes with declared types | Long-winded XML |
+  | DOT | Writing a graph by hand, or drawing it with Graphviz, the standard DOT drawing tool | Names, and any attributes as text | Each tool reads its own set of attributes |
+  | GraphML | Moving a graph between tools such as Gephi or yEd, desktop graph editors | Names, and attributes with declared types | Long-winded XML |
   | graph6 | Storing many small graphs in little space | Only which vertices are joined | No names or weights, and unreadable by eye |
   | Edge list | The quickest way to write a graph down | One edge a line, with optional attributes | Can’t list a vertex that has no edges |
   -->
-  <p>DOT is the easiest to read and write. graph6 is the most compact. GraphML carries the most.</p>
+  <p>DOT is the easiest to read and write. graph6 is the most compact, since it packs the adjacency matrix into printable characters. GraphML carries the most.</p>
 </section>
 
 <section class="prose">

@@ -8,7 +8,7 @@
 <section class="prose purpose">
   <h2><small>What it’s for</small>Groups at more than one size</h2>
   <p>Community detection splits a network into groups. But real groups nest: teams inside departments, neighbourhoods inside cities, topics inside fields. A <b>community hierarchy</b> keeps every layer and remembers which group each smaller group came from.</p>
-  <p>Reach for it when you want summaries at several scales, as retrieval over a knowledge graph does: a short summary per department and a detailed one per team. Or when one community is simply too big to be useful and you want it broken down.</p>
+  <p>Reach for it when you want summaries at several scales, as a search tool that summarises a network does: a short summary per department and a detailed one per team. Or when one community is simply too big to be useful and you want it broken down.</p>
 </section>
 
 <section class="prose compared">
@@ -16,10 +16,10 @@
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
   | *Hierarchical Leiden | Groups must fit a size cap | Levels that split only the groups over the cap, with parents | Leiden on the whole, then on each piece | Depends on the cap you choose |
-  | [Louvain’s levels](communities.html) | You want the algorithm’s own coarsening | Each pass’s groups, coarser each time | One Louvain run | The levels are a by-product, not a target |
+  | [Louvain’s levels](communities.html) | You want the bigger groups Louvain builds as it merges | Each pass’s groups, coarser each time | One Louvain run | The levels are a by-product, not a target |
   | [Girvan–Newman](girvannewman.html) | Small networks, every split | A full tree of splits | Very slow | Impractical past a few hundred links |
   -->
-  <p>Hierarchical Leiden gives you control through the cap. Louvain’s levels come free but you don’t choose them. Girvan–Newman gives the richest tree on networks small enough to afford it.</p>
+  <p>Leiden is Louvain’s refinement, from the <a href="communities.html">Communities</a> page. Hierarchical Leiden gives you control through the cap. Louvain’s levels come free but you don’t choose them. Girvan–Newman gives the richest tree on networks small enough to afford it.</p>
 </section>
 
 <p class="example lead">Example: twenty-four people in six teams of four, two teams to a department, with a liaison between each pair of departments.</p>

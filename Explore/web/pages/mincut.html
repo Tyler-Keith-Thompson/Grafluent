@@ -2,7 +2,7 @@
 <!-- description: The fewest cables to cut to split an office network in two, with Grafluent’s minimumCut(capacity:) and a Gomory–Hu tree built one pair at a time. -->
 <header class="sign">
   <h1>Minimum cut</h1>
-  <div class="say"><span>Say it</span><b>nah-gah-MOH-chee ee-bah-RAH-kee</b><span class="ipa">/naɡamotɕi ibaɾaki/</span></div>
+  <div class="say"><span>Say Nagamochi–Ibaraki</span><b>nah-gah-MOH-chee ee-bah-RAH-kee</b><span class="ipa">/naɡamotɕi ibaɾaki/</span></div>
   <p class="question">What’s the fewest cables you’d have to cut to split a network in two?</p>
 </header>
 
@@ -16,7 +16,7 @@
   <h2><small>Compared with</small>Other ways to find a cut</h2>
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
-  | *Nagamochi–Ibaraki, <code>minimumCut(capacity:)</code> | The weakest spot anywhere | The cheapest split of all | O(nm log n) | Says nothing about a given pair |
+  | *Nagamochi–Ibaraki, <code>minimumCut(capacity:)</code> | The weakest spot anywhere | The cheapest split of all | <a href="basics.html#speed">O(nm log n)</a> | Says nothing about a given pair |
   | [Maximum flow](flow.html), <code>minimumCut(from:to:capacity:)</code> | Keeping two given places apart | The cheapest split between them | One maximum flow | Answers one pair at a time |
   | *Gomory–Hu tree | Every pair at once | A tree that holds the cheapest split for each pair | n − 1 maximum flows | More work than one pair needs |
   -->
@@ -30,12 +30,12 @@
 <section class="prose">
   <h2><small>The idea</small>One tree answers every pair</h2>
   <p>To keep two offices apart, the fewest cables to cut equals the most data that can flow between them. That is the max-flow min-cut theorem from <a href="flow.html">maximum flow</a>. So one flow answers one pair.</p>
-  <p>Gomory and Hu showed that n − 1 flows answer every pair. The answers fit in a tree on the same offices. The fewest cables between any two offices is the lightest edge on the tree path between them. The timeline builds that tree one edge at a time, by Gusfield’s method, as <code>gomoryHuTree(capacity:)</code> does. The cheapest cut overall is the tree’s lightest edge.</p>
-  <p><code>minimumCut(capacity:)</code> finds that cheapest split without any flows. Nagamochi and Ibaraki’s method puts the offices in order, each one as tightly tied to those before it as possible. Two offices tied by at least the best cut so far can’t be worth separating, so it merges them and goes on.</p>
+  <p>Gomory and Hu showed that n − 1 flows answer every pair. The answers fit in a tree on the same offices. The fewest cables between any two offices is the lightest link on the tree’s path between them. The timeline builds that tree one link at a time, as <code>gomoryHuTree(capacity:)</code> does. The cheapest cut overall is the tree’s lightest link.</p>
+  <p><code>minimumCut(capacity:)</code> finds that cheapest split without any flows. Nagamochi and Ibaraki’s method puts the offices in order. Next comes the office with the most cables to the offices already placed. Two offices tied by at least the best cut so far can’t be worth separating, so it merges them and goes on.</p>
 
   <h2><small>Where it breaks</small>Cheapest isn’t always the split you want</h2>
   <p>The minimum cut often just cuts off one poorly connected office. That is right for measuring fragility. It is wrong when you want two halves of about the same size with few links between them. That is a different and much harder problem. <a href="communities.html">Community detection</a> is usually what people want there.</p>
-  <p>Capacities must not be negative. On a directed network, <code>minimumCut(capacity:)</code> counts only the links leaving one side, and it uses Hao and Orlin’s method instead.</p>
+  <p>Each link’s capacity, here its number of cables, must not be negative. On a directed network, <code>minimumCut(capacity:)</code> counts only the links leaving one side, and it uses Hao and Orlin’s method instead.</p>
 </section>
 
 <section class="prose in-swift">

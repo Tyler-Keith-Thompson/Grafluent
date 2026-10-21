@@ -15,7 +15,7 @@
   <h2><small>Compared with</small>Other ways to pair two sides</h2>
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
-  | *Gale–Shapley | Both sides rank each other | Pairs nobody would break away from | O(n²) | Favours the side that asks |
+  | *Gale–Shapley | Both sides rank each other | Pairs nobody would break away from | <a href="basics.html#speed">O(n²)</a> | Favours the side that asks |
   | [Bipartite matching](matching.html) | Each one only fits some of the other side | As many pairs as possible | O(m√n) | Ignores preferences |
   | <code>linearSumAssignment</code> | Each pair has a cost | The cheapest way to pair everyone | O(n³) | One score per pair, not two rankings |
   -->
@@ -34,7 +34,7 @@
 
   <h2><small>Where it breaks</small>Lying, ties and roommates</h2>
   <p>The asking side can never gain by lying about its rankings. The other side sometimes can.</p>
-  <p>With ties in the rankings, or lists that leave some people out, stable matchings can differ in size. Finding the largest is NP-hard.</p>
+  <p>With ties in the rankings, or lists that leave some people out, stable matchings can differ in size. Finding the largest is <a href="basics.html#speed">NP-hard</a>.</p>
   <p>When there aren’t two sides, as with pairing roommates from one group, a stable matching may not exist at all. Irving’s algorithm finds one when it does.</p>
 </section>
 

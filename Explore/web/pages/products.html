@@ -2,12 +2,12 @@
 <!-- description: Build a board from files and ranks: the Cartesian, tensor, strong and lexicographic products of two small graphs, as lazy views with Grafluent’s cartesianProductView and friends. -->
 <header class="sign">
   <h1>Graph products</h1>
-  <p class="question">A chess board is four files times three ranks. Which product of two paths gives the rook’s moves, and which the king’s?</p>
+  <p class="question">A chess board is four files (columns) times three ranks (rows). Which product of two paths gives the rook’s moves, and which the king’s?</p>
 </header>
 
 <section class="prose purpose">
-  <h2><small>What it’s for</small>Big regular graphs from small ones</h2>
-  <p>A <b>product</b> of two graphs has a vertex for every pair of vertices, one from each. Which pairs are joined is the rule that names the product. Grids, tori, hypercubes, boards and the state spaces of several machines running side by side are all products of small graphs.</p>
+  <h2><small>What it’s for</small>Big evenly patterned graphs from small ones</h2>
+  <p>A <b>product</b> of two graphs has a vertex for every pair of vertices, one from each. Each of the two graphs is called a <b>factor</b>. Which pairs are joined is the rule that names the product. Grids, boards, tori (grids that wrap around like a doughnut) and the state spaces of several machines running side by side are all products of small graphs.</p>
   <p>Reach for a product to build such a graph without listing its edges, to reason about it through its factors, or to model two things that move at once: one step in either factor, or in both.</p>
 </section>
 
@@ -15,12 +15,12 @@
   <h2><small>Compared with</small>The four products</h2>
   <!-- compare
   | Product | A move changes | On the board | Edges | Also called |
-  | *Cartesian | One factor, one step | A rook’s single step | m₁ n₂ + n₁ m₂ | Box product |
+  | *Cartesian | One factor, one step | A rook’s single step | <a href="basics.html#speed">m₁ n₂ + n₁ m₂</a> | Box product |
   | *Tensor | Both factors, one step each | A bishop’s single step | 2 m₁ m₂ | Direct, categorical or Kronecker product |
   | *Strong | One or both factors | A king | The two above added | Normal product |
-  | *Lexicographic | The first factor, landing anywhere; or the second alone | A courier | m₁ n₂² + n₁ m₂ | Composition |
+  | *Lexicographic | The first factor, landing anywhere; or the second alone | A made-up piece | m₁ n₂² + n₁ m₂ | Composition |
   -->
-  <p>The Cartesian product keeps the factors apart, so most questions about it reduce to questions about the factors. The strong product is the Cartesian plus the tensor. The lexicographic product is the odd one: it is not symmetric in its factors.</p>
+  <p>The Cartesian product keeps the factors apart, so most questions about it reduce to questions about the factors. The strong product is the Cartesian plus the tensor. The lexicographic product is the odd one: it is not symmetric in its factors. In the table, n is the number of vertices and m the number of edges of each factor.</p>
 </section>
 
 <p class="example lead">Example: the files a to d, a path of four, and the ranks 1 to 3, a path of three.</p>
@@ -35,7 +35,7 @@
   <p>Products compose with everything else. A <a href="bfs.html">breadth-first search</a> on the Cartesian product of two paths measures rook distance; on the strong product it measures king distance, which is the larger of the two coordinate differences.</p>
 
   <h2><small>Where it breaks</small>Counting grows fast</h2>
-  <p>A product with n₁ n₂ vertices is easy to build but no easier to search. Every algorithm that visits all of it still pays for all of it, and three factors multiply again. Directed factors give directed products, with the same rules read along the arcs. Self-loops in a factor make the products join a square to itself; the views follow their factors and keep them.</p>
+  <p>A product with n₁ n₂ vertices is easy to build but no easier to search. Every algorithm that visits all of it still pays for all of it, and three factors multiply again. Directed factors give directed products, with the same rules read along the arrows. Self-loops in a factor make the products join a square to itself; the views follow their factors and keep them.</p>
 </section>
 
 <section class="prose in-swift">

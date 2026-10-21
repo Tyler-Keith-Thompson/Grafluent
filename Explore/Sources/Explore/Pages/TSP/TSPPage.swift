@@ -262,7 +262,7 @@ struct TourStepLab {
                                 describeTourStep(last!, before: before)
                                 if finished {
                                     orderLength(order) == library
-                                        ? " No swap saves anything now. The tour is 2-optimal at \(orderLength(order)) km, as twoOptTour(improving:) found."
+                                        ? " No single 2-opt swap helps now. The tour is \(orderLength(order)) km, as twoOptTour(improving:) found."
                                         : " No swap saves anything now. twoOptTour(improving:) found \(library) km."
                                 }
                             }

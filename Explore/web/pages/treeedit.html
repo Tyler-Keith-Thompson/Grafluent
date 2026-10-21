@@ -7,7 +7,7 @@
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>How far apart two trees are</h2>
-  <p>Edit distance on strings counts the fewest insertions, deletions and substitutions between two texts. <b>Tree edit distance</b> does the same for ordered trees: delete a vertex and its children move up to its parent, insert one and it takes a run of siblings under it, or substitute one vertex for another. The distance is the cheapest script.</p>
+  <p>Edit distance on strings counts the fewest insertions, deletions and substitutions between two texts. <b>Tree edit distance</b> does the same for <a href="basics.html#words">ordered trees</a>, where siblings, the vertices with the same parent, keep a fixed left-to-right order: delete a vertex and its children move up to its parent, insert one and it takes a run of siblings under it, or rename one vertex as another, a substitution. The distance is the cheapest sequence of edits.</p>
   <p>Reach for it to compare org charts, XML or JSON documents, syntax trees of two programs, RNA secondary structures, or any two things that are trees with an order among siblings.</p>
 </section>
 
@@ -15,12 +15,12 @@
   <h2><small>Compared with</small>Other ways to compare structures</h2>
   <!-- compare
   | Method | When to use | Compares | Cost | Weakness |
-  | *Tree edit distance | Ordered trees that may differ a little | The cheapest script of edits | O(n n′ · min(h, l) · min(h′, l′)) | Slow on big, deep trees |
-  | [Isomorphism](isomorphism.html) | You only need yes or no | Whether the shapes match exactly | Fast on trees | Says nothing about how far apart |
-  | [Graph edit distance](isomorphism.html) | Graphs, not trees | The cheapest script on any graph | Exponential | Impractical past a few dozen vertices |
+  | *Tree edit distance | Ordered trees that may differ a little | The cheapest sequence of edits | <a href="basics.html#speed">O(n n′ · min(h, l) · min(h′, l′))</a> | Slow on big, deep trees |
+  | [Isomorphism](isomorphism.html) | You only need yes or no | Whether the shapes are exactly the same | Fast on trees | Says nothing about how far apart |
+  | Graph edit distance | Graphs, not trees | The cheapest sequence of edits on any graph | Doubles with each extra vertex | Impractical past a few dozen vertices |
   | String edit distance | Flat sequences | Insertions, deletions, substitutions of symbols | O(n n′) | Ignores the nesting |
   -->
-  <p>Tree edit distance sits between a yes-or-no isomorphism test and the exponential graph edit distance: it keeps the nesting and stays polynomial by using the order of siblings.</p>
+  <p>In the cost, h is a tree’s height and l its number of leaves; the primes mark the second tree. Tree edit distance sits between a yes-or-no <a href="isomorphism.html">isomorphism</a> test, which asks whether two shapes are exactly the same, and graph edit distance, whose time doubles with each extra vertex: it keeps the nesting and stays fast enough to use by relying on the order of siblings.</p>
 </section>
 
 <p class="example lead">Example: last year’s org chart and this year’s, with one move, one departure and a new team.</p>
@@ -30,11 +30,12 @@
 
 <section class="prose">
   <h2><small>The idea</small>Subtrees in postorder, forests in between</h2>
-  <p>Zhang and Shasha’s algorithm numbers each tree’s vertices in postorder, so a subtree is a run of consecutive numbers, and so is a forest of the subtrees to its left. It fills a table of the distance between every pair of such runs, each entry from three smaller entries: delete the last vertex of one side, insert the last of the other, or match the two last vertices and recurse on what is left. Only the subtrees rooted at the <b>keyroots</b>, the leftmost paths’ tops, start a fresh table, which keeps the work to the bound in the compare table. <code>treeEditDistance(to:)</code> returns the distance at unit costs, where a substitution is free, so it measures how far apart the shapes are; the longer form takes a cost for each kind of edit, so a change of name can cost what it should.</p>
-  <p>The lab charges 1 for a deletion or an insertion and 2 for a change of name, turns last year’s chart into this year’s with the cheapest edits, and asks the distance to the goal after each, so the number counts down to zero. Moving Cy costs two, a deletion and an insertion, because an edit never moves a vertex to a new parent in one step. With names free, the shapes alone are only three edits apart.</p>
+  <p>Zhang and Shasha’s algorithm numbers each tree’s vertices in postorder, numbering a vertex only after all its children, so a <a href="basics.html#words">subtree</a>, a vertex and everything below it, is a run of consecutive numbers, and so is a forest of the subtrees to its left, several trees side by side. It fills a table of the distance between every pair of such runs, each entry from three smaller entries.</p>
+  <p>The three are to delete the last vertex of one side, insert the last of the other, or rename the last of one side as the last of the other and recurse on what is left. Only a few special subtrees, those rooted at the <b>keyroots</b>, start a fresh table, which keeps the work to the bound in the compare table. <code>treeEditDistance(to:)</code> returns the distance when deleting or inserting costs 1 and renaming costs nothing, so it measures how far apart the shapes are; the longer form takes a cost for each kind of edit, so a renaming can cost what it should.</p>
+  <p>The lab charges 1 for a deletion or an insertion and 2 for a renaming, turns last year’s chart into this year’s with the cheapest edits, and asks the distance to the goal after each, so the number counts down to zero. Moving Cy costs two, a deletion and an insertion, because an edit never moves a vertex to a new parent in one step. With names free, the shapes alone are only three edits apart.</p>
 
   <h2><small>Where it breaks</small>Order and size</h2>
-  <p>The trees are ordered: swapping two siblings costs edits, which is right for documents and code and wrong for family trees or chemical structures, where sibling order means nothing. Unordered tree edit distance is NP-hard, so a different tool, or a canonical sibling order, is needed there. The table is n × n′ entries, so two trees of ten thousand vertices need a hundred million of them.</p>
+  <p>The trees are ordered: swapping two siblings costs edits, which is right for documents and code and wrong for family trees or chemical structures, where sibling order means nothing. Unordered tree edit distance is <a href="basics.html#speed">NP-hard</a>, so a different tool, or a fixed rule for sorting siblings, is needed there. The table is n × n′ entries, so two trees of ten thousand vertices need a hundred million of them.</p>
 </section>
 
 <section class="prose in-swift">

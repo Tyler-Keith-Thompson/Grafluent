@@ -111,7 +111,7 @@ struct CycleBasisLab {
                         span(.class("label")) { k == basis.count ? "The whole basis" : "Cycle \(k) of \(basis.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "The park has \(commons.vertexCount) places and \(commons.edgeCount) paths, so its cycle space has \(commons.edgeCount - commons.vertexCount + 1) dimensions. Every closed loop is a combination of \(basis.count) basis cycles. Press Step to see them."
+                                "The park has \(commons.vertexCount) places and \(commons.edgeCount) paths, so every basis has \(commons.edgeCount - commons.vertexCount + 1) loops. Every closed loop is a combination of \(basis.count) basis cycles. Press Step to see them."
                             } else {
                                 describeCycle(current!, number: k, weighted: weighted)
                                 if k == basis.count {

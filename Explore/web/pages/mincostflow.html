@@ -8,7 +8,7 @@
 <section class="prose purpose">
   <h2><small>What it’s for</small>The cheapest plan that meets every demand</h2>
   <p>Some places have goods to send, and some places want them. Each road can carry only so much, and each unit costs something to send. A minimum-cost flow is the cheapest way to move everything so that every place gets what it wants.</p>
-  <p>Reach for it to plan deliveries, to route traffic or data at the least cost, or to schedule work across machines. Shortest paths, maximum flow and the assignment problem are all special cases of it.</p>
+  <p>Reach for it to plan deliveries, to route traffic or data at the least cost, or to schedule work across machines. Shortest paths, maximum flow and the assignment problem, pairing each worker with one job at the least total cost, are all special cases of it.</p>
 </section>
 
 <section class="prose compared">
@@ -32,11 +32,11 @@
   <h2><small>The idea</small>Supplies, demands, capacities and costs</h2>
   <p>Each place gets a <b>supply</b>. A positive supply sends that much more than it receives. A negative one is a demand. Each road gets a capacity and a cost per unit. The answer is the flow that meets every supply and demand, stays within every capacity, and costs least in total.</p>
   <p>The warehouses here should send <em>up to</em> their stock, not exactly that much. A standard trick handles this. One made-up place, Stock, supplies everything the shops want. A free road runs from Stock to each warehouse, as wide as that warehouse’s stock. Each shop’s demand is its order, and the solver decides which warehouse fills it.</p>
-  <p>The cheapest plan isn’t built greedily. Ashby is cheapest to stock through the hub, until Colby opens. Colby’s only cheap road starts at the hub, and the hub can take in only 6 crates a day. So the cheapest plan for three shops moves Ashby’s crates to the dearer direct road. That frees the hub for Colby.</p>
-  <p><code>minimumCostFlow</code> runs the <b>network simplex</b>. It keeps a tree of roads whose flows are free to change. Again and again it adds a road that would lower the cost, and sends flow round the loop that road closes. It stops when no road would help. The answer comes with a price at every place, called a <b>potential</b>. No road with room left costs less than the difference in price across it. That proves no better plan exists.</p>
+  <p>The cheapest plan isn’t built <a href="basics.html#speed">greedily</a>, always taking the move that helps most right now. Ashby is cheapest to stock through the hub, until Colby opens. Colby’s only cheap road starts at the hub, and the hub can take in only 6 crates a day. So the cheapest plan for three shops moves Ashby’s crates to the dearer direct road. That frees the hub for Colby.</p>
+  <p><code>minimumCostFlow</code> runs the <b>network simplex</b>. It keeps a <a href="mst.html">spanning tree</a> of roads whose flows are free to change. Again and again it adds a road that would lower the cost, and sends flow round the cycle that road closes. It stops when no road would help. The answer comes with a price at every place, called a <b>potential</b>. Think of it as each place’s local price of a crate. No road with room left costs less than the price gap it spans, so no detour can save money. That proves no better plan exists.</p>
 
   <h2><small>Where it breaks</small>Whole crates, straight costs</h2>
-  <p>Costs here grow in a straight line, so two crates cost twice as much as one. Real deliveries often have a fixed cost per truck, discounts for bulk, or a choice of whether to open a warehouse at all. Those make the problem much harder. They need integer programming, often with a flow problem like this one inside. When every supply, demand and capacity is a whole number, the network simplex always finds a plan in whole crates. That suits goods that don’t split.</p>
+  <p>Costs here grow in a straight line, so two crates cost twice as much as one. Real deliveries often have a fixed cost per truck, discounts for bulk, or a choice of whether to open a warehouse at all. Those make the problem much harder. They need a general solver for whole-number decision problems, called integer programming, often with a flow problem like this one inside. When every supply, demand and capacity is a whole number, the network simplex always finds a plan in whole crates. That suits goods that don’t split.</p>
   <p>If the shops want more than the roads can carry, no plan exists and the call returns nil. To send as much as possible and then pay least for it, use <code>minimumCostMaximumFlow</code>.</p>
 </section>
 

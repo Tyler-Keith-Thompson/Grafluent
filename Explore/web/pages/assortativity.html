@@ -7,8 +7,8 @@
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>Whether like links to like</h2>
-  <p>A network is <b>assortative</b> when vertices with many links tend to link to other vertices with many links, and <b>disassortative</b> when the busy ones link to the quiet ones. The <b>degree assortativity coefficient</b> puts a number on it, from −1 to 1, like a correlation.</p>
-  <p>Reach for it to tell a social network, where popular people know each other, from a technological one, where hubs serve leaves. It also says how a network will fail: an assortative network keeps a tough core when its edge frays, a disassortative one falls apart when a hub goes.</p>
+  <p>A network is <b>assortative</b> when vertices with many links tend to link to other vertices with many links, and <b>disassortative</b> when the busy ones link to the quiet ones. The <b>degree assortativity coefficient</b> puts a number on it, from −1 to 1, like a correlation. It is −1 when one goes up as the other goes down, 0 when there is no pattern, and 1 when they rise together.</p>
+  <p>Reach for it to tell a social network, where popular people know each other, from a technological one, where hubs serve airports with a single link. It also says how a network will fail: an assortative network keeps a tough core when its outskirts fray, a disassortative one falls apart when a hub goes.</p>
 </section>
 
 <section class="prose compared">
@@ -34,7 +34,7 @@
   <p><code>averageNeighborDegrees()</code> gives each vertex the mean degree of its neighbours; the lab shows that number as “near”. <code>averageDegreeConnectivity()</code> groups those means by the vertex’s own degree. In an assortative network the means rise with the degree; in a disassortative one they fall.</p>
 
   <h2><small>Where it breaks</small>One number for a whole network</h2>
-  <p>The coefficient is a correlation, so it is pulled by whatever is common. A network with one huge hub and many leaves is disassortative however the rest is wired. And a network can be assortative in one region and disassortative in another, which one number cannot show; the per-degree averages can. Directed networks have four coefficients, one for each choice of in- or out-degree at each end, and <code>averageNeighborDegrees(source:target:)</code> picks them.</p>
+  <p>The coefficient is a correlation, so it is pulled by whatever is common. A network with one huge hub and many leaves is disassortative however the rest is wired. And a network can be assortative in one region and disassortative in another, which one number cannot show; the per-degree averages can. Directed networks have four coefficients, one for each choice of <a href="basics.html#words">in- or out-degree</a> at each end, and <code>averageNeighborDegrees(source:target:)</code> picks them.</p>
 </section>
 
 <section class="prose in-swift">

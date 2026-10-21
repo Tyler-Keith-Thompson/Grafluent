@@ -2,10 +2,10 @@
 <!-- description: Watch Grafluent’s FruchtermanReingoldLayout untangle a graph one step() at a time, and drag vertices to disturb it. -->
 <header class="sign">
   <h1>Force-directed layout</h1>
-  <div class="say"><span>Say it</span><b>FROOK-ter-mun RINE-gold</b><span class="ipa">/ˈfruːktərmən ˈraɪnɡoʊld/</span></div>
+  <div class="say"><span>Say Fruchterman–Reingold</span><b>FROOK-ter-mun RINE-gold</b><span class="ipa">/ˈfruːktərmən ˈraɪnɡoʊld/</span></div>
   <p class="question">How do you draw a graph so its shape is easy to see?</p>
 </header>
-<p class="example lead">Example: the twenty corners of a dodecahedron, dropped at random. They untangle as you watch. Pick another graph, or drag any vertex and the rest respond.</p>
+<p class="example lead">Example: the twenty corners of a dodecahedron, a 12-sided solid, dropped at random. They untangle as you watch. Pick another graph, or drag any vertex and the rest respond.</p>
 
 <div id="app"></div>
 
@@ -19,10 +19,10 @@
   <h2><small>Compared with</small>Other ways to draw a graph</h2>
   <!-- compare
   | Method | When to use | Places vertices by | Cost a step | Weakness |
-  | *Fruchterman–Reingold | Any small graph, to see its shape | Springs on the edges, and a push between every pair | O(n² + m), or O(n log n + m) with Barnes–Hut | A new start gives a new picture |
-  | ForceAtlas2 | Large networks with hubs | Forces that grow with degree, so hubs spread apart | O(n² + m), or O(n log n + m) with Barnes–Hut | Needs tuning to look its best |
+  | *Fruchterman–Reingold | Any small graph, to see its shape | Springs on the edges, and a push between every pair | <a href="basics.html#speed">O(n² + m)</a>, or O(n log n + m) with Barnes–Hut, a shortcut that treats a far-off clump of vertices as one | A new start gives a new picture |
+  | ForceAtlas2 | Large networks with hubs | Forces that grow with <a href="basics.html#words">degree</a>, so hubs spread apart | O(n² + m), or O(n log n + m) with Barnes–Hut | Needs tuning to look its best |
   | Stress majorization | Distances on the page should match distances in the graph | How many steps apart each pair is | O(n²), after finding every distance | Finding every distance is slow on a big graph |
-  | [Spectral layout](spectral.html) | A quick drawing with no randomness | Eigenvectors of the graph | One eigenvector solve, no steps | Can pile a whole region onto one spot |
+  | [Spectral layout](spectral.html) | A quick drawing with no randomness | Numbers computed from the graph’s links, its eigenvectors | One such computation, no steps | Can pile a whole region onto one spot |
   | [Layered drawing](layered.html) | Arrows with a direction, such as a flowchart | Rows, every arrow pointing down | Several phases, no steps | Only suits graphs with a direction |
   -->
   <p>Fruchterman–Reingold is the general-purpose choice. It works on anything and needs no tuning, but it is slow on big graphs and gives a new picture for each new start. In the table, n is the number of vertices and m the number of edges.</p>

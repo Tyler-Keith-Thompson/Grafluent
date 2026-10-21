@@ -10,14 +10,14 @@
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>An order that keeps every rule</h2>
-  <p>A topological sort puts tasks in an order where each one comes after everything it depends on. Reach for it to order the steps of a build, the courses in a degree, or the cells of a spreadsheet. If the rules go round in a circle, no order exists, and the sort tells you so.</p>
+  <p>A topological sort puts tasks in an order where each one comes after everything it depends on. Reach for it to order the steps of a build, the courses in a degree, or the cells of a spreadsheet. If the rules go round in a circle, no order exists, and the sort tells you so. A directed graph with no cycles is called a <a href="basics.html#words">directed acyclic graph</a>, or DAG. Exactly these graphs have a topological order.</p>
 </section>
 
 <section class="prose">
   <h2><small>The idea</small>Do whatever has nothing left to wait for</h2>
   <p>Draw an arrow from each task to anything that has to wait for it. A valid order lists every task before everything its arrows point to.</p>
   <p>Kahn’s algorithm is one way to find it. Take any task with no arrows coming in. Write it down and remove it. That may free up other tasks. Each round frees a <b>wave</b> of tasks that could all happen at the same time.</p>
-  <p>Grafluent’s <code>topologicalSort()</code> uses the other classic way, a depth-first search. It lists each task once everything after it is finished. Then it reads the list backwards.</p>
+  <p>Grafluent’s <code>topologicalSort()</code> uses the other classic way, a <a href="dfs.html">depth-first search</a>. It lists each task once everything after it is finished. Then it reads the list backwards.</p>
 </section>
 
 <section class="prose compared">
@@ -25,7 +25,7 @@
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
   | *Depth-first search (<code>topologicalSort()</code>) | You want one valid order | One order, or <code>nil</code> with a cycle to show | O(n + m) | Says nothing about what can run at once |
-  | [Kahn’s algorithm](criticalpath.html) (<code>lazy.kahn()</code>) | You want to take tasks one at a time as they become free | One order, built from the front | O(n + m) | With a cycle, it stops and leaves some tasks out |
+  | Kahn’s algorithm (<code>lazy.kahn()</code>, used on <a href="criticalpath.html">Critical path</a>) | You want to take tasks one at a time as they become free | One order, built from the front | O(n + m) | With a cycle, it stops and leaves some tasks out |
   | Waves (<code>topologicalGenerations()</code>) | You want to run tasks in parallel | Groups of tasks that can run at the same time | O(n + m) | Groups, not a single list |
   -->
   <p>All three take time in proportion to the tasks and rules. In the table, n is the number of tasks and m the number of rules.</p>

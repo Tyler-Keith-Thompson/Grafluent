@@ -2,7 +2,7 @@
 <!-- description: Watch Grafluent’s lazy.louvain split a school’s friendships into groups, each move raising the modularity, then merge the groups and carry on. -->
 <header class="sign">
   <h1>Communities</h1>
-  <div class="say"><span>Say it</span><b>loo-VAN</b><span class="ipa">/luvɛ̃/</span></div>
+  <div class="say"><span>Say Louvain</span><b>loo-VAN</b><span class="ipa">/luvɛ̃/</span></div>
   <p class="question">Where does a network naturally split into groups?</p>
 </header>
 
@@ -16,10 +16,10 @@
   <h2><small>Compared with</small>Other ways to find communities</h2>
   <!-- compare
   | Method | When to use | How | Cost | Weakness |
-  | *Louvain | A good split of a large network | Moves people between groups to raise modularity, then merges groups | About O(m) a pass | A group can come out split inside |
-  | Leiden | The same, with guarantees | Louvain with a refining step | About O(m) a pass | A little slower than Louvain |
-  | [Girvan–Newman](girvannewman.html) | A small network, and you want the whole hierarchy | Cuts the busiest link again and again | O(m²n) | Far too slow for large networks |
-  | [Label propagation](labelpropagation.html) | A very large network, fast | Each person takes the most common label among friends | About O(m) a sweep | Answers change from run to run |
+  | *Louvain | A good split of a large network | Moves people between groups to raise modularity, then merges groups | About <a href="basics.html#speed">O(m)</a> a pass | A group can come out split inside |
+  | Leiden | The same, and groups always come out connected | Louvain with a refining step | About O(m) a pass | A little slower than Louvain |
+  | [Girvan–Newman](girvannewman.html) | A small network, and you want the whole hierarchy | Cuts the link that most shortest paths run through (see <a href="betweenness.html">Betweenness</a>), again and again | O(m²n) | Far too slow for large networks |
+  | [Label propagation](labelpropagation.html) | A very large network, fast | Each person takes the most common group name among friends | About O(m) a sweep | Answers change from run to run |
   -->
   <p>Louvain is the usual first choice. Use Leiden when every group must hold together, and label propagation when speed matters most.</p>
 </section>
@@ -35,7 +35,7 @@
   <p>Then merge each group into a single dot. The friendships between groups become weighted links. Do the same again with whole groups. It stops when merging no longer helps. Each sweep takes time in step with the number of friendships.</p>
 
   <h2><small>Where it breaks</small>Modularity has a blind spot</h2>
-  <p>In a big network, modularity can’t see groups below a certain size. So two small, tight groups may come out merged. Raising the <code>resolution</code> parameter favours smaller groups.</p>
+  <p>In a big network, modularity can’t see groups below a certain size. So two small, tight groups may come out merged. Raising the <code>resolution</code> parameter, a knob that sets how much chance is subtracted, favours smaller groups.</p>
   <p>Louvain can also leave a group that isn’t connected inside, after its middle member moves away. The Leiden method, <code>leidenCommunities</code>, adds a step that rules that out. And the greedy moves depend on the order students are visited. So the answer is a good split, but not always the best one.</p>
   <p>Sometimes you want groups where everyone knows everyone. That is a different question, answered by <a href="cliques.html">cliques</a>.</p>
 </section>

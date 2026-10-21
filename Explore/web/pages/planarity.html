@@ -2,7 +2,7 @@
 <!-- description: The three-utilities puzzle, five fully connected towns and a cube, tested link by link with Grafluent’s isPlanar, findKuratowskiSubgraph and planarLayout. -->
 <header class="sign">
   <h1>Planarity</h1>
-  <div class="say"><span>Say it</span><b>koo-rah-TOV-skee</b><span class="ipa">/kuraˈtɔfskʲi/</span></div>
+  <div class="say"><span>Say Kuratowski</span><b>koo-rah-TOV-skee</b><span class="ipa">/kuraˈtɔfskʲi/</span></div>
   <p class="question">Can three houses each get water, gas and power without any two pipes crossing?</p>
 </header>
 
@@ -16,7 +16,7 @@
   <h2><small>Compared with</small>Other ways to ask “is it planar?”</h2>
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
-  | Count the edges | A quick first check | “No” when there are more than 3n − 6 edges | O(1) | Can never say yes |
+  | Count the edges | A quick first check | “No” when there are more than 3n − 6 edges on n vertices | <a href="basics.html#speed">O(1)</a> | Can never say yes |
   | *Left-right test | You want a yes or no, and a drawing | <code>isPlanar</code>, <code>planarEmbedding()</code>, <code>planarLayout()</code> | O(n + m) | No proof when the answer is no |
   | Edge addition | You want proof of a no | <code>findKuratowskiSubgraph()</code> | O(n + m) | More work than a plain yes or no |
   -->
@@ -31,12 +31,12 @@
   <h2><small>The idea</small>Two small graphs are behind every failure</h2>
   <p>The drawing you start with doesn’t matter. The cube looks tangled as first drawn, yet <code>planarLayout()</code> finds a drawing of it with no crossings. What matters is whether <em>some</em> drawing exists.</p>
   <p>The puzzle has no solution. Its graph is K₃,₃, where three vertices are each joined to the same other three. Five towns all joined to each other make K₅. In 1930 Kuratowski proved that these two are the only obstacles. A graph is planar exactly when it contains no copy of either. The copy may be stretched out, with extra stops along its paths. So a “no” always comes with a proof you can check by eye. <code>findKuratowskiSubgraph()</code> returns it, drawn in red.</p>
-  <p>A planar drawing splits the paper into <b>faces</b>, and the outside counts as one. For a connected planar graph, Euler’s formula says vertices − edges + faces = 2. Every face needs at least three edges round it. So a simple planar graph has at most 3n − 6 edges. That already rules out K₅, which has 10 edges, one more than 3 × 5 − 6 = 9.</p>
-  <p><code>isPlanar</code> and <code>planarEmbedding()</code> run de Fraysseix and Rosenstiehl’s left-right test, built on depth-first search. <code>findKuratowskiSubgraph()</code> runs Boyer and Myrvold’s edge addition, which keeps the proof when it fails.</p>
+  <p>A planar drawing splits the paper into <b>faces</b>, and the outside counts as one. For a connected planar graph, Euler’s formula says vertices − edges + faces = 2. Every face needs at least three edges round it, and each edge borders at most two faces. So a <a href="basics.html#words">simple</a> planar graph has at most 3n − 6 edges. That already rules out K₅, which has 10 edges, one more than 3 × 5 − 6 = 9.</p>
+  <p><code>isPlanar</code> and <code>planarEmbedding()</code>, which gives an embedding, the order of edges around each vertex in a crossing-free drawing, run de Fraysseix and Rosenstiehl’s left-right test, built on depth-first search. <code>findKuratowskiSubgraph()</code> runs Boyer and Myrvold’s edge addition, which keeps the proof when it fails.</p>
 
   <h2><small>Where it breaks</small>Planar isn’t the same as easy to read</h2>
   <p>A planar layout avoids crossings, but it can squeeze vertices close together and stretch edges out. The cube’s layout shows this. For a drawing that shows a graph’s shape, crossings and all, use a <a href="layout.html">force-directed layout</a>. When a graph isn’t planar, finding the fewest crossings any drawing can have is much harder. No fast method is known.</p>
-  <p>Planarity is also a gift for other problems. Every planar graph can be <a href="coloring.html">coloured</a> with four colours. That is the four-colour theorem.</p>
+  <p>Planarity is also a gift for other problems. Every planar graph can be <a href="coloring.html">coloured</a> with four colours, so that no two joined vertices share a colour. That is the four-colour theorem.</p>
 </section>
 
 <section class="prose in-swift">

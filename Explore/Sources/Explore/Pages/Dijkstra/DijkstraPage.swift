@@ -198,7 +198,7 @@ struct DijkstraLab {
                             } else if finished {
                                 "Every place is settled. The blue streets form the "
                                 em { "shortest-path tree" }
-                                ". They show the quickest way to each place from \(places[model.source].name)."
+                                ", one way back to the start from every place. They show the quickest way to each place from \(places[model.source].name)."
                                 if model.target >= 0 && model.target != model.source {
                                     " The red line is the quickest walk to \(places[model.target].name). It takes \(state.distance[model.target].map { "\($0)" } ?? "∞") min."
                                 }

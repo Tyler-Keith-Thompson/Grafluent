@@ -15,8 +15,8 @@
   <h2><small>Compared with</small>Other ways to ask a route question</h2>
   <!-- compare
   | Method | When to use | Needs | Cost | Weakness |
-  | *Dijkstra over a semiring | Quickest, widest, most reliable, reachable | No link makes a route better, and choosing keeps one route | O(m log n) | Can’t count routes |
-  | DAG shortest paths over a semiring | No link loops back | Nothing more | O(n + m) | Fails on a graph with a loop |
+  | *Dijkstra over a semiring | Quickest, widest, most reliable, reachable | No link makes a route better, and choosing keeps one route | <a href="basics.html#speed">O(m log n)</a> | Can’t count routes |
+  | Shortest paths on a graph with no cycles, over a semiring | No link loops back, so there are no cycles | Nothing more | O(n + m) | Fails on a graph with a cycle |
   | [Bellman–Ford](bellmanford.html) over a semiring | Some links make a route better | Choosing keeps one route | O(nm) | Much slower |
   | Floyd–Warshall over a semiring | The answer for every pair of places | Choosing keeps one route | O(n³) | Too slow for large graphs |
   | A search written for one question | You will only ever ask one question | Nothing | O(m log n) | A new search to write and test each time |
@@ -52,11 +52,11 @@
 
   <h2><small>Name it</small>That pair is a semiring</h2>
   <p>A <b>semiring</b> is a pair of moves like these, together with the two special values. The moves follow the same rules as × and + on ordinary numbers. The order of a choice doesn’t matter. Extending by no route gives no route. And extending the better of two routes gives the same result as extending both and then choosing. That last rule lets the search decide once at each place, without keeping every route.</p>
-  <p>In Grafluent this is the <code>Semiring</code> protocol. <code>times(_:)</code> extends and <code>plus(_:)</code> chooses. <code>zero</code> is no route, and <code>one</code> is already there. The five rows above are <code>TropicalSemiring</code>, <code>BottleneckSemiring</code>, <code>ViterbiSemiring</code>, <code>BooleanSemiring</code> and <code>CountingSemiring</code>. In the code panel, only the wrapper around each link’s value changes.</p>
+  <p>In Grafluent this is the <code>Semiring</code> protocol. <code>times(_:)</code> extends and <code>plus(_:)</code> chooses. <code>zero</code> is no route, and <code>one</code> is already there. The five rows above are <code>TropicalSemiring</code> (tropical is the mathematicians’ name for min and plus), <code>BottleneckSemiring</code> (a bottleneck is the narrowest link), <code>ViterbiSemiring</code>, <code>BooleanSemiring</code> and <code>CountingSemiring</code>. In the code panel, only the wrapper around each link’s value changes.</p>
 
   <h2><small>Where it breaks</small>Dijkstra needs two more promises</h2>
-  <p>Dijkstra settles a place for good once nothing better can still arrive. That needs two promises. The first is that extending never makes a route better. So there are no negative minutes, and no chance above 1. Grafluent checks each weight against <code>one</code>. The second is that choosing keeps one of the two routes. Min, max and or all do. A semiring whose choice always keeps one of the two is called <b>selective</b>. That is Grafluent’s <code>SelectiveSemiring</code>, and it is what <code>dijkstraShortestPaths</code> takes.</p>
-  <p>Counting routes breaks the second promise. Choosing adds the two counts, so no single route wins. A place can’t be settled until every way into it is known. That works when no link loops back, as in this network. <code>dagShortestDistances</code> runs Mohri’s algorithm, which visits the places in an order where every link points forward. With a loop there would be infinitely many routes to count.</p>
+  <p>Dijkstra settles a place for good once nothing better can still arrive. That needs two promises. The first is that extending never makes a route better. So there are no negative minutes, and no chance above 1. Grafluent checks that no weight beats <code>one</code>, the empty route. The second is that choosing keeps one of the two routes. Min, max and or all do. A semiring whose choice always keeps one of the two is called <b>selective</b>. That is Grafluent’s <code>SelectiveSemiring</code>, and it is what <code>dijkstraShortestPaths</code> takes.</p>
+  <p>Counting routes breaks the second promise. Choosing adds the two counts, so no single route wins. A place can’t be settled until every way into it is known. That works when no link loops back, so the graph has no cycles, as in this network. <code>dagShortestDistances</code> runs Mohri’s algorithm, which visits the places in a <a href="toposort.html">topological order</a>, where every link points forward. With a cycle there would be infinitely many routes to count.</p>
 </section>
 
 <section class="prose in-swift">

@@ -2,7 +2,7 @@
 <!-- description: People you may know, scored by the friends they share: Grafluent’s jaccardCoefficient and adamicAdarIndex on a small friend network, and why they rank differently. -->
 <header class="sign">
   <h1>Friend suggestions</h1>
-  <div class="say"><span>Say it</span><b>ah-DAH-mitch</b><span class="ipa">/aˈdaːmit͡ʃ/</span></div>
+  <div class="say"><span>Say Adamic</span><b>ah-DAH-mitch</b><span class="ipa">/aˈdaːmit͡ʃ/</span></div>
   <p class="question">Ana has three friends. Of the people she hasn’t met, who is she most likely to get on with?</p>
 </header>
 <p class="example lead">Example: nine people and a line between each pair of friends. Ben knows almost everyone. Dee knows only two people.</p>
@@ -23,19 +23,19 @@
   | *Jaccard coefficient | People’s friend counts differ a lot | The share of their friends they have in common | A friend who knows everybody counts as much as any other |
   | *Adamic–Adar index | Some friends know far more people than others | Friends in common, each worth 1 / ln(its friend count) | Grows with the number of friends in common, so it has no fixed top |
   | Resource allocation index | Hubs should count for even less | Friends in common, each worth 1 / its friend count | Close to Adamic–Adar on most networks |
-  | Preferential attachment | Popular people tend to meet popular people | The product of their friend counts | Ignores whether they have anyone in common |
+  | [Preferential attachment](networkmodels.html) | Popular people tend to meet popular people | The product of their friend counts | Ignores whether they have anyone in common |
   -->
-  <p>All of these are local, so they score a pair in the time it takes to read two lists of friends. None of them can suggest someone three steps away.</p>
+  <p>In the table, ln is the natural logarithm, which grows slowly. All of these are local, so they score a pair in the time it takes to read two lists of friends. None of them can suggest someone three steps away.</p>
 </section>
 
 <section class="prose">
   <h2><small>The idea</small>Friends of friends, weighed</h2>
   <p>The <b>Jaccard coefficient</b> divides the friends two people share by all the friends either one has. It lies between 0 and 1. It doesn’t favour people who simply know a lot of others.</p>
-  <p>The <b>Adamic–Adar index</b> adds up the shared friends, but weighs each one by 1 / ln(its number of friends). A shared friend who knows only two people is a strong hint. One who knows everybody is a weak hint, because they connect almost everyone. So Adamic–Adar ranks Ivy, met through Cy and Dee, above Eli, met through Cy and the very popular Ben. Jaccard calls them even.</p>
+  <p>The <b>Adamic–Adar index</b> adds up the shared friends, but weighs each one by 1 / ln(its number of friends). ln, the natural logarithm, grows slowly. ln 2 is about 0.7 and ln 100 about 4.6, so a friend of 100 people counts about a sixth as much as a friend of 2. A shared friend who knows only two people is a strong hint. One who knows everybody is a weak hint, because they connect almost everyone. So Adamic–Adar ranks Ivy, met through Cy and Dee, above Eli, met through Cy and the very popular Ben. Jaccard calls them even.</p>
   <p>Each score looks only at the two people’s friends. So <code>jaccardCoefficients(of:)</code> and <code>adamicAdarIndices(of:)</code> score many pairs cheaply.</p>
 
   <h2><small>Where it breaks</small>Only two steps away</h2>
-  <p>Both scores are 0 for anyone without a friend in common. So they never suggest someone three steps away, and a newcomer with no friends gets no suggestions at all. Scores that count longer paths, such as the Katz index or random walks with restart, reach further at more cost. Real recommenders also use what the network doesn’t show, such as where people live, work or went to school, and which suggestions were accepted before.</p>
+  <p>Both scores are 0 for anyone without a friend in common. So they never suggest someone three steps away, and a newcomer with no friends gets no suggestions at all. Scores that count longer paths reach further at more cost. The Katz index is one. Another is personalised PageRank, walks that keep returning to the person, as on the <a href="knowledge.html">Knowledge graphs</a> page. Real recommenders also use what the network doesn’t show, such as where people live, work or went to school, and which suggestions were accepted before.</p>
 </section>
 
 <section class="prose in-swift">

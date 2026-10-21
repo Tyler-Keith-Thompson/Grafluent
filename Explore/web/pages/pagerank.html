@@ -7,7 +7,7 @@
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>Importance from links</h2>
-  <p>PageRank scores every page in a network of links. A page scores high when pages that score high link to it. The scores add up to 1, so each one reads as a share of the attention.</p>
+  <p>PageRank scores every page in a network of links. Such a score is called a <b>centrality</b>. A page scores high when pages that score high link to it. The scores add up to 1, so each one reads as a share of the attention.</p>
   <p>Reach for it when a link works like a vote, as with web pages, citations between papers, or who follows whom. It needs nothing but the links.</p>
 </section>
 
@@ -15,13 +15,13 @@
   <h2><small>Compared with</small>Other ways to say who matters</h2>
   <!-- compare
   | Method | When to use | Rewards | Cost | Weakness |
-  | *PageRank | Links work like votes | Links from pages that score high themselves | O(m) a round, a few dozen rounds | A ring of pages that link to each other can lift its own scores |
+  | *PageRank | Links work like votes | Links from pages that score high themselves | <a href="basics.html#speed">O(m)</a> a round, a few dozen rounds | A ring of pages that link to each other can lift its own scores |
   | Counting links in | A quick first look | Every link in, all the same | O(n + m) | A link from a junk page counts as much as any other |
-  | HITS | Some pages list good pages and others are the good pages | Two scores, hubs and authorities | O(m) a round | A tight cluster can take over both scores |
-  | Eigenvector centrality | Friendships and other two-way links | Neighbours that score high | O(m) a round | On one-way links, a page that nobody links to scores 0, so its links count for nothing |
+  | HITS | Some pages list good pages and others are the good pages | Two scores, hubs (pages that link to good pages) and authorities (pages good hubs link to) | O(m) a round | A tight cluster can take over both scores |
+  | Neighbour-weighted score (eigenvector centrality) | Friendships and other two-way links | Neighbours that score high | O(m) a round | On one-way links, a page that nobody links to scores 0, so its links count for nothing |
   | [Betweenness](betweenness.html) | Who sits between the others | Being on shortest paths | O(nm) | Says nothing about popularity |
   -->
-  <p>PageRank is cheap and needs no tuning beyond the damping factor. The random jump keeps every score above 0 and makes the iteration settle. In the table, n is the number of pages and m the number of links.</p>
+  <p>In the table, n is the number of pages and m the number of links.</p>
 </section>
 
 <p class="example lead">Example: six web pages linking to each other. Add a link and see the ranks shift.</p>
@@ -32,7 +32,8 @@
   <h2><small>The idea</small>A bored random surfer</h2>
   <p>Imagine someone browsing at random. They follow a link, and every so often they get bored and jump to any page at all. Over a long session, the share of time they spend on each page is its rank. So a link from a busy page is worth more than a link from a quiet one.</p>
   <p>The <b>damping factor</b> is how often the surfer keeps clicking instead of jumping. It is usually 0.85.</p>
-  <p>Grafluent doesn’t simulate the surfer. It uses power iteration. Every page starts with an equal share. Each round, every page passes its share along its links. This repeats until no score moves by more than the tolerance. A page with no links out shares its rank with every page. The surfer on this page is there to show that the two agree.</p>
+  <p>Grafluent doesn’t simulate the surfer. It uses power iteration. Every page starts with an equal share. Each round, every page passes its share along its links. This repeats until no score moves by more than a small threshold you set, the tolerance. A page with no links out shares its rank with every page. The surfer on this page is there to show that the two agree.</p>
+  <p>PageRank is cheap and needs no tuning beyond the damping factor. The random jump keeps every score above 0 and makes the iteration settle.</p>
 
   <h2><small>Where it breaks</small>Pages that hoard rank</h2>
   <p>A tight cluster of pages that link only to each other can soak up rank. The random jump keeps that in check. Turn the damping all the way up to see what happens without it: here the Forum, which nobody links to, drops to nothing. On some graphs the surfer goes round a loop for ever and the scores never settle; then <code>pageRank</code> throws <code>NoConvergence</code>.</p>

@@ -8,7 +8,7 @@
 <section class="prose purpose">
   <h2><small>What it’s for</small>Samples of a network, as sentences</h2>
   <p>A random walk starts somewhere and keeps taking a random edge. Many short walks are a cheap sample of a large network. Places that often turn up in the same walks are related.</p>
-  <p>Reach for biased walks when you want to learn a vector for each vertex, as node2vec does, to feed a recommender or a classifier. Two dials, p and q, choose what “related” means. It can mean being in the same neighbourhood, or playing the same role.</p>
+  <p>Reach for biased walks when you want an <b>embedding</b>, as node2vec does. An embedding gives each vertex a short list of numbers, a vector, so that similar vertices get similar lists, which a recommender or a classifier can compare. Two dials, p and q, choose what “related” means. It can mean being in the same neighbourhood, or playing the same role.</p>
 </section>
 
 <section class="prose compared">
@@ -32,8 +32,8 @@
   <h2><small>The idea</small>A walk that remembers one step</h2>
   <p>A plain random walk takes each path out of the current place with equal chance, and forgets where it came from. Grover and Leskovec’s <b>node2vec</b> remembers one step back. Every path out of the current place leads to a place 0, 1 or 2 steps from the previous place. Each path gets a weight to match. Going straight back is 1/p. Going to a place next to the previous one is 1. Going anywhere further is 1/q. With p = q = 1 it is the plain walk again.</p>
   <p>A small q pushes the walker onward. Its walks resemble a <a href="dfs.html">depth-first search</a> and reach across the network, here from the woods to the beach. A large q keeps it circling one neighbourhood, like a <a href="bfs.html">breadth-first search</a>, so its walks describe the local structure.</p>
-  <p>node2vec feeds many such walks to a word-embedding model, as if they were sentences. Places that turn up near each other in walks get similar vectors. So choosing q chooses what “similar” means. It can mean the same neighbourhood, or the same role, such as being a bridge.</p>
-  <p><code>randomWalk(from:length:returnParameter:inOutParameter:using:)</code> takes the generator as an argument. A seeded one gives the same walk on every platform, which is how the twenty-walk summary is repeatable.</p>
+  <p>node2vec feeds many such walks to a word-embedding model such as word2vec, which learns a vector for each word from the sentences it appears in, as if the walks were sentences. Places that turn up near each other in walks get similar vectors. So choosing q chooses what “similar” means. It can mean the same neighbourhood, or the same role, such as being a bridge.</p>
+  <p><code>randomWalk(from:length:returnParameter:inOutParameter:using:)</code>, where returnParameter is p and inOutParameter is q, takes a random number generator as an argument. Seeding it fixes the sequence, so the same seed gives the same walk on every platform, which is how the twenty-walk summary is repeatable.</p>
 
   <h2><small>Where it breaks</small>One walk proves little</h2>
   <p>Thirty steps is a small sample. Two seeds with the same p and q can give very different walks, which is why the summary averages twenty. Embeddings use hundreds of walks per vertex.</p>

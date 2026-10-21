@@ -2,7 +2,7 @@
 <!-- description: A round-robin tournament scheduled by colouring the matches, with Grafluent’s edgeColoring() and the circle method checked by isEdgeColoring, one round at a time. -->
 <header class="sign">
   <h1>Edge coloring</h1>
-  <div class="say"><span>Say it</span><b>vee-ZING</b><span class="ipa">/viˈzinɡ/</span></div>
+  <div class="say"><span>Say Vizing</span><b>vee-ZING</b><span class="ipa">/viˈzinɡ/</span></div>
   <p class="question">Every team plays every other once, and nobody plays twice on the same day. How few days does the tournament need?</p>
 </header>
 
@@ -16,8 +16,8 @@
   <h2><small>Compared with</small>Other ways to colour the lines</h2>
   <!-- compare
   | Method | When to use | Colours | Cost | Weakness |
-  | *Misra–Gries, <code>edgeColoring()</code> | Any simple graph | Δ or Δ + 1 | O(m(Δ² + n)) | Sometimes Δ + 1 when Δ would do |
-  | <code>bipartiteEdgeColoring()</code> | Two sides, such as home against away | Exactly Δ | O(m(n + Δ)) | Only for two-sided graphs |
+  | *Misra–Gries, <code>edgeColoring()</code> | Any <a href="basics.html#words">simple</a> graph | Δ or Δ + 1, where Δ is the most matches any team plays | <a href="basics.html#speed">O(m(Δ² + n))</a> | Sometimes Δ + 1 when Δ would do |
+  | <code>bipartiteEdgeColoring()</code> | Two sides, such as home against away | Exactly Δ | O(m(n + Δ)) | Only for <a href="matching.html">bipartite</a> graphs |
   | <code>greedyEdgeColoring()</code> | Graphs with repeated lines or self-loops | At most 2Δ − 1 | O(n + mΔ) | Can use many more colours |
   | *The circle method | A full round robin | n − 1 for an even n, n for an odd n | One pass | Only for everyone against everyone |
   -->
@@ -31,12 +31,12 @@
 <section class="prose">
   <h2><small>The idea</small>Only two possible answers</h2>
   <p>A team with Δ matches needs Δ different rounds, so Δ is a lower bound. Vizing proved in 1964 that Δ + 1 is always enough for a simple graph. So there are only two possible answers. The fewest colours is the graph’s <b>chromatic index</b>.</p>
-  <p><code>edgeColoring()</code> always reaches one of the two. It runs Misra and Gries’s version of Vizing’s proof. It colours the matches one by one. When a match is stuck, it shifts colours round a fan of matches at one end, and swaps two colours along a path, until a colour is free.</p>
+  <p><code>edgeColoring()</code> always reaches one of the two. It runs Misra and Gries’s version of Vizing’s proof. It colours the matches one by one. When a match is stuck, it shifts colours round the matches at one of its teams, in turn, and swaps two colours along a path, until a colour is free.</p>
   <p>For the league, Δ is the number of other teams, n − 1. With an even number of teams, n − 1 rounds are possible. The circle method seats the teams round a table and keeps one seat fixed. Each round the others move one place, and teams in facing seats play. With an odd number of teams, each round leaves one team out, so n rounds are needed. The circle method adds an empty seat for the team that rests. <code>isEdgeColoring(_:)</code> checks any colouring you bring.</p>
 
   <h2><small>Where it breaks</small>Δ or Δ + 1 is a hard question</h2>
-  <p>Vizing’s method promises Δ + 1. Sometimes it gives Δ + 1 when Δ would do. Pick an even number of teams and compare its schedule with the circle method’s. That isn’t carelessness. Deciding whether a graph needs Δ or Δ + 1 colours is NP-complete, so no fast method always finds the smaller. On a two-sided graph, such as home teams against visiting teams, Kőnig’s theorem says Δ is always enough.</p>
-  <p>Real fixtures have more rules than this, such as home and away games, travel and rest days. Those are usually solved with constraint or integer programming, starting from a colouring like this one.</p>
+  <p>Vizing’s method promises Δ + 1. Sometimes it gives Δ + 1 when Δ would do. Pick an even number of teams and compare its schedule with the circle method’s. That isn’t carelessness. Deciding whether a graph needs Δ or Δ + 1 colours is <a href="basics.html#speed">NP-hard</a>, so no fast method always finds the smaller. On a <a href="matching.html">bipartite</a> graph, such as home teams against visiting teams, Kőnig’s theorem, a different result by the same Kőnig, says Δ is always enough.</p>
+  <p>Real fixtures have more rules than this, such as home and away games, travel and rest days. Those are usually solved with general-purpose solvers, starting from a colouring like this one.</p>
 </section>
 
 <section class="prose in-swift">

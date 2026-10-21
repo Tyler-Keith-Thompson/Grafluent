@@ -7,20 +7,20 @@
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>The part of a graph around a few places</h2>
-  <p>A knowledge graph can hold millions of facts. A question touches a few entities, and what matters is what lies close to them: the entities a hop or two away and the facts between them. That is the <b>neighbourhood</b> of the question, also called its ego graph.</p>
-  <p>Reach for it to feed a language model the facts around a question, to show a person the part of a social network near them, or to cut a large graph down to a piece worth drawing. A <b>budget</b> keeps the piece small when a hop would bring in too much.</p>
+  <p>A <a href="knowledge.html">knowledge graph</a> stores facts as labelled arrows between entities, and can hold millions of them. A question touches a few entities, the <b>seeds</b>, and what matters is what lies close to them: the entities a hop or two away, where a hop is one edge, and the facts between them. That is the <b>neighbourhood</b> of the question, also called its ego graph.</p>
+  <p>Reach for it to feed an AI chat model, a language model, the facts around a question, to show a person the part of a social network near them, or to cut a large graph down to a piece worth drawing. A <b>budget</b> keeps the piece small when a hop would bring in too much.</p>
 </section>
 
 <section class="prose compared">
   <h2><small>Compared with</small>Other ways to pick the nearby part</h2>
   <!-- compare
   | Method | When to use | Picks | Cost | Weakness |
-  | *Neighbourhood with a budget | A question names some entities | Everything within k hops, the best ranked first when a ring overflows | O(what it visits) | A hop from a hub brings in a crowd |
+  | *Neighbourhood with a budget | A question names some entities | Everything within k hops, k being how many you allow, the best ranked first when a ring overflows | <a href="basics.html#speed">O(what it visits)</a> | A hop from a hub brings in a crowd |
   | [PageRank from the seeds](pagerank.html) | Closeness should count more than hops | The top entities by a walk that keeps returning to the seeds | A few passes over the links | Needs the whole graph in memory |
   | [Steiner tree](steiner.html) | The seeds should be joined, not surrounded | The cheapest tree connecting the seeds | O(m log m) | Nothing beside the paths |
   | [Communities](hierarchy.html) | You want a summary of a region, not its facts | A whole community and its summary | Found once, ahead of time | Not centred on the question |
   -->
-  <p>Hops are the simplest notion of nearness, and a budget keeps them honest. Personalised PageRank ranks by nearness instead of counting hops. A Steiner tree answers a different question: how the seeds connect.</p>
+  <p>Hops are the simplest notion of nearness, and a budget keeps them honest. Personalised <a href="pagerank.html">PageRank</a> ranks by nearness instead of counting hops. Its random surfer always jumps back to the seeds, as the <a href="knowledge.html">Knowledge graphs</a> page shows. A Steiner tree answers a different question: how the seeds connect.</p>
 </section>
 
 <p class="example lead">Example: eighteen entities about Ada Lovelace and her world, and a question that names one or two of them.</p>
@@ -31,11 +31,11 @@
 <section class="prose">
   <h2><small>The idea</small>Breadth-first from the seeds, with a cap</h2>
   <p>Start from the entities the question names. The first ring is everything one fact away from any of them. The next ring is everything one fact beyond that, and so on, up to the number of hops you allow. This is a <a href="bfs.html">breadth-first search</a> from several starting points at once, and the neighbourhood is the part of the graph it reaches, with all the facts between those entities.</p>
-  <p>The budget is applied ring by ring. A ring that fits is kept whole. The first ring that would push past the budget is cut to the places left, keeping the entities of greatest priority, and the search stops there. The lab ranks by how many facts an entity has, so hubs come first; <code>pageRank(personalization:)</code> from the seeds is a stronger ranking for the same closure. <code>egoGraphView(of:radius:maximumVertexCount:priority:)</code> builds the whole view in one pass and shares the graph’s storage, so it costs nothing to make beyond the search.</p>
+  <p>The budget is applied ring by ring. A ring that fits is kept whole. The first ring that would push past the budget is cut to the places left, keeping the entities of greatest priority, and the search stops there. The lab ranks by how many facts an entity has, so hubs come first; <code>pageRank(personalization:)</code> from the seeds is a stronger ranking for the same set of entities. <code>egoGraphView(of:radius:maximumVertexCount:priority:)</code> builds the whole view in one pass. A view reads the original graph’s storage instead of copying it, so it costs nothing to make beyond the search.</p>
 
   <h2><small>Where it breaks</small>Hubs and hops</h2>
   <p>One hop from a hub is a crowd. In a graph where “England” links to a million entities, a two-hop neighbourhood of almost anything is most of the graph. The budget stops the flood but cannot say which of the million matter; that is what the priority is for, and a priority such as personalised PageRank from the seeds does better than counting links.</p>
-  <p>Hops are blind to the kind of link. A knowledge graph with typed relations, as an edge map, can filter the neighbourhood to the relations the question is about before counting hops.</p>
+  <p>Hops are blind to the kind of link. A knowledge graph with a label on every arrow, kept in an edge map, a table from each edge to its label, can filter the neighbourhood to the relations the question is about before counting hops.</p>
 </section>
 
 <section class="prose in-swift">

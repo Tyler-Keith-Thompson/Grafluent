@@ -129,7 +129,7 @@ struct DominatorsLab {
         div {
             section(.class("lab"), .custom(name: "aria-label", value: "Dominators of a block")) {
                 div(.class("panel stage")) {
-                    GraphCanvas(label: "A function’s control flow: nine blocks and the jumps between them; click a block to see what dominates it", width: 640, height: 500,
+                    GraphCanvas(label: "A function’s control flow, its blocks and the jumps between them: nine blocks; click a block to see what dominates it", width: 640, height: 500,
                                 nodes: nodes, edges: edges, onNode: { dominatorsModel.select($0) }, nodeAction: "Ask about")
                     div(.class("legend")) {
                         span { i(.class("dot selected")) {}; "the block asked about" }

@@ -17,12 +17,12 @@
   <h2><small>Compared with</small>Other ways to colour</h2>
   <!-- compare
   | Method | When to use | Cost | Weakness |
-  | *Greedy in a chosen order, <code>greedyColoring(order:)</code> | You know a good order | O(n + m) | A bad order can need many more colours |
+  | *<a href="basics.html#speed">Greedy</a> in a chosen order, <code>greedyColoring(order:)</code> | You know a good order | <a href="basics.html#speed">O(n + m)</a> | A bad order can need many more colours |
   | Busiest first, <code>.largestFirst</code> | A quick default | O(n + m) | Still only a guess |
   | DSATUR, <code>.saturationLargestFirst</code> | Fewer colours for a little more work | O((n + m) log n) | Still not always the fewest |
-  | <code>minimumColoring()</code> | You need the true fewest | Exponential in the worst case | Slow on large, dense graphs |
+  | <code>minimumColoring()</code> | You need the true fewest | Time can double with each exam added, <a href="basics.html#speed">exponential</a> in the worst case | Slow on large, dense graphs |
   -->
-  <p>Greedy colouring is fast and usually close. Only the exact search promises the fewest colours, and it can be slow. In the table, n is the number of exams and m the number of clashes.</p>
+  <p>Greedy colouring, always taking the move that helps most right now, is fast and usually close. Only the exact search promises the fewest colours, and it can be slow. In the table, n is the number of exams and m the number of clashes.</p>
 </section>
 
 <section class="prose">
@@ -31,7 +31,7 @@
 
   <h2><small>Where it breaks</small>A bad order</h2>
   <p>Greedy’s answer depends on its order. Here, in alphabetical order, it needs four slots. Two would be enough.</p>
-  <p>The exams fall into two groups. Each exam clashes with every exam in the other group except one partner. Alphabetical order keeps reaching a partner pair together, and it gives each pair a new slot. Picking the most constrained exam next (DSATUR) finds two slots. On a two-sided graph like this one it always does.</p>
+  <p>The exams fall into two groups. Each exam clashes with every exam in the other group except one partner. Alphabetical order keeps reaching a partner pair together, and it gives each pair a new slot. Picking next the exam whose clashing exams already use the most different slots, which is DSATUR, finds two slots. On a <a href="matching.html">bipartite</a> graph like this one it always does.</p>
 </section>
 
 <section class="prose in-swift">

@@ -20,20 +20,21 @@
   <h2><small>Adjacency matrix</small>A square for every pair</h2>
   <p>Make a grid with one row and one column per vertex. Put a 1 in row <i>r</i>, column <i>c</i> when there is an edge from <i>r</i> to <i>c</i>, and a 0 otherwise. <b>Rows say who follows. Columns say who is followed.</b> To read it, pick a row and go across. Ana’s row has 1s under Ben and Cy, because Ana follows them. To find who follows Cy, read down Cy’s column instead.</p>
   <p>In an undirected graph every edge counts both ways. So the grid is a mirror image across its diagonal. Switch the example to friends to see it.</p>
-  <p>The matrix answers “is there an edge from <i>r</i> to <i>c</i>?” in one look-up, however big the graph. The price is space. It needs a square for every pair of vertices, edge or no edge. Four friends need 16 squares. A million need a trillion, and almost all of them are 0. Grafluent’s <code>AdjacencyMatrix</code> stores each square as one bit.</p>
+  <p>The matrix answers “is there an edge from <i>r</i> to <i>c</i>?” in one look-up, however big the graph. The price is space. It needs a square for every pair of vertices, edge or no edge. Four friends need 16 squares. A million need a trillion, and almost all of them are 0. Grafluent’s <code>AdjacencyMatrix</code> stores each square as one bit, a single 0 or 1.</p>
 
   <h2><small>Compressed sparse row</small>Two plain arrays</h2>
+  <p>A graph is <a href="basics.html#words">sparse</a> when it has far fewer edges than it could, which is true of nearly every real graph. This form is built for those.</p>
   <p>Take the adjacency list and pack every row end to end into one array of <b>targets</b>. A second, shorter array of <b>offsets</b> records where each vertex’s run starts. Ana’s run starts at 0 and Ben’s at 2, so Ana’s targets are positions 0 and 1. The last offset marks the end. So a vertex’s run always ends where the next one starts.</p>
-  <p>Two plain arrays are as compact as a graph gets, and a processor walks them very fast. The catch is that you can’t add an edge without rebuilding the whole thing.</p>
+  <p>Two plain arrays are as compact as a graph gets, and a computer reads memory fastest when it reads it in order, so a loop over them runs very fast. The catch is that you can’t add an edge without rebuilding the whole thing.</p>
 </section>
 
 <section class="prose compared">
   <h2><small>When to use which</small>One answer, three speeds</h2>
   <!-- compare
   | Form | When to use | Is there an edge? | Space | Weakness |
-  | Adjacency list (<code>AdjacencyList</code>) | The default, and any graph that changes | One hash look-up | Grows with the edges | A little slower to walk than two arrays |
+  | Adjacency list (<code>AdjacencyList</code>) | The default, and any graph that changes | One look-up in a <a href="basics.html#words">hash table</a> | Grows with the edges | A little slower to walk than two arrays |
   | Adjacency matrix (<code>AdjacencyMatrix</code>) | Small graphs, or ones where most pairs are connected | One look-up | One bit for every pair | Huge for a big graph with few edges |
-  | Compressed sparse row (<code>CompressedSparseRow</code>) | A large graph you build once and study many times | A binary search of one row | Grows with the edges, and nothing wasted | Can’t change without a rebuild |
+  | Compressed sparse row (<code>CompressedSparseRow</code>) | A large graph you build once and study many times | A <a href="basics.html#words">binary search</a> of one row | Grows with the edges, and nothing wasted | Can’t change without a rebuild |
   -->
   <p>The matrix and compressed sparse row number their vertices 0, 1, 2 and so on. A <code>LabeledGraph</code> puts names on those numbers, which is how this page keeps “Ana” and “Ben”. Every algorithm on this site runs on all three forms. The answer is the same. Only the speed and the memory differ.</p>
 </section>

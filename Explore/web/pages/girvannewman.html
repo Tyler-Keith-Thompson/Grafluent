@@ -15,11 +15,11 @@
   <h2><small>Compared with</small>Other ways to find communities</h2>
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
-  | *Girvan–Newman | A small network, and you want the hierarchy | Every split, coarsest first | O(m²n) | Far too slow for large networks |
+  | *Girvan–Newman | A small network, and you want the hierarchy | Every split, coarsest first | <a href="basics.html#speed">O(m²n)</a> | Far too slow for large networks |
   | [Louvain](communities.html) | A good split of a large network | One split with high modularity | About O(m) a pass | No clear reason for each group |
   | [Label propagation](labelpropagation.html) | A very large network, fast | One split | About O(m) a sweep | Answers change from run to run |
   -->
-  <p>Girvan–Newman is the easiest to reason about and the slowest. Louvain is the usual choice once a network has more than a few hundred people.</p>
+  <p>Girvan–Newman is the easiest to reason about and the slowest. Louvain is the usual choice once a network has more than a few hundred people. In the table, n is the number of people and m the number of links.</p>
 </section>
 
 <p class="example lead">Example: twelve friends from a band, a climbing gym and a book club. A line joins each pair who hang out. A few friendships cross between the groups.</p>
@@ -28,7 +28,7 @@
 
 <section class="prose">
   <h2><small>The idea</small>Links between groups carry the traffic</h2>
-  <p>Inside a close group there are many ways between any two people. So the shortest paths spread over many links. Between groups there are only a few links, and every shortest path from one group to another has to use one of them. So those links have the highest <a href="betweenness.html">edge betweenness</a>.</p>
+  <p>Inside a close group there are many ways between any two people. So the shortest paths spread over many links. Between groups there are only a few links, and every shortest path from one group to another has to use one of them. The number of shortest paths that cross a link is its <a href="betweenness.html">edge betweenness</a>. So those links have the highest edge betweenness.</p>
   <p>Girvan and Newman’s method takes out the link with the highest betweenness. Then it <em>recomputes</em> every score, and repeats. Recomputing matters. Once one link between two groups is gone, the paths it carried move to the others. Those become the busiest next.</p>
   <p>Each time the network falls into more pieces, you get a finer split. Run to the end and every person is alone. The result is a whole hierarchy of splits, coarsest first.</p>
   <p>Which level is the answer? A common choice is the one with the highest <b>modularity</b>. Modularity is the share of links inside groups, minus the share you’d expect if links were placed at random. <code>girvanNewmanCommunities()</code> is a lazy sequence of the splits. You can stop at the first with as many groups as you want, or take the best by <code>modularity(of:)</code>.</p>

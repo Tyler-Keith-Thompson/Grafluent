@@ -2,25 +2,25 @@
 <!-- description: How many racks or patches can fail before a network splits, and which groups hold together: vertex and edge connectivity, the minimum vertex cut and k-components with Grafluent. -->
 <header class="sign">
   <h1>Resilience</h1>
-  <p class="question">A data centre has twelve racks and twenty patches. How many can fail at once before some rack is cut off, and which racks hold together best?</p>
+  <p class="question">A data centre has twelve racks and twenty patches (racks are the vertices, patch cables the links). How many can fail at once before some rack is cut off, and which racks hold together best?</p>
 </header>
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>How much failure a network takes</h2>
-  <p>A network’s <b>vertex connectivity</b> is the fewest vertices whose failure splits it; its <b>edge connectivity</b> is the fewest links. A <b>minimum vertex cut</b> names such a set. The <b>k-components</b> refine this inside the network: the largest groups that stay connected through any k − 1 failures among their own members, for every k.</p>
-  <p>Reach for them to rate a network’s robustness, to find where to add a link so one failure no longer isolates a site, or to find the tightly knit cores of a social network, which is what Moody and White built k-components for.</p>
+  <p>A network’s <b>vertex connectivity</b> is the fewest vertices whose failure splits it; its <b>edge connectivity</b> is the fewest links. A <b>cut</b> is a set whose removal splits the network, and a <b>minimum vertex cut</b> is a smallest one. The <b>k-components</b> refine this inside the network: the largest groups that stay connected through any k − 1 failures among their own members, for every k; a 3-component survives any two failures.</p>
+  <p>Reach for them to rate a network’s robustness, to find where to add a link so one failure no longer isolates a site, or to find the tightly knit cores of a social network, which is what the sociologists Moody and White built k-components for.</p>
 </section>
 
 <section class="prose compared">
   <h2><small>Compared with</small>Other ways to find weak points and tight groups</h2>
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
-  | *Connectivity and a minimum cut | One number, and one weakest set | How many must fail, and which | Flow computations, O(n) of them at worst | Says nothing about the rest of the network |
+  | *Connectivity and a minimum cut | One number, and one weakest set | How many must fail, and which | Flow computations, up to one per vertex | Says nothing about the rest of the network |
   | *k-components | Where the network is tough and where it is loose | Nested groups by how many failures they survive | A flow per candidate pair at each level | Expensive on large networks |
-  | [Bridges and articulation points](bridges.html) | Single points of failure only | Every link or vertex whose loss alone splits something | O(n + m) | Nothing about two or more failures |
-  | [Cores](cores.html) | A fast look at density | Who has k neighbours in the group | O(n + m) | A core can still be split by one vertex |
+  | [Bridges and articulation points](bridges.html) | Single points of failure only | Every link or vertex whose loss alone splits something | <a href="basics.html#speed">O(n + m)</a> | Nothing about two or more failures |
+  | [Cores](cores.html) | A fast look at density, how tightly linked a group is | Who has k neighbours in the group | O(n + m) | A core can still be split by one vertex |
   -->
-  <p>Bridges and articulation points answer the k = 1 question fast. Connectivity and k-components answer it for every k, at a price that grows with the network.</p>
+  <p>Bridges and articulation points answer the k = 1 question fast. Connectivity and k-components answer it for every k, at a price that grows with the network. In the table, n is the number of racks and m the number of patches.</p>
 </section>
 
 <p class="example lead">Example: two rings of four racks, each fully cross-linked, joined through two patch panels, with a lab and a desk looped through one ring.</p>
@@ -30,8 +30,8 @@
 
 <section class="prose">
   <h2><small>The idea</small>Count the disjoint paths</h2>
-  <p>By Menger’s theorem, the fewest vertices whose failure separates two others equals the most paths between them that share no vertex. So connectivity is a <a href="flow.html">maximum flow</a> question: split each vertex into an in-half and an out-half joined by a link of capacity one, and the largest flow between two vertices is the number of vertex-disjoint paths. <code>vertexConnectivity()</code> takes the least over the pairs it must check, and <code>minimumVertexCut()</code> reads the cut off the flow. <code>edgeConnectivity()</code> does the same without splitting vertices.</p>
-  <p><code>kComponents()</code> builds the hierarchy by cohesive blocking: find the connectivity k of a piece, cut it at a minimum cut, and continue in each part until it falls apart. Every group at k lies inside a group at k − 1, and the 2-components are the <a href="bridges.html">blocks</a> with three or more vertices. In the centre, each ring of four is a 3-component, because a ring of four cross-linked racks is K₄ and survives any two failures. The two panels join the rings into a 2-component. The lab and the desk, in a loop through two racks of one ring, belong to the 2-component but to no 3-component.</p>
+  <p>The fewest vertices whose failure separates two others equals the most paths between them that share no vertex. That is Menger’s theorem. So a flow algorithm (see <a href="flow.html">Maximum flow</a>) counts these paths, by letting each vertex carry only one path. <code>vertexConnectivity()</code> takes the least over the pairs it must check, and <code>minimumVertexCut()</code> reads the cut off the flow. <code>edgeConnectivity()</code> does the same, letting each link carry only one path.</p>
+  <p><code>kComponents()</code> builds the hierarchy by finding the connectivity k of a piece, cutting it at a minimum cut, and continuing in each part until it falls apart. Every group at k lies inside a group at k − 1, and the 2-components are the <a href="bridges.html">blocks</a> with three or more vertices. In the centre, each ring of four is a 3-component, because four racks with every pair linked form a <a href="basics.html#words">complete graph</a>, K₄, and survive any two failures. The two panels join the rings into a 2-component. The lab and the desk, in a loop through two racks of one ring, belong to the 2-component but to no 3-component.</p>
 
   <h2><small>Where it breaks</small>A flow per pair adds up</h2>
   <p>Each connectivity question is a maximum flow, and k-components ask many of them, so on a network of thousands of vertices they take a while and on millions they are impractical. For a single point of failure use bridges and articulation points instead, which cost one pass. The numbers also say nothing about likelihood: a cut of two racks that share a power supply is worse than its size suggests.</p>

@@ -17,8 +17,8 @@
   | Method | When to use | Picks | Cost | Weakness |
   | *Centre by eccentricity | The worst case matters, as for an ambulance | The place whose farthest place is nearest | One shortest-path search per place | One far-off village moves the centre |
   | *Centroid | The average matters, as for a warehouse | The place with the least total distance to all | One search per place | A cluster of villages pulls it their way |
-  | [PageRank](pagerank.html) | Importance, not distance | Places many paths lead to | A few passes over the links | Says nothing about how far things are |
-  | [Betweenness](betweenness.html) | Who sits on the way between others | Places on many shortest paths | One search per place, with bookkeeping | Not about reach |
+  | [PageRank](pagerank.html) | Importance, not distance | Places many paths lead to, a score from who links to whom | A few passes over the links | Says nothing about how far things are |
+  | [Betweenness](betweenness.html) | Who sits on the way between others | Places that many shortest paths pass through | One search per place, with a count per place | Not about reach |
   -->
   <p>The centre minimises the worst trip. The centroid minimises the average one. They are often the same village, and often not.</p>
 </section>
@@ -35,7 +35,7 @@
   <p>In the county, four villages tie for the centre by hops: Cedar, Dale, Glen and Holt, each three roads from its farthest village. By minutes only Glen is the centre, 19 minutes from its farthest, because the short Cedar–Glen road and the long Elm–Fir road change which villages are far. Ash and Fir are the periphery either way.</p>
 
   <h2><small>Where it breaks</small>One search per place adds up</h2>
-  <p>A network of a million places needs a million searches, which is too slow. For a rough diameter, search from one place, then from the farthest place that search found, and take the larger of the two: it is never more than twice too small, and in practice it is usually right. For the exact value on a big network, the searches can be pruned with bounds, which is a different algorithm.</p>
+  <p>A network of a million places needs a million searches, which is too slow. For a rough diameter, search from one place, then from the farthest place that search found, and take the larger of the two: it is never more than twice too small, and in practice it is usually right. For the exact value on a big network, a method that skips searches using bounds exists; Grafluent doesn’t do this.</p>
   <p>If the network is in pieces, every eccentricity is infinite and the diameter is <code>nil</code>. Measure each <a href="components.html">component</a> on its own instead.</p>
 </section>
 

@@ -64,7 +64,7 @@ func describeKnowledge(_ k: Int, _ model: KnowledgeModel) -> String {
     case 1: return "Merged: \(model.merge.spellings) spellings become \(model.merge.entities) entities, so each relation now joins the right pair."
     case 2:
         let top = model.retrieval.ranks.sorted { $0.value > $1.value || ($0.value == $1.value && $0.key < $1.key) }.prefix(3).map { "\($0.key) \(shareText($0.value))" }
-        return "Ranked from the question’s entities by personalized PageRank: \(nameList(top))."
+        return "Ranked from the question’s entities by personalised PageRank: \(nameList(top))."
     case 3: return "Retrieved: within two hops, the \(model.retrieval.kept.count) best-ranked entities and every relation among them."
     default: return "Written as one line per relation, ready to paste into a prompt."
     }

@@ -71,8 +71,8 @@ contents and the menu without a link.
 | `betweenness` | `betweennessCentrality(normalized:)`, `edgeBetweennessCentrality(normalized:)`, `shortestSimplePaths(from:to:)` |
 | `assortativity` | `degreeAssortativityCoefficient()`, `averageNeighborDegrees()`, `averageNeighborDegree(of:)`, `averageDegreeConnectivity()` |
 | `linkprediction` | `jaccardCoefficient(of:and:)`, `adamicAdarIndex(of:and:)` |
-| `neighbourhood` | `egoGraphView(of:radius:)`, `egoGraphView(of:radius:maximumVertexCount:priority:)`, `degree(of:)` |
 | `knowledge` | `quotient(of:byKey:)`, `addEdgeMap(default:)`, `pageRank(personalization:)`, `egoGraphView(of:radius:undirected:maximumVertexCount:priority:)`, `writeEdgeList(to:columns:delimiter:edgeAttributes:)` |
+| `neighbourhood` | `egoGraphView(of:radius:)`, `egoGraphView(of:radius:maximumVertexCount:priority:)`, `degree(of:)` |
 | `layout` | `FruchtermanReingoldLayout(_:iterations:using:)` with `Xoshiro256StarStar`, `step()`, named graphs |
 | `spectral` | `spectralLayout()`, `fiedlerVector()`, `algebraicConnectivity`, `value(of:)`, `spectralOrdering()` |
 | `layered` | `sugiyamaLayout()`, `LayeredDrawing` (`layer(of:)`, `bends(ofEdgeAt:)`, `reversedEdges`, `crossingCount`), `RootedTree`, `reingoldTilfordLayout()`, `reingoldTilfordCircularLayout()` |
@@ -216,6 +216,14 @@ A reader learns what an algorithm is for, and what else could do the job, before
 5. **The idea** and **Where it breaks** (`<section class="prose">`).
 6. **In Swift** (`<section class="prose in-swift">` with `<pre id="code">`), then the names strip
    if the page has one.
+
+The reader has studied nothing before `basics`. A page may use a term only if it, or a page
+before it in `contents.txt`, defines the term in plain words at first use. `basics.html#words`
+defines the shared vocabulary (degree, sparse, tree and its parts, DAG, bipartite, subgraph, hash
+table) and `basics.html#speed` the cost notation (n, m, O(…), constant time, exponential, NP-hard,
+heuristic, greedy): link the first use on a page to the anchor rather than defining it again, and
+give any other new term a short defining clause. Link a forward reference to a later page with a
+few words saying what the thing is.
 
 A compare table is written in the page as a block that `build.sh` turns into a table; on a phone
 each row becomes a card that keeps its column names. The first row names the columns. In each later

@@ -7,7 +7,7 @@
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>Cheapest routes when some costs are negative</h2>
-  <p>Bellman–Ford finds the cheapest route from one starting place to every other place. It still works when some steps have a negative cost, meaning the step pays you back. It also notices a loop that gets cheaper every time you go round it. Then no cheapest route exists, and Bellman–Ford hands you the loop.</p>
+  <p>Bellman–Ford finds the cheapest route from one starting place to every other place. It still works when some steps have a negative cost, meaning the step pays you back. It also notices a loop (a cycle) that gets cheaper every time you go round it. Then no cheapest route exists, and Bellman–Ford hands you the loop.</p>
   <p>Reach for it when costs can be negative, as with exchange rates, rebates, or the energy an electric car gets back going downhill. If no cost is negative, use Dijkstra’s algorithm instead. It is much faster.</p>
 </section>
 
@@ -15,11 +15,11 @@
   <h2><small>Compared with</small>Other ways to find cheapest routes</h2>
   <!-- compare
   | Method | When to use | Handles | Cost | Weakness |
-  | *Bellman–Ford | Some costs are negative | Negative costs, and finds a loop that pays | O(nm) | Slow on large graphs |
+  | *Bellman–Ford | Some costs are negative | Negative costs, and finds a loop that pays | <a href="basics.html#speed">O(nm)</a> | Slow on large graphs |
   | [Dijkstra](dijkstra.html) | No cost is negative | Costs of zero or more | O(m log n) | Wrong answers when a cost is negative |
   | [Breadth-first search](bfs.html) | Every step costs the same | Counting steps | O(n + m) | Ignores costs |
   | Floyd–Warshall | Routes between every pair, on a small graph | Negative costs, and reports a loop that pays | O(n³) | Too slow past a few thousand places |
-  | Johnson | Routes between every pair, on a large sparse graph | Negative costs | O(nm log n) | More work than you need for one start |
+  | Johnson | Routes between every pair, on a large <a href="basics.html#words">sparse</a> graph | Negative costs | O(nm log n) | More work than you need for one start |
   -->
   <p>Bellman–Ford is the safe choice when costs can be negative, and it can show you a loop that pays. It is slow, because each round may check every step again. In the table, n is the number of places and m the number of steps between them.</p>
 </section>
@@ -30,13 +30,13 @@
 
 <section class="prose">
   <h2><small>The idea</small>Relax every trade, again and again</h2>
-  <p>Trading along a chain multiplies the rates, and the best chain has the largest product. Logarithms turn products into sums. So give each trade the cost −ln(rate), and the best rate becomes the cheapest path. A rate above 1 gets a negative cost.</p>
+  <p>Trading along a chain multiplies the rates, and the best chain has the largest product. Logarithms turn products into sums. The useful fact is ln(a × b) = ln a + ln b, where ln is the natural logarithm. So give each trade the cost −ln(rate), and adding costs is the same as multiplying rates. The best rate becomes the cheapest path. A rate above 1 gets a negative cost.</p>
   <p>Negative costs are what break <a href="dijkstra.html">Dijkstra’s algorithm</a>. In this market it would settle francs at 0.864, by way of euros, before it looked at pounds. The route through pounds gives 0.8736, but Dijkstra never goes back to a currency it has settled.</p>
   <p>Bellman–Ford never settles anything early. It keeps a best cost for every currency. Each round, it tries the trades out of every currency that improved in the round before. When a trade gives a cheaper way to its target, the target’s best cost drops. This is called <b>relaxing</b> the trade.</p>
-  <p>After round k, every route of up to k trades has been tried. A cheapest route visits each place at most once, so n − 1 rounds are always enough. If something still improves in round n, some loop has a negative total cost. That is a <b>negative cycle</b>, and in a market it is an arbitrage. <code>lazy.bellmanFord(from:weight:)</code> reports each round and each trade, and at the end the cycle itself.</p>
+  <p>After round k, every route of up to k trades has been tried. A cheapest route visits each place at most once, so n − 1 rounds are always enough. If something still improves in round n, some loop has a negative total cost. That is a <b>negative cycle</b>, and in a market it is an arbitrage. <code>lazy.bellmanFord(from:weight:)</code>, the version that hands you each step as it happens, reports each round and each trade, and at the end the cycle itself.</p>
 
   <h2><small>Where it breaks</small>Slow, and real markets</h2>
-  <p>Each round can touch every trade, so the worst case is O(nm), far slower than Dijkstra. Grafluent only rescans the currencies that changed, which helps a great deal in practice. On a graph without cycles, the <a href="semirings.html">topological-order</a> method needs only one pass.</p>
+  <p>Each round can touch every trade, so the worst case is O(nm), far slower than Dijkstra. Grafluent only rescans the currencies that changed, which helps a great deal in practice. On a graph without cycles, taking the places in <a href="toposort.html">topological order</a> needs only one pass. The <a href="semirings.html">Semirings</a> page shows it.</p>
   <p>Real arbitrage loops are tiny and gone in moments, and trading fees usually eat them. The costs here are rounded to whole numbers. That works only because this market’s loop clears the rounding by a wide margin.</p>
 </section>
 

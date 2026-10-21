@@ -2,7 +2,7 @@
 <!-- description: Hubs from preferential attachment and small worlds from a few shortcuts: Grafluent’s seeded barabasiAlbert and wattsStrogatz generators, with degree counts, clustering and distances. -->
 <header class="sign">
   <h1>Network growth models</h1>
-  <div class="say"><span>Say it</span><b>BAH-rah-bah-shee</b><span class="ipa">/ˈbɒrɒbaːʃi/</span></div>
+  <div class="say"><span>Say Barabási</span><b>BAH-rah-bah-shee</b><span class="ipa">/ˈbɒrɒbaːʃi/</span></div>
   <p class="question">Why do real networks have a few huge hubs, and why is everyone only a few handshakes from everyone else?</p>
 </header>
 
@@ -15,8 +15,8 @@
   <h2><small>Compared with</small>Other random networks</h2>
   <!-- compare
   | Model | When to use | Gives | Misses |
-  | *Barabási–Albert | You need hubs | A few vertices with very many links, most with few | Clustering; every vertex has at least m links |
-  | Watts–Strogatz | You need a small world | Close-knit groups and short distances | Hubs; every degree stays near k |
+  | *Barabási–Albert | You need hubs | A few vertices with very many links, most with few | Clustering, how often two of a vertex’s neighbours are themselves linked; every vertex has at least m links |
+  | Watts–Strogatz | You need a small world | Close-knit groups and short distances | Hubs; every vertex keeps close to k links |
   | [Erdős–Rényi](giant.html) | You need a plain baseline | Links placed fully at random | Hubs and clustering both |
   -->
   <p>Each model explains one feature of real networks and misses others. Pick the one whose feature you want to test.</p>
@@ -28,9 +28,9 @@
 
 <section class="prose">
   <h2><small>The idea</small>The rich get richer</h2>
-  <p>In the <b>Barabási–Albert</b> model, a network grows one vertex at a time. Each newcomer links to m vertices already there. It picks each one in proportion to its degree. So a vertex with ten links is ten times as likely to gain the next link as a vertex with one.</p>
-  <p>Early vertices get a head start, and the advantage grows. A few become hubs, while most stay small. The degrees follow a power law. There are roughly eight times fewer vertices of degree 2d than of degree d. Links placed at random never give a tail that long. Citations, links between web pages and airline routes look like this.</p>
-  <p><code>barabasiAlbert</code> starts from a star of m + 1 vertices and makes exactly m(n − m) links.</p>
+  <p>In the <b>Barabási–Albert</b> model, a network grows one vertex at a time. Each newcomer links to m vertices already there. It picks each one in proportion to its <a href="basics.html#words">degree</a>, the number of links it already has. So a vertex with ten links is ten times as likely to gain the next link as a vertex with one.</p>
+  <p>Early vertices get a head start, and the advantage grows. A few become hubs, while most stay small. The degrees follow a <b>power law</b>. Doubling the degree divides the number of vertices with it by a fixed factor, here about eight. Links placed at random never give so many very-high-degree vertices. Citations, links between web pages and airline routes look like this.</p>
+  <p><code>barabasiAlbert</code> starts from a star, one vertex joined to m others, and makes exactly m(n − m) links.</p>
 </section>
 
 <p class="example lead">The second network is a ring where everyone knows their nearest neighbours. Step by step, each link gets a growing chance of moving to someone at random.</p>
@@ -44,7 +44,7 @@
 
   <h2><small>Where it breaks</small>Models, not maps</h2>
   <p>Real networks have hubs and clustering both, and more besides. They have communities, vertices that leave, and links that age. Neither model has all of that.</p>
-  <p>Fitting a power law to real degree data is also easy to get wrong. A tail that looks straight on a log plot is weak evidence. Use the models as a baseline to test ideas against, as with <a href="giant.html">random graphs</a>. Don’t treat them as a description of a real network.</p>
+  <p>Fitting a power law to real degree data is also easy to get wrong. A power law looks like a straight line on a plot with both axes on a log scale. A tail that looks straight there is weak evidence. Use the models as a baseline to test ideas against, as with <a href="giant.html">random graphs</a>. Don’t treat them as a description of a real network.</p>
 </section>
 
 <section class="prose in-swift">

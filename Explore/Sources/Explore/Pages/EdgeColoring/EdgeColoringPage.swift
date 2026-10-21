@@ -176,7 +176,7 @@ struct EdgeColoringLab {
                     legend: [
                         (Marble(kind: "m-pal0", radius: 6), "a round, in its colour, with its number of matches"),
                     ])
-                p(.class("note")) { "Each step shows one round of the finished schedule, one colour class of the edge colouring; the colouring itself is computed all at once." }
+                p(.class("note")) { "Each step shows one round of the finished schedule, the matches of one colour; the colouring itself is computed all at once." }
             }
         }
     }

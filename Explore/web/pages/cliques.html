@@ -2,7 +2,7 @@
 <!-- description: Watch Grafluent’s lazy.bronKerbosch grow groups of guests who have all met, with Tomita’s pivot, and report every maximal clique of a small party. -->
 <header class="sign">
   <h1>Cliques</h1>
-  <div class="say"><span>Say it</span><b>BRON KER-boss</b><span class="ipa">/ˈbrɔn ˈkɛrbɔs/</span></div>
+  <div class="say"><span>Say Bron–Kerbosch</span><b>BRON KER-boss</b><span class="ipa">/ˈbrɔn ˈkɛrbɔs/</span></div>
   <p class="question">Which groups of people have all met each other?</p>
 </header>
 
@@ -16,12 +16,12 @@
   <h2><small>Compared with</small>Other ways to find tight groups</h2>
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
-  | *Bron–Kerbosch | You want every maximal clique | Each one, lazily, as it is found | Up to 3<sup>n/3</sup> | Too many cliques on large dense graphs |
-  | Maximum clique | You want only the largest | <code>maximumClique()</code>, one clique | Exponential at worst, with pruning | Says nothing about the others |
-  | [Cores](cores.html) | You want a dense core, not a perfect one | Groups where each has at least k links inside | O(n + m) | A core need not be a clique |
+  | *Bron–Kerbosch | You want every maximal clique | Each one, lazily, as it is found | Up to 3<sup>n/3</sup>, 3 to the power n/3, which triples with every three vertices | Too many cliques on large <a href="basics.html#words">dense</a> graphs |
+  | Maximum clique | You want only the largest | <code>maximumClique()</code>, one clique | Doubles with each extra vertex at worst; skips any search that can’t beat the best clique so far | Says nothing about the others |
+  | [Cores](cores.html) | You want a dense core, not a perfect one | Groups where each has at least k links inside | <a href="basics.html#speed">O(n + m)</a> | A core need not be a clique |
   | [Communities](communities.html) | Groups may be loose | A split of everyone into groups | About O(m) a pass | Groups are only denser than average |
   -->
-  <p>Cliques are the strictest kind of group, and listing them can take exponential time. When a looser group will do, cores and communities are much faster.</p>
+  <p>Cliques are the strictest kind of group, and listing them can take <a href="basics.html#speed">exponential</a> time, growing by a fixed factor with each extra vertex. When a looser group will do, cores and communities are much faster.</p>
 </section>
 
 <p class="example lead">Example: eight guests at a party, with a line between each pair who have met.</p>
@@ -32,10 +32,10 @@
   <h2><small>The idea</small>Grow a group, remember who could join</h2>
   <p>Bron–Kerbosch keeps three sets. <b>R</b> is the group being grown. <b>P</b> holds the guests who could still join it, because they have met every member. <b>X</b> holds guests who could join too but have already been tried. Their groups have been found already.</p>
   <p>Each call adds one guest from P to R. It keeps only that guest’s friends in P and X, and calls itself again. When P and X are both empty, nobody can join and nobody has been missed. Then R is a maximal clique. When the call returns, the guest moves from P to X.</p>
-  <p>The <b>pivot</b> saves most of the work. This rule is Tomita’s. Pick the guest in P or X who knows the most of P. Any group made only of the pivot’s friends could add the pivot too. So it will turn up in the call that adds the pivot. Only the guests the pivot hasn’t met need calls of their own. Grafluent also starts the outer calls in degeneracy order, which keeps P small on sparse networks.</p>
+  <p>The <b>pivot</b> saves most of the work. This rule is Tomita’s. Pick the guest in P or X who knows the most of P. Any group made only of the pivot’s friends could add the pivot too. So it will turn up in the call that adds the pivot. Only the guests the pivot hasn’t met need calls of their own. Grafluent also starts the outer calls in <a href="cores.html">degeneracy order</a>, which takes the least-linked guests first and keeps P small on sparse networks.</p>
 
   <h2><small>Where it breaks</small>There can be very many cliques</h2>
-  <p>A graph can have about 3<sup>n/3</sup> maximal cliques, and listing them takes at least that long. The search is fast on sparse real networks, such as who has met whom. It is hopeless on large dense ones. To find only the largest, <code>maximumClique()</code> prunes with bounds instead of listing everything.</p>
+  <p>A graph can have about 3<sup>n/3</sup> maximal cliques, and listing them takes at least that long. The search is fast on sparse real networks, such as who has met whom. It is hopeless on large dense ones. To find only the largest, <code>maximumClique()</code> skips any search that can’t beat the best clique so far, instead of listing everything.</p>
 </section>
 
 <section class="prose in-swift">

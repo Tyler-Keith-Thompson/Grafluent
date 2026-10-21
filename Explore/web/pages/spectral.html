@@ -2,13 +2,13 @@
 <!-- description: Draw two circles of friends by the eigenvectors of their Laplacian with Grafluent’s spectralLayout, split them by the sign of fiedlerVector, and sweep a cut along spectralOrdering. -->
 <header class="sign">
   <h1>Spectral drawing and the Fiedler cut</h1>
-  <div class="say"><span>Say it</span><b>FEED-ler</b><span class="ipa">/ˈfiːdlər/</span></div>
+  <div class="say"><span>Say Fiedler</span><b>FEED-ler</b><span class="ipa">/ˈfiːdlər/</span></div>
   <p class="question">Can a network’s own numbers say how to draw it, and where to cut it in two?</p>
 </header>
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>A drawing and a split, from one vector</h2>
-  <p>Spectral methods give every vertex a number taken from an eigenvector of the graph. Vertices that are linked get numbers close together. Lay the vertices out by those numbers and you get a drawing. Cut the line of numbers in two and you get a split with few links across.</p>
+  <p>Spectral methods give every vertex a number taken from an eigenvector of the graph, explained in the example below. Vertices that are linked get numbers close together. Lay the vertices out by those numbers and you get a drawing. Cut the line of numbers in two and you get a split with few links across.</p>
   <p>Reach for it when you want to split a network into two even halves, such as two teams or two halves of a circuit board, with as few links between them as you can. It needs no random start, so the same network always gives the same answer.</p>
 </section>
 
@@ -17,14 +17,14 @@
   <!-- compare
   | Method | When to use | Finds | Cost | Weakness |
   | *Fiedler cut | A quick, even split with nothing to tune | The best cut along the Fiedler order | One eigenvector solve, then a sweep | Hubs can pull it off course |
-  | Kernighan–Lin | You want two halves of exactly equal size | Halves that trade vertices until no swap helps | O(m log m) a pass | Starts from a guess, and stops at the first split no swap improves |
+  | Kernighan–Lin | You want two halves of exactly equal size | Halves that trade vertices until no swap helps | <a href="basics.html#speed">O(m log m)</a> a pass | Starts from a guess, and stops at the first split no swap improves |
   | [Minimum cut](mincut.html) | The fewest links whose removal splits the network | The cheapest cut, however uneven | O(nm log n) | Often cuts off one loosely attached vertex |
   | [Louvain](communities.html) | Any number of groups | Groups with many links inside and few between | About O(m) a pass | Doesn’t let you ask for two |
   -->
-  <p>The Fiedler cut keeps the two sides even without being told their sizes. It only ever cuts in two. As a drawing, it is quicker than a <a href="layout.html">force-directed layout</a> and the same every time, but it can pile vertices onto one spot.</p>
+  <p>The Fiedler cut keeps the two sides even without being told their sizes. It only ever cuts in two. As a drawing, it is quicker than a <a href="layout.html">force-directed layout</a> and the same every time, but it can pile vertices onto one spot. In the table, n is the number of people and m the number of friendships.</p>
 </section>
 
-<p class="example lead">Example: thirteen friends in two circles, of six and seven, with a few links between the circles. Write the network as its <b>Laplacian</b>. That is a table with each person’s friend count down the diagonal and −1 for each friendship. Its eigenvectors give every person a number, and those numbers draw the network and find its two halves.</p>
+<p class="example lead">Example: thirteen friends in two circles, of six and seven, with a few links between the circles. Write the network as its <b>Laplacian</b>. That is a table with each person’s friend count down the diagonal and −1 for each friendship. Multiplying the table by a list of numbers, one per person, usually scrambles the list. An <b>eigenvector</b> is a list it only stretches, and the stretch factor is its <b>eigenvalue</b>. The smallest eigenvalues belong to the lists where friends have similar numbers, and those numbers draw the network and find its two halves.</p>
 
 <h2 class="labhead"><small>Try it</small>Drawn by eigenvectors</h2>
 <div id="app"></div>
@@ -34,13 +34,13 @@
 
 <section class="prose">
   <h2><small>The idea</small>Friends get nearby numbers</h2>
-  <p>Give each person a number x. For each friendship, take the difference of its two numbers and square it. Add these up. The total is small when friends get similar numbers. The Laplacian L is exactly the table that computes it, since the total is xᵀLx.</p>
-  <p>Giving everyone the same number makes the total 0, which tells you nothing. So ask for the smallest total among numbers that average 0 and have length 1. The answer is the eigenvector of L’s second smallest eigenvalue. That is the <b>Fiedler vector</b>. Friends end up close together. The two circles, joined by only a few links, end up on opposite sides of 0.</p>
+  <p>Give each person a number x. For each friendship, take the difference of its two numbers and square it. Add these up. The total is small when friends get similar numbers. The Laplacian L is exactly the table that computes this total, written xᵀLx.</p>
+  <p>Giving everyone the same number makes the total 0, which tells you nothing. So ask for the smallest total among numbers that average 0 and whose squares add up to 1. The answer is the eigenvector of L’s second smallest eigenvalue. That is the <b>Fiedler vector</b>. Friends end up close together. The two circles, joined by only a few links, end up on opposite sides of 0.</p>
   <p>The eigenvalue itself, λ₂, is the <b>algebraic connectivity</b>. It is 0 exactly when the network is in pieces. It grows as the pieces are joined more strongly, which the first drawing shows as you open and close the links. <code>spectralLayout()</code> uses the Fiedler vector across and the next eigenvector down. So the drawing comes from the network alone, with no randomness and no forces to settle.</p>
-  <p>Cutting at 0 is the simplest split, but any point along the line is a candidate. The sweep tries every one and scores each by the <b>ratio cut</b>. That weighs the links cut against how uneven the two sides are, so cutting off one person isn’t a bargain. Cheeger’s inequality guarantees that the best point on the line is never far from the best of all possible splits.</p>
+  <p>Cutting at 0 is the simplest split, but any point along the line is a candidate. The sweep tries every one and scores each by the <b>ratio cut</b>. That weighs the links cut against how uneven the two sides are, so cutting off one person isn’t a bargain. A theorem, Cheeger’s inequality, guarantees that the best point on the line is never far from the best of all possible splits.</p>
 
   <h2><small>Where it breaks</small>When the network has no obvious seam</h2>
-  <p>On a ring, a grid or a complete graph, λ₂ has several eigenvectors at once, and which one comes out is arbitrary. The drawing and the cut are then one of many equally good answers. A tiny change to the network can change them completely. The method also cuts in two only. For more groups, take more eigenvectors and cluster the points, or use a method made for groups, such as <a href="communities.html">Louvain</a>.</p>
+  <p>On a ring, a grid or a <a href="basics.html#words">complete graph</a>, where every pair is linked, λ₂ has several equally good eigenvectors at once, and which one comes out is arbitrary. The drawing and the cut are then one of many equally good answers. A tiny change to the network can change them completely. The method also cuts in two only. For more groups, take more eigenvectors and cluster the points, or use a method made for groups, such as <a href="communities.html">Louvain</a>.</p>
   <p>Hubs pull the plain Laplacian around. A person with many friends dominates the totals, and the cut can end up slicing off a few loosely attached people instead of finding the real halves. The <b>normalized</b> Laplacian divides by friend counts to even this out. Ask for it with <code>fiedlerVector(normalized: true)</code>.</p>
 </section>
 

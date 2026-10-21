@@ -15,9 +15,9 @@
   <h2><small>Compared with</small>Other ways to reach one goal</h2>
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
-  | *A* | One goal, and a guess that never overestimates | The quickest route | O(m log n) at worst, often far less | Only as good as its guess |
+  | *A* | One goal, and a guess that never overestimates | The quickest route | <a href="basics.html#speed">O(m log n)</a> at worst, often far less | Only as good as its guess |
   | [Dijkstra](dijkstra.html) | Routes to every place, or no good guess | The quickest route to every place | O(m log n) | Explores in every direction |
-  | Greedy best-first search | Any route will do, fast | A route, often not the quickest | Often very little | Can wander into long routes |
+  | Greedy best-first search (always heads to the place that looks closest) | Any route will do, fast | A route, often not the quickest | Often very little | Can wander into long routes |
   | [Breadth-first search](bfs.html) | Every step costs the same | The route with the fewest steps | O(n + m) | Ignores costs |
   -->
   <p>A* gives the same answer as Dijkstra and usually does much less work. It needs a guess that never says a place is further than it is. In the table, n is the number of places and m the number of streets.</p>
@@ -32,11 +32,11 @@
   <p>Dijkstra ranks each place by the distance walked so far. A* adds a guess of the distance still to go. Here the guess is the straight-line distance to the café. Places that point the right way get settled first. So the search reaches the café after exploring only part of the grid.</p>
   <p>Switch between A* and Dijkstra and watch the explored region. Dijkstra’s spreads evenly in every direction, like a circle, until the edges of the grid cut it off. A*’s is a narrow teardrop pointed at the café.</p>
   <p>The straight line is a good guess because no walk can beat it. Walls only make the walk longer. A guess that never overestimates is called <b>admissible</b>. With one, A* still finds the shortest route. It just skips blocks that point away from the café.</p>
-  <p>The guess goes in <code>heuristic:</code>, a closure from a block to a number. Pass one that always returns zero, and A* is exactly Dijkstra.</p>
+  <p>A guess like this is called a <a href="basics.html#speed">heuristic</a>. It goes in <code>heuristic:</code>, a closure from a block to a number. Pass one that always returns zero, and A* is exactly Dijkstra.</p>
 
   <h2><small>Where it breaks</small>A guess that says “far” about somewhere close</h2>
   <p>The guess must never overestimate. If it says “far” about a place that is actually close, A* can settle on a longer route. Press <b>Overestimate ×3</b> to triple every guess. A* now rushes straight at the café and hugs the wall. It settles for a walk longer than the shortest.</p>
-  <p>With some walls it also settles a block too early, and later finds a shorter way to it. Then the block is opened again, shown as a red marble on the timeline. Reopening repairs the blocks it reaches. But once the café itself is settled, the search is over.</p>
+  <p>With some walls it also settles a block too early, and later finds a shorter way to it. Then the block is opened again, shown as a red dot on the timeline. Reopening repairs the blocks it reaches. But once the café itself is settled, the search is over.</p>
   <p>Grafluent doesn’t check the guess, because it can’t know the true distances in advance. Some programs overestimate on purpose. They settle fewer blocks and accept a route that may be a little longer.</p>
 </section>
 

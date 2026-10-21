@@ -15,9 +15,9 @@
   <h2><small>Compared with</small>Other ways to pick the loops</h2>
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
-  | *Fundamental basis | You only need some basis, fast | One loop per path outside a spanning tree | O(n + m) plus the loops’ lengths | The loops can be long and overlap a lot |
+  | *Fundamental basis | You only need some basis, fast | One loop per path outside a spanning tree | <a href="basics.html#speed">O(n + m)</a> plus the loops’ lengths | The loops can be long and overlap a lot |
   | *Minimum basis | The loops should be short | The basis with the fewest paths, or the least weight, in total | About O(m² n) | Slower |
-  | [Chordless cycles](chordal.html) | You want every loop without a short cut | All of them | Can be exponential | Many more loops than a basis |
+  | [Chordless cycles (holes)](chordal.html) | You want every loop without a short cut | All of them | Can be exponential | Many more loops than a basis |
   -->
   <p>A fundamental basis is nearly free and always valid. The minimum basis costs more but reads like the faces of a map.</p>
 </section>
@@ -29,12 +29,12 @@
 
 <section class="prose">
   <h2><small>The idea</small>A spanning tree, then one more path at a time</h2>
-  <p>Take any spanning tree of the network. It reaches every place and has no loop. Each path left out of the tree closes exactly one loop with it. Those loops are a <b>fundamental basis</b>. They are independent, because each has a path no other has, and there are m − n + 1 of them. <code>cycleBasis()</code> uses the breadth-first tree from the first place.</p>
-  <p>A fundamental basis can be ungainly. The loop a far-off path closes may wander across the whole tree. De Pina’s method finds a <b>minimum basis</b> instead. It keeps one marker set per dimension and, for each in turn, finds the shortest loop that crosses that marker set an odd number of times. The shortest such loop is found by searching two copies of the network, one for “crossed an even number of times so far” and one for “odd”. Then every later marker set is adjusted so it stays independent of the loops already chosen. <code>minimumCycleBasis()</code> is that method, and <code>minimumCycleBasis(weight:)</code> weighs the paths.</p>
+  <p>Take any spanning tree of the network. It reaches every place and has no loop. Each path left out of the tree closes exactly one loop with it. Those loops are a <b>fundamental basis</b>. They are independent, none can be built from the others, because each has a path no other has, and there are m − n + 1 of them. <code>cycleBasis()</code> uses the <a href="bfs.html">breadth-first</a> tree from the first place.</p>
+  <p>A fundamental basis can be ungainly. The loop a far-off path closes may wander across the whole tree. De Pina’s method finds a <b>minimum basis</b> instead. It keeps one marker set per dimension, one for each of the m − n + 1 loops any basis has. A marker set is a set of paths used to test which loops are still missing. For each in turn, it finds the shortest loop that crosses that marker set an odd number of times. The shortest such loop is found by searching two copies of the network, one for “crossed an even number of times so far” and one for “odd”. Then every later marker set is adjusted so it stays independent of the loops already chosen. <code>minimumCycleBasis()</code> is that method, and <code>minimumCycleBasis(weight:)</code> weighs the paths.</p>
   <p>In the park the minimum basis is the four small loops: two triangles and two squares, 14 paths in all. The fundamental basis from the Gate has the same number of loops, but three of them go the long way round, and together they use 23 paths.</p>
 
   <h2><small>Where it breaks</small>Loops are not faces</h2>
-  <p>A minimum basis is not unique when loops tie in length, and it need not be the faces of any drawing. Give the Kiosk–Bridge path 90 metres in the lab, and the lightest basis swaps one square for the loop around both squares, because that loop avoids the long path. Weights must be positive. A path of weight zero would let a loop cost nothing, and the shortest loop through it would no longer be simple.</p>
+  <p>A minimum basis is not unique when loops tie in length, and it need not be the faces of any drawing. Give the Kiosk–Bridge path 90 metres in the lab, and the lightest basis swaps one square for the loop around both squares, because that loop avoids the long path. Weights must be positive. A path of weight zero would let a loop cost nothing, and the shortest loop through it would no longer be simple, never revisiting a place.</p>
   <p>The minimum basis takes time that grows with m² n in the worst case, so it is for networks of thousands of paths, not millions. The fundamental basis takes time in step with the network.</p>
 </section>
 

@@ -306,7 +306,7 @@ struct PasteLab {
                                 }
                             },
                             legend: [(Marble(kind: "m-blue", radius: 6), model.algorithm == .dijkstra ? "a vertex settled, with its distance" : "a vertex reached"), (Marble(kind: "m-blue", radius: 3.5), "an edge into the tree")])
-                        p(.class("note")) { "The marbles are the discover and tree-edge events of lazy.edgeBreadthFirstSearch(from:), or the examine and edgeRelaxed events of lazy.dijkstra(from:weight:). The other events are left off." }
+                        p(.class("note")) { "The marbles are the moments each vertex is first reached and each edge joins the search tree, from lazy.edgeBreadthFirstSearch(from:), or each edge is examined and each distance improved, from lazy.dijkstra(from:weight:). The other events are left off." }
                     }
                 } else {
                     section(.class("panel")) { p(.class("narration")) { "The text has \(read.graph.vertexCount) vertices and \(read.graph.edgeCount) edges. This page draws at most \(pasteVertexLimit) vertices." } }

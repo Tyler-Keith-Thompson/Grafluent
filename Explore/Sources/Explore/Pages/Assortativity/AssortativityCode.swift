@@ -15,7 +15,7 @@ let newsroom = UndirectedAdjacencyList<String> {
     UndirectedEdge("Cat", "Dan"); UndirectedEdge("Gil", "Eve"); UndirectedEdge("Eve", "Hal")
 }
 
-/// An airline: one hub that every small airport flies to, and nothing between the small ones.
+/// An airline: one hub that every small airport flies to, and two links between small airports.
 let airline = UndirectedAdjacencyList<String> {
     UndirectedEdge("Hub", "Ames"); UndirectedEdge("Hub", "Bend"); UndirectedEdge("Hub", "Cody")
     UndirectedEdge("Hub", "Dale"); UndirectedEdge("Hub", "Elko"); UndirectedEdge("Hub", "Fargo")

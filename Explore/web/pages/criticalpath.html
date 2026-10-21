@@ -17,13 +17,13 @@
 
 <section class="prose">
   <h2><small>The idea</small>The longest path sets the pace</h2>
-  <p>The tasks and their arrows form a directed graph with no cycles, because a task can’t wait for itself. Take the tasks in a <a href="toposort.html">topological order</a>, so everything a task waits for comes first. Give each task the earliest start it can have. That is the latest finish among the tasks it waits for. One pass in that order schedules everything. It takes time in proportion to the tasks plus the arrows.</p>
+  <p>The tasks and their arrows form a directed graph with no cycles, a <a href="toposort.html">DAG</a>, because a task can’t wait for itself. Take the tasks in a <a href="toposort.html">topological order</a>, so everything a task waits for comes first. Give each task the earliest start it can have. That is the latest finish among the tasks it waits for. One pass in that order schedules everything. It takes time in proportion to the tasks plus the arrows.</p>
   <p>The project’s length is the <b>longest</b> path through the graph, counting each task’s days. The tasks on that path are the <b>critical path</b>. Each one starts the moment the one before it ends.</p>
-  <p>Every other task has <b>slack</b>. A second pass, backwards from the end, finds it. The latest a task can start is the earliest start of any task after it, less its own days. Slack is the gap between that latest start and its earliest start.</p>
-  <p>In most graphs, finding a longest path is hard. Here it is easy, because without cycles there is no way to go round and round making a path longer. <code>longestPath(weight:)</code> on a <code>DirectedAcyclicGraph</code> runs the same pass over the order the graph already keeps. The weight of an arrow is the days of the task it leaves. So a path’s weight is the total of its tasks.</p>
+  <p>Every other task has <b>slack</b>. A second pass, backwards from the end, finds it. The latest a task can start is the smallest latest start among the tasks after it, less its own days. Slack is the gap between that latest start and its earliest start.</p>
+  <p>In most graphs, finding a longest path is hard. Here it is easy, because without cycles there is no way to go round and round making a path longer. <code>longestPath(weight:)</code> on a <code>DirectedAcyclicGraph</code>, Grafluent’s type for a DAG, runs the same pass over the order the graph already keeps. The weight of an arrow is the days of the task it leaves. So a path’s weight is the total of its tasks.</p>
 
   <h2><small>Where it breaks</small>Durations are guesses, and people are limited</h2>
-  <p>The critical path assumes every task takes exactly its estimate. Real tasks vary. A path with a little slack can turn critical when one of its tasks runs late. PERT treats each duration as a range and asks how likely the deadline is.</p>
+  <p>The critical path assumes every task takes exactly its estimate. Real tasks vary. A path with a little slack can turn critical when one of its tasks runs late. A method called PERT treats each duration as a range and asks how likely the deadline is.</p>
   <p>It also assumes unlimited hands. Say the same three people must build the set and make the costumes. Then those tasks can’t overlap. Scheduling with limited people or machines is a much harder problem.</p>
   <p>If the arrows ever form a cycle, no order exists at all. <code>DirectedAcyclicGraph</code> refuses the edge that would close it. On a plain graph, <code>findCycle()</code> shows which tasks wait for each other.</p>
 </section>

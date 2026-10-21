@@ -176,7 +176,7 @@ struct BetweennessLab {
                         (Marble(kind: "m-violet", radius: 6), "several, with how many share the credit"),
                         (Marble(kind: "m-grey", radius: 3.5), "the pair talk directly"),
                     ])
-                p(.class("note")) { "Each step is one pair, with its shortest paths from shortestSimplePaths. The numbers on the links are edge betweenness so far." }
+                p(.class("note")) { "Each step is one pair and every shortest path between them, from shortestSimplePaths. The numbers on the links are edge betweenness so far." }
             }
         }
     }

@@ -14,7 +14,7 @@
   <h2><small>Compared with</small>Fast tours, a promised tour and the shortest</h2>
   <!-- compare
   | Method | When to use | Quality | Cost | Weakness |
-  | *Nearest neighbour | A first tour, fast | Often about a quarter longer than the shortest | O(n²) | The last legs take whatever is left |
+  | *Nearest neighbour | A first tour, fast | Often about a quarter longer than the shortest | <a href="basics.html#speed">O(n²)</a> | The last legs take whatever is left |
   | *2-opt | Improving any tour | Usually within a few percent | A pass over all pairs of roads, repeated | Stops at a tour no single swap improves |
   | *Simulated annealing | Time to spare for a better tour | Often better than 2-opt | As many random changes as you allow | Random, and no promise |
   | *Christofides | You need a promise | Never more than 1.5 times the shortest, on straight-line distances | O(n³) | Often beaten by 2-opt in practice |
@@ -33,7 +33,7 @@
   <pre id="code" aria-label="Swift code"></pre>
 </section>
 
-<h2 class="labhead"><small>Step through</small>Build greedily, then untangle</h2>
+<h2 class="labhead"><small>Step through</small>Build nearest-first, then untangle</h2>
 <div id="steps"></div>
 
 <section class="prose code-after">
@@ -45,12 +45,12 @@
   <h2><small>The idea</small>A good tour fast, then a better one</h2>
   <p><b>Nearest neighbour</b> is what most people do by hand. Always go to the closest town you haven’t been to. It takes a moment, and it usually lands within a quarter or so of the shortest. Its weakness is the end. By then the only towns left are far apart, and the road home is long.</p>
   <p><b>2-opt</b> repairs a tour. Two roads that cross can always be swapped for two that don’t, and the swap is shorter. Take two roads A–B and C–D, and replace them with A–C and B–D. Then turn the stretch from B to C around, so the tour still joins up. Repeat while any swap saves distance. The result has no crossings, and it is usually within a few percent of the shortest.</p>
-  <p><b>Simulated annealing</b> makes random changes instead. Sometimes it accepts a change that makes the tour longer. It does that less often as it “cools”. So it can get out of a tour that no single change improves.</p>
-  <p><b>Christofides’</b> method comes with a promise. On straight-line distances it is never more than one and a half times the shortest. It joins the towns by a <a href="mst.html">minimum spanning tree</a>. It pairs up the towns where the tree has an odd number of roads. Then it walks the result as an <a href="euler.html">Euler circuit</a> and skips towns it has already seen.</p>
-  <p>The shortest tour itself comes from <code>shortestTour(weight:)</code>, which runs Held and Karp’s dynamic programming. It finds the best way to visit each subset of towns, ending at each town, and builds it up from smaller subsets.</p>
+  <p><b>Simulated annealing</b> makes random changes instead. Sometimes it accepts a change that makes the tour longer. A setting called temperature starts high and falls, like cooling metal, and the longer tours are accepted less often as it falls. So it can get out of a tour that no single change improves.</p>
+  <p><b>Christofides’</b> method comes with a promise. On straight-line distances it is never more than one and a half times the shortest. It joins the towns by a <a href="mst.html">minimum spanning tree</a>, the cheapest set of roads joining every town with no cycles, which the next pages cover. It pairs up the towns where the tree has an odd number of roads. Then it walks the result as an <a href="euler.html">Euler circuit</a> and skips towns it has already seen.</p>
+  <p>The shortest tour itself comes from <code>shortestTour(weight:)</code>, which runs Held and Karp’s dynamic programming, solving small subsets, storing the answers and building bigger ones from them. It finds the best way to visit each subset of towns, ending at each town, and builds it up from smaller subsets.</p>
 
   <h2><small>Where it breaks</small>Twice as many towns, a thousand times the work</h2>
-  <p>Held–Karp’s table has an entry for every subset of towns, so each town added doubles it. Eleven towns are instant. Twenty need tens of megabytes. Thirty would need more memory than any computer has. The problem is NP-hard, and no known method finds the shortest tour quickly for every map. That is why the heuristics matter. Run on thousands of towns, the good ones are judged by how close they get.</p>
+  <p>Held–Karp’s table has an entry for every subset of towns, so each town added doubles it. Eleven towns are instant. Twenty need tens of megabytes. Thirty would need more memory than any computer has. The problem is <a href="basics.html#speed">NP-hard</a>, and no known method finds the shortest tour quickly for every map. That is why the heuristics matter. Run on thousands of towns, the good ones are judged by how close they get.</p>
   <p>The heuristics also need a sensible map. Christofides’ promise needs the triangle inequality, which says going direct is never longer than going through a third town. One-way streets, tolls or ferries can break it. Then the promise is gone, though the tour is still a tour.</p>
 </section>
 

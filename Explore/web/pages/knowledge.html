@@ -1,13 +1,13 @@
 <!-- title: Knowledge graphs · Explore Grafluent -->
-<!-- description: From extracted claims to a prompt: entities merged by a key, ranked from a question by personalized PageRank, cut to a budget around the question’s entities and written as triples, with Grafluent’s quotient(of:byKey:), pageRank(personalization:), egoGraphView and writeEdgeList. -->
+<!-- description: From extracted claims to a prompt: entities merged by a key, ranked from a question by personalised PageRank, cut to a budget around the question’s entities and written as triples, with Grafluent’s quotient(of:byKey:), pageRank(personalization:), egoGraphView and writeEdgeList. -->
 <header class="sign">
   <h1>Knowledge graphs</h1>
-  <p class="question">A model read a few paragraphs and wrote down fourteen claims, spelling Ada Lovelace three ways. Which of them belong in the prompt for a question about her and the Analytical Engine?</p>
+  <p class="question">A language model, the kind of AI behind chat assistants, read a few paragraphs and wrote down fourteen claims, spelling Ada Lovelace three ways. Which of them belong in the prompt for a question about her and the Analytical Engine?</p>
 </header>
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>Facts as a graph, and the right few back out</h2>
-  <p>A <b>knowledge graph</b> stores facts as triples: a subject, a relation and an object, which are a directed edge with its relation attached. Retrieval that works from such a graph, often called GraphRAG, answers a question by finding the entities it names, taking the facts around them and writing those facts into a prompt. The graph side is four small steps: merge the duplicate entities, rank the entities from the question, cut the neighbourhood to a budget, and write it out.</p>
+  <p>A <b>knowledge graph</b> stores facts as arrows between <b>entities</b>, the people, places and things the facts are about. Each arrow is labelled with a relation, such as Ada Lovelace –worked with→ Charles Babbage. Written out, a fact is a triple of subject, relation and object. Retrieval that works from such a graph is often called GraphRAG, for retrieval-augmented generation. It looks the facts up and hands them to the model. It answers a question by finding the entities it names, taking the facts around them and writing those facts into the prompt, the text handed to the model with the question. The graph side is four small steps: merge the duplicate entities, rank the entities from the question, cut the neighbourhood to a budget, and write it out.</p>
   <p>Reach for it when a question needs facts that sit several hops apart, which a plain search over passages tends to miss, or when the same entity is named in many documents and the answer should join them.</p>
 </section>
 
@@ -18,7 +18,7 @@
   | *Ranked neighbourhood | A question that names entities | The facts near them, best ranked first | A PageRank and a search | Needs the entities found in the graph first |
   | [Neighbourhood by degree](neighbourhood.html) | No question-specific ranking | The best-connected facts nearby | A search | Hubs win whatever the question |
   | [Community summaries](hierarchy.html) | A question about a whole topic | A summary per community | Clustering once, then a lookup | Loses the single fact |
-  | Passage search | The answer sits in one passage | The closest passages | An embedding lookup | Facts spread over passages stay apart |
+  | Passage search | The answer sits in one passage | The closest passages | A search by meaning over the text | Facts spread over passages stay apart |
   -->
   <p>Ranking from the question’s entities favours facts on the paths between them; a degree cut favours hubs. Community summaries answer broad questions, and passage search answers narrow ones.</p>
 </section>
@@ -30,10 +30,10 @@
 
 <section class="prose">
   <h2><small>The idea</small>Four calls, one graph</h2>
-  <p>The relations live in an edge map on a directed pseudograph, so two claims about the same pair stay separate edges with their own relation. Merging is a quotient by a key: <code>quotient(of:byKey:)</code> makes one vertex of every spelling that maps to the same canonical name, and the page rebuilds the graph from those names so the relations come along. Ranking is <code>pageRank(personalization:)</code> with the question’s entities as the places a random reader keeps jumping back to, so entities on the paths between them score high and far corners score low. Retrieval is <code>egoGraphView</code> from the question’s entities, two hops out, ignoring the arrows’ direction and keeping the best-ranked entities when the budget runs out. Writing is <code>writeEdgeList</code> with the relation as a column and a delimiter that allows spaces in names: one line per fact, subject, object and relation.</p>
+  <p>The relations live in an edge map, a table from each edge to its label, on a directed pseudograph, a directed graph that allows several edges between the same pair and self-loops, so two claims about the same pair stay separate edges with their own relation. Merging glues every vertex with the same key into one vertex and keeps all their edges, a quotient graph. <code>quotient(of:byKey:)</code> makes one vertex of every spelling that maps to the same canonical name, the one agreed spelling, and the page rebuilds the graph from those names so the relations come along. Ranking is personalised <a href="pagerank.html">PageRank</a>, <code>pageRank(personalization:)</code>, with the question’s entities as the places the random reader keeps jumping back to, so entities on the paths between them score high and far corners score low. Retrieval is <code>egoGraphView</code> from the question’s entities, two hops out, ignoring the arrows’ direction and keeping the best-ranked entities when the budget runs out. Writing is <code>writeEdgeList</code> with the relation as a column and a delimiter that allows spaces in names: one line per fact, subject, object and relation.</p>
 
   <h2><small>Where it breaks</small>The key, and the budget</h2>
-  <p>The merge is only as good as the key. A key that maps two different people to one name joins their facts, and one that misses a spelling leaves a duplicate with its own facts; in practice the key comes from an entity-resolution step, and the quotient applies it. The budget is a count of entities, not of facts, so a hub inside the budget brings every relation it has. And personalized PageRank ranks by structure alone: a fact that matters to the question but sits three hops away stays out, which is where community summaries help.</p>
+  <p>The merge is only as good as the key. A key that maps two different people to one name joins their facts, and one that misses a spelling leaves a duplicate with its own facts; in practice the key comes from an entity-resolution step, one that works out which names mean the same thing, and the quotient applies it. The budget is a count of entities, not of facts, so a hub inside the budget brings every relation it has. And personalised PageRank ranks by structure alone: a fact that matters to the question but sits three hops away stays out, which is where community summaries help.</p>
 </section>
 
 <section class="prose in-swift">

@@ -2,7 +2,7 @@
 <!-- description: Add random friendships one at a time with Grafluent’s seeded erdosRenyi and watch one group suddenly take in almost everyone once p passes 1/n. -->
 <header class="sign">
   <h1>The giant component</h1>
-  <div class="say"><span>Say it</span><b>AIR-dersh RAY-nyee</b><span class="ipa">/ˈɛrdøːʃ ˈreːɲi/</span></div>
+  <div class="say"><span>Say Erdős–Rényi</span><b>AIR-dersh RAY-nyee</b><span class="ipa">/ˈɛrdøːʃ ˈreːɲi/</span></div>
   <p class="question">Add friendships at random. When does one group suddenly take in almost everyone?</p>
 </header>
 
@@ -23,8 +23,8 @@
   <p>With only fifty people the jump is gentle, and each seed tells a slightly different story. With a million people the curve stays flat near zero right up to p = 1/n. Then it turns sharply upward.</p>
 
   <h2><small>Where it breaks</small>Real networks aren’t coin flips</h2>
-  <p>Real friendships don’t form by coin flips. Real networks have hubs with far more links than average. <a href="networkmodels.html"><code>barabasiAlbert</code></a> grows those by giving new links mostly to people who are already popular. Real networks are also full of triangles, because friends of friends become friends. <code>wattsStrogatz</code> builds those in. Both models have giant components too, but the jump comes at a different point.</p>
-  <p>A giant component isn’t the whole graph, either. For everyone to be joined, c has to reach about ln n. For fifty people that is about 3.9. The school above stops at 3, so a few people are usually still alone at the end.</p>
+  <p>Real friendships don’t form by coin flips. Real networks have hubs with far more links than average. <a href="networkmodels.html"><code>barabasiAlbert</code></a> grows those by giving new links mostly to people who are already popular. Real networks are also full of triangles, because friends of friends become friends. <a href="networkmodels.html"><code>wattsStrogatz</code></a> builds those in. Both models have giant components too, but the jump comes at a different point.</p>
+  <p>A giant component isn’t the whole graph, either. For everyone to be joined, c has to reach about ln n, the natural logarithm of n. For fifty people that is about 3.9. The school above stops at 3, so a few people are usually still alone at the end.</p>
 </section>
 
 <section class="prose in-swift">

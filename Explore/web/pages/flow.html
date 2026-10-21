@@ -7,7 +7,7 @@
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>The most a network can carry, and its bottleneck</h2>
-  <p>A maximum flow is the most that can travel from one place, the <b>source</b>, to another, the <b>sink</b>. Each link can carry only so much. The answer also comes with a <b>minimum cut</b>. That is the set of full links that holds the flow back, so it shows what to widen first.</p>
+  <p>A maximum flow is the most that can travel from one place, the <b>source</b>, to another, the <b>sink</b>. Each link can carry only so much. The most a link can carry is its <b>capacity</b>. The answer also comes with a <b>minimum cut</b>. That is the set of full links that holds the flow back, so it shows what to widen first.</p>
   <p>Reach for it with pipes, roads, data links or anything else with a limit per link. Many other problems turn into a flow, such as pairing people with jobs or splitting an image into foreground and background.</p>
 </section>
 
@@ -15,10 +15,10 @@
   <h2><small>Compared with</small>Other ways to find a maximum flow</h2>
   <!-- compare
   | Method | When to use | Cost | Weakness |
-  | *Edmonds–Karp | Small networks, or to see each step | O(nm²) | Slow on large networks |
+  | *Edmonds–Karp | Small networks, or to see each step | <a href="basics.html#speed">O(nm²)</a> | Slow on large networks |
   | Push–relabel, <code>maximumFlow</code> | The default for most networks | O(n²√m) | Its steps are hard to follow by hand |
   | Dinic, <code>dinicMaximumFlow</code> | Every link carries one unit, as in matching | O(n²m), much less with unit links | Many rounds on long, thin networks |
-  | Boykov–Kolmogorov | Grid networks from images | Fast on grids, no good bound elsewhere | Slower on other networks |
+  | Boykov–Kolmogorov | Grid networks from images | Fast on grids, no speed promise elsewhere | Slower on other networks |
   -->
   <p>All four give the same amount of flow and the same minimum cut. Edmonds–Karp is the easiest to follow, which is why this page uses it. For real work, start with <code>maximumFlow</code>. In the table, n is the number of places and m the number of pipes.</p>
 </section>
@@ -35,7 +35,7 @@
   <p><b>Edmonds–Karp</b> always picks a route with the fewest pipes, found by <a href="bfs.html">breadth-first search</a>. That rule keeps the work at O(nm²), whatever the capacities are.</p>
 
   <h2><small>Where it breaks</small>Pick routes carelessly and it crawls</h2>
-  <p>Without the fewest-pipes rule the method is Ford and Fulkerson’s. A bad choice of routes can then need as many rounds as the flow is large. With capacities that aren’t whole numbers or fractions, it may never finish.</p>
+  <p>Without the fewest-pipes rule the method is Ford and Fulkerson’s. A bad choice of routes can then need as many rounds as the flow is large. With capacities like √2 it may never finish.</p>
   <p>When each pipe also has a cost per unit, the question changes. You want the cheapest way to send a given amount. That is a <a href="mincostflow.html">minimum-cost flow</a>.</p>
 </section>
 

@@ -4,7 +4,7 @@
   <h1>Breadth-first search</h1>
   <p class="question">Starting from one vertex, how do you visit everything you can reach, nearest first?</p>
 </header>
-<p class="example lead">Example: news spreading through nine friends. An arrow from one friend to another means the first messages the second, so the graph is directed. Ana hears first. This page uses the words from <a href="basics.html">Graph basics</a>, such as vertex, edge and directed.</p>
+<p class="example lead">Example: news spreading through nine friends. An arrow from one friend to another means the first messages the second, so the graph is directed. Ana hears first. Each step of the search is an <b>event</b>, and the timeline under the example plays the events in order. This page uses the words from <a href="basics.html">Graph basics</a>, such as vertex, edge and directed.</p>
 
 <div id="app"></div>
 
@@ -15,8 +15,8 @@
 
 <section class="prose">
   <h2><small>The idea</small>Ring by ring</h2>
-  <p>Breadth-first search explores in rings. It visits every vertex one edge away, then every vertex two edges away, and so on. It keeps a <b>queue</b> of the vertices it has found but not yet finished. The oldest one is always next. So nobody two rings out is reached before everybody one ring out.</p>
-  <p>Because it goes ring by ring, it first reaches each vertex by a route with the fewest edges. The blue <b>tree edges</b> record those routes. Follow them back from anyone to reach the start. The other edges are <b>non-tree edges</b>. Each one leads to someone already reached.</p>
+  <p>Breadth-first search explores in rings. It visits every vertex one edge away, then every vertex two edges away, and so on. It keeps a <b>queue</b> of the vertices it has found but not yet finished. The oldest one is always next, first in, first out, like a checkout line. So nobody two rings out is reached before everybody one ring out.</p>
+  <p>Because it goes ring by ring, it first reaches each vertex by a route with the fewest edges. The blue <b>tree edges</b> record those routes. Follow them back from anyone to reach the start. Together they form a <a href="basics.html#words">tree</a>. Every reached vertex has exactly one edge leading back toward the start, and there are no cycles. The other edges are <b>non-tree edges</b>. Each one leads to someone already reached.</p>
 
   <h2><small>Where it breaks</small>Edges are not distances</h2>
   <p>Breadth-first search counts edges. When edges have different lengths, like roads, the route with the fewest edges may not be the shortest. Then you want <a href="dijkstra.html">Dijkstra’s algorithm</a>. To follow one route as deep as it goes before trying the next, use <a href="dfs.html">depth-first search</a>.</p>

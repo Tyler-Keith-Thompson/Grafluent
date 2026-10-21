@@ -111,7 +111,7 @@ struct TreeEditLab {
                         span(.class("label")) { k == 0 ? "Two charts" : "Edit \(k) of \(chartEdits.count)" }
                         p(.class("narration")) {
                             if k == 0 {
-                                "Turn last year's chart into this year's by deleting and inserting people, one at a time. With a deletion or an insertion costing 1 and a change of name 2, the tree edit distance is \(model.distances.named): the cheapest way to do it. Press Step to make the edits."
+                                "Turn last year's chart into this year's by deleting and inserting people, one at a time. With a deletion or an insertion costing 1 and a renaming 2, the tree edit distance is \(model.distances.named): the cheapest way to do it. Press Step to make the edits."
                             } else {
                                 describeEdit(k - 1, model)
                                 if k == chartEdits.count { " The two charts are the same now, after exactly the \(model.distances.named) edits the distance promised." }
@@ -120,7 +120,7 @@ struct TreeEditLab {
                     }
                     div(.class("panel")) {
                         span(.class("label")) { "Shape only" }
-                        p(.class("note")) { "treeEditDistance(to:) alone charges nothing for a substitution, so it compares shapes and ignores names: \(model.distances.unit) here, because once renaming is free last year's Eng can become this year's Sales, and only one deletion and two insertions remain." }
+                        p(.class("note")) { "treeEditDistance(to:) alone charges nothing for a renaming, so it compares shapes and ignores names: \(model.distances.unit) here, because once renaming is free last year's Eng can become this year's Sales, and only one deletion and two insertions remain." }
                     }
                     div(.class("panel")) {
                         span(.class("label")) { "Edits so far" }

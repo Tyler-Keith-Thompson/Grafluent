@@ -2,22 +2,22 @@
 <!-- description: A build pipeline drawn in layers by Grafluent’s sugiyamaLayout, its five phases one at a time, and an org chart drawn as a tidy tree by reingoldTilfordLayout. -->
 <header class="sign">
   <h1>Layered drawing</h1>
-  <div class="say"><span>Say it</span><b>soo-gee-YAH-mah</b><span class="ipa">/sɯɡijama/</span></div>
+  <div class="say"><span>Say Sugiyama</span><b>soo-gee-YAH-mah</b><span class="ipa">/sɯɡijama/</span></div>
   <p class="question">How do you draw a flowchart so that every arrow points down and few of them cross?</p>
 </header>
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>Drawings where direction matters</h2>
   <p>A layered drawing puts every vertex on a row, so that the arrows point down. Whatever comes first is drawn higher, and you can read the order from the top. It also moves vertices along their rows to keep arrows from crossing.</p>
-  <p>Reach for it for flowcharts, build pipelines, family trees, call graphs and anything else where arrows mean “comes before”. For a plain tree, such as an org chart, a tidy tree drawing does the same job more simply.</p>
+  <p>Reach for it for flowcharts, build pipelines, family trees, call graphs, which show which function calls which, and anything else where arrows mean “comes before”. For a plain tree, such as an org chart, a tidy tree drawing does the same job more simply.</p>
 </section>
 
 <section class="prose compared">
   <h2><small>Compared with</small>Other ways to draw a graph with a direction</h2>
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
-  | *Sugiyama layered drawing | Flowcharts and other graphs with a direction | Rows, arrows down, few crossings | Several phases, each a heuristic | Wide rows and many bends on a dense graph |
-  | *Reingold–Tilford tidy tree | Trees, such as an org chart | Rows by depth, each parent over its children | O(n) | Only draws trees |
+  | *Sugiyama layered drawing | Flowcharts and other graphs with a direction | Rows, arrows down, few crossings | Several phases, each a <a href="basics.html#speed">heuristic</a> | Wide rows and many bends on a dense graph |
+  | *Reingold–Tilford tidy tree | Trees, such as an org chart | Rows by <a href="basics.html#words">depth</a>, each parent over its children | <a href="basics.html#speed">O(n)</a> | Only draws trees |
   | Rows by breadth-first search | A quick picture of distance from one start | A row for each number of steps from the start | O(n + m) | Arrows can point up or sideways, and many cross |
   | [Force-directed layout](layout.html) | Links with no direction | Linked vertices close together | O(n² + m) a step | Ignores direction, so the order can’t be read |
   -->
@@ -38,11 +38,11 @@
 <section class="prose">
   <h2><small>The idea</small>One hard problem, split into easier ones</h2>
   <p>Drawing a directed graph well is hard all at once. So Sugiyama, Tagawa and Toda split it into phases, each solved on its own. First, break the loops by turning a few arrows around. Second, give every vertex a layer so the arrows point down, and keep them short. Third, cut long arrows into pieces at every layer they cross. Fourth, order each layer to avoid crossings. Last, choose exact positions along each layer.</p>
-  <p>Grafluent’s <code>sugiyamaLayout()</code> uses a minimum feedback arc heuristic for the first phase and Gansner’s network simplex for the layers. It orders the layers by barycentre sweeps and places them by Brandes and Köpf’s method.</p>
-  <p>Trees need much less. A tree already has layers, its depths, and nothing to cross. Reingold and Tilford draw each subtree on its own. Then they push neighbouring subtrees together until their outlines touch at the minimum spacing, and centre each parent over its children. <code>reingoldTilfordLayout()</code> does this in linear time. It draws two subtrees of the same shape the same way, which is what makes a tidy tree look tidy.</p>
+  <p>Grafluent’s <code>sugiyamaLayout()</code> uses a <a href="basics.html#speed">heuristic</a>, a quick rule with no promise of the best answer, to pick the <a href="feedback.html">feedback arcs</a> for the first phase, and Gansner’s network simplex, the method from <a href="mincostflow.html">minimum-cost flow</a>, for the layers. It orders the layers by barycentre sweeps, each moving a vertex to the average position of its neighbours on the row above, and places them by Brandes and Köpf’s method, which lines vertices up with a neighbour above where it can.</p>
+  <p>Trees need much less. A tree already has layers, its depths, and nothing to cross. Reingold and Tilford draw each subtree on its own. Then they push neighbouring subtrees together until their outlines touch at the minimum spacing, and centre each parent over its children. <code>reingoldTilfordLayout()</code> does this in time in step with the size of the tree. It draws two subtrees of the same shape the same way, which is what makes a tidy tree look tidy.</p>
 
   <h2><small>Where it breaks</small>Crossings, and wide layers</h2>
-  <p>Finding the order with the fewest crossings is NP-hard even for two layers. So the sweeps are a heuristic. They usually do well, and the drawing reports its <code>crossingCount</code> so you can tell. A graph with many arrows between distant layers fills the drawing with bend points, and wide layers make a short, broad picture.</p>
+  <p>Finding the order with the fewest crossings is <a href="basics.html#speed">NP-hard</a> even for two layers. So the sweeps are a heuristic. They usually do well, and the drawing reports its <code>crossingCount</code> so you can tell. A graph with many arrows between distant layers fills the drawing with bend points, and wide layers make a short, broad picture.</p>
   <p>Loops have no right answer. Which arrows to turn around is a choice, and the smallest such set is itself NP-hard to find. The drawing lists them in <code>reversedEdges</code>, so a reader isn’t misled into thinking every arrow points down.</p>
 </section>
 

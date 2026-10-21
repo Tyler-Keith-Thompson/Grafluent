@@ -109,7 +109,7 @@ final class TraversalModel {
             case "tree":
                 return s.depthFirst
                     ? "\(via) leads to a new room, so walk through. This is a tree edge."
-                    : "\(e.source) messages \(e.target), who hadn’t heard yet. So \(via) is a tree edge."
+                    : "\(e.source) messages \(e.target), who hadn’t heard yet. So \(via) is a tree edge, the route by which they first heard."
             case "back": return "\(via) leads back to a room on the current path. This back edge closes a cycle."
             case "forward": return "\(via) leads to a room already finished, further along this corridor. This is a forward edge."
             case "cross": return "\(via) leads into a branch that is already finished. This is a cross edge."

@@ -2,23 +2,23 @@
 <!-- description: Are two drawings the same graph? Weisfeiler–Leman colour refinement as a quick test, then Grafluent’s isomorphism(to:) finds the mapping, or proves there is none. -->
 <header class="sign">
   <h1>Isomorphism</h1>
-  <div class="say"><span>Say it</span><b>VICE-fy-ler LAY-mun</b><span class="ipa">/ˈvaɪsfaɪlɐ ˈleːman/</span></div>
+  <div class="say"><span>Say Weisfeiler–Leman</span><b>VICE-fy-ler LAY-mun</b><span class="ipa">/ˈvaɪsfaɪlɐ ˈleːman/</span></div>
   <p class="question">Two drawings look nothing alike. Are they the same network, just drawn differently?</p>
 </header>
 
 <section class="prose purpose">
   <h2><small>What it’s for</small>Telling whether two graphs are the same</h2>
   <p>Two graphs are <b>isomorphic</b> when you can rename the vertices of one as the vertices of the other, so that exactly the same pairs are joined. Where the vertices sit on the page doesn’t matter. An isomorphism test tells you whether such a renaming exists, and gives it to you.</p>
-  <p>Reach for it to find duplicates in a collection of molecules or circuits, or to check that two programs built the same network. A quick hash rules most pairs out first, so the slow search runs only when it has to.</p>
+  <p>Reach for it to find duplicates in a collection of molecules or circuits, or to check that two programs built the same network. A quick hash, a fingerprint number that the same graph always gets but different graphs can share, rules most pairs out first, so the slow search runs only when it has to.</p>
 </section>
 
 <section class="prose compared">
   <h2><small>Compared with</small>Other ways to compare graphs</h2>
   <!-- compare
   | Method | When to use | Gives | Cost | Weakness |
-  | *Weisfeiler–Leman hash | A quick first check, or a key for a lookup table | <code>weisfeilerLehmanGraphHash()</code> | O(m) a round | Equal hashes prove nothing |
-  | *Isomorphism search | You need to be sure | <code>isomorphism(to:)</code>, the renaming or nil | Fast in practice, exponential at worst | Slow on some very regular graphs |
-  | Subgraph isomorphism | A small graph might sit inside a big one | <code>subgraphIsomorphisms(to:)</code> | Exponential at worst | A harder problem |
+  | *Weisfeiler–Leman hash | A quick first check, or a key for a lookup table | <code>weisfeilerLehmanGraphHash()</code> | <a href="basics.html#speed">O(m)</a> a round | Equal hashes prove nothing |
+  | *Isomorphism search | You need to be sure | <code>isomorphism(to:)</code>, the renaming or nil | Fast in practice; at worst doubling with each extra vertex | Slow on some very regular graphs |
+  | Subgraph isomorphism | A small graph might sit inside a big one as a <a href="basics.html#words">subgraph</a>, a piece of it | <code>subgraphIsomorphisms(to:)</code> | Doubling with each extra vertex at worst | A harder problem |
   -->
   <p>Hash first, and search only when the hashes are equal. Different hashes settle it at once.</p>
 </section>
@@ -29,14 +29,14 @@
 
 <section class="prose">
   <h2><small>The idea</small>Rule out quickly, then search</h2>
-  <p>Some differences are easy to spot. The graphs might have different numbers of vertices or edges, or of vertices with each degree. Colour refinement, the <b>Weisfeiler–Leman</b> test, pushes that idea as far as it goes.</p>
+  <p>Some differences are easy to spot. The graphs might have different numbers of vertices or edges, or of vertices with each <a href="basics.html#words">degree</a>, the number of neighbours. Colour refinement, the <b>Weisfeiler–Leman</b> test, pushes that idea as far as it goes.</p>
   <p>Start with every vertex the same colour. Each round, give each vertex a new colour. The new colour records its old colour and the colours of all its neighbours. After one round the colours are the degrees. After two, they also capture the neighbours’ degrees, and so on. If at any round the two graphs have different counts of some colour, they can’t be the same graph.</p>
   <p><code>weisfeilerLehmanGraphHash()</code> boils the final colours down to one number. Two graphs with different hashes are certainly different. Each round takes time in step with the number of edges.</p>
   <p>Equal hashes prove nothing, though. To be sure, <code>isomorphism(to:)</code> searches for the renaming. It matches one vertex at a time, trying only vertices that could still correspond. It backs up when an edge doesn’t match. It returns the mapping, or nil when none exists. <code>isomorphisms(to:)</code> lists every one.</p>
 
   <h2><small>Where it breaks</small>Graphs where every vertex looks alike</h2>
   <p>In the look-alikes, every vertex has three neighbours. So every round gives every vertex the same colour, and the test sees nothing. Yet one graph has triangles and the other has none, so they are different. Colour refinement can never split a <em>regular</em> graph, where all degrees are equal. The cubes pass it for the same reason. On graphs like these, the search does the real work.</p>
-  <p>No fast method is known that works on every pair of graphs. Nobody has shown one is impossible, either. Babai’s algorithm is quasi-polynomial, and practical searches handle most real graphs quickly.</p>
+  <p>No fast method is known that works on every pair of graphs. Nobody has shown one is impossible, either. Babai found a method far faster than trying every renaming, though still not fast in the usual sense, and practical searches handle most real graphs quickly.</p>
 </section>
 
 <section class="prose in-swift">

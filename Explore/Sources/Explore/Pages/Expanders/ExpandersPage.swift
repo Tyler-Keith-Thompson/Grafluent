@@ -104,7 +104,7 @@ struct ExpandersLab {
                             } else {
                                 describeHops(k, hops)
                                 if finished {
-                                    " \(wiringLabel[model.wiring].prefix(1).uppercased() + wiringLabel[model.wiring].dropFirst()) uses \(numbers.cables) cables and its farthest pair is \(numbers.farthest) hops apart. Its spectral gap is \(twoDecimals(numbers.gap))."
+                                    " \(wiringLabel[model.wiring].prefix(1).uppercased() + wiringLabel[model.wiring].dropFirst()) uses \(numbers.cables) cables and its farthest pair is \(numbers.farthest) hops apart. Its spectral gap is \(twoDecimals(numbers.gap)), and bigger is better."
                                 }
                             }
                         }

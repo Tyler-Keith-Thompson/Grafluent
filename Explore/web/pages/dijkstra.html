@@ -2,7 +2,7 @@
 <!-- description: Watch Grafluent’s lazy.dijkstra settle a small town one place at a time, in your browser. -->
 <header class="sign">
   <h1>Dijkstra’s algorithm</h1>
-  <div class="say"><span>Say it</span><b>DIKE-struh</b><span class="ipa">/ˈdɛikstra/</span></div>
+  <div class="say"><span>Say Dijkstra</span><b>DIKE-struh</b><span class="ipa">/ˈdɛikstra/</span></div>
   <p class="question">What’s the quickest walk from your front door to every other place in town?</p>
 </header>
 
@@ -14,15 +14,16 @@
 
 <section class="prose compared">
   <h2><small>Compared with</small>Other ways to find quickest routes</h2>
+  <p>In the table, n is the number of places and m the number of streets.</p>
   <!-- compare
   | Method | When to use | Handles | Cost | Weakness |
-  | *Dijkstra | One start, and no cost is negative | Costs of zero or more | O(m log n) | Wrong answers when a cost is negative |
+  | *Dijkstra | One start, and no cost is negative | Costs of zero or more | <a href="basics.html#speed">O(m log n)</a> | Wrong answers when a cost is negative |
   | [Breadth-first search](bfs.html) | Every step costs the same | Counting steps | O(n + m) | Ignores costs |
   | [A*](astar.html) | One start and one goal, with a good guess of the distance left | Costs of zero or more | O(m log n), often much less | Needs a guess that never overestimates |
   | [Bellman–Ford](bellmanford.html) | Some costs are negative | Negative costs, and finds a loop that pays | O(nm) | Slow on large graphs |
   | Floyd–Warshall | Routes between every pair, on a small graph | Negative costs | O(n³) | Too slow past a few thousand places |
   -->
-  <p>Dijkstra is the usual choice for one start and costs of zero or more. It is fast, and it finds every place’s route in one run. In the table, n is the number of places and m the number of streets.</p>
+  <p>Dijkstra is the usual choice for one start and costs of zero or more. It is fast, and it finds every place’s route in one run.</p>
 </section>
 
 <p class="example lead">Example: eight places in a small town, with walking minutes on each street.</p>
@@ -31,7 +32,7 @@
 
 <section class="prose">
   <h2><small>The idea</small>Always settle the nearest unsettled place</h2>
-  <p>Keep a best guess for every place. Where you are gets zero minutes, and everywhere else gets infinity. Then repeat one move. Take the frontier place with the smallest guess and call it settled. Check each street out of it. If going through it reaches a neighbour sooner, lower that neighbour’s guess.</p>
+  <p>Keep a best guess for every place. Where you are gets zero minutes, and everywhere else gets infinity. Then repeat one move. The frontier is every place reached by some street but not yet settled. Take the frontier place with the smallest guess and call it settled. Check each street out of it. If going through it reaches a neighbour sooner, lower that neighbour’s guess.</p>
   <p>Why can the smallest guess be trusted? Any other walk to that place must leave the settled region through some frontier place. Every frontier place is already at least that far away. Streets only add time, so a detour can’t come back quicker. That short argument is the whole proof. It is also where the algorithm breaks.</p>
 
   <h2><small>Where it breaks</small>A street that gives you time back</h2>

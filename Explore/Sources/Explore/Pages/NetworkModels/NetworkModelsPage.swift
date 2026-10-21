@@ -140,7 +140,7 @@ struct RichLab {
                     playback: playback,
                     marbles: (1 ... playback.count).map { j in Marble(kind: "m-blue", radius: 7, title: describeNewcomer(j, model)) },
                     legend: [(Marble(kind: "m-blue", radius: 6), "a newcomer joins")])
-                p(.class("note")) { "The network is drawn once, whole, by fruchtermanReingoldLayout; each step shows one more of its vertices, in the order barabasiAlbert added them." }
+                p(.class("note")) { "The network is drawn once, whole, by fruchtermanReingoldLayout, a force-directed layout (see Force-directed layout); each step shows one more of its vertices, in the order barabasiAlbert added them." }
             }
         }
     }
@@ -220,7 +220,7 @@ struct SmallWorldLab {
         div {
             section(.class("lab"), .custom(name: "aria-label", value: "A small world")) {
                 div(.class("panel stage")) {
-                    GraphCanvas(label: "A Watts–Strogatz ring of \(smallPeople), rewired with probability \(percent(smallProbabilities[k]))", width: 640, height: 430, nodes: nodes, edges: edges)
+                    GraphCanvas(label: "A Watts–Strogatz ring of \(smallPeople), with each link moved with chance \(percent(smallProbabilities[k]))", width: 640, height: 430, nodes: nodes, edges: edges)
                     div(.class("legend")) {
                         span { i(.class("line")) {}; "a link of the ring" }
                         span { i(.class("line route")) {}; "a rewired shortcut" }

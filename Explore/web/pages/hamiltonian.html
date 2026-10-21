@@ -30,7 +30,7 @@
 
 <section class="prose">
   <h2><small>The idea</small>Every vertex once, not every edge</h2>
-  <p>An <a href="euler.html">Euler tour</a> uses every <em>road</em> once. There is a quick test for whether one exists, because every place needs an even number of roads. A Hamiltonian cycle uses every <em>place</em> once, and no such test is known. The general question is NP-complete. As far as anyone knows, answering it for every graph takes time that grows exponentially with the graph.</p>
+  <p>An <a href="euler.html">Euler tour</a> uses every <em>road</em> once. There is a quick test for whether one exists, because every place needs an even number of roads. A Hamiltonian cycle uses every <em>place</em> once, and no such test is known. The general question is <a href="basics.html#speed">NP-hard</a>. As far as anyone knows, answering it for every graph takes time that grows exponentially with the graph.</p>
   <p>So the search tries. Grafluent’s <code>hamiltonianCycle()</code> grows a route one place at a time. It always goes to the first neighbour not yet visited, and it backs up when it gets stuck. The second lab does the same.</p>
   <p>The search also stops early in a branch that can’t work. That happens when some place left over can no longer be reached, or has too few unvisited neighbours to pass through. This pruning doesn’t change which cycle comes out first. It only changes how long the search takes.</p>
   <p><code>hamiltonianPath(from:to:)</code> asks the same of a route with fixed ends. The first lab uses it to check whether your route can still be finished. What is left must have a path from your current place, through everything unvisited, back to the start.</p>

@@ -233,7 +233,7 @@ struct StreetsLab {
             div(.class("panel stage")) {
                 GraphCanvas(label: "Nine street corners joined by one-way streets", width: 640, height: 410,
                             nodes: nodes, edges: edges, onEdge: { componentsModel.flip($0) })
-                p(.class("note")) { "Click a street to turn it around. Corners of the same colour are in the same neighbourhood. Grey dashed streets run between neighbourhoods." }
+                p(.class("note")) { "Click a street to turn it around. Corners of the same colour are in the same group. Grey dashed streets run between groups." }
             }
             div(.class("side")) {
                 div(.class("panel"), .custom(name: "aria-live", value: "polite")) {
@@ -244,7 +244,7 @@ struct StreetsLab {
                         } else if let last = snapshot.last {
                             streetText(last, completes: StreetSnapshot.completes(last, found.events, colour))
                         } else {
-                            "A depth-first search drives down one-way streets. A neighbourhood is complete when the search backs out of the first corner it entered there."
+                            "A depth-first search drives down one-way streets. A group is complete when the search backs out of the first corner it entered there."
                         }
                     }
                     div(.class("chips")) {
@@ -252,9 +252,9 @@ struct StreetsLab {
                     }
                 }
                 div(.class("panel")) {
-                    span(.class("label")) { "The condensation, each neighbourhood squeezed to a dot" }
+                    span(.class("label")) { "The condensation, each group squeezed to a dot" }
                     GraphCanvas(label: "The condensation: one vertex per strongly connected component", width: 600, height: 380, nodes: dots, edges: links)
-                    p(.class("note")) { "It never has a cycle. A cycle between neighbourhoods would make them one neighbourhood." }
+                    p(.class("note")) { "It never has a cycle. A cycle between groups would make them one group." }
                 }
             }
         }
@@ -283,7 +283,7 @@ struct StreetsLab {
                     }
                 },
                 legend: [(Marble(kind: "m-blue", radius: 6), "enter a corner"), (Marble(kind: "m-hollow", radius: 5), "back out of it"),
-                         (Marble(kind: "m-pal0", radius: 6), "a neighbourhood is complete"), (Marble(kind: "m-grey", radius: 3.5), "drive down a street")])
+                         (Marble(kind: "m-pal0", radius: 6), "a group is complete"), (Marble(kind: "m-grey", radius: 3.5), "drive down a street")])
         }
         }
     }
@@ -295,7 +295,7 @@ func streetText(_ event: DepthFirstSearchEvent<String>, completes: Bool) -> Stri
     case .discover(let v): return "Drive into \(v) for the first time."
     case .finish(let v):
         return completes
-            ? "Back out of \(v), the first corner entered in its neighbourhood. That neighbourhood is now complete."
+            ? "Back out of \(v), the first corner entered in its group. That group is now complete."
             : "Every street out of \(v) has been driven. Back out of \(v)."
     case .treeEdge(let e): return "Drive \(e.source) → \(e.target), to a corner not yet visited."
     case .backEdge(let e), .forwardEdge(let e), .crossEdge(let e): return "The street \(e.source) → \(e.target) leads somewhere already visited."
