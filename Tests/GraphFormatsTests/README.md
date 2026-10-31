@@ -214,8 +214,8 @@ checked, so the trap comes from the fault.
     64 KiB that are on average at least half full.
 - **Cost cases** (`GraphFormatsReviewTests.swift`, `Performance/GraphFormatsReviewScaleTests.swift`).
   Inputs whose cost could grow faster than their size: a Matrix Market size line over
-  `maximumVertexCount` (every overload, and the 79-byte file claiming 10¹² vertices in a child
-  process under 256 MB), DOT default lists, Mermaid `&` groups (the 45 KB, 9·10⁶-edge file in a
+  `maximumVertexCount` (every overload, and the 79-byte file claiming 10¹² vertices growing a child
+  process's peak memory by under 256 MB), DOT default lists, Mermaid `&` groups (the 45 KB, 9·10⁶-edge file in a
   child process), GraphML defaults against data, defaults multiplied by vertices and edge chains (the
   budget's exact crossing point), JSON objects and XML tags with many keys, and the writers'
   distinct-ID check. Costs are checked by timing two sizes eight times apart (the least of five

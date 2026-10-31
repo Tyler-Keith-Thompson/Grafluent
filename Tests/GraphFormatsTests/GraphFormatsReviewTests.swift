@@ -1,7 +1,7 @@
 // Inputs whose cost could grow faster than their size (a Matrix Market size line, DOT default
 // lists, Mermaid `&` groups, GraphML defaults against data, defaults multiplied by vertices,
 // objects and tags with many keys), each checked for its result and, where the case is about cost,
-// by the peak memory of a child process. Expected values are known by construction. The timed cases
+// by how much the parse grows a child process's peak memory. Expected values are known by construction. The timed cases
 // are in Performance/GraphFormatsReviewScaleTests.swift. See README.md.
 
 #if canImport(Darwin)
@@ -18,21 +18,26 @@ import Testing
 
 @Suite("GraphFormats review cases")
 struct GraphFormatsReviewTests {
-    @Test("Matrix Market: the 79-byte file claiming 10¹² vertices keeps a child process under 256 MB", .timeLimit(.minutes(1)))
+    @Test("Matrix Market: the 79-byte file claiming 10¹² vertices grows a child process's peak memory by under 256 MB", .timeLimit(.minutes(1)))
     func matrixMarketVertexLimitMemory() async {
         await #expect(processExitsWith: .success) {
+            // The child is the whole test binary again, so the bound is on the parse's growth of the
+            // peak, not on the peak itself.
+            func peakResidentSize() -> Int {
+                var usage = rusage()
+                #if canImport(Darwin)
+                getrusage(RUSAGE_SELF, &usage)
+                return Int(usage.ru_maxrss)
+                #else
+                getrusage(__rusage_who_t(RUSAGE_SELF.rawValue), &usage)
+                return Int(usage.ru_maxrss) * 1024
+                #endif
+            }
             let file = "%%MatrixMarket matrix coordinate pattern general\n1000000000000 1000000000000 0\n"
             precondition(file.utf8.count == 79)
+            let before = peakResidentSize()
             let graph = try? DirectedPseudograph<Int>(matrixMarket: file.utf8)
-            var usage = rusage()
-            #if canImport(Darwin)
-            getrusage(RUSAGE_SELF, &usage)
-            let peak = Int(usage.ru_maxrss)
-            #else
-            getrusage(__rusage_who_t(RUSAGE_SELF.rawValue), &usage)
-            let peak = Int(usage.ru_maxrss) * 1024
-            #endif
-            exit(graph == nil && peak < 256 << 20 ? 0 : 1)
+            exit(graph == nil && peakResidentSize() - before < 256 << 20 ? 0 : 1)
         }
     }
 
@@ -106,7 +111,7 @@ struct GraphFormatsReviewTests {
         #expect(attributes == ["a=3", "b=2", "c=4"])
     }
 
-    @Test("Mermaid: an & group of 3000 × 3000 is limitExceeded at its link; a child process stays under 256 MB", .timeLimit(.minutes(1)))
+    @Test("Mermaid: an & group of 3000 × 3000 is limitExceeded at its link; a child process's peak memory grows by under 256 MB", .timeLimit(.minutes(1)))
     func mermaidProduct() async throws {
         let sources = (0 ..< 3_000).map { "a\($0)" }.joined(separator: " & ")
         let targets = (0 ..< 3_000).map { "b\($0)" }.joined(separator: " & ")
@@ -130,18 +135,24 @@ struct GraphFormatsReviewTests {
         let small = try DirectedPseudograph<String>(mermaid: "flowchart LR\nA & B --> C & D --> E\n".utf8)
         #expect(small.edgeCount == 6)
         await #expect(processExitsWith: .success) {
+            // The child is the whole test binary again, so the bound is on the parse's growth of the
+            // peak, not on the peak itself.
+            func peakResidentSize() -> Int {
+                var usage = rusage()
+                #if canImport(Darwin)
+                getrusage(RUSAGE_SELF, &usage)
+                return Int(usage.ru_maxrss)
+                #else
+                getrusage(__rusage_who_t(RUSAGE_SELF.rawValue), &usage)
+                return Int(usage.ru_maxrss) * 1024
+                #endif
+            }
             let sources = (0 ..< 3_000).map { "a\($0)" }.joined(separator: " & ")
             let targets = (0 ..< 3_000).map { "b\($0)" }.joined(separator: " & ")
-            let graph = try? DirectedPseudograph<String>(mermaid: ("flowchart LR\n" + sources + " --> " + targets + "\n").utf8)
-            var usage = rusage()
-            #if canImport(Darwin)
-            getrusage(RUSAGE_SELF, &usage)
-            let peak = Int(usage.ru_maxrss)
-            #else
-            getrusage(__rusage_who_t(RUSAGE_SELF.rawValue), &usage)
-            let peak = Int(usage.ru_maxrss) * 1024
-            #endif
-            exit(graph == nil && peak < 256 << 20 ? 0 : 1)
+            let file = ("flowchart LR\n" + sources + " --> " + targets + "\n").utf8
+            let before = peakResidentSize()
+            let graph = try? DirectedPseudograph<String>(mermaid: file)
+            exit(graph == nil && peakResidentSize() - before < 256 << 20 ? 0 : 1)
         }
     }
 
