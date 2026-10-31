@@ -123,3 +123,10 @@ targets:
 [doc('Compare Grafluent with petgraph, rustworkx-core, BGL, LEMON, igraph and PCSR on identical instances (Benchmarks/CrossLanguage/README.md), e.g. just bench-cross, or just bench-cross --scale smoke --repeat 3')]
 bench-cross *args="":
     python3 {{PROJECT_ROOT}}/Benchmarks/CrossLanguage/run.py {{args}}
+
+# The checkout of ProjectTemplate this project came from; .template.json records the commit.
+PROJECT_TEMPLATE := env("PROJECT_TEMPLATE", home_directory() / "workspace" / "ProjectTemplate")
+
+[doc('Merge the project template’s changes since .template.json’s commit into this checkout (needs a clean worktree), e.g. just template-update, or just template-update --to <commit>')]
+template-update *args="":
+    python3 {{PROJECT_TEMPLATE}}/template.py update {{PROJECT_ROOT}} {{args}}

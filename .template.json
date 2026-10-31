@@ -1,0 +1,8 @@
+{
+  "commit": "42866c892872b51256f62c947dcf5940f2ff25a3",
+  "name": "Grafluent",
+  "type": "library",
+  "benchmarks": true,
+  "fly": false,
+  "database": false
+}
