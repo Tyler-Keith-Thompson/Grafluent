@@ -57,6 +57,7 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 | `just fuzz [Target] [-t secs]` | Time-boxed libFuzzer runs; `just fuzz-regress` replays corpora |
 | `just diff [--module X]` | Differential tests against NetworkX, scipy, rustworkx and igraph |
 | `just bench [--target X]` | Benchmarks; `just bench-compare` against the `main` baseline |
+| `just bench-simulated-compare [--target X]` | Simulated counts (Callgrind in a Linux VM, from `~/workspace/BenchmarkHarness`) against the committed `simulated` baseline; `just bench-simulated [--target X]` re-records it |
 | `just explore` | The browser explorer as release WebAssembly into `Explore/dist/` |
 | `just wasi-test [-c release] [--targets X,Y]` | SwiftPM tests on wasm32-wasi under wasmtime: a 32-bit `Int` |
 | `just docs` | Combined DocC site into `.build/docs` |
@@ -149,6 +150,11 @@ have.
    hand-written loop over arrays: measure in release, and add a ratio test in
    `Tests/<Module>Tests/Performance/` where siblings have one. Use small inputs in debug builds,
    because the timing only runs in release and CI's debug runner is slow.
+   Judge a speed change by `just bench-simulated-compare --target <Module>Benchmarks`: its
+   instruction, cache-miss and branch counts don't move when the machine is busy, as wall clock
+   does. The baseline also carries the benchmarks' allocation and retain counts; absolute times
+   still come from `just bench`. Re-record the `simulated` baseline for the targets a change
+   touches (`just bench-simulated --target X`) and commit it with the change.
 8. **A `graph.lazy` member**, if the algorithm has steps worth watching (see "Shapes"), with a
    replay test showing its events reproduce the plain call.
 9. **An explore page**, optional. See `Explore/README.md` for the page order, compare tables,

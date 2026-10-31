@@ -9,6 +9,8 @@ BAZEL_RELEASE := "bazel --output_base=" + home_directory() + "/Library/Caches/ba
 # SwiftPM runs through Xcode's default toolchain. A development snapshot selected through
 # TOOLCHAINS (or first on PATH via swiftly) can fail to read the SDK's Testing module.
 SWIFT := "env -u TOOLCHAINS xcrun --toolchain default swift"
+# The checkout of BenchmarkHarness whose benchmark-harness tool records simulated baselines.
+BENCHMARK_HARNESS := env("BENCHMARK_HARNESS", home_directory() / "workspace" / "BenchmarkHarness")
 
 [doc('Build everything (default)')]
 all: build
@@ -97,6 +99,18 @@ bench-baseline:
 [doc('Compare the current results against the saved baseline')]
 bench-compare:
     cd {{PROJECT_ROOT}}/Benchmarks && {{SWIFT}} package --allow-writing-to-package-directory benchmark baseline compare main
+
+[doc("Record the benchmarks' simulated counts (Callgrind in a Linux VM; steady on a busy machine) as the simulated baseline, e.g. just bench-simulated, or just bench-simulated --target X")]
+bench-simulated *args="": (_simulated-baseline "simulated" args)
+
+[doc("Record simulated counts as simulated-current and compare them against the simulated baseline, e.g. just bench-simulated-compare --target X")]
+bench-simulated-compare *args="": (_simulated-baseline "simulated-current" args)
+    cd {{PROJECT_ROOT}}/Benchmarks && {{SWIFT}} package --allow-writing-to-package-directory benchmark baseline compare simulated simulated-current {{args}}
+
+[private]
+_simulated-baseline name args:
+    just --justfile {{BENCHMARK_HARNESS}}/justfile harness
+    {{BENCHMARK_HARNESS}}/Harness/.build/release/benchmark-harness baseline update {{name}} --package-path {{PROJECT_ROOT}}/Benchmarks {{args}}
 
 [doc('Generate an Xcode project from the Bazel graph and open it')]
 generate *args="":

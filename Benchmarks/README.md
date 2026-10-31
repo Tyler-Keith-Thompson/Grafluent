@@ -15,8 +15,16 @@ Allocation counts need jemalloc (`brew install jemalloc`).
 | `just bench --target CompressedSparseRowBenchmarks` | One representation |
 | `just bench-baseline` | Save the current results as the baseline `main` |
 | `just bench-compare` | Compare against the saved baseline |
+| `just bench-simulated [--target X]` | Record simulated counts as the `simulated` baseline |
+| `just bench-simulated-compare [--target X]` | Record simulated counts as `simulated-current` and compare them against `simulated` |
 
 Inputs are generated from fixed seeds (`BenchmarkSupport`), so runs compare like with like.
+
+The `bench-simulated` recipes run the same benchmarks, unchanged, in a Linux virtual machine under
+Callgrind (the `benchmark-harness` tool from `~/workspace/BenchmarkHarness`, or `$BENCHMARK_HARNESS`)
+and record instructions, cache misses, mispredicted branches and an estimated cycle count instead of
+time. Those counts come from a fixed simulated machine, so they don't move when the host is busy,
+and the `simulated` baseline is committed alongside `main`.
 
 ## What is measured
 
