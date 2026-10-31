@@ -361,4 +361,38 @@ struct DirectedAcyclicGraphPreconditionTests {
         #expect(graph.vertex(atIndex: 1) == 1 && graph.vertexIndex(of: 1) == 1)
         #expect(Array(graph.successorIndices(ofIndex: 1)) == [] as [Int])
     }
+
+    @Test("longestPathLayering and longestPathDistances trap for a non-vertex, a layer out of range and a NaN distance")
+    func layeringTraps() async throws {
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1])
+            _ = graph.longestPathLayering().layer(of: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: [0, 1, 2])
+            _ = graph.remove(1)
+            _ = graph.longestPathLayering().layer(of: 1)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = try #require(DirectedAcyclicGraph<DirectedPseudograph<Int>>(edges: [DirectedEdge(from: 0, to: 1)]))
+            _ = graph.longestPathLayering().vertices(inLayer: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedAcyclicGraph<DirectedPseudograph<Int>>()
+            _ = graph.longestPathLayering().vertices(inLayer: 0)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: [0, 1])
+            _ = graph.longestPathDistances(weight: { _ in 1 }).distance(to: 2)
+        }
+        await #expect(processExitsWith: .failure) {
+            let graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(edges: [DirectedEdge(from: 0, to: 1)]))
+            _ = graph.longestPathDistances(weight: { _ in Double.nan })
+        }
+        // Without the calls: the layering of two vertices has one layer, and an infinite weight is a
+        // distance like any other.
+        let graph = try #require(DirectedAcyclicGraph<AdjacencyList<Int>>(edges: [DirectedEdge(from: 0, to: 1)]))
+        #expect(graph.longestPathLayering().vertices(inLayer: 1) == [1])
+        #expect(graph.longestPathDistances(weight: { _ in Double.infinity }).distance(to: 1) == .infinity)
+    }
 }

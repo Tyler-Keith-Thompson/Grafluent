@@ -232,6 +232,25 @@ def call_lines(g, kind, t, op, k, ind="        "):
             return shown, ex("graph.longestPath(weight: { (%s)[$0] }) == nil" % w)
         return shown, [ind + "let longest%d = try #require(graph.longestPath(weight: { %s[$0] }))" % (k, w),
                        ind + "#expect(longest%d.vertices == %s && longest%d.edges == %s)" % (k, arr(r[1], t), k, arr(r[2], "Int"))]
+    if name == "layering":
+        rows, layers = r[1], r[2]
+        lines = [ind + "let layering%d = graph.longestPathLayering()" % k,
+                 ind + "#expect(layering%d.count == %d && layering%d.layers == %s)" % (k, len(layers), k, arr2(layers, t))]
+        for v, l in rows:
+            lines.append(ind + "#expect(layering%d.layer(of: %s) == %d)" % (k, lit(v), l))
+            lines.append(ind + "#expect(try layering%d.layer(checked: %s) == %d)" % (k, lit(v), l))
+        for i, l in enumerate(layers):
+            lines.append(ind + "#expect(layering%d.vertices(inLayer: %d) == %s)" % (k, i, arr(l, t)))
+        return shown, lines
+    if name == "layeringW":
+        w = arr(a[0], "Int")
+        rows, m = r[1], r[2]
+        lines = [ind + "let distances%d = graph.longestPathDistances(weight: { (%s)[$0] })" % (k, w),
+                 ind + "#expect(distances%d.maximum == %d)" % (k, m)]
+        for v, d in rows:
+            lines.append(ind + "#expect(distances%d.distance(to: %s) == %d)" % (k, lit(v), d))
+            lines.append(ind + "#expect(try distances%d.distance(checkedTo: %s) == %d)" % (k, lit(v), d))
+        return shown, lines
     if name == "dagSP":
         src, weights = a
         w = arr(weights, "Int")
@@ -533,7 +552,7 @@ FILES = [
     ("DirectedAcyclicGraphQueryTests.swift", "DirectedAcyclicGraph order queries and algorithms", G["Order queries"] + G["Algorithms"],
      "Order queries and algorithms (catalog %s, %s): `topologicalPosition`, the order's\n"
      "// subscript, the order-pruned `hasPath`, equality that ignores the order, `transitiveClosure()`,\n"
-     "// `transitiveReduction()` and `longestPath()`." % (
+     "// `transitiveReduction()`, `longestPath()`, `longestPathLayering()` and `longestPathDistances(weight:)`." % (
          span("Order queries"),
          span("Algorithms"))),
     ("DirectedAcyclicGraphCodableTests.swift", "DirectedAcyclicGraph Codable", G["Codable"],

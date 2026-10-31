@@ -595,6 +595,23 @@ def compare_dag(case, mine):
             problems.append(f"dag: longestPath(weight:) {mine['weightedLongestPath']}, NetworkX {want}")
         if mine.get("weightedLongestLength") != nx.dag_longest_path_length(H, weight="weight"):
             problems.append(f"dag: longestPath(weight:) weighs {mine.get('weightedLongestLength')}, NetworkX {nx.dag_longest_path_length(H, weight='weight')}")
+        # The longest-path layering and distances: by the definitions over our order (NetworkX has no
+        # per-vertex form); the layer count is the longest path's length plus one, the maximum its weight.
+        layer, dist = {}, {}
+        for v in order:
+            layer[v] = max([layer[u] + 1 for u in H.predecessors(v)], default=0)
+            dist[v] = max([dist[u] + H[u][v]["weight"] for u in H.predecessors(v)] + [0])
+        if mine["layering"] != [layer[v] for v in range(case["n"])]:
+            problems.append(f"dag: longestPathLayering {mine['layering']}, expected {[layer[v] for v in range(case['n'])]}")
+        want_layers = [[v for v in order if layer[v] == k] for k in range(max(layer.values()) + 1)]
+        if mine["layers"] != want_layers or mine["layerCount"] != len(want_layers):
+            problems.append(f"dag: layers {mine['layers']} ({mine['layerCount']}), expected {want_layers}")
+        if mine["layerCount"] != nx.dag_longest_path_length(H, weight="unit") + 1:
+            problems.append(f"dag: layer count {mine['layerCount']}, NetworkX longest path {nx.dag_longest_path_length(H, weight='unit')}")
+        if mine["longestDistances"] != [dist[v] for v in range(case["n"])]:
+            problems.append(f"dag: longestPathDistances {mine['longestDistances']}, expected {[dist[v] for v in range(case['n'])]}")
+        if mine["longestMaximum"] != nx.dag_longest_path_length(H, weight="weight"):
+            problems.append(f"dag: longestPathDistances maximum {mine['longestMaximum']}, NetworkX {nx.dag_longest_path_length(H, weight='weight')}")
         # dagShortestPaths on the DAG: Bellman–Ford distances (acyclic, so no negative cycle).
         s = case["sources"][0]
         lengths = nx.single_source_bellman_ford_path_length(H, s)

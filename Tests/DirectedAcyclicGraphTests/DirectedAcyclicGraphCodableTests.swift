@@ -1,4 +1,4 @@
-// Codable (catalog DAG-112 – DAG-123): `{base, order}` with the order as offsets into `base.vertices`; a
+// Codable (catalog DAG-124 – DAG-135): `{base, order}` with the order as offsets into `base.vertices`; a
 // round trip keeps the order; decoding rejects a cyclic base, an order that is not a permutation and an
 // edge going backward, as `DecodingError.dataCorrupted`.
 // Generated from cases.md by swiftgen.py; see README.md.
@@ -14,8 +14,8 @@ import Testing
 
 @Suite("DirectedAcyclicGraph Codable")
 struct DirectedAcyclicGraphCodableTests {
-    @Test("DAG-112 round trip keeps the order", .tags(.conformance))
-    func dag112() throws {
+    @Test("DAG-124 round trip keeps the order", .tags(.conformance))
+    func dag124() throws {
         // DirectedPseudograph; decode {base: V [0, 1, 2]; E [2→0], order: [1, 2, 0]} → order [1, 2, 0]; V [0, 1, 2]; E [0:2→0]
         let base = String(decoding: try JSONEncoder().encode(DirectedPseudograph<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 2, to: 0)])), as: UTF8.self)
         let payload = Data(#"{"base": \#(base), "order": [1, 2, 0]}"#.utf8)
@@ -55,8 +55,8 @@ struct DirectedAcyclicGraphCodableTests {
         #expect(again == graph)
     }
 
-    @Test("DAG-113 cyclic base rejected", .tags(.conformance))
-    func dag113() throws {
+    @Test("DAG-125 cyclic base rejected", .tags(.conformance))
+    func dag125() throws {
         // DirectedPseudograph; decode {base: V [0, 1]; E [0→1, 1→0], order: [0, 1]} → DecodingError.dataCorrupted (a cycle)
         let base = String(decoding: try JSONEncoder().encode(DirectedPseudograph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 0)])), as: UTF8.self)
         let payload = Data(#"{"base": \#(base), "order": [0, 1]}"#.utf8)
@@ -73,8 +73,8 @@ struct DirectedAcyclicGraphCodableTests {
         #expect(throws: DecodingError.self) { try JSONDecoder().decode(DirectedAcyclicGraph<DirectedPseudograph<Int>>.self, from: valid) }
     }
 
-    @Test("DAG-114 order not a permutation rejected", .tags(.conformance))
-    func dag114() throws {
+    @Test("DAG-126 order not a permutation rejected", .tags(.conformance))
+    func dag126() throws {
         // DirectedPseudograph; decode {base: V [0, 1]; E [], order: [0, 0]} → DecodingError.dataCorrupted (not a permutation)
         let base = String(decoding: try JSONEncoder().encode(DirectedPseudograph<Int>(vertices: [0, 1], edges: [] as [DirectedEdge<Int>])), as: UTF8.self)
         let payload = Data(#"{"base": \#(base), "order": [0, 0]}"#.utf8)
@@ -111,8 +111,8 @@ struct DirectedAcyclicGraphCodableTests {
         #expect((try? graph.inEdges(checked: 101)) == nil && (try? graph.outDegree(checked: 101)) == nil && (try? graph.inDegree(checked: 101)) == nil)
     }
 
-    @Test("DAG-115 edge going backward in the order rejected", .tags(.conformance))
-    func dag115() throws {
+    @Test("DAG-127 edge going backward in the order rejected", .tags(.conformance))
+    func dag127() throws {
         // DirectedPseudograph; decode {base: V [0, 1]; E [0→1], order: [1, 0]} → DecodingError.dataCorrupted (an edge goes backward)
         let base = String(decoding: try JSONEncoder().encode(DirectedPseudograph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])), as: UTF8.self)
         let payload = Data(#"{"base": \#(base), "order": [1, 0]}"#.utf8)
@@ -150,8 +150,8 @@ struct DirectedAcyclicGraphCodableTests {
         #expect((try? graph.inEdges(checked: 101)) == nil && (try? graph.outDegree(checked: 101)) == nil && (try? graph.inDegree(checked: 101)) == nil)
     }
 
-    @Test("DAG-116 AdjacencyList: round trip keeps the order", .tags(.conformance))
-    func dag116() throws {
+    @Test("DAG-128 AdjacencyList: round trip keeps the order", .tags(.conformance))
+    func dag128() throws {
         // AdjacencyList; decode {base: V [0, 1, 2, 3]; E [3→1, 1→0], order: [2, 3, 1, 0]} → order [2, 3, 1, 0]; V [0, 1, 2, 3]; E [0:3→1, 1:1→0]
         let base = String(decoding: try JSONEncoder().encode(AdjacencyList<Int>(vertices: [0, 1, 2, 3], edges: [DirectedEdge(from: 3, to: 1), DirectedEdge(from: 1, to: 0)])), as: UTF8.self)
         let payload = Data(#"{"base": \#(base), "order": [2, 3, 1, 0]}"#.utf8)
@@ -196,8 +196,8 @@ struct DirectedAcyclicGraphCodableTests {
         #expect(again == graph)
     }
 
-    @Test("DAG-117 AdjacencyList: edge going backward rejected", .tags(.conformance))
-    func dag117() throws {
+    @Test("DAG-129 AdjacencyList: edge going backward rejected", .tags(.conformance))
+    func dag129() throws {
         // AdjacencyList; decode {base: V [0, 1, 2]; E [1→2], order: [2, 1, 0]} → DecodingError.dataCorrupted (an edge goes backward)
         let base = String(decoding: try JSONEncoder().encode(AdjacencyList<Int>(vertices: [0, 1, 2], edges: [DirectedEdge(from: 1, to: 2)])), as: UTF8.self)
         let payload = Data(#"{"base": \#(base), "order": [2, 1, 0]}"#.utf8)
@@ -240,8 +240,8 @@ struct DirectedAcyclicGraphCodableTests {
         #expect((try? graph.inEdges(checked: 102)) == nil && (try? graph.outDegree(checked: 102)) == nil && (try? graph.inDegree(checked: 102)) == nil)
     }
 
-    @Test("DAG-118 StableDirectedGraph with holes: offsets into the live vertices", .tags(.conformance))
-    func dag118() throws {
+    @Test("DAG-130 StableDirectedGraph with holes: offsets into the live vertices", .tags(.conformance))
+    func dag130() throws {
         // StableDirectedGraph; decode {base: V [0, 1, 2, 3, 4]; E [4→0, 0→2] / remove(1) / remove(3), order: [2, 0, 1]} → order [4, 0, 2]; V [0, 2, 4]; E [0:4→0, 1:0→2]
         var baseGraph = StableDirectedGraph<Int>(vertices: [0, 1, 2, 3, 4], edges: [DirectedEdge(from: 4, to: 0), DirectedEdge(from: 0, to: 2)])
         _ = baseGraph.remove(1)
@@ -284,8 +284,8 @@ struct DirectedAcyclicGraphCodableTests {
         #expect(again == graph)
     }
 
-    @Test("DAG-119 StableDirectedGraph with holes: an offset past the live vertices rejected", .tags(.conformance))
-    func dag119() throws {
+    @Test("DAG-131 StableDirectedGraph with holes: an offset past the live vertices rejected", .tags(.conformance))
+    func dag131() throws {
         // StableDirectedGraph; decode {base: V [0, 1, 2]; E [] / remove(1), order: [0, 2]} → DecodingError.dataCorrupted (not a permutation)
         var baseGraph = StableDirectedGraph<Int>(vertices: [0, 1, 2], edges: [] as [DirectedEdge<Int>])
         _ = baseGraph.remove(1)
@@ -325,8 +325,8 @@ struct DirectedAcyclicGraphCodableTests {
     }
 
     #if _pointerBitWidth(_64)
-    @Test("DAG-120 StableDirectedGraph: a vertex at position 2⁵⁰ costs one page, not a table to it", .tags(.conformance))
-    func dag120() throws {
+    @Test("DAG-132 StableDirectedGraph: a vertex at position 2⁵⁰ costs one page, not a table to it", .tags(.conformance))
+    func dag132() throws {
         // StableDirectedGraph; decode {"base": {"vertices": [7], "vertexPositions": [1125899906842624], "vertexEnd": 1125899906842625, "edges": [], "edgePositions": [], "edgeEnd": 0}, "order": [0]} → order [7]; V [7]; E []
         // The key table starts at the vertex's page, so this allocates one page, not an entry
         // for every page below the position.
@@ -361,8 +361,8 @@ struct DirectedAcyclicGraphCodableTests {
     }
     #endif
 
-    @Test("DAG-121 an order shorter than the vertices rejected", .tags(.conformance))
-    func dag121() throws {
+    @Test("DAG-133 an order shorter than the vertices rejected", .tags(.conformance))
+    func dag133() throws {
         // DirectedPseudograph; decode {base: V [0, 1]; E [], order: [0]} → DecodingError.dataCorrupted (not a permutation)
         let base = String(decoding: try JSONEncoder().encode(DirectedPseudograph<Int>(vertices: [0, 1], edges: [] as [DirectedEdge<Int>])), as: UTF8.self)
         let payload = Data(#"{"base": \#(base), "order": [0]}"#.utf8)
@@ -399,8 +399,8 @@ struct DirectedAcyclicGraphCodableTests {
         #expect((try? graph.inEdges(checked: 101)) == nil && (try? graph.outDegree(checked: 101)) == nil && (try? graph.inDegree(checked: 101)) == nil)
     }
 
-    @Test("DAG-122 an order longer than the vertices rejected", .tags(.conformance))
-    func dag122() throws {
+    @Test("DAG-134 an order longer than the vertices rejected", .tags(.conformance))
+    func dag134() throws {
         // AdjacencyList; decode {base: V [0, 1]; E [0→1], order: [0, 1, 2]} → DecodingError.dataCorrupted (not a permutation)
         let base = String(decoding: try JSONEncoder().encode(AdjacencyList<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])), as: UTF8.self)
         let payload = Data(#"{"base": \#(base), "order": [0, 1, 2]}"#.utf8)
@@ -438,8 +438,8 @@ struct DirectedAcyclicGraphCodableTests {
         #expect((try? graph.inEdges(checked: 101)) == nil && (try? graph.outDegree(checked: 101)) == nil && (try? graph.inDegree(checked: 101)) == nil)
     }
 
-    @Test("DAG-123 a negative offset rejected", .tags(.conformance))
-    func dag123() throws {
+    @Test("DAG-135 a negative offset rejected", .tags(.conformance))
+    func dag135() throws {
         // StableDirectedGraph; decode {base: V [0, 1]; E [0→1], order: [-1, 1]} → DecodingError.dataCorrupted (not a permutation)
         let base = String(decoding: try JSONEncoder().encode(StableDirectedGraph<Int>(vertices: [0, 1], edges: [DirectedEdge(from: 0, to: 1)])), as: UTF8.self)
         let payload = Data(#"{"base": \#(base), "order": [-1, 1]}"#.utf8)

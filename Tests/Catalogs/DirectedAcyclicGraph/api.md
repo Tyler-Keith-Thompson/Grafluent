@@ -185,7 +185,8 @@ Traps:
 - `remove(edgeAt:)` out of range, or at a stable hole;
 - `topologicalPosition(of:)` and `hasPath(from:to:)` on a non-vertex;
 - `topologicalOrder[i]` out of range;
-- `longestPath(weight:)` with a NaN distance.
+- `longestPath(weight:)` and `longestPathDistances(weight:)` with a NaN distance;
+- `layer(of:)` and `distance(to:)` on a non-vertex; `vertices(inLayer:)` out of range.
 
 Removal of an absent vertex or edge returns `nil` and does not trap.
 
@@ -198,6 +199,19 @@ extension DirectedAcyclicGraph {
     public func transitiveReduction() -> Self                                // O(n · m / 64 + n + m)
     public func longestPath() -> Path<Vertex, Edges.Index>?                  // O(n + m); nil only when empty
     public func longestPath<W>(weight: (Edges.Index) -> W) -> Path<Vertex, Edges.Index>?   // O(n + m)
+    public func longestPathLayering() -> LongestPathLayering<Base>                          // O(n + m)
+    public func longestPathDistances<W>(weight: (Edges.Index) -> W) -> LongestPathDistances<Base, W>   // O(n + m)
+}
+
+struct LongestPathLayering<Base> {
+    func layer(of: Vertex) -> Int; func layer(checked: Vertex) throws(VertexNotFound) -> Int   // O(1)
+    var count: Int                                                           // layers; longest path length + 1, 0 when empty
+    func vertices(inLayer: Int) -> [Vertex]; var layers: [[Vertex]]          // O(n), topological order within a layer
+}
+
+struct LongestPathDistances<Base, W> {
+    func distance(to: Vertex) -> W; func distance(checkedTo: Vertex) throws(VertexNotFound) -> W   // O(1)
+    var maximum: W                                                           // the longest path's weight, zero when empty
 }
 ```
 
@@ -217,6 +231,10 @@ extension DirectedAcyclicGraph {
   order with the greatest distance.
 - `longestPath(weight:)` reads weights by edge position. A vertex restarts at distance zero when
   its best predecessor sum is negative.
+- `longestPathLayering()` gives each vertex the number of edges on a longest path ending at it:
+  sources are in layer 0 and every edge rises at least one layer. `longestPathDistances(weight:)`
+  gives each vertex the greatest weight of a path ending at it under `longestPath(weight:)`'s
+  restart rule, so `maximum` is that path's weight.
 - ShortestPaths' `dagShortestPaths(from:weight:)` relaxes in the maintained order.
 
 ### Conformances

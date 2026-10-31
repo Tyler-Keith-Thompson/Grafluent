@@ -237,3 +237,47 @@ extension DirectedAcyclicGraph {
         return Path(_uncheckedVertices: vertices, edges: edges)
     }
 }
+
+extension DirectedAcyclicGraph {
+    /// The longest-path layering: each vertex's layer is the number of edges on a longest path
+    /// ending at it, so every source is in layer 0 and every edge goes from a lower layer to a
+    /// higher one. It is the layer assignment of Sugiyama's layered drawings and the earliest
+    /// (ASAP) schedule of a dependency graph.
+    ///
+    /// - Complexity: O(n + m).
+    @inlinable
+    public func longestPathLayering() -> LongestPathLayering<Base> {
+        LongestPathLayering(self, layers: _longestPathDistances { _ in 1 })
+    }
+
+    /// Each vertex's longest-path distance: the greatest total weight of a path ending at it,
+    /// with weights read by edge position. A vertex with no in-edge, or whose best predecessor
+    /// sum is negative, has distance zero, as `longestPath(weight:)` restarts there, so the
+    /// greatest distance is that path's weight.
+    ///
+    /// - Precondition: No distance is NaN, and every sum fits in `W`.
+    /// - Complexity: O(n + m).
+    @inlinable
+    public func longestPathDistances<W: Comparable & AdditiveArithmetic>(weight: (Edges.Index) -> W) -> LongestPathDistances<Base, W> {
+        LongestPathDistances(self, distances: _longestPathDistances(weight))
+    }
+
+    /// Each vertex's greatest path weight ending at it, by topological position.
+    @inlinable
+    internal func _longestPathDistances<W: Comparable & AdditiveArithmetic>(_ weight: (Edges.Index) -> W) -> [W] {
+        let n = _order.count
+        var distance = [W](repeating: .zero, count: n)
+        let places = _places()
+        for p in 0 ..< n {
+            let key = places.key(atPlace: p)
+            var d = W.zero
+            for (previous, edge) in zip(_base._predecessorKeys(ofKey: key), _base._inEdges(ofKey: key)) {
+                let candidate = distance[places.place(ofKey: previous)] + weight(edge)
+                precondition(candidate == candidate, "A path's weight is NaN")
+                if candidate > d { d = candidate }
+            }
+            distance[p] = d
+        }
+        return distance
+    }
+}

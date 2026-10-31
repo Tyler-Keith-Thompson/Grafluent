@@ -372,6 +372,24 @@ class DAG:
             s, p = best[ks[-1]]; ps.append(p); ks.append(s)
         return [self.b.vertex(k) for k in ks[::-1]], ps[::-1], m
 
+    def longest_layering(self):
+        """Each vertex's layer (the longest path ending at it, in edges) over the order, listed in
+        vertices order, and the layers each in topological order."""
+        layer = {}
+        for k in self.order:
+            layer[k] = max([layer[s] + 1 for s, p in self.b.in_row(k)], default=0)
+        count = max(layer.values(), default=-1) + 1
+        rows = [(self.b.vertex(k), layer[k]) for k in self.b.keys()]
+        return rows, [[self.b.vertex(k) for k in self.order if layer[k] == i] for i in range(count)]
+
+    def longest_distances(self, w):
+        """Each vertex's greatest path weight in, zero when every path in weighs less or none
+        arrives, in vertices order, and the greatest of them."""
+        dist = {}
+        for k in self.order:
+            dist[k] = max([dist[s] + w[p] for s, p in self.b.in_row(k)] + [0])
+        return [(self.b.vertex(k), dist[k]) for k in self.b.keys()], max(dist.values(), default=0)
+
     def dag_shortest_paths(self, src, w):
         """Boost's dag_shortest_paths in this order: each reached vertex's out-edges relaxed once, in
         out-row order; the first relaxation to the final distance wins. {key: (dist, parent key, edge)}."""
@@ -565,6 +583,10 @@ def show_result(r):
     if isinstance(r, tuple) and r and r[0] == "path": return show_path(r[1], r[2])
     if isinstance(r, tuple) and r and r[0] == "graph": return "{" + show_state(r[1]) + "}"
     if isinstance(r, tuple) and r and r[0] == "tree": return show_tree(r[1], r[2])
+    if isinstance(r, tuple) and r and r[0] == "layering":
+        return "{" + ", ".join(f"{fmt(v)}: {l}" for v, l in r[1]) + "} layers [" + ", ".join(lst(l) for l in r[2]) + "]"
+    if isinstance(r, tuple) and r and r[0] == "distances":
+        return "{" + ", ".join(f"{fmt(v)}: {d}" for v, d in r[1]) + f"}} maximum {r[2]}"
     if isinstance(r, tuple) and len(r) == 2 and isinstance(r[0], bool): return f"({show_result(r[0])}, {fmt(r[1])})"
     if isinstance(r, tuple) and len(r) == 2: return f"{fmt(r[0])}→{fmt(r[1])}"
     if isinstance(r, list): return lst(r)
@@ -613,6 +635,8 @@ def show_op(op):
     if k == "longest": return "longestPath()"
     if k == "orderAt": return f"topologicalOrder[{op[1]}]"
     if k == "longestW": return f"longestPath(weight: {op[1]})"
+    if k == "layering": return "longestPathLayering()"
+    if k == "layeringW": return f"longestPathDistances(weight: {op[1]})"
     if k == "dagSP": return f"dagShortestPaths(from: {fmt(op[1])}, weight: {op[2]})"
     if k == "equals": return f"== DirectedAcyclicGraph<{NAMES[op[1]]}>(vertices: {lst(op[2])}, edges: [" + ", ".join(f"{fmt(a)}→{fmt(b)}" for a, b in op[3]) + "])"
     raise ValueError(op)
@@ -641,6 +665,10 @@ def apply(g, op):
         r = g.longest_path(); return None if r is None else ("path",) + r
     if k == "longestW":
         r = g.longest_path_weighted(op[1]); return None if r is None else ("path",) + r[:2]
+    if k == "layering":
+        rows, layers = g.longest_layering(); return ("layering", rows, layers)
+    if k == "layeringW":
+        rows, m = g.longest_distances(op[1]); return ("distances", rows, m)
     if k == "dagSP":
         st = g.dag_shortest_paths(op[1], op[2])
         return ("tree", [(g.b.vertex(k), st.get(k)) for k in g.b.keys()], g)
@@ -817,6 +845,18 @@ def define():
     case(A, "longestPath(weight:): the heavier of parallel copies", "DP", [], [(0, 1), (0, 1), (1, 2)], [("longestW", [1, 4, 1])])
     case(A, "longestPath(weight:) on Stable positions with holes", "SG", [0, 1, 2, 3], [(0, 1), (1, 2), (0, 2), (2, 3)], [("removeAt", 0), ("remove", 1), ("longestW", [9, 9, 3, 4])])
     case(A, "longestPath(weight:): empty is nil", "SG", [], [], [("longestW", [])])
+    case(A, "longestPathLayering: empty has no layers", "DP", [], [], [("layering",)])
+    case(A, "longestPathLayering: edgeless is one layer in topological order", "DP", [3, 1], [], [("layering",)])
+    case(A, "longestPathLayering: chain, a vertex a layer", "AL", [], chain(4), [("layering",)])
+    case(A, "longestPathLayering: a late source sits in layer 0, a shortcut lowers no layer", "DP", [0, 1, 2, 3, 4], [(0, 1), (1, 2), (0, 2), (3, 2), (4, 3)], [("layering",)])
+    case(A, "longestPathLayering: parallel copies count once", "DP", [], [(0, 1), (0, 1), (1, 2)], [("layering",)])
+    case(A, "longestPathLayering after a removal skips the hole", "SG", [0, 1, 2, 3, 4], [(0, 1), (1, 2), (2, 3), (3, 4)], [("remove", 2), ("layering",)])
+    case(A, "longestPathDistances: a heavy shortcut sets the distance", "DP", [], [(0, 1), (1, 2), (0, 2)], [("layeringW", [1, 1, 5])])
+    case(A, "longestPathDistances: a negative best restarts at zero", "DP", [], [(0, 1), (1, 2)], [("layeringW", [-3, 2])])
+    case(A, "longestPathDistances: every weight negative gives zeros", "DP", [], [(0, 1), (1, 2)], [("layeringW", [-1, -1])])
+    case(A, "longestPathDistances: the heavier of parallel copies", "DP", [], [(0, 1), (0, 1), (1, 2)], [("layeringW", [1, 4, 1])])
+    case(A, "longestPathDistances on Stable positions with holes", "SG", [0, 1, 2, 3], [(0, 1), (1, 2), (0, 2), (2, 3)], [("removeAt", 0), ("remove", 1), ("layeringW", [9, 9, 3, 4])])
+    case(A, "longestPathDistances: empty has maximum zero", "SG", [], [], [("layeringW", [])])
     case(A, "dagShortestPaths: a negative edge, and an unreached vertex placed before the source", "DP", [3], [(3, 0), (0, 1), (1, 2), (0, 2)], [("dagSP", 0, [1, 2, -5, 1])])
     case(A, "dagShortestPaths: ties go to the first relaxation in the order", "DP", [], [(0, 1), (0, 2), (1, 3), (2, 3)], [("dagSP", 0, [1, 1, 1, 1])])
     case(A, "dagShortestPaths: parallel copies, the lighter", "DP", [], [(0, 1), (0, 1)], [("dagSP", 0, [3, 2])])
@@ -885,6 +925,8 @@ Conventions:
   (`[vertices] via [edge positions]`); where several shortest paths tie, the cell lists each (`… or …`).
 * `transitiveClosure()` / `transitiveReduction()` results are shown in braces with their own state.
 * `longestPath()` is a `Path` (`[vertices] via [positions]`), `nil` for the empty graph.
+* `longestPathLayering()` shows each vertex's layer in `vertices` order, then the layers each in topological
+  order; `longestPathDistances(weight:)` shows each vertex's distance in `vertices` order, then the maximum.
 * `**trap**` rows are preconditions, run as exit tests; results before the trap are listed.
 * Codable rows give the payload `{base, order}` (`order` as offsets into `base.vertices`) and the decoded state
   or the `DecodingError` case.

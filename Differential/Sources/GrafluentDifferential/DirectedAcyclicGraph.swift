@@ -20,6 +20,13 @@ struct DirectedAcyclicGraphAnswers: Encodable {
     /// `longestPath(weight:)` with the case's weights, and its weight.
     var weightedLongestPath: [Int]?
     var weightedLongestLength: Int?
+    /// `longestPathLayering()`: each vertex's layer, by vertex, and the layers in order; and
+    /// `longestPathDistances(weight:)` with the case's weights, each vertex's distance and the maximum.
+    var layering: [Int] = []
+    var layers: [[Int]] = []
+    var layerCount = 0
+    var longestDistances: [Int] = []
+    var longestMaximum = 0
     /// `dagShortestPaths(from: sources[0])` on the DAG, in its order: each vertex's distance, and
     /// whether each tree path's weight is that distance.
     var dagDistances: [Int?] = []
@@ -50,6 +57,13 @@ func directedAcyclicGraphAnswers(n: Int, edges: [[Int]], source: Int, target: In
         a.weightedLongestPath = path.vertices
         a.weightedLongestLength = path.edges.reduce(0) { $0 + weights[$1] }
     }
+    let layering = dag.longestPathLayering()
+    a.layering = (0 ..< n).map { layering.layer(of: $0) }
+    a.layers = layering.layers
+    a.layerCount = layering.count
+    let distances = dag.longestPathDistances { weights[$0] }
+    a.longestDistances = (0 ..< n).map { distances.distance(to: $0) }
+    a.longestMaximum = distances.maximum
     if n > 0 {
         let tree = dag.dagShortestPaths(from: source) { weights[$0] }
         a.dagDistances = (0 ..< n).map { tree.distance(to: $0) }

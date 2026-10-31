@@ -423,6 +423,15 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("DirectedAcyclicGraph: longestPath(weight:), n = 10⁵, m ≈ 5·10⁵") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(big.longestPath(weight: { weights[$0] })) }
     }
+    Benchmark("DirectedAcyclicGraph: longestPathLayering, n = 10⁵, m ≈ 5·10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(big.longestPathLayering().count) }
+    }
+    Benchmark("DirectedAcyclicGraph: longestPathLayering().layers, n = 10⁵, m ≈ 5·10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(big.longestPathLayering().layers) }
+    }
+    Benchmark("DirectedAcyclicGraph: longestPathDistances(weight:), n = 10⁵, m ≈ 5·10⁵") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(big.longestPathDistances(weight: { weights[$0] }).maximum) }
+    }
     Benchmark("DirectedAcyclicGraph: dagShortestPaths on DAG<AdjacencyList> (its order), n = 10⁵, m ≈ 5·10⁵") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(big.dagShortestPaths(from: 0, weight: { weights[$0] })) }
     }

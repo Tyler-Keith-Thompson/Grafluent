@@ -34,6 +34,8 @@ struct DirectedAcyclicGraph<Base: MutableDirectedGraph>: BidirectionalDirectedGr
     remove(_:), remove(edge:), remove(edgeAt:) (DirectedPseudograph, StableDirectedGraph),
         removeAll(keepingCapacity:), removeAllEdges(keepingCapacity:), reserveCapacity(vertexCount:edgeCount:)
     hasPath(from:to:), transitiveClosure(), transitiveReduction(), longestPath() -> Path?, longestPath(weight:) -> Path?
+    longestPathLayering() -> LongestPathLayering   // layer(of:), layer(checked:), count, vertices(inLayer:), layers
+    longestPathDistances(weight:) -> LongestPathDistances   // distance(to:), distance(checkedTo:), maximum
     GraphDelegator: base, generation                                 // the base's
     PropertyGraph where Base: PropertyGraph: addEdgeMap(default:), addEdgeMap(of:), addVertexMap(…), removeEdgeMap(_:),
         removeVertexMap(_:), self[map, …], self[map, checked…], values(of:)   // the base's, on every base

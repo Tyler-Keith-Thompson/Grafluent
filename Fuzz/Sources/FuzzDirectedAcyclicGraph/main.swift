@@ -482,6 +482,8 @@ enum FuzzDirectedAcyclicGraph {
         // vertex in order with the greatest distance.
         guard let path = graph.longestPath() else {
             check(model.vertices.isEmpty, "longestPath nil on a nonempty graph: \(context)")
+            check(graph.longestPathLayering().count == 0 && graph.longestPathLayering().layers.isEmpty, "layering of the empty graph: \(context)")
+            check(graph.longestPathDistances(weight: { _ in 1 }).maximum == 0, "distances of the empty graph: \(context)")
             return
         }
         var distance: [Int: Int] = [:]
@@ -514,6 +516,33 @@ enum FuzzDirectedAcyclicGraph {
             return value
         }
         check(path.edges.count == model.vertices.map(longest).max()!, "longestPath length \(path.edges.count): \(context)")
+
+        // The layering: each vertex's distance above, the layers grouping the order, the count the
+        // longest path's length plus one; the distances with position-derived weights against the
+        // same pass with those weights.
+        let layering = graph.longestPathLayering()
+        for v in graph.topologicalOrder {
+            check(layering.layer(of: v) == distance[v]!, "layer(of: \(v)) \(layering.layer(of: v)), expected \(distance[v]!): \(context)")
+        }
+        check(layering.count == path.edges.count + 1, "layering count \(layering.count): \(context)")
+        let layers = layering.layers
+        check(layers.count == layering.count && layers.flatMap { $0 } .count == model.vertices.count, "layers shape \(layers): \(context)")
+        for (i, layer) in layers.enumerated() {
+            check(layer == layering.vertices(inLayer: i) && layer.allSatisfy { distance[$0] == i }, "layer \(i) \(layer): \(context)")
+            check(layer == graph.topologicalOrder.filter { distance[$0] == i }, "layer \(i) order \(layer): \(context)")
+        }
+        func weight(_ e: B.Edges.Index) -> Int { graph.edges.distance(from: graph.edges.startIndex, to: e) % 7 - 3 }
+        var weighted: [Int: Int] = [:]
+        for v in graph.topologicalOrder {
+            var d = 0
+            for e in graph.inEdges(of: v) { d = max(d, weighted[graph.source(ofEdgeAt: e)]! + weight(e)) }
+            weighted[v] = d
+        }
+        let distances = graph.longestPathDistances(weight: weight)
+        for v in graph.topologicalOrder {
+            check(distances.distance(to: v) == weighted[v]!, "distance(to: \(v)) \(distances.distance(to: v)), expected \(weighted[v]!): \(context)")
+        }
+        check(distances.maximum == weighted.values.max()!, "distances maximum \(distances.maximum): \(context)")
     }
 
     /// d-separation against every trail of the model, for each pair of its first vertices and a

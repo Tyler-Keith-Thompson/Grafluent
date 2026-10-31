@@ -44,6 +44,8 @@
 #   hasPathmark       not marking visited vertices: as hasPathrevisit.
 #   longestunit       unit weight 2 for longestPath(): every length doubles, so the same argmax
 #                     and the same ties.
+#   layeringtie       `candidate >= d` in _longestPathDistances: it keeps only the maximum, no
+#                     predecessor, so a tie changes nothing. Removed.
 #   buildrepeat       inserting every listed vertex through insert(_:): it skips an existing
 #                     vertex too. One hash more or fewer per vertex.
 #   ordersubscriptcheck  the order's subscript without its range check: an out-of-range place
@@ -66,6 +68,7 @@ TESTS = ["DirectedAcyclicGraphTests", "ShortestPathsTests", "AdjacencyListTests"
 K = "DirectedAcyclicGraph.swift"
 M = "DirectedAcyclicGraph+Mutation.swift"
 A = "DirectedAcyclicGraph+Algorithms.swift"
+L = "LongestPathLayering.swift"
 B = "DirectedAcyclicGraph+Construction.swift"
 C = "DirectedAcyclicGraph+Conformances.swift"
 D = "DirectedAcyclicGraph+DirectedGraph.swift"
@@ -219,12 +222,23 @@ MUTANTS = [
 
     # Longest path.
     Mutant("longestempty", A, "guard n > 0 else { return nil }", "", mode="stmt"),
-    Mutant("longestplaces", A, "places.place(ofKey: previous)", "_table.label(previous)"),
-    Mutant("longestfirstedge", A, "candidate > d", "candidate >= d"),
+    Mutant("longestplaces", A, "places.place(ofKey: previous)", "_table.label(previous)", nth=0),
+    Mutant("longestfirstedge", A, "candidate > d", "candidate >= d", nth=0),
     Mutant("longestrestart", A, "d >= .zero", "d > .zero"),
     Mutant("longestnegative", A, "d >= .zero", "true"),
     Mutant("longestfirstend", A, "if distance[p] > distance[best] { best = p }", "if distance[p] >= distance[best] { best = p }", mode="stmt"),
     Mutant("longestunit", A, "_longestPath { _ in 1 }", "_longestPath { _ in 2 }"),
+
+    # Longest-path layering and distances.
+    Mutant("layeringrestart", A, "if candidate > d { d = candidate }", "if candidate > d || d == .zero { d = candidate }", mode="stmt"),
+    Mutant("layeringplaces", A, "distance[places.place(ofKey: previous)] + weight(edge)", "distance[_table.label(previous)] + weight(edge)"),
+    Mutant("layeringunit", A, "LongestPathLayering(self, layers: _longestPathDistances { _ in 1 })", "LongestPathLayering(self, layers: _longestPathDistances { _ in 2 })"),
+    Mutant("layeringcount", L, "(layers.max() ?? -1) &+ 1", "(layers.last ?? -1) &+ 1"),
+    Mutant("layeringbound", L, "layer >= 0 && layer < _count", "layer >= 0 && layer <= _count"),
+    Mutant("layeringfilter", L, "_layers[p] == layer", "_layers[p] >= layer"),
+    Mutant("layeringorder", L, "result[_layers[p]].append(_graph.topologicalOrder[p])", "result[_layers[p]].insert(_graph.topologicalOrder[p], at: 0)"),
+    Mutant("distancesmaximum", L, "distances.max() ?? .zero", "distances.last ?? .zero"),
+    Mutant("distanceschecked", L, "_distances[try _graph.topologicalPosition(checked: vertex)]", "_distances[_graph.topologicalPosition(of: vertex)]"),
 
     # Construction: Kahn's algorithm.
     Mutant("kahndecrement", B, "                table.setLabel(target, remaining)", "", mode="stmt"),
