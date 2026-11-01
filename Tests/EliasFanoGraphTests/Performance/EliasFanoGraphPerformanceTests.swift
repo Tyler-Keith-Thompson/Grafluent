@@ -39,6 +39,10 @@ import Testing
             for v in 0 ..< n { coded._forEachSuccessorIndex(ofIndex: v) { sum &+= $0 } }
             return sum
         }
+        #expect(walkRows() == walkCoded())
+        // The timing runs in release only: a debug build on a busy runner measures the
+        // configuration, not the code.
+        #if !DEBUG
         let clock = ContinuousClock()
         _ = walkRows()
         _ = walkCoded()
@@ -47,7 +51,7 @@ import Testing
             rowsTime = min(rowsTime, clock.measure { _ = walkRows() })
             codedTime = min(codedTime, clock.measure { _ = walkCoded() })
         }
-        #expect(walkRows() == walkCoded())
         #expect(codedTime <= rowsTime * 4, "coded \(codedTime), rows \(rowsTime)")
+        #endif
     }
 }
