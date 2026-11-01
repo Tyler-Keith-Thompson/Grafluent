@@ -119,8 +119,10 @@ for k, name in enumerate(["tree", "rooted", "arborescence", "forest"]):
     MUTANTS += [
         Mutant(f"map{name}checkededge", M, "guard position >= 0 && position < _layout.edgeCount else { throw EdgeNotFound() }", "", mode="stmt", nth=k),
         Mutant(f"map{name}checkedvertex", M, "guard position >= 0 && position < _layout.count else { throw VertexNotFound() }", "", mode="stmt", nth=k),
-        # Occurrence 4k of `_layout.count` is the block's `addVertexMap` size.
-        Mutant(f"map{name}vertexcount", M, "_layout.count", "_layout.edgeCount", nth=4 * k),
+        # The block's `addVertexMap(default:)` size, then its `_vertexMapCount`.
+        Mutant(f"map{name}vertexcount", M, "_vertexMaps.add(default: value, layout: .dense, count: _layout.count)", "_vertexMaps.add(default: value, layout: .dense, count: _layout.edgeCount)", nth=k),
+        # Six occurrences of `_layout.count` per block; the third is `_vertexMapCount`'s.
+        Mutant(f"map{name}vertexmapcount", M, "_layout.count", "_layout.edgeCount", nth=6 * k + 2),
     ]
 for file, name in [("Tree.swift", "tree"), ("RootedTree.swift", "rooted"), ("Arborescence.swift", "arborescence"), ("Forest.swift", "forest")]:
     MUTANTS.append(Mutant(f"{name}stamp", file, "        _generation.stamp()", "", mode="stmt"))

@@ -250,4 +250,16 @@ struct TreeMapTests {
             }
         }
     }
+
+    @Test("_vertexMapCount, the length of a dense vertex-map snapshot, is the vertex count on all four types")
+    func vertexMapCount() throws {
+        let tree = try #require(Tree(edges: [UndirectedEdge("a", "b"), UndirectedEdge("c", "b"), UndirectedEdge("b", "d")]))
+        #expect(tree._vertexMapCount == 4 && tree._vertexMapCount == tree.vertexCount)
+        let rooted = RootedTree(tree, root: "b")
+        #expect(rooted._vertexMapCount == 4 && rooted._vertexMapCount == rooted.vertexCount)
+        let arborescence = Arborescence(rooted)
+        #expect(arborescence._vertexMapCount == 4 && arborescence._vertexMapCount == arborescence.vertexCount)
+        let forest = try #require(Forest(vertices: ["a", "b", "c", "d", "e"], edges: [UndirectedEdge("a", "b"), UndirectedEdge("c", "d")]))
+        #expect(forest._vertexMapCount == 5 && forest._vertexMapCount == forest.vertexCount)
+    }
 }
