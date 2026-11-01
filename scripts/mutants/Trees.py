@@ -16,6 +16,10 @@
 #   prefixrange             the array read past the end traps as the precondition does.
 #   parentskip              skipping the parent vertex instead of its edge still finds a parallel
 #                           pair, from the parent's row.
+#   arrayleftparent,        a child listed twice leaves n − 1 edges only with a second root, and
+#   arrayrightparent,       a second root leaves fewer than n − 1 edges; the layout's edge count
+#   arrayoneroot            rejects both.
+#   arrayempty              no vertex is parentless in an empty array, so the root search fails.
 
 TESTS = ["TreesTests"]
 
@@ -155,6 +159,14 @@ MUTANTS += [
     Mutant("huffmanorder", B, "(weight[$0] == weight[$1] && $0 < $1)", "false"),
     Mutant("huffmanedges", B, "ends[2 * e + 1] = children[2 * t]", "ends[2 * e + 1] = children[2 * t + 1]", mode="stmt"),
     Mutant("huffmansides", B, "for v in n ..< count { sides[v] = 3 }", "for v in n ..< count { sides[v] = 1 }", mode="stmt"),
+    Mutant("arrayleftparent", B, "!hasParent[c]", "true", nth=0),
+    Mutant("arrayrightparent", B, "!hasParent[c]", "true", nth=1),
+    Mutant("arrayleftrange", B, "UInt(bitPattern: c) < UInt(bitPattern: n)", "c < n", nth=0),
+    Mutant("arrayrightrange", B, "UInt(bitPattern: c) < UInt(bitPattern: n)", "c < n", nth=1),
+    Mutant("arrayleftside", B, "sides[v] = 1", "sides[v] = 0", mode="stmt", nth=0),
+    Mutant("arrayrightside", B, "sides[v] |= 2", "sides[v] = 2", mode="stmt"),
+    Mutant("arrayoneroot", B, "!hasParent[(root + 1)...].contains(false)", "true"),
+    Mutant("arrayempty", B, "guard n >= 1 else { return nil }", "guard n >= 0 else { return nil }", mode="stmt"),
     Mutant("binarytruncate", B, "for t in stack.reversed() where t == -1 { text += \")\" }", "", mode="stmt"),
 ]
 

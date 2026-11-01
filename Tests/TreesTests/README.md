@@ -59,6 +59,7 @@ struct OrderedTree<Vertex: Hashable>                                 // not a Gr
 
 struct BinaryTree<Vertex: Hashable>                                  // not a Graph; positional left and right children
     init?<E>(root:children: (Vertex) throws(E) -> (left: Vertex?, right: Vertex?)) throws(E)
+    init?(left: [Int?], right: [Int?])                                // Vertex == Int; vertex i's children, exactly one root
     root, vertexCount, contains, left(of:), right(of:), parent(of:), depth(of:), height,
     preorder, inorder, postorder
     left(checked:), right(checked:), parent(checked:), depth(checked:)   // throw VertexNotFound

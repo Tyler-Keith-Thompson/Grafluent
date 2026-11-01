@@ -162,6 +162,26 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(count)
         }
     }
+    // A search tree on 10⁶ keys inserted in a scrambled order, as child arrays: the array
+    // initializer against the closure one answering from the same arrays.
+    let searchKeys = (0 ..< n).map { Int((UInt64($0) &* 0x9E37_79B9_7F4A_7C15) >> 40) }
+    var searchLeft = [Int?](repeating: nil, count: n), searchRight = [Int?](repeating: nil, count: n)
+    for i in 1 ..< n {
+        var v = 0
+        while true {
+            if searchKeys[i] < searchKeys[v] {
+                if let l = searchLeft[v] { v = l } else { searchLeft[v] = i; break }
+            } else {
+                if let r = searchRight[v] { v = r } else { searchRight[v] = i; break }
+            }
+        }
+    }
+    Benchmark("Trees: BinaryTree(left:right:), 10⁶ vertices") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(BinaryTree(left: searchLeft, right: searchRight)) }
+    }
+    Benchmark("Trees: BinaryTree(root:children:) from the same arrays, 10⁶ vertices") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(BinaryTree(root: 0) { (searchLeft[$0], searchRight[$0]) }) }
+    }
     let huffmanWeights = (0 ..< n).map { Int((UInt64($0) &* 0x9E37_79B9_7F4A_7C15) >> 44) }
     Benchmark("Trees: BASELINE hand-written two-queue Huffman to parent offsets, 10⁶ weights") { benchmark in
         for _ in benchmark.scaledIterations {

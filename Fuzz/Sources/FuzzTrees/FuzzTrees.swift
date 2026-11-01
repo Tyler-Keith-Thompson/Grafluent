@@ -281,6 +281,20 @@ enum FuzzTrees {
         }
         let tree = BinaryTree(root: 0) { (left[$0], right[$0]) }
         check((tree == nil) == repeated, "BinaryTree exists \(tree != nil), expected \(!repeated)")
+        // The array form takes the one parentless vertex as its root and needs every vertex under
+        // it exactly once: the tree grown from that root, when it has all n.
+        let byArrays = BinaryTree(left: left, right: right)
+        var hasParent = [Bool](repeating: false, count: n)
+        for v in 0 ..< n {
+            if let l = left[v] { hasParent[l] = true }
+            if let r = right[v] { hasParent[r] = true }
+        }
+        let roots = (0 ..< n).filter { !hasParent[$0] }
+        if roots.count == 1, let fromRoot = BinaryTree(root: roots[0], children: { (left[$0], right[$0]) }), fromRoot.vertexCount == n {
+            check(byArrays == fromRoot, "BinaryTree(left:right:) differs from the tree grown from \(roots[0])")
+        } else {
+            check(byArrays == nil, "BinaryTree(left:right:) exists although no single root reaches every vertex once")
+        }
         if let tree {
             var pre: [Int] = [], inorder: [Int] = [], post: [Int] = []
             var stack = [(0, 0)]

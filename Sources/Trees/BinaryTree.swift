@@ -207,6 +207,48 @@ extension Arborescence {
     }
 }
 
+// MARK: - Building from child arrays
+
+extension BinaryTree where Vertex == Int {
+    /// The binary tree on `0..<left.count` in which vertex `i`'s left child is `left[i]` and its
+    /// right child is `right[i]`, nil where it has none. Nil unless exactly one vertex is no
+    /// vertex's child (the root), every other is one vertex's child on one side, every entry is
+    /// in range, and the root reaches every vertex (no cycle). O(n), no hashing.
+    ///
+    /// - Precondition: `left.count == right.count`.
+    @inlinable
+    public init?(left: [Int?], right: [Int?]) {
+        let n = left.count
+        precondition(right.count == n, "left and right list one child each for every vertex")
+        guard n >= 1 else { return nil }
+        var hasParent = [Bool](repeating: false, count: n)
+        var ends: [Int] = []
+        ends.reserveCapacity(2 * (n - 1))
+        var sides = [UInt8](repeating: 0, count: n)
+        for v in 0 ..< n {
+            if let c = left[v] {
+                guard UInt(bitPattern: c) < UInt(bitPattern: n), !hasParent[c] else { return nil }
+                hasParent[c] = true
+                ends.append(v)
+                ends.append(c)
+                sides[v] = 1
+            }
+            if let c = right[v] {
+                guard UInt(bitPattern: c) < UInt(bitPattern: n), !hasParent[c] else { return nil }
+                hasParent[c] = true
+                ends.append(v)
+                ends.append(c)
+                sides[v] |= 2
+            }
+        }
+        // Exactly one vertex without a parent; there are n − 1 edges then, and rooting there
+        // fails only when a cycle keeps the root from some vertex.
+        guard let root = hasParent.firstIndex(of: false), !hasParent[(root + 1)...].contains(false) else { return nil }
+        guard let layout = _TreeLayout<Int>(vertices: ContiguousArray(0 ..< n), slots: [:], dense: true, ends: ends, root: root, oriented: true) else { return nil }
+        self.init(_layout: layout, sides: sides)
+    }
+}
+
 // MARK: - Every binary tree
 
 extension BinaryTree where Vertex == Int {

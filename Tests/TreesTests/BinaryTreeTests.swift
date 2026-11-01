@@ -193,6 +193,64 @@ struct BinaryTreeTests {
         }
     }
 
+    @Test("BinaryTree(left:right:) builds 3(1(0, 2), 5(4, 6)) on 0..<7 and equals the closure-built tree")
+    func childArrays() throws {
+        let left: [Int?] = [nil, 0, nil, 1, nil, 4, nil]
+        let right: [Int?] = [nil, 2, nil, 5, nil, 6, nil]
+        let tree = try #require(BinaryTree(left: left, right: right))
+        #expect(tree.root == 3)
+        #expect(tree.vertexCount == 7)
+        #expect(tree.left(of: 3) == 1 && tree.right(of: 3) == 5)
+        #expect(tree.left(of: 5) == 4 && tree.right(of: 5) == 6)
+        #expect(tree.left(of: 0) == nil && tree.right(of: 0) == nil)
+        #expect(tree.parent(of: 4) == 5 && tree.parent(of: 3) == nil)
+        #expect(tree.depth(of: 6) == 2 && tree.height == 2)
+        #expect(Array(tree.preorder) == [3, 1, 0, 2, 5, 4, 6])
+        #expect(tree.inorder == [0, 1, 2, 3, 4, 5, 6])
+        #expect(tree.postorder == [0, 2, 1, 4, 6, 5, 3])
+        #expect(tree.description == "3(1(0, 2), 5(4, 6))")
+        let byClosure = try #require(BinaryTree(root: 3) { (left[$0], right[$0]) })
+        #expect(tree == byClosure && tree.hashValue == byClosure.hashValue)
+        #expect(Array(OrderedTree(tree).children(of: 5)) == [4, 6])
+        #expect(Arborescence(tree).root == 3)
+    }
+
+    @Test("BinaryTree(left:right:) on one vertex, with a lone left child and a lone right child; empty arrays give nil")
+    func childArraysSmall() throws {
+        let one = try #require(BinaryTree(left: [nil], right: [nil]))
+        #expect(one.root == 0 && one.vertexCount == 1 && one.left(of: 0) == nil && one.right(of: 0) == nil)
+        let leftOnly = try #require(BinaryTree(left: [nil, 0], right: [nil, nil]))
+        let rightOnly = try #require(BinaryTree(left: [nil, nil], right: [nil, 0]))
+        #expect(leftOnly.root == 1 && rightOnly.root == 1)
+        #expect(leftOnly.left(of: 1) == 0 && leftOnly.right(of: 1) == nil)
+        #expect(rightOnly.left(of: 1) == nil && rightOnly.right(of: 1) == 0)
+        #expect(leftOnly != rightOnly)
+        #expect(leftOnly.inorder == [0, 1] && rightOnly.inorder == [1, 0])
+        #expect(OrderedTree(leftOnly) == OrderedTree(rightOnly))
+        #expect(BinaryTree(left: [], right: []) == nil)
+    }
+
+    @Test("BinaryTree(left:right:) is nil for two roots, no root, a child listed twice, an entry out of range or negative, a self-child and a cycle off the root")
+    func childArraysRejected() {
+        #expect(BinaryTree(left: [nil, nil], right: [nil, nil]) == nil)  // two roots
+        #expect(BinaryTree(left: [1, 0], right: [nil, nil]) == nil)  // a 2-cycle, no root
+        #expect(BinaryTree(left: [2, 2, nil], right: [nil, nil, nil]) == nil)  // 2 is the child of 0 and of 1
+        #expect(BinaryTree(left: [1, nil], right: [1, nil]) == nil)  // 1 is both children of 0
+        #expect(BinaryTree(left: [2, nil], right: [nil, nil]) == nil)  // out of range
+        #expect(BinaryTree(left: [nil, nil], right: [-1, nil]) == nil)  // negative
+        #expect(BinaryTree(left: [-1, nil], right: [nil, nil]) == nil)  // negative, on the left
+        #expect(BinaryTree(left: [0], right: [nil]) == nil)  // its own child, so no root
+        #expect(BinaryTree(left: [nil, 2, 1], right: [nil, nil, nil]) == nil)  // root 0 does not reach the cycle 1, 2
+        #expect(BinaryTree(left: [nil, 2, 3, nil], right: [nil, nil, nil, 2]) == nil)  // root 0; 1 → 2 → 3 → 2, with 2 the child of 1 and 3
+    }
+
+    @Test("BinaryTree(left:right:) traps when the arrays differ in length", .tags(.precondition))
+    func childArraysTrap() async {
+        await #expect(processExitsWith: .failure) {
+            _ = BinaryTree(left: [nil, 0], right: [nil])
+        }
+    }
+
     @Test("Random search trees: inorder is sorted, preorder follows the links, and swapping a lone child's side breaks equality", .tags(.randomized))
     func searchTrees() async {
         await propertyCheck(count: 200, input: Gen.int(in: 0 ... 1_000_000), Gen.int(in: 1 ... 30)) { seed, n in
@@ -232,12 +290,14 @@ struct BinaryTreeTests {
             #expect(Array(tree.preorder) == preorder)
             #expect(tree.postorder == postorder)
             for v in 0 ..< n { #expect(tree.left(of: v) == left[v] && tree.right(of: v) == right[v]) }
+            #expect(BinaryTree(left: left, right: right) == tree)
             #expect(OrderedTree(tree) == OrderedTree(Arborescence(tree)))
             if let v = (0 ..< n).first(where: { (left[$0] == nil) != (right[$0] == nil) }) {
                 var l = left, r = right
                 (l[v], r[v]) = (r[v], l[v])
                 let flipped = BinaryTree(root: keys[0], children: { (l[$0], r[$0]) })
                 #expect(flipped != nil && flipped != tree)
+                #expect(BinaryTree(left: l, right: r) == flipped)
                 #expect(OrderedTree(flipped!) == OrderedTree(tree))
             }
         }
