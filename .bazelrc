@@ -18,8 +18,15 @@ build:release --compilation_mode=opt
 build:release --build_tag_filters=-debug-only
 test:release --test_tag_filters=-debug-only
 
-# Local disk cache for incremental builds.
-build --disk_cache=~/.cache/bazel-grafluent
+# One local disk cache shared by every project, so a dependency built for one is reused by the
+# others. Bazel never trims a disk cache on its own: the server collects garbage while idle,
+# keeping the cache under the size and dropping entries unused for the age. With a BuildBuddy key
+# (tools/bazel) the remote cache holds everything too, so the local one only needs the recent
+# entries. Repositories are downloaded once into Bazel's repository cache, which every project's
+# output base already shares.
+build --disk_cache=~/.cache/bazel-disk
+build --experimental_disk_cache_gc_max_size=30G
+build --experimental_disk_cache_gc_max_age=14d
 
 # Fail, rather than warn, when build flags would discard the analysis cache.
 # A guardrail against flag thrash silently costing a full re-analysis.
