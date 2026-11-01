@@ -20,6 +20,10 @@
 #   arrayrightparent,       a second root leaves fewer than n − 1 edges; the layout's edge count
 #   arrayoneroot            rejects both.
 #   arrayempty              no vertex is parentless in an empty array, so the root search fails.
+#   labeleddense,           the Ints 0..<n in order hashed into a table, or a small tree given its
+#   labeledsmall            table, number the same vertices: slower, the same answer.
+#   labeledparentrange      a parent number past the end is an end out of range, which the layout
+#                           rejects.
 
 TESTS = ["TreesTests"]
 
@@ -169,6 +173,10 @@ MUTANTS += [
     Mutant("arrayrightside", B, "sides[v] |= 2", "sides[v] = 2", mode="stmt"),
     Mutant("arrayoneroot", B, "!hasParent[(root + 1)...].contains(false)", "true"),
     Mutant("arrayempty", B, "guard n >= 1 else { return nil }", "guard n >= 0 else { return nil }", mode="stmt"),
+    Mutant("labeledrepeat", "TreeLayout.swift", "            guard slots.updateValue(i, forKey: v) == nil else { return nil }", "            slots[v] = i", mode="stmt"),
+    Mutant("labeleddense", "TreeLayout.swift", "        if isDense(vertices) { return ([:], true) }", "", mode="stmt", nth=1),
+    Mutant("labeledsmall", "TreeLayout.swift", "vertices.count <= smallCount ? [:] : slots", "slots"),
+    Mutant("labeledparentrange", "RootedTree.swift", "            guard p >= 0, p < n else { return nil }", "            guard p >= 0 else { return nil }", mode="stmt"),
     Mutant("binarytruncate", B, "for t in stack.reversed() where t == -1 { text += \")\" }", "", mode="stmt"),
 ]
 

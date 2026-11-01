@@ -160,6 +160,24 @@ extension RootedTree where Vertex == Int {
     }
 }
 
+extension RootedTree {
+    /// The rooted tree on `vertices` in which the parent of the `i`th vertex is the `parents[i]`th,
+    /// and the root's is nil: `RootedTree(parents:)` with the vertices named, for a tree held as a
+    /// table of values and parent slots. Nil when a vertex is listed twice, or where
+    /// `RootedTree(parents:)` is nil. O(n); the vertices are hashed once unless they are the `Int`s
+    /// `0..<n` in order.
+    ///
+    /// - Precondition: `parents` has one entry per vertex.
+    @inlinable
+    public init?(vertices: some Sequence<Vertex>, parents: [Int?]) {
+        let list = ContiguousArray(vertices)
+        precondition(parents.count == list.count, "parents lists one parent for every vertex")
+        guard let numbering = _TreeLayout<Vertex>.distinctNumbering(list) else { return nil }
+        guard let layout = _TreeLayout<Vertex>.fromParentNumbers(vertices: list, slots: numbering.slots, dense: numbering.dense, parents) else { return nil }
+        self.init(_layout: layout)
+    }
+}
+
 // MARK: - Building from parents
 
 extension _TreeLayout {
@@ -203,17 +221,26 @@ extension _TreeLayout {
     }
 }
 
-extension _TreeLayout where Vertex == Int {
+extension _TreeLayout {
+    /// From parent numbers into `vertices`, nil for the root: nil for a number out of range, or
+    /// where `fromParents` is.
     @inlinable
-    static func fromParentNumbers(_ parents: [Int?]) -> Self? {
-        let n = parents.count
+    static func fromParentNumbers(vertices: ContiguousArray<Vertex>, slots: [Vertex: Int], dense: Bool, _ parents: [Int?]) -> Self? {
+        let n = vertices.count
         var numbers = [Int](repeating: -1, count: n)
         for (i, p) in parents.enumerated() {
             guard let p else { continue }
             guard p >= 0, p < n else { return nil }
             numbers[i] = p
         }
-        return fromParents(vertices: ContiguousArray(0 ..< n), slots: [:], dense: true, parents: numbers)
+        return fromParents(vertices: vertices, slots: slots, dense: dense, parents: numbers)
+    }
+}
+
+extension _TreeLayout where Vertex == Int {
+    @inlinable
+    static func fromParentNumbers(_ parents: [Int?]) -> Self? {
+        fromParentNumbers(vertices: ContiguousArray(0 ..< parents.count), slots: [:], dense: true, parents)
     }
 }
 

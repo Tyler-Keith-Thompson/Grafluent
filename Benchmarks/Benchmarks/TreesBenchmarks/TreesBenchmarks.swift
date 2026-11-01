@@ -182,6 +182,11 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark("Trees: BinaryTree(root:children:) from the same arrays, 10⁶ vertices") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(BinaryTree(root: 0) { (searchLeft[$0], searchRight[$0]) }) }
     }
+    // The named form over the same arrays: the vertices 10⁶ ..< 2·10⁶, so they are hashed.
+    let searchNames = Array(n ..< 2 * n)
+    Benchmark("Trees: BinaryTree(vertices:left:right:) from the same arrays, 10⁶ hashed Int vertices") { benchmark in
+        for _ in benchmark.scaledIterations { blackHole(BinaryTree(vertices: searchNames, left: searchLeft, right: searchRight)) }
+    }
     let huffmanWeights = (0 ..< n).map { Int((UInt64($0) &* 0x9E37_79B9_7F4A_7C15) >> 44) }
     Benchmark("Trees: BASELINE hand-written two-queue Huffman to parent offsets, 10⁶ weights") { benchmark in
         for _ in benchmark.scaledIterations {

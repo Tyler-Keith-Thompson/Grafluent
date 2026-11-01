@@ -214,6 +214,16 @@ enum FuzzTrees {
         // The parent function rebuilds the same rooted tree.
         let parents = (0 ..< n).map { tree.parent(of: $0) }
         check(RootedTree(parents: parents) == tree && Arborescence(parents: parents) == arborescence, "init(parents:)")
+        check(RootedTree(vertices: 0 ..< n, parents: parents) == tree && Arborescence(vertices: 0 ..< n, parents: parents) == arborescence, "init(vertices:parents:) on 0..<n")
+        // Named by the vertices n ..< 2n (hashed): the parents form's shape (children in vertex
+        // order, where the graph's follow its edges), every vertex shifted by n.
+        let byParents = RootedTree(parents: parents)!
+        if let shifted = RootedTree(vertices: n ..< 2 * n, parents: parents) {
+            check(shifted.root == root + n && Array(shifted.preorder) == byParents.preorder.map { $0 + n }, "init(vertices:parents:) shifted preorder")
+            check((0 ..< n).allSatisfy { shifted.parent(of: $0 + n) == parents[$0].map { $0 + n } }, "init(vertices:parents:) shifted parents")
+        } else {
+            check(false, "init(vertices:parents:) on n ..< 2n is nil")
+        }
     }
 
     /// An ordered tree grown from 0 along the arcs, against a walk of the same lists.
@@ -294,6 +304,17 @@ enum FuzzTrees {
             check(byArrays == fromRoot, "BinaryTree(left:right:) differs from the tree grown from \(roots[0])")
         } else {
             check(byArrays == nil, "BinaryTree(left:right:) exists although no single root reaches every vertex once")
+        }
+        // The named form on the same arrays, over the vertices n ..< 2n (hashed): the Int tree's
+        // preorder and sides shifted by n.
+        let shifted = BinaryTree(vertices: n ..< 2 * n, left: left, right: right)
+        check((shifted == nil) == (byArrays == nil), "BinaryTree(vertices:left:right:) exists \(shifted != nil), the Int form \(byArrays != nil)")
+        if let shifted, let byArrays {
+            check(Array(shifted.preorder) == byArrays.preorder.map { $0 + n }, "BinaryTree(vertices:left:right:) preorder differs from the Int form's")
+            for v in 0 ..< n {
+                check(shifted.left(of: v + n) == byArrays.left(of: v).map { $0 + n }, "left child of \(v) differs between the named and the Int form")
+                check(shifted.right(of: v + n) == byArrays.right(of: v).map { $0 + n }, "right child of \(v) differs between the named and the Int form")
+            }
         }
         if let tree {
             var pre: [Int] = [], inorder: [Int] = [], post: [Int] = []

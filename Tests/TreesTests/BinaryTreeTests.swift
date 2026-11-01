@@ -251,6 +251,78 @@ struct BinaryTreeTests {
         }
     }
 
+    @Test("BinaryTree(vertices:left:right:) names the vertices of BinaryTree(left:right:): Strings, Ints out of order, and 0..<n in order")
+    func labeledChildArrays() throws {
+        let left: [Int?] = [nil, 0, nil, 1, nil, 4, nil]
+        let right: [Int?] = [nil, 2, nil, 5, nil, 6, nil]
+        let names = ["a", "b", "c", "d", "e", "f", "g"]
+        let tree = try #require(BinaryTree(vertices: names, left: left, right: right))
+        #expect(tree.root == "d")
+        #expect(tree.vertexCount == 7)
+        #expect(tree.left(of: "f") == "e" && tree.right(of: "f") == "g")
+        #expect(tree.left(of: "a") == nil && tree.right(of: "a") == nil)
+        #expect(tree.parent(of: "a") == "b" && tree.parent(of: "d") == nil)
+        #expect(tree.depth(of: "g") == 2 && tree.height == 2)
+        #expect(Array(tree.preorder) == ["d", "b", "a", "c", "f", "e", "g"])
+        #expect(tree.inorder == names)
+        #expect(tree.description == "\"d\"(\"b\"(\"a\", \"c\"), \"f\"(\"e\", \"g\"))")
+        func labeledChildren(_ v: String) -> (left: String?, right: String?) {
+            let i = names.firstIndex(of: v)!
+            return (left[i].map { names[$0] }, right[i].map { names[$0] })
+        }
+        let byClosure = try #require(BinaryTree(root: "d", children: labeledChildren))
+        #expect(tree == byClosure && tree.hashValue == byClosure.hashValue)
+        #expect(Arborescence(tree).root == "d")
+        // Ints that are not 0..<n in order name the vertices too.
+        let tens = [10, 20, 30, 40, 50, 60, 70]
+        let byTens = try #require(BinaryTree(vertices: tens, left: left, right: right))
+        #expect(byTens.description == "40(20(10, 30), 60(50, 70))")
+        #expect(byTens.inorder == tens)
+        #expect(byTens != BinaryTree(left: left, right: right))
+        // In order, they are BinaryTree(left:right:) itself.
+        #expect(BinaryTree(vertices: 0 ..< 7, left: left, right: right) == BinaryTree(left: left, right: right))
+    }
+
+    @Test("BinaryTree(vertices:left:right:) past the small-tree scan: a right spine of 12 Strings")
+    func labeledChildArraysLarge() throws {
+        let n = 12
+        let names = (0 ..< n).map { "v\($0)" }
+        let left = [Int?](repeating: nil, count: n)
+        let right: [Int?] = (0 ..< n).map { $0 + 1 < n ? $0 + 1 : nil }
+        let tree = try #require(BinaryTree(vertices: names, left: left, right: right))
+        #expect(tree.root == "v0" && tree.height == n - 1 && tree.depth(of: "v11") == n - 1)
+        #expect(Array(tree.preorder) == names && tree.inorder == names)
+        #expect(tree.postorder == names.reversed())
+        for i in 0 ..< n - 1 { #expect(tree.right(of: names[i]) == names[i + 1] && tree.left(of: names[i]) == nil) }
+        #expect(tree.contains("v11") && !tree.contains("v12"))
+        #expect(tree.parent(of: "v11") == "v10")
+    }
+
+    @Test("BinaryTree(vertices:left:right:) is nil for a repeated vertex, and wherever BinaryTree(left:right:) is")
+    func labeledChildArraysRejected() {
+        let repeated: [String] = ["a", "a"]
+        #expect(BinaryTree(vertices: repeated, left: [1, nil], right: [nil, nil]) == nil)
+        // A repeat past the small-tree scan: 0 appears twice among 12 vertices on a right spine.
+        let wrapped: [Int] = (0 ..< 12).map { $0 % 11 }
+        let spineRight: [Int?] = (0 ..< 12).map { $0 + 1 < 12 ? $0 + 1 : nil }
+        #expect(BinaryTree(vertices: wrapped, left: [Int?](repeating: nil, count: 12), right: spineRight) == nil)
+        let two: [String] = ["a", "b"]
+        #expect(BinaryTree(vertices: two, left: [nil, nil], right: [nil, nil]) == nil)  // two roots
+        #expect(BinaryTree(vertices: two, left: [1, 0], right: [nil, nil]) == nil)  // a 2-cycle, no root
+        #expect(BinaryTree(vertices: two, left: [2, nil], right: [nil, nil]) == nil)  // out of range
+        #expect(BinaryTree(vertices: two, left: [nil, nil], right: [nil, -1]) == nil)  // negative
+        #expect(BinaryTree(vertices: two, left: [1, nil], right: [1, nil]) == nil)  // b is both children of a
+        let none: [String] = []
+        #expect(BinaryTree(vertices: none, left: [], right: []) == nil)
+    }
+
+    @Test("BinaryTree(vertices:left:right:) traps when the arrays and the vertices differ in length", .tags(.precondition))
+    func labeledChildArraysTrap() async {
+        await #expect(processExitsWith: .failure) {
+            _ = BinaryTree(vertices: ["a", "b", "c"], left: [nil, 0], right: [nil, nil])
+        }
+    }
+
     @Test("Random search trees: inorder is sorted, preorder follows the links, and swapping a lone child's side breaks equality", .tags(.randomized))
     func searchTrees() async {
         await propertyCheck(count: 200, input: Gen.int(in: 0 ... 1_000_000), Gen.int(in: 1 ... 30)) { seed, n in
@@ -291,6 +363,8 @@ struct BinaryTreeTests {
             #expect(tree.postorder == postorder)
             for v in 0 ..< n { #expect(tree.left(of: v) == left[v] && tree.right(of: v) == right[v]) }
             #expect(BinaryTree(left: left, right: right) == tree)
+            let negated = (0 ..< n).map { -$0 - 1 }
+            #expect(BinaryTree(vertices: negated, left: left, right: right)?.inorder == negated)
             #expect(OrderedTree(tree) == OrderedTree(Arborescence(tree)))
             if let v = (0 ..< n).first(where: { (left[$0] == nil) != (right[$0] == nil) }) {
                 var l = left, r = right

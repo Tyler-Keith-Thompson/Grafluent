@@ -207,6 +207,19 @@ extension _TreeLayout {
         return (slots, false)
     }
 
+    /// `numbering` for a list that must have no repeats: nil when a vertex is listed twice. The
+    /// `Int`s `0..<n` in order are `dense` without hashing; every other list is hashed once.
+    @inlinable
+    static func distinctNumbering(_ vertices: ContiguousArray<Vertex>) -> (slots: [Vertex: Int], dense: Bool)? {
+        if isDense(vertices) { return ([:], true) }
+        var slots: [Vertex: Int] = [:]
+        slots.reserveCapacity(vertices.count)
+        for (i, v) in vertices.enumerated() {
+            guard slots.updateValue(i, forKey: v) == nil else { return nil }
+        }
+        return (vertices.count <= smallCount ? [:] : slots, false)
+    }
+
     /// The number of `vertex` in a numbering, or nil.
     @inlinable
     static func lookup(_ vertex: Vertex, _ vertices: ContiguousArray<Vertex>, _ slots: [Vertex: Int], _ dense: Bool) -> Int? {

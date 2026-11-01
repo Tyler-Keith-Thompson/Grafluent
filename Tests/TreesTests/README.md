@@ -33,6 +33,7 @@ struct RootedTree<Vertex: Hashable>: Graph
     init(_ arborescence: Arborescence<Vertex>)
     init?<E>(vertices:parent: (Vertex) throws(E) -> Vertex?) throws(E)
     init?(parents: [Int?])                                           // Vertex == Int
+    init?(vertices: some Sequence<Vertex>, parents: [Int?])          // the ith vertex's parent is the parents[i]th; nil for a repeat
     root, parent(of:), parentEdge(of:), children(of:), depth(of:), height,
     preorder, postorder, descendants(of:), ancestors(of:), isAncestor(_:of:),
     path(from:to:), rootIndex, parent(ofIndex:), depth(ofIndex:)
@@ -43,7 +44,7 @@ struct RootedTree<Vertex: Hashable>: Graph
 struct Arborescence<Vertex: Hashable>: BidirectionalDirectedGraph
     init?(_ graph: some DirectedGraph<Vertex>), init?(edges:), init?(vertices:edges:)
     init(_ tree: RootedTree<Vertex>)                                 // arcs parent → child at the tree's positions
-    init?<E>(vertices:parent:) throws(E), init?(parents: [Int?])
+    init?<E>(vertices:parent:) throws(E), init?(parents: [Int?]), init?(vertices:parents:)
     the rooted queries above; path(from:to:) -> Path<Vertex, Int>?  // nil unless downward
     successors, predecessors, outEdges, inEdges, outDegree, inDegree,
     degree, vertexIndex (checked:)                                   // throw VertexNotFound
@@ -60,6 +61,7 @@ struct OrderedTree<Vertex: Hashable>                                 // not a Gr
 struct BinaryTree<Vertex: Hashable>                                  // not a Graph; positional left and right children
     init?<E>(root:children: (Vertex) throws(E) -> (left: Vertex?, right: Vertex?)) throws(E)
     init?(left: [Int?], right: [Int?])                                // Vertex == Int; vertex i's children, exactly one root
+    init?(vertices: some Sequence<Vertex>, left: [Int?], right: [Int?])  // the same with the vertices named; nil for a repeat
     root, vertexCount, contains, left(of:), right(of:), parent(of:), depth(of:), height,
     preorder, inorder, postorder
     left(checked:), right(checked:), parent(checked:), depth(checked:)   // throw VertexNotFound
@@ -129,7 +131,7 @@ property tests write their oracles inside each test.
 | `TreeRecognitionTests.swift` | 31 | §A: `isTree`, `Tree(g)`, `Forest(g)`, `isAcyclic`: the null graph, K₁, K₂, loops, parallel pairs, m = n − 1 that is not a tree, an isolated vertex, the complete binary tree kary(15,2), String vertices, positions; the equivalences on every source |
 | `ArborescenceRecognitionTests.swift` | 20 | §B: `isArborescence`, `Arborescence(g)`: in-trees, polytrees, cycles, parallel and opposite arcs, loops, branchings, two roots, the root not first, a five-vertex arborescence and its one-arc edit, the unreached 2-cycle; the equivalence on every source |
 | `TreeConstructionTests.swift` | 15 | §C: vertex order, repeats, endpoints added, positions, rows, one-vertex trees, conversions; single-pass sequences, the edge initializers' rejections, `Collider` and `HashableBox` vertices |
-| `ParentFunctionTests.swift` | 22 | §D: `init?(parents:)` and `init?(vertices:parent:)` on both rooted types: roots, two roots, no root, self-parents, out-of-range and negative parents, cycles, the empty array, children and edges in vertex order; a thrown error propagates |
+| `ParentFunctionTests.swift` | 24 | §D: `init?(parents:)`, `init?(vertices:parent:)` and `init?(vertices:parents:)` on both rooted types: roots, two roots, no root, self-parents, out-of-range and negative parents, cycles, the empty array, children and edges in vertex order; a thrown error propagates; named vertices, repeated vertices |
 | `RootedQueryTests.swift` | 48 | §E: every rooted query on E1, E2, K₁, stars, paths and kary(15,2), rerooting, String vertices, the arborescence's queries; index-space queries; the queries' mutual consistency at every root |
 | `TreePathTests.swift` | 16 | §F: paths on `Tree`, `RootedTree`, `Arborescence` and `Forest`; every pair of E1 against breadth-first distances |
 | `ForestTests.swift` | 14 | §G: `trees` by least vertex, renumbered edges, listed order, isolated vertices, the empty forest, `Forest(tree)`, `component(of:)`, rejections; the trees partition the forest |
@@ -141,7 +143,7 @@ property tests write their oracles inside each test.
 | `TreeRepresentationTests.swift` | 10 | Catalog rows on `UndirectedAdjacencyList` (also after removals), `AdjacencyList`, `CompressedSparseRow`, `.directedView` and `.undirectedView`, reversed rows, no indices; `isTree` hashes no vertex on an indexed adjacency list |
 | `TreePropertyTests.swift` | 7 | PropertyBased, shrinking: recognition against union–find and in-degree counts, rooted queries against recursion, paths against BFS, Prüfer against the textbook loop, parent arrays, equality and Codable under shuffles |
 | `Performance/TreeStressTests.swift` | 16 | §K inside a `Task` with a one-minute limit: the 10⁶ path (depth, postorder, height, path, ancestor, descendants, Prüfer), the 10⁶ star, kary(10⁶, 2), 10⁶ isolated vertices, a 10⁶ parent chain, conversions and equality at 10⁶ |
-| `TreePreconditionTests.swift` | 5 | Exit tests: a root that is not a vertex (TS-109), queries and paths on a non-vertex (TS-246, TS-315 and the other rooted queries, `component(of:)`) |
+| `TreePreconditionTests.swift` | 6 | Exit tests: a root that is not a vertex (TS-109), queries and paths on a non-vertex (TS-246, TS-315 and the other rooted queries, `component(of:)`), `init?(vertices:parents:)` with mismatched counts |
 | `TreeCheckedLookupTests.swift` | 99 | §L: every `checked:` spelling on each type, its value against the plain spelling's and its throw on a vertex outside the tree (negative, `vertexCount`, absent) or a position outside `0..<edgeCount`; dense `Int`, small (no table) and hashed lookups; sweeps of every vertex and position; Arborescence's own `descendants(checked:)` and `ancestors(checked:)` |
 | `TreeMapTests.swift` | 8 | Attached maps on all four types: defaults, writes by index and by `String` vertex, the `checked` subscripts, `values(of:)` snapshots, copy-on-write, removal, equality and coding ignoring maps, conversions carrying no maps and stamping their own generation, traps (exit tests) off the tree and for foreign or removed handles; a model against dictionaries keyed by vertex and edge (PropertyBased); `_vertexMapCount` as the vertex count |
 | `TreeReviewTests.swift` | 10 | Layout edge cases (TS-1001 – TS-1010): a forest with a parallel pair, edges keeping their orientation, hashes that see edges, `Int` vertices by first appearance, small trees without a vertex table, one-vertex trees of a forest, children with the parent edge anywhere in the row, parent arrays, rooted-tree decoding errors, equal hashes under shuffles |

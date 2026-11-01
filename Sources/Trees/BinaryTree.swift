@@ -220,6 +220,35 @@ extension BinaryTree where Vertex == Int {
     public init?(left: [Int?], right: [Int?]) {
         let n = left.count
         precondition(right.count == n, "left and right list one child each for every vertex")
+        guard let built = _TreeLayout<Int>.binary(vertices: ContiguousArray(0 ..< n), slots: [:], dense: true, left: left, right: right) else { return nil }
+        self.init(_layout: built.layout, sides: built.sides)
+    }
+}
+
+extension BinaryTree {
+    /// The binary tree on `vertices` in which the left child of the `i`th vertex is the
+    /// `left[i]`th and its right child the `right[i]`th, nil where it has none:
+    /// `BinaryTree(left:right:)` with the vertices named, for a tree held as a table of values
+    /// and child slots. Nil when a vertex is listed twice, or where `BinaryTree(left:right:)` is
+    /// nil. O(n); the vertices are hashed once unless they are the `Int`s `0..<n` in order.
+    ///
+    /// - Precondition: `left` and `right` have one entry per vertex.
+    @inlinable
+    public init?(vertices: some Sequence<Vertex>, left: [Int?], right: [Int?]) {
+        let list = ContiguousArray(vertices)
+        precondition(left.count == list.count && right.count == list.count, "left and right list one child each for every vertex")
+        guard let numbering = _TreeLayout<Vertex>.distinctNumbering(list) else { return nil }
+        guard let built = _TreeLayout<Vertex>.binary(vertices: list, slots: numbering.slots, dense: numbering.dense, left: left, right: right) else { return nil }
+        self.init(_layout: built.layout, sides: built.sides)
+    }
+}
+
+extension _TreeLayout {
+    /// The layout and sides of the binary tree in which vertex `v`'s children are `left[v]` and
+    /// `right[v]` (see `BinaryTree.init(left:right:)`); nil when they are not one.
+    @inlinable
+    static func binary(vertices: ContiguousArray<Vertex>, slots: [Vertex: Int], dense: Bool, left: [Int?], right: [Int?]) -> (layout: Self, sides: [UInt8])? {
+        let n = vertices.count
         guard n >= 1 else { return nil }
         var hasParent = [Bool](repeating: false, count: n)
         var ends: [Int] = []
@@ -244,8 +273,8 @@ extension BinaryTree where Vertex == Int {
         // Exactly one vertex without a parent; there are n − 1 edges then, and rooting there
         // fails only when a cycle keeps the root from some vertex.
         guard let root = hasParent.firstIndex(of: false), !hasParent[(root + 1)...].contains(false) else { return nil }
-        guard let layout = _TreeLayout<Int>(vertices: ContiguousArray(0 ..< n), slots: [:], dense: true, ends: ends, root: root, oriented: true) else { return nil }
-        self.init(_layout: layout, sides: sides)
+        guard let layout = Self(vertices: vertices, slots: slots, dense: dense, ends: ends, root: root, oriented: true) else { return nil }
+        return (layout, sides)
     }
 }
 

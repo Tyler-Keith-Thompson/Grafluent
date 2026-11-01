@@ -3,8 +3,10 @@
 // `Arborescence` and `RootedTree`. The listed vertices with duplicates dropped are the vertices; one
 // edge per non-root vertex, in vertex order, `(parent, child)`, so children come in vertex order.
 // Nil for no root or several, a parent outside the vertices, a self-parent, a negative entry, a
-// cycle, or no vertices. A throwing closure's error propagates. Expected values come from the catalog's reference (`ref.py`). Case
-// IDs (TS-nnn) refer to the catalog; see README.md.
+// cycle, or no vertices. A throwing closure's error propagates. `init?(vertices:parents:)` is the
+// `parents:` form with the vertices named: nil for a repeated vertex too, and a trap when the
+// counts differ. Expected values come from the catalog's reference (`ref.py`). Case IDs (TS-nnn)
+// refer to the catalog; see README.md.
 
 import GraphProtocols
 import GrafluentTestSupport
@@ -222,5 +224,64 @@ struct ParentFunctionTests {
         #expect(Array(rooted.children(of: "r")) == ["z", "y", "w"])
         #expect(Array(rooted.children(of: "y")) == ["x"])
         #expect(Array(rooted.preorder) == ["r", "z", "y", "x", "w"])
+    }
+
+    @Test("Arborescence(vertices: [a, b, c, d], parents: [nil, 0, 0, 2]).edges is [a>b, a>c, c>d], and RootedTree's the same undirected: the parents form with the vertices named")
+    func labeledParents() throws {
+        let parents: [Int?] = [nil, 0, 0, 2]
+        let names = ["a", "b", "c", "d"]
+        let arborescence = try #require(Arborescence(vertices: names, parents: parents))
+        let expected: [(String, String)] = [("a", "b"), ("a", "c"), ("c", "d")]
+        #expect(Array(arborescence.edges) == expected.map { DirectedEdge(from: $0.0, to: $0.1) })
+        #expect(arborescence.root == "a" && Array(arborescence.children(of: "a")) == ["b", "c"])
+        let rooted = try #require(RootedTree(vertices: names, parents: parents))
+        #expect(Array(rooted.edges) == expected.map { UndirectedEdge($0.0, $0.1) })
+        #expect(rooted.parent(of: "d") == "c" && rooted.depth(of: "d") == 2 && rooted.parent(of: "a") == nil)
+        #expect(Arborescence(rooted) == arborescence)
+        let table: [String: String] = ["b": "a", "c": "a", "d": "c"]
+        #expect(arborescence == Arborescence(vertices: names, parent: { table[$0] }))
+        // Ints that are not 0..<n in order name the vertices too; in order they are the Int form.
+        let tens = [10, 20, 30, 40]
+        let byTens = try #require(Arborescence(vertices: tens, parents: parents))
+        let tensEdges = [DirectedEdge(from: 10, to: 20), DirectedEdge(from: 10, to: 30), DirectedEdge(from: 30, to: 40)]
+        #expect(Array(byTens.edges) == tensEdges)
+        #expect(RootedTree(vertices: 0 ..< 4, parents: parents) == RootedTree(parents: parents))
+        #expect(Arborescence(vertices: 0 ..< 4, parents: parents) == Arborescence(parents: parents))
+        // A path of 12 Strings, past the small-tree scan.
+        let pathNames = (0 ..< 12).map { "v\($0)" }
+        let pathParents: [Int?] = (0 ..< 12).map { $0 == 0 ? nil : $0 - 1 }
+        let path = try #require(RootedTree(vertices: pathNames, parents: pathParents))
+        #expect(path.height == 11 && path.depth(of: "v11") == 11 && path.parent(of: "v7") == "v6")
+        #expect(Array(path.preorder) == pathNames)
+        #expect(Arborescence(vertices: pathNames, parents: pathParents)?.root == "v0")
+    }
+
+    @Test("Arborescence(vertices:parents:) and RootedTree(vertices:parents:) are nil for a repeated vertex, and wherever the parents form is")
+    func labeledParentsRejected() {
+        let repeated = ["a", "a"]
+        let oneRoot: [Int?] = [nil, 0]
+        #expect(Arborescence(vertices: repeated, parents: oneRoot) == nil)
+        #expect(RootedTree(vertices: repeated, parents: oneRoot) == nil)
+        // A repeat past the small-tree scan: 0 appears twice among 12 vertices on a path.
+        let wrapped: [Int] = (0 ..< 12).map { $0 % 11 }
+        let pathParents: [Int?] = (0 ..< 12).map { $0 == 0 ? nil : $0 - 1 }
+        #expect(RootedTree(vertices: wrapped, parents: pathParents) == nil)
+        #expect(Arborescence(vertices: wrapped, parents: pathParents) == nil)
+        let two = ["a", "b"]
+        let twoRoots: [Int?] = [nil, nil]
+        let noRoot: [Int?] = [1, 0]
+        let outOfRange: [Int?] = [nil, 2]
+        let negative: [Int?] = [nil, -1]
+        let selfParent: [Int?] = [nil, 1]
+        #expect(Arborescence(vertices: two, parents: twoRoots) == nil)
+        #expect(RootedTree(vertices: two, parents: twoRoots) == nil)
+        #expect(Arborescence(vertices: two, parents: noRoot) == nil)
+        #expect(RootedTree(vertices: two, parents: outOfRange) == nil)
+        #expect(RootedTree(vertices: two, parents: negative) == nil)
+        #expect(Arborescence(vertices: two, parents: selfParent) == nil)
+        let none: [String] = []
+        let noParents: [Int?] = []
+        #expect(Arborescence(vertices: none, parents: noParents) == nil)
+        #expect(RootedTree(vertices: none, parents: noParents) == nil)
     }
 }

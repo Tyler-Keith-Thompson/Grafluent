@@ -115,4 +115,14 @@ struct TreePreconditionTests {
             _ = Forest<Int>().component(of: 0)
         }
     }
+
+    @Test("Arborescence(vertices:parents:) and RootedTree(vertices:parents:) trap when parents and vertices differ in length")
+    func labeledParentsCount() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Arborescence(vertices: ["a", "b"], parents: [nil])
+        }
+        await #expect(processExitsWith: .failure) {
+            _ = RootedTree(vertices: ["a"], parents: [nil, 0])
+        }
+    }
 }

@@ -140,6 +140,19 @@ extension Arborescence where Vertex == Int {
     }
 }
 
+extension Arborescence {
+    /// The arborescence on `vertices` in which the parent of the `i`th vertex is the `parents[i]`th
+    /// (see `RootedTree.init(vertices:parents:)`).
+    @inlinable
+    public init?(vertices: some Sequence<Vertex>, parents: [Int?]) {
+        let list = ContiguousArray(vertices)
+        precondition(parents.count == list.count, "parents lists one parent for every vertex")
+        guard let numbering = _TreeLayout<Vertex>.distinctNumbering(list) else { return nil }
+        guard let layout = _TreeLayout<Vertex>.fromParentNumbers(vertices: list, slots: numbering.slots, dense: numbering.dense, parents) else { return nil }
+        self.init(_layout: layout)
+    }
+}
+
 extension _TreeLayout {
     /// From (source, target) ends: exactly one vertex without an incoming edge, every other with
     /// one, every edge pointing away from that root, reaching every vertex.
