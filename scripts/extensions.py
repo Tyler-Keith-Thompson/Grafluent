@@ -134,7 +134,8 @@ def write(found):
             lines += ["", f"### {extended}", ""]
             module = extended
         lines.append(f"- <doc:{article_name(extended, type_path)}>")
-    with open(os.path.join(OUT, "Extensions.md"), "w") as f:
+    # Not Extensions.md: on Linux, DocC finds that name ambiguous at the catalog root.
+    with open(os.path.join(OUT, "ExtensionsAcrossModules.md"), "w") as f:
         f.write("\n".join(lines) + "\n")
     return len(keys)
 
