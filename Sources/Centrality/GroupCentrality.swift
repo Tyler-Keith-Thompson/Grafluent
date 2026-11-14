@@ -142,7 +142,10 @@ extension Graph {
     /// otherwise the sum is halved, counting each unordered pair once. Parallel copies are distinct
     /// paths; self-loops never matter. O(nm).
     ///
-    /// - Parameter group: the vertices of C; a repeated vertex counts once.
+    /// - Parameters:
+    ///   - group: the vertices of C; a repeated vertex counts once.
+    ///   - normalized: whether to divide the sum by N(N − 1) instead of halving it.
+    ///   - endpoints: whether to count every ordered pair, a pair with an end in C adding 1.
     /// - Precondition: every member of `group` is a vertex of the graph.
     @inlinable
     public func groupBetweennessCentrality(of group: some Sequence<Vertex>, normalized: Bool = true, endpoints: Bool = false) -> Double {

@@ -57,5 +57,6 @@ common:rules_xcodeproj --allow_analysis_cache_discard
 common:rules_xcodeproj_generator --allow_analysis_cache_discard
 common:rules_xcodeproj_indexbuild --allow_analysis_cache_discard
 
-# Per-developer overrides (a remote cache key, local tweaks). Gitignored; a missing file is fine.
+# Per-developer overrides. Gitignored; a missing file is fine. On a Mac, BuildBuddy needs no
+# file: tools/bazel turns it on when the Keychain holds the key (`just buildbuddy-key`).
 try-import %workspace%/user.bazelrc

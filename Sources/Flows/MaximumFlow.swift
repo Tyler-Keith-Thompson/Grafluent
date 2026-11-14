@@ -180,11 +180,15 @@ extension DirectedGraph {
     /// Dinic needs many phases on long, thin networks. Prefer `maximumFlow(from:to:capacity:)`
     /// unless the network has unit capacities.
     ///
-    /// - Parameter dynamicTrees: Whether each blocking flow keeps its partial augmenting paths in
-    ///   Sleator and Tarjan's dynamic trees (link–cut trees), so pushing flow along a path costs
-    ///   O(log n) instead of its length. That pays when augmenting paths are long and many share
-    ///   their arcs, as along a long chain that fans out near the sink; on short paths it is
-    ///   slower by a constant factor.
+    /// - Parameters:
+    ///   - source: The vertex the flow leaves.
+    ///   - sink: The vertex the flow enters.
+    ///   - dynamicTrees: Whether each blocking flow keeps its partial augmenting paths in
+    ///     Sleator and Tarjan's dynamic trees (link–cut trees), so pushing flow along a path costs
+    ///     O(log n) instead of its length. That pays when augmenting paths are long and many share
+    ///     their arcs, as along a long chain that fans out near the sink; on short paths it is
+    ///     slower by a constant factor.
+    ///   - capacity: Each edge's capacity from its position in `edges`.
     /// - Complexity: O(n² m), or O(n m log n) with `dynamicTrees`; O(m √n) on unit networks (one
     ///   in- or out-arc of capacity 1 per inner vertex); O(m min(√m, n^(2/3))) with unit
     ///   capacities.

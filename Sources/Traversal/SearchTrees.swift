@@ -12,8 +12,10 @@ extension DirectedGraph {
     /// vertices are hashed once, into the arborescence's lookup table, unless they come out as
     /// the `Int`s `0..<k` in order.
     ///
-    /// - Parameter depthLimit: When given, only vertices at most this many edges from `source`
-    ///   are in the tree.
+    /// - Parameters:
+    ///   - source: The root of the tree.
+    ///   - depthLimit: When given, only vertices at most this many edges from `source` are in the
+    ///     tree.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
     public func breadthFirstTree(from source: Vertex, depthLimit: Int? = nil) -> Arborescence<Vertex> {
@@ -38,8 +40,10 @@ extension DirectedGraph {
     /// the vertices are hashed once, into the arborescence's lookup table, unless they come out
     /// as the `Int`s `0..<k` in order.
     ///
-    /// - Parameter depthLimit: When given, only vertices at most this many tree edges from
-    ///   `source` are in the tree.
+    /// - Parameters:
+    ///   - source: The root of the tree.
+    ///   - depthLimit: When given, only vertices at most this many tree edges from `source` are
+    ///     in the tree.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
     public func depthFirstTree(from source: Vertex, depthLimit: Int? = nil) -> Arborescence<Vertex> {

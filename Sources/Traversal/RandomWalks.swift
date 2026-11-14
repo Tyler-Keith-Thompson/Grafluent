@@ -146,8 +146,8 @@ extension DirectedGraph {
     /// - Parameters:
     ///   - source: The first vertex.
     ///   - length: The most edges to take.
-    ///   - returnParameter: p, the node2vec return parameter.
-    ///   - inOutParameter: q, the node2vec in-out parameter.
+    ///   - p: The node2vec return parameter, `returnParameter`.
+    ///   - q: The node2vec in-out parameter, `inOutParameter`.
     ///   - generator: The source of randomness.
     /// - Returns: The walk, with the position of each edge taken.
     /// - Complexity: O(length) unbiased over a representation that lends its rows (such as
@@ -178,8 +178,8 @@ extension DirectedGraph {
     ///   - source: The first vertex.
     ///   - length: The most edges to take.
     ///   - weight: Each edge's weight, read once per step for each out-edge of the current vertex.
-    ///   - returnParameter: p, the node2vec return parameter.
-    ///   - inOutParameter: q, the node2vec in-out parameter.
+    ///   - p: The node2vec return parameter, `returnParameter`.
+    ///   - q: The node2vec in-out parameter, `inOutParameter`.
     ///   - generator: The source of randomness.
     /// - Returns: The walk, with the position of each edge taken.
     /// - Complexity: O(the sum of the out-degrees of the vertices left). Biased, a walk of at least
@@ -214,8 +214,8 @@ extension Graph {
     /// - Parameters:
     ///   - source: The first vertex.
     ///   - length: The most edges to take.
-    ///   - returnParameter: p, the node2vec return parameter.
-    ///   - inOutParameter: q, the node2vec in-out parameter.
+    ///   - p: The node2vec return parameter, `returnParameter`.
+    ///   - q: The node2vec in-out parameter, `inOutParameter`.
     ///   - generator: The source of randomness.
     /// - Returns: The walk, with the position of each edge taken.
     /// - Complexity: O(length) unbiased over a representation that lends its rows in constant time
@@ -247,8 +247,8 @@ extension Graph {
     ///   - source: The first vertex.
     ///   - length: The most edges to take.
     ///   - weight: Each edge's weight, read once per step for each edge end at the current vertex.
-    ///   - returnParameter: p, the node2vec return parameter.
-    ///   - inOutParameter: q, the node2vec in-out parameter.
+    ///   - p: The node2vec return parameter, `returnParameter`.
+    ///   - q: The node2vec in-out parameter, `inOutParameter`.
     ///   - generator: The source of randomness.
     /// - Returns: The walk, with the position of each edge taken.
     /// - Complexity: O(the sum of the degrees of the vertices left). Biased, a walk of at least

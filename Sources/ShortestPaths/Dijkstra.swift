@@ -117,9 +117,11 @@ extension DirectedGraph {
     /// differ. It is called each time an edge is examined (once per out-edge of each settled
     /// vertex) and not kept.
     ///
-    /// - Parameter cutoff: When given, vertices other than the sources are reached only at
-    ///   distance at most `cutoff`; the sources are always reached, at zero, even under a negative
-    ///   cutoff.
+    /// - Parameters:
+    ///   - source: The vertex the paths start from.
+    ///   - cutoff: When given, vertices other than the sources are reached only at distance at
+    ///     most `cutoff`; the sources are always reached, at zero, even under a negative cutoff.
+    ///   - weight: Each edge's length from its position in `edges`.
     /// - Precondition: `source` is a vertex; `cutoff` is not NaN; every examined weight is at least
     ///   `.zero` and not NaN (a negative weight the search never examines does not trap); `du + w`
     ///   fits in `W` for every examined edge, including edges back into settled vertices and edges

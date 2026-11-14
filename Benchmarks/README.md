@@ -6,7 +6,8 @@ copy must not allocate", "4096 appends allocate O(log n) times").
 
 The benchmarks are a separate SwiftPM package that depends on Grafluent by path, so neither the
 library nor its tests depend on the benchmark framework
-([ordo-one/benchmark](https://github.com/ordo-one/benchmark)). Bazel ignores this directory.
+([ordo-one/benchmark](https://github.com/ordo-one/benchmark)). Bazel ignores its SwiftPM build
+(`.bazelignore`) and loads only `BUILD.bazel`, which caches the simulated counts.
 Allocation counts need jemalloc (`brew install jemalloc`).
 
 | Command | Does |
@@ -20,11 +21,37 @@ Allocation counts need jemalloc (`brew install jemalloc`).
 
 Inputs are generated from fixed seeds (`BenchmarkSupport`), so runs compare like with like.
 
+`Package.swift` and `BUILD.bazel` are generated from `BENCHMARKS` in `scripts/modules.py`: a row
+per target, with what it imports (library modules, `BenchmarkSupport`, or a package's product).
+`BENCHMARK_SUPPORT` lists the support target's modules and `BENCHMARK_DATA` the files a target
+reads at run time. Add a target there, then `just modules`.
+
+Each module's benchmarks live in `Benchmarks/<Module>Benchmarks/` and start with a `BASELINE`
+entry: the hand-written form the library must keep pace with. The `main` and `simulated`
+baselines are committed; other names are local before/after comparisons.
+
 The `bench-simulated` recipes run the same benchmarks, unchanged, in a Linux virtual machine under
 Callgrind (the `benchmark-harness` tool from `~/workspace/BenchmarkHarness`, or `$BENCHMARK_HARNESS`)
 and record instructions, cache misses, mispredicted branches and an estimated cycle count instead of
-time. Those counts come from a fixed simulated machine, so they don't move when the host is busy,
-and the `simulated` baseline is committed alongside `main`.
+time. Those counts come from a fixed simulated machine, so they don't move when the host is busy.
+Wall-clock results (`just bench`) only mean something on a quiet machine.
+
+Simulated counts are deterministic, so each target's are a cached Bazel output
+(`//Benchmarks:<Target>`, `tools/benchmarks.bzl`): `just bench-simulated` measures again only the
+targets whose sources, imported modules, manifests or harness changed, and takes the rest from the
+disk cache or BuildBuddy. Each measurement stages the package under
+`~/Library/Caches/<project>-benchmarks/<checkout>/<Target>` (`~/.cache` on Linux; one per checkout,
+so worktrees don't share one) and runs outside Bazel's sandbox, which can't start a VM.
+`Benchmarks/.harness/` (untracked) holds this checkout's copy of the harness binary and its resource
+bundles, and a stamp of the host and Swift version, all inputs. `--filter`, `--skip` and the
+harness's other options measure directly, uncached, and the result is written in the same format.
+
+The `simulated` baseline is pretty-printed, keys and benchmarks sorted, so each benchmark's entry
+has lines of its own. Re-recording rewrites only the entries whose instruction or malloc counts
+moved past `baseline compare`'s threshold (5% at p25, p50 and p75); the others keep their recorded
+entry, whose cache-miss and branch counts would otherwise vary a little from run to run. Branches
+that change different benchmarks of one target therefore merge cleanly. `bench-simulated-compare`
+writes `simulated-current` as measured.
 
 ## What is measured
 

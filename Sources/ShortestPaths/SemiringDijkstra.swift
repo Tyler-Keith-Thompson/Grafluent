@@ -80,8 +80,11 @@ extension DirectedGraph {
     /// The source is at `.one`. A vertex is reached exactly when its distance is not `.zero`, so an
     /// edge of weight `.zero` carries no path. `weight` is called each time an edge is examined.
     ///
-    /// - Parameter cutoff: When given, vertices other than the sources are reached only at a
-    ///   distance no worse than `cutoff` ("at least this wide" for widest paths).
+    /// - Parameters:
+    ///   - source: The vertex the paths start from, at `.one`.
+    ///   - cutoff: When given, vertices other than the sources are reached only at a distance no
+    ///     worse than `cutoff` ("at least this wide" for widest paths).
+    ///   - weight: Each edge's semiring weight from its position in `edges`.
     /// - Precondition: `source` is a vertex; no examined weight is better than `.one` (`!(w <
     ///   .one)`, a nonnegative tropical weight), which every bottleneck and Boolean weight
     ///   satisfies; no examined weight and no cutoff is NaN (`w == w`); every ⊗ along the way

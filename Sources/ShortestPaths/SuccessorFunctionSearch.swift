@@ -152,10 +152,15 @@ func _closureShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic, S: Se
 /// Inside an extension of `DirectedGraph`, the methods of the same name hide this function; call it
 /// as `ShortestPaths.dijkstraShortestPath(from:cutoff:successors:success:)` there.
 ///
-/// - Parameter cutoff: When given, states other than `start` are reached only at distance at most
-///   `cutoff` (inclusive, as for `dijkstraShortestPaths(from:cutoff:weight:)`), and `nil` is returned when no goal is that close. The search then ends
-///   whenever finitely many states are within the cutoff, even on an infinite space. `start` is
-///   always reached, at zero, and expanded, even under a negative cutoff.
+/// - Parameters:
+///   - start: The state the path starts from.
+///   - cutoff: When given, states other than `start` are reached only at distance at most
+///     `cutoff` (inclusive, as for `dijkstraShortestPaths(from:cutoff:weight:)`), and `nil` is
+///     returned when no goal is that close. The search then ends whenever finitely many states
+///     are within the cutoff, even on an infinite space. `start` is always reached, at zero, and
+///     expanded, even under a negative cutoff.
+///   - successors: The states one step from a state, each with the step's cost.
+///   - success: Whether a state is a goal.
 /// - Precondition: every examined cost is at least `.zero` and not NaN (a cost is examined, and
 ///   checked, before the cutoff drops its step); `cutoff` is not NaN; every sum fits in `W`.
 @inlinable
@@ -175,9 +180,14 @@ public func dijkstraShortestPath<V: Hashable, W: Comparable & AdditiveArithmetic
 /// (`h(u) <= cost(u, v) + h(v)`) no state is expanded twice. A heuristic of zero is Dijkstra's
 /// algorithm.
 ///
-/// - Parameter cutoff: As for `dijkstraShortestPath(from:cutoff:successors:success:)`: it bounds
-///   the distance from `start`, not the distance plus the estimate, so the answer does not depend
-///   on the heuristic.
+/// - Parameters:
+///   - start: The state the path starts from.
+///   - cutoff: As for `dijkstraShortestPath(from:cutoff:successors:success:)`: it bounds the
+///     distance from `start`, not the distance plus the estimate, so the answer does not depend
+///     on the heuristic.
+///   - successors: The states one step from a state, each with the step's cost.
+///   - heuristic: An estimate of a state's cost to the nearest goal.
+///   - success: Whether a state is a goal.
 /// - Precondition: as for `dijkstraShortestPath(from:cutoff:successors:success:)`; no priority
 ///   (a distance plus its state's estimate) is NaN, so no estimate is NaN, and no estimate is an
 ///   infinity opposite to an infinite distance.

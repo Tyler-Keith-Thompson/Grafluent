@@ -8,8 +8,19 @@ Modules are named after the concept they hold, with a `Module` suffix only where
 would otherwise share a name with its main type (AdjacencyListModule and AdjacencyList).
 """
 
+import os
+
+# The package, umbrella module and test-support module take the project's name. A package whose
+# main module takes the project's name (`import Grafluent` is that module, not an umbrella) lists
+# it in MODULES like any other, and then has no umbrella.
+PROJECT = "Grafluent"
+TEST_SUPPORT = f"{PROJECT}TestSupport"
+
 # External packages: (identity, url, minimum version). A dependency written "identity/Product"
-# in the table below refers to a product of one of these.
+# in the tables below refers to a product of one of these. A version written "exact:1.2.3" pins
+# that release, for a package whose later releases resolve differently on different toolchains
+# (Bazel resolves on each machine with its own swift). After adding one: `just modules`,
+# add `swiftpkg_<identity>` (hyphens as underscores) to use_repo in MODULE.bazel, `just resolve`.
 PACKAGES = [
     ("swift-collections", "https://github.com/apple/swift-collections", "1.3.0"),
     ("swift-algorithms", "https://github.com/apple/swift-algorithms", "1.2.0"),
@@ -18,6 +29,12 @@ PACKAGES = [
     # Tests only: property checks with shrinking, for Swift Testing.
     ("swift-property-based", "https://github.com/x-sheep/swift-property-based", "2.0.1"),
 ]
+
+# Packages that only Apple platforms build (Objective-C, or wrappers of Apple frameworks), by
+# identity. SwiftPM links their products on Apple platforms only and Bazel on macOS only (a
+# `select`), so the same targets still build on Linux, where the code using them is left out by
+# `#if canImport`. //:package_swift_test leaves their products out of its comparison.
+APPLE_ONLY_PACKAGES = []
 
 # (name, group, description, dependencies)
 MODULES = [
@@ -177,6 +194,81 @@ PERFORMANCE_TEST_SIZE = "medium"
 # The tag .bazelrc's release config filters out of builds and tests (see PERFORMANCE_TESTS).
 RELEASE_EXCLUDED_TAG = "debug-only"
 
+# The Benchmarks/ package's targets: (name, what it imports). Both its Package.swift and its
+# BUILD.bazel are written from this list. Each target is an ordo-one/benchmark executable in
+# Benchmarks/Benchmarks/<name>; its Bazel target (tools/benchmarks.bzl) caches its simulated counts,
+# so `just bench-simulated` measures again only the targets whose modules or sources changed. An
+# import is a library module, BENCHMARK_SUPPORT's target, or "identity/Product" of a package in
+# PACKAGES or BENCHMARK_PACKAGES.
+BENCHMARKS = [
+    ("TraversalBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule"]),
+    ("ConnectivityBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Connectivity", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule"]),
+    ("DisjointSetBenchmarks", ["BenchmarkSupport", "GraphProtocols", "DisjointSetModule", "Connectivity", "CompressedSparseRowModule"]),
+    ("LinkCutTreeBenchmarks", ["BenchmarkSupport", "LinkCutTreeModule"]),
+    ("UndirectedAdjacencyListBenchmarks", ["BenchmarkSupport", "GraphProtocols", "AdjacencyListModule", "Traversal"]),
+    ("PriorityQueueBenchmarks", ["BenchmarkSupport", "GraphProtocols", "PriorityQueueModule", "CompressedSparseRowModule", "swift-collections/HeapModule"]),
+    ("SemiringsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Semirings", "ShortestPaths", "CompressedSparseRowModule"]),
+    ("ShortestPathsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "ShortestPaths", "AdjacencyListModule", "CompressedSparseRowModule", "StableGraphs"]),
+    ("EliasFanoGraphBenchmarks", ["BenchmarkSupport", "GraphProtocols", "CompressedSparseRowModule", "EliasFanoGraphModule"]),
+    ("CentralityBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Centrality", "AdjacencyListModule"]),
+    ("ParallelCentralityBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Centrality", "ParallelCentrality", "AdjacencyListModule"]),
+    ("CommunityDetectionBenchmarks", ["BenchmarkSupport", "GraphProtocols", "CommunityDetection", "AdjacencyListModule"]),
+    ("BipartiteGraphsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "BipartiteGraphs", "AdjacencyListModule"]),
+    ("PlanarityBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Planarity", "AdjacencyListModule", "Multigraphs"]),
+    ("IsomorphismBenchmarks", ["BenchmarkSupport", "GraphProtocols", "IsomorphismModule", "AdjacencyListModule", "RandomGraphs"]),
+    ("MatchingBenchmarks", ["BenchmarkSupport", "GraphProtocols", "MatchingModule", "BipartiteGraphs", "AdjacencyListModule"]),
+    ("CoveringBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Covering", "AdjacencyListModule"]),
+    ("ColoringBenchmarks", ["BenchmarkSupport", "GraphProtocols", "ColoringModule", "AdjacencyListModule", "Multigraphs"]),
+    ("GraphOperationsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "GraphOperations", "AdjacencyListModule", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Traversal", "Connectivity"]),
+    ("GraphProductsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "GraphProducts", "AdjacencyListModule", "CompressedSparseRowModule", "NamedGraphs", "Traversal", "Connectivity"]),
+    ("LabeledGraphsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "LabeledGraphs", "CompressedSparseRowModule", "AdjacencyMatrixModule", "AdjacencyListModule", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees"]),
+    ("DirectedAcyclicGraphBenchmarks", ["BenchmarkSupport", "GraphProtocols", "DirectedAcyclicGraphModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Connectivity", "Traversal", "ShortestPaths"]),
+    ("FunctionalGraphsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "FunctionalGraphs", "CompressedSparseRowModule", "Connectivity", "Traversal"]),
+    ("ImplicitGraphsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "ImplicitGraphs", "CompressedSparseRowModule", "Connectivity", "ShortestPaths", "Traversal"]),
+    ("HypergraphsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Hypergraphs", "AdjacencyListModule", "CompressedSparseRowModule", "DisjointSetModule", "Connectivity", "Traversal"]),
+    ("IncidenceMatrixBenchmarks", ["BenchmarkSupport", "GraphProtocols", "IncidenceMatrixModule", "Hypergraphs", "Multigraphs"]),
+    ("PackedCompressedSparseRowBenchmarks", ["BenchmarkSupport", "GraphProtocols", "PackedCompressedSparseRowModule", "AdjacencyListModule", "CompressedSparseRowModule", "Traversal"]),
+    ("StableGraphsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "StableGraphs", "Multigraphs", "Connectivity", "Traversal"]),
+    ("GraphFormatsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "GraphFormats", "Multigraphs", "AdjacencyListModule", "CompressedSparseRowModule"]),
+    ("MultigraphsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Multigraphs", "AdjacencyListModule"]),
+    ("CliquesBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Cliques", "AdjacencyListModule"]),
+    ("AssortativityBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Assortativity", "Distances", "AdjacencyListModule"]),
+    ("DistancesBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Distances", "AdjacencyListModule"]),
+    ("TreeAlgorithmsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Trees", "TreeAlgorithms", "Walks"]),
+    ("TreesBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Trees", "Walks", "AdjacencyListModule"]),
+    ("CyclesBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Cycles", "Walks", "AdjacencyListModule"]),
+    ("WalksBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Walks", "AdjacencyListModule"]),
+    ("SpanningTreesBenchmarks", ["BenchmarkSupport", "GraphProtocols", "SpanningTrees", "AdjacencyListModule", "AdjacencyMatrixModule", "StableGraphs", "PriorityQueueModule"]),
+    ("DirectedGraphBenchmarks", ["BenchmarkSupport", "GraphProtocols", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule"]),
+    ("FlowsBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Flows", "Multigraphs", "CompressedSparseRowModule"]),
+    ("ToursBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Tours", "AdjacencyListModule", "Multigraphs", "CompressedSparseRowModule"]),
+    ("NamedGraphsBenchmarks", ["GraphProtocols", "NamedGraphs", "AdjacencyListModule", "CompressedSparseRowModule", "Multigraphs", "Trees"]),
+    ("GraphDrawingBenchmarks", ["GraphProtocols", "GraphDrawing", "Planarity", "RandomGraphs", "AdjacencyListModule", "CompressedSparseRowModule", "Trees"]),
+    ("RandomGraphsBenchmarks", ["GraphProtocols", "RandomGraphs", "AdjacencyListModule", "BipartiteGraphs", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Multigraphs", "Trees"]),
+    ("SpectralGraphTheoryBenchmarks", ["BenchmarkSupport", "GraphProtocols", "SpectralGraphTheory", "AdjacencyListModule"]),
+    ("SimilarityBenchmarks", ["BenchmarkSupport", "GraphProtocols", "Similarity", "AdjacencyListModule"]),
+    ("AdjacencyListBenchmarks", ["BenchmarkSupport", "GraphProtocols", "AdjacencyListModule", "swift-collections/BitCollections"]),
+    ("AdjacencyMatrixBenchmarks", ["BenchmarkSupport", "GraphProtocols", "AdjacencyMatrixModule", "swift-collections/BitCollections"]),
+    ("CompressedSparseRowBenchmarks", ["BenchmarkSupport", "GraphProtocols", "CompressedSparseRowModule", "swift-collections/BitCollections"]),
+    ("EdgeListBenchmarks", ["BenchmarkSupport", "GraphProtocols", "EdgeListModule", "swift-collections/BitCollections"]),
+]
+BENCHMARK_PACKAGE = ("https://github.com/ordo-one/benchmark", "1.27.0")
+
+# The target the benchmarks share (seeded inputs): (name, path in Benchmarks/, what it imports).
+BENCHMARK_SUPPORT = ("BenchmarkSupport", "Sources/BenchmarkSupport", ["GraphProtocols"])
+
+# Packages only the benchmarks import (identity, url, minimum version), beside PACKAGES.
+BENCHMARK_PACKAGES = []
+
+# Files a benchmark reads at run time, as globs under Benchmarks/, which its measurement stages.
+BENCHMARK_DATA = {"IsomorphismBenchmarks": ["Data/Isomorphism/**"]}
+
+# Keep in step with .bazelrc's --macos_minimum_os.
+PLATFORMS = '[.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)]'
+MACOS_MINIMUM = "15.0"
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 def performance_target(name):
     """The speed-reliant target split from test target `name`: FlowsTests -> FlowsPerformanceTests."""
@@ -185,8 +277,6 @@ def performance_target(name):
 # The library modules the differential harness (Differential/, scripts/differential.py) links.
 # Both its Package.swift and its BUILD.bazel are written from this list.
 DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "ParallelCentrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Planarity", "Similarity", "Assortativity", "Traversal", "GraphOperations", "NamedGraphs", "RandomGraphs", "IsomorphismModule", "GraphDrawing", "SpectralGraphTheory", "GraphFormats"]
-
-PLATFORMS = '[.macOS(.v15), .iOS(.v18), .tvOS(.v18), .watchOS(.v11), .visionOS(.v2)]'
 
 
 def check():
@@ -202,13 +292,58 @@ def check():
     tests = [t[0] for t in TEST_TARGETS]
     for name in PERFORMANCE_TESTS:
         assert name in tests, f"PERFORMANCE_TESTS names unknown test target {name}"
+    benchmark_packages = [p[0] for p in PACKAGES + BENCHMARK_PACKAGES]
+    for name, deps in BENCHMARKS + [(BENCHMARK_SUPPORT[0], BENCHMARK_SUPPORT[2])]:
+        for d in deps:
+            if "/" in d:
+                assert d.split("/")[0] in benchmark_packages, f"benchmark {name} imports unknown package {d}"
+            else:
+                assert d in names or d == BENCHMARK_SUPPORT[0] or (d == PROJECT and umbrella()), \
+                    f"benchmark {name} imports unknown module {d}"
+    for name in BENCHMARK_DATA:
+        assert name in [b[0] for b in BENCHMARKS], f"BENCHMARK_DATA names unknown benchmark {name}"
 
 
 def spm_dep(d):
     if "/" in d:
         package, product = d.split("/")
-        return f'.product(name: "{product}", package: "{package}")'
+        condition = ", condition: .when(platforms: applePlatforms)" if package in APPLE_ONLY_PACKAGES else ""
+        return f'.product(name: "{product}", package: "{package}"{condition})'
     return f'"{d}"'
+
+
+def requirement(version):
+    """A package's version requirement in a manifest: `from:` the minimum, or `exact:` a pinned release."""
+    if version.startswith("exact:"):
+        return f'exact: "{version.removeprefix("exact:")}"'
+    return f'from: "{version}"'
+
+
+def umbrella():
+    """Whether the package has a generated umbrella module: unless MODULES lists the project's name."""
+    return PROJECT not in [m[0] for m in MODULES]
+
+
+def apple_only(d):
+    return "/" in d and d.split("/")[0] in APPLE_ONLY_PACKAGES
+
+
+def bazel_deps(deps):
+    """A `deps` attribute, or nothing when there are none; Apple-only products sit in a macOS `select`."""
+    if not deps:
+        return ""
+    listed = "".join(f'        "{bazel_label(d)}",\n' for d in deps if not apple_only(d))
+    text = f"    deps = [\n{listed}    ]"
+    apple = "".join(f'            "{bazel_label(d)}",\n' for d in deps if apple_only(d))
+    if apple:
+        text += (
+            " + select({\n"
+            "        # Apple-only packages (APPLE_ONLY_PACKAGES in scripts/modules.py).\n"
+            f'        "@platforms//os:macos": [\n{apple}        ],\n'
+            '        "//conditions:default": [],\n'
+            "    })"
+        )
+    return text + ",\n"
 
 
 def bazel_label(d):
@@ -273,14 +408,23 @@ def package_swift():
         "    wasiTests == nil ? excludes : excludes + exitTestFiles",
         "}",
         "",
-        "// Typed arrays of their own: as one `Package(...)` expression, the manifest is too big for the",
-        "// type checker.",
-        "let products: [Product] = [",
-        '    .library(name: "Grafluent", targets: ["Grafluent"]),',
     ]
+    if APPLE_ONLY_PACKAGES:
+        lines += [
+            "// Where the Apple-only packages' products are linked (APPLE_ONLY_PACKAGES in scripts/modules.py).",
+            "let applePlatforms: [Platform] = [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS]",
+            "",
+        ]
+    lines += [
+        "// Typed arrays of their own: as one `Package(...)` expression, a large manifest is too big for",
+        "// the type checker.",
+        "let products: [Product] = [",
+    ]
+    if umbrella():
+        lines.append(f'    .library(name: "{PROJECT}", targets: ["{PROJECT}"]),')
     lines += [f'    .library(name: "{m[0]}", targets: ["{m[0]}"]),' for m in MODULES]
     lines += ["]", "", "let dependencies: [Package.Dependency] = ["]
-    lines += [f'    .package(url: "{url}", from: "{version}"),' for _, url, version in PACKAGES]
+    lines += [f'    .package(url: "{url}", {requirement(version)}),' for _, url, version in PACKAGES]
     lines += ["]", "", "let targets: [Target] = ["]
     group = None
     for name, g, _, deps in MODULES:
@@ -334,7 +478,7 @@ def package_swift():
 
 
 def dependency_manifest():
-    deps = "".join(f'        .package(url: "{url}", from: "{version}"),\n' for _, url, version in PACKAGES)
+    deps = "".join(f'        .package(url: "{url}", {requirement(version)}),\n' for _, url, version in PACKAGES)
     return (
         "// swift-tools-version: 6.0\n"
         "import PackageDescription\n\n"
@@ -350,8 +494,7 @@ def dependency_manifest():
 
 
 def build_bazel(name, description, deps, umbrella=False):
-    dl = "".join(f'        "{bazel_label(d)}",\n' for d in deps)
-    deps_attr = f"    deps = [\n{dl}    ],\n" if deps else ""
+    deps_attr = bazel_deps(deps)
     doc_deps = "".join(f'        "{bazel_label(d)}:{d}Documentation",\n' for d in deps if "/" not in d)
     doc_deps_attr = f"    deps = [\n{doc_deps}    ],\n" if doc_deps else ""
     # The umbrella's catalog gains the cross-module extension index (scripts/extensions.py).
@@ -388,7 +531,6 @@ def build_bazel(name, description, deps, umbrella=False):
 
 def test_targets_bazel(name, deps, size, srcs, tags):
     """One test module: its library, the swift_test that `bazel test` runs, and the Xcode bundle."""
-    dl = "".join(f'        "{bazel_label(d)}",\n' for d in deps)
     tags_attr = f"    tags = {tags},\n".replace("'", '"') if tags else ""
     return (
         "swift_library(\n"
@@ -402,7 +544,7 @@ def test_targets_bazel(name, deps, size, srcs, tags):
         f"{tags_attr}"
         "    # Read by //:package_swift_test, which checks Package.swift against the Bazel graph.\n"
         '    visibility = ["//:__pkg__"],\n'
-        f"    deps = [\n{dl}    ],\n"
+        f"{bazel_deps(deps)}"
         ")\n\n"
         "# `bazel test` / `just test`: a standalone executable, fast to start and run in Bazel's sandbox.\n"
         "swift_test(\n"
@@ -501,6 +643,121 @@ def differential_build_bazel():
         '    tags = ["manual"],\n'
         ")\n"
     )
+def library_directories():
+    """Every non-test target directory the root Package.swift declares."""
+    directories = [f"Sources/{m[0]}" for m in MODULES]
+    if umbrella():
+        directories.append(f"Sources/{PROJECT}")
+    return sorted(directories + [f"Tests/{TEST_SUPPORT}"])
+
+
+def benchmark_dependency(d):
+    """One import of a benchmark target, as a dependency in the benchmarks manifest."""
+    if d == BENCHMARK_SUPPORT[0]:
+        return f'"{d}"'
+    if "/" in d:
+        package, product = d.split("/")
+        return f'.product(name: "{product}", package: "{package}")'
+    return f'.product(name: "{d}", package: "{PROJECT}")'
+
+
+def benchmarks_package_swift():
+    url, version = BENCHMARK_PACKAGE
+    support, support_path, support_deps = BENCHMARK_SUPPORT
+    imports = [d for _, deps in BENCHMARKS for d in deps] + support_deps
+    packages = [p for p in PACKAGES + BENCHMARK_PACKAGES if any(d.startswith(p[0] + "/") for d in imports)]
+    targets = "".join(
+        "        .executableTarget(\n"
+        f'            name: "{name}",\n'
+        "            dependencies: [\n"
+        '                .product(name: "Benchmark", package: "benchmark"),\n'
+        + "".join(f"                {benchmark_dependency(d)},\n" for d in deps)
+        + "            ],\n"
+        f'            path: "Benchmarks/{name}",\n'
+        '            plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]\n'
+        "        ),\n"
+        for name, deps in BENCHMARKS
+    )
+    support_dependencies = ", ".join(benchmark_dependency(d) for d in support_deps)
+    return (
+        "// swift-tools-version: 6.3\n"
+        "import PackageDescription\n\n"
+        "// GENERATED by scripts/modules.py from BENCHMARKS: edit the table there, then run `just modules`.\n"
+        "// Benchmarks live in their own package so the library and its tests never depend on the\n"
+        "// benchmark framework. Run them with `just bench`; see Benchmarks/README.md.\n\n"
+        "let package = Package(\n"
+        f'    name: "{PROJECT}Benchmarks",\n'
+        "    platforms: [.macOS(.v15)],\n"
+        "    dependencies: [\n"
+        "        // Named, so the identity does not depend on the checkout directory's name.\n"
+        f'        .package(name: "{PROJECT}", path: ".."),\n'
+        f'        .package(url: "{url}", from: "{version}"),\n'
+        + "".join(f'        .package(url: "{u}", {requirement(v)}),\n' for _, u, v in packages)
+        + "    ],\n"
+        "    targets: [\n"
+        "        // Shared by the benchmark targets (BENCHMARK_SUPPORT in scripts/modules.py).\n"
+        f'        .target(name: "{support}", dependencies: [{support_dependencies}], path: "{support_path}"),\n'
+        f"{targets}    ]\n"
+        ")\n"
+    )
+
+
+def benchmarks_build_bazel():
+    directories = "".join(f'    "{d}",\n' for d in library_directories())
+    benchmarks = "".join(f'    "{name}",\n' for name, _ in BENCHMARKS)
+    support, support_path, support_deps = BENCHMARK_SUPPORT
+
+    def modules(deps):
+        """The library modules a measurement depends on, its own and the support target's. Packages
+        reach it through the pins in MANIFESTS."""
+        listed = [d for d in deps + (support_deps if support in deps else []) if d != support and "/" not in d]
+        return [d for i, d in enumerate(listed) if d not in listed[:i]]
+
+    def srcs(name):
+        # The support target is staged for every benchmark: the manifest declares it, so SwiftPM needs it.
+        patterns = [f"Benchmarks/{name}/**", f"{support_path}/**"] + BENCHMARK_DATA.get(name, [])
+        return ", ".join(f'"{p}"' for p in patterns)
+
+    targets = "".join(
+        "\nsimulated_benchmark(\n"
+        f'    name = "{name}",\n'
+        f"    srcs = glob([{srcs(name)}]),\n"
+        "    modules = [\n"
+        + "".join(f'        "{bazel_label(d)}",\n' for d in modules(deps))
+        + "    ],\n"
+        "    manifests = MANIFESTS,\n"
+        "    library_directories = LIBRARY_DIRECTORIES,\n"
+        "    benchmarks = BENCHMARKS,\n"
+        f'    project = "{PROJECT.lower()}",\n'
+        '    harness = ".harness/bin/benchmark-harness",\n'
+        "    # Empty until `just bench-simulated` copies the harness in; `bazel test //...` loads this anyway.\n"
+        '    harness_files = glob([".harness/bin/*.bundle/**"], allow_empty = True),\n'
+        '    stamp = ".harness/stamp",\n'
+        "    # `manual`: measuring starts a VM, so `bazel build //...` leaves these out.\n"
+        '    tags = ["manual"],\n'
+        ")\n"
+        for name, deps in BENCHMARKS
+    )
+    return (
+        "# GENERATED by scripts/modules.py from BENCHMARKS: edit the table there, then run `just modules`.\n"
+        "#\n"
+        "# Each benchmark target's simulated counts, as a cached Bazel output (tools/benchmarks.bzl).\n"
+        "# `just bench-simulated` writes .harness/ and builds these; nothing else should.\n\n"
+        'load("//tools:benchmarks.bzl", "simulated_benchmark")\n\n'
+        '# The root manifest, this package\'s manifest and its pins (which cover the whole graph).\n'
+        'MANIFESTS = [\n    "//:Package.swift",\n    "Package.swift",\n    "Package.resolved",\n]\n\n'
+        "# Every target directory SwiftPM needs to load the root manifest.\n"
+        f"LIBRARY_DIRECTORIES = [\n{directories}]\n\n"
+        "# Every benchmark target, each of which SwiftPM needs to load this package's manifest.\n"
+        f"BENCHMARKS = [\n{benchmarks}]\n"
+        + targets
+    )
+
+
+def write(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(text)
 
 
 def main():
@@ -544,6 +801,8 @@ def main():
         f.write(differential_build_bazel())
     with open(os.path.join(root, "Differential", "Package.swift"), "w") as f:
         f.write(differential_package_swift())
+    write(os.path.join(ROOT, "Benchmarks", "Package.swift"), benchmarks_package_swift())
+    write(os.path.join(ROOT, "Benchmarks", "BUILD.bazel"), benchmarks_build_bazel())
     # Written last: which files each target must exclude depends on the BUILD files above.
     with open(os.path.join(root, "Package.swift"), "w") as f:
         f.write(package_swift())

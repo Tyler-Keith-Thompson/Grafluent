@@ -382,8 +382,10 @@ extension UndirectedEdgeBreadthFirstSearch.Iterator: Sendable where G: Sendable,
 extension LazyDirectedGraphView {
     /// A breadth-first search from `source` whose edge events carry edge positions.
     ///
-    /// - Parameter depthLimit: When given, vertices at this depth are discovered and finished but
-    ///   their out-edges are not reported.
+    /// - Parameters:
+    ///   - source: The vertex the search starts from.
+    ///   - depthLimit: When given, vertices at this depth are discovered and finished but
+    ///     their out-edges are not reported.
     /// - Complexity: O(n + m) over the reached part.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
@@ -406,8 +408,10 @@ extension LazyDirectedGraphView {
 extension LazyGraphView {
     /// A breadth-first search from `source` that reports each edge once, by its position.
     ///
-    /// - Parameter depthLimit: When given, vertices at this depth are discovered and finished but
-    ///   their edges are not examined.
+    /// - Parameters:
+    ///   - source: The vertex the search starts from.
+    ///   - depthLimit: When given, vertices at this depth are discovered and finished but
+    ///     their edges are not examined.
     /// - Complexity: O(n + m) over the reached part.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
