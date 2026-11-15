@@ -182,8 +182,10 @@ extension BreadthFirstSearch.Iterator: Sendable where G: Sendable, G.Vertex: Sen
 extension LazyDirectedGraphView {
     /// A breadth-first search from `source`.
     ///
-    /// - Parameter depthLimit: When given, vertices at this depth are discovered and finished but
-    ///   their out-edges are not reported.
+    /// - Parameters:
+    ///   - source: The vertex the search starts from.
+    ///   - depthLimit: When given, vertices at this depth are discovered and finished but
+    ///     their out-edges are not reported.
     /// - Precondition: `source` is a vertex; `depthLimit` is not negative.
     @inlinable
     public func breadthFirstSearch(from source: Base.Vertex, depthLimit: Int? = nil) -> BreadthFirstSearch<Base> {

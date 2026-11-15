@@ -49,4 +49,4 @@ let order = build.topologicalSort()                // ["fetch", "compile", "test
 
 ### Extensions
 
-- <doc:Extensions>
+- <doc:ExtensionsAcrossModules>

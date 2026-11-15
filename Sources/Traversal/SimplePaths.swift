@@ -328,7 +328,10 @@ extension DirectedGraph {
     /// parallel edge a different path, in the order of `DirectedSimplePaths`. When `source` is
     /// `target`, the trivial path alone.
     ///
-    /// - Parameter maxLength: The longest path to include, in edges.
+    /// - Parameters:
+    ///   - source: The vertex every path starts from.
+    ///   - target: The vertex every path ends at.
+    ///   - maxLength: The longest path to include, in edges.
     /// - Complexity: O(n + m) before the first path; see `DirectedSimplePaths`.
     /// - Precondition: both are vertices, and `maxLength >= 0`.
     @inlinable
@@ -339,7 +342,10 @@ extension DirectedGraph {
     /// Every simple path from `source` to any of `targets`, lazily, in the order of
     /// `DirectedSimplePaths`: a path through one target to another is listed too.
     ///
-    /// - Parameter maxLength: The longest path to include, in edges.
+    /// - Parameters:
+    ///   - source: The vertex every path starts from.
+    ///   - targets: The vertices a path may end at.
+    ///   - maxLength: The longest path to include, in edges.
     /// - Complexity: O(n + m) before the first path; see `DirectedSimplePaths`.
     /// - Precondition: `source` and every target are vertices, and `maxLength >= 0`.
     @inlinable
@@ -353,7 +359,10 @@ extension Graph {
     /// parallel edge a different path, in the order of `UndirectedSimplePaths`. When `source` is
     /// `target`, the trivial path alone.
     ///
-    /// - Parameter maxLength: The longest path to include, in edges.
+    /// - Parameters:
+    ///   - source: The vertex every path starts from.
+    ///   - target: The vertex every path ends at.
+    ///   - maxLength: The longest path to include, in edges.
     /// - Complexity: O(n + m) before the first path; see `DirectedSimplePaths`.
     /// - Precondition: both are vertices, and `maxLength >= 0`.
     @inlinable
@@ -364,7 +373,10 @@ extension Graph {
     /// Every simple path from `source` to any of `targets`, lazily, in the order of
     /// `UndirectedSimplePaths`: a path through one target to another is listed too.
     ///
-    /// - Parameter maxLength: The longest path to include, in edges.
+    /// - Parameters:
+    ///   - source: The vertex every path starts from.
+    ///   - targets: The vertices a path may end at.
+    ///   - maxLength: The longest path to include, in edges.
     /// - Complexity: O(n + m) before the first path; see `DirectedSimplePaths`.
     /// - Precondition: `source` and every target are vertices, and `maxLength >= 0`.
     @inlinable

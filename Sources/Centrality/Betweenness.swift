@@ -285,8 +285,10 @@ extension Graph {
     /// halved; nothing is scaled when N < 2. Every vertex as a pivot gives
     /// `betweennessCentrality(normalized:endpoints:)`. O(km).
     ///
-    /// - Parameter pivots: the sources of the searches; uniformly random ones give an unbiased
-    ///   estimate.
+    /// - Parameters:
+    ///   - pivots: the sources of the searches; uniformly random ones give an unbiased estimate.
+    ///   - normalized: whether to divide each score by N − 1.
+    ///   - endpoints: whether each path also credits its two ends.
     /// - Precondition: every pivot is a vertex of the graph, none is repeated, and a graph with
     ///   vertices has at least one.
     @inlinable
@@ -321,6 +323,8 @@ extension Graph {
     ///
     /// - Parameters:
     ///   - pivotCount: the number of sources searched, k.
+    ///   - normalized: whether to divide each score by N − 1.
+    ///   - endpoints: whether each path also credits its two ends.
     ///   - generator: the source of randomness; one `next(upperBound:)` per pivot.
     /// - Precondition: `pivotCount` is in `1...vertexCount` (0 for an empty graph).
     @inlinable
@@ -380,8 +384,10 @@ extension DirectedGraph {
     /// vertex by n/k. `normalized` then divides by N − 1; nothing is scaled when N < 2. Every
     /// vertex as a pivot gives `betweennessCentrality(normalized:endpoints:)`. O(km).
     ///
-    /// - Parameter pivots: the sources of the searches; uniformly random ones give an unbiased
-    ///   estimate.
+    /// - Parameters:
+    ///   - pivots: the sources of the searches; uniformly random ones give an unbiased estimate.
+    ///   - normalized: whether to divide each score by N − 1.
+    ///   - endpoints: whether each path also credits its two ends.
     /// - Precondition: every pivot is a vertex of the graph, none is repeated, and a graph with
     ///   vertices has at least one.
     @inlinable
@@ -416,6 +422,8 @@ extension DirectedGraph {
     ///
     /// - Parameters:
     ///   - pivotCount: the number of sources searched, k.
+    ///   - normalized: whether to divide each score by N − 1.
+    ///   - endpoints: whether each path also credits its two ends.
     ///   - generator: the source of randomness; one `next(upperBound:)` per pivot.
     /// - Precondition: `pivotCount` is in `1...vertexCount` (0 for an empty graph).
     @inlinable

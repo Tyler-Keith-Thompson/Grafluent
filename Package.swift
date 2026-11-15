@@ -19,8 +19,8 @@ func testExcludes(_ excludes: [String], wasi exitTestFiles: [String]) -> [String
     wasiTests == nil ? excludes : excludes + exitTestFiles
 }
 
-// Typed arrays of their own: as one `Package(...)` expression, the manifest is too big for the
-// type checker.
+// Typed arrays of their own: as one `Package(...)` expression, a large manifest is too big for
+// the type checker.
 let products: [Product] = [
     .library(name: "Grafluent", targets: ["Grafluent"]),
     .library(name: "GraphProtocols", targets: ["GraphProtocols"]),

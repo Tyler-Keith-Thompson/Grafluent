@@ -325,8 +325,9 @@ extension Graph {
     /// k(n − 1)/2 when `normalized`. Every vertex as a pivot gives
     /// `edgeBetweennessCentrality(normalized:)`. O(km).
     ///
-    /// - Parameter pivots: the sources of the searches; uniformly random ones give an unbiased
-    ///   estimate.
+    /// - Parameters:
+    ///   - pivots: the sources of the searches; uniformly random ones give an unbiased estimate.
+    ///   - normalized: whether to divide each sum by k(n − 1)/2 instead of scaling it.
     /// - Precondition: every pivot is a vertex of the graph, none is repeated, and a graph with
     ///   vertices has at least one.
     @inlinable
@@ -363,6 +364,7 @@ extension Graph {
     ///
     /// - Parameters:
     ///   - pivotCount: the number of sources searched, k.
+    ///   - normalized: whether to divide each sum by k(n − 1)/2 instead of scaling it.
     ///   - generator: the source of randomness; one `next(upperBound:)` per pivot.
     /// - Precondition: `pivotCount` is in `1...vertexCount` (0 for an empty graph).
     @inlinable
@@ -426,8 +428,9 @@ extension DirectedGraph {
     /// by k(n − 1) when `normalized`. Every vertex as a pivot gives
     /// `edgeBetweennessCentrality(normalized:)`. O(km).
     ///
-    /// - Parameter pivots: the sources of the searches; uniformly random ones give an unbiased
-    ///   estimate.
+    /// - Parameters:
+    ///   - pivots: the sources of the searches; uniformly random ones give an unbiased estimate.
+    ///   - normalized: whether to divide each sum by k(n − 1) instead of scaling it.
     /// - Precondition: every pivot is a vertex of the graph, none is repeated, and a graph with
     ///   vertices has at least one.
     @inlinable
@@ -461,6 +464,7 @@ extension DirectedGraph {
     ///
     /// - Parameters:
     ///   - pivotCount: the number of sources searched, k.
+    ///   - normalized: whether to divide each sum by k(n − 1) instead of scaling it.
     ///   - generator: the source of randomness; one `next(upperBound:)` per pivot.
     /// - Precondition: `pivotCount` is in `1...vertexCount` (0 for an empty graph).
     @inlinable

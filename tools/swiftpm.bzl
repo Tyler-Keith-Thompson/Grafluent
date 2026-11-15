@@ -41,14 +41,22 @@ _module_dependencies_aspect = aspect(
     attr_aspects = ["deps"],
 )
 
-# Pulls one `Module: Dependency ...` line out of every `.target(name:` and `.testTarget(name:`
-# entry, writing a product dependency as `identity/Product`, as the aspect does.
+# Pulls one `Module: Dependency ...` line out of every `.target(name:`, `.executableTarget(name:`
+# and `.testTarget(name:` entry, writing a product dependency as `identity/Product`, as the aspect does.
+# A product linked on Apple platforms only (`condition: .when(platforms: applePlatforms)`,
+# APPLE_ONLY_PACKAGES in scripts/modules.py) is in Bazel's graph on macOS alone, so it is left out
+# of both sides.
 _SCRIPT = """#!/bin/sh
 set -eu
 manifest="$1"
 expected="$2"
 actual="${TEST_TMPDIR:-/tmp}/actual.txt"
-grep -E '^ *\\.(target|testTarget)\\(name: "' "$manifest" | while IFS= read -r line; do
+bazel="${TEST_TMPDIR:-/tmp}/bazel.txt"
+conditional=$(grep -oE '\\.product\\(name: "[^"]*", package: "[^"]*", condition:' "$manifest" \\
+    | sed -E 's/.*name: "([^"]*)", package: "([^"]*)".*/\\2\\/\\1/' | LC_ALL=C sort -u | tr '\\n' ' ')
+awk -v drop="$conditional" 'BEGIN { split(drop, names, " "); for (i in names) skip[names[i]] = 1 }
+    { out = $1; for (i = 2; i <= NF; i++) if (!($i in skip)) out = out " " $i; print out }' "$expected" > "$bazel"
+grep -E '^ *\\.(target|executableTarget|testTarget)\\(name: "' "$manifest" | while IFS= read -r line; do
     name="${line#*name: \\"}"
     name="${name%%\\"*}"
     deps=""
@@ -59,6 +67,7 @@ grep -E '^ *\\.(target|testTarget)\\(name: "' "$manifest" | while IFS= read -r l
             ;;
     esac
     deps=$(printf '%s\\n' "$deps" \\
+        | sed -E 's/\\.product\\(name: "[^"]*", package: "[^"]*", condition: [^)]*\\)\\)//g' \\
         | sed -E 's/\\.product\\(name: "([^"]*)", package: "([^"]*)"\\)/"\\2\\/\\1"/g' \\
         | tr ',' '\\n' \\
         | sed -nE 's/^ *"([^"]*)" *$/\\1/p' \\
@@ -66,7 +75,7 @@ grep -E '^ *\\.(target|testTarget)\\(name: "' "$manifest" | while IFS= read -r l
         | awk '{ printf " %s", $0 }')
     printf '%s:%s\\n' "$name" "$deps"
 done | LC_ALL=C sort > "$actual"
-if ! diff -u "$expected" "$actual"; then
+if ! diff -u "$bazel" "$actual"; then
     echo
     echo "Package.swift disagrees with the Bazel graph (- Bazel, + Package.swift)."
     echo "Run \\`just modules\\` and commit Package.swift together with the BUILD.bazel files."
