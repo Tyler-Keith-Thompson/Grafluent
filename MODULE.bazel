@@ -40,4 +40,5 @@ use_repo(
     "swiftpkg_swift_atomics",
     "swiftpkg_swift_collections",
     "swiftpkg_swift_property_based",
+    "swiftpkg_swiftprng",
 )

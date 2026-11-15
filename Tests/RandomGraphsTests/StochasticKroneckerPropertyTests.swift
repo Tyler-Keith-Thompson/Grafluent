@@ -136,6 +136,11 @@ struct StochasticKroneckerPropertyTests {
             var generator = Xoshiro256StarStar(seed: 0)
             _ = UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5]], iterations: 2, using: &generator)
         }
+        // A row longer than the initiator is tall: no draw would read its extra entry.
+        await #expect(processExitsWith: .failure) {
+            var generator = Xoshiro256StarStar(seed: 0)
+            _ = UndirectedAdjacencyList<Int>.stochasticKronecker(initiator: [[0.5, 0.5], [0.5, 0.5, 0.5]], iterations: 2, using: &generator)
+        }
         await #expect(processExitsWith: .failure) {
             var generator = Xoshiro256StarStar(seed: 0)
             _ = CompressedSparseRow.stochasticKronecker(initiator: [], iterations: 2, using: &generator)

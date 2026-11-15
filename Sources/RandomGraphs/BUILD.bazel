@@ -16,6 +16,7 @@ swift_library(
         "//Sources/Trees",
         "//Sources/DirectedAcyclicGraphModule",
         "//Sources/Multigraphs",
+        "@swiftpkg_swiftprng//:Distributions",
     ],
     visibility = ["//visibility:public"],
 )

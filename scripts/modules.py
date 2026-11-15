@@ -15,6 +15,9 @@ PACKAGES = [
     ("swift-algorithms", "https://github.com/apple/swift-algorithms", "1.2.0"),
     # Publish-once lazy state (ManagedAtomicLazyReference) shared by copies of a value.
     ("swift-atomics", "https://github.com/apple/swift-atomics", "1.3.0"),
+    # Fdlibm.log: a natural logarithm that returns the same bits on every platform, for the random
+    # graphs' geometric skips.
+    ("swiftprng", "https://github.com/Tyler-Keith-Thompson/SwiftPRNG", "0.0.4"),
     # Tests only: property checks with shrinking, for Swift Testing.
     ("swift-property-based", "https://github.com/x-sheep/swift-property-based", "2.0.1"),
 ]
@@ -80,7 +83,7 @@ MODULES = [
 
     # Generators
     ("NamedGraphs", "Generators", "Complete, complete bipartite and multipartite, Turán, path, cycle, star, wheel, ladder, circular ladder, barbell, lollipop, windmill, grid, triangular and hexagonal lattice, hypercube, circulant, generalized Petersen, Kneser, de Bruijn, Kautz, LCF, balanced, full r-ary and binomial tree graphs, and the Petersen, Heawood, Möbius–Kantor, Pappus, Desargues, dodecahedral, icosahedral, Frucht, Tutte, Chvátal and Hoffman–Singleton graphs.", ["GraphProtocols", "Trees", "BipartiteGraphs", "AdjacencyListModule", "Multigraphs"]),
-    ("RandomGraphs", "Generators", "Erdős–Rényi, R-MAT, Barabási–Albert, Holme–Kim, Watts–Strogatz and Newman–Watts–Strogatz, random geometric, random regular, random k-out, random bipartite, stochastic block model, Chung–Lu, configuration model, directed scale-free, random trees and DAGs; graphical degree sequences and Havel–Hakimi.", ["GraphProtocols", "AdjacencyListModule", "BipartiteGraphs", "NamedGraphs", "Trees", "DirectedAcyclicGraphModule", "Multigraphs"]),
+    ("RandomGraphs", "Generators", "Erdős–Rényi, R-MAT, Barabási–Albert, Holme–Kim, Watts–Strogatz and Newman–Watts–Strogatz, random geometric, random regular, random k-out, random bipartite, stochastic block model, Chung–Lu, configuration model, directed scale-free, random trees and DAGs; graphical degree sequences and Havel–Hakimi.", ["GraphProtocols", "AdjacencyListModule", "BipartiteGraphs", "NamedGraphs", "Trees", "DirectedAcyclicGraphModule", "Multigraphs", "swiftprng/Distributions"]),
 
     # Drawing and formats
     ("GraphDrawing", "Drawing", "Coordinates for drawing graphs: circular, shell, spiral, bipartite, multipartite, BFS, random, spectral, multidimensional scaling, planar straight-line (de Fraysseix–Pach–Pollack), Fruchterman–Reingold and ForceAtlas2 (exact or Barnes–Hut), stress majorization, Reingold–Tilford and layered (Sugiyama) layouts.", ["GraphProtocols", "Trees", "Cycles", "Planarity", "SpectralGraphTheory"]),
@@ -125,7 +128,7 @@ TEST_TARGETS = [
     ("LabeledGraphsTests", ["GraphProtocols", "LabeledGraphs", "CompressedSparseRowModule", "AdjacencyMatrixModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "SpanningTrees", "Centrality", "Flows", "Distances", "GrafluentTestSupport", "swift-property-based/PropertyBased", "swift-collections/OrderedCollections"]),
     ("DirectedAcyclicGraphTests", ["GraphProtocols", "DirectedAcyclicGraphModule", "AdjacencyListModule", "Multigraphs", "StableGraphs", "Traversal", "Connectivity", "ShortestPaths", "Walks", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("NamedGraphsTests", ["GraphProtocols", "NamedGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "BipartiteGraphs", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
-    ("RandomGraphsTests", ["GraphProtocols", "RandomGraphs", "NamedGraphs", "BipartiteGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "DirectedAcyclicGraphModule", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
+    ("RandomGraphsTests", ["GraphProtocols", "RandomGraphs", "NamedGraphs", "BipartiteGraphs", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "Trees", "DirectedAcyclicGraphModule", "GrafluentTestSupport", "swiftprng/Distributions", "swift-property-based/PropertyBased"]),
     ("GraphOperationsTests", ["GraphProtocols", "GraphOperations", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "DirectedAcyclicGraphModule", "Traversal", "Connectivity", "ShortestPaths", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphProductsTests", ["GraphProtocols", "GraphProducts", "AdjacencyListModule", "CompressedSparseRowModule", "Multigraphs", "StableGraphs", "NamedGraphs", "Traversal", "Connectivity", "ShortestPaths", "GrafluentTestSupport", "swift-property-based/PropertyBased"]),
     ("GraphProtocolsTests", ["GraphProtocols", "Traversal", "AdjacencyListModule", "AdjacencyMatrixModule", "CompressedSparseRowModule", "EdgeListModule", "GrafluentTestSupport", "swift-collections/BitCollections", "swift-property-based/PropertyBased"]),

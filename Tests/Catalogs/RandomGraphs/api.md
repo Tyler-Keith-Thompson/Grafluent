@@ -64,12 +64,13 @@ func below(_ n: Int, _ g: inout some RandomNumberGenerator) -> Int {
 - **The NetworkX check.** `uniform01` is what CPython's `random()` returns and `below(n)` is
   `choice(seq)`'s index when CPython's generator produces the same bits. NetworkX on the same
   stream (`StreamRandom` in `ref.py`) therefore reproduces the exact rows marked `= NetworkX`.
-- **`log` is the one platform dependency.** G(n, p), the SBM, the DAG and random bipartite graphs
-  skip with libm's `log`. A skip is `Int(log(1 − u) / log(1 − p))`, so a last-ulp difference
-  between Darwin's and glibc's `log` could move one edge when the quotient lands within an ulp of
-  an integer. `ref.py` checks the exact rows on Darwin (Python's `math.log` is the same libm), and
-  Linux CI runs the same rows. Barabási–Albert, Watts–Strogatz, G(n, m), random geometric graphs,
-  random regular graphs and random trees use no transcendental function and are exact everywhere.
+- **`log` returns the same bits everywhere.** G(n, p), the SBM, Chung–Lu and random bipartite
+  graphs skip with SwiftPRNG's `Fdlibm.log`, fdlibm's logarithm in IEEE arithmetic only, never
+  the platform's libm, whose last bit differs between Darwin, glibc and WASI. A skip is
+  `Int(log(1 − u) / log(1 − p))`, so one ulp could move an edge. `ref.py`'s `fdlibm_log` is the
+  same function, and `SkipLogarithmTests` pins its bits. Barabási–Albert, Watts–Strogatz,
+  G(n, m), random geometric graphs, random regular graphs and random trees use no transcendental
+  function in their draws and are exact everywhere.
 - **`log(1 − p)`, not `log1p(−p)`.** For tiny p, 1 − p rounds to a neighbour of 1, so `lp` is off
   from the true log(1 − p) ≈ −p by up to about 1.1·10⁻¹⁶ / p relative (about 10⁻⁴ at p = 10⁻¹²).
   The rows pin the `log(1 − p)` skips, and the bias is below what any sample can detect.

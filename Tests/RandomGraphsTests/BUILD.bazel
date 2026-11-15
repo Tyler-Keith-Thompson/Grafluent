@@ -30,6 +30,7 @@ swift_library(
         "//Sources/Trees",
         "//Sources/DirectedAcyclicGraphModule",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Distributions",
         "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )
@@ -81,6 +82,7 @@ swift_library(
         "//Sources/Trees",
         "//Sources/DirectedAcyclicGraphModule",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Distributions",
         "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )

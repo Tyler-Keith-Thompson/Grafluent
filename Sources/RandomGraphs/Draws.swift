@@ -1,17 +1,4 @@
-#if canImport(Darwin)
-import Darwin
-#elseif canImport(Glibc)
-import Glibc
-#elseif canImport(Musl)
-import Musl
-#elseif canImport(WASILibc)
-import WASILibc
-#endif
-// A swift.org toolchain reading a newer macOS SDK (the fuzz build) gets a Darwin without libm's
-// functions; the SDK's math module has them.
-#if canImport(math_h)
-import math_h
-#endif
+import Distributions
 
 // Every procedure draws only through these two functions, so its output depends on the
 // generator's `next()` sequence alone. The catalog's reference model reads the same bits, and its
@@ -40,12 +27,13 @@ func _below<G: RandomNumberGenerator>(_ n: Int, _ g: inout G) -> Int {
     }
 }
 
-/// The natural logarithm. It is the one platform-dependent function in the procedures; G(n, p),
-/// the block model and the random DAG use it to compute skips.
+/// The natural logarithm, with the same bits on every platform: fdlibm's, in IEEE arithmetic
+/// only. G(n, p), the random bipartite graph, the stochastic block model and Chung–Lu compute their
+/// geometric skips with it, so a seed gives the same graph everywhere.
 @inlinable
 @inline(__always)
 func _log(_ x: Double) -> Double {
-    log(x)
+    Fdlibm.log(x)
 }
 
 /// Traps unless `p` is in 0...1 (so not NaN).

@@ -8,6 +8,7 @@ The model ports the pinned procedures of api.md draw for draw:
     seeding is rand_xoshiro's seed_from_u64), checked against published test vectors;
   * the two draws every procedure makes, and nothing else: uniform01() = (next() >> 11) * 2^-53 and
     below(n), CPython's _randbelow_with_getrandbits with getrandbits(k) = next() >> (64 - k);
+  * the skips' logarithm, fdlibm_log: SwiftPRNG's Fdlibm.log, the same bits on every platform;
   * each family's procedure.
 Because the two draws are exactly what CPython's random.Random uses for random() and choice(),
 StreamRandom (a random.Random over the same stream) lets NetworkX 3.7 run its own generator on our
@@ -28,6 +29,7 @@ import itertools
 import math
 import os
 import random
+import struct
 import sys
 
 import igraph as ig
@@ -98,6 +100,59 @@ class Xoshiro256StarStar:
         while r >= n:
             r = self.next() >> (64 - k)
         return r
+
+
+# ---------------------------------------------------------------- the logarithm
+
+# The skips' logarithm, as RandomGraphs computes it: SwiftPRNG's Fdlibm.log, fdlibm's e_log.c in
+# IEEE arithmetic only, so it returns the same bits on every platform. Ported from SwiftPRNG's
+# scripts/differential_distributions.py. CPython's operations on floats round each once, as Swift's
+# do, so the steps below give Swift's bits.
+
+def _bits(x):
+    return struct.unpack("<Q", struct.pack("<d", x))[0]
+
+
+def _double(b):
+    return struct.unpack("<d", struct.pack("<Q", b & MASK))[0]
+
+
+_LN2_HI, _LN2_LO = _double(0x3FE62E42FEE00000), _double(0x3DEA39EF35793C76)
+_LG = [_double(b) for b in [0x3FE5555555555593, 0x3FD999999997FA04, 0x3FD2492494229359, 0x3FCC71C51D8E78AF,
+                            0x3FC7466496CB03DE, 0x3FC39A09D078C69F, 0x3FC2F112DF3E5244]]
+
+
+def fdlibm_log(x):
+    """The natural logarithm: -inf at zero, NaN below it."""
+    b = _bits(x)
+    high = b >> 32
+    k = 0
+    if high < 0x00100000 or high >> 31:
+        if (b << 1) & MASK == 0:
+            return -math.inf
+        if high >> 31:
+            return math.nan
+        k -= 54  # a subnormal: scaled into the normal range first
+        x *= 2.0 ** 54
+        b = _bits(x)
+        high = b >> 32
+    elif high >= 0x7FF00000:
+        return x
+    elif high == 0x3FF00000 and b & 0xFFFFFFFF == 0:
+        return 0.0
+    high = (high + 0x3FF00000 - 0x3FE6A09E) & 0xFFFFFFFF
+    k += (high >> 20) - 0x3FF
+    high = (high & 0x000FFFFF) + 0x3FE6A09E
+    f = _double((high << 32) | (b & 0xFFFFFFFF)) - 1.0
+    hfsq = 0.5 * f * f
+    s = f / (2.0 + f)
+    z = s * s
+    w = z * z
+    t1 = w * (_LG[1] + w * (_LG[3] + w * _LG[5]))
+    t2 = z * (_LG[0] + w * (_LG[2] + w * (_LG[4] + w * _LG[6])))
+    r = t2 + t1
+    dk = float(k)
+    return s * (hfsq + r) + dk * _LN2_LO - hfsq + f + dk * _LN2_HI
 
 
 class StreamRandom(random.Random):
@@ -190,7 +245,7 @@ def gnp(n, p, rng, directed=False):
         return R(n, list(pairs), directed)
     if p <= 0.0:
         return R(n, [], directed)
-    lp = math.log(1.0 - p)
+    lp = fdlibm_log(1.0 - p)
     if lp == 0.0:  # 1 - p rounds to 1: no edge can be drawn (NetworkX divides by zero)
         return R(n, [], directed)
     edges = []
@@ -198,7 +253,7 @@ def gnp(n, p, rng, directed=False):
     def sweep(emit):
         v, w = 1, -1
         while v < n:
-            lr = math.log(1.0 - rng.uniform01())
+            lr = fdlibm_log(1.0 - rng.uniform01())
             skip = lr / lp
             if not skip < n * n:  # past every remaining pair; Swift must not convert it to Int
                 return
@@ -412,7 +467,7 @@ def random_bipartite(a, b, p, rng, directed=False):
         return R(a + b, pairs + ([(y, x) for x, y in pairs] if directed else []), directed)
     if p <= 0.0:
         return R(a + b, [], directed)
-    lp = math.log(1.0 - p)
+    lp = fdlibm_log(1.0 - p)
     if lp == 0.0:
         return R(a + b, [], directed)
     edges = []
@@ -420,7 +475,7 @@ def random_bipartite(a, b, p, rng, directed=False):
     def sweep(emit):
         v, w = 0, -1
         while v < a:
-            skip = math.log(1.0 - rng.uniform01()) / lp
+            skip = fdlibm_log(1.0 - rng.uniform01()) / lp
             if not skip < a * b:
                 return
             w = w + 1 + int(skip)
@@ -463,14 +518,14 @@ def sbm(sizes, P, rng, directed=False):
         if p == 1.0:
             edges.extend(pairs)
         elif p > 0.0:
-            lp = math.log(1.0 - p)
+            lp = fdlibm_log(1.0 - p)
             if lp == 0.0:
                 continue
             while True:
                 u = rng.uniform01()
                 if u == 0.0:  # log(0): NetworkX raises; the block pair ends
                     break
-                skip = math.floor(math.log(u) / lp)
+                skip = math.floor(fdlibm_log(u) / lp)
                 next(itertools.islice(pairs, skip, skip), None)
                 e = next(pairs, None)
                 if e is None:
@@ -687,11 +742,11 @@ def chung_lu(w, rng, directed=False):
         p = min(seq[v] * factor, 1)
         while v < n and p > 0:
             if p != 1:
-                lp = math.log(1 - p)
+                lp = fdlibm_log(1 - p)
                 if not lp < 0:
                     break
                 r = rng.uniform01()
-                skip = (math.log(r) if r > 0 else -math.inf) / lp
+                skip = fdlibm_log(r) / lp
                 if not skip < n - v:
                     break
                 v += int(skip)
