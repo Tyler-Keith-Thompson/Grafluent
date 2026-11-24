@@ -9,10 +9,14 @@ rather than once per mutant:
     mode "expr":  old  ->  (__mutant(k) ? (new) : (old))   an expression
     mode "stmt":  old  ->  if __mutant(k) { new } else { old }   whole statements
 
+A stmt mutant's `old` never starts with `defer`: in the else block, the defer would run when that
+block ends rather than with its scope, changing the unmutated build, so the run refuses one. Mutate
+the statements inside the defer instead.
+
 `old` must occur once in the file, or `nth` picks the occurrence. `module` puts a mutant in another
 module's file (Sources/<module>/<file>), for code the spec's module wires into; the spec's TESTS
 then name the suites that reach it, run in order.
-The environment variable GRAFLUENT_MUTANT picks the live mutant. Each mutant then runs the test
+The environment variable <PROJECT>_MUTANT (the project's name in capitals) picks the live mutant. Each mutant then runs the test
 bundles named by the spec, several at once, and a run stops at its first failing test. A mutant is
 caught when a test fails, the process crashes, or it runs past the time limit; it survived when
 every test passes. A survivor needs a test or a note saying why it is equivalent.
@@ -27,17 +31,27 @@ a time limit decided it, or "caught (perf)" when a performance test's expectatio
 unmutated run fails too, or the mutant's second run passes, the result is "INCONCLUSIVE": it is
 not counted as caught and is not kept, so the next run tries that mutant again.
 
-    python3 scripts/mutate.py ShortestPaths            # mutants whose inputs changed
-    python3 scripts/mutate.py ShortestPaths rotate     # the named ones (if their inputs changed)
-    python3 scripts/mutate.py ShortestPaths --all      # every mutant, ignoring stored results
-    python3 scripts/mutate.py ShortestPaths --select   # coverage-based test selection
-    python3 scripts/mutate.py ShortestPaths --jobs 2
+Simulator tests. A spec's bundle that runs in the iOS simulator (SIMULATOR_TESTS in
+scripts/modules.py, or one that depends on an iOS module or a Bazel label) runs through Bazel, as
+SwiftPM can't build for the simulator: in BAZEL_WORK, a copy of the whole checkout with the
+schemata applied, built once, then one `bazel test` of its ios_unit_test per mutant, with
+<PROJECT>_MUTANT passed into the simulator. Only the mutants every Mac bundle let through run
+there, one at a time, as the simulator tests do in `just test`; the Mac half of a SIMULATOR_TESTS
+bundle runs through SwiftPM with the rest. The copy keeps an output base of its own between runs,
+and its Bazel server is shut down when the run ends.
+
+    just mutate ShortestPaths              # mutants whose inputs changed
+    just mutate ShortestPaths rotate       # the named ones (if their inputs changed)
+    just mutate ShortestPaths --all        # every mutant, ignoring stored results
+    just mutate ShortestPaths --select     # coverage-based test selection
+    just mutate ShortestPaths --jobs 2
 
 Stored results. Each mutant's outcome is kept in results/<Module>.json under the mutation
 directory (see BASE), under a key hashing everything it depends on: its definition and those of the mutants before it in the
 same file (their text can move where its `old` matches), every source file of the test bundles'
-modules and their dependencies (from scripts/modules.py), the bundles' own sources and
-GrafluentTestSupport, Package.swift and Package.resolved, and the compiler version. A run only
+modules and their dependencies (from scripts/modules.py), the bundles' own sources and the test
+support target, Package.swift and swift/Package.resolved, the compiler version, and with simulator
+bundles MODULE.bazel, its lock, .bazelrc, .bazelversion and tools/. A run only
 builds and runs the mutants whose key changed; the rest are reported from the store, marked
 "stored". The summary lists every mutant either way. `--all` ignores the store.
 
@@ -56,7 +70,7 @@ so a survivor is always confirmed by the full suite and only kills get faster. T
 is stored like the results. Swift Testing runs a suite in parallel and stops at the first failure,
 so selection helps only where kills come late, from slow tests.
 
-The scratch copy lives in work/ under the mutation directory (~/Library/Caches/grafluent-mutation
+The scratch copy lives in work/ under the mutation directory (~/Library/Caches/<project>-mutation
 on macOS) and is kept between runs, so later builds are incremental; files whose contents did not
 change keep their timestamps. The real sources are never written.
 """
@@ -74,16 +88,26 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# The module graph (scripts/modules.py): the project's name, modules, test targets and test support.
+TABLE = runpy.run_path(os.path.join(ROOT, "scripts", "modules.py"))
+PROJECT = TABLE["PROJECT"]
+TEST_SUPPORT = TABLE["TEST_SUPPORT"]
+# The live mutant's number, and the run a test process belongs to (see reap).
+MUTANT_VARIABLE = f"{PROJECT.upper()}_MUTANT"
+RUN_VARIABLE = f"{PROJECT.upper()}_MUTATION_RUN"
 # Outside the repository: root SwiftPM and Xcode builds manage .build/ and can delete files from
-# a scratch copy kept there mid-run. GRAFLUENT_MUTATION_DIR overrides the location.
-BASE = os.environ.get("GRAFLUENT_MUTATION_DIR") or os.path.join(
+# a scratch copy kept there mid-run. <PROJECT>_MUTATION_DIR overrides the location.
+BASE = os.environ.get(f"{PROJECT.upper()}_MUTATION_DIR") or os.path.join(
     os.path.expanduser("~/Library/Caches") if sys.platform == "darwin" else os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
-    "grafluent-mutation")
+    f"{PROJECT.lower()}-mutation")
+# The pins the workspace resolves with: the same ones Bazel uses.
+PINS = os.path.join("swift", "Package.resolved")
 # One scratch copy per module, so runs on different modules proceed in parallel; runs on the same
 # module take turns on that copy's lock. The module is the first positional argument.
 _MODULE_ARG = next((a for a in sys.argv[1:] if not a.startswith("-")), "default")
@@ -93,6 +117,16 @@ RESULTS = os.path.join(BASE, "results")
 # mutant runs use an uninstrumented build.
 COVERAGE_WORK = os.path.join(BASE, "modules", _MODULE_ARG, "coverage")
 SWIFT = ["env", "-u", "TOOLCHAINS", "xcrun", "--toolchain", "default", "swift"]
+# The simulator tests' workspace: a copy of the whole Bazel workspace with the schemata applied
+# (see run_simulated). Bazel gives it an output base of its own, kept between runs so later builds
+# are incremental, like WORK's .build; its server is shut down when the run ends.
+BAZEL_WORK = os.path.join(BASE, "modules", _MODULE_ARG, "bazel")
+# The Bazel inputs a simulator bundle's results also depend on, besides its sources (inputs_key).
+BAZEL_INPUTS = ["MODULE.bazel", "MODULE.bazel.lock", ".bazelrc", ".bazelversion", "tools"]
+# Test binaries run in an empty directory of their own, never the caller's (the project root under
+# `just mutate`): a mutant that makes an absolute path relative would write into the project. One
+# per run, since runs proceed in parallel and a file one leaves must not reach the next.
+RUN_DIRECTORIES = os.path.join(BASE, "runs")
 # Bump when the schemata, the runner or the stored format change meaning: every stored result
 # is then stale.
 STORE_VERSION = "3"
@@ -105,11 +139,11 @@ import Darwin
 import Glibc
 #endif
 
-@usableFromInline let _activeMutant: Int = getenv("GRAFLUENT_MUTANT").map { Int(atoi($0)) } ?? -1
+@usableFromInline let _activeMutant: Int = getenv("MUTANT_VARIABLE").map { Int(atoi($0)) } ?? -1
 
 @usableFromInline @inline(never)
 func __mutant(_ k: Int) -> Bool { _activeMutant == k }
-"""
+""".replace("MUTANT_VARIABLE", MUTANT_VARIABLE)
 
 # Coverage for the module under test only, in COVERAGE_WORK: compiled with -profile-generate (the
 # test bundles link the profile runtime).
@@ -137,8 +171,7 @@ def load_spec(module):
     spec names only the first."""
     path = os.path.join(ROOT, "scripts", "mutants", f"{module}.py")
     spec = runpy.run_path(path, init_globals={"Mutant": Mutant})
-    table = runpy.run_path(os.path.join(ROOT, "scripts", "modules.py"))
-    timed = [table["performance_target"](b) for b in spec["TESTS"] if b in table["PERFORMANCE_TESTS"]]
+    timed = [TABLE["performance_target"](b) for b in spec["TESTS"] if b in TABLE["PERFORMANCE_TESTS"]]
     return spec["MUTANTS"], list(spec["TESTS"]), timed
 
 
@@ -147,15 +180,15 @@ def load_spec(module):
 def source_dirs(bundles):
     """Every directory whose sources the bundles are built from: the bundles, their modules and
     the modules' dependencies, transitively."""
-    table = runpy.run_path(os.path.join(ROOT, "scripts", "modules.py"))
-    deps = {name: d for name, _, _, d in table["MODULES"]}
-    deps["GrafluentTestSupport"] = ["GraphProtocols"]
-    tests = dict(table["TEST_TARGETS"])
+    # Compiler plugins (MACROS) are built from their sources like modules.
+    deps = {name: d for name, _, _, d in TABLE["MODULES"] + TABLE["MACROS"]}
+    deps[TEST_SUPPORT] = TABLE["TEST_SUPPORT_DEPENDENCIES"]
+    tests = dict(TABLE["TEST_TARGETS"])
     # A performance bundle's sources are in Performance/ under its module's test directory.
     home = {b: b for b in tests}
-    for b in table["PERFORMANCE_TESTS"]:
-        tests[table["performance_target"](b)] = tests[b]
-        home[table["performance_target"](b)] = b
+    for b in TABLE["PERFORMANCE_TESTS"]:
+        tests[TABLE["performance_target"](b)] = tests[b]
+        home[TABLE["performance_target"](b)] = b
     dirs, seen = [], set()
     pending = []
     for b in bundles:
@@ -169,7 +202,7 @@ def source_dirs(bundles):
         if "/" in d or d in seen:  # an external product: Package.resolved pins it
             continue
         seen.add(d)
-        dirs.append(os.path.join("Tests" if d == "GrafluentTestSupport" else "Sources", d))
+        dirs.append(os.path.join("Tests" if d == TEST_SUPPORT else "Sources", d))
         pending += deps[d]
     return sorted(dirs)
 
@@ -177,23 +210,29 @@ def source_dirs(bundles):
 def pruned_manifest(bundles, modules=()):
     """Package.swift with only the bundles, the modules and everything they depend on. Other
     targets are left out of the workspace, so another module's unfinished edits cannot break this
-    run's build, and their changes do not invalidate its stored results."""
+    run's build, and their changes do not invalidate its stored results. Command plugins (PLUGINS
+    in scripts/modules.py) are always left out, with their products: no test depends on one, and
+    Plugins/ is not copied."""
     names = {os.path.basename(d) for d in source_dirs(bundles)} | set(modules) | set(bundles)
     with open(os.path.join(ROOT, "Package.swift")) as f:
         lines = f.read().split("\n")
     kept = [line for line in lines
-            if not (m := re.match(r'\s*\.(?:library|target|testTarget)\(name: "([^"]+)"', line)) or m.group(1) in names]
+            if not (m := re.match(r'\s*\.(?:library|executable|plugin|target|executableTarget|testTarget|macro)\(name: "([^"]+)"', line)) or m.group(1) in names]
     return "\n".join(kept)
 
 
-def inputs_key(bundles):
+def inputs_key(bundles, simulated=()):
+    """The hash of everything the bundles' results depend on; with simulator bundles (`simulated`),
+    the Bazel workspace's configuration (BAZEL_INPUTS) and the generated BUILD files too."""
     h = hashlib.sha256()
     h.update(STORE_VERSION.encode() + SWITCH.encode() + INSTRUMENT.encode())
     version = subprocess.run(SWIFT + ["--version"], capture_output=True, text=True).stdout
     h.update(version.encode())
     h.update(pruned_manifest(bundles).encode())
-    files = ["Package.resolved"]
-    for d in source_dirs(bundles):
+    files = [PINS]
+    for d in [d for d in BAZEL_INPUTS if simulated and os.path.isfile(os.path.join(ROOT, d))]:
+        files.append(d)
+    for d in source_dirs(bundles) + [d for d in BAZEL_INPUTS if simulated and os.path.isdir(os.path.join(ROOT, d))]:
         for parent, subdirs, names in os.walk(os.path.join(ROOT, d)):
             subdirs.sort()
             files += [os.path.relpath(os.path.join(parent, n), ROOT) for n in sorted(names)]
@@ -271,6 +310,9 @@ def sync_workspace(modules, bundles):
     for d in sorted(dirs - {os.path.join("Sources", m) for m in modules}):
         subprocess.run(["rsync", "-a", "-c", "--delete", os.path.join(ROOT, d) + "/", os.path.join(WORK, d)], check=True)
     write_if_changed(os.path.join(WORK, "Package.swift"), pruned_manifest(bundles, modules).encode())
+    if os.path.exists(os.path.join(ROOT, PINS)):
+        with open(os.path.join(ROOT, PINS), "rb") as f:
+            write_if_changed(os.path.join(WORK, "Package.resolved"), f.read())
 
 
 def sync_coverage_workspace(module, bundles):
@@ -280,7 +322,7 @@ def sync_coverage_workspace(module, bundles):
         subprocess.run(["rsync", "-a", "-c", "--delete", os.path.join(WORK, item), COVERAGE_WORK], check=True)
     with open(os.path.join(WORK, "Package.swift")) as f:
         manifest = f.read()
-    manifest, found = re.subn(rf'(\.target\(name: "{module}",.*?)\),\n',
+    manifest, found = re.subn(rf'(\.(?:target|macro)\(name: "{module}",.*?)\),\n',
                               rf'\1, swiftSettings: [{INSTRUMENT}]),\n', manifest, count=1)
     if not found:
         sys.exit(f"No target {module} in Package.swift")
@@ -297,21 +339,21 @@ def mutated_modules(module, mutants):
     return [module] + sorted({m.module for m in mutants if m.module and m.module != module})
 
 
-def apply_schemata(module, mutants):
-    """Writes each mutated module with every mutant behind its switch, and returns each mutant's
-    span in the written files as {k: (file, first line, last line)}, 1-based; a file of another
-    module than the spec's is named `<module>/<file>`, which coverage never reports."""
+def apply_schemata(module, mutants, workspace=WORK):
+    """Writes each mutated module into `workspace` with every mutant behind its switch, and returns
+    each mutant's span in the written files as {k: (file, first line, last line)}, 1-based; a file of
+    another module than the spec's is named `<module>/<file>`, which coverage never reports."""
     spans = {}
     for mod in mutated_modules(module, mutants):
         own = [(k, m) for k, m in enumerate(mutants) if (m.module or module) == mod]
-        for k, (file, first, last) in _apply_module(mod, own).items():
+        for k, (file, first, last) in _apply_module(mod, own, workspace).items():
             spans[k] = (file if mod == module else f"{mod}/{file}", first, last)
     return spans
 
 
-def _apply_module(module, numbered):
+def _apply_module(module, numbered, workspace):
     source = os.path.join(ROOT, "Sources", module)
-    target = os.path.join(WORK, "Sources", module)
+    target = os.path.join(workspace, "Sources", module)
     by_file = {}
     for k, m in numbered:
         by_file.setdefault(m.file, []).append((k, m))
@@ -402,11 +444,11 @@ RUNS = itertools.count()
 
 def reap(run=None):
     """Kills test processes left over from the mutation workspace: those of one run (by the
-    GRAFLUENT_MUTATION_RUN they inherited), or all of them. Exit tests run in child processes
+    <PROJECT>_MUTATION_RUN they inherited), or all of them. Exit tests run in child processes
     outside the runner's process group, and a mutant that removes a precondition can leave one
     running forever; killing the group alone misses them."""
     listing = subprocess.run(["ps", "-A", "-E", "-ww", "-o", "pid=,command="], capture_output=True, text=True).stdout
-    marker = f"GRAFLUENT_MUTATION_RUN={run} " if run is not None else None
+    marker = f"{RUN_VARIABLE}={run} " if run is not None else None
     for line in listing.splitlines():
         if WORK not in line or (marker and marker not in line + " "):
             continue
@@ -423,11 +465,12 @@ def run_bundle(command, env, mutant, limit, extra=(), stream=None):
     """Returns (outcome, detail): outcome is "passed", "failed", "crashed" or "timed out". With
     `stream`, Swift Testing also writes its JSON event stream there (see failing_tests)."""
     run = next(RUNS)
-    env = dict(env, GRAFLUENT_MUTANT=str(mutant), GRAFLUENT_MUTATION_RUN=str(run))
+    env = dict(env, **{MUTANT_VARIABLE: str(mutant), RUN_VARIABLE: str(run)})
     if stream:
         extra = list(extra) + ["--event-stream-output-path", stream, "--event-stream-version", "0"]
-    process = subprocess.Popen(command + list(extra), env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                               text=True, errors="replace", start_new_session=True)
+    directory = run_directory()
+    process = subprocess.Popen(command + list(extra), env=env, cwd=directory, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT, text=True, errors="replace", start_new_session=True)
     def kill():
         # The group may already be gone, or be exiting (macOS then answers EPERM).
         try:
@@ -454,6 +497,7 @@ def run_bundle(command, env, mutant, limit, extra=(), stream=None):
         timed_out = not timer.is_alive() and failure is None and process.returncode == -signal.SIGKILL
         timer.cancel()
         reap(run)
+        shutil.rmtree(directory, ignore_errors=True)
     if failure:
         return "failed", failure
     if timed_out:
@@ -500,8 +544,19 @@ def failing_tests(stream):
     return sorted({t for t in blamed if t in functions})
 
 
+def run_directory():
+    """A new empty directory for one test binary's run, under RUN_DIRECTORIES; the caller removes it."""
+    os.makedirs(RUN_DIRECTORIES, exist_ok=True)
+    return tempfile.mkdtemp(dir=RUN_DIRECTORIES)
+
+
 def list_tests(command, env, bundle):
-    out = subprocess.run(command + ["--list-tests"], env=env, capture_output=True, text=True, timeout=600)
+    directory = run_directory()
+    try:
+        out = subprocess.run(command + ["--list-tests"], env=env, cwd=directory, capture_output=True, text=True,
+                             timeout=600)
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
     if out.returncode != 0:
         sys.exit(f"Could not list the tests of {bundle}:\n{out.stdout[-2000:]}{out.stderr[-2000:]}")
     return [line.strip() for line in out.stdout.splitlines() if line.startswith(bundle + ".")]
@@ -591,6 +646,139 @@ def save_coverage(module, key, selection):
                    "lines": [[file, line, sorted(hit)] for (file, line), hit in sorted(lines.items())]}, f)
 
 
+# ── Simulator tests, through Bazel ───────────────────────────────────
+
+def workspace_files():
+    """The checkout's files, relative to ROOT: tracked, and untracked but not ignored, so the copy holds
+    the edits in progress, as WORK does, and no build output."""
+    listed = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=ROOT,
+                            capture_output=True, text=True, check=True).stdout
+    return sorted({f for f in listed.split("\0") if f and os.path.isfile(os.path.join(ROOT, f))})
+
+
+def sync_bazel_workspace(modules, simulated):
+    """BAZEL_WORK: the whole checkout (workspace_files) but the mutated modules, which apply_schemata
+    writes, with each simulator bundle's ios_unit_test passing MUTANT_VARIABLE on into the simulator.
+    Bazel hashes contents, so a file copied again unchanged rebuilds nothing."""
+    mutated = tuple(os.path.join("Sources", m) + os.sep for m in modules)
+    files = [f for f in workspace_files() if not f.startswith(mutated)]
+    for f in files:
+        with open(os.path.join(ROOT, f), "rb") as fh:
+            write_if_changed(os.path.join(BAZEL_WORK, f), fh.read())
+        shutil.copymode(os.path.join(ROOT, f), os.path.join(BAZEL_WORK, f))
+    kept = set(files)
+    for parent, subdirs, names in os.walk(BAZEL_WORK):
+        rel = os.path.relpath(parent, BAZEL_WORK)
+        if rel == ".":
+            # Bazel's convenience links, and the mutated modules apply_schemata keeps.
+            subdirs[:] = [d for d in subdirs if not d.startswith("bazel-")]
+            names = [n for n in names if not n.startswith("bazel-")]
+        subdirs[:] = [d for d in subdirs if os.path.join(rel, d) + os.sep not in mutated]
+        for name in names:
+            if os.path.normpath(os.path.join(rel, name)) not in kept:
+                os.remove(os.path.join(parent, name))
+    # rules_apple's runner hands the simulator only the variables an ios_unit_test lists in
+    # env_inherit, so the copy's bundles list the mutant's too, beside any TEST_ENVIRONMENT gives them
+    # (the generator writes that list on the line after the name); the checkout's BUILD files stay as
+    # generated.
+    for b in simulated:
+        label = TABLE["simulator_label"](b)
+        package, _, target = label.removeprefix("//").partition(":")
+        path = os.path.join(BAZEL_WORK, package, "BUILD.bazel")
+        with open(path) as f:
+            text = f.read()
+        text, found = re.subn(rf'(ios_unit_test\(\n    name = "{target or os.path.basename(package)}",\n)(    env_inherit = \[)?',
+                              lambda match: match.group(1) + (f'    env_inherit = ["{MUTANT_VARIABLE}", ' if match.group(2)
+                                                              else f'    env_inherit = ["{MUTANT_VARIABLE}"],\n'),
+                              text, count=1)
+        if not found:
+            sys.exit(f"No ios_unit_test {label} in {package}/BUILD.bazel")
+        write_if_changed(path, text)
+
+
+def bazel(arguments, mutant=-1, timeout=3600):
+    """Runs `bazel <arguments>` in BAZEL_WORK with the live mutant in its environment, and returns the
+    completed process. Every command takes the same startup options, so all share one server; it
+    exits on its own after a quiet while should the run be killed before bazel_shutdown."""
+    env = dict(os.environ, **{MUTANT_VARIABLE: str(mutant)})
+    return subprocess.run(["bazel", "--max_idle_secs=600"] + arguments, cwd=BAZEL_WORK, env=env,
+                          capture_output=True, text=True, errors="replace", timeout=timeout)
+
+
+def bazel_shutdown():
+    if os.path.isfile(os.path.join(BAZEL_WORK, "MODULE.bazel")):
+        subprocess.run(["bazel", "--max_idle_secs=600", "shutdown"], cwd=BAZEL_WORK, capture_output=True, timeout=600)
+
+
+def bazel_test(labels, mutant, limit):
+    """Runs the simulator bundles under one mutant: (outcome, detail), outcome "passed", "failed" or
+    "timed out". The bundles run one at a time (their simulator resource tag, .bazelrc)."""
+    # --test_env names the variable alone, so its value comes from bazel's environment and the
+    # options, and the analysis cache, stay the same from one mutant to the next.
+    result = bazel(["test", f"--test_env={MUTANT_VARIABLE}", "--nocache_test_results", f"--test_timeout={limit:.0f}",
+                    "--allow_analysis_cache_discard", "--test_output=summary"] + labels, mutant, timeout=limit * len(labels) + 600)
+    if result.returncode == 0:
+        return "passed", ""
+    output = result.stdout + result.stderr
+    if result.returncode != 3:
+        sys.exit(f"bazel test failed to run the simulator bundles (exit {result.returncode}):\n{output[-3000:]}")
+    for label in labels:
+        # The summary names a package's own target in full: //Tests/X:X.
+        full = label if ":" in label else f"{label}:{os.path.basename(label)}"
+        status = re.search(rf"^{re.escape(full)}\s+(FAILED|TIMEOUT)\b", output, re.MULTILINE)
+        if not status:
+            continue
+        if status.group(1) == "TIMEOUT":
+            return "timed out", f"{label} after {limit:.0f} s"
+        package, _, target = label.removeprefix("//").partition(":")
+        log = os.path.join(BAZEL_WORK, "bazel-testlogs", package, target or os.path.basename(package), "test.log")
+        try:
+            with open(log, errors="replace") as f:
+                failure = FAILURE.search(f.read())
+        except OSError:
+            failure = None
+        return "failed", f"{label}: " + (failure.group(1) if failure else "FAILED")
+    return "failed", output.strip().splitlines()[-1][:200]
+
+
+def run_simulated(simulated, module, mutants, through, record):
+    """The simulator bundles (`simulated`: SIMULATOR_TESTS, and targets that run in the simulator alone)
+    for the mutants every Mac bundle let through, one mutant at a time, through Bazel in BAZEL_WORK:
+    one build of the schemata, then a `bazel test` per mutant with MUTANT_VARIABLE set. Returns the
+    mutants they let through in turn."""
+    labels = [TABLE["simulator_label"](b) for b in simulated]
+    sync_bazel_workspace(mutated_modules(module, mutants), simulated)
+    apply_schemata(module, mutants, BAZEL_WORK)
+    try:
+        began = time.time()
+        built = bazel(["build", "--allow_analysis_cache_discard"] + labels)
+        if built.returncode != 0:
+            errors = [line for line in (built.stdout + built.stderr).splitlines() if "error:" in line.lower()]
+            sys.exit("The schemata build of the simulator bundles failed:\n" + "\n".join(errors[:40] or (built.stdout + built.stderr).splitlines()[-40:]))
+        print(f"Built the simulator bundles ({', '.join(simulated)}) in {time.time() - began:.0f} s", flush=True)
+        began = time.time()
+        outcome, detail = bazel_test(labels, -1, 1800)
+        if outcome != "passed":
+            sys.exit(f"The simulator bundles do not pass without a mutant ({outcome}: {detail})")
+        baseline = time.time() - began
+        # A simulator boots for every run, which varies more than the tests do.
+        limit = 3 * baseline + 120
+        print(f"{len(through)} mutants left for the simulator, one at a time; its bundles pass unmutated in "
+              f"{baseline:.0f} s, and each mutant gets {limit:.0f} s", flush=True)
+        survivors = []
+        for k, m, seconds, tests in through:
+            began = time.time()
+            outcome, detail = bazel_test(labels, k, limit)
+            spent = seconds + time.time() - began
+            if outcome == "passed":
+                survivors.append((k, m, spent, tests + ", then the simulator"))
+            else:
+                record(m, "caught", f"{outcome} {detail}", tests + ", then the simulator", spent)
+        return survivors
+    finally:
+        bazel_shutdown()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("module")
@@ -613,15 +801,26 @@ def main():
         print("Another mutation run holds the workspace; waiting for it to finish...", flush=True)
         fcntl.flock(workspace_lock, fcntl.LOCK_EX)
 
-    mutants, bundles, timed = load_spec(args.module)
+    mutants, tests, timed = load_spec(args.module)
+    # The simulator bundles run through Bazel (run_simulated); every other bundle, and the Mac half
+    # of one in SIMULATOR_TESTS, through SwiftPM.
+    simulated = [b for b in tests if TABLE["simulator_test"](b)]
+    bundles = [b for b in tests if not TABLE["simulator_only"](b)]
     names = {m.name for m in mutants}
     if len(names) != len(mutants):
         sys.exit("Mutant names must be unique")
+    for m in mutants:
+        # Wrapped in `if __mutant(k) { } else { old }`, a defer would run when the else block ends
+        # instead of when its scope does, so even the unmutated build would behave differently.
+        if m.mode == "stmt" and re.match(r"\s*defer\b", m.old):
+            sys.exit(f"{m.name}: a stmt mutant can't replace a `defer`: in the mutation build it would run "
+                     "when the mutant's else block ends, changing the unmutated code. Mutate the statements "
+                     "inside the defer instead.")
     unknown = set(args.names) - names
     if unknown:
         sys.exit(f"No such mutants: {', '.join(sorted(unknown))}")
 
-    inputs = inputs_key(bundles + timed)
+    inputs = inputs_key(tests + timed, simulated)
     keys = mutant_keys(mutants, inputs)
     store = load_store(args.module)
     chosen = [(k, m) for k, m in enumerate(mutants) if not args.names or m.name in args.names]
@@ -644,8 +843,11 @@ def main():
 
     if stale:
         atexit.register(reap)
-        sync_workspace(mutated_modules(args.module, mutants), bundles + timed)
-        spans = apply_schemata(args.module, mutants)
+        # Selection maps SwiftPM bundles' coverage; the simulator bundles always run whole.
+        args.select = args.select and bool(bundles)
+        if bundles:
+            sync_workspace(mutated_modules(args.module, mutants), bundles + timed)
+            spans = apply_schemata(args.module, mutants)
         # The coverage build, when selection needs a new pass, goes alongside the schemata build.
         coverage_key = hashlib.sha256((inputs + "\0" + "\0".join(map(definition, mutants))).encode()).hexdigest()
         selection = None if not args.select else load_coverage(args.module, coverage_key)
@@ -655,10 +857,11 @@ def main():
             sync_coverage_workspace(args.module, bundles + timed)
             builder = threading.Thread(target=lambda: coverage_build.append(build(COVERAGE_WORK)), daemon=True)
             builder.start()
-        took = build()
-        if isinstance(took, str):
-            sys.exit("The schemata build failed:\n" + took)
-        print(f"Built {len(mutants)} mutants into one build in {took:.0f} s", flush=True)
+        if bundles:
+            took = build()
+            if isinstance(took, str):
+                sys.exit("The schemata build failed:\n" + took)
+            print(f"Built {len(mutants)} mutants into one build in {took:.0f} s", flush=True)
 
         commands = [test_command(b) for b in bundles]
         baseline = 0
@@ -675,7 +878,8 @@ def main():
             baseline += time.time() - began
         # Running several bundles at once slows each one, so the limit is generous.
         limit = 3 * baseline + 30
-        print(f"Unmutated tests pass in {baseline:.0f} s; each mutant gets {limit:.0f} s", flush=True)
+        if bundles:
+            print(f"Unmutated tests pass in {baseline:.0f} s; each mutant gets {limit:.0f} s", flush=True)
 
         if args.select and selection is None:
             builder.join()
@@ -703,7 +907,7 @@ def main():
             return {b: [tests[b][i] for i in sorted(i for c, i in reached if c == b)] for b in bundles}
 
         retry = []
-        # Mutants every test outside the performance bundles let through: (k, m, seconds, tests).
+        # Mutants every Mac test outside the performance bundles let through: (k, m, seconds, tests).
         through = []
 
         def run(item, again=False):
@@ -744,7 +948,7 @@ def main():
                 count = sum(len(v) for v in chosen_tests.values())
                 tests = f"{count} selected tests" + (", then the rest" if ran or result is None else "")
             seconds = time.time() - began
-            if result is None and timed:
+            if result is None and (timed or simulated):
                 with lock:
                     through.append((k, m, seconds, tests))
                 return
@@ -755,8 +959,15 @@ def main():
         if retry:
             with ThreadPoolExecutor(max_workers=args.jobs) as pool:
                 list(pool.map(lambda item: run(item, again=True), retry))
-        if through:
-            run_timed(timed, sorted(through, key=lambda t: t[0]), record)
+        through.sort(key=lambda t: t[0])
+        if through and simulated:
+            through = run_simulated(simulated, args.module, mutants, through, record)
+        if timed:
+            if through:
+                run_timed(timed, through, record)
+        else:
+            for k, m, seconds, tests in through:
+                record(m, "survived", "", tests, seconds)
 
     # Every chosen mutant, in spec order, whether it ran now or was stored.
     ran_now = {m.name for _, m in stale}

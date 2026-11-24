@@ -16,10 +16,14 @@ swift/.swiftpm
 Benchmarks/.build
 Benchmarks/.swiftpm
 
-# The explorer, differential and fuzz packages build with SwiftPM too.
-Explore
-Differential/.build
+# The fuzz package builds with SwiftPM.
 Fuzz/.build
+
+# The differential package's SwiftPM build (`just diff --swiftpm`).
+Differential/.build
+
+# The browser explorer is a SwiftPM package; its build directory can contain BUILD files.
+Explore
 
 # Test catalogs (Tests/Catalogs/README.md): Python and generator inputs, never built.
 Tests/Catalogs

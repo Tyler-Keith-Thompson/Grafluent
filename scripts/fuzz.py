@@ -3,7 +3,8 @@
 
 The targets live in Fuzz/ (one per component, each checking against a simple model). Xcode's
 toolchain has no libFuzzer runtime, so they are built with a swift.org toolchain through swiftly
-(GRAFLUENT_FUZZ_SWIFT, default 6.3.3; `swiftly install 6.3.3` once).
+(<PROJECT>_FUZZ_SWIFT, the project's name in capitals, default 6.3.3; `swiftly install 6.3.3`
+once).
 
     python3 scripts/fuzz.py run                         # every target, 60 s each, all at once
     python3 scripts/fuzz.py run FuzzShortestPaths -t 600
@@ -22,6 +23,7 @@ then its file is deleted. `repro` replays one and also writes a minimized copy n
 import argparse
 import glob
 import os
+import runpy
 import shutil
 import subprocess
 import sys
@@ -32,10 +34,12 @@ from concurrent.futures import ThreadPoolExecutor
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FUZZ = os.path.join(ROOT, "Fuzz")
 BIN = os.path.join(FUZZ, ".build", "release")
-VERSION = os.environ.get("GRAFLUENT_FUZZ_SWIFT", "6.3.3")
+# The project's name, from the module graph (scripts/modules.py).
+PROJECT = runpy.run_path(os.path.join(ROOT, "scripts", "modules.py"))["PROJECT"]
+VERSION = os.environ.get(f"{PROJECT.upper()}_FUZZ_SWIFT", "6.3.3")
 
-# Common to every libFuzzer invocation. Inputs decode into operation sequences, so a few hundred
-# bytes is already a long sequence; longer inputs only slow each run. The default 2 GB memory
+# Common to every libFuzzer invocation. Inputs decode into choices (FuzzInput), so a few hundred
+# bytes is already a long sequence of operations; longer inputs only slow each run. The default 2 GB memory
 # limit stops long runs early.
 COMMON = ["-max_len=512", "-rss_limit_mb=4096", "-timeout=10", "-use_value_profile=1", "-print_final_stats=1"]
 
@@ -45,21 +49,23 @@ def targets():
 
 
 def build(products):
-    """Builds the chosen targets only, one product at a time when they are not all of them, so
-    a target another module has left broken does not stop the rest."""
+    """Builds the chosen targets (all of them by default) one product at a time, so a target
+    another module has left broken does not stop the rest. Building by product also leaves out
+    the dependencies' plugins, which swiftly's toolchain can fail to compile against a newer
+    Xcode's SDK."""
     swiftly = shutil.which("swiftly") or os.path.expanduser("~/.swiftly/bin/swiftly")
     # Resolve first: a package added to the library is otherwise missing from this package's
     # stale resolution ("no such module").
     subprocess.run([swiftly, "run", "swift", "package", "resolve", f"+{VERSION}"], cwd=FUZZ, capture_output=True)
     command = [swiftly, "run", "swift", "build", "-c", "release", "-Xswiftc", "-sanitize=fuzzer,address", f"+{VERSION}"]
-    for product in ([None] if products is None else products):
-        selected = command + (["--product", product] if product else [])
+    for product in (targets() if products is None else products):
+        selected = command + ["--product", product]
         result = subprocess.run(selected, cwd=FUZZ, capture_output=True, text=True)
         # The swift.org toolchain reads the newer SDK's interfaces with an argument it does not
         # know and falls back; the message is noise.
         lines = [l for l in (result.stdout + result.stderr).splitlines() if "-target-arch-variant" not in l]
         if result.returncode != 0:
-            sys.exit(f"The fuzz build{' of ' + product if product else ''} failed:\n"
+            sys.exit(f"The fuzz build of {product} failed:\n"
                      + "\n".join(l for l in lines if "error" in l or "warning" in l)[-4000:])
 
 

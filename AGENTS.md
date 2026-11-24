@@ -52,6 +52,7 @@ in beside the project's own: keep one definition, holding the project's rows, an
   `--simulator` and `--ios` options ship (`just modules` refuses the table without them).
   From the project template's checkout, `./template.py add <project> --simulator` brings them
   without an app.
+  `just mutate` runs a spec's simulator targets through Bazel (`scripts/mutate.py`).
 - Add an iOS app to this project: from the project template's checkout,
   `./template.py add <project> --ios` (after `just template-update`, if the stamp predates the
   option). It brings `Apps/Grafluent`, the test host, the simulator settings and `tools/ios.bzl`;
@@ -114,6 +115,8 @@ in beside the project's own: keep one definition, holding the project's rows, an
   code. A source that must not compile (a macro's diagnostic as the compiler reports it) is a
   `swift_compile_failure_test` (`tools/compile_failure_test.bzl`) in `Tests/CompileFailures`, a
   hand-written BUILD.bazel no Package.swift target holds, with a control that compiles.
+  A plugin takes planted bugs like a module (`scripts/mutants/<Plugin>.py`), with its expansion
+  tests as the spec's `TESTS`.
 - Add a command plugin (`swift package <verb>`): a row in `PLUGINS` (name, verb, description, and
   the reason it writes to the package directory, or `None` when it writes nothing there), its
   sources in `Plugins/<name>/` (an `@main` `CommandPlugin`), then `just modules`. Package.swift gets
@@ -126,6 +129,9 @@ in beside the project's own: keep one definition, holding the project's rows, an
   `APPLE_ONLY_PACKAGES` too: its products are linked on Apple platforms only, so the targets still
   build on Linux, and the code that uses them sits under `#if canImport(...)`.
 - Add a benchmark target: a row in `BENCHMARKS` (name, what it imports), then `just modules`.
+- A package that builds everywhere but WebAssembly (one on NIOPosix: Hummingbird, Vapor) goes in
+  `NON_WASI_PACKAGES` too: its products are linked on every other platform, so the package still
+  builds for wasm32-wasi, and the code that uses them sits under `#if canImport(...)`.
 - Raise the Swift floor (a dependency's manifest needs a newer Swift): set `SWIFT` (every
   manifest's tools version, CI's and the Docker image's Swift, the minimum the docs state) and
   `SWIFT_TOOLCHAIN` (the swift.org release swiftly installs where Xcode's toolchain falls short)
@@ -133,8 +139,11 @@ in beside the project's own: keep one definition, holding the project's rows, an
   replaces the previous ones in every other file that names them (`SWIFT_SITES`), from the record
   in `tools/swift_version.bzl`. Never edit a version in those files by hand. `just template-update`
   keeps the project's versions, and says when the template's have passed them.
+  The fuzz targets build with `SWIFT_TOOLCHAIN`.
+  `just wasi-test` builds with `SWIFT_TOOLCHAIN` and its WebAssembly SDK.
+  The explorer builds with `SWIFT_TOOLCHAIN` and its WebAssembly SDK.
   CI needs a `swift-bazel` image of the new version, published from the project template's
-  `ci-image/build.sh`.
+  `ci-image/build.sh`; with the explorer, `just modules` asks for docc.yml's `WASM_SDK_SHA256`.
 - A module name takes a `Module` suffix only when it would otherwise equal its main type's name
   (`AdjacencyListModule` holds `AdjacencyList`). No catch-all modules ("Core", "Utilities").
 
@@ -156,12 +165,12 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 | `just test-release` | `--config=release`: builds and runs only the `XPerformanceTests` targets |
 | `just spm-test`, `just verify` | SwiftPM tests; both build systems |
 | `just modules` | Regenerate build files from `scripts/modules.py` |
-| `just mutate <Module>` | Mutation testing from `scripts/mutants/<Module>.py`; reports survivors |
-| `just fuzz [Target] [-t secs]` | Time-boxed libFuzzer runs; `just fuzz-regress` replays corpora |
-| `just diff [--module X]` | Differential tests against NetworkX, scipy, rustworkx and igraph |
+| `just mutate <Module> [--all]` | Mutation testing from `scripts/mutants/<Module>.py`: every planted bug must be caught; reports survivors |
+| `just fuzz [Target] [-t secs]` | Time-boxed libFuzzer runs (60 s per target); `just fuzz-regress` replays corpora, `just fuzz-repro <target> <file>` a crash |
+| `just diff [--module X] [--cases N] [--seed S]` | Differential tests against NetworkX, scipy, rustworkx and igraph (pinned, through `uv`) |
 | `just bench [--target X]` | Benchmarks; `just bench-compare` against the `main` baseline |
 | `just bench-simulated-compare [--target X]` | Simulated counts (Callgrind in a Linux VM, from `~/workspace/BenchmarkHarness`) against the committed `simulated` baseline; `just bench-simulated [--target X]` re-records it. Both measure only targets whose code changed |
-| `just explore` | The browser explorer as release WebAssembly into `Explore/dist/` |
+| `just explore` | The browser explorer as release WebAssembly into `Explore/dist/`; the DocC workflow publishes it at `<pages>/explore/` |
 | `just wasi-test [-c release] [--targets X,Y]` | SwiftPM tests on wasm32-wasi under wasmtime: a 32-bit `Int` |
 | `just docs` | Combined DocC site into `.build/docs` |
 | `just generate` | Xcode project from the Bazel graph, in `xcode/` (out of the root, where `xcodebuild` would pick it over `Package.swift`) |
@@ -190,20 +199,38 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 
 watchOS's arm64_32 and wasm32 have a 32-bit `Int`. `just wasi-test` (`scripts/wasi_test.py`)
 builds the SwiftPM test targets with `swift build --build-tests --swift-sdk
-swift-6.3.3-RELEASE_wasm` through swiftly into `.build/wasm`, then runs each binary with
-`wasmtime run --dir . <binary> --testing-library swift-testing`, logs in
-`.build/wasm/logs`. Needs swiftly's 6.3.3 toolchain, its WebAssembly SDK (`swift sdk list`; the
-install command is in `Explore/README.md`) and `brew install wasmtime`. If the toolchain crashes
-on the manifest against a newer Xcode's SDK, pass `--xcode /Applications/Xcode-26.2.0.app` (as
+swift-6.3.3-RELEASE_wasm` through swiftly into `.build/wasm`, then runs each test binary (one
+`<Target>-test-runner.wasm` per target from Swift 6.4, one `GrafluentPackageTests.xctest` before)
+with `wasmtime run --dir . --dir <checkout>::<checkout> --argv0 <binary's path> <binary>
+--testing-library swift-testing`, logs in `.build/wasm/logs`. The checkout at its own path and the
+binary's path as `argv[0]` are where SwiftPM's `Bundle.module` looks for a module's resource bundle
+(an absolute build path in 6.3, beside `Bundle.main` from 6.4, which WASI's Foundation takes from
+`argv[0]`). Needs swiftly's 6.3.3 toolchain, its WebAssembly SDK (`swift sdk list`; the install
+command is in `Explore/README.md`) and `brew install wasmtime`. If the toolchain crashes on the
+manifest against a newer Xcode's SDK, pass `--xcode /Applications/Xcode-26.2.0.app` (as
 `EXPLORE_XCODE` does for `just explore`).
 
-- One binary of every target passes wasmtime's limit of a million functions, so targets run in
+- One binary of every target can pass wasmtime's limit of a million functions, so targets run in
   groups (`GRAFLUENT_WASI_TESTS` makes `Package.swift` declare only those).
 - Not run on WASI: files with exit tests (no child processes; the manifest leaves them out) and
-  the `*MapConcurrencyTests` (one thread, no `Thread`; `#if !os(WASI)`). On WASI a time
-  limit's timer holds the thread until it expires, after the body has run, so every
-  `.timeLimit` test reports its limit exceeded; the script runs tests in parallel (the timers
-  overlap) and reports the issues besides those.
+  anything needing threads, such as the `*MapConcurrencyTests` (`#if !os(WASI)`).
+- WASI runs every task on one thread, and a sleep that is cancelled still holds it until its
+  deadline. A time limit's timer is such a sleep: the body runs, but the timer then holds the
+  thread for the whole limit, so every `.timeLimit` test reports its limit exceeded. The script
+  counts only the issues besides those. Tests run in parallel, so the timers overlap; `--serial`
+  (Swift Testing's `--no-parallel`) costs each time-limited test its whole limit. A test that
+  cancels a real-clock sleep waits it out the same way.
+- Without wasm tail calls, an await that doesn't suspend deepens both stacks. The script links a
+  64 MB stack and gives wasmtime a 256 MB one, enough for a 10,000-deep chain of such awaits; a
+  deeper one traps or hangs on WASI alone.
+- Foundation on WASI drops the last character of a resource's file name when the lookup names a
+  subdirectory: `Bundle.module.url(forResource: "sample", withExtension: "txt", subdirectory:
+  "Fixtures")` returns `Fixtures/sample.tx`, which doesn't exist, and so do
+  `path(forResource:ofType:inDirectory:)`, `urls(forResourcesWithExtension:subdirectory:)` and a
+  name holding the directory. Look up the directory itself, then append the file:
+  `Bundle.module.url(forResource: "Fixtures", withExtension: nil)?.appending(path: "sample.txt")`.
+- A dependency that doesn't build for WASI (NIOPosix and what sits on it) fails the whole build:
+  list its package in `NON_WASI_PACKAGES` (see "Module graph").
 - A debug build traps in three groups with Swift 6.3.3's WebAssembly SDK: "indirect call type
   mismatch" in SpectralGraphTheory's Lanczos closures, and a `DirectedAcyclicGraph` insertion
   test whose `#expect` closure runs another closure's body. Neither shows natively or in a
@@ -218,8 +245,13 @@ on the manifest against a newer Xcode's SDK, pass `--xcode /Applications/Xcode-2
 - `just mutate X` re-runs only mutants whose code or tests changed (`--all` runs every one).
   Fix each survivor with a test, or prove it equivalent and remove it with a note in the spec
   file's header. A mutant that edits a comment survives silently; `nth=` counts comment matches.
-- Each module has a fuzz target in `Fuzz/`, built with the swift.org toolchain through swiftly.
-  A crash becomes a regression test.
+  A `stmt` mutant can't replace a `defer` (in the else block it would run when that block ends,
+  changing the unmutated build): mutate the statements inside it. Each test binary runs in an
+  empty directory of its own, so a mutant that turns an absolute path relative writes nowhere in
+  the checkout.
+- Each module has a fuzz target in `Fuzz/`, a SwiftPM package Bazel ignores, built with the
+  swift.org toolchain through swiftly (`swiftly install 6.3.3`; `Fuzz/README.md`). A crash becomes
+  a regression test, then its file is deleted.
 - `just diff` compares only answers that ties cannot change and validates returned paths and
   witnesses.
 
@@ -256,7 +288,7 @@ have.
 4. **Mutants** in `scripts/mutants/<Module>.py`. Run `just mutate <Module>` and kill every
    survivor or document it as equivalent in the spec header.
 5. **A differential comparison** in `just diff`, where NetworkX, igraph, scipy or rustworkx has the
-   function.
+   function. A failure becomes a test, then its file is deleted.
 6. **Fuzzing:** extend `Fuzz/Sources/Fuzz<Module>` with invariant checks, then run
    `just fuzz <Target> -t 60` and `just fuzz-regress`.
 7. **A benchmark** in `Benchmarks/Benchmarks/<Module>Benchmarks` (a row in `BENCHMARKS`, then
@@ -297,7 +329,7 @@ Watch for these:
 |---|---|
 | Any library code | `bazel test` for every target in `bazel query 'rdeps(//Tests/..., //Sources/X)'`, then `just test-release` |
 | A module's code or tests | `just mutate X`; `just fuzz-regress` for its targets; `just diff --module X` if it has a section |
-| Code using `Int` arithmetic that could overflow | `just wasi-test -c release --targets XTests` (a 32-bit `Int`) |
+| Code using `Int` arithmetic that could overflow, or anything platform-conditional | `just wasi-test -c release --targets XTests` (a 32-bit `Int`) |
 | `Benchmarks/`, or an API the benchmarks call | `cd Benchmarks && env -u TOOLCHAINS xcrun --toolchain default swift build -c release` |
 | `Explore/` | `EXPLORE_XCODE=/Applications/Xcode-26.2.0.app just explore`, then check the pages in headless Chrome at 1280 and 400 px |
 

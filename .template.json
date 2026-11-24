@@ -1,8 +1,13 @@
 {
-  "commit": "16da3d6d7c7274bbad5e0e11f48852854bb2fcda",
+  "commit": "ee10cfdb85b60db2a4ad9849799292cc5b4f250e",
   "name": "Grafluent",
   "type": "library",
   "benchmarks": true,
   "fly": false,
-  "database": false
+  "database": false,
+  "mutation": true,
+  "fuzz": true,
+  "differential": true,
+  "wasm": true,
+  "explore": true
 }

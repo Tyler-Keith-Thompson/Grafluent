@@ -53,6 +53,13 @@ PACKAGES = [
 # `#if canImport`. //:package_swift_test leaves their products out of its comparison.
 APPLE_ONLY_PACKAGES = []
 
+# Packages that build everywhere but WebAssembly (those on NIOPosix, such as Hummingbird or Vapor), by
+# identity. SwiftPM links their products on every other platform (`.when(platforms:)`), so the
+# package still builds for wasm32-wasi, where the code using them is left out by `#if canImport`.
+# Bazel never builds for WASI, so it links them everywhere, and //:package_swift_test leaves their
+# products out of its comparison.
+NON_WASI_PACKAGES = []
+
 # Test targets with nothing to run off Apple platforms (all their tests under `#if os(macOS)`), by
 # name. Bazel runs them on macOS alone: elsewhere they are incompatible, so `bazel test //...` skips
 # them, where a test binary that ran no tests would fail. SwiftPM still builds them, empty, on Linux.
@@ -319,6 +326,10 @@ RELEASE_EXCLUDED_TAG = "debug-only"
 # the run turns serial.
 SIMULATOR_TEST_TAG = "resources:simulator:1"
 
+# The library modules the differential harness (Differential/, scripts/differential.py) links.
+# Both its Package.swift and its BUILD.bazel are written from this list.
+DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "ParallelCentrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Planarity", "Similarity", "Assortativity", "Traversal", "GraphOperations", "NamedGraphs", "RandomGraphs", "IsomorphismModule", "GraphDrawing", "SpectralGraphTheory", "GraphFormats"]
+
 # The Benchmarks/ package's targets: (name, what it imports). Both its Package.swift and its
 # BUILD.bazel are written from this list. Each target is an ordo-one/benchmark executable in
 # Benchmarks/Benchmarks/<name>; its Bazel target (tools/benchmarks.bzl) caches its simulated counts,
@@ -396,6 +407,9 @@ MACOS_MINIMUM = "15.0"
 # swift:<SWIFT> and swift-bazel:<SWIFT>-<bazel> images, the Docker image's base and the minimum the
 # docs state. SWIFT_TOOLCHAIN is the swift.org release swiftly installs where Xcode's toolchain falls
 # short.
+# The fuzz targets build with it.
+# just wasi-test builds with it and its WebAssembly SDK.
+# The explorer builds with it and its WebAssembly SDK.
 # To raise the floor, change both and run `just modules`: it writes them into the generated
 # manifests and replaces the previous ones in SWIFT_SITES. CI needs a swift-bazel image of the new
 # version (the project template's ci-image/build.sh publishes them).
@@ -410,7 +424,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SWIFT_SITES = [
     "Fuzz/Package.swift", "Explore/Package.swift", "Examples/Package.swift",
     ".github/workflows/*.yml", "Dockerfile", "justfile",
-    "scripts/fuzz.py", "Explore/build.sh", "tools/embedded-swift", "tools/swift_rules.bzl",
+    "scripts/wasi_test.py", "scripts/fuzz.py", "Explore/build.sh", "tools/embedded-swift", "tools/swift_rules.bzl",
     "README.md", "AGENTS.md", ".github/README.md", ".github/docs/*.md", "Fuzz/README.md", "Explore/README.md", "Examples/README.md",
 ]
 
@@ -469,11 +483,6 @@ def replace_swift(root, old, new):
 def performance_target(name):
     """The speed-reliant target split from test target `name`: FlowsTests -> FlowsPerformanceTests."""
     return name.removesuffix("Tests") + "PerformanceTests"
-
-
-# The library modules the differential harness (Differential/, scripts/differential.py) links.
-# Both its Package.swift and its BUILD.bazel are written from this list.
-DIFFERENTIAL_DEPENDENCIES = ["GraphProtocols", "AdjacencyListModule", "ShortestPaths", "SpanningTrees", "Connectivity", "Walks", "Cycles", "Trees", "TreeAlgorithms", "Distances", "Cliques", "Centrality", "ParallelCentrality", "CommunityDetection", "BipartiteGraphs", "MatchingModule", "Covering", "ColoringModule", "Multigraphs", "Flows", "Tours", "CompressedSparseRowModule", "DirectedAcyclicGraphModule", "Planarity", "Similarity", "Assortativity", "Traversal", "GraphOperations", "NamedGraphs", "RandomGraphs", "IsomorphismModule", "GraphDrawing", "SpectralGraphTheory", "GraphFormats"]
 
 
 def duplicate_definitions():
@@ -595,6 +604,9 @@ def check():
                 "such as range:603.0.0..<605.0.0")
             assert semantic_version(lower) < semantic_version(upper), \
                 f"PACKAGES gives {name} {version!r}, whose lower bound isn't below its upper"
+    for name in NON_WASI_PACKAGES:
+        assert name in packages, f"NON_WASI_PACKAGES names unknown package {name}"
+        assert name not in APPLE_ONLY_PACKAGES, f"{name} is Apple-only, which already leaves WASI out"
     for name, deps in [(m[0], m[3]) for m in MODULES + MACROS] + [(e[0], e[2]) for e in EXECUTABLES]:
         for d in deps:
             if "/" in d:
@@ -672,6 +684,8 @@ def check():
                 assert d not in EXAMPLE_MODULES, f"benchmark {name} imports the example module {d}, which has no product"
     for name in BENCHMARK_DATA:
         assert name in [b[0] for b in BENCHMARKS], f"BENCHMARK_DATA names unknown benchmark {name}"
+    for d in DIFFERENTIAL_DEPENDENCIES:
+        assert d in names, f"DIFFERENTIAL_DEPENDENCIES names unknown module {d}"
 
 
 def macro_names():
@@ -705,7 +719,8 @@ def simulator_label(name):
 def spm_dep(d):
     if "/" in d:
         package, product = d.split("/")
-        condition = ", condition: .when(platforms: applePlatforms)" if package in APPLE_ONLY_PACKAGES else ""
+        condition = (", condition: .when(platforms: applePlatforms)" if package in APPLE_ONLY_PACKAGES
+                     else ", condition: .when(platforms: nonWASIPlatforms)" if package in NON_WASI_PACKAGES else "")
         return f'.product(name: "{product}", package: "{package}"{condition})'
     return f'"{d}"'
 
@@ -886,16 +901,17 @@ def exclude_arg(path):
 
 
 def exit_test_files(directory, excludes):
-    """Swift files under `directory` (outside `excludes`) that contain an exit test, as a Swift array literal."""
-    found = []
+    """Swift files under `directory` (outside `excludes`) holding an exit test, as a Swift array literal."""
     root = os.path.join(ROOT, directory)
-    for path in sorted(glob.glob(os.path.join(root, "**", "*.swift"), recursive=True)):
-        rel = os.path.relpath(path, root).replace(os.sep, "/")
-        if any(rel.startswith(e) for e in excludes):
-            continue
-        with open(path, encoding="utf-8") as file:
-            if "processExitsWith" in file.read():
-                found.append(rel)
+    found = []
+    for folder, _, files in sorted(os.walk(root)):
+        for file in sorted(files):
+            rel = os.path.relpath(os.path.join(folder, file), root)
+            if not file.endswith(".swift") or any(rel.startswith(e) for e in excludes):
+                continue
+            with open(os.path.join(folder, file), encoding="utf-8") as f:
+                if "processExitsWith" in f.read():
+                    found.append(rel)
     return "[" + ", ".join(f'"{f}"' for f in found) + "]"
 
 
@@ -915,7 +931,7 @@ def package_swift():
         "",
         f"// The WebAssembly test run (scripts/wasi_test.py) sets {PROJECT.upper()}_WASI_TESTS to a comma-separated",
         "// list of test targets: the package then declares only those, as one binary of every target",
-        "// passes wasmtime's limit of a million functions, and leaves out each test file with an exit",
+        "// can pass wasmtime's limit of a million functions, and leaves out each test file with an exit",
         "// test, since WASI cannot start a child process. Unset, nothing changes.",
         f'let wasiTests = Context.environment["{PROJECT.upper()}_WASI_TESTS"].map {{ Set($0.split(separator: ",").map(String.init)) }}',
         "",
@@ -928,6 +944,16 @@ def package_swift():
         lines += [
             "// Where the Apple-only packages' products are linked (APPLE_ONLY_PACKAGES in scripts/modules.py).",
             "let applePlatforms: [Platform] = [.macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS]",
+            "",
+        ]
+    if NON_WASI_PACKAGES:
+        lines += [
+            "// Where the packages that don't build for WebAssembly have their products linked: every",
+            "// platform but WASI (NON_WASI_PACKAGES in scripts/modules.py).",
+            "let nonWASIPlatforms: [Platform] = [",
+            "    .macOS, .macCatalyst, .iOS, .tvOS, .watchOS, .visionOS, .driverKit,",
+            "    .linux, .windows, .android, .openbsd,",
+            "]",
             "",
         ]
     lines += [
@@ -989,8 +1015,7 @@ def package_swift():
         dl = ", ".join(spm_dep(d) for d in deps)
         files = excluded(f"Tests/{name}")
         ex = "[" + ", ".join(f'"{f}"' for f in files) + "]" if files != ["BUILD.bazel"] else "bazelFiles"
-        wasi = exit_test_files(f"Tests/{name}", files)
-        lines.append(f'    .testTarget(name: "{name}", dependencies: [{dl}], exclude: testExcludes({ex}, wasi: {wasi}){resources_arg(name)}),')
+        lines.append(f'    .testTarget(name: "{name}", dependencies: [{dl}], exclude: testExcludes({ex}, wasi: {exit_test_files(f"Tests/{name}", files)}){resources_arg(name)}),')
     if PERFORMANCE_TESTS:
         lines += [
             "",
@@ -999,8 +1024,7 @@ def package_swift():
         for name, deps in TEST_TARGETS:
             if name in PERFORMANCE_TESTS:
                 dl = ", ".join(spm_dep(d) for d in deps)
-                wasi = exit_test_files(f"Tests/{name}/Performance", [])
-                lines.append(f'    .testTarget(name: "{performance_target(name)}", dependencies: [{dl}], path: "Tests/{name}/Performance", exclude: testExcludes([], wasi: {wasi}){resources_arg(performance_target(name))}),')
+                lines.append(f'    .testTarget(name: "{performance_target(name)}", dependencies: [{dl}], path: "Tests/{name}/Performance", exclude: testExcludes([], wasi: {exit_test_files(f"Tests/{name}/Performance", [])}){resources_arg(performance_target(name))}),')
     lines += [
         "]",
         "",
@@ -1189,6 +1213,48 @@ def macros_bzl():
         "# The source packages that hold a compiler plugin rather than a library: the root BUILD.bazel\n"
         "# leaves them out of the docs and the products.\n"
         f"MACRO_PACKAGES = [\n{packages}]\n"
+    )
+
+
+def differential_package_swift():
+    deps = ", ".join(f'"{d}"' for d in DIFFERENTIAL_DEPENDENCIES)
+    return (
+        f"// swift-tools-version: {SWIFT}\n"
+        "import PackageDescription\n\n"
+        "// GENERATED by scripts/modules.py (DIFFERENTIAL_DEPENDENCIES): edit the list there, then run `just modules`.\n"
+        "//\n"
+        "// Differential testing: this executable answers a batch of cases with the library, and\n"
+        "// scripts/differential.py asks reference implementations the same questions and compares. In\n"
+        "// its own package so the library never depends on Foundation's JSON coding.\n"
+        "// `just diff` builds it through Bazel (Differential/BUILD.bazel); this package is the\n"
+        "// `--swiftpm` fallback. See Differential/README.md.\n\n"
+        "// SwiftPM names a package at a path by its directory, whatever the checkout is called.\n"
+        "let library = String(#filePath.split(separator: \"/\").dropLast(2).last!)\n"
+        f"let products: [Target.Dependency] = [{deps}].map {{ .product(name: $0, package: library) }}\n\n"
+        "let package = Package(\n"
+        f'    name: "{PROJECT}Differential",\n'
+        "    platforms: [.macOS(.v15)],\n"
+        '    dependencies: [.package(path: "..")],\n'
+        f'    targets: [.executableTarget(name: "{PROJECT}Differential", dependencies: products)]\n'
+        ")\n"
+    )
+
+
+def differential_build_bazel():
+    dl = "".join(f'        "{bazel_label(d)}",\n' for d in DIFFERENTIAL_DEPENDENCIES)
+    return (
+        "# GENERATED by scripts/modules.py (DIFFERENTIAL_DEPENDENCIES): edit the list there, then run\n"
+        "# `just modules`.\n\n"
+        'load("//tools:swift_rules.bzl", "swift_binary")\n\n'
+        "# The library side of `just diff` (scripts/differential.py builds it with --config=release).\n"
+        "# `manual` keeps it out of `bazel build //...`.\n"
+        "swift_binary(\n"
+        f'    name = "{PROJECT}Differential",\n'
+        f'    srcs = glob(["Sources/{PROJECT}Differential/**/*.swift"]),\n'
+        f'    module_name = "{PROJECT}Differential",\n'
+        f"    deps = [\n{dl}    ],\n"
+        '    tags = ["manual"],\n'
+        ")\n"
     )
 
 
@@ -1444,47 +1510,6 @@ def examples_bzl():
     )
 
 
-def differential_package_swift():
-    deps = ", ".join(f'"{d}"' for d in DIFFERENTIAL_DEPENDENCIES)
-    return (
-        f"// swift-tools-version: {SWIFT}\n"
-        "import PackageDescription\n\n"
-        "// GENERATED by scripts/modules.py (DIFFERENTIAL_DEPENDENCIES): edit the list there, then run `just modules`.\n"
-        "//\n"
-        "// Differential testing against NetworkX, scipy, rustworkx and igraph: this executable answers a\n"
-        "// batch of queries with the library, and scripts/differential.py asks the reference libraries\n"
-        "// the same questions and compares. In its own package so the library never depends on\n"
-        "// Foundation's JSON coding.\n"
-        "// `just diff` builds it through Bazel (Differential/BUILD.bazel); this package is the\n"
-        "// `--swiftpm` fallback. See Differential/README.md.\n\n"
-        f"let products: [Target.Dependency] = [{deps}].map {{ .product(name: $0, package: \"Grafluent\") }}\n\n"
-        "let package = Package(\n"
-        '    name: "GrafluentDifferential",\n'
-        "    platforms: [.macOS(.v15)],\n"
-        '    dependencies: [.package(path: "..")],\n'
-        '    targets: [.executableTarget(name: "GrafluentDifferential", dependencies: products)]\n'
-        ")\n"
-    )
-
-
-def differential_build_bazel():
-    dl = "".join(f'        "{bazel_label(d)}",\n' for d in DIFFERENTIAL_DEPENDENCIES)
-    return (
-        "# GENERATED by scripts/modules.py (DIFFERENTIAL_DEPENDENCIES) — edit the list there, then run\n"
-        "# `just modules`.\n\n"
-        'load("//tools:swift_rules.bzl", "swift_binary")\n\n'
-        "# The library side of `just diff` (scripts/differential.py builds it with --config=release).\n"
-        "# `manual` keeps it out of `bazel build //...`.\n"
-        "swift_binary(\n"
-        '    name = "GrafluentDifferential",\n'
-        '    srcs = glob(["Sources/GrafluentDifferential/**/*.swift"]),\n'
-        '    module_name = "GrafluentDifferential",\n'
-        f"    deps = [\n{dl}    ],\n"
-        '    tags = ["manual"],\n'
-        ")\n"
-    )
-
-
 def library_directories():
     """Every non-test target directory the root Package.swift declares."""
     directories = [f"Sources/{m[0]}" for m in package_modules()] + [f"Sources/{e[0]}" for e in EXECUTABLES] + [f"Sources/{name}" for name in macro_names()]
@@ -1610,7 +1635,14 @@ def main():
                  "can merge a second copy in); keep one, holding this project's rows, and delete the other")
     check()
     # Before the record is rewritten: it names the versions the sites hold now.
-    replace_swift(ROOT, recorded_swift(ROOT) or (SWIFT, SWIFT_TOOLCHAIN), (SWIFT, SWIFT_TOOLCHAIN))
+    for path in replace_swift(ROOT, recorded_swift(ROOT) or (SWIFT, SWIFT_TOOLCHAIN), (SWIFT, SWIFT_TOOLCHAIN)):
+        if not path.endswith(".yml"):
+            continue
+        with open(path) as file:
+            if "WASM_SDK_SHA256" in file.read():
+                # A checksum can't be derived from the version; swift.org publishes it with the SDK.
+                print(f"{os.path.relpath(path, ROOT)}: WASM_SDK_URL now names Swift {SWIFT_TOOLCHAIN}'s WebAssembly SDK; "
+                      "set WASM_SDK_SHA256 to its checksum (swift.org's install page lists it)", file=sys.stderr)
     write(os.path.join(ROOT, "tools", "swift_version.bzl"), swift_version_bzl())
     for name, _, description, deps in MODULES:
         d = os.path.join(ROOT, "Sources", name)

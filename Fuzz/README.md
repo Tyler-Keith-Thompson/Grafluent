@@ -80,7 +80,8 @@ target has an `@main` that calls `runFuzzer`, which starts libFuzzer through
 
 ## Adding a target
 
-Add a directory `Sources/Fuzz<Name>/` with an `@main` enum calling `runFuzzer`, and a line in
-`Package.swift`. Check against a model simple enough to be obviously right, check after every
-operation, keep values small (vertices 0..<10, priorities 0..<8) so collisions and ties are common,
-and include a snapshot copy to catch copy-on-write bugs.
+Add a directory `Sources/Fuzz<Name>/` with an `@main` enum calling `runFuzzer`, a line in
+`Package.swift` naming the modules it imports (their SwiftPM products), and a row in the table
+above. Check against a model simple enough to be obviously right, check after every operation,
+keep values small (vertices 0..<10, priorities 0..<8) so collisions and ties are common, and
+include a snapshot copy to catch copy-on-write bugs.

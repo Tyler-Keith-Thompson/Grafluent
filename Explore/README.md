@@ -112,7 +112,7 @@ Nothing is loaded from another host except the Google Fonts stylesheet.
 
 If the swift.org toolchain crashes compiling a package manifest against a newer Xcode's macOS SDK,
 point the build at an older Xcode: `EXPLORE_XCODE=/Applications/Xcode-26.2.0.app just explore`.
-`GRAFLUENT_EXPLORE_SWIFT` and `GRAFLUENT_EXPLORE_SDK` choose another toolchain version and SDK.
+`EXPLORE_SWIFT` and `EXPLORE_SDK` choose another toolchain version and SDK.
 
 ## Serve
 

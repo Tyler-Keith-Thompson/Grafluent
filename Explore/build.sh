@@ -5,8 +5,8 @@
 set -eu
 
 HERE=$(cd "$(dirname "$0")" && pwd)
-VERSION=${GRAFLUENT_EXPLORE_SWIFT:-6.3.3}
-SDK=${GRAFLUENT_EXPLORE_SDK:-swift-$VERSION-RELEASE_wasm}
+VERSION=${EXPLORE_SWIFT:-6.3.3}
+SDK=${EXPLORE_SDK:-swift-$VERSION-RELEASE_wasm}
 SWIFTLY=$(command -v swiftly || echo "$HOME/.swiftly/bin/swiftly")
 # PackageToJS writes here by default; its plugin sandbox allows no other path in the package.
 OUT="$HERE/.build/plugins/PackageToJS/outputs/Package"

@@ -5,10 +5,13 @@ import PackageDescription
 // Xcode's toolchain does not ship libFuzzer; `just fuzz` builds these with a swift.org toolchain
 // installed by swiftly. See Fuzz/README.md.
 
+// SwiftPM names a package at a path by its directory, whatever the checkout is called.
+let library = String(#filePath.split(separator: "/").dropLast(2).last!)
+
 func target(_ name: String, _ modules: [String]) -> Target {
     .executableTarget(
         name: name,
-        dependencies: ["FuzzSupport"] + modules.map { .product(name: $0, package: "Grafluent") }
+        dependencies: ["FuzzSupport"] + modules.map { .product(name: $0, package: library) }
     )
 }
 

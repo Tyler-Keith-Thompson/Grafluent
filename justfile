@@ -67,7 +67,7 @@ docs:
     rm -rf {{PROJECT_ROOT}}/.build/docs && mkdir -p {{PROJECT_ROOT}}/.build
     cp -RL {{PROJECT_ROOT}}/bazel-bin/docs {{PROJECT_ROOT}}/.build/docs && chmod -R u+w {{PROJECT_ROOT}}/.build/docs
 
-[doc('Build the browser explorer (Explore/) as size-optimized release WebAssembly into Explore/dist')]
+[doc('Build the browser explorer (Explore/) as size-optimized release WebAssembly into Explore/dist; EXPLORE_XCODE=/Applications/Xcode-<older>.app if the toolchain crashes on a newer SDK')]
 explore:
     {{PROJECT_ROOT}}/Explore/build.sh
 
@@ -75,7 +75,7 @@ explore:
 wasi-test *args="":
     python3 -u {{PROJECT_ROOT}}/scripts/wasi_test.py {{args}}
 
-[doc('Fuzz with libFuzzer, time-boxed, e.g. just fuzz, or just fuzz FuzzShortestPaths -t 600')]
+[doc('Fuzz with libFuzzer, time-boxed (a swift.org toolchain through swiftly; Fuzz/README.md), e.g. just fuzz, or just fuzz FuzzShortestPaths -t 600')]
 fuzz *args="":
     python3 {{PROJECT_ROOT}}/scripts/fuzz.py run {{args}}
 
@@ -87,7 +87,7 @@ fuzz-regress *args="":
 fuzz-repro target input:
     python3 {{PROJECT_ROOT}}/scripts/fuzz.py repro {{target}} {{input}}
 
-[doc('Differential testing against NetworkX, scipy, rustworkx and igraph, built through Bazel (-O); --module X (repeatable) compares one module only, e.g. just diff, just diff --module Coloring, or just diff --cases 20000 --seed 7')]
+[doc('Differential testing against NetworkX, scipy, rustworkx and igraph (Differential/README.md; needs uv), built through Bazel (-O); --module X (repeatable) compares one module only, e.g. just diff, just diff --module Coloring, or just diff --cases 20000 --seed 7')]
 diff *args="":
     python3 {{PROJECT_ROOT}}/scripts/differential.py {{args}}
 
@@ -151,6 +151,9 @@ clean:
     {{BAZEL}} clean
     {{BAZEL_RELEASE}} clean || true
     rm -rf {{PROJECT_ROOT}}/.build
+    rm -rf {{PROJECT_ROOT}}/Fuzz/.build
+    rm -rf {{PROJECT_ROOT}}/Differential/.build
+    rm -rf {{PROJECT_ROOT}}/Explore/.build {{PROJECT_ROOT}}/Explore/dist
 
 [doc('Print the dependency graph of a target')]
 deps target="//Sources/Grafluent":

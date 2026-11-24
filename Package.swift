@@ -11,7 +11,7 @@ let bazelFiles = ["BUILD.bazel"]
 
 // The WebAssembly test run (scripts/wasi_test.py) sets GRAFLUENT_WASI_TESTS to a comma-separated
 // list of test targets: the package then declares only those, as one binary of every target
-// passes wasmtime's limit of a million functions, and leaves out each test file with an exit
+// can pass wasmtime's limit of a million functions, and leaves out each test file with an exit
 // test, since WASI cannot start a child process. Unset, nothing changes.
 let wasiTests = Context.environment["GRAFLUENT_WASI_TESTS"].map { Set($0.split(separator: ",").map(String.init)) }
 
