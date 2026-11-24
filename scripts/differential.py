@@ -28,6 +28,7 @@ A failing case is written to Differential/Failures/ as JSON for a regression tes
 """
 
 import argparse
+import hashlib
 from fractions import Fraction
 from collections import defaultdict
 import math
@@ -84,8 +85,11 @@ CASE_TIMEOUT = 5
 MAX_ISOLATED = 5
 SWIFT = ["env", "-u", "TOOLCHAINS", "xcrun", "--toolchain", "default", "swift"]
 # The justfile's BAZEL_RELEASE: optimized builds keep their own output base, so switching to
-# --config=release does not discard the debug analysis cache.
-BAZEL_RELEASE = ["bazel", f"--output_base={os.path.expanduser('~')}/Library/Caches/bazel-grafluent-release"]
+# --config=release does not discard the debug analysis cache. One per checkout, named as the
+# justfile names it (BAZEL_RELEASE_OUTPUT_BASE), so the two share it.
+BAZEL_RELEASE = ["bazel", "--output_base=" + os.path.join(
+    os.path.expanduser("~"), "Library", "Caches", "bazel", "_bazel_" + os.environ.get("USER", "root"),
+    hashlib.sha256((ROOT + ":release").encode()).hexdigest()[:32])]
 BAZEL_TARGET = "//Differential:GrafluentDifferential"
 
 # Library module -> the section of Differential/main.swift that answers for it.

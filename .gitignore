@@ -1,5 +1,6 @@
-# Agent worktrees are checkouts of this same repo.
+# Agent worktrees are checkouts of this same repo: Claude Code's, and Delta's clones and worktrees.
 .claude/worktrees/
+.delta/
 
 # Bazel
 /bazel-*
@@ -20,7 +21,7 @@
 /Sources/Grafluent/Grafluent.docc/Extensions/
 
 # Xcode (generated from the Bazel graph by `just generate`)
-/Grafluent.xcodeproj/
+/xcode/
 xcuserdata/
 
 # macOS

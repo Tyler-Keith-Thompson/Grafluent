@@ -3,8 +3,11 @@ BAZEL := "bazel"
 
 # Optimized builds use a separate output base: switching --compilation_mode changes the
 # configuration, and sharing a base with debug builds would discard the analysis cache on every
-# switch (which .bazelrc refuses).
-BAZEL_RELEASE := "bazel --output_base=" + home_directory() + "/Library/Caches/bazel-grafluent-release"
+# switch (which .bazelrc refuses). Each checkout gets its own, so two never wait on one server's
+# lock or overwrite each other's outputs. It sits in Bazel's output user root under a 32-digit hex
+# name like the debug base's, where tools/sweep-output-bases deletes it once its checkout is gone.
+BAZEL_RELEASE_OUTPUT_BASE := cache_directory() / "bazel" / ("_bazel_" + env("USER", "root")) / replace_regex(sha256(PROJECT_ROOT + ":release"), '^(.{32}).*$', '$1')
+BAZEL_RELEASE := "bazel --output_base=" + BAZEL_RELEASE_OUTPUT_BASE
 
 # SwiftPM runs through Xcode's default toolchain. A development snapshot selected through
 # TOOLCHAINS (or first on PATH via swiftly) can fail to read the SDK's Testing module.

@@ -180,6 +180,8 @@ SwiftPM builds the same targets.
 `Package.swift` and every `BUILD.bazel` are generated from `scripts/modules.py`. Edit the module
 table there and run `just modules`.
 
+`AGENTS.md` describes the layout, the workflow and the house rules in full.
+
 ## License
 
 Apache 2.0. See [LICENSE](LICENSE).

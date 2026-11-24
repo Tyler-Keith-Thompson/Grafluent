@@ -1,5 +1,7 @@
-# Agent worktrees are checkouts of this same repo, so `//...` would otherwise expand into every one.
+# Agent worktrees (Claude Code's under .claude, Delta's under .delta) are checkouts of this same
+# repo, so `//...` would otherwise expand into every one.
 .claude
+.delta
 
 # SwiftPM build directories can contain BUILD files, which Bazel would otherwise try to load.
 .build
@@ -7,11 +9,7 @@
 swift/.build
 swift/.swiftpm
 
-# Convenience symlinks.
-bazel-Grafluent
-bazel-bin
-bazel-out
-bazel-testlogs
+# The convenience symlinks (bazel-*) are ignored by glob in REPO.bazel.
 
 # The benchmark package's SwiftPM build. Bazel loads only Benchmarks/BUILD.bazel, which caches
 # the simulated counts (tools/benchmarks.bzl).
