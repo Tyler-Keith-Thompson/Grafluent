@@ -8,6 +8,7 @@
 // edge, each edge taken once plus once per listing in `duplicatedEdges`, each step along its edge.
 // Conditions are computed into a constant before `#expect` (README.md).
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -22,7 +23,7 @@ struct ChinesePostmanPropertyTests {
     func undirected() async {
         let raw = zip(Gen.int(in: 0 ... 6), zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 9))).array(of: 0 ... 10)
         await propertyCheck(count: 400, input: raw, Gen.int(in: 1 ... 7), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = Array(0 ..< n).shuffled(using: &rng)
             let ends = raw.map { ($0.0 % n, $0.1.0 % n) }
             let weights = raw.map { $0.1.1 }
@@ -136,7 +137,7 @@ struct ChinesePostmanPropertyTests {
     func directed() async {
         let raw = zip(Gen.int(in: 0 ... 4), zip(Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 9))).array(of: 0 ... 9)
         await propertyCheck(count: 400, input: raw, Gen.int(in: 1 ... 5), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = Array(0 ..< n).shuffled(using: &rng)
             var ends = raw.map { ($0.0 % n, $0.1.0 % n) }
             // Every other seed closes the arcs into a cycle through their ends, so most graphs are

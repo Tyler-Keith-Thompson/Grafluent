@@ -4,6 +4,7 @@
 // count matrix–vector products; below 5,000 vertices each throws with exactly the limit. Below 64
 // vertices λ₂ and ρ come from the dense solver, which does not read `maxIterations`. See README.md.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import SpectralGraphTheory
@@ -65,7 +66,7 @@ struct SpectralNoConvergenceTests {
         }
         // Lanczos on A: the Ritz residual relative to ρ.
         let n = 100
-        var rng = SeededRandomNumberGenerator(seed: 11)
+        var rng = Xoroshiro128Plus(seed: 11)
         let edges = (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) } + (0 ..< n).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
         let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
         for limit in [1, 7] {
@@ -153,7 +154,7 @@ struct SpectralNoConvergenceTests {
     func spectralRadius() throws {
         // A random graph on 100 vertices: no symmetry closes the Krylov space early.
         let n = 100
-        var rng = SeededRandomNumberGenerator(seed: 11)
+        var rng = Xoroshiro128Plus(seed: 11)
         let edges = (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) } + (0 ..< n).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
         let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
         let ints = edges.indices.map { $0 % 3 + 1 }

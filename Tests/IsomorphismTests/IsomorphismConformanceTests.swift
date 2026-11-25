@@ -13,6 +13,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import IsomorphismModule
@@ -24,7 +25,7 @@ import Testing
 struct IsomorphismConformanceTests {
     @Test("Undirected: every representation, alone and mixed, gives the reference's mappings in all three problems", .tags(.randomized), arguments: 0 ..< 16)
     func undirectedRepresentations(seed: Int) {
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         // A graph on 0..<7 (self-loops on odd seeds), a relabelled copy, and a pattern on 3 or 4 vertices.
         let n = 7, k = 3 + seed % 2
         var pairs: [[Int]] = []
@@ -100,7 +101,7 @@ struct IsomorphismConformanceTests {
 
     @Test("Directed: every representation, alone and mixed, gives the reference's mappings in all three problems", .tags(.randomized), arguments: 0 ..< 16)
     func directedRepresentations(seed: Int) {
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 6, k = 3
         var arcs: [[Int]] = []
         for u in 0 ..< n {
@@ -175,7 +176,7 @@ struct IsomorphismConformanceTests {
 
     @Test("Multigraphs: Pseudograph, DirectedPseudograph.undirectedView and Multigraph agree with parallel edges, self-loops and edge colours", .tags(.randomized), arguments: 0 ..< 16)
     func multigraphRepresentations(seed: Int) {
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 5, k = 3
         let loops = seed % 2 == 1
         func randomPairs(_ count: Int, _ size: Int) -> [[Int]] {
@@ -231,7 +232,7 @@ struct IsomorphismConformanceTests {
 
     @Test("An undirected graph's directed view (each edge as two arcs) has the same mappings in all three problems", .tags(.randomized), arguments: 0 ..< 16)
     func directedViewOfUndirected(seed: Int) {
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 5, k = 3
         let edges = (0 ..< 7).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
         let permutation = Array(0 ..< n).shuffled(using: &rng)
@@ -250,7 +251,7 @@ struct IsomorphismConformanceTests {
 
     @Test("Relabelled copies: renaming the target's vertices (as Strings) moves every mapping, renaming the pattern's reorders it; colours move along", .tags(.randomized), arguments: 0 ..< 16)
     func relabelledCopies(seed: Int) {
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 6, k = 4
         let edges = (0 ..< 9).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
         let patternEdges = (0 ..< 4).map { _ in UndirectedEdge(Int.random(in: 0 ..< k, using: &rng), Int.random(in: 0 ..< k, using: &rng)) }
@@ -291,7 +292,7 @@ struct IsomorphismConformanceTests {
 
     @Test("Weisfeiler–Leman hashes: equal across representations and relabelled copies, per vertex too", .tags(.randomized), arguments: 0 ..< 16)
     func weisfeilerLehmanAcrossRepresentations(seed: Int) {
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 9
         var pairs: [[Int]] = []
         for u in 0 ..< n {

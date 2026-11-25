@@ -2,6 +2,7 @@ import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
 import Centrality
+import Generators
 import GraphProtocols
 
 /// Brandes by hand over flat rows with predecessor lists: the baseline for
@@ -137,11 +138,11 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(small.edgeBetweennessCentrality(weight: { $0 % 7 + 1 })) }
     }
     Benchmark("Centrality: betweennessCentrality(pivotCount: 200), G(2000, 10⁴)") { benchmark in
-        var generator = SeededRandomNumberGenerator(seed: 5)
+        var generator = Xoroshiro128Plus(seed: 5)
         for _ in benchmark.scaledIterations { blackHole(small.betweennessCentrality(pivotCount: 200, using: &generator)) }
     }
     Benchmark("Centrality: edgeBetweennessCentrality(pivotCount: 200), G(2000, 10⁴)") { benchmark in
-        var generator = SeededRandomNumberGenerator(seed: 5)
+        var generator = Xoroshiro128Plus(seed: 5)
         for _ in benchmark.scaledIterations { blackHole(small.edgeBetweennessCentrality(pivotCount: 200, using: &generator)) }
     }
     Benchmark("Centrality: closenessCentrality(), G(2000, 10⁴)") { benchmark in

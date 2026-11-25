@@ -3,6 +3,7 @@
 // vertex. The randomized cases enumerate every walk of small seeded multigraphs and check them by
 // brute force written in each test. Case IDs (WK-nnn) refer to the catalog; see README.md.
 
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -78,7 +79,7 @@ struct WalkInvariantTests {
 
     @Test("WK-209 every path of a random multigraph has distinct edges, so Trail(path) never fails", .tags(.randomized), arguments: 0 ..< 4)
     func pathsHaveDistinctEdges(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(209_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(209_000 + seed))
         for _ in 0 ..< 60 {
             let n = Int.random(in: 1 ... 4, using: &rng)
             let raw = (0 ..< Int.random(in: 0 ... 7, using: &rng)).map { _ in (Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
@@ -118,7 +119,7 @@ struct WalkInvariantTests {
 
     @Test("WK-210 a closed walk with distinct vertices repeats an edge only as an undirected 2-cycle, and Cycle rejects it", .tags(.randomized), arguments: 0 ..< 4)
     func cycleChecksEdgesToo(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(210_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(210_000 + seed))
         var repeatsFound = 0
         for _ in 0 ..< 60 {
             let n = Int.random(in: 1 ... 4, using: &rng)

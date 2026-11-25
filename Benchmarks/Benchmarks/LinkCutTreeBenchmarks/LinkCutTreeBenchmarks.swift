@@ -1,5 +1,6 @@
 import Benchmark
 import BenchmarkSupport
+import Generators
 import LinkCutTreeModule
 
 /// LC-B01: 10⁶ random operations on 10⁵ vertices: links of a random root under a random vertex of
@@ -10,7 +11,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
 
     let n = 100_000
-    var generator = SeededRandomNumberGenerator(seed: 3)
+    var generator = Xoroshiro128Plus(seed: 3)
     let script = (0 ..< 1_000_000).map { _ in (Int.random(in: 0 ..< 5, using: &generator), Int.random(in: 0 ..< n, using: &generator), Int.random(in: 0 ..< n, using: &generator)) }
     Benchmark("LinkCutTree: 10⁶ mixed operations on 10⁵ vertices") { benchmark in
         for _ in benchmark.scaledIterations {

@@ -5,6 +5,7 @@
 
 import AdjacencyListModule
 import Flows
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -49,7 +50,7 @@ struct DinicDynamicTreesFamilyTests {
 
     @Test("Seeded random networks: the value and canonical cut of the plain Dinic, directed and undirected", .tags(.randomized))
     func randomNetworks() {
-        var rng = SeededRandomNumberGenerator(seed: 29)
+        var rng = Xoroshiro128Plus(seed: 29)
         for round in 0 ..< 60 {
             let n = Int.random(in: 2 ... 40, using: &rng)
             let m = Int.random(in: 0 ... 5 * n, using: &rng)

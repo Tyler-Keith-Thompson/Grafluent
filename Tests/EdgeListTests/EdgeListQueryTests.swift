@@ -5,6 +5,7 @@ import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import EdgeListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -131,7 +132,7 @@ struct EdgeListQueryTests {
 
     @Test("EL-Q09 / EL-G05 a shuffled hub of out-degree 20 000", .tags(.randomized))
     func hub() {
-        var generator = SeededRandomNumberGenerator(seed: 5)
+        var generator = Xoroshiro128Plus(seed: 5)
         var edges = (1 ... 20_000).map { DirectedEdge(from: 0, to: $0) }
         edges += (1 ... 100).map { DirectedEdge(from: $0, to: $0 + 1) }
         edges.shuffle(using: &generator)
@@ -234,7 +235,7 @@ struct EdgeListConversionTests {
 
     @Test("EL-X02 the adjacency list forgets order and multiplicity", .tags(.fixture), arguments: DirectedFixture<Int>.all)
     func adjacencyListForgetsOrder(_ fixture: DirectedFixture<Int>) {
-        var generator = SeededRandomNumberGenerator(seed: 2)
+        var generator = Xoroshiro128Plus(seed: 2)
         let list = EdgeList(fixture.edges)
         let graph = AdjacencyList(edges: list)
         #expect(graph == AdjacencyList(edges: list.shuffled(using: &generator)))

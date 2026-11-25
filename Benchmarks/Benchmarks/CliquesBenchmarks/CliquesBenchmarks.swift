@@ -2,6 +2,7 @@ import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
 import Cliques
+import Generators
 import GraphProtocols
 
 /// Triangles by hand: for each vertex, mark its neighbors, then count marked neighbors of each
@@ -182,7 +183,7 @@ let benchmarks: @Sendable () -> Void = {
     let dense = simple(2000, 20_000, 8)
     // G(n, p): each pair an edge with probability p, so ω grows with n (the branch-and-bound case).
     func bernoulli(_ n: Int, _ p: Double, _ seed: UInt) -> UndirectedAdjacencyList<Int> {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var pairs: [UndirectedEdge<Int>] = []
         for u in 0 ..< n {
             for v in u + 1 ..< n where Double.random(in: 0 ..< 1, using: &rng) < p { pairs.append(UndirectedEdge(u, v)) }

@@ -5,6 +5,7 @@
 // (ST-nn) refer to the catalog; see README.md.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import SpanningTrees
@@ -96,7 +97,7 @@ struct SpanningTreeStressTests {
                 }
             }
             let grid = RowGraph(vertexCount: side * side, edges: edges)
-            var rng = SeededRandomNumberGenerator(seed: 111)
+            var rng = Xoroshiro128Plus(seed: 111)
             let weights = edges.map { _ in Int.random(in: 1 ... 100, using: &rng) }
             let kruskal = grid.kruskalMinimumSpanningTree { weights[$0] }
             #expect(kruskal.edges.count == side * side - 1)
@@ -142,7 +143,7 @@ struct SpanningTreeStressTests {
             var edges: [UndirectedEdge<Int>] = []
             for u in 0 ..< n { for v in u + 1 ..< n { edges.append(UndirectedEdge(u, v)) } }
             let complete = RowGraph(vertexCount: n, edges: edges)
-            var rng = SeededRandomNumberGenerator(seed: 113)
+            var rng = Xoroshiro128Plus(seed: 113)
             let weights = edges.map { _ in Int.random(in: 1 ... 1_000_000_000, using: &rng) }
             let kruskal = complete.kruskalMinimumSpanningTree { weights[$0] }
             #expect(kruskal.edges.count == n - 1)
@@ -160,7 +161,7 @@ struct SpanningTreeStressTests {
     func equalWeights() async {
         await Task {
             let n = 50_000
-            var rng = SeededRandomNumberGenerator(seed: 114)
+            var rng = Xoroshiro128Plus(seed: 114)
             // Self-loops and parallel edges happen by chance.
             let edges = (0 ..< 100_000).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
             let graph = RowGraph(vertexCount: n, edges: edges)
@@ -236,7 +237,7 @@ struct SpanningTreeStressTests {
                 if r + 1 < side { edges.append(UndirectedEdge(v, v + side)) }
             }
         }
-        var rng = SeededRandomNumberGenerator(seed: 111)
+        var rng = Xoroshiro128Plus(seed: 111)
         let weights = edges.map { _ in Int.random(in: 1 ... 100, using: &rng) }
         let grid = RowGraph(vertexCount: side * side, edges: edges)
         let forest: SpanningForest<RowGraph, Int> = await Task { grid.kruskalMinimumSpanningTree { weights[$0] } }.value

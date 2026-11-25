@@ -9,6 +9,7 @@
 
 import AdjacencyListModule
 import DirectedAcyclicGraphModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -48,7 +49,7 @@ struct DirectedAcyclicGraphStressTests {
     @Test("A chain of 20 000 vertices on DirectedPseudograph, its edges inserted in random order: every insert takes the fast path")
     func longChainOnDirectedPseudograph() throws {
         let n = 20_000
-        var rng = SeededRandomNumberGenerator(seed: 7)
+        var rng = Xoroshiro128Plus(seed: 7)
         var graph = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: 0 ..< n)
         let links = Array(0 ..< n - 1).shuffled(using: &rng)
         for (k, i) in links.enumerated() {
@@ -128,7 +129,7 @@ struct DirectedAcyclicGraphStressTests {
 
     @Test("Pearce and Kelly's model: a random DAG with a hidden order, its edges inserted in random order", arguments: [1, 2, 3])
     func hiddenOrder(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 2_000, m = 8_000
         let rank = Array(0 ..< n).shuffled(using: &rng)
         var graph = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: 0 ..< n)
@@ -167,7 +168,7 @@ struct DirectedAcyclicGraphStressTests {
 
     @Test("Churn: new sources first, new targets last, reorderings and removals; every place agrees with the order", arguments: [1, 2, 3])
     func churn(seed: Int) {
-        func run<Base: MutableDirectedGraph<Int>>(_ graph: inout DirectedAcyclicGraph<Base>, _ rng: inout SeededRandomNumberGenerator, _ context: String) {
+        func run<Base: MutableDirectedGraph<Int>>(_ graph: inout DirectedAcyclicGraph<Base>, _ rng: inout Xoroshiro128Plus, _ context: String) {
             var next = 0
             var live: [Int] = []
             for round in 0 ..< 40 {
@@ -204,7 +205,7 @@ struct DirectedAcyclicGraphStressTests {
                 #expect(graph.edges.allSatisfy { graph.topologicalPosition(of: $0.source) < graph.topologicalPosition(of: $0.target) }, "round \(round) \(context)")
             }
         }
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var list = DirectedAcyclicGraph<AdjacencyList<Int>>()
         run(&list, &rng, "AdjacencyList")
         var pseudograph = DirectedAcyclicGraph<DirectedPseudograph<Int>>()

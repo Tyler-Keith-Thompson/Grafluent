@@ -10,6 +10,7 @@
 
 import AdjacencyListModule
 import BipartiteGraphs
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import MatchingModule
@@ -21,7 +22,7 @@ struct MatchingStressTests {
     func hopcroftKarpPlanted() async throws {
         try await Task {
             let half = 50_000
-            var rng = SeededRandomNumberGenerator(seed: 11)
+            var rng = Xoroshiro128Plus(seed: 11)
             // Left i is joined to right half + π(i), plus 150,000 random edges; all shuffled.
             let planted = Array(0 ..< half).shuffled(using: &rng)
             var pairs: [(Int, Int)] = (0 ..< half).map { ($0, half + planted[$0]) }
@@ -50,7 +51,7 @@ struct MatchingStressTests {
     func hopcroftKarpUnequalSides() async throws {
         try await Task {
             let (l, r) = (60_000, 40_000)
-            var rng = SeededRandomNumberGenerator(seed: 12)
+            var rng = Xoroshiro128Plus(seed: 12)
             let planted = Array(0 ..< l).shuffled(using: &rng)
             var pairs: [(Int, Int)] = (0 ..< r).map { (planted[$0], l + $0) }
             for _ in 0 ..< 100_000 { pairs.append((Int.random(in: 0 ..< l, using: &rng), l + Int.random(in: 0 ..< r, using: &rng))) }
@@ -135,7 +136,7 @@ struct MatchingStressTests {
             // cached slack not refreshed after an update picks the wrong edge. The Hungarian
             // assignment is an independent optimum to compare with (within rounding).
             let n = 60
-            var rng = SeededRandomNumberGenerator(seed: 23)
+            var rng = Xoroshiro128Plus(seed: 23)
             var cost = [[Double]](repeating: [Double](repeating: 0, count: n), count: n)
             for i in 0 ..< n { for j in 0 ..< n { cost[i][j] = Double(rng.next() % 1000) / 7 + 0.1 } }
             var edges: [UndirectedEdge<Int>] = []
@@ -160,7 +161,7 @@ struct MatchingStressTests {
             // and between dual updates the least-slack edges' slacks move. The program: f(S), for S
             // the vertices still free to match, leaves S's lowest vertex single or matches it to a
             // neighbour in S; the minimum form ranks (more edges, then less weight).
-            var rng = SeededRandomNumberGenerator(seed: 31)
+            var rng = Xoroshiro128Plus(seed: 31)
             for round in 0 ..< 300 {
                 let n = 8 + Int(rng.next() % 9), density = 2 + rng.next() % 4
                 var edges: [UndirectedEdge<Int>] = [], weights: [Double] = []
@@ -207,7 +208,7 @@ struct MatchingStressTests {
     func assignmentSquare() async throws {
         try await Task {
             let n = 200
-            var rng = SeededRandomNumberGenerator(seed: 13)
+            var rng = Xoroshiro128Plus(seed: 13)
             let target = Array(0 ..< n).shuffled(using: &rng)
             // cost(i, j) = (j − π(i))²: the unique optimum assigns row i to column π(i), at cost 0.
             let permuted = try #require(linearSumAssignment(rowCount: n, columnCount: n) { (i: Int, j: Int) -> Int? in (j - target[i]) * (j - target[i]) })
@@ -237,7 +238,7 @@ struct MatchingStressTests {
     func fullMatchingComplete() async throws {
         try await Task {
             let n = 150
-            var rng = SeededRandomNumberGenerator(seed: 14)
+            var rng = Xoroshiro128Plus(seed: 14)
             let target = Array(0 ..< n).shuffled(using: &rng)
             var edges: [UndirectedEdge<Int>] = []
             for i in 0 ..< n { for j in 0 ..< n { edges.append(UndirectedEdge(i, n + j)) } }
@@ -261,7 +262,7 @@ struct MatchingStressTests {
             let dictatorship = stableMatching(proposerPreferences: Array(repeating: same, count: n), reviewerPreferences: Array(repeating: same, count: n))
             #expect((0 ..< n).allSatisfy { dictatorship.mate(ofProposer: $0) == $0 })
             let m = 500
-            var rng = SeededRandomNumberGenerator(seed: 15)
+            var rng = Xoroshiro128Plus(seed: 15)
             let proposers = (0 ..< m).map { _ in Array(0 ..< m).shuffled(using: &rng) }
             let reviewers = (0 ..< m).map { _ in Array(0 ..< m).shuffled(using: &rng) }
             let result = stableMatching(proposerPreferences: proposers, reviewerPreferences: reviewers)

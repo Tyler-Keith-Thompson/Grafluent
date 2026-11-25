@@ -8,6 +8,7 @@
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import Connectivity
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import LabeledGraphs
@@ -21,7 +22,7 @@ struct LabeledGraphStressTests {
     func csrAtScale() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 7)
+            var rng = Xoroshiro128Plus(seed: 7)
             // A forward DAG: i → i + 1 and three random forward edges per vertex.
             var edges: [DirectedEdge<String>] = []
             edges.reserveCapacity(4 * n)
@@ -61,7 +62,7 @@ struct LabeledGraphStressTests {
     func matrixChurn() async {
         await Task {
             let n = 2_048
-            var rng = SeededRandomNumberGenerator(seed: 11)
+            var rng = Xoroshiro128Plus(seed: 11)
             var graph = LabeledGraph<Int, AdjacencyMatrix>()
             graph.reserveCapacity(vertexCount: n)
             // Labels are a permutation, so label and index differ.

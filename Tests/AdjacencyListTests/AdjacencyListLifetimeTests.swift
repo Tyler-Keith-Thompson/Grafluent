@@ -4,6 +4,7 @@
 // graph is destroyed.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -134,7 +135,7 @@ struct AdjacencyListLifetimeTests {
 
     @Test("random mutations never leak", .tags(.randomized), arguments: 0 ..< 20 as Range<UInt>)
     func randomMutations(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var graph = AdjacencyList<LifetimeTracked<Int>>()
         for step in 0 ..< 200 {
             let u = Int.random(in: 0 ..< 8, using: &rng)

@@ -5,6 +5,7 @@
 // lazily, or reused in place is a performance property, measured by the benchmarks.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -123,7 +124,7 @@ struct AdjacencyListValueSemanticsTests {
 
     @Test("S-01 a long random sequence of mutations, each made while a copy may exist", .tags(.randomized), arguments: 0 ..< 25 as Range<UInt>)
     func randomMutationsWithCopies(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var graph = AdjacencyList<Int>()
         for step in 0 ..< 200 {
             let u = Int.random(in: 0 ..< 10, using: &rng)

@@ -6,6 +6,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -15,7 +16,7 @@ import Traversal
 struct SearchPropertyTests {
     @Test("TR-139 – TR-141 breadth-first distances are shortest, tree edges step one layer, and the tree is a tree", arguments: [1, 2, 3, 4, 5, 6, 7, 8])
     func breadthFirst(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         for n in [1, 2, 5, 10, 40] {
             var edges: [DirectedEdge<Int>] = []
             for u in 0 ..< n {
@@ -62,7 +63,7 @@ struct SearchPropertyTests {
 
     @Test("TR-142 – TR-145 / TR-150 depth-first parenthesis theorem, consistent classification, every edge once, back edge iff cycle", arguments: [1, 2, 3, 4, 5, 6, 7, 8])
     func depthFirst(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 50)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 50))
         for n in [1, 2, 5, 10, 40] {
             var edges: [DirectedEdge<Int>] = []
             for u in 0 ..< n {
@@ -143,7 +144,7 @@ struct SearchPropertyTests {
 
     @Test("TR-146 – TR-148 topological orders exist exactly for DAGs, respect every edge, and generations are longest-path depths", arguments: [1, 2, 3, 4, 5, 6])
     func topological(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 90)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 90))
         for n in [1, 5, 10, 40] {
             // A random DAG (edges forward in a shuffled order), sometimes with one back edge added.
             let rank = Array(0 ..< n).shuffled(using: &generator)

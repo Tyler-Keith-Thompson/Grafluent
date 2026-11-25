@@ -3,6 +3,7 @@
 // hierarchy's out-of-range queries. Each exit test builds its inputs inside the closure.
 
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -13,7 +14,7 @@ struct HierarchicalLeidenPreconditionTests {
     func capZero() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 0, using: &generator)
         }
     }
@@ -30,7 +31,7 @@ struct HierarchicalLeidenPreconditionTests {
     func randomnessZero() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 2, randomness: 0, using: &generator)
         }
     }
@@ -47,7 +48,7 @@ struct HierarchicalLeidenPreconditionTests {
     func iterationsZero() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 2, iterations: 0, using: &generator)
         }
     }
@@ -64,7 +65,7 @@ struct HierarchicalLeidenPreconditionTests {
     func communityOutOfRange() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let result = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 3, using: &generator)
             _ = result.parent(of: result.count)
         }
@@ -74,7 +75,7 @@ struct HierarchicalLeidenPreconditionTests {
     func levelOutOfRange() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let result = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 3, using: &generator)
             _ = result.communities(atLevel: result.levelCount)
         }
@@ -84,7 +85,7 @@ struct HierarchicalLeidenPreconditionTests {
     func vertexNotFound() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let result = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 3, using: &generator)
             _ = result.community(of: 7)
         }

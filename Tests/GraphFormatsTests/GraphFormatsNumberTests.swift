@@ -5,6 +5,7 @@
 // do not; and every double written in every format that holds it reads back to the same bits.
 // Seeded; see README.md.
 
+import Generators
 import GrafluentTestSupport
 import GraphFormats
 import GraphProtocols
@@ -35,7 +36,7 @@ struct GraphFormatsNumberTests {
             while all.hasSuffix("0") { all.removeLast() }
             return (all, exponent + point - 1)
         }
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var texts: [String] = [
             "4.9406564584124654e-324", "2.4703282292062327e-324", "2.4703282292062328e-324", "2.2250738585072011e-308",
             "2.2250738585072012e-308", "1.7976931348623157e308", "1.7976931348623158e308", "1.7976931348623159e308",
@@ -102,7 +103,7 @@ struct GraphFormatsNumberTests {
             while all.hasSuffix("0") { all.removeLast() }
             return (all, exponent + point - 1)
         }
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var values: [Double] = [0, -0.0, .infinity, -.infinity, .nan, .leastNonzeroMagnitude, .leastNormalMagnitude,
                                 .greatestFiniteMagnitude, 1e16, 9.0e15, 9_007_199_254_740_992, 1e-5, 1e-4]
         for e in 0 ..< 2_047 {

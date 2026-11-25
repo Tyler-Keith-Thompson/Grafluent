@@ -1,6 +1,7 @@
 import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
+import Generators
 import GraphProtocols
 
 let benchmarks: @Sendable () -> Void = {
@@ -130,7 +131,7 @@ let benchmarks: @Sendable () -> Void = {
     let bigN = 100_000
     let bigEdges = Inputs.randomEdges(vertexCount: bigN, edgeCount: 1_000_000)
     let big = AdjacencyList(vertices: 0 ..< bigN, edges: bigEdges)
-    var positionRNG = SeededRandomNumberGenerator(seed: 7)
+    var positionRNG = Xoroshiro128Plus(seed: 7)
     let removals = (0 ..< 100_000).map { _ in Int.random(in: 0 ..< 1_000_000 - 100_000, using: &positionRNG) }
 
     Benchmark("AdjacencyList maps: insert 1M edges, no maps") { benchmark in

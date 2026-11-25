@@ -3,6 +3,7 @@ import Benchmark
 import BenchmarkSupport
 import CompressedSparseRowModule
 import Connectivity
+import Generators
 import GraphProducts
 import GraphProtocols
 import NamedGraphs
@@ -13,7 +14,7 @@ import Traversal
 /// A sparse undirected graph on `n` vertices: a random spanning tree plus `extra` random edges, no
 /// self-loops or repeats.
 func sparseFactor(vertexCount n: Int, extra: Int, seed: UInt) -> UndirectedAdjacencyList<Int> {
-    var rng = SeededRandomNumberGenerator(seed: seed)
+    var rng = Xoroshiro128Plus(seed: UInt64(seed))
     var pairs = Set<[Int]>()
     for v in 1 ..< n { pairs.insert([Int.random(in: 0 ..< v, using: &rng), v]) }
     while pairs.count < n - 1 + extra {

@@ -9,6 +9,7 @@
 // position on two face sides, Euler's count); witnesses are checked to be subdivisions. See
 // README.md.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -20,7 +21,7 @@ struct PlanarityStressTests {
     @Test("A 120 × 120 triangulated grid: planar, unique embedding, triangles and one outer face", .timeLimit(.minutes(1)))
     func triangulatedGrid() throws {
         let r = 120, c = 120
-        var rng = SeededRandomNumberGenerator(seed: 31)
+        var rng = Xoroshiro128Plus(seed: 31)
         var edges: [UndirectedEdge<Int>] = []
         for i in 0 ..< r { for j in 0 ..< c {
             let v = i * c + j
@@ -54,7 +55,7 @@ struct PlanarityStressTests {
     @Test("A 100 × 100 triangulated grid plus an apex on its outer cycle: maximal planar; one more edge makes it non-planar", .timeLimit(.minutes(1)))
     func maximalPlanarGrid() throws {
         let r = 100, c = 100
-        var rng = SeededRandomNumberGenerator(seed: 5)
+        var rng = Xoroshiro128Plus(seed: 5)
         var edges: [UndirectedEdge<Int>] = []
         for i in 0 ..< r { for j in 0 ..< c {
             let v = i * c + j
@@ -80,7 +81,7 @@ struct PlanarityStressTests {
     @Test("A triangulated grid plus one edge between far interior vertices: not planar, with a valid witness", .timeLimit(.minutes(1)))
     func nearPlanarGrid() throws {
         let r = 30, c = 30
-        var rng = SeededRandomNumberGenerator(seed: 8)
+        var rng = Xoroshiro128Plus(seed: 8)
         var edges: [UndirectedEdge<Int>] = []
         for i in 0 ..< r { for j in 0 ..< c {
             let v = i * c + j

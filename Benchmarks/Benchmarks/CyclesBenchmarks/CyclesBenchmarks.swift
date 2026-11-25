@@ -2,6 +2,7 @@ import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
 import Cycles
+import Generators
 import GraphProtocols
 import Walks
 
@@ -306,12 +307,12 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(handWrittenKarpMean(500, karpArcs)) }
     }
     Benchmark("Cycles: minimumFeedbackArcSet, G(18, 60)") { benchmark in
-        var generator = SeededRandomNumberGenerator(seed: 18)
+        var generator = Xoroshiro128Plus(seed: 18)
         let small = AdjacencyList(vertices: 0 ..< 18, edges: (0 ..< 60).map { _ in DirectedEdge(from: Int.random(in: 0 ..< 18, using: &generator), to: Int.random(in: 0 ..< 18, using: &generator)) })
         for _ in benchmark.scaledIterations { blackHole(small.minimumFeedbackArcSet()) }
     }
     Benchmark("Cycles: minimumFeedbackVertexSet, G(22, 80)") { benchmark in
-        var generator = SeededRandomNumberGenerator(seed: 22)
+        var generator = Xoroshiro128Plus(seed: 22)
         let small = AdjacencyList(vertices: 0 ..< 22, edges: (0 ..< 80).map { _ in DirectedEdge(from: Int.random(in: 0 ..< 22, using: &generator), to: Int.random(in: 0 ..< 22, using: &generator)) })
         for _ in benchmark.scaledIterations { blackHole(small.minimumFeedbackVertexSet()) }
     }

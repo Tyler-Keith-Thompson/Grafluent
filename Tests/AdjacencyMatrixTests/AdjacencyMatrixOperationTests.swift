@@ -6,6 +6,7 @@
 import AdjacencyMatrixModule
 import BitCollections
 import Foundation
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -54,7 +55,7 @@ struct AdjacencyMatrixTransposeTests {
         arguments: [1, 7, 8, 9, 63, 64, 65, 127, 128, 129]
     )
     func acrossWordBoundaries(_ n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(n))
+        var rng = Xoroshiro128Plus(seed: UInt64(n))
         var matrix = AdjacencyMatrix(vertexCount: n)
         for i in 0 ..< n {
             for j in 0 ..< n where Int.random(in: 0 ..< 3, using: &rng) == 0 {
@@ -81,7 +82,7 @@ struct AdjacencyMatrixTransposeTests {
 struct AdjacencyMatrixSetAlgebraTests {
     @Test("union, intersection, subtraction and symmetric difference follow the edge sets", .tags(.randomized), arguments: [1, 5, 63, 64, 65, 129])
     func setAlgebra(_ n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(n) &* 31)
+        var rng = Xoroshiro128Plus(seed: UInt64(UInt(n) &* 31))
         var aEdges = Set<DirectedEdge<Int>>()
         var bEdges = Set<DirectedEdge<Int>>()
         for i in 0 ..< n {
@@ -300,7 +301,7 @@ struct AdjacencyMatrixEdgeIndexTests {
         arguments: [63, 64, 65, 129, 1000]
     )
     func collectionLawsWide(_ n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(n) &+ 7)
+        var rng = Xoroshiro128Plus(seed: UInt64(UInt(n) &+ 7))
         var matrix = AdjacencyMatrix(vertexCount: n)
         for i in stride(from: 0, to: n, by: Swift.max(1, n / 40)) {
             matrix[i, n - 1] = true

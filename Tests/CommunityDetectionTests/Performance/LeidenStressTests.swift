@@ -9,6 +9,7 @@
 
 import AdjacencyListModule
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -26,7 +27,7 @@ struct LeidenStressTests {
                 }
             }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 4 * k, edges: edges)
-            var generator = SeededRandomNumberGenerator(seed: 11)
+            var generator = Xoroshiro128Plus(seed: 11)
             let result = graph.leidenCommunities(using: &generator)
             #expect(result.map { Array($0) } == (0 ..< k).map { Array(4 * $0 ..< 4 * $0 + 4) })
             #expect(abs(graph.modularity(of: result) - (1 - 1 / Double(k))) <= 1e-9)
@@ -45,7 +46,7 @@ struct LeidenStressTests {
             }
             for c in 0 ..< k { edges.append(UndirectedEdge(5 * c + 4, 5 * ((c + 1) % k))) }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 5 * k, edges: edges)
-            var generator = SeededRandomNumberGenerator(seed: 5)
+            var generator = Xoroshiro128Plus(seed: 5)
             let result = graph.leidenCommunities(using: &generator)
             for community in result {
                 let cliques = Set(community.map { $0 / 5 })
@@ -64,7 +65,7 @@ struct LeidenStressTests {
         await Task {
             let n = 20_000
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) })
-            var generator = SeededRandomNumberGenerator(seed: 2)
+            var generator = Xoroshiro128Plus(seed: 2)
             let result = graph.leidenCommunities(using: &generator)
             // Connected on a path: each community is a run of consecutive vertices.
             for community in result {

@@ -7,6 +7,7 @@
 // correctly afterwards. See README.md.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphFormats
 import GraphProtocols
@@ -18,7 +19,7 @@ import Testing
 struct GraphFormatsBulkBuildTests {
     @Test("Each line reader builds the graph insertion would, in every representation", arguments: 0 ..< 60 as Range<UInt>)
     func matchesInsertion(seed: UInt) throws {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = Int.random(in: 1 ... 12, using: &rng)
         let m = Int.random(in: 0 ... 50, using: &rng)
         var pairs: [(Int, Int)] = []

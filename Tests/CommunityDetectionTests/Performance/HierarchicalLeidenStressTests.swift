@@ -5,6 +5,7 @@
 
 import AdjacencyListModule
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -23,7 +24,7 @@ struct HierarchicalLeidenStressTests {
             }
             for c in 0 ..< k { edges.append(UndirectedEdge(5 * c + 4, 5 * ((c + 1) % k))) }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 5 * k, edges: edges)
-            var generator = SeededRandomNumberGenerator(seed: 5)
+            var generator = Xoroshiro128Plus(seed: 5)
             let result = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 5, using: &generator)
             #expect(result.communities(atLevel: 0).count < k)
             #expect(result.levelCount >= 2)

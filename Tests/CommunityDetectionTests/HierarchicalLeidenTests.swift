@@ -10,6 +10,7 @@ import AdjacencyListModule
 import AdjacencyMatrixModule
 import CommunityDetection
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -35,9 +36,9 @@ struct HierarchicalLeidenTests {
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         for seed in 0 ..< 10 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let result = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 3, using: &generator)
-            var again = SeededRandomNumberGenerator(seed: UInt(seed))
+            var again = Xoroshiro128Plus(seed: UInt64(seed))
             let flat = graph.leidenCommunities(using: &again)
             let expected: [[Int]] = [[0, 1, 2], [3, 4, 5]]
             #expect(result.map { Array($0) } == expected, "seed \(seed)")
@@ -63,7 +64,7 @@ struct HierarchicalLeidenTests {
         pairs.append((4, 5))
         let graph = ReferencePseudograph(vertices: 0 ..< 10, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         for seed in 0 ..< 10 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let result = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 4, using: &generator)
             let expected: [[Int]] = [Array(0 ..< 5), Array(5 ..< 10)]
             #expect(result.map { Array($0) } == expected, "seed \(seed)")
@@ -84,7 +85,7 @@ struct HierarchicalLeidenTests {
         let graph = ReferencePseudograph(vertices: 0 ..< 4 * k, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let cliques = (0 ..< k).map { Array(4 * $0 ..< 4 * $0 + 4) }
         for seed in 0 ..< 5 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let result = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 4, using: &generator)
             let top = result.communities(atLevel: 0)
             #expect(top.count < k, "seed \(seed): \(top.count) communities on level 0")
@@ -138,7 +139,7 @@ struct HierarchicalLeidenTests {
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 4 * k, edges: arcs)
         let cliques = (0 ..< k).map { Array(4 * $0 ..< 4 * $0 + 4) }
         for seed in 0 ..< 3 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let result = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 4, using: &generator)
             #expect(result.communities(atLevel: 0).count < k, "seed \(seed)")
             #expect(Set(result.leaves.map { Array(result[$0]) }) == Set(cliques), "seed \(seed)")
@@ -160,7 +161,7 @@ struct HierarchicalLeidenTests {
         let graph = ReferencePseudograph(vertices: 0 ..< 4 * k, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let cliques = Set((0 ..< k).map { Array(4 * $0 ..< 4 * $0 + 4) })
         for seed in 0 ..< 5 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             var read: [Int] = []
             let result = graph.hierarchicalLeidenCommunities(weight: { position -> Double in
                 read.append(position)
@@ -177,7 +178,7 @@ struct HierarchicalLeidenTests {
 
     @Test("Degenerate graphs: no vertices (no levels), one vertex, no edges, self-loops and parallel edges, a disconnected graph")
     func degenerate() {
-        var generator = SeededRandomNumberGenerator(seed: 5)
+        var generator = Xoroshiro128Plus(seed: 5)
         let empty = ReferencePseudograph(vertices: 0 ..< 0, edges: [])
         let none = empty.hierarchicalLeidenCommunities(maximumCommunitySize: 1, using: &generator)
         #expect(none.count == 0)
@@ -196,7 +197,7 @@ struct HierarchicalLeidenTests {
         // the single 1–2 edge between; a cap of 1 clusters each pair again and finds them whole.
         let multi = ReferencePseudograph(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1), UndirectedEdge(1, 0), UndirectedEdge(2, 3), UndirectedEdge(1, 2), UndirectedEdge(3, 3)])
         for seed in 0 ..< 5 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = multi.hierarchicalLeidenCommunities(maximumCommunitySize: 1, using: &generator)
             #expect(pairs.map { Array($0) } == [[0, 1], [2, 3]], "seed \(seed)")
             #expect(pairs.levelCount == 1, "seed \(seed)")
@@ -220,12 +221,12 @@ struct HierarchicalLeidenTests {
             pairs.append((4 * c + 3, 4 * ((c + 1) % k)))
         }
         let graph = ReferencePseudograph(vertices: 0 ..< 4 * k, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var first = SeededRandomNumberGenerator(seed: 2)
-        var second = SeededRandomNumberGenerator(seed: 2)
+        var first = Xoroshiro128Plus(seed: 2)
+        var second = Xoroshiro128Plus(seed: 2)
         let a = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 4, using: &first)
         let b = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 4, using: &second)
         #expect(a == b)
-        var third = SeededRandomNumberGenerator(seed: 2)
+        var third = Xoroshiro128Plus(seed: 2)
         let flat = graph.hierarchicalLeidenCommunities(maximumCommunitySize: 4 * k, using: &third)
         #expect(flat.levelCount == 1)
         #expect(a != flat)
@@ -245,7 +246,7 @@ struct HierarchicalLeidenTests {
     func checked() throws {
         let vertices = ["a", "b", "c", "x", "y", "z"]
         let edges = [("a", "b"), ("b", "c"), ("c", "a"), ("x", "y"), ("y", "z"), ("z", "x"), ("c", "x")].map { UndirectedEdge($0.0, $0.1) }
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let indexed = UndirectedAdjacencyList(vertices: vertices, edges: edges).hierarchicalLeidenCommunities(maximumCommunitySize: 3, using: &generator)
         let plain = UnindexedGraph(vertices: vertices, edges: edges)
         #expect(plain.vertexIndexBound == nil)
@@ -286,7 +287,7 @@ struct HierarchicalLeidenTests {
             }
             for v in 0 ..< 4 * k { #expect(Array(result[result.community(of: v)]) == Array(4 * (v / 4) ..< 4 * (v / 4) + 4), "\(name), vertex \(v)") }
         }
-        var generator = SeededRandomNumberGenerator(seed: 7)
+        var generator = Xoroshiro128Plus(seed: 7)
         let list = UndirectedAdjacencyList(vertices: 0 ..< 4 * k, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         check(list.hierarchicalLeidenCommunities(maximumCommunitySize: 4, using: &generator), "UndirectedAdjacencyList")
         let directedList = AdjacencyList(vertices: 0 ..< 4 * k, edges: arcs)

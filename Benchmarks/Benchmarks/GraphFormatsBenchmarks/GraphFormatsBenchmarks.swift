@@ -2,6 +2,7 @@ import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
 import CompressedSparseRowModule
+import Generators
 import GraphFormats
 import GraphProtocols
 import Multigraphs
@@ -32,7 +33,7 @@ let benchmarks: @Sendable () -> Void = {
     let n = 100_000
     let edges = Inputs.randomEdges(vertexCount: n, edgeCount: 1_000_000, seed: 1)
     let graph = DirectedPseudograph(vertices: 0 ..< n, edges: edges)
-    var rng = SeededRandomNumberGenerator(seed: 2)
+    var rng = Xoroshiro128Plus(seed: 2)
     let weights = (0 ..< edges.count).map { _ in Double.random(in: 0 ..< 1, using: &rng) }
     let small = DirectedPseudograph(vertices: 0 ..< 10_000, edges: Inputs.randomEdges(vertexCount: 10_000, edgeCount: 100_000, seed: 3))
 

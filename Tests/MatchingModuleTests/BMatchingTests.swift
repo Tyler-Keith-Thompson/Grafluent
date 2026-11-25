@@ -5,6 +5,7 @@
 
 import AdjacencyListModule
 import BipartiteGraphs
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import MatchingModule
@@ -59,7 +60,7 @@ struct BMatchingTests {
     @Test("Random bipartite multigraphs: the brute-force optimum, on several representations and through BipartiteGraph", .tags(.randomized))
     func againstBruteForce() async {
         await propertyCheck(count: 200, input: Gen.int(in: 1 ... 4), Gen.int(in: 1 ... 4), Gen.int(in: 0 ... 1_000_000)) { leftCount, rightCount, seed in
-            var draw = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var draw = Xoroshiro128Plus(seed: UInt64(seed))
             let n = leftCount + rightCount
             var ends: [UndirectedEdge<Int>] = []
             var weights: [Int] = []

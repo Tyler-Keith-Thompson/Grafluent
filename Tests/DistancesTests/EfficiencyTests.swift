@@ -6,6 +6,7 @@
 
 import AdjacencyListModule
 import Distances
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -27,7 +28,7 @@ private struct ShuffledPseudograph: Graph {
         }
         var listed = Array(0 ..< vertexCount)
         if seed != 0 {
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             rows = rows.map { $0.shuffled(using: &rng) }
             listed.shuffle(using: &rng)
         }

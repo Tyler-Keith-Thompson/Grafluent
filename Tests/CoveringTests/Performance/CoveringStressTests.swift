@@ -11,6 +11,7 @@
 import AdjacencyListModule
 import BipartiteGraphs
 import Covering
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import MatchingModule
@@ -53,7 +54,7 @@ struct CoveringStressTests {
     func randomTree() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 21)
+            var rng = Xoroshiro128Plus(seed: 21)
             // Vertex v > 0 hangs from a random earlier vertex.
             let edges = (1 ..< n).map { UndirectedEdge(Int.random(in: 0 ..< $0, using: &rng), $0) }
             let tree = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)
@@ -109,7 +110,7 @@ struct CoveringStressTests {
     func plantedBipartite() async throws {
         try await Task {
             let half = 50_000
-            var rng = SeededRandomNumberGenerator(seed: 22)
+            var rng = Xoroshiro128Plus(seed: 22)
             let planted = Array(0 ..< half).shuffled(using: &rng)
             var pairs: [(Int, Int)] = (0 ..< half).map { ($0, half + planted[$0]) }
             for _ in 0 ..< 100_000 { pairs.append((Int.random(in: 0 ..< half, using: &rng), half + Int.random(in: 0 ..< half, using: &rng))) }
@@ -167,7 +168,7 @@ struct CoveringStressTests {
     func denseBranchAndBound() async {
         await Task {
             let n = 60
-            var rng = SeededRandomNumberGenerator(seed: 23)
+            var rng = Xoroshiro128Plus(seed: 23)
             let planted = Set(Array(0 ..< n).shuffled(using: &rng).prefix(16))
             var edges: [UndirectedEdge<Int>] = []
             for a in 0 ..< n {
@@ -193,7 +194,7 @@ struct CoveringStressTests {
     func linearEntryPoints() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 24)
+            var rng = Xoroshiro128Plus(seed: 24)
             let edges = (0 ..< 3 * n).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
             let graph = ReferencePseudograph(vertices: 0 ..< n, edges: edges)
             let maximal = graph.maximalIndependentSet()

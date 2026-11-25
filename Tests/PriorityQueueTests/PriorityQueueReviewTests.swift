@@ -10,6 +10,7 @@ import Glibc
 #elseif canImport(WASILibc)
 import WASILibc
 #endif
+import Generators
 import GrafluentTestSupport
 import PriorityQueueModule
 import Testing
@@ -78,7 +79,7 @@ struct PriorityQueueReviewTests {
 
     @Test("PQ-46 Dijkstra written with insertOrDecreasePriority gives Bellman–Ford's distances", .tags(.randomized), arguments: 1 ... 6)
     func dijkstraWithInsertOrDecrease(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 4_600)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 4_600))
         let n = 60
         var arcs: [(Int, Int, Int)] = []
         for _ in 0 ..< 300 {

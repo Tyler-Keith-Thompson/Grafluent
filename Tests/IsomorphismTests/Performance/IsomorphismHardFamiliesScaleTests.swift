@@ -7,6 +7,7 @@
 // README.md.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import IsomorphismModule
@@ -20,7 +21,7 @@ struct IsomorphismHardFamiliesScaleTests {
     func disjointUnions() async throws {
         try await Task {
             let k = 20
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 21)
+            var rng = Xoroshiro128Plus(seed: 21)
             let permutation = Array(0 ..< 6 * k).shuffled(using: &rng)
             func cycle(_ length: Int, _ offset: Int) -> [[Int]] { (0 ..< length).map { [offset + $0, offset + ($0 + 1) % length] } }
             var hexagons: [[Int]] = [], changed: [[Int]] = []
@@ -75,7 +76,7 @@ struct IsomorphismHardFamiliesScaleTests {
                 }
                 return UndirectedAdjacencyList(vertices: 0 ..< n * n, edges: edges)
             }
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 22)
+            var rng = Xoroshiro128Plus(seed: 22)
             let identity = Array(0 ..< n * n)
             let shuffled = identity.shuffled(using: &rng)
             let cyclic = latinSquare({ ($0 + $1) % n }, identity)
@@ -103,7 +104,7 @@ struct IsomorphismHardFamiliesScaleTests {
     @Test("CFI graphs over a random cubic base of 40 vertices: the twisted pair is not isomorphic, a relabelled copy is, and the automorphism group has order at least 2²¹", .timeLimit(.minutes(1)))
     func cfiOverForty() async throws {
         try await Task {
-            var generator = Xoshiro256StarStar(seed: 40)
+            var generator = RandomGraphs.Xoshiro256StarStar(seed: 40)
             let base = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 40, degree: 3, using: &generator)
             let baseEdges = Array(base.edges)
             // Each base vertex of degree 3 becomes 4 middle vertices (the even subsets of its edges)
@@ -138,7 +139,7 @@ struct IsomorphismHardFamiliesScaleTests {
             }
             let plain = cfi(twisted: false), twisted = cfi(twisted: true)
             #expect(plain.vertexCount == 400 && plain.edgeCount == 600)
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 23)
+            var rng = Xoroshiro128Plus(seed: 23)
             let permutation = Array(0 ..< 400).shuffled(using: &rng)
             let twistedCopy = UndirectedAdjacencyList(vertices: 0 ..< 400, edges: twisted.edges.shuffled(using: &rng).map { UndirectedEdge(permutation[$0.u], permutation[$0.v]) })
             let plainCopy = UndirectedAdjacencyList(vertices: 0 ..< 400, edges: plain.edges.shuffled(using: &rng).map { UndirectedEdge(permutation[$0.u], permutation[$0.v]) })
@@ -164,8 +165,8 @@ struct IsomorphismHardFamiliesScaleTests {
     func randomRegularPairs() async {
         await Task {
             for (n, d) in [(2000, 3), (1000, 10)] {
-                var first = Xoshiro256StarStar(seed: 30)
-                var second = Xoshiro256StarStar(seed: 31)
+                var first = RandomGraphs.Xoshiro256StarStar(seed: 30)
+                var second = RandomGraphs.Xoshiro256StarStar(seed: 31)
                 let g = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: n, degree: d, using: &first)
                 let h = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: n, degree: d, using: &second)
                 #expect(!g.isIsomorphic(to: h))

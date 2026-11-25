@@ -13,6 +13,7 @@
 // See README.md.
 
 import Foundation
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -28,7 +29,7 @@ struct TreeAlgorithmPropertyTests {
         let choices = Gen.int(in: 0 ... 1_000).array(of: 0 ... 14)
         await propertyCheck(count: 200, input: choices, Gen.int(in: 0 ... 1_000_000), Gen.int(in: 0 ... 1_000)) { choice, seed, rootChoice in
             let n = choice.count + 1
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pairs = (0 ..< choice.count).map { (choice[$0] % ($0 + 1), $0 + 1) }
             if seed != 0 {
                 pairs.shuffle(using: &rng)
@@ -73,7 +74,7 @@ struct TreeAlgorithmPropertyTests {
         let choices = Gen.int(in: 0 ... 1_000_000).array(of: 59 ... 299)
         await propertyCheck(count: 30, input: choices, Gen.int(in: 0 ... 1_000_000), Gen.int(in: 0 ... 3)) { choice, seed, shape in
             let n = choice.count + 1
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             // Shapes: uniform attachment, path-like (attach near the end), star-like, caterpillar.
             var pairs: [(Int, Int)] = (0 ..< choice.count).map { i in
                 switch shape {
@@ -115,7 +116,7 @@ struct TreeAlgorithmPropertyTests {
         let choices = Gen.int(in: 0 ... 1_000).array(of: 0 ... 14)
         await propertyCheck(count: 200, input: choices, Gen.int(in: 0 ... 1_000_000), Gen.int(in: 0 ... 1_000)) { choice, seed, rootChoice in
             let n = choice.count + 1
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pairs = (0 ..< choice.count).map { (choice[$0] % ($0 + 1), $0 + 1) }
             if seed != 0 {
                 pairs.shuffle(using: &rng)
@@ -155,7 +156,7 @@ struct TreeAlgorithmPropertyTests {
         let choices = Gen.int(in: 0 ... 1_000).array(of: 0 ... 14)
         await propertyCheck(count: 200, input: choices, Gen.int(in: 0 ... 1_000_000), Gen.int(in: 0 ... 1_000)) { choice, seed, rootChoice in
             let n = choice.count + 1
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pairs = (0 ..< choice.count).map { (choice[$0] % ($0 + 1), $0 + 1) }
             if seed != 0 {
                 pairs.shuffle(using: &rng)
@@ -240,7 +241,7 @@ struct TreeAlgorithmPropertyTests {
         let choices = Gen.int(in: 0 ... 1_000).array(of: 0 ... 14)
         await propertyCheck(count: 200, input: choices, Gen.int(in: 0 ... 1_000_000), Gen.int(in: 0 ... 1_000)) { choice, seed, rootChoice in
             let n = choice.count + 1
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pairs = (0 ..< choice.count).map { (choice[$0] % ($0 + 1), $0 + 1) }
             if seed != 0 {
                 pairs.shuffle(using: &rng)
@@ -289,7 +290,7 @@ struct TreeAlgorithmPropertyTests {
         let weights = Gen.int(in: 0 ... 12).array(of: 1 ... 13)
         await propertyCheck(count: 200, input: choices, weights, Gen.int(in: 0 ... 1_000_000)) { choice, quarters, seed in
             let n = choice.count + 1
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pairs = (0 ..< choice.count).map { (choice[$0] % ($0 + 1), $0 + 1) }
             if seed != 0 {
                 pairs.shuffle(using: &rng)
@@ -347,7 +348,7 @@ struct TreeAlgorithmPropertyTests {
         let choices = Gen.int(in: 0 ... 1_000).array(of: 0 ... 14)
         await propertyCheck(count: 200, input: choices, Gen.int(in: 0 ... 1_000_000)) { choice, seed in
             let n = choice.count + 1
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pairs = (0 ..< choice.count).map { (choice[$0] % ($0 + 1), $0 + 1) }
             if seed != 0 {
                 pairs.shuffle(using: &rng)
@@ -389,7 +390,7 @@ struct TreeAlgorithmPropertyTests {
         let choices = Gen.int(in: 0 ... 1_000).array(of: 0 ... 20)
         await propertyCheck(count: 200, input: choices, Gen.int(in: 0 ... 1_000_000)) { choice, seed in
             let n = choice.count + 1
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pairs = (0 ..< choice.count).map { (choice[$0] % ($0 + 1), $0 + 1) }
             if seed != 0 {
                 pairs.shuffle(using: &rng)

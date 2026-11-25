@@ -1,6 +1,7 @@
 import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
+import Generators
 import GraphProtocols
 import Multigraphs
 import Planarity
@@ -17,7 +18,7 @@ import Planarity
 /// The Delaunay triangulation of `count` seeded uniform points in the unit square: its edges, each
 /// (u, v) with u < v, ascending.
 func delaunayEdges(_ count: Int, seed: UInt) -> [(Int, Int)] {
-    var rng = SeededRandomNumberGenerator(seed: seed)
+    var rng = Xoroshiro128Plus(seed: UInt64(seed))
     var x = (0 ..< count).map { _ in Double.random(in: 0 ..< 1, using: &rng) }
     var y = (0 ..< count).map { _ in Double.random(in: 0 ..< 1, using: &rng) }
     // A super-triangle far around the square, vertices count ..< count + 3.

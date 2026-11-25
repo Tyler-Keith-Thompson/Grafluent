@@ -9,6 +9,7 @@
 
 import AdjacencyListModule
 import Connectivity
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -70,7 +71,7 @@ private struct RowCountingGraph: Graph {
 struct UndirectedConnectivityPropertyTests {
     @Test("CN-350 bridges() is exactly the non-loop edges whose removal adds a component, in position order")
     func bridgesLaw() {
-        var rng = SeededRandomNumberGenerator(seed: 350)
+        var rng = Xoroshiro128Plus(seed: 350)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             var raw: [(Int, Int)] = []
@@ -140,7 +141,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-351 articulationPoints() is exactly the vertices whose removal adds a component, in vertices order, also on Boost's G(100, 500)")
     func articulationPointsLaw() {
-        var rng = SeededRandomNumberGenerator(seed: 351)
+        var rng = Xoroshiro128Plus(seed: 351)
         var graphs: [(Int, [(Int, Int)])] = []
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
@@ -191,7 +192,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-352 blocks: non-loop edges at w share a block iff their far ends are joined in G − w, closed transitively; ordered by smallest position")
     func blocksLaw() {
-        var rng = SeededRandomNumberGenerator(seed: 352)
+        var rng = Xoroshiro128Plus(seed: 352)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             var raw: [(Int, Int)] = []
@@ -261,7 +262,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-353 CN-354 the blocks partition the non-loop edges, component(ofEdgeAt:) is nil exactly for loops, and the one-edge blocks are the bridges")
     func partitionAndBridges() {
-        var rng = SeededRandomNumberGenerator(seed: 353)
+        var rng = Xoroshiro128Plus(seed: 353)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             var raw: [(Int, Int)] = []
@@ -295,7 +296,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-355 CN-356 articulation points are the vertices in two or more blocks; v is in c(G − v) − c(G) + 1 blocks; Σ (|V(B)| − 1) = n − c")
     func blockMembership() {
-        var rng = SeededRandomNumberGenerator(seed: 355)
+        var rng = Xoroshiro128Plus(seed: 355)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             var raw: [(Int, Int)] = []
@@ -347,7 +348,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-357 2-edge-connected components: u and v together iff joined in G − e for every edge e; c(G) + bridges in all")
     func biEdgeConnectedLaw() {
-        var rng = SeededRandomNumberGenerator(seed: 357)
+        var rng = Xoroshiro128Plus(seed: 357)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             var raw: [(Int, Int)] = []
@@ -397,7 +398,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-358 the block–cut tree is a forest between blocks and articulation points, one tree per component with a non-loop edge")
     func blockCutForest() {
-        var rng = SeededRandomNumberGenerator(seed: 358)
+        var rng = Xoroshiro128Plus(seed: 358)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             var raw: [(Int, Int)] = []
@@ -452,7 +453,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-359 CN-360 CN-369 the predicates agree with the collections, and connected components are the directed view's weak components")
     func predicates() {
-        var rng = SeededRandomNumberGenerator(seed: 359)
+        var rng = Xoroshiro128Plus(seed: 359)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 0 ... 10, using: &rng)
             var raw: [(Int, Int)] = []
@@ -486,7 +487,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-361 doubling every edge: no bridges, the same articulation points and block vertex sets, 2-edge-connected components are the components")
     func doubling() {
-        var rng = SeededRandomNumberGenerator(seed: 361)
+        var rng = Xoroshiro128Plus(seed: 361)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             let raw = (0 ..< Int.random(in: 0 ... 16, using: &rng)).map { _ in (Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
@@ -506,7 +507,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-362 appending a self-loop anywhere changes nothing but the edge count", .tags(.selfLoops))
     func appendingLoop() {
-        var rng = SeededRandomNumberGenerator(seed: 362)
+        var rng = Xoroshiro128Plus(seed: 362)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             let raw = (0 ..< Int.random(in: 0 ... 16, using: &rng)).map { _ in (Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
@@ -530,7 +531,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-363 permuting vertices: the same sets; bridges and blocks by position unchanged; components reorder by first vertex")
     func permutingVertices() {
-        var rng = SeededRandomNumberGenerator(seed: 363)
+        var rng = Xoroshiro128Plus(seed: 363)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             let raw = (0 ..< Int.random(in: 0 ... 16, using: &rng)).map { _ in (Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
@@ -559,7 +560,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-364 permuting edge positions: the same edge sets through the permutation, blocks by their new smallest positions")
     func permutingEdges() {
-        var rng = SeededRandomNumberGenerator(seed: 364)
+        var rng = Xoroshiro128Plus(seed: 364)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             let raw = (0 ..< Int.random(in: 0 ... 16, using: &rng)).map { _ in (Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
@@ -580,7 +581,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-365 every block, as a graph of its own edges, is one biconnected block; on two vertices it is one edge or a bundle")
     func blocksAreBiconnected() {
-        var rng = SeededRandomNumberGenerator(seed: 365)
+        var rng = Xoroshiro128Plus(seed: 365)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             var raw: [(Int, Int)] = []
@@ -642,7 +643,7 @@ struct UndirectedConnectivityPropertyTests {
 
     @Test("CN-368 each 2-edge-connected component has no bridge, and contracting them leaves a forest whose edges are the bridges")
     func contraction() {
-        var rng = SeededRandomNumberGenerator(seed: 368)
+        var rng = Xoroshiro128Plus(seed: 368)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 10, using: &rng)
             var raw: [(Int, Int)] = []

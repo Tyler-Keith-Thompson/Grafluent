@@ -3,6 +3,7 @@
 // are plain integers; no graph is needed. Expected values come from the catalog's reference
 // (ref.py, linear and brute-force equality). Case IDs (WK-nnn) refer to the catalog; see README.md.
 
+import Generators
 import GrafluentTestSupport
 import Testing
 import Walks
@@ -121,7 +122,7 @@ struct WalkEqualityTests {
 
     @Test("WK-711 equality agrees with brute force (rotation and reversal) on random circuits and cycles, and equal values hash alike", .tags(.randomized), arguments: 0 ..< 4)
     func linearEqualsBruteForce(seed: Int) throws {
-        var rng = SeededRandomNumberGenerator(seed: UInt(711_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(711_000 + seed))
         for _ in 0 ..< 500 {
             let n = Int.random(in: 1 ... 6, using: &rng)
             let va = (0 ..< n).map { _ in Int.random(in: 0 ..< 3, using: &rng) }

@@ -8,6 +8,7 @@
 // both sides agree. Case IDs (ST-nn) refer to the catalog; see README.md.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import SpanningTrees
@@ -19,7 +20,7 @@ struct SpanningTreeEventsRatioTests {
     func ratio() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 21)
+            var rng = Xoroshiro128Plus(seed: 21)
             let edges = (0 ..< 500_000).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)
             let weights = (0 ..< graph.edgeCount).map { _ in Int.random(in: 1 ... 1000, using: &rng) }

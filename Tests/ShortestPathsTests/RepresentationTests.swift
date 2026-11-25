@@ -6,6 +6,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import ShortestPaths
@@ -212,7 +213,7 @@ struct RepresentationTests {
         let boost: [(Int, Int, Int)] = [
             (0, 2, 1), (1, 1, 2), (1, 3, 1), (1, 4, 2), (2, 1, 7), (2, 3, 3), (3, 4, 1), (4, 0, 1), (4, 1, 1),
         ]
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let shuffled = boost.shuffled(using: &rng)
         var edgeIndices: [Int] = []
         let sparse = CompressedSparseRow(vertexCount: 5, edges: shuffled.map { DirectedEdge(from: $0.0, to: $0.1) }, edgeIndices: &edgeIndices)

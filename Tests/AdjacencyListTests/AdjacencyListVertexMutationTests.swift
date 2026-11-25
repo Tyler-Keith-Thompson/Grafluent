@@ -4,6 +4,7 @@
 // of it exists, which must come through the mutation unchanged.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -216,7 +217,7 @@ struct AdjacencyListVertexMutationTests {
 
     @Test("V-14 removing every vertex, in a random order, empties the graph", .tags(.randomized), arguments: 0 ..< 10 as Range<UInt>)
     func removeAllVerticesOneByOne(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         for fixture in DirectedFixture<Int>.all {
             var graph = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
             var remaining = fixture.edgeSet

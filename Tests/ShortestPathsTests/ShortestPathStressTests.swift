@@ -7,6 +7,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import ShortestPaths
@@ -117,7 +118,7 @@ struct ShortestPathStressTests {
             var edges: [DirectedEdge<Int>] = []
             for u in 0 ..< n { for v in 0 ..< n where u != v { edges.append(DirectedEdge(from: u, to: v)) } }
             let complete = CompressedSparseRow(vertexCount: n, edges: edges)
-            var rng = SeededRandomNumberGenerator(seed: 120)
+            var rng = Xoroshiro128Plus(seed: 120)
             let weights = (0 ..< complete.edgeCount).map { _ in Int.random(in: 1 ... 1000, using: &rng) }
             let dijkstra = complete.dijkstraShortestPaths(from: 0) { weights[$0] }
             let bellmanFord = complete.bellmanFordShortestPaths(from: 0) { weights[$0] }

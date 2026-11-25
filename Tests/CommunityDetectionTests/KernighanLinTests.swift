@@ -5,6 +5,7 @@
 
 import AdjacencyListModule
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -59,7 +60,7 @@ struct KernighanLinTests {
 
     @Test("Degenerate graphs: no vertices, one vertex, no edges; parallel edges add and self-loops never matter")
     func degenerate() {
-        var generator = SeededRandomNumberGenerator(seed: 3)
+        var generator = Xoroshiro128Plus(seed: 3)
         #expect(ReferencePseudograph<Int>(vertices: [], edges: []).kernighanLinBisection(using: &generator).isEmpty)
         #expect(ReferencePseudograph<Int>(vertices: [0], edges: []).kernighanLinBisection(using: &generator).map { Array($0) } == [[0]])
         let edgeless = ReferencePseudograph<Int>(vertices: 0 ..< 4, edges: [])
@@ -78,7 +79,7 @@ struct KernighanLinTests {
     func randomStart() {
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3), (5, 6)]
         let graph = ReferencePseudograph(vertices: 0 ..< 7, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var a = SeededRandomNumberGenerator(seed: 8), b = a
+        var a = Xoroshiro128Plus(seed: 8), b = a
         let first = graph.kernighanLinBisection(using: &a)
         #expect(first == graph.kernighanLinBisection(using: &b))
         #expect(first.map(\.count).sorted() == [3, 4])

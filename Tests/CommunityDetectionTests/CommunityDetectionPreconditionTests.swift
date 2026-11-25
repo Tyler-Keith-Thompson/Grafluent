@@ -6,6 +6,7 @@
 // Case IDs (CD-nnn) refer to the catalog; see README.md.
 
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -389,7 +390,7 @@ struct CommunityDetectionPreconditionTests {
             // U: P(0,1,2)
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.louvainCommunities(resolution: -1, using: &generator)
         }
     }
@@ -400,7 +401,7 @@ struct CommunityDetectionPreconditionTests {
             // U: P(0,1,2)
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.louvainCommunities(threshold: .nan, using: &generator)
         }
     }
@@ -412,7 +413,7 @@ struct CommunityDetectionPreconditionTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             let w: [Double] = [.nan, 1]
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.louvainCommunities(weight: { w[$0] }, using: &generator)
         }
     }
@@ -444,7 +445,7 @@ struct CommunityDetectionPreconditionTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
             let w: [Double] = [1, -1]
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.louvainCommunities(weight: { w[$0] }, using: &generator)
         }
     }
@@ -520,7 +521,7 @@ struct CommunityDetectionPreconditionTests {
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             let w: [Double] = [1, -.infinity]
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.asynchronousLabelPropagationCommunities(weight: { w[$0] }, using: &generator)
         }
     }

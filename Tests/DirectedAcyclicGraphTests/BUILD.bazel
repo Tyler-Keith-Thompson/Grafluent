@@ -28,6 +28,7 @@ swift_library(
         "//Sources/ShortestPaths",
         "//Sources/Walks",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
         "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )

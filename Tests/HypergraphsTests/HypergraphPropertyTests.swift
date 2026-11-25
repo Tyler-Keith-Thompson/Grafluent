@@ -10,6 +10,7 @@
 
 import AdjacencyListModule
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Hypergraphs
@@ -322,7 +323,7 @@ struct HypergraphPropertyTests {
     func equalityUnderReordering() async {
         let input = zip(Gen.int(in: 0 ... 7).array(of: 0 ... 4).array(of: 0 ... 8), Gen.int(in: 0 ... 1_000))
         await propertyCheck(count: 300, input: input) { raw, seed in
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let hypergraph = UndirectedIncidenceList(vertices: ["extra"], hyperedges: raw.map { $0.map { "v\($0)" } })
             let shuffled = UndirectedIncidenceList(vertices: Array(hypergraph.vertices).shuffled(using: &rng),
                                                    hyperedges: hypergraph.hyperedges.map { Array($0).shuffled(using: &rng) }.shuffled(using: &rng))

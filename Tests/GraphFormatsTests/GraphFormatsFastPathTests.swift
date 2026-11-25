@@ -6,6 +6,7 @@
 // error at the same place. See README.md.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphFormats
 import GraphProtocols
@@ -69,7 +70,7 @@ struct GraphFormatsFastPathTests {
 
     @Test("Matrix Market entries in every spacing and number form read the values they spell", arguments: 0 ..< 20 as Range<UInt>)
     func matrixMarketForms(seed: UInt) throws {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 7
         var lines: [String] = [], expected: [(Int, Int, Double)] = []
         for _ in 0 ..< 60 {

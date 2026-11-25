@@ -2,6 +2,7 @@ import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
 import CommunityDetection
+import Generators
 import GraphProtocols
 
 /// Infomap on G(10⁴, 5·10⁴) and on 100 planted blocks of 100, one trial each; the code length of
@@ -15,12 +16,12 @@ func infomapBenchmarks() {
     let random = undirected(10_000, 50_000, 21)
     Benchmark("CommunityDetection: infomapCommunities(trials: 1), G(10⁴, 5·10⁴)") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             blackHole(random.infomapCommunities(trials: 1, using: &generator))
         }
     }
     var planted: [UndirectedEdge<Int>] = [], placed = Set<UndirectedEdge<Int>>()
-    var draws = SeededRandomNumberGenerator(seed: 22)
+    var draws = Xoroshiro128Plus(seed: 22)
     for _ in 0 ..< 60_000 {
         let u = Int(draws.next() % 10_000)
         let v = Int.random(in: 0 ..< 100, using: &draws) + (Double.random(in: 0 ..< 1, using: &draws) < 0.9 ? u / 100 * 100 : Int(draws.next() % 100) * 100)
@@ -29,7 +30,7 @@ func infomapBenchmarks() {
     let blocks = UndirectedAdjacencyList(vertices: 0 ..< 10_000, edges: planted)
     Benchmark("CommunityDetection: infomapCommunities(trials: 1), 100 planted blocks of 100") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 2)
+            var generator = Xoroshiro128Plus(seed: 2)
             blackHole(blocks.infomapCommunities(trials: 1, using: &generator))
         }
     }

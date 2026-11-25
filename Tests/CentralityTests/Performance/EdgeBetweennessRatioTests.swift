@@ -7,6 +7,7 @@
 import AdjacencyListModule
 import Centrality
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -17,7 +18,7 @@ struct EdgeBetweennessRatioTests {
     func againstHandWritten() async {
         await Task {
             let n = 1_000
-            var rng = SeededRandomNumberGenerator(seed: 61)
+            var rng = Xoroshiro128Plus(seed: 61)
             var edges: [UndirectedEdge<Int>] = []
             var seen = Set<UndirectedEdge<Int>>()
             while edges.count < 5_000 {

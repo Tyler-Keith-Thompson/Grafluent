@@ -2,6 +2,7 @@
 // weights work; edges in nonincreasing weight, ties in position order. Case IDs (ST-nn) refer to
 // the catalog; see README.md.
 
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import SpanningTrees
@@ -110,7 +111,7 @@ struct MaximumSpanningTreeTests {
 
     @Test("ST-89 the maximum of w equals the minimum of −w, edge for edge and in order", .tags(.randomized), arguments: [0, 1, 2, 3, 10, 1000])
     func maximumIsNegatedMinimum(k: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(89_000 + k))
+        var rng = Xoroshiro128Plus(seed: UInt64(89_000 + k))
         for _ in 0 ..< 70 {
             let n = Int.random(in: 0 ... 12, using: &rng)
             let m = n == 0 ? 0 : Int.random(in: 0 ... 3 * n, using: &rng)

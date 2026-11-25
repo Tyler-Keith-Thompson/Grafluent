@@ -30,6 +30,7 @@ swift_library(
         "//Sources/Connectivity",
         "//Sources/ShortestPaths",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
         "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )
@@ -81,6 +82,7 @@ swift_library(
         "//Sources/Connectivity",
         "//Sources/ShortestPaths",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
         "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )

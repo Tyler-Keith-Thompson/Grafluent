@@ -8,6 +8,7 @@
 
 import AdjacencyListModule
 import Cliques
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -18,7 +19,7 @@ struct BronKerboschEventsRatioTests {
     func ratio() async {
         await Task {
             let n = 3_000
-            var rng = SeededRandomNumberGenerator(seed: 903)
+            var rng = Xoroshiro128Plus(seed: 903)
             var edges: [UndirectedEdge<Int>] = []
             for u in 0 ..< n {
                 for v in u + 1 ..< n where Double.random(in: 0 ..< 1, using: &rng) < 0.01 { edges.append(UndirectedEdge(u, v)) }

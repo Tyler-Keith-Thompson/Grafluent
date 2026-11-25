@@ -11,6 +11,7 @@
 // closure in an `#expect` expansion fails SIL verification (README.md).
 
 import Flows
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -23,7 +24,7 @@ struct FlowsPropertyTests {
     func directedMaximumFlows() async {
         let edges = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8)).array(of: 0 ... 24)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 2 ... 9), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let ends = raw.map { ($0.0 % n, $0.1 % n) }
             let capacities = raw.map { $0.2 }
@@ -144,7 +145,7 @@ struct FlowsPropertyTests {
     func undirectedMaximumFlows() async {
         let edges = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8)).array(of: 0 ... 20)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 2 ... 9), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let ends = raw.map { ($0.0 % n, $0.1 % n) }
             let capacities = raw.map { $0.2 }
@@ -288,7 +289,7 @@ struct FlowsPropertyTests {
     @Test("Medium networks (layered networks of 50 to 226 vertices, two narrow links per vertex to the next layer and one back, so push–relabel relabels far past its global-relabel threshold and opens gaps): every maximum flow is feasible, its value Edmonds–Karp's, its cut the vertices still reaching the sink in its residual network, the same for all three")
     func mediumNetworks() async {
         await propertyCheck(count: 60, input: Gen.int(in: 6 ... 14), Gen.int(in: 8 ... 16), Gen.int(in: 0 ... 1_000_000)) { layers, width, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             // Vertex 0 the source, the last the sink, `layers` layers of `width` vertices between:
             // wide links inside a layer, a few narrow ones to the next layer, and back edges.
             let n = layers * width + 2
@@ -402,7 +403,7 @@ struct FlowsPropertyTests {
     func globalCuts() async {
         let edges = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 6)).array(of: 0 ... 22)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 9), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let ends = raw.map { ($0.0 % n, $0.1 % n) }
             let capacities = raw.map { $0.2 }
@@ -487,7 +488,7 @@ struct FlowsPropertyTests {
     @Test("Medium global cuts (20 to 60 vertices, in up to four clusters joined by light edges): the undirected value, in Int, in Double quarters and with capacities up to 10⁶ (heap and bucket queue both), is the least maximum flow from the first vertex; the directed one the least maximum flow either way between the first vertex and another; each cut's value is its edges' capacity")
     func mediumGlobalCuts() async {
         await propertyCheck(count: 40, input: Gen.int(in: 20 ... 60), Gen.int(in: 2 ... 5), Gen.int(in: 0 ... 1_000_000)) { n, degree, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             // Clusters (seed mod 4 of them, 1 meaning none): edges inside a cluster heavy, edges between
             // light, so the minimum cut is usually a whole cluster rather than one vertex.
             let clusters = 1 + seed % 4
@@ -529,7 +530,7 @@ struct FlowsPropertyTests {
     func gomoryHu() async {
         let edges = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 5)).array(of: 0 ... 16)
         await propertyCheck(count: 200, input: edges, Gen.int(in: 1 ... 7), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let ends = raw.map { ($0.0 % n, $0.1 % n) }
             let capacities = raw.map { $0.2 }

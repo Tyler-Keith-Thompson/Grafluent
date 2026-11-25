@@ -10,6 +10,7 @@
 // while it looks slow. The timing runs only in an optimized build; a debug build checks that both
 // sides agree, on a smaller instance.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PackedCompressedSparseRowModule
@@ -25,7 +26,7 @@ struct PackedCompressedSparseRowRatioTests {
             #else
             let n = 100_000, m = 1_000_000
             #endif
-            var rng = SeededRandomNumberGenerator(seed: 7)
+            var rng = Xoroshiro128Plus(seed: 7)
             let edges = (0 ..< m).map { _ in DirectedEdge(from: Int.random(in: 0 ..< n, using: &rng), to: Int.random(in: 0 ..< n, using: &rng)) }
             let bulk = PackedCompressedSparseRow(vertices: 0 ..< n, edges: edges)
             var inserted = PackedCompressedSparseRow<Int>(vertices: 0 ..< n)

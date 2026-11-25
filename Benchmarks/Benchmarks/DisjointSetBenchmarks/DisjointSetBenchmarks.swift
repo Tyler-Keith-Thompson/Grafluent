@@ -3,6 +3,7 @@ import BenchmarkSupport
 import CompressedSparseRowModule
 import Connectivity
 import DisjointSetModule
+import Generators
 import GraphProtocols
 
 /// A hand-written union–find, the floor for DS-B01–B05: one array with minus the set size at each
@@ -66,7 +67,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
 
     let n = 1_000_000
-    var generator = SeededRandomNumberGenerator(seed: 7)
+    var generator = Xoroshiro128Plus(seed: 7)
     let pairs = (0 ..< 4 * n).map { _ in (Int.random(in: 0 ..< n, using: &generator), Int.random(in: 0 ..< n, using: &generator)) }
     var merged = DisjointSet(count: n)
     for (a, b) in pairs { merged.union(a, b) }
@@ -191,7 +192,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(merged == reversedMerged) }
     }
     // DS-B03: Kruskal-shaped: unions over a shuffled G(n, 4n) until one set is left.
-    var shuffler = SeededRandomNumberGenerator(seed: 3)
+    var shuffler = Xoroshiro128Plus(seed: 3)
     let kruskal = Inputs.randomEdges(vertexCount: n, edgeCount: 4 * n, seed: 3).shuffled(using: &shuffler).map { ($0.source, $0.target) }
     Benchmark("DisjointSet: BASELINE hand-written Kruskal-shaped unions over G(n, 4n)") { benchmark in
         for _ in benchmark.scaledIterations {

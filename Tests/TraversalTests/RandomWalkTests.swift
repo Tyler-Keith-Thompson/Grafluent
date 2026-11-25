@@ -8,6 +8,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Multigraphs
@@ -44,8 +45,8 @@ struct RandomWalkTests {
         let graph = CompressedSparseRow(vertexCount: 4, edges: [
             DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0), DirectedEdge(from: 2, to: 3), DirectedEdge(from: 3, to: 0),
         ])
-        var g1 = SeededRandomNumberGenerator(seed: 42)
-        var g2 = SeededRandomNumberGenerator(seed: 42)
+        var g1 = Xoroshiro128Plus(seed: 42)
+        var g2 = Xoroshiro128Plus(seed: 42)
         let walk = graph.randomWalk(from: 0, length: 50, using: &g1)
         #expect(walk.length == 50)
         #expect(walk.source == 0)
@@ -59,7 +60,7 @@ struct RandomWalkTests {
 
     @Test("TR-251 the walk stops early at a vertex with no out-edges, an isolated vertex, or edges that all weigh zero")
     func earlyStops() {
-        var generator = SeededRandomNumberGenerator(seed: 7)
+        var generator = Xoroshiro128Plus(seed: 7)
         let path = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
         let walk = path.randomWalk(from: 0, length: 10, using: &generator)
         #expect(walk.vertices == [0, 1, 2])
@@ -84,7 +85,7 @@ struct RandomWalkTests {
         let a = graph.insert(edge: DirectedEdge(from: 0, to: 1))
         let b = graph.insert(edge: DirectedEdge(from: 0, to: 1))
         let c = graph.insert(edge: DirectedEdge(from: 0, to: 2))
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         var counts: [Int: Int] = [:]
         for _ in 0 ..< 6000 {
             let walk = graph.randomWalk(from: 0, length: 1, using: &generator)
@@ -102,7 +103,7 @@ struct RandomWalkTests {
     func transitionFrequencies() {
         // Directed: from 0, weights 1, 2, 3, 4 to 1, 2, 3, 4.
         let star = CompressedSparseRow(vertexCount: 5, edges: (1 ... 4).map { DirectedEdge(from: 0, to: $0) })
-        var generator = SeededRandomNumberGenerator(seed: 11)
+        var generator = Xoroshiro128Plus(seed: 11)
         var hits = [Int](repeating: 0, count: 5)
         for _ in 0 ..< 10000 { hits[star.randomWalk(from: 0, length: 1, weight: { Double($0 + 1) }, using: &generator).target] += 1 }
         for v in 1 ... 4 { #expect(abs(Double(hits[v]) / 10000 - Double(v) / 10) < 0.02, "vertex \(v)") }
@@ -150,7 +151,7 @@ struct RandomWalkTests {
             // Mode 0 uniform, 1 weighted, 2 biased, 3 weighted and biased; some weights zero.
             let (p, q) = mode >= 2 ? (0.5, 3.0) : (1.0, 1.0)
             func check<G: DirectedGraph<Int>>(_ g: G, _ weightOf: @escaping (G.Edges.Index) -> Double, _ name: String) {
-                var reference = SeededRandomNumberGenerator(seed: UInt(seed))
+                var reference = Xoroshiro128Plus(seed: UInt64(seed))
                 var vertices = [source]
                 var taken: [G.Edges.Index] = []
                 var u = source
@@ -185,7 +186,7 @@ struct RandomWalkTests {
                     u = g.target(ofEdgeAt: row[pick])
                     vertices.append(u)
                 }
-                var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+                var generator = Xoroshiro128Plus(seed: UInt64(seed))
                 let walk = mode == 0 || mode == 2
                     ? g.randomWalk(from: source, length: length, returnParameter: p, inOutParameter: q, using: &generator)
                     : g.randomWalk(from: source, length: length, weight: weightOf, returnParameter: p, inOutParameter: q, using: &generator)
@@ -220,7 +221,7 @@ struct RandomWalkTests {
             let edges = raw.map { UndirectedEdge($0.0, $0.1) }
             let (p, q) = mode >= 2 ? (2.0, 0.5) : (1.0, 1.0)
             func check<G: Graph<Int>>(_ g: G, _ weightOf: @escaping (G.Edges.Index) -> Double, _ name: String) {
-                var reference = SeededRandomNumberGenerator(seed: UInt(seed))
+                var reference = Xoroshiro128Plus(seed: UInt64(seed))
                 var vertices = [source]
                 var taken: [G.Edges.Index] = []
                 var u = source
@@ -255,7 +256,7 @@ struct RandomWalkTests {
                     u = g.oppositeVertex(to: u, acrossEdgeAt: row[pick])
                     vertices.append(u)
                 }
-                var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+                var generator = Xoroshiro128Plus(seed: UInt64(seed))
                 let walk = mode == 0 || mode == 2
                     ? g.randomWalk(from: source, length: length, returnParameter: p, inOutParameter: q, using: &generator)
                     : g.randomWalk(from: source, length: length, weight: weightOf, returnParameter: p, inOutParameter: q, using: &generator)
@@ -277,7 +278,7 @@ struct RandomWalkTests {
     @Test("TR-256 Float weights, String vertices")
     func otherTypes() {
         let graph = AdjacencyList(edges: [DirectedEdge(from: "a", to: "b"), DirectedEdge(from: "b", to: "a")])
-        var generator = SeededRandomNumberGenerator(seed: 3)
+        var generator = Xoroshiro128Plus(seed: 3)
         let walk = graph.randomWalk(from: "a", length: 4, weight: { _ in Float(0.5) }, using: &generator)
         #expect(walk.vertices == ["a", "b", "a", "b", "a"])
     }
@@ -285,27 +286,27 @@ struct RandomWalkTests {
     @Test("TR-257 a source that is not a vertex, a negative length, a parameter not positive and finite, or a bad weight traps")
     func preconditions() async {
         await #expect(processExitsWith: .failure) {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).randomWalk(from: 5, length: 1, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).randomWalk(from: 0, length: -1, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = AdjacencyList(edges: [DirectedEdge(from: 0, to: 1)]).randomWalk(from: 0, length: 1, returnParameter: 0, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 1)]).randomWalk(from: 0, length: 1, inOutParameter: .infinity, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 1)]).randomWalk(from: 0, length: 1, weight: { _ in -1.0 }, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = CompressedSparseRow(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 1)]).randomWalk(from: 0, length: 1, weight: { _ in Double.nan }, using: &generator)
         }
     }

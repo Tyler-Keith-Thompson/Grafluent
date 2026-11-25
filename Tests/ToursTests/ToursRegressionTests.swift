@@ -4,6 +4,7 @@
 // on speed and is in Performance/ToursRegressionScaleTests.swift. See README.md.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -67,7 +68,7 @@ struct ToursRegressionTests {
         // d(t[i+1], t[j+1]), the first in row-major order on ties, reversing t[i+1 ... j]; stop when
         // no gain is positive. Small weights tie many moves, so the incremental bookkeeping's tie
         // rule (the lower column) is what decides.
-        var rng = SeededRandomNumberGenerator(seed: 41)
+        var rng = Xoroshiro128Plus(seed: 41)
         for round in 0 ..< 400 {
             let n = 9 + Int(rng.next() % 8)
             var edges: [UndirectedEdge<Int>] = [], weights: [Int] = []

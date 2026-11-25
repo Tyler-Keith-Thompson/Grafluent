@@ -1,6 +1,7 @@
 // Disconnected graphs: every entry point but `primMinimumSpanningTree(from:)` returns a forest of
 // n − c edges, one tree per component; `from:` returns the root's component only. Case IDs (ST-nn) refer to the catalog; see README.md.
 
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import SpanningTrees
@@ -188,7 +189,7 @@ struct ForestTests {
 
     @Test("ST-48 scipy's planted path: Kₙ with weights in [3, 4) and a path at weight 1", .tags(.randomized), arguments: [5, 10, 15, 20])
     func plantedPath(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(48 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(48 + n))
         var edges: [(Int, Int, Double)] = []
         for u in 0 ..< n {
             for v in u + 1 ..< n {

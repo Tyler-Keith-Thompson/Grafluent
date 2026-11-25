@@ -25,6 +25,7 @@ swift_library(
         "//Sources/AdjacencyMatrixModule",
         "//Sources/CompressedSparseRowModule",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
         "@swiftpkg_swift_property_based//:PropertyBased",
         "//Sources/Trees",
     ],

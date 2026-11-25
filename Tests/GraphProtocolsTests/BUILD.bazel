@@ -25,6 +25,7 @@ swift_library(
         "//Sources/CompressedSparseRowModule",
         "//Sources/EdgeListModule",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
         "@swiftpkg_swift_collections//:BitCollections",
         "@swiftpkg_swift_property_based//:PropertyBased",
     ],

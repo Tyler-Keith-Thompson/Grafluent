@@ -12,6 +12,7 @@ import CompressedSparseRowModule
 import Connectivity
 import EliasFanoGraphModule
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -203,7 +204,7 @@ import Traversal
     @Test("EF-9 algorithms on the coded graph agree with the compressed sparse row: BFS order, Dijkstra, strong components")
     func algorithms() {
         let n = 60
-        var generator = SeededRandomNumberGenerator(seed: 9)
+        var generator = Xoroshiro128Plus(seed: 9)
         var edges: [DirectedEdge<Int>] = []
         for _ in 0 ..< 240 { edges.append(DirectedEdge(from: Int.random(in: 0 ..< n, using: &generator), to: Int.random(in: 0 ..< n, using: &generator))) }
         let rows = CompressedSparseRow(vertexCount: n, edges: edges)
@@ -223,7 +224,7 @@ import Traversal
     @Test("EF-10 random graphs, dense and sparse: every query agrees with the compressed sparse row", .tags(.randomized))
     func randomAgainstRows() async {
         await propertyCheck(count: 150, input: Gen.int(in: 0 ... 140), Gen.int(in: 0 ... 600), Gen.int(in: 0 ... 1_000_000)) { n, m, seed in
-            var draw = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var draw = Xoroshiro128Plus(seed: UInt64(seed))
             var edges: [DirectedEdge<Int>] = []
             if n > 0 { for _ in 0 ..< m { edges.append(DirectedEdge(from: Int.random(in: 0 ..< n, using: &draw), to: Int.random(in: 0 ..< n, using: &draw))) } }
             let rows = CompressedSparseRow(vertexCount: n, edges: edges)

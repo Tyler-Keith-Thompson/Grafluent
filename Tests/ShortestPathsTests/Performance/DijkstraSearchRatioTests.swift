@@ -11,6 +11,7 @@
 
 import AdjacencyListModule
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import ShortestPaths
@@ -22,7 +23,7 @@ struct DijkstraSearchRatioTests {
     func directed() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 11)
+            var rng = Xoroshiro128Plus(seed: 11)
             let edges = (0 ..< 1_000_000).map { _ in DirectedEdge(from: Int.random(in: 0 ..< n, using: &rng), to: Int.random(in: 0 ..< n, using: &rng)) }
             let list = AdjacencyList(vertices: 0 ..< n, edges: edges)
             let rows = CompressedSparseRow(vertexCount: n, edges: edges)
@@ -85,7 +86,7 @@ struct DijkstraSearchRatioTests {
     func undirected() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 12)
+            var rng = Xoroshiro128Plus(seed: 12)
             let edges = (0 ..< 500_000).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)
             let weights = (0 ..< graph.edgeCount).map { _ in Int.random(in: 1 ... 100, using: &rng) }

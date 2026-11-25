@@ -6,6 +6,7 @@ import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import EdgeListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -313,7 +314,7 @@ struct EdgeListVertexTests {
 
     @Test("EL-V10 vertices of a large random list", .tags(.randomized))
     func largeRandom() {
-        var generator = SeededRandomNumberGenerator(seed: 10)
+        var generator = Xoroshiro128Plus(seed: 10)
         var edges: [DirectedEdge<Int>] = []
         for _ in 0 ..< 100_000 {
             edges.append(DirectedEdge(from: Int.random(in: 0 ..< 1000, using: &generator), to: Int.random(in: 0 ..< 1000, using: &generator)))

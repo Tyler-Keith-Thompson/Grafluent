@@ -1,10 +1,11 @@
+import Generators
 import GraphProtocols
 
 /// Deterministic benchmark inputs, so runs compare like with like.
 public enum Inputs {
     /// `edgeCount` random edges on `vertexCount` vertices, possibly repeated, in random order.
     public static func randomEdges(vertexCount: Int, edgeCount: Int, seed: UInt = 1) -> [DirectedEdge<Int>] {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         return (0 ..< edgeCount).map { _ in
             DirectedEdge(from: Int.random(in: 0 ..< vertexCount, using: &rng), to: Int.random(in: 0 ..< vertexCount, using: &rng))
         }

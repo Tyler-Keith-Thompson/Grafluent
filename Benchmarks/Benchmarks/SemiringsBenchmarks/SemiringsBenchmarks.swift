@@ -1,6 +1,7 @@
 import Benchmark
 import BenchmarkSupport
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import Semirings
 import ShortestPaths
@@ -128,7 +129,7 @@ let benchmarks: @Sendable () -> Void = {
     let n = 200_000
     let edges = Inputs.sortedUnique(Inputs.randomEdges(vertexCount: n, edgeCount: 2_000_000))
     let csr = CompressedSparseRow(vertexCount: n, edges: edges)
-    var generator = SeededRandomNumberGenerator(seed: 31)
+    var generator = Xoroshiro128Plus(seed: 31)
     let real = edges.map { _ in Double(Int.random(in: 1 ... 1000, using: &generator)) / 10 }
     let integer = real.map { Int($0 * 10) }
     // The overloads agree before anything is timed.
@@ -183,7 +184,7 @@ let benchmarks: @Sendable () -> Void = {
     let m = 1000
     let small = Inputs.randomEdges(vertexCount: m, edgeCount: 10_000, seed: 5)
     let smallGraph = CompressedSparseRow(vertexCount: m, edges: small)
-    var smallGenerator = SeededRandomNumberGenerator(seed: 7)
+    var smallGenerator = Xoroshiro128Plus(seed: 7)
     // Weighed by CSR slot, so parallel edges weigh differently.
     let slotWeights = (0 ..< smallGraph.edgeCount).map { _ in Double(Int.random(in: 1 ... 1000, using: &smallGenerator)) / 10 }
     let floor = handWrittenFloydWarshall(m, Array(smallGraph.edges), slotWeights)

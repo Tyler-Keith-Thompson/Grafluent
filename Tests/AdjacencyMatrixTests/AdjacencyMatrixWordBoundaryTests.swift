@@ -2,6 +2,7 @@
 // refer to the case catalog.
 
 import AdjacencyMatrixModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -98,7 +99,7 @@ struct AdjacencyMatrixWordBoundaryTests {
 
     @Test("AM-Z01 a large sparse matrix: 1000 vertices, 1000 random edges", .tags(.randomized), arguments: 0 ..< 3 as Range<UInt>)
     func largeSparse(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var edges = Set<DirectedEdge<Int>>()
         while edges.count < 1000 {
             edges.insert(DirectedEdge(from: Int.random(in: 0 ..< 1000, using: &rng), to: Int.random(in: 0 ..< 1000, using: &rng)))

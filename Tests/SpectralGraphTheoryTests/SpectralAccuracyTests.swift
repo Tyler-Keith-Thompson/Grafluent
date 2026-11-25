@@ -4,6 +4,7 @@
 // (`ref.py`'s exact determinant). Then scale invariance at c = 10^±150, and the work limits: a
 // tolerance below rounding traps rather than running on. See README.md.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -15,7 +16,7 @@ struct SpectralAccuracyTests {
     @Test("Weighted λ₂, n from 64 to 500, weights log-uniform over five decades: relative to the dense λ₂, on L and on N")
     func weightedAlgebraicConnectivity() throws {
         for (n, seed) in [(64, 1), (150, 2), (250, 3), (500, 4)] as [(Int, UInt)] {
-            var rng = SeededRandomNumberGenerator(seed: seed)
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var edges = (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) }
             for _ in 0 ..< n { edges.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }
             // 2^k · s, k uniform in −8 ... 8, s uniform in [1, 2): log-uniform over 2⁻⁸ … 2⁹.
@@ -74,7 +75,7 @@ struct SpectralAccuracyTests {
             let sign = b.first { abs($0) >= 1e-4 * largest }! < 0 ? -1.0 : 1.0
             return (1 / mu, b.map { sign * $0 / length })
         }
-        var rng = SeededRandomNumberGenerator(seed: 11)
+        var rng = Xoroshiro128Plus(seed: 11)
         let spread = (0 ..< 499).map { _ in Double(sign: .plus, exponent: Int.random(in: -20 ... 20, using: &rng), significand: Double.random(in: 1 ..< 2, using: &rng)) }
         let cases: [(String, [Double])] = [
             ("300, first edge 10⁶", (0 ..< 299).map { $0 == 0 ? 1e6 : 1 }),
@@ -110,7 +111,7 @@ struct SpectralAccuracyTests {
     @Test("The Fiedler residual ‖Lx − λ₂x‖ is within 10⁻⁷ · λ₂ on random graphs with weights over twelve decades (shift-invert; a FuzzSpectral finding)")
     func fiedlerResidualUnderSpread() throws {
         for seed in 1 ... 12 as ClosedRange<UInt> {
-            var rng = SeededRandomNumberGenerator(seed: seed)
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let n = 80
             var edges = (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) }
             for _ in 0 ..< 20 { edges.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }
@@ -137,7 +138,7 @@ struct SpectralAccuracyTests {
     @Test("Lanczos-sized graphs with loops and parallel edges: λ₂ of L and of N against the dense λ₂ (the shifted operators drop the loops)")
     func loopsOnTheShiftedPath() throws {
         for seed in 1 ... 3 as ClosedRange<UInt> {
-            var rng = SeededRandomNumberGenerator(seed: seed)
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let n = 100
             var edges = (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) }
             for _ in 0 ..< 2 * n { edges.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }
@@ -158,7 +159,7 @@ struct SpectralAccuracyTests {
 
     @Test("Negative weights on a Lanczos-sized graph: ρ is max |λ(A)|, the most negative eigenvalue when it is the larger; parallel edges of opposite weight store nothing")
     func negativeWeights() throws {
-        var rng = SeededRandomNumberGenerator(seed: 13)
+        var rng = Xoroshiro128Plus(seed: 13)
         let n = 90
         var edges = (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) }
         for _ in 0 ..< 2 * n { edges.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }
@@ -295,7 +296,7 @@ struct SpectralAccuracyTests {
 
     @Test("Effective graph resistance and the Kemeny constant on weighted paths: relative 10⁻¹² against Σ r(k + 1)(n − k − 1) and (1/2vol) Σ dᵢdⱼR(i, j)")
     func electricalUnderSpread() {
-        var rng = SeededRandomNumberGenerator(seed: 23)
+        var rng = Xoroshiro128Plus(seed: 23)
         let n = 40
         let spread = (0 ..< n - 1).map { _ in Double(sign: .plus, exponent: Int.random(in: -30 ... 30, using: &rng), significand: Double.random(in: 1 ..< 2, using: &rng)) }
         let cases: [(String, [Double])] = [
@@ -333,7 +334,7 @@ struct SpectralAccuracyTests {
 
     @Test("Resistance distance across 300 series bundles of three parallel two-edge paths, conductances over twelve decades: within 10⁻⁸ of the series–parallel law")
     func resistanceUnderSpread() throws {
-        var rng = SeededRandomNumberGenerator(seed: 31)
+        var rng = Xoroshiro128Plus(seed: 31)
         let bundles = 300
         var edges: [UndirectedEdge<Int>] = []
         var weights: [Double] = []
@@ -390,7 +391,7 @@ struct SpectralAccuracyTests {
         }
         // The Lanczos paths (shifted and shift-invert), on 120 vertices.
         let n = 120
-        var rng = SeededRandomNumberGenerator(seed: 41)
+        var rng = Xoroshiro128Plus(seed: 41)
         var edges = (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) }
         for _ in 0 ..< 40 { edges.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }
         let weights = edges.indices.map { _ in Double.random(in: 0.5 ... 2, using: &rng) }
@@ -434,7 +435,7 @@ struct SpectralAccuracyTests {
         do {
             // A random graph: no symmetry, so the Krylov space never closes early.
             let n = 64
-            var rng = SeededRandomNumberGenerator(seed: 7)
+            var rng = Xoroshiro128Plus(seed: 7)
             let edges = (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) } + (0 ..< n).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
             let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
             let error = #expect(throws: NoConvergence.self) { try graph.spectralRadius(tolerance: 1e-300) }
@@ -452,7 +453,7 @@ struct SpectralAccuracyTests {
         }
         // Without the fault: the default tolerance converges on the same graphs.
         let n = 64
-        var rng = SeededRandomNumberGenerator(seed: 7)
+        var rng = Xoroshiro128Plus(seed: 7)
         let edges = (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) } + (0 ..< n).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
         let graph = ReferencePseudograph(vertices: Array(0 ..< n), edges: edges)
         let largest = try graph.adjacencySpectrum().map { abs($0) }.max()!

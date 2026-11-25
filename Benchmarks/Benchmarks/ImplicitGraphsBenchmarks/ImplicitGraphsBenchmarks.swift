@@ -2,6 +2,7 @@ import Benchmark
 import BenchmarkSupport
 import CompressedSparseRowModule
 import Connectivity
+import Generators
 import GraphProtocols
 import ImplicitGraphs
 import ShortestPaths
@@ -98,7 +99,7 @@ let benchmarks: @Sendable () -> Void = {
     let csr = CompressedSparseRow(vertexCount: n, edges: gridEdges)
     // Entering a cell costs 1…9, read by the position's target from a per-cell array; the CSR's
     // weights are the same per edge, in an array by edge position (its rows are row-major too).
-    var rng = SeededRandomNumberGenerator(seed: 4)
+    var rng = Xoroshiro128Plus(seed: 4)
     let cellCost = (0 ..< n).map { _ in Int.random(in: 1 ... 9, using: &rng) }
     let csrWeights = gridEdges.map { cellCost[$0.target] }
 

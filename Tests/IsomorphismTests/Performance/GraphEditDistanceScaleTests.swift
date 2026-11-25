@@ -4,6 +4,7 @@
 // and the path optimal. Random graphs come from the package's seeded generator. See README.md.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import IsomorphismModule
@@ -14,7 +15,7 @@ struct GraphEditDistanceScaleTests {
     @Test("Random pairs on 7 vertices, edge probability 0.4: the distance equals brute force", .timeLimit(.minutes(1)))
     func againstBruteForce() async {
         await Task {
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 21)
+            var rng = Xoroshiro128Plus(seed: 21)
             for _ in 0 ..< 12 {
                 let n = 7
                 var gPairs: [[Int]] = [], hPairs: [[Int]] = []
@@ -68,7 +69,7 @@ struct GraphEditDistanceScaleTests {
             let petersen = UndirectedAdjacencyList<Int>(vertices: 0 ..< 10, edges: outer + spokes + (0 ..< 5).map { UndirectedEdge($0 + 5, ($0 + 2) % 5 + 5) })
             let prism = UndirectedAdjacencyList<Int>(vertices: 0 ..< 10, edges: outer + spokes + (0 ..< 5).map { UndirectedEdge($0 + 5, ($0 + 1) % 5 + 5) })
             var pairs = [(petersen, prism)]
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 33)
+            var rng = Xoroshiro128Plus(seed: 33)
             for _ in 0 ..< 4 {
                 var sides: [UndirectedAdjacencyList<Int>] = []
                 for _ in 0 ..< 2 {

@@ -4,6 +4,7 @@
 // (WK-nn) refer to the Walks catalog; see Tests/WalksTests/README.md.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import ShortestPaths
@@ -26,7 +27,7 @@ struct ShortestPathWalkReviewTests {
 
     @Test("WK-1221 undirected Dijkstra and A* paths are paths of the directed view, each arc pointing the way it is crossed", .tags(.randomized), arguments: 0 ..< 6)
     func undirectedPathsAreArcs(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(1221 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(1221 + seed))
         for _ in 0 ..< 30 {
             let n = Int.random(in: 2 ... 8, using: &rng)
             var edges: [(Int, Int, Int)] = []

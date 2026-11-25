@@ -1,6 +1,7 @@
 import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
+import Generators
 import GraphProtocols
 import SpectralGraphTheory
 
@@ -24,7 +25,7 @@ func grid(_ side: Int) -> UndirectedAdjacencyList<Int> {
 
 /// A simple 3-regular graph: three random perfect matchings, each redrawn while it repeats a pair.
 func randomRegular(_ n: Int, seed: UInt) -> UndirectedAdjacencyList<Int> {
-    var rng = SeededRandomNumberGenerator(seed: seed)
+    var rng = Xoroshiro128Plus(seed: UInt64(seed))
     var seen = Set<UndirectedEdge<Int>>()
     var edges: [UndirectedEdge<Int>] = []
     for _ in 0 ..< 3 {
@@ -139,7 +140,7 @@ let benchmarks: @Sendable () -> Void = {
     // Conductances log-uniform over 2⁻²⁰ … 2²¹ on the 100 × 100 grid: Jacobi, then the incomplete
     // factor.
     let spreadGrid = inputs[0].1
-    var spreadRandom = SeededRandomNumberGenerator(seed: 6)
+    var spreadRandom = Xoroshiro128Plus(seed: 6)
     let spread = (0 ..< spreadGrid.edgeCount).map { _ in Double(sign: .plus, exponent: Int.random(in: -20 ... 20, using: &spreadRandom), significand: Double.random(in: 1 ..< 2, using: &spreadRandom)) }
     Benchmark("SpectralGraphTheory: resistanceDistance(from:to:weight:), grid 100×100, conductances over twelve decades") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(try spreadGrid.resistanceDistance(from: 0, to: spreadGrid.vertexCount - 1, weight: { spread[$0] })) }

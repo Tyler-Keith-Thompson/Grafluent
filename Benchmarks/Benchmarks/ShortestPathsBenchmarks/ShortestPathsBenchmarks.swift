@@ -2,6 +2,7 @@ import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import ShortestPaths
 import StableGraphs
@@ -165,7 +166,7 @@ let benchmarks: @Sendable () -> Void = {
     let list = AdjacencyList(vertices: 0 ..< n, edges: edges)
     let named = AdjacencyList(vertices: (0 ..< n).map { "v\($0)" }, edges: edges.map { DirectedEdge(from: "v\($0.source)", to: "v\($0.target)") })
     let undirected = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges.map { UndirectedEdge($0.source, $0.target) })
-    var generator = SeededRandomNumberGenerator(seed: 21)
+    var generator = Xoroshiro128Plus(seed: 21)
     // `edges` is sorted and unique, so CSR slot k and AdjacencyList position k are both edges[k].
     let weights = edges.map { _ in Int.random(in: 1 ... 1000, using: &generator) }
     let undirectedWeights = (0 ..< undirected.edgeCount).map { _ in Int.random(in: 1 ... 1000, using: &generator) }
@@ -409,7 +410,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(sparse.johnsonShortestPaths { sparseWeights[$0] }) }
     }
     // SP-B08: bidirectional against one-way Dijkstra on random pairs of the 10⁶-edge graph.
-    var pairGenerator = SeededRandomNumberGenerator(seed: 8)
+    var pairGenerator = Xoroshiro128Plus(seed: 8)
     let pairs = (0 ..< 20).map { _ in (Int.random(in: 0 ..< n, using: &pairGenerator), Int.random(in: 0 ..< n, using: &pairGenerator)) }
     for (s, t) in pairs {
         precondition(list.bidirectionalDijkstraShortestPath(from: s, to: t) { weights[$0] }?.distance == list.dijkstraShortestPath(from: s, to: t) { weights[$0] }?.distance)

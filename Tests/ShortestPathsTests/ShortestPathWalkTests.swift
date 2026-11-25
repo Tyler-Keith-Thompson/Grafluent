@@ -3,6 +3,7 @@
 // Walks catalog's section 12; see README.md.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import ShortestPaths
@@ -79,7 +80,7 @@ struct ShortestPathWalkTests {
 
     @Test("WK-1210 every tree path is a path of the graph and weighs the distance", .tags(.randomized), arguments: 0 ..< 20)
     func treePathLaws(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = Int.random(in: 1 ... 12, using: &rng)
         let m = Int.random(in: 0 ... 3 * n, using: &rng)
         // Self-loops and parallel copies happen; weights are non-negative so all three searches run.
@@ -126,7 +127,7 @@ struct ShortestPathWalkTests {
 
     @Test("WK-1212 every witness is a cycle of the graph that weighs less than zero", .tags(.randomized), arguments: 0 ..< 20)
     func witnessIsACycle(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = Int.random(in: 1 ... 12, using: &rng)
         let m = Int.random(in: 0 ... 3 * n, using: &rng)
         let raw = (0 ..< m).map { _ in (Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng), Int.random(in: -4 ... 10, using: &rng)) }

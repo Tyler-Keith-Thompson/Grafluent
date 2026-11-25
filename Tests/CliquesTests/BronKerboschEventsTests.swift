@@ -5,6 +5,7 @@
 
 import AdjacencyListModule
 import Cliques
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -78,7 +79,7 @@ struct BronKerboschEventsTests {
 
     @Test("CQ-1102 seeded dense graphs, 14 vertices at p = 0.5: the events of a recursive Bron–Kerbosch with Tomita's pivot, X merging tried candidates with the outer call's excluded vertices", .tags(.randomized))
     func dense() {
-        var rng = SeededRandomNumberGenerator(seed: 1102)
+        var rng = Xoroshiro128Plus(seed: 1102)
         for _ in 0 ..< 40 {
             var pairs: [(Int, Int)] = []
             for u in 0 ..< 14 {

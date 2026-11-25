@@ -5,6 +5,7 @@
 // is read through the lent rows (`_withOutIndexRows`) and the package-visible pool.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PackedCompressedSparseRowModule
@@ -64,7 +65,7 @@ struct PackedCompressedSparseRowLayoutTests {
         #expect(zip(capacities, capacities.dropFirst()).allSatisfy { $1 == 2 * $0 }, "growth not by doubling: \(capacities)")
         let full = rows(graph).capacity
         #expect(Double(graph.edgeCount) <= 0.7 * Double(full) && Double(graph.edgeCount) > 0.3 * Double(full))
-        var rng = SeededRandomNumberGenerator(seed: 5)
+        var rng = Xoroshiro128Plus(seed: 5)
         for edge in Array(graph.edges).shuffled(using: &rng) { graph.remove(edge: edge) }
         #expect(graph.edgeCount == 0 && rows(graph).capacity < full)
         verify(graph, Set(0 ..< 100), [])

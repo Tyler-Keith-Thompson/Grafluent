@@ -6,6 +6,7 @@ import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import Connectivity
 import DirectedAcyclicGraphModule
+import Generators
 import GrafluentTestSupport
 import GraphOperations
 import GraphProtocols
@@ -21,7 +22,7 @@ struct ComplementIndicesWalkTests {
     func complementIndicesWalk() {
         // index(after:) costs one contains(edge:) per column passed, O(n²) for the whole walk.
         let n = 1500
-        var rng = SeededRandomNumberGenerator(seed: 71)
+        var rng = Xoroshiro128Plus(seed: 71)
         var arcs = Set<[Int]>()
         while arcs.count < 3 * n { arcs.insert([Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)]) }
         let base = CompressedSparseRow(vertexCount: n, edges: arcs.map { DirectedEdge(from: $0[0], to: $0[1]) })

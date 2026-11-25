@@ -7,6 +7,7 @@
 // A with an undirected loop adding 2w, D its row sums, L = D − A; brute-force spanning-tree
 // enumeration; the series and parallel laws. See README.md.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -24,7 +25,7 @@ struct SpectralPropertyTests {
             let weights = raw.map { weighted ? $0.2 : 1 }
             var listed = Array(0 ..< n)
             if seed != 0 {
-                var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+                var rng = Xoroshiro128Plus(seed: UInt64(seed))
                 listed.shuffle(using: &rng)
             }
             let graph = ReferencePseudograph(vertices: listed, edges: edges)
@@ -95,7 +96,7 @@ struct SpectralPropertyTests {
             let edges = raw.map { UndirectedEdge($0.0 % n, $0.1 % n) }
             let weights = raw.map { weighted ? $0.2 : 1 }
             var listed = Array(0 ..< n)
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             if seed != 0 { listed.shuffle(using: &rng) }
             let graph = ReferencePseudograph(vertices: listed, edges: edges)
             var position = [Int](repeating: 0, count: n)
@@ -148,7 +149,7 @@ struct SpectralPropertyTests {
             let weights = raw.map { weighted ? $0.2 : 1 }
             var listed = Array(0 ..< n)
             if seed != 0 {
-                var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+                var rng = Xoroshiro128Plus(seed: UInt64(seed))
                 listed.shuffle(using: &rng)
             }
             let graph = ReferencePseudograph(vertices: listed, edges: edges)
@@ -205,7 +206,7 @@ struct SpectralPropertyTests {
             let weights = raw.map { weighted ? $0.2 : 1 }
             var listed = Array(0 ..< n)
             if seed != 0 {
-                var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+                var rng = Xoroshiro128Plus(seed: UInt64(seed))
                 listed.shuffle(using: &rng)
             }
             let graph = ReferencePseudograph(vertices: listed, edges: edges)
@@ -264,7 +265,7 @@ struct SpectralPropertyTests {
             let weights = raw.map { weighted ? Double($0.2) / 2 : 1 }
             var listed = Array(0 ..< n)
             if seed != 0 {
-                var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+                var rng = Xoroshiro128Plus(seed: UInt64(seed))
                 listed.shuffle(using: &rng)
             }
             let graph = ReferencePseudograph(vertices: listed, edges: edges)
@@ -322,7 +323,7 @@ struct SpectralPropertyTests {
             // Edge positions shuffled by the seed: the law does not depend on edge order.
             var order = Array(edges.indices)
             if seed != 0 {
-                var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+                var rng = Xoroshiro128Plus(seed: UInt64(seed))
                 order.shuffle(using: &rng)
             }
             let graph = ReferencePseudograph(vertices: Array(0 ... bundles.count), edges: order.map { edges[$0] })
@@ -356,7 +357,7 @@ struct SpectralPropertyTests {
             let weights = path.map { _ in 1 } + raw.map { weighted ? $0.2 : 1 }
             var listed = Array(0 ..< n)
             if seed != 0 {
-                var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+                var rng = Xoroshiro128Plus(seed: UInt64(seed))
                 listed.shuffle(using: &rng)
             }
             let graph = ReferencePseudograph(vertices: listed, edges: edges)
@@ -410,7 +411,7 @@ struct SpectralPropertyTests {
             let weights = raw.map(\.2)
             var listed = Array(0 ..< n)
             if seed != 0 {
-                var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+                var rng = Xoroshiro128Plus(seed: UInt64(seed))
                 listed.shuffle(using: &rng)
             }
             let graph = ReferencePseudograph(vertices: listed, edges: edges)

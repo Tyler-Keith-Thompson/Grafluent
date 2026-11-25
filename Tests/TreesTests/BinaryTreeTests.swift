@@ -4,6 +4,7 @@
 // the trees drawn in each test; the Huffman example is the classic six-letter one (5, 9, 12, 13,
 // 16, 45), whose code words are 1100, 1101, 100, 101, 111 and 0.
 
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -326,7 +327,7 @@ struct BinaryTreeTests {
     @Test("Random search trees: inorder is sorted, preorder follows the links, and swapping a lone child's side breaks equality", .tags(.randomized))
     func searchTrees() async {
         await propertyCheck(count: 200, input: Gen.int(in: 0 ... 1_000_000), Gen.int(in: 1 ... 30)) { seed, n in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let keys = Array(0 ..< n).shuffled(using: &rng)
             var left = [Int?](repeating: nil, count: n), right = [Int?](repeating: nil, count: n)
             for key in keys.dropFirst() {

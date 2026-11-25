@@ -4,6 +4,7 @@
 // position, capacities read by position. See README.md.
 
 import Flows
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -33,7 +34,7 @@ struct FlowsStableGraphTests {
 
     @Test("Maximum flow with edge holes only, vertex holes, or both equals the compacted copy's, positions mapped", arguments: [1, 2, 3, 4, 5])
     func maximumFlowWithHoles(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 12
         var graph = StableDirectedGraph<Int>(vertices: 0 ..< n)
         for _ in 0 ..< n * 4 {

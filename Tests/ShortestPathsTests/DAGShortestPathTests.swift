@@ -8,6 +8,7 @@
 import AdjacencyListModule
 import CompressedSparseRowModule
 import DirectedAcyclicGraphModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Multigraphs
@@ -107,7 +108,7 @@ struct DAGShortestPathTests {
 
     @Test("Random DAGs: the same distances as Bellman–Ford, on the graph and on its DirectedAcyclicGraph", arguments: [1, 2, 3, 4, 5])
     func againstBellmanFord(seed: Int) throws {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 200
         let rank = Array(0 ..< n).shuffled(using: &rng)
         var edges: [DirectedEdge<Int>] = []

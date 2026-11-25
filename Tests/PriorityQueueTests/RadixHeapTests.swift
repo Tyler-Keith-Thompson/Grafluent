@@ -3,6 +3,7 @@
 // Dijkstra's algorithm driven by it (stale pairs skipped) against one driven by
 // IndexedPriorityQueue.
 
+import Generators
 import GrafluentTestSupport
 import PriorityQueueModule
 import PropertyBased
@@ -156,7 +157,7 @@ struct RadixHeapTests {
 
     @Test("Dijkstra's algorithm with a radix heap (stale pairs skipped) gives the distances one with IndexedPriorityQueue does", .tags(.randomized))
     func dijkstra() {
-        var rng = SeededRandomNumberGenerator(seed: 11)
+        var rng = Xoroshiro128Plus(seed: 11)
         for round in 0 ..< 20 {
             let n = Int.random(in: 1 ... 60, using: &rng)
             let maxWeight = [3, 100, 1 << 40][round % 3]

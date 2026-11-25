@@ -427,6 +427,11 @@ library with none of that can skip this section.
   response, a missing resource) has a test of what the caller sees.
 - Tests may call underscored and `package` API.
 - Property tests use swift-property-based (`import PropertyBased`, `propertyCheck`).
+- Seeded tests and benchmarks seed SwiftPRNG's generators (`import Generators`,
+  `Xoroshiro128Plus(seed:)`), never a hand-written one. Their draws stay the standard library's
+  (`random(in:using:)`, `shuffled(using:)`) rather than SwiftPRNG's `uniform(in:)`,
+  `integer(in:)` and `bernoulli(_:)`, because switching would change the catalog rows' expected
+  values.
 
 ### Docs
 

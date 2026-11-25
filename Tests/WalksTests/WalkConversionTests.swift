@@ -4,6 +4,7 @@
 // need a closed walk of positive length and drop its closing vertex. Case IDs (WK-nnn) refer to the
 // catalog; see README.md.
 
+import Generators
 import GrafluentTestSupport
 import Testing
 import Walks
@@ -106,7 +107,7 @@ struct WalkConversionTests {
 
     @Test("WK-809 Cycle(Walk(c)) == c for random cycles, and through Trail and Circuit too", .tags(.randomized), arguments: 0 ..< 4)
     func roundTrip(seed: Int) throws {
-        var rng = SeededRandomNumberGenerator(seed: UInt(809_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(809_000 + seed))
         for _ in 0 ..< 200 {
             let n = Int.random(in: 1 ... 8, using: &rng)
             let vs = Array(Array(0 ..< 12).shuffled(using: &rng).prefix(n))

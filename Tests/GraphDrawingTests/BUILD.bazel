@@ -32,6 +32,7 @@ swift_library(
         "//Sources/StableGraphs",
         "//Sources/DirectedAcyclicGraphModule",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
         "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )
@@ -85,6 +86,7 @@ swift_library(
         "//Sources/StableGraphs",
         "//Sources/DirectedAcyclicGraphModule",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
         "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )

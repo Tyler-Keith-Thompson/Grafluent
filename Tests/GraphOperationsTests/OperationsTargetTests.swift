@@ -8,6 +8,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphOperations
 import GraphProtocols
@@ -19,7 +20,7 @@ import Testing
 struct OperationsTargetTests {
     @Test("The index-space operations agree across their construction targets", arguments: [1, 2, 3, 4, 5])
     func indexTargetsAgree(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(400 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(400 + seed))
         let n = 4 + seed * 2
         let names = (0 ..< n).map { "x\($0)" }
         var arcs: [DirectedEdge<String>] = []
@@ -67,7 +68,7 @@ struct OperationsTargetTests {
 
     @Test("The index-space operations read CompressedSparseRow, AdjacencyMatrix and view inputs as their copies", arguments: [1, 2, 3])
     func indexInputsAgree(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(500 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(500 + seed))
         let n = 5 + seed * 2
         var arcs: [DirectedEdge<Int>] = []
         for _ in 0 ..< n * 2 {
@@ -123,7 +124,7 @@ struct OperationsTargetTests {
 
     @Test("The label operations agree across their mutable targets", arguments: [1, 2, 3, 4])
     func labelTargetsAgree(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(600 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(600 + seed))
         let pool = (0 ..< 8).map { "y\($0)" }
         let gNames = pool.filter { _ in Int.random(in: 0 ..< 4, using: &rng) != 0 }
         let hNames = pool.filter { _ in Int.random(in: 0 ..< 4, using: &rng) != 0 }.shuffled(using: &rng)

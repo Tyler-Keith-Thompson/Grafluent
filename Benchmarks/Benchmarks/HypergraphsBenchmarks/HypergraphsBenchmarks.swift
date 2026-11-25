@@ -4,6 +4,7 @@ import BenchmarkSupport
 import CompressedSparseRowModule
 import Connectivity
 import DisjointSetModule
+import Generators
 import GraphProtocols
 import Hypergraphs
 import Traversal
@@ -50,7 +51,7 @@ let benchmarks: @Sendable () -> Void = {
     Benchmark.defaultConfiguration.maxDuration = .seconds(2)
 
     let n = 100_000, m = 200_000
-    var generator = SeededRandomNumberGenerator(seed: 21)
+    var generator = Xoroshiro128Plus(seed: 21)
     // Hyperedges of 2–8 members, listed in random order (the build sorts them).
     let rows: [[Int]] = (0 ..< m).map { _ in (0 ..< Int.random(in: 2 ... 8, using: &generator)).map { _ in Int.random(in: 0 ..< n, using: &generator) } }
     let arcs: [(sources: ArraySlice<Int>, targets: ArraySlice<Int>)] = rows.map { (sources: $0[..<($0.count / 2)], targets: $0[($0.count / 2)...]) }

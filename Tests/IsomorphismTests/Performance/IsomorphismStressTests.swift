@@ -9,6 +9,7 @@
 // package's seeded generator. See README.md.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import IsomorphismModule
@@ -21,9 +22,9 @@ struct IsomorphismStressTests {
     @Test("A random 3-regular graph on 1,000 vertices: a relabelled copy is isomorphic, with as many mappings as automorphisms; a switched copy with other triangles is not", .timeLimit(.minutes(1)))
     func randomCubic() async throws {
         try await Task {
-            var generator = Xoshiro256StarStar(seed: 1)
+            var generator = RandomGraphs.Xoshiro256StarStar(seed: 1)
             let graph = UndirectedAdjacencyList<Int>.randomRegular(vertexCount: 1000, degree: 3, using: &generator)
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 11)
+            var rng = Xoroshiro128Plus(seed: 11)
             let permutation = Array(0 ..< 1000).shuffled(using: &rng)
             let pairs = graph.edges.map { [$0.u, $0.v] }
             let copy = UndirectedAdjacencyList(vertices: (0 ..< 1000).shuffled(using: &rng), edges: pairs.shuffled(using: &rng).map { UndirectedEdge(permutation[$0[0]], permutation[$0[1]]) })
@@ -75,9 +76,9 @@ struct IsomorphismStressTests {
     @Test("A random 10-regular graph on 1,000 vertices against a relabelled copy: a valid mapping", .timeLimit(.minutes(1)))
     func randomTenRegular() async throws {
         try await Task {
-            var generator = Xoshiro256StarStar(seed: 2)
+            var generator = RandomGraphs.Xoshiro256StarStar(seed: 2)
             let graph = Pseudograph<Int>.randomRegular(vertexCount: 1000, degree: 10, using: &generator)
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 12)
+            var rng = Xoroshiro128Plus(seed: 12)
             let permutation = Array(0 ..< 1000).shuffled(using: &rng)
             let copy = Pseudograph(vertices: 0 ..< 1000, edges: graph.edges.shuffled(using: &rng).map { UndirectedEdge(permutation[$0.v], permutation[$0.u]) })
             let mapping = try #require(graph.isomorphism(to: copy))
@@ -99,7 +100,7 @@ struct IsomorphismStressTests {
                     if i + 1 < side { edges.append(UndirectedEdge(i * side + j, (i + 1) * side + j)) }
                 }
             }
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 13)
+            var rng = Xoroshiro128Plus(seed: 13)
             let n = side * side
             let permutation = Array(0 ..< n).shuffled(using: &rng)
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)
@@ -128,7 +129,7 @@ struct IsomorphismStressTests {
     @Test("40 random graphs on 8 – 29 vertices against relabelled copies: as many mappings as automorphisms, every one valid", .timeLimit(.minutes(1)))
     func relabelledRandomGraphs() async {
         await Task {
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 14)
+            var rng = Xoroshiro128Plus(seed: 14)
             for trial in 0 ..< 40 {
                 let n = Int.random(in: 8 ... 29, using: &rng)
                 var pairs = Set<[Int]>()
@@ -155,7 +156,7 @@ struct IsomorphismStressTests {
     @Test("Pattern counts in a random graph (200 vertices, 1,500 edges) against counting formulas: triangles, paths of length 2, 4-cycles", .timeLimit(.minutes(1)))
     func patternCounts() async {
         await Task {
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 15)
+            var rng = Xoroshiro128Plus(seed: 15)
             let n = 200
             var pairs = Set<[Int]>()
             while pairs.count < 1500 {
@@ -190,7 +191,7 @@ struct IsomorphismStressTests {
     @Test("A random digraph (500 vertices, 2,500 arcs) against a relabelled copy, and against its converse's copy", .timeLimit(.minutes(1)))
     func randomDigraph() async throws {
         try await Task {
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 16)
+            var rng = Xoroshiro128Plus(seed: 16)
             let n = 500
             var arcs = Set<[Int]>()
             while arcs.count < 2500 {
@@ -214,7 +215,7 @@ struct IsomorphismStressTests {
     @Test("Weisfeiler–Leman on 20,000 vertices and 10⁵ edges: a relabelled copy hashes equal; moving one edge end changes the hash", .timeLimit(.minutes(1)))
     func weisfeilerLehmanLarge() async {
         await Task {
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 17)
+            var rng = Xoroshiro128Plus(seed: 17)
             let n = 20_000
             var pairs: [[Int]] = []
             while pairs.count < 100_000 {

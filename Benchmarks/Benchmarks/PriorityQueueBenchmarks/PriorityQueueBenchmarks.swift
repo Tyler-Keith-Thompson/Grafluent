@@ -1,6 +1,7 @@
 import Benchmark
 import BenchmarkSupport
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import HeapModule
 import PriorityQueueModule
@@ -259,7 +260,7 @@ let benchmarks: @Sendable () -> Void = {
     let n = 100_000
     let graph = CompressedSparseRow(vertexCount: n, edges: Inputs.randomEdges(vertexCount: n, edgeCount: 1_000_000))
     let big = CompressedSparseRow(vertexCount: 1_000_000, edges: Inputs.randomEdges(vertexCount: 1_000_000, edgeCount: 4_000_000, seed: 5))
-    var generator = SeededRandomNumberGenerator(seed: 11)
+    var generator = Xoroshiro128Plus(seed: 11)
     let weights = (0 ..< graph.edgeCount).map { _ in Int.random(in: 1 ... 1000, using: &generator) }
     let ties = (0 ..< graph.edgeCount).map { _ in Int.random(in: 1 ... 4, using: &generator) }
     let real = (0 ..< graph.edgeCount).map { _ in Double.random(in: 0 ..< 1, using: &generator) }

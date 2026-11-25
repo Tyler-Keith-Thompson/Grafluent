@@ -5,6 +5,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -420,7 +421,7 @@ struct ClosureSearchTests {
 
     @Test("TR-137 the closure is called once per discovered state")
     func calledOncePerState() {
-        var generator = SeededRandomNumberGenerator(seed: 137)
+        var generator = Xoroshiro128Plus(seed: 137)
         var calls = 0
         let order = topologicalSort(from: Array(1 ... 999).shuffled(using: &generator), successors: { (n: Int) -> [Int] in
             calls += 1

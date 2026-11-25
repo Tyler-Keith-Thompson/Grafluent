@@ -261,6 +261,13 @@ def setup_lines(setup, indent):
     return out
 
 
+def with_generators(out):
+    """Imports SwiftPRNG's Generators, in sorted place, into a file that seeds a generator."""
+    if any("Xoroshiro128Plus(" in line for line in out):
+        out.insert(out.index("import GrafluentTestSupport"), "import Generators")
+    return out
+
+
 def seed_of(a):
     return int(re.fullmatch(r"rng\((\d+)\)", a["using"]).group(1))
 
@@ -381,7 +388,7 @@ def body_lines(row, indent, gname="graph", for_rep=False, rep_g=None, rep_eval=N
     setup, args = call_args(a, g, in_view)
     lines += setup_lines(setup, indent)
     if "using" in a:
-        lines.append(f"{indent}var generator = SeededRandomNumberGenerator(seed: {seed_of(a)})")
+        lines.append(f"{indent}var generator = Xoroshiro128Plus(seed: {seed_of(a)})")
     call = "try " if name in THROWING else ""
     if "level" in a:
         lines.append(f"{indent}let result = Array({target}.{name}({args}))[{a['level']}]")
@@ -426,7 +433,7 @@ def body_lines(row, indent, gname="graph", for_rep=False, rep_g=None, rep_eval=N
     lines.append(f"{indent}let q = {target}.modularity(of: result{qargs})")
     lines += close(indent, "q", q)
     if "using" in a:
-        lines.append(f"{indent}var again = SeededRandomNumberGenerator(seed: {seed_of(a)})")
+        lines.append(f"{indent}var again = Xoroshiro128Plus(seed: {seed_of(a)})")
         lines.append(f"{indent}#expect({call}{target}.{name}({args.replace('&generator', '&again')}) == result, \"the same seed again\")")
     elif not g.directed and view is None and name in ("louvainCommunities", "greedyModularityCommunities") and not for_rep:
         dval = directed_eval(row)[7]
@@ -490,7 +497,7 @@ def trap_test(row, indent):
         setup, args = call_args(a, g, False)
         lines += setup_lines(setup, inner)
         if "using" in a:
-            lines.append(f"{inner}var generator = SeededRandomNumberGenerator(seed: {seed_of(a)})")
+            lines.append(f"{inner}var generator = Xoroshiro128Plus(seed: {seed_of(a)})")
         lines.append(f"{inner}_ = {'try ' if name in THROWING else ''}graph.{name}({args})")
     lines += [f"{indent}    }}", f"{indent}}}"]
     return lines
@@ -538,7 +545,7 @@ def write_sections(rows):
         if part:
             out += ["", (PARTS / part).read_text().rstrip("\n")]
         out.append("}")
-        (OUT / fname).write_text("\n".join(out) + "\n")
+        (OUT / fname).write_text("\n".join(with_generators(out)) + "\n")
         counts[fname] = len(tests)
     return counts
 
@@ -612,7 +619,7 @@ def rep_body(row, indent, gname, ng, ev, by_arc):
     if "threshold" in a:
         args.append(f"threshold: {fnum(float(a['threshold']))}")
     if "using" in a:
-        lines.append(f"{indent}var generator = SeededRandomNumberGenerator(seed: {seed_of(a)})")
+        lines.append(f"{indent}var generator = Xoroshiro128Plus(seed: {seed_of(a)})")
         args.append("using: &generator")
     argt = ", ".join(args)
     if name in ("modularity", "partitionQuality"):
@@ -757,7 +764,7 @@ def write_representations(rows):
             out.append("")
         out += t
     out.append("}")
-    (OUT / "CommunityDetectionRepresentationTests.swift").write_text("\n".join(out) + "\n")
+    (OUT / "CommunityDetectionRepresentationTests.swift").write_text("\n".join(with_generators(out)) + "\n")
     return counts, covered
 
 

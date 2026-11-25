@@ -12,6 +12,7 @@
 
 import AdjacencyListModule
 import Cliques
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -32,7 +33,7 @@ private struct ShuffledPseudograph: Graph {
             rows[edge.v].append(k)
         }
         if seed != 0 {
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             rows = rows.map { $0.shuffled(using: &rng) }
         }
         self.vertices = Array(0 ..< vertexCount)

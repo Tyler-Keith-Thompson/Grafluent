@@ -17,6 +17,7 @@
 import AdjacencyListModule
 import Centrality
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -182,7 +183,7 @@ struct CentralityStressTests {
             // Σ over unordered pairs of |Δr| + |Δc|: 2 · 900 · Σ_d d(30 − d) = 8091000.
             let total = graph.edgeBetweennessCentrality(normalized: false).scores.reduce(0, +)
             #expect(abs(total - 8_091_000) <= 1e-9 * 8_091_000)
-            var generator = SeededRandomNumberGenerator(seed: 3)
+            var generator = Xoroshiro128Plus(seed: 3)
             let estimate = graph.edgeBetweennessCentrality(pivotCount: 300, normalized: false, using: &generator).scores.reduce(0, +)
             #expect(abs(estimate - 8_091_000) <= 0.05 * 8_091_000)
         }.value

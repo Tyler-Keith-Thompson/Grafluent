@@ -16,6 +16,7 @@
 import AdjacencyListModule
 import CommunityDetection
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -41,7 +42,7 @@ struct CommunityDetectionStressTests {
             // Computed with ref.py: 1 − 1/k.
             let q = graph.modularity(of: result)
             #expect(abs(q - 0.9999600000000002) <= 1e-12)
-            var generator = SeededRandomNumberGenerator(seed: 7)
+            var generator = Xoroshiro128Plus(seed: 7)
             let shuffled = graph.louvainCommunities(using: &generator)
             #expect(shuffled.map { Array($0) } == expected)
         }.value
@@ -143,7 +144,7 @@ struct CommunityDetectionStressTests {
             let expected = (0 ..< k).map { Array(5 * $0 ..< 5 * $0 + 5) }
             #expect(graph.labelPropagationCommunities().map { Array($0) } == expected)
             #expect(graph.asynchronousLabelPropagationCommunities().map { Array($0) } == expected)
-            var generator = SeededRandomNumberGenerator(seed: 3)
+            var generator = Xoroshiro128Plus(seed: 3)
             #expect(graph.asynchronousLabelPropagationCommunities(using: &generator).map { Array($0) } == expected)
         }.value
     }

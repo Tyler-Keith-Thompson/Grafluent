@@ -9,6 +9,7 @@
 // Graphs are `Pseudograph`s with loops and parallel edges, vertices listed in a seeded shuffled
 // order. See README.md.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -22,7 +23,7 @@ struct PlanarityPropertyTests {
     func againstEveryRotationSystem() async {
         let edges = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 0 ... 11)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 6), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = Array(0 ..< n).shuffled(using: &rng)
             let graph = Pseudograph<Int>(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -122,7 +123,7 @@ struct PlanarityPropertyTests {
     func witnessesAndChords() async {
         let edges = zip(Gen.int(in: 0 ... 29), Gen.int(in: 0 ... 29)).array(of: 0 ... 70)
         await propertyCheck(count: 200, input: edges, Gen.int(in: 2 ... 30), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = Array(0 ..< n).shuffled(using: &rng)
             let graph = Pseudograph<Int>(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })

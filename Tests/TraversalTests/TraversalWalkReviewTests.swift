@@ -4,6 +4,7 @@
 // Tests/WalksTests/README.md.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -73,7 +74,7 @@ struct TraversalWalkReviewTests {
 
     @Test("WK-1218 findCycle on a multigraph with parallel edges and vertex indices names edges of the graph", .tags(.randomized), arguments: 0 ..< 6)
     func findCycleOnIndexedMultigraph(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(1218 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(1218 + seed))
         for _ in 0 ..< 40 {
             let n = Int.random(in: 1 ... 7, using: &rng)
             var edges: [DirectedEdge<Int>] = []

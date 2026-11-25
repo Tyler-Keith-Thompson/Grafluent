@@ -7,6 +7,7 @@
 // LabeledGraph over an implicit grid, and an implicit graph whose rows are not Arrays. See README.md.
 
 import Connectivity
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import ImplicitGraphs
@@ -20,7 +21,7 @@ import Traversal
 struct ImplicitGraphConformanceTests {
     @Test("Traversal on an implicit graph equals Traversal on the pseudograph of the same rows", arguments: 0 ..< 40)
     func traversalAgrees(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = Int.random(in: 0 ... 25, using: &rng)
         let rows = (0 ..< n).map { _ in (0 ..< Int.random(in: 0 ... 3, using: &rng)).map { _ in Int.random(in: 0 ..< n, using: &rng) } }
         let graph = ImplicitDirectedGraph(vertexCount: n, successors: { rows[$0] })
@@ -41,7 +42,7 @@ struct ImplicitGraphConformanceTests {
 
     @Test("Connectivity and shortest paths agree with the pseudograph", arguments: 0 ..< 40)
     func connectivityAndShortestPathsAgree(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(1_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(1_000 + seed))
         let n = Int.random(in: 1 ... 30, using: &rng)
         let rows = (0 ..< n).map { _ in (0 ..< Int.random(in: 0 ... 3, using: &rng)).map { _ in Int.random(in: 0 ..< n, using: &rng) } }
         let cost = (0 ..< n).map { _ in Int.random(in: 0 ... 9, using: &rng) }

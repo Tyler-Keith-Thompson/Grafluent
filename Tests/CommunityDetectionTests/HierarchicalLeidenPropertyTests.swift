@@ -8,6 +8,7 @@
 // partition whose `community(of:)` agrees; the same seed gives the same hierarchy.
 
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -30,7 +31,7 @@ struct HierarchicalLeidenPropertyTests {
                 var parent: Int?
                 var members: [Int]
             }
-            func partition(_ vertices: [Int], _ edges: [Int], _ generator: inout GrafluentTestSupport.SeededRandomNumberGenerator) -> [[Int]] {
+            func partition(_ vertices: [Int], _ edges: [Int], _ generator: inout Xoroshiro128Plus) -> [[Int]] {
                 var local = [Int](repeating: -1, count: n)
                 for (i, v) in vertices.enumerated() { local[v] = i }
                 let localWeights = edges.map { w[$0] }
@@ -41,7 +42,7 @@ struct HierarchicalLeidenPropertyTests {
                 let piece = ReferencePseudograph(vertices: 0 ..< vertices.count, edges: edges.map { UndirectedEdge(local[ends[$0].0], local[ends[$0].1]) })
                 return piece.leidenCommunities(weight: { localWeights[$0] }, quality: quality, resolution: gamma, using: &generator).map { $0.map { vertices[$0] } }
             }
-            func oracle(_ generator: inout GrafluentTestSupport.SeededRandomNumberGenerator) -> [Community] {
+            func oracle(_ generator: inout Xoroshiro128Plus) -> [Community] {
                 guard n > 0 else { return [] }
                 var communities = partition(Array(0 ..< n), Array(ends.indices), &generator).map { Community(level: 0, parent: nil, members: $0) }
                 var oversized = communities.indices.filter { communities[$0].members.count > cap }
@@ -63,7 +64,7 @@ struct HierarchicalLeidenPropertyTests {
                 }
                 return communities
             }
-            var a = SeededRandomNumberGenerator(seed: UInt(seed)), b = a, c = a
+            var a = Xoroshiro128Plus(seed: UInt64(seed)), b = a, c = a
             let expected = oracle(&a)
             func check<G: DirectedGraph>(_ result: CommunityHierarchy<G>) where G.Vertex == Int {
                 let actual = (0 ..< result.count).map { Community(level: result.level(of: $0), parent: result.parent(of: $0), members: Array(result[$0])) }
@@ -107,7 +108,7 @@ struct HierarchicalLeidenPropertyTests {
         let pairs = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8)).array(of: 0 ... 18)
         await propertyCheck(count: 150, input: pairs, Gen.int(in: 1 ... 9), Gen.bool, Gen.int(in: 1 ... 3), Gen.int(in: 0 ... 1_000_000)) { raw, n, isDirected, cap, seed in
             let ends = raw.map { ($0.0 % n, $0.1 % n) }
-            var a = SeededRandomNumberGenerator(seed: UInt(seed)), b = a
+            var a = Xoroshiro128Plus(seed: UInt64(seed)), b = a
             if isDirected {
                 let graph = ReferenceDirectedMultigraph(vertices: 0 ..< n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) })
                 #expect(graph.hierarchicalLeidenCommunities(maximumCommunitySize: cap, using: &a) == graph.hierarchicalLeidenCommunities(weight: { _ in 1.0 }, maximumCommunitySize: cap, using: &b), "\(ends)")

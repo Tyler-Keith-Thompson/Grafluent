@@ -6,6 +6,7 @@
 // values come from ref.py); elsewhere every error's line and column must agree with its byte
 // offset. See README.md.
 
+import Generators
 import GrafluentTestSupport
 import GraphFormats
 import GraphProtocols
@@ -289,7 +290,7 @@ struct GraphFormatsHostileInputScaleTests {
             ("edgeListDict", "a b {'w': 1, 's': 'x # y', 'ok': True}\nb c {}\n"),
         ]
         let alphabet = Array("<>{}[]\"&;#-=|\\\n\r\t 0aZ%.:".utf8) + [0xC3, 0xFF]
-        var rng = SeededRandomNumberGenerator(seed: 7)
+        var rng = Xoroshiro128Plus(seed: 7)
         let clock = ContinuousClock()
         let start = clock.now
         var accepted = 0, rejected = 0

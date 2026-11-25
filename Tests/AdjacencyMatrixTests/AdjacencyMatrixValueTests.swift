@@ -2,6 +2,7 @@
 // Case IDs (AM-Qnn, AM-Znn) refer to the case catalog.
 
 import AdjacencyMatrixModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -141,7 +142,7 @@ struct AdjacencyMatrixModelTests {
         arguments: [0, 3, 60, 63, 64, 120], 0 ..< 10 as Range<UInt>
     )
     func randomOperations(start: Int, seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var matrix = AdjacencyMatrix(vertexCount: start)
         var modelVertexCount = start
         var modelEdges = Set<DirectedEdge<Int>>()

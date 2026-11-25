@@ -1,3 +1,4 @@
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -118,7 +119,7 @@ struct InstrumentationTests {
             1: [5761717516557699368, 17295345234682295910, 1053790060648499002],
         ]
         for (seed, expected) in reference {
-            var rng = SeededRandomNumberGenerator(seed: seed)
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             #expect(expected.map { _ in rng.next() } == expected, "seed \(seed)")
         }
     }
@@ -128,7 +129,7 @@ struct InstrumentationTests {
         var firstDraws = Set<Int>()
         var firstFive = Set<[Int]>()
         for seed in 0 ..< 100 as Range<UInt> {
-            var rng = SeededRandomNumberGenerator(seed: seed)
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let draws = (0 ..< 5).map { _ in Int.random(in: 0 ..< 12, using: &rng) }
             firstDraws.insert(draws[0])
             firstFive.insert(draws)
@@ -138,8 +139,8 @@ struct InstrumentationTests {
     }
 
     @Test func seededGeneratorIsDeterministic() {
-        var a = SeededRandomNumberGenerator(seed: 7)
-        var b = SeededRandomNumberGenerator(seed: 7)
+        var a = Xoroshiro128Plus(seed: 7)
+        var b = Xoroshiro128Plus(seed: 7)
         #expect((0 ..< 5).map { _ in a.next() } == (0 ..< 5).map { _ in b.next() })
     }
 

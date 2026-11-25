@@ -1,6 +1,7 @@
 // Construction. Case IDs (C-nn, E-nn, S-nn) refer to the case catalog; see README.md.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -203,7 +204,7 @@ struct AdjacencyListConstructionTests {
 
     @Test("C-15 shuffled input gives an equal graph", .tags(.randomized, .fixture), arguments: 0 ..< 20 as Range<UInt>)
     func shuffledInput(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         for fixture in DirectedFixture<Int>.all {
             let reference = AdjacencyList(vertices: fixture.vertices, edges: fixture.edges)
             let shuffled = AdjacencyList(vertices: fixture.vertices.shuffled(using: &rng), edges: fixture.edges.shuffled(using: &rng))

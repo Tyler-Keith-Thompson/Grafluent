@@ -9,6 +9,7 @@ import AdjacencyListModule
 import AdjacencyMatrixModule
 import CommunityDetection
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -32,7 +33,7 @@ struct CommunityWeightReadingTests {
         _ = graph.louvainCommunities(weight: { reads.append($0); return 1.0 })
         #expect(reads == positions, "louvainCommunities")
         reads = []
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         _ = graph.louvainCommunities(weight: { reads.append($0); return 1.0 }, using: &generator)
         #expect(reads == positions, "louvainCommunities(using:)")
         reads = []
@@ -81,7 +82,7 @@ struct CommunityWeightReadingTests {
         _ = graph.louvainCommunities(weight: { reads.append($0); return 1.0 })
         #expect(reads == positions, "louvainCommunities")
         reads = []
-        var generator = SeededRandomNumberGenerator(seed: 2)
+        var generator = Xoroshiro128Plus(seed: 2)
         _ = graph.louvainCommunities(weight: { reads.append($0); return 1.0 }, using: &generator)
         #expect(reads == positions, "louvainCommunities(using:)")
         reads = []

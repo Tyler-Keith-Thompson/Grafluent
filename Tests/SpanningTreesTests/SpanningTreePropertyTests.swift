@@ -4,6 +4,7 @@
 // 40 graphs per pair; self-loops always possible and a parallel copy (written the other way round)
 // with probability 0.2. Case IDs (ST-nn) refer to the catalog; see README.md.
 
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -14,7 +15,7 @@ import Testing
 struct SpanningTreePropertyTests {
     @Test("ST-100 every result is a forest: acyclic, n − c edges, the graph's components, no self-loop, no repeat", arguments: [1, 2, 5, 10, 30])
     func forestLaws(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(100_000 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(100_000 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 40 {
                 var raw: [(Int, Int, Int)] = []
@@ -79,7 +80,7 @@ struct SpanningTreePropertyTests {
 
     @Test("ST-101 cycle and cut optimality, for the minimum and the maximum", arguments: [1, 2, 5, 10, 30])
     func optimality(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(101_000 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(101_000 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 40 {
                 var raw: [(Int, Int, Int)] = []
@@ -156,7 +157,7 @@ struct SpanningTreePropertyTests {
 
     @Test("ST-102 the weight equals brute-force enumeration on ≤ 8 vertices and ≤ 12 edges", arguments: 0 ..< 5)
     func bruteForce(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(102_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(102_000 + seed))
         for _ in 0 ..< 60 {
             let n = Int.random(in: 1 ... 8, using: &rng)
             let m = Int.random(in: 0 ... 12, using: &rng)
@@ -215,7 +216,7 @@ struct SpanningTreePropertyTests {
 
     @Test("ST-103 the tie rule: the default, Kruskal and Borůvka equal a stable-sort Kruskal on weights in {0, 1, 2}", arguments: [1, 2, 5, 10, 30])
     func tieRule(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(103_000 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(103_000 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 40 {
                 var raw: [(Int, Int, Int)] = []
@@ -261,7 +262,7 @@ struct SpanningTreePropertyTests {
 
     @Test("ST-104 edge order: Kruskal by (weight, position), the maximum by (−weight, position), Prim by joining", arguments: [1, 2, 5, 10, 30])
     func edgeOrder(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(104_000 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(104_000 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 40 {
                 var raw: [(Int, Int, Int)] = []
@@ -309,7 +310,7 @@ struct SpanningTreePropertyTests {
 
     @Test("ST-105 weight is the sum of the edges' weights, and edges.count is n − c", arguments: [1, 2, 5, 10, 30])
     func totals(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(105_000 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(105_000 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 40 {
                 var raw: [(Int, Int, Int)] = []
@@ -356,7 +357,7 @@ struct SpanningTreePropertyTests {
 
     @Test("ST-106 relabeling and reversing change nothing; permuting positions changes the forest only among ties", arguments: [1, 2, 5, 10, 30])
     func invariance(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(106_000 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(106_000 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 40 {
                 var raw: [(Int, Int, Int)] = []

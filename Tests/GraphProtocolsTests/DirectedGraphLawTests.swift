@@ -5,6 +5,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -70,7 +71,7 @@ struct DirectedGraphLawTests {
 
     @Test("DG-P01 the laws on seeded random graphs, the same through every representation", .tags(.randomized), arguments: [1, 2, 3, 4, 5, 6, 7, 8])
     func randomGraphs(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         let n = Int.random(in: 1 ... 30, using: &generator)
         var edges: [DirectedEdge<Int>] = []
         for _ in 0 ..< Int.random(in: 0 ... 3 * n, using: &generator) {
@@ -133,7 +134,7 @@ struct DirectedGraphLawTests {
             for v in g.vertices where index[v] == nil { connect(v) }
             return result
         }
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 100)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 100))
         let n = 25
         var edges: [DirectedEdge<Int>] = []
         for _ in 0 ..< 40 {

@@ -7,6 +7,7 @@
 // calls to every closure in the same order, or the same error at the same place. See README.md.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphFormats
 import GraphProtocols
@@ -18,7 +19,7 @@ struct GraphFormatsOnePassTests {
     @Test("Node-link: NetworkX's layout reads as the two-pass reader reads it, on random documents and errors",
           arguments: 0 ..< 400 as Range<UInt>)
     func nodeLinkOnePass(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         func pick<T>(_ options: [T]) -> T { options[Int.random(in: 0 ..< options.count, using: &rng)] }
         func chance(_ p: Double) -> Bool { Double.random(in: 0 ..< 1, using: &rng) < p }
         let space = chance(0.5) ? " " : ""
@@ -297,7 +298,7 @@ struct GraphFormatsOnePassTests {
     @Test("GraphML: the lookahead reads as the second walk reads, on random documents (nested graphs too) and errors",
           arguments: 0 ..< 400 as Range<UInt>)
     func graphMLLookahead(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         func pick<T>(_ options: [T]) -> T { options[Int.random(in: 0 ..< options.count, using: &rng)] }
         func chance(_ p: Double) -> Bool { Double.random(in: 0 ..< 1, using: &rng) < p }
         let types = ["int", "long", "double", "float", "boolean", "string"]
@@ -421,7 +422,7 @@ struct GraphFormatsOnePassTests {
     @Test("Cytoscape JSON: the common layout reads in one pass as the two-pass reader reads it, on random documents and errors",
           arguments: 0 ..< 400 as Range<UInt>)
     func cytoscapeOnePass(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         func pick<T>(_ options: [T]) -> T { options[Int.random(in: 0 ..< options.count, using: &rng)] }
         func chance(_ p: Double) -> Bool { Double.random(in: 0 ..< 1, using: &rng) < p }
         func scalar() -> String {

@@ -6,6 +6,7 @@
 
 import Connectivity
 import Foundation
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Multigraphs
@@ -18,7 +19,7 @@ import Traversal
 struct StableUndirectedGraphConformanceTests {
     @Test("Graph's laws hold on random graphs before and after removals")
     func laws() {
-        var rng = SeededRandomNumberGenerator(seed: 41)
+        var rng = Xoroshiro128Plus(seed: 41)
         for round in 0 ..< 40 {
             var graph = StableUndirectedGraph<Int>(vertices: 0 ..< 8)
             for _ in 0 ..< 20 { graph.insert(edge: UndirectedEdge(Int.random(in: 0 ..< 8, using: &rng), Int.random(in: 0 ..< 8, using: &rng))) }
@@ -81,7 +82,7 @@ struct StableUndirectedGraphConformanceTests {
 
     @Test("Algorithms on a graph with holes agree with the compacted copy")
     func algorithmsWithHoles() {
-        var rng = SeededRandomNumberGenerator(seed: 42)
+        var rng = Xoroshiro128Plus(seed: 42)
         for _ in 0 ..< 30 {
             var graph = StableUndirectedGraph<Int>(vertices: 0 ..< 10)
             for _ in 0 ..< 18 { graph.insert(edge: UndirectedEdge(Int.random(in: 0 ..< 10, using: &rng), Int.random(in: 0 ..< 10, using: &rng))) }

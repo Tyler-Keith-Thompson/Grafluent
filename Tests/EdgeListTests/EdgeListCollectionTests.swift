@@ -3,6 +3,7 @@
 // catalog; see README.md.
 
 import EdgeListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -215,8 +216,8 @@ struct EdgeListMutableCollectionTests {
     func shuffle() {
         var first = EdgeList(DirectedFixture<Int>.boost24.edges)
         var second = first
-        var g1 = SeededRandomNumberGenerator(seed: 42)
-        var g2 = SeededRandomNumberGenerator(seed: 42)
+        var g1 = Xoroshiro128Plus(seed: 42)
+        var g2 = Xoroshiro128Plus(seed: 42)
         first.shuffle(using: &g1)
         second.shuffle(using: &g2)
         #expect(first == second)
@@ -247,8 +248,8 @@ struct EdgeListMutableCollectionTests {
     @Test("EL-S13 slice mutations match an Array's: sort, swap, reverse, narrowing, removal and insertion")
     func sliceMutationsMatchArray() {
         let edges = DirectedFixture<Int>.boost24.edges
-        var generatorA = SeededRandomNumberGenerator(seed: 13)
-        var generatorB = SeededRandomNumberGenerator(seed: 13)
+        var generatorA = Xoroshiro128Plus(seed: 13)
+        var generatorB = Xoroshiro128Plus(seed: 13)
         var list = EdgeList(edges)
         var array = edges
         list[5 ..< 20].sort()

@@ -7,6 +7,7 @@
 // See README.md.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Multigraphs
@@ -72,7 +73,7 @@ struct MultigraphStressTests {
     func randomMultigraph() async {
         await Task {
             let n = 100_000
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 2026)
+            var rng = Xoroshiro128Plus(seed: 2026)
             var edges: [UndirectedEdge<Int>] = []
             for _ in 0 ..< 2 * n {
                 let u = Int.random(in: 0 ..< n, using: &rng)
@@ -128,7 +129,7 @@ struct MultigraphStressTests {
     func randomDirectedMultigraph() async {
         await Task {
             let n = 100_000
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1969)
+            var rng = Xoroshiro128Plus(seed: 1969)
             var arcs: [DirectedEdge<Int>] = []
             for _ in 0 ..< 2 * n {
                 let u = Int.random(in: 0 ..< n, using: &rng)
@@ -169,7 +170,7 @@ struct MultigraphStressTests {
     func insertThenRemoveAll() async {
         await Task {
             let n = 100_000
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 7)
+            var rng = Xoroshiro128Plus(seed: 7)
             let edges = (0 ..< n).map { _ in UndirectedEdge(Int.random(in: 0 ..< 300, using: &rng), Int.random(in: 0 ..< 300, using: &rng)) }
             var graph = Pseudograph<Int>()
             for (k, e) in edges.enumerated() { #expect(graph.insert(edge: e) == k) }

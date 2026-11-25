@@ -6,6 +6,7 @@ import AdjacencyListModule
 import CompressedSparseRowModule
 import EdgeListModule
 import Foundation
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -119,7 +120,7 @@ struct EdgeListEqualityTests {
 
     @Test("EL-E09 equal lists are interchangeable", .tags(.randomized))
     func substitutability() {
-        var generator = SeededRandomNumberGenerator(seed: 9)
+        var generator = Xoroshiro128Plus(seed: 9)
         for _ in 0 ..< 200 {
             var edges: [DirectedEdge<Int>] = []
             for _ in 0 ..< Int.random(in: 0 ... 6, using: &generator) {
@@ -352,7 +353,7 @@ struct EdgeListValueSemanticsTests {
 
     @Test("EL-W06 random mutations agree with the same mutations on an Array", .tags(.randomized), arguments: [0, 1, 10, 200])
     func model(_ size: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(size) &+ 1)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(size) &+ 1))
         var model: [DirectedEdge<Int>] = []
         for _ in 0 ..< size {
             model.append(DirectedEdge(from: Int.random(in: 0 ..< 8, using: &generator), to: Int.random(in: 0 ..< 8, using: &generator)))

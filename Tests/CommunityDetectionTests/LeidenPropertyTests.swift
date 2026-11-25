@@ -10,6 +10,7 @@
 // a partition in canonical order, no worse than the singletons, and the same for the same seed.
 
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -32,7 +33,7 @@ private struct ShuffledPseudograph: Graph {
         }
         var listed = Array(0 ..< vertexCount)
         if seed != 0 {
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             rows = rows.map { $0.shuffled(using: &rng) }
             listed.shuffle(using: &rng)
         }
@@ -67,7 +68,7 @@ private struct ShuffledDigraph: DirectedGraph {
         for (k, edge) in edges.enumerated() { rows[edge.source].append(k) }
         var listed = Array(0 ..< vertexCount)
         if seed != 0 {
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             rows = rows.map { $0.shuffled(using: &rng) }
             listed.shuffle(using: &rng)
         }
@@ -166,7 +167,7 @@ struct LeidenPropertyTests {
                     }
                 }
             }
-            var a = SeededRandomNumberGenerator(seed: UInt(seed)), b = a
+            var a = Xoroshiro128Plus(seed: UInt64(seed)), b = a
             if isDirected {
                 let graph = ShuffledDigraph(vertexCount: n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) }, seed: seed)
                 let result = graph.leidenCommunities(weight: { w[$0] }, quality: quality, resolution: gamma, using: &a)
@@ -187,7 +188,7 @@ struct LeidenPropertyTests {
         await propertyCheck(count: 150, input: pairs, Gen.int(in: 1 ... 9), Gen.bool, Gen.bool, Gen.int(in: 0 ... 1_000_000)) { raw, n, isDirected, potts, seed in
             let ends = raw.map { ($0.0 % n, $0.1 % n) }
             let quality: QualityFunction = potts ? .constantPottsModel : .modularity
-            var a = SeededRandomNumberGenerator(seed: UInt(seed)), b = a
+            var a = Xoroshiro128Plus(seed: UInt64(seed)), b = a
             if isDirected {
                 let graph = ShuffledDigraph(vertexCount: n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) }, seed: seed)
                 #expect(graph.leidenCommunities(quality: quality, resolution: 0.3, using: &a) == graph.leidenCommunities(weight: { _ in 1.0 }, quality: quality, resolution: 0.3, using: &b), "\(ends)")

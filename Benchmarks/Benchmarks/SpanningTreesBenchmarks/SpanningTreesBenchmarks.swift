@@ -2,6 +2,7 @@ import AdjacencyListModule
 import AdjacencyMatrixModule
 import Benchmark
 import BenchmarkSupport
+import Generators
 import GraphProtocols
 import SpanningTrees
 import StableGraphs
@@ -93,7 +94,7 @@ let benchmarks: @Sendable () -> Void = {
         .map { UndirectedEdge($0.source, $0.target) }
         .filter { !$0.isSelfLoop && seen.insert($0).inserted }
     let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: pairs)
-    var generator = SeededRandomNumberGenerator(seed: 31)
+    var generator = Xoroshiro128Plus(seed: 31)
     let weights = (0 ..< graph.edgeCount).map { _ in Int.random(in: 1 ... 1000, using: &generator) }
     let us = graph.edges.map(\.u), vs = graph.edges.map(\.v)
     let expected = handWrittenKruskal(n, us, vs, weights)
@@ -219,7 +220,7 @@ let benchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(view.kruskalMinimumSpanningTree { weights[$0] }) }
     }
     Benchmark("SpanningTrees: spanningForests, the 1 000 lightest of G(60, 200)") { benchmark in
-        var generator = SeededRandomNumberGenerator(seed: 60)
+        var generator = Xoroshiro128Plus(seed: 60)
         let small = UndirectedAdjacencyList(vertices: 0 ..< 60, edges: (0 ..< 200).map { _ in UndirectedEdge(Int.random(in: 0 ..< 60, using: &generator), Int.random(in: 0 ..< 60, using: &generator)) })
         let smallWeights = (0 ..< small.edgeCount).map { _ in Int.random(in: 1 ... 100, using: &generator) }
         for _ in benchmark.scaledIterations { blackHole(Array(small.spanningForests(weight: { smallWeights[$0] }).prefix(1000))) }

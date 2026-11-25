@@ -2,6 +2,7 @@ import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import Traversal
 
@@ -400,7 +401,7 @@ let benchmarks: @Sendable () -> Void = {
     // the same bits.
     let walkRows = rows(sparse)
     func handWrittenWalk(_ r: (offsets: [Int], targets: [Int]), from s: Int, length: Int, seed: UInt) -> Int {
-        var generator = SeededRandomNumberGenerator(seed: seed)
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         var u = s, sum = 0
         for _ in 0 ..< length {
             let d = r.offsets[u + 1] - r.offsets[u]
@@ -413,32 +414,32 @@ let benchmarks: @Sendable () -> Void = {
         }
         return sum
     }
-    var check = SeededRandomNumberGenerator(seed: 9)
+    var check = Xoroshiro128Plus(seed: 9)
     precondition(handWrittenWalk(walkRows, from: 0, length: 1000, seed: 9) == sparse.randomWalk(from: 0, length: 1000, using: &check).vertices.dropFirst().reduce(0, &+))
     Benchmark("Traversal: BASELINE hand-written random walk, 10⁵ steps, CompressedSparseRow") { benchmark in
         for _ in benchmark.scaledIterations { blackHole(handWrittenWalk(walkRows, from: 0, length: 100_000, seed: 9)) }
     }
     Benchmark("Traversal: randomWalk, 10⁵ steps, CompressedSparseRow") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 9)
+            var generator = Xoroshiro128Plus(seed: 9)
             blackHole(sparse.randomWalk(from: 0, length: 100_000, using: &generator))
         }
     }
     Benchmark("Traversal: randomWalk, 10⁵ steps, AdjacencyList") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 9)
+            var generator = Xoroshiro128Plus(seed: 9)
             blackHole(list.randomWalk(from: 0, length: 100_000, using: &generator))
         }
     }
     Benchmark("Traversal: randomWalk weighted, 10⁵ steps, CompressedSparseRow") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 9)
+            var generator = Xoroshiro128Plus(seed: 9)
             blackHole(sparse.randomWalk(from: 0, length: 100_000, weight: { Double($0 & 7) + 1 }, using: &generator))
         }
     }
     Benchmark("Traversal: randomWalk node2vec (p 0.5, q 2), 10⁵ steps, UndirectedAdjacencyList") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 9)
+            var generator = Xoroshiro128Plus(seed: 9)
             blackHole(undirected.randomWalk(from: 0, length: 100_000, returnParameter: 0.5, inOutParameter: 2, using: &generator))
         }
     }

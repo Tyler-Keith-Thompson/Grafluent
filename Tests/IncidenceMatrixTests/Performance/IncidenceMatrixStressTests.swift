@@ -5,6 +5,7 @@
 // boundaries; and the components of a matrix at density 1/8 against an incidence-list copy.
 // See README.md.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Hypergraphs
@@ -18,7 +19,7 @@ struct IncidenceMatrixStressTests {
     func fromGraphAtScale() async {
         await Task {
             let n = 2_048, m = 20_000
-            var rng = SeededRandomNumberGenerator(seed: 5)
+            var rng = Xoroshiro128Plus(seed: 5)
             let edges = (0 ..< m).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
             let graph = Pseudograph<Int>(vertices: 0 ..< n, edges: edges)
             let matrix = IncidenceMatrix(graph)
@@ -41,7 +42,7 @@ struct IncidenceMatrixStressTests {
     @Test("10⁵ cell edits on a matrix grown to 300 × 300 agree with a set", .timeLimit(.minutes(1)))
     func editsAtScale() async {
         await Task {
-            var rng = SeededRandomNumberGenerator(seed: 9)
+            var rng = Xoroshiro128Plus(seed: 9)
             var matrix = IncidenceMatrix()
             var cells = Set<Int>()
             for _ in 0 ..< 300 {
@@ -70,7 +71,7 @@ struct IncidenceMatrixStressTests {
     @Test("Components of a 512 × 512 matrix at density 1/8 equal an incidence-list copy's", .timeLimit(.minutes(1)))
     func componentsAtScale() async {
         await Task {
-            var rng = SeededRandomNumberGenerator(seed: 13)
+            var rng = Xoroshiro128Plus(seed: 13)
             let n = 512
             let columns = (0 ..< n).map { _ in (0 ..< n).filter { _ in Int.random(in: 0 ..< 8, using: &rng) == 0 } }
             let matrix = IncidenceMatrix(vertexCount: n, hyperedges: columns)
@@ -86,7 +87,7 @@ struct IncidenceMatrixStressTests {
         await Task {
             // Every row and every edge of the view: before the view kept the hyperedges' first
             // incidence numbers, each read on a matrix cost O(m) and this walk O(p·m).
-            var rng = SeededRandomNumberGenerator(seed: 17)
+            var rng = Xoroshiro128Plus(seed: 17)
             let n = 1024
             let columns = (0 ..< n).map { _ in (0 ..< n).filter { _ in Int.random(in: 0 ..< 8, using: &rng) == 0 } }
             let matrix = IncidenceMatrix(vertexCount: n, hyperedges: columns)
@@ -109,7 +110,7 @@ struct IncidenceMatrixStressTests {
     @Test("incidenceGraphView of a 512 × 512 oriented matrix at density 1/16 per side reads exactly as an incidence-list copy's", .timeLimit(.minutes(1)))
     func directedIncidenceGraphAtScale() async {
         await Task {
-            var rng = SeededRandomNumberGenerator(seed: 19)
+            var rng = Xoroshiro128Plus(seed: 19)
             let n = 512
             let oriented = OrientedIncidenceMatrix(vertexCount: n, hyperedges: (0 ..< n).map { _ in
                 (sources: (0 ..< n).filter { _ in Int.random(in: 0 ..< 16, using: &rng) == 0 },

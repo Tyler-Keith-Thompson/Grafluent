@@ -2,6 +2,7 @@
 // semantics and Sendable. Case IDs (CSR-Gnn, CSR-Vnn) refer to the case catalog.
 
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -14,7 +15,7 @@ struct CompressedSparseRowModelTests {
         arguments: [0, 1, 2, 63, 64, 65, 200], 0 ..< 10 as Range<UInt>
     )
     func randomGraphs(vertexCount n: Int, seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed &+ UInt(n) &* 1_000)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed &+ UInt(n) &* 1_000))
         var input: [DirectedEdge<Int>] = []
         if n > 0 {
             for _ in 0 ..< Int.random(in: 0 ... 4 * n, using: &rng) {
@@ -63,7 +64,7 @@ struct CompressedSparseRowModelTests {
 
     @Test("CSR-G01 Erdős–Rényi graphs on 1000 vertices", .timeLimit(.minutes(1)), arguments: [0.001, 0.0005])
     func erdosRenyi(p: Double) {
-        var rng = SeededRandomNumberGenerator(seed: 42)
+        var rng = Xoroshiro128Plus(seed: 42)
         var edges: [DirectedEdge<Int>] = []
         for u in 0 ..< 1000 {
             for v in 0 ..< 1000 where Double.random(in: 0 ..< 1, using: &rng) < p {
@@ -91,7 +92,7 @@ struct CompressedSparseRowModelTests {
 
     @Test("CSR-G07 a hub with out-degree 10,000")
     func hub() {
-        var rng = SeededRandomNumberGenerator(seed: 7)
+        var rng = Xoroshiro128Plus(seed: 7)
         let targets = Array(0 ..< 10_001).shuffled(using: &rng).filter { $0 != 5_000 }
         let graph = CompressedSparseRow(vertexCount: 10_001, edges: targets.map { DirectedEdge(from: 5_000, to: $0) })
         #expect(graph.outDegree(of: 5_000) == 10_000)

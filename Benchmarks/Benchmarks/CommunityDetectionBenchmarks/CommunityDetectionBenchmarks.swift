@@ -2,6 +2,7 @@ import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
 import CommunityDetection
+import Generators
 import GraphProtocols
 
 /// Modularity by hand from edge ends and a label per vertex: the baseline for `modularity(of:)`.
@@ -287,37 +288,37 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("CommunityDetection: leidenCommunities(using:), G(10⁵, 5·10⁵)") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             blackHole(sparse.leidenCommunities(using: &generator))
         }
     }
     Benchmark("CommunityDetection: leidenCommunities(iterations: 2, using:), G(10⁵, 5·10⁵)") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             blackHole(sparse.leidenCommunities(iterations: 2, using: &generator))
         }
     }
     Benchmark("CommunityDetection: hierarchicalLeidenCommunities(maximumCommunitySize: 100, using:), G(10⁵, 5·10⁵)") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             blackHole(sparse.hierarchicalLeidenCommunities(maximumCommunitySize: 100, using: &generator))
         }
     }
     Benchmark("CommunityDetection: hierarchicalLeidenCommunities(maximumCommunitySize: 100, using:), 100 planted blocks of 1000") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             blackHole(blocks.hierarchicalLeidenCommunities(maximumCommunitySize: 100, using: &generator))
         }
     }
     Benchmark("CommunityDetection: leidenCommunities(using:), 100 planted blocks of 1000") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             blackHole(blocks.leidenCommunities(using: &generator))
         }
     }
     Benchmark("CommunityDetection: leidenCommunities(quality: .constantPottsModel, resolution: 0.05, using:), 100 planted blocks of 1000") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             blackHole(blocks.leidenCommunities(quality: .constantPottsModel, resolution: 0.05, using: &generator))
         }
     }
@@ -330,7 +331,7 @@ let benchmarks: @Sendable () -> Void = {
     }
     Benchmark("CommunityDetection: asynchronousFluidCommunities(count: 100, using:), 100 planted blocks of 1000") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             blackHole(blocks.asynchronousFluidCommunities(count: 100, using: &generator))
         }
     }
@@ -343,7 +344,7 @@ let benchmarks: @Sendable () -> Void = {
     let giant = giantComponent(10_000, seed: 3)
     Benchmark("CommunityDetection: spectralClustering(clusterCount: 8, using:), G(n, p) 10⁴ giant component") { benchmark in
         for _ in benchmark.scaledIterations {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             blackHole(try giant.spectralClustering(clusterCount: 8, using: &generator))
         }
     }

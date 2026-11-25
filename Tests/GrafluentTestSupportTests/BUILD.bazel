@@ -20,6 +20,7 @@ swift_library(
     deps = [
         "//Sources/GraphProtocols",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
     ],
 )
 

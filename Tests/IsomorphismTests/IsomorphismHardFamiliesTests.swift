@@ -8,6 +8,7 @@
 // are in Performance/IsomorphismHardFamiliesScaleTests.swift. See README.md.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import IsomorphismModule
@@ -81,7 +82,7 @@ struct IsomorphismHardFamiliesTests {
     @Test("Canonical labelings: relabelled copies get equal forms, a permutation and matching indices; directed C3 and its two orientations")
     func canonicalLabelings() {
         let petersen: [[Int]] = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [0, 5], [1, 6], [2, 7], [3, 8], [4, 9], [5, 7], [7, 9], [9, 6], [6, 8], [8, 5]]
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 24)
+        var rng = Xoroshiro128Plus(seed: 24)
         let permutation = Array(0 ..< 10).shuffled(using: &rng)
         let g = UndirectedAdjacencyList(vertices: 0 ..< 10, edges: petersen.map { UndirectedEdge($0[0], $0[1]) })
         let h = UndirectedAdjacencyList(vertices: 0 ..< 10, edges: petersen.shuffled(using: &rng).map { UndirectedEdge(permutation[$0[0]], permutation[$0[1]]) })

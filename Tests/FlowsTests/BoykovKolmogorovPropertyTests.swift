@@ -8,6 +8,7 @@
 // Conditions with a closure are computed into a constant before `#expect` (README.md).
 
 import Flows
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -20,7 +21,7 @@ struct BoykovKolmogorovPropertyTests {
     func directed() async {
         let edges = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8)).array(of: 0 ... 24)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 2 ... 9), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = Array(0 ..< n).shuffled(using: &rng)
             let ends = raw.map { ($0.0 % n, $0.1 % n) }
             let capacities = raw.map { $0.2 }
@@ -54,7 +55,7 @@ struct BoykovKolmogorovPropertyTests {
     func undirected() async {
         let edges = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8)).array(of: 0 ... 24)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 2 ... 9), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = Array(0 ..< n).shuffled(using: &rng)
             let ends = raw.map { ($0.0 % n, $0.1 % n) }
             let capacities = raw.map { $0.2 }
@@ -84,7 +85,7 @@ struct BoykovKolmogorovPropertyTests {
 
     @Test("Grids with random capacities: the value and cut of push–relabel", arguments: [1, 2, 3, 4, 5, 6])
     func grids(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let side = 12
         var pairs: [DirectedEdge<Int>] = []
         for r in 0 ..< side {

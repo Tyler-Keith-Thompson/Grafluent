@@ -11,6 +11,7 @@
 // `graph.directedView` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
 
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -22,7 +23,7 @@ struct SpectralClusteringCatalogTests {
         // U: K(0..2), K(3..5), 2-3
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let result = try graph.spectralClustering(clusterCount: 2, using: &generator)
         let expected: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         #expect(result.map { Array($0) } == expected)
@@ -38,7 +39,7 @@ struct SpectralClusteringCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
-        var again = SeededRandomNumberGenerator(seed: 1)
+        var again = Xoroshiro128Plus(seed: 1)
         #expect(try graph.spectralClustering(clusterCount: 2, using: &again) == result, "the same seed again")
     }
 
@@ -47,7 +48,7 @@ struct SpectralClusteringCatalogTests {
         // U: P(0,1,2), P(3,4,5)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (3, 4), (4, 5)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let result = try graph.spectralClustering(clusterCount: 2, using: &generator)
         let expected: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         #expect(result.map { Array($0) } == expected)
@@ -63,7 +64,7 @@ struct SpectralClusteringCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.5) <= 1e-12 * max(1, abs(0.5)))
-        var again = SeededRandomNumberGenerator(seed: 1)
+        var again = Xoroshiro128Plus(seed: 1)
         #expect(try graph.spectralClustering(clusterCount: 2, using: &again) == result, "the same seed again")
     }
 
@@ -72,7 +73,7 @@ struct SpectralClusteringCatalogTests {
         // U: P(0..3)
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let result = try graph.spectralClustering(clusterCount: 1, using: &generator)
         let expected: [[Int]] = [[0, 1, 2, 3]]
         #expect(result.map { Array($0) } == expected)
@@ -88,7 +89,7 @@ struct SpectralClusteringCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q) <= 1e-12)
-        var again = SeededRandomNumberGenerator(seed: 1)
+        var again = Xoroshiro128Plus(seed: 1)
         #expect(try graph.spectralClustering(clusterCount: 1, using: &again) == result, "the same seed again")
     }
 
@@ -98,7 +99,7 @@ struct SpectralClusteringCatalogTests {
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 5), (1, 6), (2, 3), (3, 4), (4, 7)]
         let listed: [Int] = [0, 1, 2, 5, 6, 3, 4, 7]
         let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let result = try graph.spectralClustering(clusterCount: 2, using: &generator)
         let expected: [[Int]] = [[0, 1, 5, 6], [2, 3, 4, 7]]
         #expect(result.map { Array($0) } == expected)
@@ -114,7 +115,7 @@ struct SpectralClusteringCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
-        var again = SeededRandomNumberGenerator(seed: 1)
+        var again = Xoroshiro128Plus(seed: 1)
         #expect(try graph.spectralClustering(clusterCount: 2, using: &again) == result, "the same seed again")
     }
 
@@ -124,7 +125,7 @@ struct SpectralClusteringCatalogTests {
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (6, 7), (6, 8), (7, 8),
             (2, 3), (5, 6)]
         let graph = ReferencePseudograph(vertices: 0 ..< 9, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let result = try graph.spectralClustering(clusterCount: 3, using: &generator)
         let expected: [[Int]] = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
         #expect(result.map { Array($0) } == expected)
@@ -140,7 +141,7 @@ struct SpectralClusteringCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.48347107438016523) <= 1e-12 * max(1, abs(0.48347107438016523)))
-        var again = SeededRandomNumberGenerator(seed: 1)
+        var again = Xoroshiro128Plus(seed: 1)
         #expect(try graph.spectralClustering(clusterCount: 3, using: &again) == result, "the same seed again")
     }
 
@@ -150,7 +151,7 @@ struct SpectralClusteringCatalogTests {
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let w: [Double] = [3, 3, 0, 3, 3]
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let result = try graph.spectralClustering(clusterCount: 2, weight: { w[$0] }, using: &generator)
         let expected: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         #expect(result.map { Array($0) } == expected)
@@ -166,7 +167,7 @@ struct SpectralClusteringCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, weight: { w[$0] })
         #expect(abs(q - 0.5) <= 1e-12 * max(1, abs(0.5)))
-        var again = SeededRandomNumberGenerator(seed: 1)
+        var again = Xoroshiro128Plus(seed: 1)
         #expect(try graph.spectralClustering(clusterCount: 2, weight: { w[$0] }, using: &again) == result, "the same seed again")
     }
 
@@ -176,7 +177,7 @@ struct SpectralClusteringCatalogTests {
             // U: P(0,1,2)
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = try graph.spectralClustering(clusterCount: 4, using: &generator)
         }
     }
@@ -187,7 +188,7 @@ struct SpectralClusteringCatalogTests {
             // U: P(0,1,2)
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = try graph.spectralClustering(clusterCount: 0, using: &generator)
         }
     }

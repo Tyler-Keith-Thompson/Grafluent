@@ -4,6 +4,7 @@ import BenchmarkSupport
 import CompressedSparseRowModule
 import Connectivity
 import DirectedAcyclicGraphModule
+import Generators
 import GraphOperations
 import GraphProtocols
 import Traversal
@@ -165,7 +166,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // MARK: inducedSubgraphView keeping 50% vs a materialized copy, build included
 
-    var generator = SeededRandomNumberGenerator(seed: 11)
+    var generator = Xoroshiro128Plus(seed: 11)
     let half = (0 ..< n).filter { _ in Bool.random(using: &generator) }
     let halfView = list.inducedSubgraphView(on: half)
     let halfCopy = CompressedSparseRow(vertexCount: half.count, edges: indexEdges(halfView))
@@ -324,7 +325,7 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     let loopless = CompressedSparseRow(vertexCount: n, edges: arcs.filter { $0.source != $0.target })
-    var shuffler = SeededRandomNumberGenerator(seed: 12)
+    var shuffler = Xoroshiro128Plus(seed: 12)
     let ordering = Array(0 ..< n).shuffled(using: &shuffler)
     var rank = [Int](repeating: 0, count: n)
     for (r, i) in ordering.enumerated() { rank[i] = r }

@@ -4,6 +4,7 @@
 // Each exit test builds its inputs inside the closure.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -89,12 +90,12 @@ struct PostmanAndMetaheuristicPreconditionTests {
     @Test("Metaheuristics: an incomplete graph traps, undirected and directed")
     func incomplete() async {
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(3, 0)])
             _ = graph.simulatedAnnealingTour(weight: { _ in 1 }, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let graph = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2), DirectedEdge(from: 2, to: 0)])
             _ = graph.thresholdAcceptingTour(weight: { _ in 1 }, using: &generator)
         }
@@ -103,7 +104,7 @@ struct PostmanAndMetaheuristicPreconditionTests {
     @Test("Metaheuristics: a starting tour that misses a vertex traps")
     func shortTour() async {
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             var ends: [UndirectedEdge<Int>] = []
             for u in 0 ..< 4 { for v in u + 1 ..< 4 { ends.append(UndirectedEdge(u, v)) } }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 4, edges: ends)
@@ -111,7 +112,7 @@ struct PostmanAndMetaheuristicPreconditionTests {
             _ = graph.simulatedAnnealingTour(improving: triangle, weight: { _ in 1 }, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             var arcs: [DirectedEdge<Int>] = []
             for u in 0 ..< 4 { for v in 0 ..< 4 where u != v { arcs.append(DirectedEdge(from: u, to: v)) } }
             let graph = AdjacencyList(vertices: 0 ..< 4, edges: arcs)
@@ -123,42 +124,42 @@ struct PostmanAndMetaheuristicPreconditionTests {
     @Test("Metaheuristics: parameters out of range trap")
     func parameters() async {
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
             _ = graph.simulatedAnnealingTour(temperature: -1, weight: { _ in 1 }, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
             _ = graph.simulatedAnnealingTour(alpha: 0, weight: { _ in 1 }, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
             _ = graph.simulatedAnnealingTour(alpha: 1.5, weight: { _ in 1 }, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
             _ = graph.thresholdAcceptingTour(threshold: .infinity, weight: { _ in 1 }, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
             _ = graph.thresholdAcceptingTour(alpha: -0.5, weight: { _ in 1 }, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
             _ = graph.thresholdAcceptingTour(maximumIterations: -1, weight: { _ in 1 }, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
             _ = graph.simulatedAnnealingTour(innerIterations: -1, weight: { _ in 1 }, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(1, 2)])
             _ = graph.simulatedAnnealingTour(weight: { _ in Double.nan }, using: &generator)
         }

@@ -18,6 +18,7 @@
 import AdjacencyListModule
 import CommunityDetection
 import Connectivity
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -40,7 +41,7 @@ private struct ShuffledPseudograph: Graph {
         }
         var listed = Array(0 ..< vertexCount)
         if seed != 0 {
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             rows = rows.map { $0.shuffled(using: &rng) }
             listed.shuffle(using: &rng)
         }
@@ -75,7 +76,7 @@ private struct ShuffledDigraph: DirectedGraph {
         for (k, edge) in edges.enumerated() { rows[edge.source].append(k) }
         var listed = Array(0 ..< vertexCount)
         if seed != 0 {
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             rows = rows.map { $0.shuffled(using: &rng) }
             listed.shuffle(using: &rng)
         }
@@ -225,7 +226,7 @@ struct CommunityDetectionPropertyTests {
                     #expect(result.community(ofIndex: i) == result.community(of: v), "\(what): community(ofIndex: \(i)); \(context)")
                 }
             }
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             if isDirected {
                 let graph = ShuffledDigraph(vertexCount: n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) }, seed: seed)
                 check(graph.louvainCommunities(resolution: gamma), graph.vertices, "louvain")
@@ -261,7 +262,7 @@ struct CommunityDetectionPropertyTests {
             let gamma = [0, 0.5, 1, 2][gammaChoice]
             let context = "\(ends), weights \(w), directed \(isDirected), γ \(gamma), seed \(seed)"
             let singletons = (0 ..< n).map { [$0] }
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             // Each entry: (Q of the result, Q of the singletons, the result's communities, what).
             var results: [(Double, Double, [[Int]], String)] = []
             let mergeQ: ([[Int]]) -> Double
@@ -316,7 +317,7 @@ struct CommunityDetectionPropertyTests {
             let ends: [(Int, Int)] = raw.map { ($0.0 % n, $0.1 % n) }
             let w: [Double] = raw.map { weighted ? Double($0.2) : 1 }
             let graph = ShuffledPseudograph(vertexCount: n, edges: ends.map { UndirectedEdge($0.0, $0.1) }, seed: seed)
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let results = [
                 ("semi-synchronous", graph.labelPropagationCommunities(weight: { w[$0] })),
                 ("asynchronous", graph.asynchronousLabelPropagationCommunities(weight: { w[$0] })),
@@ -480,8 +481,8 @@ struct CommunityDetectionPropertyTests {
             let ends: [(Int, Int)] = raw.map { ($0.0 % n, $0.1 % n) }
             let w: [Double] = raw.map { Double($0.2) }
             let context = "\(ends), weights \(w), directed \(isDirected), seed \(seed)"
-            var first = SeededRandomNumberGenerator(seed: UInt(seed))
-            var second = SeededRandomNumberGenerator(seed: UInt(seed))
+            var first = Xoroshiro128Plus(seed: UInt64(seed))
+            var second = Xoroshiro128Plus(seed: UInt64(seed))
             if isDirected {
                 let graph = ShuffledDigraph(vertexCount: n, edges: ends.map { DirectedEdge(from: $0.0, to: $0.1) }, seed: seed)
                 #expect(graph.louvainCommunities(using: &first) == graph.louvainCommunities(using: &second), "louvain; \(context)")

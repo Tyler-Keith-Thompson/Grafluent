@@ -6,6 +6,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -46,7 +47,7 @@ struct ContractionHierarchyTests {
         #expect(complete.contractionHierarchy(witnessLimit: 0) { _ in 1 }.shortcutCount == 0)
         var fewer = 0
         for seed in 0 ..< 10 {
-            var draw = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var draw = Xoroshiro128Plus(seed: UInt64(seed))
             var edges: [DirectedEdge<Int>] = []
             var weights: [Int] = []
             for _ in 0 ..< 36 {
@@ -76,7 +77,7 @@ struct ContractionHierarchyTests {
     @Test("Random directed graphs: Dijkstra's distances, valid paths of those lengths, on several representations", .tags(.randomized))
     func directedAgainstDijkstra() async {
         await propertyCheck(count: 150, input: Gen.int(in: 1 ... 12), Gen.int(in: 0 ... 1_000_000), Gen.int(in: 0 ... 2)) { n, seed, variant in
-            var draw = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var draw = Xoroshiro128Plus(seed: UInt64(seed))
             var arcs: [DirectedEdge<Int>] = []
             var weights: [Int] = []
             let m = Int.random(in: 0 ... 3 * n, using: &draw)
@@ -125,7 +126,7 @@ struct ContractionHierarchyTests {
     @Test("Random undirected graphs: both directions of every edge, Dijkstra's distances", .tags(.randomized))
     func undirectedAgainstDijkstra() async {
         await propertyCheck(count: 100, input: Gen.int(in: 1 ... 12), Gen.int(in: 0 ... 1_000_000)) { n, seed in
-            var draw = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var draw = Xoroshiro128Plus(seed: UInt64(seed))
             var ends: [UndirectedEdge<Int>] = []
             var weights: [Double] = []
             for _ in 0 ..< Int.random(in: 0 ... 2 * n, using: &draw) {

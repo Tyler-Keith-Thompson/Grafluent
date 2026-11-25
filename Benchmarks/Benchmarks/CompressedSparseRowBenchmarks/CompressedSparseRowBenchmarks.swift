@@ -1,6 +1,7 @@
 import Benchmark
 import BenchmarkSupport
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 
 let benchmarks: @Sendable () -> Void = {
@@ -16,7 +17,7 @@ let benchmarks: @Sendable () -> Void = {
     let sources = edges.map(\.source)
     let edgeTargets = edges.map(\.target)
     // One hub with 1M shuffled targets: a per-row comparison sort would be O(m log m) here.
-    var generator = SeededRandomNumberGenerator(seed: 3)
+    var generator = Xoroshiro128Plus(seed: 3)
     let hub = (0 ..< 1_000_000).map { DirectedEdge(from: 0, to: $0) }.shuffled(using: &generator)
     // 1M edges with only 10k distinct: the storage must shrink to the distinct edges.
     let repeated = (0 ..< 1_000_000).map { edges[$0 % 10_000] }

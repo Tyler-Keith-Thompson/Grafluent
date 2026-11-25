@@ -18,6 +18,7 @@ import AdjacencyMatrixModule
 import CommunityDetection
 import CompressedSparseRowModule
 import Connectivity
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -1060,7 +1061,7 @@ struct CommunityDetectionRepresentationTests {
         }
         do {
             // CD-114: louvainCommunities(using: rng(3))
-            var generator = SeededRandomNumberGenerator(seed: 3)
+            var generator = Xoroshiro128Plus(seed: 3)
             let result = graph.louvainCommunities(using: &generator)
             let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
             #expect(result.map { Array($0) } == expected)
@@ -1076,7 +1077,7 @@ struct CommunityDetectionRepresentationTests {
             // The modularity of the result (ref.py's model).
             let q = graph.modularity(of: result)
             #expect(abs(q - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)))
-            var again = SeededRandomNumberGenerator(seed: 3)
+            var again = Xoroshiro128Plus(seed: 3)
             #expect(graph.louvainCommunities(using: &again) == result, "the same seed again")
         }
         do {
@@ -1238,7 +1239,7 @@ struct CommunityDetectionRepresentationTests {
         }
         do {
             // CD-113: louvainCommunities(using: rng(2))
-            var generator = SeededRandomNumberGenerator(seed: 2)
+            var generator = Xoroshiro128Plus(seed: 2)
             let result = graph.louvainCommunities(using: &generator)
             let expected: [[Int]] = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]
             #expect(result.map { Array($0) } == expected)
@@ -1254,7 +1255,7 @@ struct CommunityDetectionRepresentationTests {
             // The modularity of the result (ref.py's model).
             let q = graph.modularity(of: result)
             #expect(abs(q - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)))
-            var again = SeededRandomNumberGenerator(seed: 2)
+            var again = Xoroshiro128Plus(seed: 2)
             #expect(graph.louvainCommunities(using: &again) == result, "the same seed again")
         }
         do {
@@ -2289,7 +2290,7 @@ struct CommunityDetectionRepresentationTests {
         #expect(Array(graph.vertices) == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as [Int])
         do {
             // CD-112: louvainCommunities(using: rng(1))
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let result = graph.louvainCommunities(using: &generator)
             let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
             #expect(result.map { Array($0) } == expected)
@@ -2305,12 +2306,12 @@ struct CommunityDetectionRepresentationTests {
             // The modularity of the result (ref.py's model).
             let q = graph.modularity(of: result)
             #expect(abs(q - 0.5) <= 1e-12 * max(1, abs(0.5)))
-            var again = SeededRandomNumberGenerator(seed: 1)
+            var again = Xoroshiro128Plus(seed: 1)
             #expect(graph.louvainCommunities(using: &again) == result, "the same seed again")
         }
         do {
             // CD-153: asynchronousLabelPropagationCommunities(using: rng(1))
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let result = graph.asynchronousLabelPropagationCommunities(using: &generator)
             let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
             #expect(result.map { Array($0) } == expected)
@@ -2326,7 +2327,7 @@ struct CommunityDetectionRepresentationTests {
             // The modularity of the result (ref.py's model).
             let q = graph.modularity(of: result)
             #expect(abs(q - 0.5) <= 1e-12 * max(1, abs(0.5)))
-            var again = SeededRandomNumberGenerator(seed: 1)
+            var again = Xoroshiro128Plus(seed: 1)
             #expect(graph.asynchronousLabelPropagationCommunities(using: &again) == result, "the same seed again")
         }
     }
@@ -2411,7 +2412,7 @@ struct CommunityDetectionRepresentationTests {
         #expect(Array(graph.vertices) == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as [Int])
         do {
             // CD-154: asynchronousLabelPropagationCommunities(using: rng(9))
-            var generator = SeededRandomNumberGenerator(seed: 9)
+            var generator = Xoroshiro128Plus(seed: 9)
             let result = graph.asynchronousLabelPropagationCommunities(using: &generator)
             let expected: [[Int]] = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11]]
             #expect(result.map { Array($0) } == expected)
@@ -2427,7 +2428,7 @@ struct CommunityDetectionRepresentationTests {
             // The modularity of the result (ref.py's model).
             let q = graph.modularity(of: result)
             #expect(abs(q - 0.6666666666666666) <= 1e-12 * max(1, abs(0.6666666666666666)))
-            var again = SeededRandomNumberGenerator(seed: 9)
+            var again = Xoroshiro128Plus(seed: 9)
             #expect(graph.asynchronousLabelPropagationCommunities(using: &again) == result, "the same seed again")
         }
     }
@@ -3448,7 +3449,7 @@ struct CommunityDetectionRepresentationTests {
         }
         do {
             // CD-114: louvainCommunities(using: rng(3))
-            var generator = SeededRandomNumberGenerator(seed: 3)
+            var generator = Xoroshiro128Plus(seed: 3)
             let result = graph.louvainCommunities(using: &generator)
             let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
             #expect(result.map { Array($0) } == expected)
@@ -3499,7 +3500,7 @@ struct CommunityDetectionRepresentationTests {
         }
         do {
             // CD-114: louvainCommunities(using: rng(3))
-            var generator = SeededRandomNumberGenerator(seed: 3)
+            var generator = Xoroshiro128Plus(seed: 3)
             let result = graph.louvainCommunities(using: &generator)
             let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
             #expect(result.map { Array($0) } == expected)
@@ -3608,7 +3609,7 @@ struct CommunityDetectionRepresentationTests {
         }
         do {
             // CD-113: louvainCommunities(using: rng(2))
-            var generator = SeededRandomNumberGenerator(seed: 2)
+            var generator = Xoroshiro128Plus(seed: 2)
             let result = graph.louvainCommunities(using: &generator)
             let expected: [[Int]] = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]
             #expect(result.map { Array($0) } == expected)
@@ -3661,7 +3662,7 @@ struct CommunityDetectionRepresentationTests {
         }
         do {
             // CD-113: louvainCommunities(using: rng(2))
-            var generator = SeededRandomNumberGenerator(seed: 2)
+            var generator = Xoroshiro128Plus(seed: 2)
             let result = graph.louvainCommunities(using: &generator)
             let expected: [[Int]] = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]
             #expect(result.map { Array($0) } == expected)
@@ -4691,7 +4692,7 @@ struct CommunityDetectionRepresentationTests {
         #expect(graph.edges.map { [$0.source, $0.target] } == arcs.map { [$0.0, $0.1] })
         do {
             // CD-112: louvainCommunities(using: rng(1))
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let result = graph.louvainCommunities(using: &generator)
             let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
             #expect(result.map { Array($0) } == expected)
@@ -4714,7 +4715,7 @@ struct CommunityDetectionRepresentationTests {
         #expect(graph.edges.map { [$0.source, $0.target] } == arcs.map { [$0.0, $0.1] })
         do {
             // CD-112: louvainCommunities(using: rng(1))
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let result = graph.louvainCommunities(using: &generator)
             let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
             #expect(result.map { Array($0) } == expected)

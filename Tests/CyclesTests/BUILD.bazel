@@ -28,6 +28,7 @@ swift_library(
         "//Sources/Multigraphs",
         "//Sources/StableGraphs",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
         "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )
@@ -77,6 +78,7 @@ swift_library(
         "//Sources/Multigraphs",
         "//Sources/StableGraphs",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
         "@swiftpkg_swift_property_based//:PropertyBased",
     ],
 )

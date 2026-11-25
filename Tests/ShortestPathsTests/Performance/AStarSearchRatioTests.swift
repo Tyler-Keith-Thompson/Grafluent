@@ -10,6 +10,7 @@
 
 import AdjacencyListModule
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import ShortestPaths
@@ -26,7 +27,7 @@ struct AStarSearchRatioTests {
             #else
             let k = 700
             #endif
-            var rng = SeededRandomNumberGenerator(seed: 209)
+            var rng = Xoroshiro128Plus(seed: 209)
             var edges: [DirectedEdge<Int>] = []
             for r in 0 ..< k {
                 for c in 0 ..< k {

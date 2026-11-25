@@ -10,6 +10,7 @@ import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import DirectedAcyclicGraphModule
+import Generators
 import GrafluentTestSupport
 import GraphDrawing
 import GraphProtocols
@@ -23,7 +24,7 @@ import Trees
 struct GraphDrawingConformanceTests {
     @Test("Circular, stress and Fruchterman–Reingold layouts agree across undirected representations and views", arguments: 1 ... 12)
     func undirectedRepresentations(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = Int.random(in: 1 ... 14, using: &rng)
         // Simple edges, each pair once with u < v, so every representation keeps them all.
         var pairs: [(Int, Int)] = []
@@ -57,18 +58,18 @@ struct GraphDrawingConformanceTests {
             }
         }
 
-        var g0 = Xoshiro256StarStar(seed: UInt64(seed))
+        var g0 = RandomGraphs.Xoshiro256StarStar(seed: UInt64(seed))
         let force = pseudograph.fruchtermanReingoldLayout(using: &g0)
         var others: [Drawing<Int>] = []
-        var g1 = Xoshiro256StarStar(seed: UInt64(seed))
+        var g1 = RandomGraphs.Xoshiro256StarStar(seed: UInt64(seed))
         others.append(list.fruchtermanReingoldLayout(using: &g1))
-        var g2 = Xoshiro256StarStar(seed: UInt64(seed))
+        var g2 = RandomGraphs.Xoshiro256StarStar(seed: UInt64(seed))
         others.append(directedPseudograph.undirectedView.fruchtermanReingoldLayout(using: &g2))
-        var g3 = Xoshiro256StarStar(seed: UInt64(seed))
+        var g3 = RandomGraphs.Xoshiro256StarStar(seed: UInt64(seed))
         others.append(adjacencyList.undirectedView.fruchtermanReingoldLayout(using: &g3))
-        var g4 = Xoshiro256StarStar(seed: UInt64(seed))
+        var g4 = RandomGraphs.Xoshiro256StarStar(seed: UInt64(seed))
         others.append(matrix.undirectedView.fruchtermanReingoldLayout(using: &g4))
-        var g5 = Xoshiro256StarStar(seed: UInt64(seed))
+        var g5 = RandomGraphs.Xoshiro256StarStar(seed: UInt64(seed))
         others.append(stable.undirectedView.fruchtermanReingoldLayout(using: &g5))
         #expect([g1, g2, g3, g4, g5].allSatisfy { $0 == g0 }, "\(context)")
         for other in others {
@@ -81,7 +82,7 @@ struct GraphDrawingConformanceTests {
 
     @Test("Sugiyama drawings agree across directed representations with edges in row-major order", arguments: 1 ... 12)
     func directedRepresentations(seed: Int) throws {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed) &+ 100)
+        var rng = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 100))
         let n = Int.random(in: 1 ... 12, using: &rng)
         let acyclic = seed % 2 == 0
         // Each arc once, sorted by (source, target): CSR and the matrix list positions in that order.
@@ -130,7 +131,7 @@ struct GraphDrawingConformanceTests {
 
     @Test("Reingold–Tilford agrees across the ways of building one rooted tree, and through labels", arguments: 1 ... 20)
     func rootedTreeConstructions(seed: Int) throws {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed) &+ 200)
+        var rng = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 200))
         let n = Int.random(in: 1 ... 30, using: &rng)
         let parents: [Int?] = (0 ..< n).map { $0 == 0 ? nil : Int.random(in: 0 ..< $0, using: &rng) }
         let fromParents = try #require(RootedTree(parents: parents))
@@ -170,7 +171,7 @@ struct GraphDrawingConformanceTests {
         #expect(Array(named.vertices) == names)
         #expect(named.circularLayout().positions == undirected.circularLayout().positions)
         #expect(named.stressMajorizationLayout().positions == undirected.stressMajorizationLayout().positions)
-        var g1 = Xoshiro256StarStar(seed: 4), g2 = Xoshiro256StarStar(seed: 4)
+        var g1 = RandomGraphs.Xoshiro256StarStar(seed: 4), g2 = RandomGraphs.Xoshiro256StarStar(seed: 4)
         #expect(named.fruchtermanReingoldLayout(using: &g1).positions == undirected.fruchtermanReingoldLayout(using: &g2).positions)
         #expect(Array(named.circularLayout().vertices) == names)
 

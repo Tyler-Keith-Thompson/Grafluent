@@ -3,6 +3,7 @@
 // Kruskal and brute force, random G(200, 0.5) instances, multigraphs with loops, Prim's root, and a path that makes Borůvka run many rounds. Case IDs (ST-nn) refer to the
 // catalog; see README.md.
 
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import SpanningTrees
@@ -71,7 +72,7 @@ struct AgreementTests {
 
     @Test("ST-71 tie-heavy random multigraphs: the canonical forest, Borůvka's set, Prim's weight and brute force agree", .tags(.randomized), arguments: [0, 1, 2, 3, 10, 1000])
     func randomMultigraphs(k: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(71_000 + k))
+        var rng = Xoroshiro128Plus(seed: UInt64(71_000 + k))
         var bruteForced = 0
         for _ in 0 ..< 70 {
             let n = Int.random(in: 0 ... 12, using: &rng)
@@ -162,7 +163,7 @@ struct AgreementTests {
 
     @Test("ST-72 JGraphT's testRandomInstances: G(200, 0.5) with random Doubles, identical edge sets", .tags(.randomized), arguments: 0 ..< 10)
     func randomDense(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(72_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(72_000 + seed))
         var edges: [(Int, Int, Double)] = []
         for u in 0 ..< 200 {
             for v in u + 1 ..< 200 where Double.random(in: 0 ..< 1, using: &rng) < 0.5 {
@@ -183,7 +184,7 @@ struct AgreementTests {
 
     @Test("ST-73 igraph's G(50, 100) multigraphs with loops: forests of n − c edges and equal weights", .tags(.randomized), arguments: 0 ..< 20)
     func igraphMultigraphs(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(73_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(73_000 + seed))
         let n = 50
         let raw = (0 ..< 100).map { _ in (Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng), Int.random(in: 1 ... 20, using: &rng)) }
         let graph = ReferencePseudograph(vertices: 0 ..< n, edges: raw.map { UndirectedEdge($0.0, $0.1) })

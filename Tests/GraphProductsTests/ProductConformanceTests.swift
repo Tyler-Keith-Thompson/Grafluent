@@ -10,6 +10,7 @@
 import AdjacencyListModule
 import CompressedSparseRowModule
 import Connectivity
+import Generators
 import GrafluentTestSupport
 import GraphProducts
 import GraphProtocols
@@ -23,7 +24,7 @@ import Traversal
 struct ProductConformanceTests {
     @Test("Directed products: Traversal, Connectivity and ShortestPaths equal a row-order copy", arguments: [1, 2, 3, 4, 5, 6])
     func directedAlgorithms(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let nG = Int.random(in: 1 ... 4, using: &rng), nH = Int.random(in: 1 ... 4, using: &rng)
         // Pseudographs: parallel arcs and self-loops included.
         var g = DirectedPseudograph<Int>(vertices: 0 ..< nG)
@@ -91,7 +92,7 @@ struct ProductConformanceTests {
 
     @Test("Products of CompressedSparseRow factors (no in-rows) search like a row-order copy", arguments: [1, 2, 3, 4])
     func forwardOnlyFactors(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(50 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(50 + seed))
         let nG = Int.random(in: 1 ... 5, using: &rng), nH = Int.random(in: 1 ... 4, using: &rng)
         let g = CompressedSparseRow(vertexCount: nG, edges: (0 ..< nG * 2).map { _ in
             DirectedEdge(from: Int.random(in: 0 ..< nG, using: &rng), to: Int.random(in: 0 ..< nG, using: &rng))
@@ -127,7 +128,7 @@ struct ProductConformanceTests {
 
     @Test("Undirected products: Connectivity and ShortestPaths equal Pseudograph(product)", arguments: [1, 2, 3, 4, 5, 6])
     func undirectedAlgorithms(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(100 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(100 + seed))
         let nG = Int.random(in: 1 ... 4, using: &rng), nH = Int.random(in: 1 ... 4, using: &rng)
         var g = Pseudograph<Int>(vertices: 0 ..< nG)
         var h = Pseudograph<Int>(vertices: 0 ..< nH)

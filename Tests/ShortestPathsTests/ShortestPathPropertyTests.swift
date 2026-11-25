@@ -8,6 +8,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -18,7 +19,7 @@ import Testing
 struct ShortestPathPropertyTests {
     @Test("SP-100 Dijkstra equals Floyd–Warshall on nonnegative weights, on four representations", arguments: [1, 2, 5, 10, 30])
     func dijkstraEqualsFloydWarshall(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(100 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(100 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 50 {
                 var raw: [(Int, Int, Int)] = []
@@ -70,7 +71,7 @@ struct ShortestPathPropertyTests {
 
     @Test("SP-101 Bellman–Ford equals Floyd–Warshall, and is nil exactly when a negative cycle is reachable", arguments: [1, 2, 5, 10, 30])
     func bellmanFordEqualsFloydWarshall(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(101 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(101 + n))
         var trees = 0
         var cycles = 0
         for p in [0.05, 0.2, 0.5] {
@@ -123,7 +124,7 @@ struct ShortestPathPropertyTests {
 
     @Test("SP-102 tree laws for Dijkstra, Bellman–Ford and unweighted search", arguments: [1, 2, 5, 10, 30])
     func treeLaws(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(102 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(102 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 50 {
                 var raw: [(Int, Int, Int)] = []
@@ -176,7 +177,7 @@ struct ShortestPathPropertyTests {
 
     @Test("SP-103 the triangle inequality, with and without a cutoff", arguments: [1, 2, 5, 10, 30])
     func triangleInequality(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(103 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(103 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 50 {
                 var raw: [(Int, Int, Int)] = []
@@ -211,7 +212,7 @@ struct ShortestPathPropertyTests {
 
     @Test("SP-104 the tie rule: a determined parent is exact, any other is a candidate", arguments: [1, 2, 5, 10, 30])
     func tieRule(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(104 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(104 + n))
         var determined = 0
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 50 {
@@ -255,7 +256,7 @@ struct ShortestPathPropertyTests {
 
     @Test("SP-105 A* with zero, consistent and inconsistent admissible heuristics equals Dijkstra", arguments: [1, 2, 5, 10, 30])
     func aStarEqualsDijkstra(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(105 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(105 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 50 {
                 var raw: [(Int, Int, Int)] = []
@@ -296,7 +297,7 @@ struct ShortestPathPropertyTests {
 
     @Test("SP-106 the single-target query equals the tree and returns a shortest path", arguments: [1, 2, 5, 10, 30])
     func singleTargetEqualsTree(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(106 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(106 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 50 {
                 var raw: [(Int, Int, Int)] = []
@@ -330,7 +331,7 @@ struct ShortestPathPropertyTests {
 
     @Test("SP-107 unweighted search: Dijkstra's distances with unit weights, parents by first discovery", arguments: [1, 2, 5, 10, 30])
     func unweightedEqualsUnitDijkstra(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(107 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(107 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 50 {
                 var raw: [(Int, Int)] = []
@@ -370,7 +371,7 @@ struct ShortestPathPropertyTests {
 
     @Test("SP-108 Johnson's reweighting: potentials from Bellman–Ford make Dijkstra exact", arguments: [1, 2, 5, 10, 30])
     func reweightingInvariance(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(108 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(108 + n))
         var reweighted = 0
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 50 {
@@ -402,7 +403,7 @@ struct ShortestPathPropertyTests {
 
     @Test("SP-109 relabeling maps distances to distances and witnesses to witnesses", arguments: [1, 2, 5, 10, 30])
     func relabeling(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(109 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(109 + n))
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 50 {
                 var raw: [(Int, Int, Int)] = []

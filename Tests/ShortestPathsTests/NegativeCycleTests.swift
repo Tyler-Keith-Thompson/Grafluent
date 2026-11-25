@@ -6,6 +6,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import ShortestPaths
@@ -162,7 +163,7 @@ struct NegativeCycleTests {
 
     @Test("SP-69a witness laws: distinct vertices, closed by edges, negative, rotated, reachable", .tags(.randomized), arguments: 0 ..< 20)
     func witnessLaws(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = Int.random(in: 1 ... 12, using: &rng)
         let m = Int.random(in: 0 ... 3 * n, using: &rng)
         let raw = (0 ..< m).map { _ in (Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng), Int.random(in: -4 ... 10, using: &rng)) }

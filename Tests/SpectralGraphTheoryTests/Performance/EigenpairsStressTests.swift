@@ -4,6 +4,7 @@
 
 import AdjacencyListModule
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import SpectralGraphTheory
@@ -37,7 +38,7 @@ struct EigenpairsStressTests {
     @Test("A random 3-regular multigraph on 10⁴ vertices: L's 6 smallest, orthonormal, with small residuals", .timeLimit(.minutes(1)))
     func randomRegular() throws {
         let n = 10_000
-        var rng = SeededRandomNumberGenerator(seed: 21)
+        var rng = Xoroshiro128Plus(seed: 21)
         var edges: [UndirectedEdge<Int>] = []
         for _ in 0 ..< 3 {
             let perm = Array(0 ..< n).shuffled(using: &rng)
@@ -62,7 +63,7 @@ struct EigenpairsStressTests {
     @Test("The stationary distribution of a random digraph of 10⁵ vertices and 5 · 10⁵ arcs: πP = π", .timeLimit(.minutes(1)))
     func stationary() throws {
         let n = 100_000
-        var rng = SeededRandomNumberGenerator(seed: 24)
+        var rng = Xoroshiro128Plus(seed: 24)
         let arcs = (0 ..< 5 * n).map { _ in DirectedEdge(from: Int.random(in: 0 ..< n, using: &rng), to: Int.random(in: 0 ..< n, using: &rng)) }
         let graph = AdjacencyList(vertices: 0 ..< n, edges: arcs)
         let pi = try graph.stationaryDistribution().probabilities

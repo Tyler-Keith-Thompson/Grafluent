@@ -5,6 +5,7 @@
 import AdjacencyListModule
 import CompressedSparseRowModule
 import Connectivity
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -25,7 +26,7 @@ private struct BidirectionalDictionaryGraph<Vertex: Hashable>: BidirectionalDire
 struct ConnectivityReferenceTests {
     @Test("CN-144 an adjacency list after removals gives exactly the results of the same vertices and successors in a multigraph", arguments: [1, 2, 3, 4, 5, 6])
     func adjacencyListAfterRemovals(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 1_440)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 1_440))
         let n = 24
         var edges: [DirectedEdge<Int>] = []
         for _ in 0 ..< 60 {
@@ -71,7 +72,7 @@ struct ConnectivityReferenceTests {
 
     @Test("CN-145 post-dominators match brute force, with and without vertex indices, on spread-out vertices", .tags(.randomized), arguments: [1, 2, 3, 4, 5, 6, 7, 8])
     func postDominatorsByBruteForce(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 1_450)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 1_450))
         for n in [1, 2, 5, 12] {
             var pairs: [(Int, Int)] = []
             for _ in 0 ..< Int.random(in: 0 ... 3 * n, using: &generator) {

@@ -7,6 +7,7 @@
 
 import Connectivity
 import FunctionalGraphs
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -17,7 +18,7 @@ struct FunctionalGraphStressTests {
     func randomMapping() async {
         await Task {
             let n = 300_000
-            var rng = SeededRandomNumberGenerator(seed: 11)
+            var rng = Xoroshiro128Plus(seed: 11)
             let successors = (0 ..< n).map { _ in Int.random(in: 0 ..< n, using: &rng) }
             let graph = FunctionalGraph(successors: successors)
             let whole = graph.cycleDecomposition()
@@ -90,7 +91,7 @@ struct FunctionalGraphStressTests {
     func permutation() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 12)
+            var rng = Xoroshiro128Plus(seed: 12)
             let successors = Array((0 ..< n).shuffled(using: &rng))
             let graph = FunctionalGraph(successors: successors)
             let whole = graph.cycleDecomposition()
@@ -110,7 +111,7 @@ struct FunctionalGraphStressTests {
     @Test("Pollard-rho closures x² + c mod m, m up to 3 × 10⁹", .timeLimit(.minutes(1)))
     func pollardRho() async {
         await Task {
-            var rng = SeededRandomNumberGenerator(seed: 13)
+            var rng = Xoroshiro128Plus(seed: 13)
             for round in 0 ..< 120 {
                 let m = round < 100 ? Int.random(in: 2 ... 1_000_000, using: &rng) : Int.random(in: 1_000_000_000 ... 3_000_000_000, using: &rng)
                 let c = Int.random(in: 1 ..< m, using: &rng)

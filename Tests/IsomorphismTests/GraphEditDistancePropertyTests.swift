@@ -7,6 +7,7 @@
 // are matched as groups, the rest deleted or inserted. The returned path must cost what its own
 // operations add up to, substitute edges only between images, and be optimal. See README.md.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import IsomorphismModule
@@ -22,7 +23,7 @@ struct GraphEditDistancePropertyTests {
         let shape = zip(Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 3), Gen.int(in: 0 ... 1_000_000))
         await propertyCheck(count: 200, input: edges, edges, shape) { rawG, rawH, shape in
             let (n1, n2, flags, seed) = shape
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let useVertexColors = flags & 1 != 0, useEdgeColors = flags & 2 != 0
             let gEdges = n1 == 0 ? [] : rawG.map { [$0.0 % n1, $0.1 % n1, useEdgeColors ? $0.2 : 0] }
             let hEdges = n2 == 0 ? [] : rawH.map { [$0.0 % n2, $0.1 % n2, useEdgeColors ? $0.2 : 0] }

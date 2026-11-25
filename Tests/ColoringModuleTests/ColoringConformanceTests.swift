@@ -14,6 +14,7 @@ import AdjacencyListModule
 import BipartiteGraphs
 import ColoringModule
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -180,7 +181,7 @@ struct ColoringConformanceTests {
 
     @Test("A random order (random_sequential): first fit in that order, proper, at most Δ + 1", .tags(.randomized))
     func randomSequential() {
-        var rng = SeededRandomNumberGenerator(seed: 7)
+        var rng = Xoroshiro128Plus(seed: 7)
         let n = 40
         var pairs: [(Int, Int)] = []
         for u in 0 ..< n { for v in u + 1 ..< n where Int.random(in: 0 ..< 5, using: &rng) == 0 { pairs.append((u, v)) } }

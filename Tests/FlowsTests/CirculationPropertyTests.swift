@@ -7,6 +7,7 @@
 // Conditions with a closure are computed into a constant before `#expect` (README.md).
 
 import Flows
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -19,7 +20,7 @@ struct CirculationPropertyTests {
     func feasibilityMatchesBruteForce() async {
         let edges = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6), Gen.int(in: -1 ... 3), Gen.int(in: 0 ... 3)).array(of: 0 ... 14)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 7), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = Array(0 ..< n).shuffled(using: &rng)
             let ends = raw.map { ($0.0 % n, $0.1 % n) }
             let lower = raw.map { $0.2 }

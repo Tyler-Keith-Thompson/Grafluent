@@ -12,6 +12,7 @@ import BipartiteGraphs
 import Connectivity
 import Cycles
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Hypergraphs
@@ -24,7 +25,7 @@ import Traversal
 struct HypergraphConformanceTests {
     @Test("Undirected: algorithms on incidenceGraphView equal the same on an UndirectedAdjacencyList copy", arguments: 1 ... 8)
     func undirectedViewAgainstCopy(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let names = (0 ..< 6 + seed * 2).map { "v\($0)" }
         var hypergraph = UndirectedIncidenceList<String>(vertices: names.shuffled(using: &rng).prefix(seed))
         for _ in 0 ..< 4 + seed * 2 {
@@ -85,7 +86,7 @@ struct HypergraphConformanceTests {
 
     @Test("Directed: algorithms on incidenceGraphView equal the same on an AdjacencyList copy", arguments: 1 ... 8)
     func directedViewAgainstCopy(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(50 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(50 + seed))
         let names = (0 ..< 5 + seed * 2).map { "v\($0)" }
         var hypergraph = IncidenceList<String>(vertices: names.shuffled(using: &rng).prefix(seed))
         for _ in 0 ..< 4 + seed * 2 {
@@ -157,7 +158,7 @@ struct HypergraphConformanceTests {
             var hyperedgeIndexBound: Int? { rows.count }
             func hyperedgeIndex(of position: Int) -> Int { position }
         }
-        var rng = SeededRandomNumberGenerator(seed: 11)
+        var rng = Xoroshiro128Plus(seed: 11)
         for _ in 0 ..< 40 {
             let names = (0 ..< Int.random(in: 0 ... 7, using: &rng)).map { "v\($0)" }
             let rows = names.isEmpty ? [] : (0 ..< Int.random(in: 0 ... 6, using: &rng)).map { _ in
@@ -213,7 +214,7 @@ struct HypergraphConformanceTests {
             var hyperedgeIndexBound: Int? { arcs.count }
             func hyperedgeIndex(of position: Int) -> Int { position }
         }
-        var rng = SeededRandomNumberGenerator(seed: 12)
+        var rng = Xoroshiro128Plus(seed: 12)
         for _ in 0 ..< 40 {
             let names = (0 ..< Int.random(in: 1 ... 7, using: &rng)).map { "v\($0)" }
             func side() -> [String] {
@@ -271,7 +272,7 @@ struct HypergraphConformanceTests {
 
     @Test("Codable round trips keep vertex order and positions, both kinds", arguments: 1 ... 6)
     func codableRoundTrips(seed: Int) throws {
-        var rng = SeededRandomNumberGenerator(seed: UInt(200 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(200 + seed))
         var undirected = UndirectedIncidenceList<Int>(vertices: (0 ..< seed).map { $0 * 3 })
         var directed = IncidenceList<Int>(vertices: (0 ..< seed).map { $0 * 5 })
         for _ in 0 ..< seed * 3 {

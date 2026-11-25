@@ -6,6 +6,7 @@
 // (`ref.py`) runs 2000 sequences of the differential test against its own naive model.
 // Case IDs (PQ-nn) refer to the catalog; see README.md.
 
+import Generators
 import GrafluentTestSupport
 import PriorityQueueModule
 import Testing
@@ -14,7 +15,7 @@ import Testing
 struct PriorityQueueDifferentialTests {
     @Test("PQ-30 interleaved operations agree with a naive scan", arguments: 1 ... 200)
     func differential(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         for n in [1, 2, 3, 10, 50, 200] {
             var q = IndexedPriorityQueue<Int>(indexBound: n)
             // Reference: each index's priority, or nil; its minimum is a scan reporting every index
@@ -98,7 +99,7 @@ struct PriorityQueueDifferentialTests {
 
     @Test("PQ-31 heap sort: the drain is the sorted input", arguments: 1 ... 50)
     func heapSort(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         for n in [0, 1, 2, 7, 64, 1000] {
             let input = (0 ..< n).map { _ in Int.random(in: 0 ..< 1_000_000_000, using: &generator) }
             var q = IndexedPriorityQueue<Int>(indexBound: n)
@@ -119,7 +120,7 @@ struct PriorityQueueDifferentialTests {
 
     @Test("PQ-32 a Dijkstra on the queue equals Bellman–Ford", arguments: 1 ... 100)
     func dijkstraEqualsBellmanFord(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         for n in [1, 5, 50, 300] {
             // Weights 0…9, zero included.
             let arcs = (0 ..< 4 * n).map { _ in
@@ -166,7 +167,7 @@ struct PriorityQueueDifferentialTests {
 
     @Test("PQ-33 a Prim on the queue gives Kruskal's spanning-tree weight", arguments: 1 ... 50)
     func primEqualsKruskal(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         let n = Int.random(in: 1 ... 300, using: &generator)
         // Connected: a random tree, then 2n more random edges. Weights 1…20.
         var edges: [(Int, Int, Int)] = []
@@ -287,7 +288,7 @@ struct PriorityQueueLargeInputTests {
         await Task {
             let side = 1000
             let n = side * side
-            var generator = SeededRandomNumberGenerator(seed: 36)
+            var generator = Xoroshiro128Plus(seed: 36)
             // Undirected 4-neighbour grid; right[v] weighs v–(v + 1), down[v] weighs v–(v + side).
             let right = (0 ..< n).map { _ in Int.random(in: 1 ... 100, using: &generator) }
             let down = (0 ..< n).map { _ in Int.random(in: 1 ... 100, using: &generator) }
@@ -351,7 +352,7 @@ struct PriorityQueueLargeInputTests {
     func heapSortWithTies() async {
         await Task {
             let n = 1_000_000
-            var generator = SeededRandomNumberGenerator(seed: 37)
+            var generator = Xoroshiro128Plus(seed: 37)
             let input = (0 ..< n).map { _ in Int.random(in: 0 ..< 1000, using: &generator) }
             var q = IndexedPriorityQueue<Int>(indexBound: n)
             for (i, p) in input.enumerated() { q.insert(i, priority: p) }

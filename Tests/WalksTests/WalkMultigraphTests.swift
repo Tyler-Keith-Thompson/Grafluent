@@ -5,6 +5,7 @@
 // from the catalog's reference (ref.py, brute force and NetworkX 3.7). Case IDs (WK-nnn) refer to
 // the catalog; see README.md.
 
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -82,7 +83,7 @@ struct WalkMultigraphTests {
 
     @Test("WK-510 Trail(_:in:) succeeds exactly when some choice of parallel edges is a trail", .tags(.randomized), arguments: 0 ..< 4)
     func greedyTrailIsExact(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(510_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(510_000 + seed))
         for _ in 0 ..< 100 {
             let n = Int.random(in: 1 ... 3, using: &rng)
             let raw = (0 ..< Int.random(in: 0 ... 6, using: &rng)).map { _ in (Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }

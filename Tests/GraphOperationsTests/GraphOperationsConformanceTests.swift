@@ -13,6 +13,7 @@ import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import Connectivity
 import DirectedAcyclicGraphModule
+import Generators
 import GrafluentTestSupport
 import GraphOperations
 import GraphProtocols
@@ -26,7 +27,7 @@ import Traversal
 struct GraphOperationsConformanceTests {
     @Test("Directed views: Traversal, Connectivity and ShortestPaths equal a materialized copy's", arguments: [1, 2, 3, 4, 5, 6, 7, 8])
     func directedViewsAgainstCopies(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 4 + seed * 2
         let names = (0 ..< n).map { "v\($0)" }.shuffled(using: &rng)
         var edges: [DirectedEdge<String>] = []
@@ -111,7 +112,7 @@ struct GraphOperationsConformanceTests {
 
     @Test("Undirected views: Traversal, Connectivity and ShortestPaths equal a materialized copy's", arguments: [1, 2, 3, 4, 5, 6, 7, 8])
     func undirectedViewsAgainstCopies(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(50 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(50 + seed))
         let n = 4 + seed * 2
         let names = (0 ..< n).map { "u\($0)" }.shuffled(using: &rng)
         var edges: [UndirectedEdge<String>] = []
@@ -198,7 +199,7 @@ struct GraphOperationsConformanceTests {
     func keptRowsMatchFilteredRows() {
         // The row hooks filter the base's rows until n/16 rows have been walked, then build the
         // kept rows once: answers must not change across that point, directed or undirected.
-        var rng = SeededRandomNumberGenerator(seed: 23)
+        var rng = Xoroshiro128Plus(seed: 23)
         let n = 2000
         var arcs: [DirectedEdge<Int>] = []
         for _ in 0 ..< 6 * n { arcs.append(DirectedEdge(from: Int.random(in: 0 ..< n, using: &rng), to: Int.random(in: 0 ..< n, using: &rng))) }
@@ -247,7 +248,7 @@ struct GraphOperationsConformanceTests {
 
     @Test("Views over CompressedSparseRow and AdjacencyMatrix bases equal their copies", arguments: [1, 2, 3, 4])
     func viewsOverIntBases(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(90 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(90 + seed))
         let n = 5 + seed * 3
         var arcs: [DirectedEdge<Int>] = []
         for _ in 0 ..< n * 2 {
@@ -352,7 +353,7 @@ struct GraphOperationsConformanceTests {
 
     @Test("The materialized operations agree across their construction targets", arguments: [1, 2, 3, 4, 5])
     func targetsAgree(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(200 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(200 + seed))
         let n = 4 + seed * 2
         let names = (0 ..< n).map { "w\($0)" }
         var arcs: [DirectedEdge<String>] = []

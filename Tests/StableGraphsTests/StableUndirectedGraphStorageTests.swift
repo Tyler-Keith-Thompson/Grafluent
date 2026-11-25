@@ -8,6 +8,7 @@
 
 import Connectivity
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -80,7 +81,7 @@ struct StableUndirectedGraphStorageTests {
 
     @Test("A decoded graph's rebuilt rows take further removals like the original's", .tags(.randomized))
     func decodedThenRemoved() throws {
-        var rng = SeededRandomNumberGenerator(seed: 44)
+        var rng = Xoroshiro128Plus(seed: 44)
         for _ in 0 ..< 20 {
             var graph = StableUndirectedGraph<Int>(vertices: 0 ..< 12)
             for _ in 0 ..< 40 { graph.insert(edge: UndirectedEdge(Int.random(in: 0 ..< 12, using: &rng), Int.random(in: 0 ..< 12, using: &rng))) }
@@ -103,7 +104,7 @@ struct StableUndirectedGraphStorageTests {
 
     @Test("_numberedIncidenceRows numbers vertices in vertices order and edges in edges order, rows in incidentEdges order, with vertex holes, edge holes, both, and none", arguments: 0 ..< 4)
     func numberedRows(holes: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(45 + holes))
+        var rng = Xoroshiro128Plus(seed: UInt64(45 + holes))
         var graph = StableUndirectedGraph<Int>(vertices: 0 ..< 9)
         for _ in 0 ..< 30 { graph.insert(edge: UndirectedEdge(Int.random(in: 0 ..< 9, using: &rng), Int.random(in: 0 ..< 9, using: &rng))) }
         if holes & 1 != 0 { graph.remove(3) }
@@ -130,7 +131,7 @@ struct StableUndirectedGraphStorageTests {
 
     @Test("Algorithms on the numbered rows agree with the compacted copy, and the default rows give the same answers", arguments: 0 ..< 6)
     func algorithmsOnNumberedRows(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(46 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(46 + seed))
         let n = 12 + seed * 3
         var graph = StableUndirectedGraph<Int>(vertices: 0 ..< n)
         for _ in 0 ..< n * 2 { graph.insert(edge: UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }

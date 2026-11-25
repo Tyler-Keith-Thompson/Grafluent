@@ -12,6 +12,7 @@
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -35,7 +36,7 @@ private struct UnindexedGraph<Vertex: Hashable>: Graph {
 struct PlanarityConformanceTests {
     @Test("Representations with the same rows give the same embedding and witness, position for position")
     func sameRows() throws {
-        var rng = SeededRandomNumberGenerator(seed: 2026)
+        var rng = Xoroshiro128Plus(seed: 2026)
         var inputs: [(listed: [Int], pairs: [(Int, Int)])] = [
             (Array(0 ..< 5), [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)]),
             (Array(0 ..< 6), [(0, 3), (0, 4), (0, 5), (1, 3), (1, 4), (1, 5), (2, 3), (2, 4), (2, 5)]),
@@ -174,7 +175,7 @@ struct PlanarityConformanceTests {
                 #expect(used.sorted() == witness.edges, "\(context)")
             }
         }
-        var rng = SeededRandomNumberGenerator(seed: 77)
+        var rng = Xoroshiro128Plus(seed: 77)
         for round in 0 ..< 150 {
             let n = Int.random(in: 1 ... 9, using: &rng)
             let m = Int.random(in: 0 ... 3 * n, using: &rng)
@@ -203,7 +204,7 @@ struct PlanarityConformanceTests {
 
     @Test("A relabelled copy gives the same embedding through the labels; a reordered copy the same answers")
     func relabelled() throws {
-        var rng = SeededRandomNumberGenerator(seed: 4)
+        var rng = Xoroshiro128Plus(seed: 4)
         for round in 0 ..< 150 {
             let n = Int.random(in: 1 ... 9, using: &rng)
             let m = Int.random(in: 0 ... 3 * n, using: &rng)

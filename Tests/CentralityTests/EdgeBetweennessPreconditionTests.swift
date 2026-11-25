@@ -6,6 +6,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import Centrality
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -51,7 +52,7 @@ struct EdgeBetweennessPreconditionTests {
     func zeroWeightRandom() async {
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.betweennessCentrality(weight: { _ in 0 }, pivotCount: 2, using: &generator)
         }
     }
@@ -108,7 +109,7 @@ struct EdgeBetweennessPreconditionTests {
     func zeroPivotCount() async {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.betweennessCentrality(pivotCount: 0, using: &generator)
         }
     }
@@ -117,7 +118,7 @@ struct EdgeBetweennessPreconditionTests {
     func tooManyPivots() async {
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.edgeBetweennessCentrality(pivotCount: 4, using: &generator)
         }
     }
@@ -126,7 +127,7 @@ struct EdgeBetweennessPreconditionTests {
     func negativePivotCount() async {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.edgeBetweennessCentrality(pivotCount: -1, using: &generator)
         }
     }
@@ -135,7 +136,7 @@ struct EdgeBetweennessPreconditionTests {
     func pivotOnEmpty() async {
         await #expect(processExitsWith: .failure) {
             let graph = AdjacencyList<Int>()
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.betweennessCentrality(pivotCount: 1, using: &generator)
         }
     }

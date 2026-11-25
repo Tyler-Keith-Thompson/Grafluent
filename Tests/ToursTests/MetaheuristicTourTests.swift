@@ -7,6 +7,7 @@
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -28,7 +29,7 @@ struct MetaheuristicTourTests {
     @Test("Undirected, integer weights: the procedure written out with the default settings, for both moves and both rules", .tags(.randomized))
     func undirectedAgainstProcedure() async {
         await propertyCheck(count: 120, input: Gen.int(in: 3 ... 9), Gen.int(in: 0 ... 1_000_000), Gen.int(in: 0 ... 3)) { n, seed, variant in
-            var draw = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var draw = Xoroshiro128Plus(seed: UInt64(seed))
             var ends: [UndirectedEdge<Int>] = []
             var weights: [Int] = []
             for u in 0 ..< n {
@@ -55,7 +56,7 @@ struct MetaheuristicTourTests {
             }
             // The procedure, every candidate weighed in full.
             func length(_ t: [Int]) -> Int { (0 ..< n).reduce(0) { $0 + d[t[$1]][t[($1 + 1) % n]] } }
-            var reference = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed) &+ 1)
+            var reference = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 1))
             var cycle = start, cost = length(start)
             var best = cycle, bestCost = cost
             // The defaults: a third of the starting tour's mean edge weight, ten moves per vertex.
@@ -93,7 +94,7 @@ struct MetaheuristicTourTests {
                 }
                 if annealing { temperature -= temperature * 0.01 } else if accepted { threshold -= threshold * 0.1 }
             }
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed) &+ 1)
+            var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 1))
             let found = annealing
                 ? graph.simulatedAnnealingTour(move: move, weight: { weights[$0] }, using: &generator)
                 : graph.thresholdAcceptingTour(move: move, weight: { weights[$0] }, using: &generator)
@@ -114,7 +115,7 @@ struct MetaheuristicTourTests {
     @Test("Directed, integer weights: the procedure written out, weighed along the arcs", .tags(.randomized))
     func directedAgainstProcedure() async {
         await propertyCheck(count: 120, input: Gen.int(in: 3 ... 8), Gen.int(in: 0 ... 1_000_000), Gen.int(in: 0 ... 3)) { n, seed, variant in
-            var draw = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var draw = Xoroshiro128Plus(seed: UInt64(seed))
             var arcs: [DirectedEdge<Int>] = []
             var weights: [Int] = []
             var d = [[Int]](repeating: [Int](repeating: 0, count: n), count: n)
@@ -133,7 +134,7 @@ struct MetaheuristicTourTests {
             let start = [0] + (1 ..< n).reversed()
             let startCycle = Cycle(start, in: graph)!
             func length(_ t: [Int]) -> Int { (0 ..< n).reduce(0) { $0 + d[t[$1]][t[($1 + 1) % n]] } }
-            var reference = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var reference = Xoroshiro128Plus(seed: UInt64(seed))
             var cycle = start, cost = length(start)
             var best = cycle, bestCost = cost
             var temperature = 5.0, threshold = 3.0
@@ -170,7 +171,7 @@ struct MetaheuristicTourTests {
                 }
                 if annealing { temperature -= temperature * 0.2 } else if accepted { threshold -= threshold * 0.5 }
             }
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let found = annealing
                 ? graph.simulatedAnnealingTour(improving: startCycle, move: move, temperature: 5, alpha: 0.2, maximumIterations: 3, innerIterations: 20,
                                                weight: { weights[$0] }, using: &generator)
@@ -192,7 +193,7 @@ struct MetaheuristicTourTests {
     @Test("Threshold accepting with one move per round: the threshold falls only after a round that took a move", .tags(.randomized))
     func thresholdRounds() async {
         await propertyCheck(count: 150, input: Gen.int(in: 4 ... 8), Gen.int(in: 0 ... 1_000_000)) { n, seed in
-            var draw = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var draw = Xoroshiro128Plus(seed: UInt64(seed))
             var ends: [UndirectedEdge<Int>] = []
             var weights: [Int] = []
             var d = [[Int]](repeating: [Int](repeating: 0, count: n), count: n)
@@ -208,7 +209,7 @@ struct MetaheuristicTourTests {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: ends)
             let start = Array(0 ..< n)
             func length(_ t: [Int]) -> Int { (0 ..< n).reduce(0) { $0 + d[t[$1]][t[($1 + 1) % n]] } }
-            var reference = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var reference = Xoroshiro128Plus(seed: UInt64(seed))
             var cycle = start, cost = length(start)
             var best = cycle, bestCost = cost
             var threshold = 4.0
@@ -232,7 +233,7 @@ struct MetaheuristicTourTests {
                     threshold -= threshold * 0.5
                 }
             }
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let found = graph.thresholdAcceptingTour(improving: Cycle(start, in: graph)!, move: .swap, threshold: 4, alpha: 0.5, maximumIterations: 8, innerIterations: 1,
                                                      weight: { weights[$0] }, using: &generator)
             let same = found?.vertices == best
@@ -249,7 +250,7 @@ struct MetaheuristicTourTests {
         let crossing = try #require(Cycle([2, 0, 1, 3], in: graph))
         #expect(crossing.weight({ weights[$0] }) == 6)
         for move in TourMove.allCases {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 7)
+            var generator = Xoroshiro128Plus(seed: 7)
             let annealed = try #require(graph.simulatedAnnealingTour(improving: crossing, move: move, weight: { weights[$0] }, using: &generator))
             #expect(annealed.vertices.first == 2)
             #expect(annealed.weight({ weights[$0] }) == 4)
@@ -266,7 +267,7 @@ struct MetaheuristicTourTests {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let doubles = [0.5, 1.0, 0.5, 0.5, 1.0, 0.5]
         let unsigned: [UInt8] = [1, 2, 1, 1, 2, 1]
-        var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 3)
+        var generator = Xoroshiro128Plus(seed: 3)
         let a = try #require(graph.simulatedAnnealingTour(weight: { doubles[$0] }, using: &generator))
         #expect(a.weight({ doubles[$0] }) == 2)
         let b = try #require(graph.thresholdAcceptingTour(move: .relocate, weight: { unsigned[$0] }, using: &generator))
@@ -281,15 +282,15 @@ struct MetaheuristicTourTests {
     func determinism() throws {
         var ends: [UndirectedEdge<Int>] = []
         var weights: [Int] = []
-        var draw = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 11)
+        var draw = Xoroshiro128Plus(seed: 11)
         for u in 0 ..< 12 { for v in u + 1 ..< 12 { ends.append(UndirectedEdge(u, v)); weights.append(Int.random(in: 1 ... 99, using: &draw)) } }
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 12, edges: ends)
-        var first = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 5)
-        var second = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 5)
+        var first = Xoroshiro128Plus(seed: 5)
+        var second = Xoroshiro128Plus(seed: 5)
         let x = graph.simulatedAnnealingTour(weight: { weights[$0] }, using: &first)
         let y = graph.simulatedAnnealingTour(weight: { weights[$0] }, using: &second)
         #expect(x?.vertices == y?.vertices && x?.edges == y?.edges)
-        var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 5)
+        var generator = Xoroshiro128Plus(seed: 5)
         let start = try #require(graph.nearestNeighborTour { weights[$0] })
         let none = try #require(graph.simulatedAnnealingTour(maximumIterations: 0, innerIterations: 0, weight: { weights[$0] }, using: &generator))
         #expect(none.vertices == start.vertices && none.edges == start.edges)
@@ -301,7 +302,7 @@ struct MetaheuristicTourTests {
 
     @Test("nil below three vertices; three vertices: the only tour")
     func small() throws {
-        var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         #expect(UndirectedAdjacencyList<Int>().simulatedAnnealingTour(weight: { _ in 1 }, using: &generator) == nil)
         let pair = UndirectedAdjacencyList(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
         #expect(pair.thresholdAcceptingTour(weight: { _ in 1 }, using: &generator) == nil)
@@ -317,7 +318,7 @@ struct MetaheuristicTourTests {
         let arcs = [(0, 1), (1, 2), (2, 0), (1, 0), (2, 1), (0, 2)]
         let weights = [1, 1, 1, 10, 10, 10]
         let weightOf = { (s: Int, t: Int) in weights[arcs.firstIndex { $0 == (s, t) }!] }
-        var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 2)
+        var generator = Xoroshiro128Plus(seed: 2)
         let list = AdjacencyList(vertices: 0 ..< 3, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
         let backward = try #require(Cycle([0, 2, 1], in: list))
         let a = try #require(list.simulatedAnnealingTour(improving: backward, weight: { weights[$0] }, using: &generator))
@@ -341,7 +342,7 @@ struct MetaheuristicTourTests {
         // A square with its diagonals, a heavier parallel copy of 0-1, and a loop.
         let pairs = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (0, 1), (2, 2)]
         let weights = [1, 2, 1, 1, 2, 1, 9, 0]
-        var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 4)
+        var generator = Xoroshiro128Plus(seed: 4)
         let pseudo = Pseudograph(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         let a = try #require(pseudo.simulatedAnnealingTour(weight: { weights[$0] }, using: &generator))
         #expect(a.weight({ weights[$0] }) == 4 && !a.edges.contains(6) && !a.edges.contains(7))

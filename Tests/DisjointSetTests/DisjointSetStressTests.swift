@@ -7,6 +7,7 @@
 // Case IDs (DS-nn) refer to the catalog; see README.md.
 
 import DisjointSetModule
+import Generators
 import GrafluentTestSupport
 import Testing
 
@@ -88,7 +89,7 @@ struct DisjointSetLargeInputTests {
     @Test("DS-43 10⁶ random unions: setCount law, and the reversed and swapped orders give an equal value", .tags(.randomized))
     func randomMillion() async {
         await Task {
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let n = 1_000_000
             let pairs = (0 ..< n).map { _ in (Int.random(in: 0 ..< n, using: &generator), Int.random(in: 0 ..< n, using: &generator)) }
             var forwards = DisjointSet(count: n)
@@ -112,7 +113,7 @@ struct DisjointSetLargeInputTests {
 struct DisjointSetDifferentialTests {
     @Test("DS-40 random operations agree with a naive owner-and-members model", arguments: 1 ... 30)
     func differential(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         for n in [1, 2, 10, 100, 1000] {
             var d = DisjointSet(count: n)
             // Oracle: owner[x] is x's set id, members[s] its elements, representative[s] its
@@ -191,7 +192,7 @@ struct DisjointSetDifferentialTests {
 
     @Test("DS-42 petgraph's uf_rand law: union merges exactly when the representatives differ", arguments: 1 ... 5)
     func petgraphRandomLaw(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         for (n, pairCount) in [(1 << 14, 100), (256, 2048)] {
             var d = DisjointSet(count: n)
             for _ in 0 ..< pairCount {

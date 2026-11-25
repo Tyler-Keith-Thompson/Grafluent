@@ -5,6 +5,7 @@
 // documented sort by vertex position lists the components in insertion order.
 
 import Connectivity
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import StableGraphs
@@ -14,7 +15,7 @@ import Testing
 struct StableGraphCycleGroupingTests {
     @Test("with vertex holes, the nontrivial components and self-loops match the compacted graph")
     func holes() {
-        var rng = SeededRandomNumberGenerator(seed: 4242)
+        var rng = Xoroshiro128Plus(seed: 4242)
         for _ in 0 ..< 200 {
             let n = Int.random(in: 2 ... 12, using: &rng)
             var graph = StableDirectedGraph<Int>(vertices: 0 ..< n)

@@ -12,6 +12,7 @@
 
 import Cycles
 import Foundation
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -102,7 +103,7 @@ struct TreePropertyTests {
         let choices = Gen.int(in: 0 ... 1_000).array(of: 0 ... 9)
         await propertyCheck(count: 300, input: choices, Gen.int(in: 0 ... 1_000_000), Gen.int(in: 0 ... 1_000)) { choice, seed, rootChoice in
             let n = choice.count + 1
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pairs = (0 ..< choice.count).map { (choice[$0] % ($0 + 1), $0 + 1) }
             if seed != 0 {
                 pairs.shuffle(using: &rng)
@@ -188,7 +189,7 @@ struct TreePropertyTests {
         let choices = Gen.int(in: 0 ... 1_000).array(of: 0 ... 9)
         await propertyCheck(count: 300, input: choices, Gen.int(in: 0 ... 1_000_000)) { choice, seed in
             let n = choice.count + 1
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pairs = (0 ..< choice.count).map { (choice[$0] % ($0 + 1), $0 + 1) }
             if seed != 0 {
                 pairs.shuffle(using: &rng)
@@ -271,7 +272,7 @@ struct TreePropertyTests {
             #expect(Tree(pruferSequence: [-1] + code) == nil)
             // List the vertices in a random order, vertex i written perm[i] + n: those are not 0..<n,
             // so the rank is the index, and the code is the original mapped through perm (TS-518).
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let perm = Array(0 ..< n).shuffled(using: &rng)
             let shifted = Tree(vertices: perm.map { $0 + n }, edges: Array(tree.edges).map { UndirectedEdge(perm[$0.u] + n, perm[$0.v] + n) })
             #expect(shifted?.pruferSequence == code.map { perm[$0] + n })
@@ -346,7 +347,7 @@ struct TreePropertyTests {
         await propertyCheck(count: 200, input: choices, Gen.int(in: 1 ... 1_000_000)) { choice, seed in
             let n = choice.count + 1
             let pairs = (0 ..< choice.count).map { (choice[$0] % ($0 + 1), $0 + 1) }
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let shuffled = pairs.shuffled(using: &rng).map { Bool.random(using: &rng) ? ($0.1, $0.0) : $0 }
             let listed = Array(0 ..< n).shuffled(using: &rng)
             guard let a = Tree(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0.0, $0.1) }),

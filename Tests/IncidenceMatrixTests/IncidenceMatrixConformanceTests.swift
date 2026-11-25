@@ -7,6 +7,7 @@
 
 import AdjacencyListModule
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Hypergraphs
@@ -18,7 +19,7 @@ import Testing
 struct IncidenceMatrixConformanceTests {
     @Test("Hypergraph algorithms on IncidenceMatrix equal the same on an UndirectedIncidenceList copy", arguments: 1 ... 8)
     func unorientedAgainstList(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = seed * 9, m = seed * 8
         var matrix = IncidenceMatrix(vertexCount: n)
         for _ in 0 ..< m {
@@ -54,7 +55,7 @@ struct IncidenceMatrixConformanceTests {
 
     @Test("DirectedHypergraph algorithms on OrientedIncidenceMatrix equal the same on an IncidenceList copy", arguments: 1 ... 8)
     func orientedAgainstList(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(100 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(100 + seed))
         let n = seed * 5 + 1
         var matrix = OrientedIncidenceMatrix(vertexCount: n)
         for _ in 0 ..< seed * 6 {
@@ -115,7 +116,7 @@ struct IncidenceMatrixConformanceTests {
 
     @Test("Codable round trips keep shape, cells and column order", arguments: 1 ... 5)
     func codableRoundTrips(seed: Int) throws {
-        var rng = SeededRandomNumberGenerator(seed: UInt(300 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(300 + seed))
         let n = seed * 13
         var matrix = IncidenceMatrix(vertexCount: n)
         var oriented = OrientedIncidenceMatrix(vertexCount: n)
@@ -206,7 +207,7 @@ struct IncidenceMatrixConformanceTests {
 
     @Test("IncidenceMatrix(_:) of an oriented matrix is the cellwise union of its planes, counts included", arguments: 1 ... 4)
     func unionOfPlanes(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(400 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(400 + seed))
         let n = seed * 37, m = seed * 29
         var oriented = OrientedIncidenceMatrix(vertexCount: n)
         var cells = Set<[Int]>()

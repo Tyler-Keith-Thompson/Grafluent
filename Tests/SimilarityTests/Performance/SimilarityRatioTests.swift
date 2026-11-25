@@ -12,6 +12,7 @@
 
 import AdjacencyListModule
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Similarity
@@ -23,7 +24,7 @@ struct SimilarityRatioTests {
     func againstHandWritten() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 43)
+            var rng = Xoroshiro128Plus(seed: 43)
             var edges: [UndirectedEdge<Int>] = []
             var seen = Set<UndirectedEdge<Int>>()
             while edges.count < 500_000 {

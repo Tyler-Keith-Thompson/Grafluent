@@ -2,6 +2,7 @@
 // costs, the number of cost calls, and a property test against the recursive forest-distance
 // definition, memoized, written inside the test.
 
+import Generators
 import GrafluentTestSupport
 import PropertyBased
 import Testing
@@ -92,7 +93,7 @@ struct TreeEditDistanceTests {
     func againstRecursion() async {
         let choices = Gen.int(in: 0 ... 1_000).array(of: 0 ... 6)
         await propertyCheck(count: 200, input: choices, choices, Gen.int(in: 0 ... 1_000_000)) { first, second, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var trees: [OrderedTree<Int>] = []
             var lists: [[[Int]]] = []
             for (k, choice) in [first, second].enumerated() {

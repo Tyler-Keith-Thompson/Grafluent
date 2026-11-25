@@ -1,6 +1,7 @@
 import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
+import Generators
 import GraphProtocols
 import PriorityQueueModule
 import SpanningTrees
@@ -154,7 +155,7 @@ func handWrittenVoronoi(_ offsets: [Int], _ neighbor: [Int], _ weight: [Int], _ 
 
 /// Wilson's algorithm by hand on flat rows: uniform steps by rejection on the top bits of each
 /// draw, as the library draws. The floor for ST-B07. Returns the number of edges taken.
-func handWrittenWilson(_ offsets: [Int], _ neighbor: [Int], _ generator: inout SeededRandomNumberGenerator) -> Int {
+func handWrittenWilson(_ offsets: [Int], _ neighbor: [Int], _ generator: inout Xoroshiro128Plus) -> Int {
     let n = offsets.count - 1
     var inTree = [Bool](repeating: false, count: n)
     inTree[0] = true
@@ -188,7 +189,7 @@ let arborescenceBenchmarks: @Sendable () -> Void = {
     let random = Inputs.randomEdges(vertexCount: n, edgeCount: 1_000_000, seed: 7) + (0 ..< n).map { DirectedEdge(from: $0, to: ($0 + 1) % n) }
     let pairs = random.filter { !$0.isSelfLoop && seen.insert($0).inserted }
     let digraph = AdjacencyList(vertices: 0 ..< n, edges: pairs)
-    var generator = SeededRandomNumberGenerator(seed: 41)
+    var generator = Xoroshiro128Plus(seed: 41)
     let weights = (0 ..< digraph.edgeCount).map { _ in Int.random(in: 1 ... 1000, using: &generator) }
     var from: [Int] = [], to: [Int] = [], cost: [Int] = []
     for (k, e) in digraph.edges.enumerated() where e.target != 0 {
@@ -242,15 +243,15 @@ let arborescenceBenchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations { blackHole(grid.kouSteinerTree(terminals: terminals) { gridWeights[$0] }) }
     }
     Benchmark("SpanningTrees: BASELINE hand-written Wilson on flat rows, 300 × 300 grid") { benchmark in
-        var g = SeededRandomNumberGenerator(seed: 5)
+        var g = Xoroshiro128Plus(seed: 5)
         for _ in benchmark.scaledIterations { blackHole(handWrittenWilson(offsets, neighbor, &g)) }
     }
     Benchmark("SpanningTrees: randomSpanningTree, 300 × 300 grid") { benchmark in
-        var g = SeededRandomNumberGenerator(seed: 5)
+        var g = Xoroshiro128Plus(seed: 5)
         for _ in benchmark.scaledIterations { blackHole(grid.randomSpanningTree(using: &g)) }
     }
     Benchmark("SpanningTrees: randomSpanningTree(weight:), 300 × 300 grid") { benchmark in
-        var g = SeededRandomNumberGenerator(seed: 5)
+        var g = Xoroshiro128Plus(seed: 5)
         for _ in benchmark.scaledIterations { blackHole(grid.randomSpanningTree(weight: { Double(gridWeights[$0]) }, using: &g)) }
     }
 }

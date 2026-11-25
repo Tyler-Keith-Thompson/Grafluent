@@ -9,6 +9,7 @@
 import Connectivity
 import Foundation
 import FunctionalGraphs
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import LabeledGraphs
@@ -21,7 +22,7 @@ import Traversal
 struct FunctionalGraphConformanceTests {
     @Test("Traversal on a FunctionalGraph equals Traversal on the pseudograph of the same edges", arguments: 0 ..< 40)
     func traversalAgrees(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = Int.random(in: 0 ... 30, using: &rng)
         let successors: [Int]
         switch seed % 3 {
@@ -51,7 +52,7 @@ struct FunctionalGraphConformanceTests {
 
     @Test("Connectivity and the decomposition agree with the pseudograph", arguments: 0 ..< 40)
     func connectivityAgrees(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(1_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(1_000 + seed))
         let n = Int.random(in: 0 ... 40, using: &rng)
         let successors = (0 ..< n).map { _ in Int.random(in: 0 ..< n, using: &rng) }
         let graph = FunctionalGraph(successors: successors)
@@ -78,7 +79,7 @@ struct FunctionalGraphConformanceTests {
 
     @Test("Shortest paths agree with the pseudograph; the tail length is the distance to the root", arguments: 0 ..< 30)
     func shortestPathsAgree(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(2_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(2_000 + seed))
         let n = Int.random(in: 1 ... 40, using: &rng)
         let successors = (0 ..< n).map { _ in Int.random(in: 0 ..< n, using: &rng) }
         let weights = (0 ..< n).map { _ in Int.random(in: 0 ... 9, using: &rng) }
@@ -117,7 +118,7 @@ struct FunctionalGraphConformanceTests {
 
     @Test("Codable round trips random graphs as the bare successor array", .tags(.conformance), arguments: 0 ..< 20)
     func codableRoundTrip(seed: Int) throws {
-        var rng = SeededRandomNumberGenerator(seed: UInt(3_000 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(3_000 + seed))
         let n = Int.random(in: 0 ... 25, using: &rng)
         let successors = (0 ..< n).map { _ in Int.random(in: 0 ..< n, using: &rng) }
         let graph = FunctionalGraph(successors: successors)

@@ -4,6 +4,7 @@
 // points with NetworkX's defaults, never longer than their nearest-neighbour start.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -50,7 +51,7 @@ struct PostmanAndMetaheuristicScaleTests {
 
     @Test("300 points: simulated annealing and threshold accepting, both moves, no longer than nearest neighbour", .timeLimit(.minutes(1)))
     func metaheuristics() throws {
-        var draw = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 300)
+        var draw = Xoroshiro128Plus(seed: 300)
         let points = (0 ..< 300).map { _ in (Double.random(in: 0 ..< 1, using: &draw), Double.random(in: 0 ..< 1, using: &draw)) }
         var ends: [UndirectedEdge<Int>] = [], weights: [Double] = []
         for i in 0 ..< 300 {
@@ -63,7 +64,7 @@ struct PostmanAndMetaheuristicScaleTests {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 300, edges: ends)
         let start = try #require(graph.nearestNeighborTour { weights[$0] }).weight { weights[$0] }
         for move in TourMove.allCases {
-            var generator = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             let annealed = try #require(graph.simulatedAnnealingTour(move: move, weight: { weights[$0] }, using: &generator))
             let accepted = try #require(graph.thresholdAcceptingTour(move: move, threshold: 0.01, weight: { weights[$0] }, using: &generator))
             #expect(annealed.vertices.count == 300 && Set(annealed.vertices).count == 300)

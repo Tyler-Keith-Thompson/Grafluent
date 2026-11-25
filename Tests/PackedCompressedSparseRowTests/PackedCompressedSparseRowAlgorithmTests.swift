@@ -6,6 +6,7 @@
 import AdjacencyListModule
 import CompressedSparseRowModule
 import Connectivity
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PackedCompressedSparseRowModule
@@ -17,7 +18,7 @@ import Traversal
 struct PackedCompressedSparseRowAlgorithmTests {
     @Test("Breadth-first layers, Dijkstra and strong components agree with AdjacencyList after a mixed workload")
     func agreesWithAdjacencyList() {
-        var rng = SeededRandomNumberGenerator(seed: 21)
+        var rng = Xoroshiro128Plus(seed: 21)
         let n = 400
         var packed = PackedCompressedSparseRow<Int>(vertices: 0 ..< n)
         var list = AdjacencyList<Int>(vertices: 0 ..< n)

@@ -7,6 +7,7 @@
 
 import AdjacencyListModule
 import Connectivity
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -47,7 +48,7 @@ private struct BrokenRowsGraph: Graph {
 struct UndirectedConnectivityReviewTests {
     @Test("CN-400 a conformer with edge indices but no vertex indices gives the pseudograph's answers", .tags(.randomized), arguments: 0 ..< 8)
     func edgeIndicesOnly(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(400 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(400 + seed))
         for _ in 0 ..< 40 {
             let n = Int.random(in: 1 ... 9, using: &rng)
             // Vertices listed in a shuffled order, so numbering by `vertices` matters.
@@ -79,7 +80,7 @@ struct UndirectedConnectivityReviewTests {
 
     @Test("CN-401 UndirectedAdjacencyList after removing most of its vertices (its rows are repacked) agrees with a pseudograph of its edges", .tags(.randomized), arguments: 0 ..< 6)
     func afterManyRemovals(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(401 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(401 + seed))
         let n = 60
         var list = UndirectedAdjacencyList<Int>(vertices: 0 ..< n)
         for _ in 0 ..< 150 { list.insert(edge: UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }

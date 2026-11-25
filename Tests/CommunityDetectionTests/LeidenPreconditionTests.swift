@@ -4,6 +4,7 @@
 // of the vertices. Each exit test builds its inputs inside the closure.
 
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -14,7 +15,7 @@ struct LeidenPreconditionTests {
     func randomnessZero() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.leidenCommunities(randomness: 0, using: &generator)
         }
     }
@@ -23,7 +24,7 @@ struct LeidenPreconditionTests {
     func randomnessNegative() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.leidenCommunities(randomness: -0.01, using: &generator)
         }
     }
@@ -48,7 +49,7 @@ struct LeidenPreconditionTests {
     func iterationsZero() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.leidenCommunities(iterations: 0, using: &generator)
         }
     }
@@ -65,7 +66,7 @@ struct LeidenPreconditionTests {
     func resolutionNegative() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.leidenCommunities(quality: .constantPottsModel, resolution: -1, using: &generator)
         }
     }
@@ -74,7 +75,7 @@ struct LeidenPreconditionTests {
     func resolutionNaN() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.leidenCommunities(weight: { _ in 1.0 }, resolution: .nan, using: &generator)
         }
     }
@@ -91,7 +92,7 @@ struct LeidenPreconditionTests {
     func weightNegative() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.leidenCommunities(weight: { $0 == 1 ? -1.0 : 1.0 }, using: &generator)
         }
     }
@@ -108,7 +109,7 @@ struct LeidenPreconditionTests {
     func weightInfinite() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.leidenCommunities(weight: { _ in Float.infinity }, using: &generator)
         }
     }
@@ -165,7 +166,7 @@ struct LeidenPreconditionTests {
     func louvainLevelsResolution() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.louvainPartitions(resolution: .nan, using: &generator)
         }
     }

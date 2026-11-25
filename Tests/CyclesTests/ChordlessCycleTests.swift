@@ -8,6 +8,7 @@ import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import Cycles
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -28,7 +29,7 @@ private struct ShuffledPseudograph: Graph {
             rows[edge.v].append(k)
         }
         if seed != 0 {
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             rows = rows.map { $0.shuffled(using: &rng) }
         }
         self.vertices = Array(0 ..< vertexCount)
@@ -57,7 +58,7 @@ private struct ShuffledDigraph: DirectedGraph {
         var rows = [[Int]](repeating: [], count: vertexCount)
         for (k, edge) in edges.enumerated() { rows[edge.source].append(k) }
         if seed != 0 {
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             rows = rows.map { $0.shuffled(using: &rng) }
         }
         self.vertices = Array(0 ..< vertexCount)

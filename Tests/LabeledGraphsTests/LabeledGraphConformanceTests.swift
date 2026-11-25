@@ -10,6 +10,7 @@ import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import Connectivity
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import LabeledGraphs
@@ -22,7 +23,7 @@ import Traversal
 struct LabeledGraphConformanceTests {
     @Test("Traversal, Connectivity and ShortestPaths over CSR equal the base's results through the labels", arguments: [1, 2, 3, 4, 5, 6])
     func algorithmsOverCSR(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 6 + seed * 4
         let names = (0 ..< n).map { "v\(($0 * 7 + seed) % n)-\($0)" }.shuffled(using: &rng)
         var edges: [DirectedEdge<String>] = []
@@ -88,7 +89,7 @@ struct LabeledGraphConformanceTests {
 
     @Test("Traversal, Connectivity and ShortestPaths over the matrix equal the base's results through the labels", arguments: [1, 2, 3, 4, 5, 6])
     func algorithmsOverMatrix(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(100 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(100 + seed))
         let n = 5 + seed * 3
         var graph = LabeledGraph<String, AdjacencyMatrix>()
         // Built by mutation: labels arrive in a random order, and some edges are removed again.

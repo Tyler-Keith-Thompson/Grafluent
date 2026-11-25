@@ -5,6 +5,7 @@
 // the catalog; see README.md.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -167,7 +168,7 @@ struct SteinerTreeTests {
 struct SteinerTreePropertyTests {
     @Test("ST-228 both are trees spanning the terminals with terminal leaves, within 2(1 − 1/t) of the brute-force optimum", arguments: [3, 5, 7])
     func bruteForce(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(158_000 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(158_000 + n))
         for _ in 0 ..< 120 {
             var raw: [(Int, Int, Int)] = []
             for _ in 0 ..< Int.random(in: 0 ... 11, using: &rng) {
@@ -233,7 +234,7 @@ struct SteinerTreePropertyTests {
 
     @Test("ST-228b on seeded grids with tied distances: both are trees with terminal leaves, no heavier than the terminals' distance-graph minimum spanning tree", arguments: [4, 6, 8])
     func tiedGrids(side: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(228_000 + side))
+        var rng = Xoroshiro128Plus(seed: UInt64(228_000 + side))
         for _ in 0 ..< 60 {
             let n = side * side
             var raw: [(Int, Int, Int)] = []

@@ -6,6 +6,7 @@
 // catalog's reference (`ref.py`, `cases.out`).
 // Case IDs (PQ-nn) refer to the catalog; see README.md.
 
+import Generators
 import GrafluentTestSupport
 import PriorityQueueModule
 import Testing
@@ -295,7 +296,7 @@ struct PriorityQueueTranslatedTests {
         let third = q.popMin()
         #expect(third?.index == 4)
         #expect(third?.priority == 1)
-        var generator = SeededRandomNumberGenerator(seed: 0)
+        var generator = Xoroshiro128Plus(seed: 0)
         for v in (1 ... 20).shuffled(using: &generator) { q.insert(9 + v, priority: v) }
         var indices: [Int] = []
         var priorities: [Int] = []
@@ -316,7 +317,7 @@ struct PriorityQueueTranslatedTests {
     @Test("PQ-27 swift-collections test_minimumReplacement, with replaceMin as updatePriority of the minimum")
     func swiftCollectionsMinimumReplacement() {
         var q = IndexedPriorityQueue<Int>(indexBound: 10)
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         for i in (0 ..< 10).shuffled(using: &generator) { q.insert(i, priority: 3 * i) }
         #expect(q.min?.index == 0)
         #expect(q.min?.priority == 0)
@@ -360,7 +361,7 @@ struct PriorityQueueTranslatedTests {
 
     @Test("PQ-29 swift-collections test_removeAll_removeEvenNumbers, with remove(_:)", .tags(.randomized), arguments: 0 ..< 10)
     func swiftCollectionsRemoveEvenNumbers(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         for count in 0 ..< 20 {
             var q = IndexedPriorityQueue<Int>(indexBound: count)
             for i in (0 ..< count).shuffled(using: &generator) { q.insert(i, priority: i) }

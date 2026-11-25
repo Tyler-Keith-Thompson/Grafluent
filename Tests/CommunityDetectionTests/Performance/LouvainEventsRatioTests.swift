@@ -9,6 +9,7 @@
 
 import AdjacencyListModule
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -19,7 +20,7 @@ struct LouvainEventsRatioTests {
     func ratio() async {
         await Task {
             let blocks = 100, size = 200
-            var rng = SeededRandomNumberGenerator(seed: 906)
+            var rng = Xoroshiro128Plus(seed: 906)
             var edges: [UndirectedEdge<Int>] = []
             for v in 0 ..< blocks * size {
                 let block = v / size

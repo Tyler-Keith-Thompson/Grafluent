@@ -1,6 +1,7 @@
 // Construction. Case IDs (AM-Cnn) refer to the case catalog; see README.md.
 
 import AdjacencyMatrixModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -154,7 +155,7 @@ struct AdjacencyMatrixConstructionTests {
 
     @Test("AM-C14 construction does not depend on edge order", .tags(.randomized), arguments: 1 ... 10 as ClosedRange<UInt>)
     func independentOfOrder(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let fixture = DirectedFixture<Int>.boost24
         let reference = AdjacencyMatrix(vertexCount: 24, edges: fixture.edges)
         let shuffled = AdjacencyMatrix(vertexCount: 24, edges: fixture.edges.shuffled(using: &rng))

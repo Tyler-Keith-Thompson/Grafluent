@@ -10,6 +10,7 @@
 import AdjacencyListModule
 import BipartiteGraphs
 import Foundation
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -161,7 +162,7 @@ struct BipartiteGraphPropertyTests {
     func projectionAgainstDefinition() async {
         let edges = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 0 ... 20)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 1_000_000)) { raw, leftCount, rightCount, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             // Left vertices 0..<leftCount, right ones 100..<100 + rightCount.
             let left = Array(0 ..< leftCount)
             let right = Array(100 ..< 100 + rightCount)

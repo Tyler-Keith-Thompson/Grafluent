@@ -6,6 +6,7 @@
 // counted vertices whose whole-hypergraph algorithms hash nothing. See README.md.
 
 import Connectivity
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Hypergraphs
@@ -18,7 +19,7 @@ struct HypergraphStressTests {
     func undirectedAtScale() async {
         await Task {
             let n = 20_000, m = 40_000
-            var rng = SeededRandomNumberGenerator(seed: 17)
+            var rng = Xoroshiro128Plus(seed: 17)
             var hypergraph = UndirectedIncidenceList<Int>(vertices: 0 ..< n)
             hypergraph.reserveCapacity(vertexCount: n, hyperedgeCount: m, incidenceCount: 5 * m)
             // Hyperedges stay inside blocks of 1 000 vertices, so the components are the 20 blocks.

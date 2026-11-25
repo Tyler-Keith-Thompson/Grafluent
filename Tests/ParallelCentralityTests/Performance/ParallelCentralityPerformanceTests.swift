@@ -9,6 +9,7 @@
 
 import AdjacencyListModule
 import Centrality
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import ParallelCentrality
@@ -22,7 +23,7 @@ import Testing
         #else
         let n = 3_000, m = 15_000
         #endif
-        var generator = SeededRandomNumberGenerator(seed: 11)
+        var generator = Xoroshiro128Plus(seed: 11)
         var edges: [DirectedEdge<Int>] = []
         edges.reserveCapacity(m)
         for _ in 0 ..< m { edges.append(DirectedEdge(from: Int.random(in: 0 ..< n, using: &generator), to: Int.random(in: 0 ..< n, using: &generator))) }

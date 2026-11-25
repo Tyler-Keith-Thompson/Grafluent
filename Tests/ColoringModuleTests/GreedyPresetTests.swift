@@ -10,6 +10,7 @@
 
 import AdjacencyListModule
 import ColoringModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -122,7 +123,7 @@ struct GreedyPresetTests {
     func againstDefinitions() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 26)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph<Int>(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })

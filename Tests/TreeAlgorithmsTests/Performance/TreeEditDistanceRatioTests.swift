@@ -2,6 +2,7 @@
 // program written by hand over Int arrays at unit costs. In a release build the library must stay
 // within 1.3× of the hand-written loop; a debug build checks only that the answers agree.
 
+import Generators
 import GrafluentTestSupport
 import Testing
 import TreeAlgorithms
@@ -13,7 +14,7 @@ struct TreeEditDistanceRatioTests {
     func againstHandWritten() async {
         await Task {
             let n = 400
-            var rng = SeededRandomNumberGenerator(seed: 11)
+            var rng = Xoroshiro128Plus(seed: 11)
             // Random recursive trees: vertex i > 0 hangs from a vertex below it; children in
             // increasing order.
             var parents: [[Int]] = []

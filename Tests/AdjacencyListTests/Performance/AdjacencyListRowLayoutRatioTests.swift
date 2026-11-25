@@ -15,6 +15,7 @@
 // it. The timing runs only in an optimized build; a debug build checks that both sides agree.
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -25,7 +26,7 @@ struct AdjacencyListRowLayoutRatioTests {
     func directed() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 7)
+            var rng = Xoroshiro128Plus(seed: 7)
             let edges = (0 ..< 1_000_000).map { _ in DirectedEdge(from: Int.random(in: 0 ..< n, using: &rng), to: Int.random(in: 0 ..< n, using: &rng)) }
             let bulk = AdjacencyList(vertices: 0 ..< n, edges: edges)
             var inserted = AdjacencyList<Int>(vertices: 0 ..< n)
@@ -172,7 +173,7 @@ struct AdjacencyListRowLayoutRatioTests {
     func undirected() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 8)
+            var rng = Xoroshiro128Plus(seed: 8)
             let edges = (0 ..< 500_000).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
             let bulk = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)
             var inserted = UndirectedAdjacencyList<Int>(vertices: 0 ..< n)

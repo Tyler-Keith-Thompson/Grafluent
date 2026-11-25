@@ -12,6 +12,7 @@
 
 import AdjacencyListModule
 import Foundation
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Multigraphs
@@ -545,7 +546,7 @@ struct MultigraphPropertyTests {
     func undirectedLawsOnRandomGraphs() async {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 30)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 0 ... 1_000_000)) { raw, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pseudograph = Pseudograph<Int>(vertices: [9], edges: raw.map { UndirectedEdge($0.0, $0.1) })
             var multigraph = Multigraph<Int>(vertices: [9], edges: raw.filter { $0.0 != $0.1 }.map { UndirectedEdge($0.0, $0.1) })
             for _ in 0 ..< Int.random(in: 0 ... 4, using: &rng) {
@@ -604,7 +605,7 @@ struct MultigraphPropertyTests {
     func directedLawsOnRandomGraphs() async {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 30)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 0 ... 1_000_000)) { raw, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var graph = DirectedPseudograph<Int>(edges: raw.map { DirectedEdge(from: $0.0, to: $0.1) })
             for _ in 0 ..< Int.random(in: 0 ... 4, using: &rng) {
                 if Bool.random(using: &rng), graph.edgeCount > 0 {
@@ -640,7 +641,7 @@ struct MultigraphPropertyTests {
     func equalityIgnoresOrders() async {
         let edges = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5), Gen.bool).array(of: 0 ... 20)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 0 ... 1_000_000)) { raw, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let vertices = Array(0 ... 6)
             let undirected = raw.map { UndirectedEdge($0.0, $0.1) }
             let graph = Pseudograph<Int>(vertices: vertices, edges: undirected)
@@ -680,7 +681,7 @@ struct MultigraphPropertyTests {
     func codableRoundTrips() async {
         let edges = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 0 ... 25)
         await propertyCheck(count: 200, input: edges, Gen.int(in: 0 ... 1_000_000)) { raw, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var graph = Pseudograph<Int>(edges: raw.map { UndirectedEdge($0.0, $0.1) })
             var digraph = DirectedPseudograph<Int>(edges: raw.map { DirectedEdge(from: $0.0, to: $0.1) })
             for _ in 0 ..< 3 where graph.edgeCount > 0 {
@@ -724,7 +725,7 @@ struct MultigraphPropertyTests {
     func collapseToSimpleLists() async {
         let edges = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 0 ... 25)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 0 ... 1_000_000)) { raw, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var graph = Pseudograph<Int>(vertices: [8], edges: raw.map { UndirectedEdge($0.0, $0.1) })
             var digraph = DirectedPseudograph<Int>(vertices: [8], edges: raw.map { DirectedEdge(from: $0.0, to: $0.1) })
             for _ in 0 ..< 3 where graph.edgeCount > 0 {

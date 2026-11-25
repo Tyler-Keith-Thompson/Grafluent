@@ -6,6 +6,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import ShortestPaths
@@ -132,7 +133,7 @@ struct GoldbergRadzikTests {
 
     @Test("random graphs with negative weights: nil exactly when Bellman–Ford is, else the same distances, on four representations", arguments: [1, 2, 5, 10, 30])
     func agreesWithBellmanFord(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(700 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(700 + n))
         var trees = 0, cycles = 0
         for p in [0.05, 0.2, 0.5] {
             for _ in 0 ..< 50 {

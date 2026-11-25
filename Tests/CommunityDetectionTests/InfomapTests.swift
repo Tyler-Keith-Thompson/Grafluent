@@ -6,6 +6,7 @@
 import AdjacencyListModule
 import CommunityDetection
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -17,7 +18,7 @@ struct InfomapTests {
     func twoTriangles() {
         let pairs = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3), (2, 3)]
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let result = graph.infomapCommunities(using: &generator)
         #expect(result.map(Array.init) == [[0, 1, 2], [3, 4, 5]])
         #expect(abs(graph.codeLength(of: result) - 2.3207303568337903) <= 1e-12)
@@ -33,7 +34,7 @@ struct InfomapTests {
         #expect(halves < graph.codeLength(of: [Array(0 ..< 6)]))
         var found = 0
         for seed in 0 ..< 40 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let partition = graph.infomapCommunities(trials: 1, using: &generator)
             if abs(graph.codeLength(of: partition) - halves) < 1e-12 { found += 1 }
         }
@@ -49,7 +50,7 @@ struct InfomapTests {
         #expect(abs(graph.codeLength(of: igraph) - 4.31179264580183) <= 1e-12)
         #expect(abs(graph.codeLength(of: [Array(0 ..< 34)]) - 4.704422598883343) <= 1e-12)
         for seed in 0 ..< 5 as Range<UInt> {
-            var generator = SeededRandomNumberGenerator(seed: seed)
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let result = graph.infomapCommunities(using: &generator)
             #expect(graph.codeLength(of: result) <= 4.31179264580183 + 1e-9, "seed \(seed)")
         }
@@ -59,7 +60,7 @@ struct InfomapTests {
     func cliques() {
         var complete: [UndirectedEdge<Int>] = []
         for u in 0 ..< 5 { for v in u + 1 ..< 5 { complete.append(UndirectedEdge(u, v)) } }
-        var generator = SeededRandomNumberGenerator(seed: 2)
+        var generator = Xoroshiro128Plus(seed: 2)
         let k5 = UndirectedAdjacencyList(vertices: 0 ..< 5, edges: complete)
         #expect(k5.infomapCommunities(using: &generator).map(Array.init) == [Array(0 ..< 5)])
         var two: [UndirectedEdge<Int>] = []
@@ -73,7 +74,7 @@ struct InfomapTests {
 
     @Test("No edges, only self-loops, or weights all zero: every vertex alone, code length 0 where nothing flows")
     func degenerate() {
-        var generator = SeededRandomNumberGenerator(seed: 3)
+        var generator = Xoroshiro128Plus(seed: 3)
         let empty = ReferencePseudograph<Int>(vertices: [], edges: [])
         #expect(empty.infomapCommunities(using: &generator).isEmpty)
         #expect(empty.codeLength(of: [[Int]]()) == 0)
@@ -103,7 +104,7 @@ struct InfomapTests {
         // A path 0–1–2–3 whose middle edge is heavy: {1, 2} keeps the flow.
         let path = UndirectedAdjacencyList(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3)])
         let heavy: (Int) -> Double = { path.edges[$0] == UndirectedEdge(1, 2) ? 50 : 1 }
-        var generator = SeededRandomNumberGenerator(seed: 4)
+        var generator = Xoroshiro128Plus(seed: 4)
         let result = path.infomapCommunities(weight: { heavy($0) }, using: &generator)
         #expect(result.community(of: 1) == result.community(of: 2))
         #expect(path.codeLength(of: result, weight: { heavy($0) }) <= path.codeLength(of: [[0], [1], [2], [3]], weight: { heavy($0) }))
@@ -113,17 +114,17 @@ struct InfomapTests {
     func representations() {
         let pairs = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3), (2, 3), (5, 6), (6, 7), (7, 8), (8, 6)]
         let list = UndirectedAdjacencyList(vertices: 0 ..< 9, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var a = SeededRandomNumberGenerator(seed: 5), b = SeededRandomNumberGenerator(seed: 5)
+        var a = Xoroshiro128Plus(seed: 5), b = Xoroshiro128Plus(seed: 5)
         let first = list.infomapCommunities(using: &a)
         #expect(first == list.infomapCommunities(using: &b))
         #expect(first.map(Array.init) == [[0, 1, 2], [3, 4, 5], [6, 7, 8]])
         // Through undirectedView each pair is one arc, so the code lengths match.
         let arcs = AdjacencyList(vertices: 0 ..< 9, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) }).undirectedView
         #expect(abs(arcs.codeLength(of: first.map(Array.init)) - list.codeLength(of: first)) <= 1e-12)
-        var c = SeededRandomNumberGenerator(seed: 6)
+        var c = Xoroshiro128Plus(seed: 6)
         #expect(arcs.infomapCommunities(using: &c).map(Array.init) == [[0, 1, 2], [3, 4, 5], [6, 7, 8]])
         let names = UndirectedAdjacencyList(vertices: (0 ..< 9).map { "v\($0)" }, edges: pairs.map { UndirectedEdge("v\($0.0)", "v\($0.1)") })
-        var d = SeededRandomNumberGenerator(seed: 7)
+        var d = Xoroshiro128Plus(seed: 7)
         let named = names.infomapCommunities(using: &d)
         #expect(named.map(Array.init) == [["v0", "v1", "v2"], ["v3", "v4", "v5"], ["v6", "v7", "v8"]])
         #expect(named.community(of: "v7") == 2)
@@ -149,7 +150,7 @@ struct InfomapTests {
         ]
         for c in cases {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< c.vertexCount, edges: c.edges.map { UndirectedEdge($0.0, $0.1) })
-            var generator = SeededRandomNumberGenerator(seed: c.seed)
+            var generator = Xoroshiro128Plus(seed: UInt64(c.seed))
             let result = graph.infomapCommunities(trials: 3, using: &generator)
             #expect(graph.codeLength(of: result) <= c.length + 1e-9, "seed \(c.seed)")
         }
@@ -158,11 +159,11 @@ struct InfomapTests {
     @Test("Exits: no trials, a negative weight, a vertex not in the graph, a vertex listed twice")
     func traps() async {
         await #expect(processExitsWith: .failure) {
-            var generator = SeededRandomNumberGenerator(seed: 0)
+            var generator = Xoroshiro128Plus(seed: 0)
             _ = ReferencePseudograph(edges: [UndirectedEdge(0, 1)]).infomapCommunities(trials: 0, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
-            var generator = SeededRandomNumberGenerator(seed: 0)
+            var generator = Xoroshiro128Plus(seed: 0)
             _ = ReferencePseudograph(edges: [UndirectedEdge(0, 1)]).infomapCommunities(weight: { _ in -1.0 }, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
@@ -199,7 +200,7 @@ struct InfomapTests {
                 return f(q.reduce(0, +)) - 2 * q.map(f).reduce(0, +) - p.map(f).reduce(0, +) + (0 ..< k).map { f(q[$0] + size[$0]) }.reduce(0, +)
             }
             #expect(abs(graph.codeLength(of: grouping) - length(labels)) <= 1e-9, "\(pairs)")
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let result = graph.infomapCommunities(trials: 2, using: &generator)
             let found = graph.codeLength(of: result)
             #expect(found <= length(Array(0 ..< n)) + 1e-9, "\(pairs)")

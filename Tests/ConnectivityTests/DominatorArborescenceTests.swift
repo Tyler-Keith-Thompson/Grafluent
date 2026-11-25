@@ -7,6 +7,7 @@ import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import Connectivity
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -47,7 +48,7 @@ struct DominatorArborescenceTests {
 
     @Test("CN-149 seeded random digraphs: parents, children and dominance agree", .tags(.randomized), arguments: 0 ..< 10)
     func againstTheTree(seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(149 + seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(149 + seed))
         let n = 20
         let arcs = (0 ..< 45).map { _ in DirectedEdge(from: Int.random(in: 0 ..< n, using: &generator), to: Int.random(in: 0 ..< n, using: &generator)) }
         let graphs: [any DirectedGraph<Int>] = [

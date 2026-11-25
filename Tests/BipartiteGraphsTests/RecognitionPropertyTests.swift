@@ -12,6 +12,7 @@
 
 import AdjacencyListModule
 import BipartiteGraphs
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -24,7 +25,7 @@ struct RecognitionPropertyTests {
     func againstBruteForce() async {
         let edges = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6)).array(of: 0 ... 10)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 7), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -129,7 +130,7 @@ struct RecognitionPropertyTests {
     func exactCycle() async {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 14)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })

@@ -5,6 +5,7 @@
 // disjoint union (two components), its complement (connected), and coloured and directed forms.
 // Each isomorphic pair is checked mapping by mapping, and each non-isomorphic one answers no.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import IsomorphismModule
@@ -47,7 +48,7 @@ struct IsomorphismFallbackTests {
             return edges
         }
         let union = cfi(twisted: false, offset: 0) + cfi(twisted: true, offset: 40)
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 51)
+        var rng = Xoroshiro128Plus(seed: 51)
         // The twisted half takes the low numbers in H, so that the joint search tries the wrong half
         // first and gives up.
         let permutation = Array(40 ..< 80).shuffled(using: &rng) + Array(0 ..< 40).shuffled(using: &rng)
@@ -109,7 +110,7 @@ struct IsomorphismFallbackTests {
         let present = Set((cfi(twisted: false, offset: 0) + cfi(twisted: true, offset: 40)).map { [min($0.0, $0.1), max($0.0, $0.1)] })
         var complement: [(Int, Int)] = []
         for a in 0 ..< 80 { for b in a + 1 ..< 80 where !present.contains([a, b]) { complement.append((a, b)) } }
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 52)
+        var rng = Xoroshiro128Plus(seed: 52)
         // The twisted half takes the low numbers in H, so that the joint search tries the wrong half
         // first and gives up.
         let permutation = Array(40 ..< 80).shuffled(using: &rng) + Array(0 ..< 40).shuffled(using: &rng)
@@ -166,7 +167,7 @@ struct IsomorphismFallbackTests {
         }
         // Vertices 0..<40 are the plain graph, 40..<80 the twisted one; edges likewise, 60 each.
         let union = cfi(twisted: false, offset: 0) + cfi(twisted: true, offset: 40)
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 53)
+        var rng = Xoroshiro128Plus(seed: 53)
         // The twisted half takes the low numbers in H, so that the joint search tries the wrong half
         // first and gives up.
         let permutation = Array(40 ..< 80).shuffled(using: &rng) + Array(0 ..< 40).shuffled(using: &rng)
@@ -231,7 +232,7 @@ struct IsomorphismFallbackTests {
         for e in cfi(twisted: false, offset: 0) + cfi(twisted: true, offset: 40) { arcs.append(e); arcs.append((e.1, e.0)) }
         arcs.append((80, 7))
         arcs.append((81, 47))
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 54)
+        var rng = Xoroshiro128Plus(seed: 54)
         // The twisted half takes the low numbers in H, and its extra vertex the lower of the two, so
         // that the joint search tries the wrong half first and gives up.
         let permutation = Array(40 ..< 80).shuffled(using: &rng) + Array(0 ..< 40).shuffled(using: &rng) + [81, 80]
@@ -291,7 +292,7 @@ struct IsomorphismFallbackTests {
             }
             return cfi(twisted: false, offset: 0) + cfi(twisted: true, offset: 40)
         }
-        var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: 55)
+        var rng = Xoroshiro128Plus(seed: 55)
         var forms: [CanonicalForm] = []
         for (n, edges) in [(13, paley13()), (49, latinSquare7()), (80, cfiPair())] {
             let reference = Pseudograph<Int>(vertices: Array(0 ..< n), edges: edges.map { UndirectedEdge($0.0, $0.1) }).canonicalLabeling().form

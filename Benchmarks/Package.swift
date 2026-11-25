@@ -13,10 +13,11 @@ let package = Package(
         .package(name: "Grafluent", path: ".."),
         .package(url: "https://github.com/ordo-one/benchmark", from: "1.27.0"),
         .package(url: "https://github.com/apple/swift-collections", from: "1.3.0"),
+        .package(url: "https://github.com/Tyler-Keith-Thompson/SwiftPRNG", from: "0.0.4"),
     ],
     targets: [
         // Shared by the benchmark targets (BENCHMARK_SUPPORT in scripts/modules.py).
-        .target(name: "BenchmarkSupport", dependencies: [.product(name: "GraphProtocols", package: "Grafluent")], path: "Sources/BenchmarkSupport"),
+        .target(name: "BenchmarkSupport", dependencies: [.product(name: "GraphProtocols", package: "Grafluent"), .product(name: "Generators", package: "swiftprng")], path: "Sources/BenchmarkSupport"),
         .executableTarget(
             name: "TraversalBenchmarks",
             dependencies: [
@@ -28,6 +29,7 @@ let package = Package(
                 .product(name: "AdjacencyMatrixModule", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
                 .product(name: "EdgeListModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/TraversalBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -56,6 +58,7 @@ let package = Package(
                 .product(name: "DisjointSetModule", package: "Grafluent"),
                 .product(name: "Connectivity", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/DisjointSetBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -66,6 +69,7 @@ let package = Package(
                 .product(name: "Benchmark", package: "benchmark"),
                 "BenchmarkSupport",
                 .product(name: "LinkCutTreeModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/LinkCutTreeBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -91,6 +95,7 @@ let package = Package(
                 .product(name: "PriorityQueueModule", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
                 .product(name: "HeapModule", package: "swift-collections"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/PriorityQueueBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -104,6 +109,7 @@ let package = Package(
                 .product(name: "Semirings", package: "Grafluent"),
                 .product(name: "ShortestPaths", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/SemiringsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -118,6 +124,7 @@ let package = Package(
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
                 .product(name: "StableGraphs", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/ShortestPathsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -142,6 +149,7 @@ let package = Package(
                 .product(name: "GraphProtocols", package: "Grafluent"),
                 .product(name: "Centrality", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/CentralityBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -167,6 +175,7 @@ let package = Package(
                 .product(name: "GraphProtocols", package: "Grafluent"),
                 .product(name: "CommunityDetection", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/CommunityDetectionBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -192,6 +201,7 @@ let package = Package(
                 .product(name: "Planarity", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
                 .product(name: "Multigraphs", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/PlanarityBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -259,6 +269,7 @@ let package = Package(
                 .product(name: "DirectedAcyclicGraphModule", package: "Grafluent"),
                 .product(name: "Traversal", package: "Grafluent"),
                 .product(name: "Connectivity", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/GraphOperationsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -275,6 +286,7 @@ let package = Package(
                 .product(name: "NamedGraphs", package: "Grafluent"),
                 .product(name: "Traversal", package: "Grafluent"),
                 .product(name: "Connectivity", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/GraphProductsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -293,6 +305,7 @@ let package = Package(
                 .product(name: "Connectivity", package: "Grafluent"),
                 .product(name: "ShortestPaths", package: "Grafluent"),
                 .product(name: "SpanningTrees", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/LabeledGraphsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -324,6 +337,7 @@ let package = Package(
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
                 .product(name: "Connectivity", package: "Grafluent"),
                 .product(name: "Traversal", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/FunctionalGraphsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -339,6 +353,7 @@ let package = Package(
                 .product(name: "Connectivity", package: "Grafluent"),
                 .product(name: "ShortestPaths", package: "Grafluent"),
                 .product(name: "Traversal", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/ImplicitGraphsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -355,6 +370,7 @@ let package = Package(
                 .product(name: "DisjointSetModule", package: "Grafluent"),
                 .product(name: "Connectivity", package: "Grafluent"),
                 .product(name: "Traversal", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/HypergraphsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -368,6 +384,7 @@ let package = Package(
                 .product(name: "IncidenceMatrixModule", package: "Grafluent"),
                 .product(name: "Hypergraphs", package: "Grafluent"),
                 .product(name: "Multigraphs", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/IncidenceMatrixBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -410,6 +427,7 @@ let package = Package(
                 .product(name: "Multigraphs", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/GraphFormatsBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -434,6 +452,7 @@ let package = Package(
                 .product(name: "GraphProtocols", package: "Grafluent"),
                 .product(name: "Cliques", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/CliquesBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -498,6 +517,7 @@ let package = Package(
                 .product(name: "Cycles", package: "Grafluent"),
                 .product(name: "Walks", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/CyclesBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -525,6 +545,7 @@ let package = Package(
                 .product(name: "AdjacencyMatrixModule", package: "Grafluent"),
                 .product(name: "StableGraphs", package: "Grafluent"),
                 .product(name: "PriorityQueueModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/SpanningTreesBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -623,6 +644,7 @@ let package = Package(
                 .product(name: "GraphProtocols", package: "Grafluent"),
                 .product(name: "SpectralGraphTheory", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/SpectralGraphTheoryBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -635,6 +657,7 @@ let package = Package(
                 .product(name: "GraphProtocols", package: "Grafluent"),
                 .product(name: "Similarity", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/SimilarityBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -647,6 +670,7 @@ let package = Package(
                 .product(name: "GraphProtocols", package: "Grafluent"),
                 .product(name: "AdjacencyListModule", package: "Grafluent"),
                 .product(name: "BitCollections", package: "swift-collections"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/AdjacencyListBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]
@@ -671,6 +695,7 @@ let package = Package(
                 .product(name: "GraphProtocols", package: "Grafluent"),
                 .product(name: "CompressedSparseRowModule", package: "Grafluent"),
                 .product(name: "BitCollections", package: "swift-collections"),
+                .product(name: "Generators", package: "swiftprng"),
             ],
             path: "Benchmarks/CompressedSparseRowBenchmarks",
             plugins: [.plugin(name: "BenchmarkPlugin", package: "benchmark")]

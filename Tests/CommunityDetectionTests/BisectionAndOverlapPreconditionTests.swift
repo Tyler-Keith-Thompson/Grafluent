@@ -2,6 +2,7 @@
 // as exit tests. Each exit test builds its inputs inside the closure.
 
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -36,7 +37,7 @@ struct BisectionAndOverlapPreconditionTests {
     func kernighanLinWeight() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.kernighanLinBisection(weight: { _ in -1.0 }, using: &generator)
         }
     }
@@ -61,7 +62,7 @@ struct BisectionAndOverlapPreconditionTests {
     func fluidTooMany() async {
         await #expect(processExitsWith: .failure) {
             let graph = ReferencePseudograph(vertices: 0 ..< 2, edges: [UndirectedEdge(0, 1)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.asynchronousFluidCommunities(count: 3, using: &generator)
         }
     }

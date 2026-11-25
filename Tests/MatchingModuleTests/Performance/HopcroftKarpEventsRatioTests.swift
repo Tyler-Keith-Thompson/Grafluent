@@ -7,6 +7,7 @@
 // agree. Case IDs (MA-11nn) are listed in README.md.
 
 import BipartiteGraphs
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import MatchingModule
@@ -17,7 +18,7 @@ struct HopcroftKarpEventsRatioTests {
     @Test("MA-1104 iterating every event is within 3× of maximumBipartiteMatching", .timeLimit(.minutes(1)))
     func ratio() async throws {
         let side = 50_000
-        var rng = SeededRandomNumberGenerator(seed: 1104)
+        var rng = Xoroshiro128Plus(seed: 1104)
         var seen = Set<UndirectedEdge<Int>>()
         while seen.count < 300_000 {
             seen.insert(UndirectedEdge(Int.random(in: 0 ..< side, using: &rng), side + Int.random(in: 0 ..< side, using: &rng)))

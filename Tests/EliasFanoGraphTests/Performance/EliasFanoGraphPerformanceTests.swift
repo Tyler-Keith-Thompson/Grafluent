@@ -9,6 +9,7 @@
 
 import CompressedSparseRowModule
 import EliasFanoGraphModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -21,7 +22,7 @@ import Testing
         #else
         let n = 200_000, m = 2_000_000
         #endif
-        var generator = SeededRandomNumberGenerator(seed: 5)
+        var generator = Xoroshiro128Plus(seed: 5)
         var edges: [DirectedEdge<Int>] = []
         edges.reserveCapacity(m)
         for _ in 0 ..< m { edges.append(DirectedEdge(from: Int.random(in: 0 ..< n, using: &generator), to: Int.random(in: 0 ..< n, using: &generator))) }

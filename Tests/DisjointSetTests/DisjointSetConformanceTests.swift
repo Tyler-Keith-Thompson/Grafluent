@@ -5,6 +5,7 @@
 // Case IDs (DS-nn) refer to the catalog; see README.md.
 
 import DisjointSetModule
+import Generators
 import GrafluentTestSupport
 import Testing
 
@@ -31,7 +32,7 @@ struct DisjointSetEqualityTests {
 
     @Test("DS-31 the same pairs in forward and reversed order give equal values", .tags(.randomized), arguments: 1 ... 10)
     func pairOrder(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 200
         let pairs = (0 ..< 400).map { _ in (Int.random(in: 0 ..< n, using: &generator), Int.random(in: 0 ..< n, using: &generator)) }
         var forwards = DisjointSet(count: n)

@@ -20,6 +20,7 @@ swift_library(
     deps = [
         "//Sources/DisjointSetModule",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
     ],
 )
 

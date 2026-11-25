@@ -4,6 +4,7 @@
 
 import AdjacencyListModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -70,13 +71,13 @@ struct CompressedSparseRowRealWorldTests {
             #expect(Array(graph.successors(of: v)) == list.successors(of: v).sorted())
         }
         // Shuffled input builds the same graph.
-        var generator = SeededRandomNumberGenerator(seed: 8)
+        var generator = Xoroshiro128Plus(seed: 8)
         #expect(CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges.shuffled(using: &generator)) == graph)
     }
 
     @Test("CSR-G07 a hub of out-degree 20 000 given in shuffled order: its row is complete and ascending")
     func hub() {
-        var generator = SeededRandomNumberGenerator(seed: 7)
+        var generator = Xoroshiro128Plus(seed: 7)
         let n = 20_001
         let input = (1 ..< n).map { DirectedEdge(from: 0, to: $0) }.shuffled(using: &generator)
             + (1 ..< n).map { DirectedEdge(from: $0, to: 0) }.shuffled(using: &generator)

@@ -16,6 +16,7 @@
 // closure in an `#expect` expansion failed SIL verification with this toolchain (README.md).
 
 import AdjacencyListModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -30,7 +31,7 @@ struct ToursPropertyTests {
     func undirectedEulerian() async {
         let steps = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 40)
         await propertyCheck(count: 300, input: steps, Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             // A walk from vertex 0 (a stay is a self-loop), closed back to 0 when the seed is even, so
             // Eulerian by construction; each edge written either way round; every third seed one more
@@ -130,7 +131,7 @@ struct ToursPropertyTests {
     func directedEulerian() async {
         let steps = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 40)
         await propertyCheck(count: 300, input: steps, Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             // A directed walk from 0, closed when the seed is even; every third seed one more arc; the
             // arcs in an order rotated by raw's first entry (the walk's arcs still balance).
@@ -220,7 +221,7 @@ struct ToursPropertyTests {
     func hamiltonianFirstInSearchOrder() async {
         let edges = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 0 ... 16)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 6), Gen.bool, Gen.int(in: 0 ... 1_000_000)) { raw, n, directed, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let ends = raw.map { ($0.0 % n, $0.1 % n) }
             let context = "\(ends) on \(listed), directed \(directed)"
@@ -311,7 +312,7 @@ struct ToursPropertyTests {
         let extras = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6), Gen.int(in: -3 ... 9)).array(of: 0 ... 8)
         let weights = Gen.int(in: -3 ... 9).array(of: 21 ... 21)
         await propertyCheck(count: 200, input: extras, weights, Gen.int(in: 3 ... 7), Gen.int(in: 0 ... 1_000_000)) { extra, base, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             // Extra copies and self-loops first, then K(n) in lexicographic pair order, so a pair's lightest
             // copy is sometimes an extra one and ties between copies are decided by position.
@@ -511,7 +512,7 @@ struct ToursPropertyTests {
     @Test("2-opt on 15 … 40 vertices, from a scrambled tour, Int or Double-quarter weights with many ties: JGraphT's best-improvement loop written out, move for move (the incremental row cache must find the same moves)")
     func twoOptLarge() async {
         await propertyCheck(count: 60, input: Gen.int(in: 15 ... 40), Gen.int(in: 2 ... 1000), Gen.bool, Gen.int(in: 0 ... 1_000_000)) { n, span, quarters, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = (0 ..< n).flatMap { i in (i + 1 ..< n).map { (i, $0) } }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             let raw = pairs.map { _ in Int.random(in: 1 ... span, using: &rng) }
@@ -564,7 +565,7 @@ struct ToursPropertyTests {
     @Test("Christofides is the pinned composition written out: dense Prim under (weight, edge number), the odd vertices in order, a minimum-weight perfect matching on them, Hierholzer from vertex 0 on the tree edges by number then the matched pairs, the first visits; the tour is that of one minimum matching (the only one when it is unique)")
     func christofidesComposition() async {
         await propertyCheck(count: 300, input: Gen.int(in: 3 ... 9), Gen.int(in: 1 ... 40), Gen.int(in: 0 ... 1_000_000)) { n, span, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = (0 ..< n).flatMap { i in (i + 1 ..< n).map { (i, $0) } }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
             let weights = pairs.map { _ in Int.random(in: 1 ... span, using: &rng) }
@@ -640,7 +641,7 @@ struct ToursPropertyTests {
     @Test("Held–Karp on up to 10 vertices, undirected and directed, complete or not, with parallel copies, loops and ties: JGraphT's memoized recursion and reconstruction written out")
     func heldKarpWrittenOut() async {
         await propertyCheck(count: 150, input: Gen.int(in: 3 ... 10), Gen.int(in: 1 ... 12), Gen.bool, Gen.int(in: 0 ... 1_000_000)) { n, span, directed, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             // Each pair (ordered pair, directed) present with probability 3/4 or 1 (every fourth seed complete),
             // some doubled, a few loops, shuffled into position order.
             var ends: [(Int, Int)] = []

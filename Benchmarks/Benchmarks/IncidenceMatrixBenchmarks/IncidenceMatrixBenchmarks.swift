@@ -1,5 +1,6 @@
 import Benchmark
 import BenchmarkSupport
+import Generators
 import GraphProtocols
 import Hypergraphs
 import IncidenceMatrixModule
@@ -14,7 +15,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // A G(n, m) multigraph at n = 2 048, m = 2·10⁴: 5 MB per orientation.
     let n = 2_048, m = 20_000
-    var generator = SeededRandomNumberGenerator(seed: 5)
+    var generator = Xoroshiro128Plus(seed: 5)
     let edges = (0 ..< m).map { _ in UndirectedEdge(Int.random(in: 0 ..< n, using: &generator), Int.random(in: 0 ..< n, using: &generator)) }
     let graph = Pseudograph<Int>(vertices: 0 ..< n, edges: edges)
     let digraph = DirectedPseudograph<Int>(vertices: 0 ..< n, edges: edges.map { DirectedEdge(from: $0.u, to: $0.v) })

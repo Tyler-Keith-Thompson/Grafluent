@@ -5,6 +5,7 @@
 // spectral radius is 3; spanning-tree counts of K_n up to and past Double's range; resistances on a
 // cycle and a weighted binary tree; and the matrices of a 300 × 300 grid. See README.md.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import SpectralGraphTheory
@@ -117,7 +118,7 @@ struct SpectralStressTests {
         try await Task {
             // Three random perfect matchings: every degree is exactly 3 (parallel edges possible).
             let n = 10_000
-            var rng = SeededRandomNumberGenerator(seed: 2026)
+            var rng = Xoroshiro128Plus(seed: 2026)
             var edges: [UndirectedEdge<Int>] = []
             for _ in 0 ..< 3 {
                 let perm = Array(0 ..< n).shuffled(using: &rng)

@@ -14,6 +14,7 @@
 
 import AdjacencyListModule
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -196,7 +197,7 @@ struct ToursStressTests {
     func circlePoints() async {
         await Task {
             for (n, which) in [(150, 0), (100, 1), (15, 2)] {
-                var rng = SeededRandomNumberGenerator(seed: UInt(n))
+                var rng = Xoroshiro128Plus(seed: UInt64(n))
                 // Distinct angles, then the points listed in a shuffled order; rank[v] is v's place around the circle.
                 let angles = (0 ..< n).map { Double($0) * 2 * .pi / Double(n) + Double.random(in: 0 ..< 0.5, using: &rng) * 2 * .pi / Double(n) }
                 var rank = Array(0 ..< n)
@@ -247,7 +248,7 @@ struct ToursStressTests {
     func heldKarpOnACycle() async {
         await Task {
             let n = 16
-            var rng = SeededRandomNumberGenerator(seed: 16)
+            var rng = Xoroshiro128Plus(seed: 16)
             let weights = (0 ..< n).map { _ in Int.random(in: -5 ... 20, using: &rng) }
             let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: (0 ..< n).map { UndirectedEdge($0, ($0 + 1) % n) })
             let tour = graph.shortestTour(weight: { weights[$0] })

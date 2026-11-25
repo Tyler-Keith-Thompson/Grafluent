@@ -14,6 +14,7 @@
 import AdjacencyListModule
 import BipartiteGraphs
 import ColoringModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -24,7 +25,7 @@ struct ColoringStressTests {
     func greedyOnRandomGraph() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 11)
+            var rng = Xoroshiro128Plus(seed: 11)
             var pairs: [(Int, Int)] = []
             for _ in 0 ..< 300_000 {
                 let u = Int.random(in: 0 ..< n, using: &rng), v = Int.random(in: 0 ..< n, using: &rng)
@@ -203,7 +204,7 @@ struct ColoringStressTests {
     func misraGriesRandom() async {
         await Task {
             let n = 10_000
-            var rng = SeededRandomNumberGenerator(seed: 5)
+            var rng = Xoroshiro128Plus(seed: 5)
             var pairs: [(Int, Int)] = []
             for _ in 0 ..< 40_000 {
                 let u = Int.random(in: 0 ..< n, using: &rng), v = Int.random(in: 0 ..< n, using: &rng)
@@ -270,7 +271,7 @@ struct ColoringStressTests {
     func sparseMinimumColoring() async {
         await Task {
             for (n, planted, seed) in [(300, false, 1), (500, false, 2), (700, false, 3), (1000, false, 4), (300, true, 5), (500, true, 6), (1000, true, 7)] as [(Int, Bool, UInt)] {
-                var rng = SeededRandomNumberGenerator(seed: seed)
+                var rng = Xoroshiro128Plus(seed: UInt64(seed))
                 var pairs = Set<[Int]>()
                 while pairs.count < 2 * n {
                     // Drawn through 64-bit bounds: the same graphs at either `Int` width.

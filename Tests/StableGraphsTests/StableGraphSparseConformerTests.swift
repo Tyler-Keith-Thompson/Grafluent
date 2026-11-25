@@ -6,6 +6,7 @@
 // vertex hole, against the hole-free graph. See README.md.
 
 import Connectivity
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -39,7 +40,7 @@ private struct Forwarding: SparselyIndexedDirectedGraph {
 struct StableGraphSparseConformerTests {
     @Test("The default _numberedRows gives every numbered algorithm the wrapped graph's results", arguments: [1, 2, 3, 4, 5, 6])
     func defaultNumberedRows(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 10 + seed * 4
         var graph = StableDirectedGraph<Int>(vertices: 0 ..< n)
         for _ in 0 ..< n * 3 {
@@ -72,7 +73,7 @@ struct StableGraphSparseConformerTests {
 
     @Test("Post-dominators and component lookups with one vertex hole equal the hole-free graph's")
     func oneVertexHole() {
-        var rng = SeededRandomNumberGenerator(seed: 17)
+        var rng = Xoroshiro128Plus(seed: 17)
         let n = 200
         var dense = StableDirectedGraph<Int>(vertices: 0 ..< n)
         for _ in 0 ..< n * 4 {

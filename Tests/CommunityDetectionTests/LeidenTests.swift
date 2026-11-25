@@ -7,6 +7,7 @@
 import AdjacencyListModule
 import CommunityDetection
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -18,7 +19,7 @@ struct LeidenTests {
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         for seed in 0 ..< 20 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let result = graph.leidenCommunities(using: &generator)
             #expect(result.map { Array($0) } == [[0, 1, 2], [3, 4, 5]], "seed \(seed)")
             #expect(result.community(of: 4) == 1)
@@ -28,7 +29,7 @@ struct LeidenTests {
             #expect(cpm.map { Array($0) } == [[0, 1, 2], [3, 4, 5]], "seed \(seed)")
         }
         // Q = 2 (3/7 − (7/14)²) = 5/14.
-        var generator = SeededRandomNumberGenerator(seed: 3)
+        var generator = Xoroshiro128Plus(seed: 3)
         #expect(abs(graph.modularity(of: graph.leidenCommunities(using: &generator)) - 5.0 / 14) <= 1e-12)
     }
 
@@ -37,7 +38,7 @@ struct LeidenTests {
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         for seed in 0 ..< 10 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let cpm = graph.leidenCommunities(quality: .constantPottsModel, resolution: 0.1, using: &generator)
             #expect(cpm.map { Array($0) } == [[0, 1, 2, 3, 4, 5]], "seed \(seed)")
             let whole = graph.leidenCommunities(resolution: 0, using: &generator)
@@ -63,7 +64,7 @@ struct LeidenTests {
         }
         let rings = ReferencePseudograph(vertices: 0 ..< 16, edges: ring.map { UndirectedEdge($0.0, $0.1) })
         for seed in 0 ..< 10 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             #expect(two.leidenCommunities(using: &generator).map { Array($0) } == [Array(0 ..< 5), Array(5 ..< 10)], "seed \(seed)")
             #expect(rings.leidenCommunities(using: &generator).map { Array($0) } == (0 ..< 4).map { Array(4 * $0 ..< 4 * $0 + 4) }, "seed \(seed)")
             #expect(rings.leidenCommunities(quality: .constantPottsModel, resolution: 0.5, using: &generator).count == 4, "seed \(seed)")
@@ -80,7 +81,7 @@ struct LeidenTests {
             (26, 33), (27, 33), (28, 31), (28, 33), (29, 32), (29, 33), (30, 32), (30, 33), (31, 32), (31, 33), (32, 33)]
         let graph = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         for seed in 0 ..< 20 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let result = graph.leidenCommunities(using: &generator)
             // igraph's community_leiden finds the same value on every seed; it is the optimum
             // (Brandes et al. 2008).
@@ -91,7 +92,7 @@ struct LeidenTests {
 
     @Test("Degenerate graphs: no vertices, one vertex, no edges, self-loops only, K₂, all weights zero")
     func degenerate() {
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let empty = ReferencePseudograph<Int>(vertices: [], edges: [])
         #expect(empty.leidenCommunities(using: &generator).isEmpty)
         #expect(empty.leidenCommunities(quality: .constantPottsModel, using: &generator).isEmpty)
@@ -125,7 +126,7 @@ struct LeidenTests {
         // The same graph with the bridge as ten parallel copies.
         let copies = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) } + Array(repeating: UndirectedEdge(2, 3), count: 9))
         for seed in 0 ..< 10 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let weighted = graph.leidenCommunities(weight: { w[$0] }, using: &generator)
             let parallel = copies.leidenCommunities(using: &generator)
             #expect(weighted == parallel, "seed \(seed)")
@@ -148,14 +149,14 @@ struct LeidenTests {
         let arcs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3), (2, 3)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 6, edges: arcs.map { DirectedEdge(from: $0.0, to: $0.1) })
         for seed in 0 ..< 10 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             #expect(graph.leidenCommunities(using: &generator).map { Array($0) } == [[0, 1, 2], [3, 4, 5]], "seed \(seed)")
             // Directed H = Σ_c [e_c − γ n_c²]: at γ = ¼ each cycle is 3 − 9/4 = ¾; the whole graph
             // 7 − 9 = −2.
             #expect(graph.leidenCommunities(quality: .constantPottsModel, resolution: 0.25, using: &generator).map { Array($0) } == [[0, 1, 2], [3, 4, 5]], "seed \(seed)")
         }
         // Directed modularity of the two cycles: 2 (3/7 − (4·3)/49) = 18/49.
-        var generator = SeededRandomNumberGenerator(seed: 5)
+        var generator = Xoroshiro128Plus(seed: 5)
         let result = graph.leidenCommunities(using: &generator)
         #expect(abs(graph.modularity(of: result) - 18.0 / 49) <= 1e-12)
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
@@ -175,7 +176,7 @@ struct LeidenTests {
             if u != v { pairs.append((u, v)) }
         }
         let graph = ReferencePseudograph(vertices: 0 ..< 40, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var a = SeededRandomNumberGenerator(seed: 99), b = SeededRandomNumberGenerator(seed: 99)
+        var a = Xoroshiro128Plus(seed: 99), b = Xoroshiro128Plus(seed: 99)
         #expect(graph.leidenCommunities(using: &a) == graph.leidenCommunities(using: &b))
         #expect(graph.leidenCommunities(weight: { Double($0 % 3 + 1) }, quality: .constantPottsModel, resolution: 0.05, using: &a)
             == graph.leidenCommunities(weight: { Double($0 % 3 + 1) }, quality: .constantPottsModel, resolution: 0.05, using: &b))
@@ -194,7 +195,7 @@ struct LeidenTests {
         let n = 400
         let path = ReferencePseudograph(vertices: 0 ..< n, edges: (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) })
         for seed in 0 ..< 5 {
-            var a = SeededRandomNumberGenerator(seed: UInt(seed)), b = a, c = a
+            var a = Xoroshiro128Plus(seed: UInt64(seed)), b = a, c = a
             let full = path.leidenCommunities(using: &a)
             let many = path.leidenCommunities(iterations: 1000, using: &b)
             #expect(full == many, "seed \(seed)")
@@ -224,7 +225,7 @@ struct LeidenTests {
         let directedList = AdjacencyList(vertices: 0 ..< 9, edges: arcs)
         let csr = CompressedSparseRow(vertexCount: 9, edges: arcs)
         for seed in 0 ..< 10 {
-            var a = SeededRandomNumberGenerator(seed: UInt(seed)), b = a, c = a, d = a, e = a
+            var a = Xoroshiro128Plus(seed: UInt64(seed)), b = a, c = a, d = a, e = a
             let expected = reference.leidenCommunities(using: &a).map { Array($0) }
             #expect(expected == [[0, 1, 2], [3, 4, 5], [6, 7, 8]], "seed \(seed)")
             #expect(list.leidenCommunities(using: &b).map { Array($0) } == expected, "seed \(seed)")
@@ -298,7 +299,7 @@ struct LeidenTests {
         }
         let w = (0 ..< pairs.count).map { Double($0 % 4 + 1) }
         #expect(graph.louvainPartitions(weight: { w[$0] }).last == graph.louvainCommunities(weight: { w[$0] }))
-        var a = SeededRandomNumberGenerator(seed: 4), b = a
+        var a = Xoroshiro128Plus(seed: 4), b = a
         #expect(graph.louvainPartitions(using: &a).last == graph.louvainCommunities(using: &b))
         #expect(graph.louvainPartitions(weight: { w[$0] }, using: &a).last == graph.louvainCommunities(weight: { w[$0] }, using: &b))
         let digraph = ReferenceDirectedMultigraph(vertices: 0 ..< 34, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })

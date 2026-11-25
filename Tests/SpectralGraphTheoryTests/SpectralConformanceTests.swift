@@ -10,6 +10,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -40,7 +41,7 @@ private struct UnindexedGraph: Graph {
 struct SpectralConformanceTests {
     @Test("Undirected: Pseudograph, UndirectedAdjacencyList, AdjacencyList.undirectedView and String vertices without indices agree with the reference", arguments: 0 ..< 40)
     func undirectedRepresentations(seed: Int) throws {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = Int.random(in: 1 ... 12, using: &rng)
         // Simple graphs with loops (every representation here holds them), vertices in a shuffled order.
         var pairs = Set<[Int]>()
@@ -148,7 +149,7 @@ struct SpectralConformanceTests {
 
     @Test("Directed matrices: AdjacencyList, CompressedSparseRow and AdjacencyMatrix agree with the reference", arguments: 0 ..< 40)
     func directedRepresentations(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed) &+ 1_000)
+        var rng = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 1_000))
         let n = Int.random(in: 1 ... 10, using: &rng)
         var arcs = Set<[Int]>()
         for _ in 0 ..< Int.random(in: 0 ... 3 * n, using: &rng) {
@@ -181,7 +182,7 @@ struct SpectralConformanceTests {
 
     @Test("graph.directedView has the same A and L as the graph, loops and parallel edges included", arguments: 0 ..< 30)
     func directedView(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed) &+ 2_000)
+        var rng = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 2_000))
         let n = Int.random(in: 1 ... 8, using: &rng)
         let edges = (0 ..< Int.random(in: 0 ... 14, using: &rng)).map { _ in
             UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))
@@ -194,7 +195,7 @@ struct SpectralConformanceTests {
 
     @Test("digraph.undirectedView: the spectral quantities of the symmetrization, as an undirected multigraph of the arcs", arguments: 0 ..< 30)
     func undirectedView(seed: Int) throws {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed) &+ 3_000)
+        var rng = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 3_000))
         let n = Int.random(in: 2 ... 9, using: &rng)
         var arcs = Set<[Int]>()
         for _ in 0 ..< Int.random(in: n ... 3 * n, using: &rng) {
@@ -238,7 +239,7 @@ struct SpectralConformanceTests {
 
     @Test("Results are deterministic: two calls give the same bits, also on the Lanczos path (n ≥ 64)")
     func determinism() throws {
-        var rng = SeededRandomNumberGenerator(seed: 11)
+        var rng = Xoroshiro128Plus(seed: 11)
         for n in [10, 200] {
             var edges = (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) }
             for _ in 0 ..< 2 * n { edges.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }
@@ -254,7 +255,7 @@ struct SpectralConformanceTests {
 
     @Test("tolerance: λ₂ and ρ stay within it relative to themselves, the Fiedler residual within tolerance · λ₂")
     func toleranceParameter() throws {
-        var rng = SeededRandomNumberGenerator(seed: 5)
+        var rng = Xoroshiro128Plus(seed: 5)
         let n = 300
         var edges = (0 ..< n - 1).map { UndirectedEdge($0, $0 + 1) }
         for _ in 0 ..< 600 { edges.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng))) }

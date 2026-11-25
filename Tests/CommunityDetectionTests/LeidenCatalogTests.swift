@@ -12,6 +12,7 @@
 // `graph.directedView` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
 
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -112,7 +113,7 @@ struct LeidenCatalogTests {
         // U: K(0..2), K(3..5), 2-3
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let result = graph.leidenCommunities(using: &generator)
         let expected: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         #expect(result.map { Array($0) } == expected)
@@ -128,7 +129,7 @@ struct LeidenCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.35714285714285715) <= 1e-12 * max(1, abs(0.35714285714285715)))
-        var again = SeededRandomNumberGenerator(seed: 1)
+        var again = Xoroshiro128Plus(seed: 1)
         #expect(graph.leidenCommunities(using: &again) == result, "the same seed again")
     }
 
@@ -138,7 +139,7 @@ struct LeidenCatalogTests {
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4),
             (3, 4), (5, 6), (5, 7), (5, 8), (5, 9), (6, 7), (6, 8), (6, 9), (7, 8), (7, 9), (8, 9), (4, 5)]
         let graph = ReferencePseudograph(vertices: 0 ..< 10, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 2)
+        var generator = Xoroshiro128Plus(seed: 2)
         let result = graph.leidenCommunities(using: &generator)
         let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
         #expect(result.map { Array($0) } == expected)
@@ -154,7 +155,7 @@ struct LeidenCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)))
-        var again = SeededRandomNumberGenerator(seed: 2)
+        var again = Xoroshiro128Plus(seed: 2)
         #expect(graph.leidenCommunities(using: &again) == result, "the same seed again")
     }
 
@@ -165,7 +166,7 @@ struct LeidenCatalogTests {
             (4, 6), (4, 7), (5, 6), (5, 7), (5, 8), (6, 7), (8, 9), (8, 10), (8, 11), (9, 10), (9, 11),
             (9, 12), (10, 11), (12, 13), (12, 14), (12, 15), (13, 14), (13, 15), (14, 15)]
         let graph = ReferencePseudograph(vertices: 0 ..< 16, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 3)
+        var generator = Xoroshiro128Plus(seed: 3)
         let result = graph.leidenCommunities(using: &generator)
         let expected: [[Int]] = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]
         #expect(result.map { Array($0) } == expected)
@@ -181,7 +182,7 @@ struct LeidenCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)))
-        var again = SeededRandomNumberGenerator(seed: 3)
+        var again = Xoroshiro128Plus(seed: 3)
         #expect(graph.leidenCommunities(using: &again) == result, "the same seed again")
     }
 
@@ -194,7 +195,7 @@ struct LeidenCatalogTests {
             (14, 15), (15, 17), (15, 18), (15, 19), (16, 17), (16, 18), (16, 19), (17, 18), (17, 19),
             (18, 19)]
         let graph = ReferencePseudograph(vertices: 0 ..< 20, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 4)
+        var generator = Xoroshiro128Plus(seed: 4)
         let result = graph.leidenCommunities(using: &generator)
         let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9], [10, 11, 12, 13, 14], [15, 16, 17, 18, 19]]
         #expect(result.map { Array($0) } == expected)
@@ -210,7 +211,7 @@ struct LeidenCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.65) <= 1e-12 * max(1, abs(0.65)))
-        var again = SeededRandomNumberGenerator(seed: 4)
+        var again = Xoroshiro128Plus(seed: 4)
         #expect(graph.leidenCommunities(using: &again) == result, "the same seed again")
     }
 
@@ -219,7 +220,7 @@ struct LeidenCatalogTests {
         // U: K(0..2), K(3..5), 2-3
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 5)
+        var generator = Xoroshiro128Plus(seed: 5)
         let result = graph.leidenCommunities(quality: .constantPottsModel, resolution: 0.5, using: &generator)
         let expected: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         #expect(result.map { Array($0) } == expected)
@@ -235,7 +236,7 @@ struct LeidenCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, resolution: 0.5)
         #expect(abs(q - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)))
-        var again = SeededRandomNumberGenerator(seed: 5)
+        var again = Xoroshiro128Plus(seed: 5)
         #expect(graph.leidenCommunities(quality: .constantPottsModel, resolution: 0.5, using: &again) == result, "the same seed again")
     }
 
@@ -244,7 +245,7 @@ struct LeidenCatalogTests {
         // U: K(0..2), K(3..5), 2-3
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 6)
+        var generator = Xoroshiro128Plus(seed: 6)
         let result = graph.leidenCommunities(quality: .constantPottsModel, resolution: 0.1, using: &generator)
         let expected: [[Int]] = [[0, 1, 2, 3, 4, 5]]
         #expect(result.map { Array($0) } == expected)
@@ -260,7 +261,7 @@ struct LeidenCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, resolution: 0.1)
         #expect(abs(q - 0.9) <= 1e-12 * max(1, abs(0.9)))
-        var again = SeededRandomNumberGenerator(seed: 6)
+        var again = Xoroshiro128Plus(seed: 6)
         #expect(graph.leidenCommunities(quality: .constantPottsModel, resolution: 0.1, using: &again) == result, "the same seed again")
     }
 
@@ -269,7 +270,7 @@ struct LeidenCatalogTests {
         // U: K(0..2), K(3..5), 2-3
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 7)
+        var generator = Xoroshiro128Plus(seed: 7)
         let result = graph.leidenCommunities(quality: .constantPottsModel, resolution: 2, using: &generator)
         let expected: [[Int]] = [[0], [1], [2], [3], [4], [5]]
         #expect(result.map { Array($0) } == expected)
@@ -285,7 +286,7 @@ struct LeidenCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result, resolution: 2)
         #expect(abs(q - -0.346938775510204) <= 1e-12 * max(1, abs(-0.346938775510204)))
-        var again = SeededRandomNumberGenerator(seed: 7)
+        var again = Xoroshiro128Plus(seed: 7)
         #expect(graph.leidenCommunities(quality: .constantPottsModel, resolution: 2, using: &again) == result, "the same seed again")
     }
 
@@ -294,7 +295,7 @@ struct LeidenCatalogTests {
         // U: [0..3]
         let pairs: [(Int, Int)] = []
         let graph = ReferencePseudograph(vertices: 0 ..< 4, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 8)
+        var generator = Xoroshiro128Plus(seed: 8)
         let result = graph.leidenCommunities(using: &generator)
         let expected: [[Int]] = [[0], [1], [2], [3]]
         #expect(result.map { Array($0) } == expected)
@@ -310,7 +311,7 @@ struct LeidenCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q) <= 1e-12)
-        var again = SeededRandomNumberGenerator(seed: 8)
+        var again = Xoroshiro128Plus(seed: 8)
         #expect(graph.leidenCommunities(using: &again) == result, "the same seed again")
     }
 
@@ -319,7 +320,7 @@ struct LeidenCatalogTests {
         // U: 0-0, 1-1
         let pairs: [(Int, Int)] = [(0, 0), (1, 1)]
         let graph = ReferencePseudograph(vertices: 0 ..< 2, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 9)
+        var generator = Xoroshiro128Plus(seed: 9)
         let result = graph.leidenCommunities(using: &generator)
         let expected: [[Int]] = [[0], [1]]
         #expect(result.map { Array($0) } == expected)
@@ -335,7 +336,7 @@ struct LeidenCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.5) <= 1e-12 * max(1, abs(0.5)))
-        var again = SeededRandomNumberGenerator(seed: 9)
+        var again = Xoroshiro128Plus(seed: 9)
         #expect(graph.leidenCommunities(using: &again) == result, "the same seed again")
     }
 
@@ -344,7 +345,7 @@ struct LeidenCatalogTests {
         // U: K(0..2), K(3..5), 2-3, 2-3, 2-3
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (1, 2), (3, 4), (3, 5), (4, 5), (2, 3), (2, 3), (2, 3)]
         let graph = ReferencePseudograph(vertices: 0 ..< 6, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 10)
+        var generator = Xoroshiro128Plus(seed: 10)
         let result = graph.leidenCommunities(using: &generator)
         let expected: [[Int]] = [[0, 1], [2, 3], [4, 5]]
         #expect(result.map { Array($0) } == expected)
@@ -360,7 +361,7 @@ struct LeidenCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.14814814814814814) <= 1e-12 * max(1, abs(0.14814814814814814)))
-        var again = SeededRandomNumberGenerator(seed: 10)
+        var again = Xoroshiro128Plus(seed: 10)
         #expect(graph.leidenCommunities(using: &again) == result, "the same seed again")
     }
 
@@ -369,7 +370,7 @@ struct LeidenCatalogTests {
         // D: C(0,1,2), C(3,4,5), 2>3
         let pairs: [(Int, Int)] = [(0, 1), (1, 2), (2, 0), (3, 4), (4, 5), (5, 3), (2, 3)]
         let graph = ReferenceDirectedMultigraph(vertices: 0 ..< 6, edges: pairs.map { DirectedEdge(from: $0.0, to: $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 11)
+        var generator = Xoroshiro128Plus(seed: 11)
         let result = graph.leidenCommunities(using: &generator)
         let expected: [[Int]] = [[0, 1, 2], [3, 4, 5]]
         #expect(result.map { Array($0) } == expected)
@@ -385,7 +386,7 @@ struct LeidenCatalogTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.36734693877551017) <= 1e-12 * max(1, abs(0.36734693877551017)))
-        var again = SeededRandomNumberGenerator(seed: 11)
+        var again = Xoroshiro128Plus(seed: 11)
         #expect(graph.leidenCommunities(using: &again) == result, "the same seed again")
     }
 
@@ -395,7 +396,7 @@ struct LeidenCatalogTests {
             // U: P(0,1,2)
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.leidenCommunities(randomness: 0, using: &generator)
         }
     }
@@ -406,7 +407,7 @@ struct LeidenCatalogTests {
             // U: P(0,1,2)
             let pairs: [(Int, Int)] = [(0, 1), (1, 2)]
             let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = graph.leidenCommunities(iterations: 0, using: &generator)
         }
     }

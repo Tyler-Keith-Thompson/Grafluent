@@ -10,6 +10,7 @@ import AdjacencyListModule
 import Connectivity
 import DirectedAcyclicGraphModule
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -22,7 +23,7 @@ import Walks
 struct DirectedAcyclicGraphConformanceTests {
     @Test("Over AdjacencyList: Traversal and Connectivity equal the base's, and the order stays topological", arguments: [1, 2, 3, 4, 5])
     func algorithmsOverAdjacencyList(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 6 + seed * 3
         var graph = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: (0 ..< n).shuffled(using: &rng))
         for step in 0 ..< n * 4 {
@@ -80,7 +81,7 @@ struct DirectedAcyclicGraphConformanceTests {
 
     @Test("Over DirectedPseudograph: Traversal and Connectivity equal the base's, and the order stays topological", arguments: [1, 2, 3, 4, 5])
     func algorithmsOverDirectedPseudograph(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(20 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(20 + seed))
         let n = 6 + seed * 3
         var graph = DirectedAcyclicGraph<DirectedPseudograph<Int>>(vertices: (0 ..< n).shuffled(using: &rng))
         for step in 0 ..< n * 4 {
@@ -141,7 +142,7 @@ struct DirectedAcyclicGraphConformanceTests {
 
     @Test("Over StableDirectedGraph with holes: Traversal and Connectivity equal the base's, and the order stays topological", arguments: [1, 2, 3, 4, 5])
     func algorithmsOverStableDirectedGraph(seed: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(40 + seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(40 + seed))
         let n = 6 + seed * 3
         var graph = DirectedAcyclicGraph<StableDirectedGraph<Int>>(vertices: (0 ..< n).shuffled(using: &rng))
         for step in 0 ..< n * 4 {

@@ -6,6 +6,7 @@
 // Case IDs (DS-nn) refer to the catalog; see README.md.
 
 import DisjointSetModule
+import Generators
 import GrafluentTestSupport
 import Testing
 
@@ -84,7 +85,7 @@ struct RepresentativeRuleTests {
     @Test("DS-23 scipy test_binary_tree: after each round find(x) == x − x % 2k", .tags(.randomized), arguments: [5, 10])
     func binaryTree(_ kmax: Int) {
         // The picks come from a seeded generator; the result does not depend on them.
-        var generator = SeededRandomNumberGenerator(seed: UInt(kmax))
+        var generator = Xoroshiro128Plus(seed: UInt64(kmax))
         let n = 1 << kmax
         var d = DisjointSet(count: n)
         var k = 1
@@ -104,7 +105,7 @@ struct RepresentativeRuleTests {
 
     @Test("DS-24 find, queries and failed unions never change a representative", .tags(.randomized), arguments: 1 ... 5)
     func findKeepsRepresentatives(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         var d = DisjointSet(count: 10)
         for (a, b) in [(5, 0), (3, 3), (7, 9), (3, 5), (2, 4), (7, 6), (8, 8), (1, 6), (7, 7), (8, 1)] { d.union(a, b) }
         let expected = [0, 7, 2, 0, 2, 0, 7, 7, 7, 7]
@@ -129,7 +130,7 @@ struct RepresentativeRuleTests {
 
     @Test("DS-25 argument order never matters: union(a, b) and union(b, a) leave the same representatives", .tags(.randomized), arguments: 1 ... 10)
     func argumentOrder(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 200
         let pairs = (0 ..< 400).map { _ in (Int.random(in: 0 ..< n, using: &generator), Int.random(in: 0 ..< n, using: &generator)) }
         var p = DisjointSet(count: n)

@@ -5,6 +5,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -27,7 +28,7 @@ struct DirectedEdgeIndexTests {
                 #expect(Array(graph.outEdges(ofIndex: graph.vertexIndex(of: v))) == Array(graph.outEdges(of: v)))
             }
         }
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 2_900)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 2_900))
         let n = 12
         var edges: [DirectedEdge<Int>] = []
         for _ in 0 ..< 40 { edges.append(DirectedEdge(from: Int.random(in: 0 ..< n, using: &generator), to: Int.random(in: 0 ..< n, using: &generator))) }
@@ -50,7 +51,7 @@ struct DirectedEdgeIndexTests {
                 #expect(graph.inEdges(of: v).map { graph.source(ofEdgeAt: $0) } == Array(graph.predecessors(of: v)))
             }
         }
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 3_100)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 3_100))
         let n = 12
         var edges: [DirectedEdge<Int>] = []
         for _ in 0 ..< 40 { edges.append(DirectedEdge(from: Int.random(in: 0 ..< n, using: &generator), to: Int.random(in: 0 ..< n, using: &generator))) }

@@ -13,6 +13,7 @@
 import AdjacencyListModule
 import BipartiteGraphs
 import ColoringModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -24,7 +25,7 @@ struct ColoringPropertyTests {
     func everyStrategy() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 24)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -87,7 +88,7 @@ struct ColoringPropertyTests {
     func strategiesWrittenOut() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 26)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -219,7 +220,7 @@ struct ColoringPropertyTests {
     func shuffledOrder() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 24)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -243,7 +244,7 @@ struct ColoringPropertyTests {
     func chromaticNumber() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 30)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -300,7 +301,7 @@ struct ColoringPropertyTests {
     func lexicographicallyFirstRule() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 22)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -368,7 +369,7 @@ struct ColoringPropertyTests {
     func bipartiteGraphs() async throws {
         let edges = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 0 ... 18)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 6), Gen.int(in: 1 ... 6), Gen.int(in: 0 ... 1_000_000)) { raw, l, r, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let n = l + r
             // Left 0..<l, right l..<n, all listed in one shuffled order; parallel edges kept.
             let pairs = raw.map { ($0.0 % l, l + $0.1 % r) }.map { seed % 2 == 0 ? $0 : ($0.1, $0.0) }
@@ -459,7 +460,7 @@ struct ColoringPropertyTests {
     func misraGries() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 34)
         await propertyCheck(count: 300, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             // A simple graph: self-loops dropped, each pair kept at its first occurrence, as written.
             var kept = Set<[Int]>()
             var pairs: [(Int, Int)] = []
@@ -565,7 +566,7 @@ struct ColoringPropertyTests {
     func edgeColoringWithHub() async {
         let edges = zip(Gen.int(in: 0 ... 199), Gen.int(in: 0 ... 199)).array(of: 0 ... 150)
         await propertyCheck(count: 100, input: edges, Gen.int(in: 20 ... 200), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let hub = seed % n
             // Misra–Gries: the hub joined to every vertex, then the random pairs, simple, as written.
             var kept = Set<[Int]>()
@@ -803,7 +804,7 @@ struct ColoringPropertyTests {
     func checksAgainstDefinitions() async {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 14)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })

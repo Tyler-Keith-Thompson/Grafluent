@@ -14,6 +14,7 @@
 
 import AdjacencyListModule
 import Distances
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -39,7 +40,7 @@ private struct ShuffledPseudograph: Graph {
         }
         var listed = Array(0 ..< vertexCount)
         if seed != 0 {
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             rows = rows.map { $0.shuffled(using: &rng) }
             listed.shuffle(using: &rng)
         }
@@ -74,7 +75,7 @@ private struct ShuffledDigraph: DirectedGraph {
         for (k, edge) in edges.enumerated() { rows[edge.source].append(k) }
         var listed = Array(0 ..< vertexCount)
         if seed != 0 {
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             rows = rows.map { $0.shuffled(using: &rng) }
             listed.shuffle(using: &rng)
         }
@@ -513,7 +514,7 @@ struct DistancePropertyTests {
                 count = a + 3
                 pairs = (1 ... a + 2).map { (0, $0) } + (1 ..< a + 2).map { ($0, $0 + 1) } + [(a + 2, 1)]
             }
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             if seed != 0 {
                 pairs.shuffle(using: &rng)
                 pairs = pairs.map { Bool.random(using: &rng) ? ($0.1, $0.0) : $0 }
@@ -563,7 +564,7 @@ struct DistancePropertyTests {
         let weights = Gen.int(in: 0 ... 3).array(of: 14)
         await propertyCheck(count: 200, input: choices, weights, Gen.int(in: 0 ... 1_000_000)) { choice, w, seed in
             let n = choice.count + 1
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             var pairs = (0 ..< choice.count).map { (choice[$0] % ($0 + 1), $0 + 1) }
             if seed != 0 {
                 pairs.shuffle(using: &rng)

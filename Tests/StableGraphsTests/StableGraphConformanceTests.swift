@@ -7,6 +7,7 @@
 
 import Connectivity
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -19,7 +20,7 @@ import Traversal
 struct StableGraphConformanceTests {
     @Test("Algorithms on graphs with many holes agree with the compacted copy, positions mapped", arguments: [1, 2, 3, 4, 5, 6, 7, 8])
     func algorithmsWithManyHoles(seed: Int) throws {
-        var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let n = 12 + seed * 5
         var graph = StableDirectedGraph<Int>(vertices: 0 ..< n)
         for _ in 0 ..< n * 4 {
@@ -103,7 +104,7 @@ struct StableGraphConformanceTests {
 
     @Test("A DAG with many holes sorts topologically, as its compacted copy does")
     func topologicalSortWithHoles() throws {
-        var rng = SeededRandomNumberGenerator(seed: 41)
+        var rng = Xoroshiro128Plus(seed: 41)
         let n = 60
         var graph = StableDirectedGraph<Int>(vertices: 0 ..< n)
         for _ in 0 ..< 300 {

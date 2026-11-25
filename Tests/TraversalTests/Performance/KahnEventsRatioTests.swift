@@ -8,6 +8,7 @@
 
 import AdjacencyListModule
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -19,7 +20,7 @@ struct KahnEventsRatioTests {
     func ratio() async {
         await Task {
             let n = 100_000
-            var rng = SeededRandomNumberGenerator(seed: 284)
+            var rng = Xoroshiro128Plus(seed: 284)
             var seen = Set<DirectedEdge<Int>>()
             while seen.count < 1_000_000 {
                 let a = Int.random(in: 0 ..< n, using: &rng), b = Int.random(in: 0 ..< n, using: &rng)

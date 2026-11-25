@@ -9,6 +9,7 @@
 // must be kept. Weisfeiler–Leman partitions are checked against colour refinement written out, and
 // relabelled copies must hash equal. See README.md.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import IsomorphismModule
@@ -24,7 +25,7 @@ struct IsomorphismPropertyTests {
         let shape = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 1_000_000))
         await propertyCheck(count: 400, input: edges, edges, shape) { targetRaw, patternRaw, shape in
             let (n, k, flags, seed) = shape
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let useVertexColors = flags & 1 != 0, useEdgeColors = flags & 2 != 0, relabel = flags & 4 != 0
             // The target on 0..<n; the pattern on k vertices, or for an isomorphism a relabelled copy
             // of the target (half of the time) so that positive answers are common.
@@ -125,7 +126,7 @@ struct IsomorphismPropertyTests {
         let shape = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 1_000_000))
         await propertyCheck(count: 400, input: arcs, arcs, shape) { targetRaw, patternRaw, shape in
             let (n, k, flags, seed) = shape
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let useVertexColors = flags & 1 != 0, useEdgeColors = flags & 2 != 0, relabel = flags & 4 != 0
             let target = n == 0 ? [] : targetRaw.map { [$0.0 % n, $0.1 % n, $0.2] }
             let targetColors = (0 ..< n).map { _ in useVertexColors ? Int.random(in: 0 ... 1, using: &rng) : 0 }
@@ -214,7 +215,7 @@ struct IsomorphismPropertyTests {
         let shape = zip(Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 1_000_000))
         await propertyCheck(count: 300, input: edges, shape) { raw, shape in
             let (n, k, flags, seed) = shape
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let directed = flags & 1 != 0, useVertexColors = flags & 2 != 0, useEdgeColors = flags & 4 != 0
             let list = raw.map { [$0.0 % n, $0.1 % n, useEdgeColors ? $0.2 : 0] }
             let colors = (0 ..< n).map { _ in useVertexColors ? Int.random(in: 0 ... 1, using: &rng) : 0 }

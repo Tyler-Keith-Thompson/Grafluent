@@ -5,6 +5,7 @@
 // refer to the catalog; see README.md.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -16,7 +17,7 @@ import Trees
 struct RandomSpanningTreeTests {
     @Test("ST-240 the trivial graphs: no vertices, one vertex, a self-loop")
     func trivial() {
-        var rng = SeededRandomNumberGenerator(seed: 170)
+        var rng = Xoroshiro128Plus(seed: 170)
         let empty = UndirectedAdjacencyList<Int>()
         #expect(empty.randomSpanningTree(using: &rng).edges == [])
         #expect(empty.randomSpanningTree(using: &rng).weight == 0)
@@ -37,7 +38,7 @@ struct RandomSpanningTreeTests {
     @Test("ST-241 K4: each of its 16 spanning trees about equally often")
     func uniformOnK4() {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(0, 3), UndirectedEdge(1, 2), UndirectedEdge(1, 3), UndirectedEdge(2, 3)])
-        var rng = SeededRandomNumberGenerator(seed: 171)
+        var rng = Xoroshiro128Plus(seed: 171)
         var counts: [Set<Int>: Int] = [:]
         let draws = 32_000
         for _ in 0 ..< draws {
@@ -58,7 +59,7 @@ struct RandomSpanningTreeTests {
         // Triangle 0–1, 1–2, 2–0 with 0–1 doubled: trees are any 2 of the 3 sides, with either copy
         // of 0–1: {a, 1–2}, {b, 1–2}, {a, 2–0}, {b, 2–0}, {1–2, 2–0}: 5 trees.
         let graph = ReferencePseudograph(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 0)])
-        var rng = SeededRandomNumberGenerator(seed: 172)
+        var rng = Xoroshiro128Plus(seed: 172)
         var counts: [[Int]: Int] = [:]
         let draws = 25_000
         for _ in 0 ..< draws { counts[graph.randomSpanningTree(using: &rng).edges.sorted(), default: 0] += 1 }
@@ -96,7 +97,7 @@ struct RandomSpanningTreeTests {
         }
         #expect(products.count == 8)
         let sum = products.values.reduce(0, +)
-        var rng = SeededRandomNumberGenerator(seed: 173)
+        var rng = Xoroshiro128Plus(seed: 173)
         var counts: [Set<Int>: Int] = [:]
         let draws = 40_000
         for _ in 0 ..< draws {
@@ -119,8 +120,8 @@ struct RandomSpanningTreeTests {
     func reproducibleForest() {
         // Two triangles and an isolated vertex.
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 7, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 0), UndirectedEdge(3, 4), UndirectedEdge(4, 5), UndirectedEdge(5, 3)])
-        var a = SeededRandomNumberGenerator(seed: 174)
-        var b = SeededRandomNumberGenerator(seed: 174)
+        var a = Xoroshiro128Plus(seed: 174)
+        var b = Xoroshiro128Plus(seed: 174)
         for _ in 0 ..< 50 {
             let first = graph.randomSpanningTree(using: &a)
             let second = graph.randomSpanningTree(using: &b)
@@ -130,8 +131,8 @@ struct RandomSpanningTreeTests {
             #expect(forest.vertexCount == 7)
             #expect(forest.edgeCount == 4)
         }
-        var c = SeededRandomNumberGenerator(seed: 175)
-        var d = SeededRandomNumberGenerator(seed: 175)
+        var c = Xoroshiro128Plus(seed: 175)
+        var d = Xoroshiro128Plus(seed: 175)
         let third = graph.randomSpanningTree(weight: { _ in 1.5 }, using: &c)
         let fourth = graph.randomSpanningTree(weight: { _ in 1.5 }, using: &d)
         #expect(third == fourth)
@@ -140,19 +141,19 @@ struct RandomSpanningTreeTests {
     @Test("ST-245 a zero, negative, infinite or NaN weight traps", .tags(.precondition))
     func traps() async {
         await #expect(processExitsWith: .failure) {
-            var rng = SeededRandomNumberGenerator(seed: 1)
+            var rng = Xoroshiro128Plus(seed: 1)
             _ = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 1)]).randomSpanningTree(weight: { _ in 0.0 }, using: &rng)
         }
         await #expect(processExitsWith: .failure) {
-            var rng = SeededRandomNumberGenerator(seed: 1)
+            var rng = Xoroshiro128Plus(seed: 1)
             _ = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 1)]).randomSpanningTree(weight: { _ in -1.0 }, using: &rng)
         }
         await #expect(processExitsWith: .failure) {
-            var rng = SeededRandomNumberGenerator(seed: 1)
+            var rng = Xoroshiro128Plus(seed: 1)
             _ = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 1)]).randomSpanningTree(weight: { _ in Double.infinity }, using: &rng)
         }
         await #expect(processExitsWith: .failure) {
-            var rng = SeededRandomNumberGenerator(seed: 1)
+            var rng = Xoroshiro128Plus(seed: 1)
             _ = UndirectedAdjacencyList(edges: [UndirectedEdge(0, 1)]).randomSpanningTree(weight: { _ in Float.nan }, using: &rng)
         }
     }
@@ -174,7 +175,7 @@ struct RandomSpanningTreePropertyTests {
             }
             for e in raw { parent[find(e.0)] = find(e.1) }
             let components = Set((0 ..< n).map(find)).count
-            var rng = SeededRandomNumberGenerator(seed: UInt(raw.count))
+            var rng = Xoroshiro128Plus(seed: UInt64(raw.count))
             for tree in [graph.randomSpanningTree(using: &rng).edges, graph.randomSpanningTree(weight: { Double($0 % 3 + 1) }, using: &rng).edges] {
                 #expect(tree.count == n - components)
                 var forestParent = Array(0 ..< n)

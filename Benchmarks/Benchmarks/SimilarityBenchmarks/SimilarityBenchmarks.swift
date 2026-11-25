@@ -6,6 +6,7 @@ import Glibc
 import AdjacencyListModule
 import Benchmark
 import BenchmarkSupport
+import Generators
 import GraphProtocols
 import Similarity
 
@@ -103,7 +104,7 @@ let benchmarks: @Sendable () -> Void = {
     // G(10⁵, 5·10⁵) and 10⁵ random pairs; the pairs two steps apart are the usual link-prediction
     // candidates, and share neighbors.
     let sparse = simple(100_000, 500_000, 11)
-    var rng = SeededRandomNumberGenerator(seed: 12)
+    var rng = Xoroshiro128Plus(seed: 12)
     let random = (0 ..< 100_000).map { _ in (Int.random(in: 0 ..< 100_000, using: &rng), Int.random(in: 0 ..< 100_000, using: &rng)) }
     var twoHop: [(Int, Int)] = []
     for u in stride(from: 0, to: 100_000, by: 10) {

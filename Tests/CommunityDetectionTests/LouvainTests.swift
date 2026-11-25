@@ -12,6 +12,7 @@
 // `graph.directedView` (the same values). Case IDs (CD-nnn) refer to the catalog; see README.md.
 
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -840,7 +841,7 @@ struct LouvainTests {
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4),
             (3, 4), (5, 6), (5, 7), (5, 8), (5, 9), (6, 7), (6, 8), (6, 9), (7, 8), (7, 9), (8, 9)]
         let graph = ReferencePseudograph(vertices: 0 ..< 10, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let result = graph.louvainCommunities(using: &generator)
         let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
         #expect(result.map { Array($0) } == expected)
@@ -856,7 +857,7 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.5) <= 1e-12 * max(1, abs(0.5)))
-        var again = SeededRandomNumberGenerator(seed: 1)
+        var again = Xoroshiro128Plus(seed: 1)
         #expect(graph.louvainCommunities(using: &again) == result, "the same seed again")
     }
 
@@ -867,7 +868,7 @@ struct LouvainTests {
             (4, 6), (4, 7), (5, 6), (5, 7), (5, 8), (6, 7), (8, 9), (8, 10), (8, 11), (9, 10), (9, 11),
             (9, 12), (10, 11), (12, 13), (12, 14), (12, 15), (13, 14), (13, 15), (14, 15)]
         let graph = ReferencePseudograph(vertices: 0 ..< 16, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 2)
+        var generator = Xoroshiro128Plus(seed: 2)
         let result = graph.louvainCommunities(using: &generator)
         let expected: [[Int]] = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]
         #expect(result.map { Array($0) } == expected)
@@ -883,7 +884,7 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.6071428571428571) <= 1e-12 * max(1, abs(0.6071428571428571)))
-        var again = SeededRandomNumberGenerator(seed: 2)
+        var again = Xoroshiro128Plus(seed: 2)
         #expect(graph.louvainCommunities(using: &again) == result, "the same seed again")
     }
 
@@ -893,7 +894,7 @@ struct LouvainTests {
         let pairs: [(Int, Int)] = [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4),
             (3, 4), (5, 6), (5, 7), (5, 8), (5, 9), (6, 7), (6, 8), (6, 9), (7, 8), (7, 9), (8, 9), (4, 5)]
         let graph = ReferencePseudograph(vertices: 0 ..< 10, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
-        var generator = SeededRandomNumberGenerator(seed: 3)
+        var generator = Xoroshiro128Plus(seed: 3)
         let result = graph.louvainCommunities(using: &generator)
         let expected: [[Int]] = [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]]
         #expect(result.map { Array($0) } == expected)
@@ -909,7 +910,7 @@ struct LouvainTests {
         // The modularity of the result (ref.py's model).
         let q = graph.modularity(of: result)
         #expect(abs(q - 0.45238095238095233) <= 1e-12 * max(1, abs(0.45238095238095233)))
-        var again = SeededRandomNumberGenerator(seed: 3)
+        var again = Xoroshiro128Plus(seed: 3)
         #expect(graph.louvainCommunities(using: &again) == result, "the same seed again")
     }
 

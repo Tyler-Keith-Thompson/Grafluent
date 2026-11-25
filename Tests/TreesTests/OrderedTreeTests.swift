@@ -3,6 +3,7 @@
 // the checked: lookups and descriptions. Expected values are worked by hand from the trees drawn
 // in each test.
 
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -195,7 +196,7 @@ struct OrderedTreeTests {
     func randomTrees() async {
         let choices = Gen.int(in: 0 ... 1_000).array(of: 0 ... 14)
         await propertyCheck(count: 300, input: choices, Gen.int(in: 0 ... 1_000_000)) { choice, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             // Vertex i + 1 hangs from choice mod (i + 1), each vertex's children then shuffled,
             // and the vertices relabelled by a random permutation.
             let n = choice.count + 1

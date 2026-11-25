@@ -13,6 +13,7 @@
 import AdjacencyListModule
 import BipartiteGraphs
 import Covering
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import MatchingModule
@@ -25,7 +26,7 @@ struct CoveringPropertyTests {
     func exactIndependentSet() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 20)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -71,7 +72,7 @@ struct CoveringPropertyTests {
     func exactVertexCover() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 24)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let index = Dictionary(uniqueKeysWithValues: listed.enumerated().map { ($1, $0) })
@@ -130,7 +131,7 @@ struct CoveringPropertyTests {
     func bipartiteCovers() async {
         let edges = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5)).array(of: 0 ... 16)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 6), Gen.int(in: 1 ... 6), Gen.int(in: 0 ... 1_000_000)) { raw, l, r, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let n = l + r
             // Left vertices 0..<l, right l..<n, all listed in one shuffled order.
             let pairs = raw.map { ($0.0 % l, l + $0.1 % r) }
@@ -215,7 +216,7 @@ struct CoveringPropertyTests {
         let edges = zip(Gen.int(in: 0 ... 8), Gen.int(in: 0 ... 8)).array(of: 0 ... 18)
         let weights = Gen.int(in: 0 ... 5).array(of: 9)
         await propertyCheck(count: 400, input: edges, weights, Gen.int(in: 1 ... 9), Gen.int(in: 0 ... 1_000_000)) { raw, rawWeights, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -278,7 +279,7 @@ struct CoveringPropertyTests {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 18)
         let seeds = Gen.int(in: 0 ... 9).array(of: 0 ... 4)
         await propertyCheck(count: 500, input: edges, seeds, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, rawSeeds, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -319,7 +320,7 @@ struct CoveringPropertyTests {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 16)
         let weights = Gen.int(in: 0 ... 4).array(of: 10)
         await propertyCheck(count: 300, input: edges, weights, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, rawWeights, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -386,7 +387,7 @@ struct CoveringPropertyTests {
     func edgeCovers() async {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 13)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -436,7 +437,7 @@ struct CoveringPropertyTests {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 12)
         let picks = Gen.int(in: 0 ... 20).array(of: 0 ... 7)
         await propertyCheck(count: 500, input: edges, picks, Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, rawPicks, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })

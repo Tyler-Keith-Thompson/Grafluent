@@ -5,6 +5,7 @@
 // Tests/Catalogs/GraphProtocols/graph.md.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -398,7 +399,7 @@ struct GraphLawTests {
 
     @Test("UG-P01 the laws on seeded random graphs, the same through every conformer", .tags(.randomized), arguments: [1, 2, 3, 4, 5, 6, 7, 8])
     func randomGraphs(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         let n = Int.random(in: 1 ... 30, using: &generator)
         var edges: [UndirectedEdge<Int>] = []
         for _ in 0 ..< Int.random(in: 0 ... 3 * n, using: &generator) {

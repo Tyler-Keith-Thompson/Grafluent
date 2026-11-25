@@ -14,6 +14,7 @@
 
 import AdjacencyListModule
 import Flows
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Multigraphs
@@ -126,7 +127,7 @@ struct FlowsStressTests {
     func randomNetwork() async {
         await Task {
             let n = 2_000
-            var rng = SeededRandomNumberGenerator(seed: 26)
+            var rng = Xoroshiro128Plus(seed: 26)
             var ends: [(Int, Int)] = []
             var capacities: [Int] = []
             for _ in 0 ..< 10_000 {
@@ -256,7 +257,7 @@ struct FlowsStressTests {
             let ring = cycle.gomoryHuTree(capacity: { _ in 1 })!
             let everyTreeEdgeTwo = (0 ..< 199).allSatisfy { ring.capacity(ofEdgeAt: $0) == 2 }
             #expect(everyTreeEdgeTwo)
-            var rng = SeededRandomNumberGenerator(seed: 5)
+            var rng = Xoroshiro128Plus(seed: 5)
             for _ in 0 ..< 200 {
                 let u = Int.random(in: 0 ..< 200, using: &rng), v = Int.random(in: 0 ..< 200, using: &rng)
                 if u != v {
@@ -340,7 +341,7 @@ struct FlowsStressTests {
     func randomMinimumCost() async {
         await Task {
             for seed in 1 ... 60 {
-                var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+                var rng = Xoroshiro128Plus(seed: UInt64(seed))
                 let n = Int.random(in: 20 ... 60, using: &rng)
                 let m = 4 * n
                 var ends: [(Int, Int)] = [], capacities: [Int] = [], costs: [Int] = []
@@ -413,7 +414,7 @@ struct FlowsStressTests {
     func denseDoubleGlobalCuts() async {
         await Task {
             for seed in 1 ... 1_500 {
-                var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+                var rng = Xoroshiro128Plus(seed: UInt64(seed))
                 let n = Int.random(in: 5 ... 12, using: &rng)
                 var pairs: [(Int, Int)] = []
                 for u in 0 ..< n { for v in (u + 1) ..< n where Int.random(in: 0 ..< 10, using: &rng) < 7 { pairs.append((u, v)) } }
@@ -436,7 +437,7 @@ struct FlowsStressTests {
             // Inputs where a maximum adjacency order that loses track of a heap entry contracts an
             // edge across the minimum cut.
             for (n, degree, seed) in [(27, 3, 93_401), (20, 5, 383_889), (20, 4, 417_141), (20, 5, 93_757), (24, 4, 351_297), (27, 4, 355_005)] {
-                var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+                var rng = Xoroshiro128Plus(seed: UInt64(seed))
                 // Clusters (seed mod 4 of them, 1 meaning none): edges inside a cluster heavy, edges
                 // between light, so the minimum cut is usually a whole cluster.
                 let clusters = 1 + seed % 4
@@ -467,7 +468,7 @@ struct FlowsStressTests {
     @Test("Boykov–Kolmogorov on a 200 × 200 segmentation grid (4-neighbor links both ways, a source and a sink link at every pixel, seeded capacities): push–relabel's value and cut; and grid(150, 150) unit corner to corner, value 2", .timeLimit(.minutes(1)))
     func boykovKolmogorovGrids() async {
         await Task {
-            var rng = SeededRandomNumberGenerator(seed: 2026)
+            var rng = Xoroshiro128Plus(seed: 2026)
             let side = 200
             var edges: [DirectedEdge<Int>] = []
             for r in 0 ..< side {
@@ -525,7 +526,7 @@ struct FlowsStressTests {
     @Test("Cut metrics on a seeded random multigraph of 10⁵ vertices and 5 · 10⁵ edges, directed and undirected: the cut size and volume of the even vertices as counted here", .timeLimit(.minutes(1)))
     func cutMetricsLarge() async {
         await Task {
-            var rng = SeededRandomNumberGenerator(seed: 11)
+            var rng = Xoroshiro128Plus(seed: 11)
             let n = 100_000
             let ends = (0 ..< 500_000).map { _ in (Int.random(in: 0 ..< n, using: &rng), Int.random(in: 0 ..< n, using: &rng)) }
             let s = stride(from: 0, to: n, by: 2)
@@ -546,7 +547,7 @@ struct FlowsStressTests {
     @Test("A feasible circulation on a seeded random network of 3,000 vertices and 15,000 edges with lower bounds on a planted circulation: within the bounds and conserved; raising one lower bound past every capacity around it gives a barrier that violates Gale's condition", .timeLimit(.minutes(1)))
     func circulationLarge() async {
         await Task {
-            var rng = SeededRandomNumberGenerator(seed: 5)
+            var rng = Xoroshiro128Plus(seed: 5)
             let n = 3_000
             // A planted circulation: random cycles, each carrying 1 … 5, so lower bounds below it are feasible.
             var ends: [(Int, Int)] = []

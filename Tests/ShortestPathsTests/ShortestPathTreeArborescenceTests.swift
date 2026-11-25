@@ -6,6 +6,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import ShortestPaths
@@ -56,7 +57,7 @@ struct ShortestPathTreeArborescenceTests {
 
     @Test("SP-140 every search's tree converts, on seeded random digraphs", .tags(.randomized), arguments: 0 ..< 8)
     func everySearch(seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(140 + seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(140 + seed))
         let n = 25
         let arcs = (0 ..< 60).map { _ in DirectedEdge(from: Int.random(in: 0 ..< n, using: &generator), to: Int.random(in: 0 ..< n, using: &generator)) }
         let graph = AdjacencyList(vertices: 0 ..< n, edges: arcs)

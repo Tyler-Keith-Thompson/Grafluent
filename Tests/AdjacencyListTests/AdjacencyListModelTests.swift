@@ -6,6 +6,7 @@
 // Each test is self-contained, so the model is written out in each.
 
 import AdjacencyListModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -14,7 +15,7 @@ import Testing
 struct AdjacencyListModelTests {
     @Test("P-01 / P-03 / P-06 random operations on Int vertices", .timeLimit(.minutes(1)), arguments: 0 ..< 100 as Range<UInt>)
     func intVertices(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var graph = AdjacencyList<Int>()
         var model: [Int: Set<Int>] = [:]
 
@@ -80,7 +81,7 @@ struct AdjacencyListModelTests {
 
     @Test("random operations with every vertex in one hash bucket", .timeLimit(.minutes(1)), arguments: 0 ..< 25 as Range<UInt>)
     func collidingVertices(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var graph = AdjacencyList<Collider>()
         var model: [Collider: Set<Collider>] = [:]
 
@@ -127,7 +128,7 @@ struct AdjacencyListModelTests {
 
     @Test("random operations on String vertices", .timeLimit(.minutes(1)), arguments: 0 ..< 25 as Range<UInt>)
     func stringVertices(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var graph = AdjacencyList<String>()
         var model: [String: Set<String>] = [:]
 
@@ -173,7 +174,7 @@ struct AdjacencyListModelTests {
 
     @Test("growth past many reallocations", .timeLimit(.minutes(1)), arguments: 0 ..< 5 as Range<UInt>)
     func largeUniverse(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var graph = AdjacencyList<Int>()
         var model: [Int: Set<Int>] = [:]
 

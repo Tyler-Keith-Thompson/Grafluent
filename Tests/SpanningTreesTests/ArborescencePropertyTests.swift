@@ -5,6 +5,7 @@
 
 import AdjacencyListModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -16,7 +17,7 @@ import Trees
 struct ArborescencePropertyTests {
     @Test("ST-215 rooted and unrooted spanning arborescences and branchings reach the brute-force optimum", arguments: [1, 2, 3, 5, 6])
     func bruteForce(n: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(120_000 + n))
+        var rng = Xoroshiro128Plus(seed: UInt64(120_000 + n))
         for _ in 0 ..< 150 {
             let m = Int.random(in: 0 ... min(3 * n, 12), using: &rng)
             var raw: [(Int, Int, Int)] = []
@@ -121,7 +122,7 @@ struct ArborescencePropertyTests {
 
     @Test("ST-216 unsigned weights give the same optima as their signed copies")
     func unsignedWeights() {
-        var rng = SeededRandomNumberGenerator(seed: 121)
+        var rng = Xoroshiro128Plus(seed: 121)
         for _ in 0 ..< 300 {
             let n = Int.random(in: 1 ... 9, using: &rng)
             var raw: [(Int, Int, Int)] = []
@@ -144,7 +145,7 @@ struct ArborescencePropertyTests {
 
     @Test("ST-217 the optimum is the least over roots of the rooted optimum, on larger graphs")
     func unrootedIsBestRoot() {
-        var rng = SeededRandomNumberGenerator(seed: 122)
+        var rng = Xoroshiro128Plus(seed: 122)
         for _ in 0 ..< 60 {
             let n = Int.random(in: 1 ... 40, using: &rng)
             var sources: [Int] = [], targets: [Int] = [], weights: [Int] = []

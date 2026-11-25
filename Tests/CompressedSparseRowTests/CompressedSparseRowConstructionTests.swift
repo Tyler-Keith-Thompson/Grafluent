@@ -4,6 +4,7 @@
 import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -74,7 +75,7 @@ struct CompressedSparseRowConstructionTests {
 
     @Test("CSR-C07 construction is order-independent: identical arrays for any edge order", .tags(.randomized), arguments: 0 ..< 20 as Range<UInt>)
     func orderIndependence(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         for fixture in [DirectedFixture<Int>.boost24, .boostWebGraph, .jgraphtSparseDirected, .petgraphBellmanFord] {
             let reference = CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges)
             let reversed = CompressedSparseRow(vertexCount: fixture.vertexCount, edges: fixture.edges.reversed())

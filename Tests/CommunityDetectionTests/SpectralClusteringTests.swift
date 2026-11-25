@@ -4,6 +4,7 @@
 
 import AdjacencyListModule
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -28,7 +29,7 @@ struct SpectralClusteringTests {
         for base in [0, 5] { for u in 0 ..< 5 { for v in u + 1 ..< 5 { edges.append(UndirectedEdge(base + u, base + v)) } } }
         edges.append(UndirectedEdge(4, 5))
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 10, edges: edges)
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let clusters = try graph.spectralClustering(clusterCount: 2, using: &generator)
         #expect(clusters.count == 2)
         #expect(Array(clusters[0]) == [0, 1, 2, 3, 4] && Array(clusters[1]) == [5, 6, 7, 8, 9])
@@ -53,7 +54,7 @@ struct SpectralClusteringTests {
         }
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 120, edges: edges)
         for seed in 0 ..< 5 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let clusters = try graph.spectralClustering(clusterCount: 3, using: &generator)
             #expect(clusters.count == 3)
             #expect(Array(clusters[0]) == Array(stride(from: 0, to: 120, by: 3)), "seed \(seed)")
@@ -67,7 +68,7 @@ struct SpectralClusteringTests {
         // The rows before normalization have their least inertia with vertex 2 on the other side.
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 8, edges: [UndirectedEdge(0, 1), UndirectedEdge(0, 2), UndirectedEdge(0, 5), UndirectedEdge(1, 6), UndirectedEdge(2, 3), UndirectedEdge(3, 4), UndirectedEdge(4, 7)])
         for seed in 0 ..< 5 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let clusters = try graph.spectralClustering(clusterCount: 2, using: &generator)
             #expect(clusters.map(Array.init) == [[0, 1, 5, 6], [2, 3, 4, 7]], "seed \(seed)")
         }
@@ -101,7 +102,7 @@ struct SpectralClusteringTests {
     @Test("Components are clusters when the count is the number of components")
     func components() throws {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 7, edges: [UndirectedEdge(0, 3), UndirectedEdge(3, 6), UndirectedEdge(1, 4), UndirectedEdge(2, 5)])
-        var generator = SeededRandomNumberGenerator(seed: 3)
+        var generator = Xoroshiro128Plus(seed: 3)
         let clusters = try graph.spectralClustering(clusterCount: 3, using: &generator)
         #expect(clusters.map(Array.init) == [[0, 3, 6], [1, 4], [2, 5]])
     }
@@ -109,7 +110,7 @@ struct SpectralClusteringTests {
     @Test("A count of 1 is everything; a count of n is one vertex per cluster")
     func bounds() throws {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3)])
-        var generator = SeededRandomNumberGenerator(seed: 5)
+        var generator = Xoroshiro128Plus(seed: 5)
         #expect(try graph.spectralClustering(clusterCount: 1, using: &generator).map(Array.init) == [[0, 1, 2, 3]])
         #expect(try graph.spectralClustering(clusterCount: 4, using: &generator).map(Array.init) == [[0], [1], [2], [3]])
         // Identical rows (K3's vertices are alike to two clusters): still exactly the count asked for.
@@ -122,7 +123,7 @@ struct SpectralClusteringTests {
     @Test("The same seed gives the same clustering; the system generator overload answers too")
     func determinism() throws {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 12, edges: (0 ..< 12).map { UndirectedEdge($0, ($0 + 1) % 12) })
-        var a = SeededRandomNumberGenerator(seed: 11), b = SeededRandomNumberGenerator(seed: 11)
+        var a = Xoroshiro128Plus(seed: 11), b = Xoroshiro128Plus(seed: 11)
         let first = try graph.spectralClustering(clusterCount: 3, using: &a)
         let second = try graph.spectralClustering(clusterCount: 3, using: &b)
         #expect(first == second)
@@ -133,7 +134,7 @@ struct SpectralClusteringTests {
     @Test("Weights: a weight-0 middle edge cuts the path into its halves")
     func weights() throws {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 6, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2), UndirectedEdge(2, 3), UndirectedEdge(3, 4), UndirectedEdge(4, 5)])
-        var generator = SeededRandomNumberGenerator(seed: 2)
+        var generator = Xoroshiro128Plus(seed: 2)
         let clusters = try graph.spectralClustering(clusterCount: 2, weight: { [9.0, 9, 0, 9, 9][$0] }, using: &generator)
         #expect(clusters.map(Array.init) == [[0, 1, 2], [3, 4, 5]])
         let single = try graph.spectralClustering(clusterCount: 2, weight: { [Float(9), 9, 0, 9, 9][$0] }, using: &generator)
@@ -143,7 +144,7 @@ struct SpectralClusteringTests {
     @Test("community(checked:) and community(ofIndex:) agree with community(of:); a graph without indices")
     func lookups() throws {
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 4, edges: [UndirectedEdge(0, 1), UndirectedEdge(2, 3)])
-        var generator = SeededRandomNumberGenerator(seed: 4)
+        var generator = Xoroshiro128Plus(seed: 4)
         let clusters = try graph.spectralClustering(clusterCount: 2, using: &generator)
         for v in 0 ..< 4 {
             #expect(try clusters.community(checked: v) == clusters.community(of: v))
@@ -165,37 +166,37 @@ struct SpectralClusteringTrapTests {
     func preconditions() async throws {
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = try graph.spectralClustering(clusterCount: 4, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = try graph.spectralClustering(clusterCount: 0, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = try graph.spectralClustering(clusterCount: 2, using: &generator).community(of: 7)
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = try graph.spectralClustering(clusterCount: 2, tolerance: 0, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = try graph.spectralClustering(clusterCount: 2, maxIterations: 0, using: &generator)
         }
         await #expect(processExitsWith: .failure) {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-            var generator = SeededRandomNumberGenerator(seed: 1)
+            var generator = Xoroshiro128Plus(seed: 1)
             _ = try graph.spectralClustering(clusterCount: 2, weight: { [1.0, -1][$0] }, using: &generator)
         }
         // Without the faults.
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1), UndirectedEdge(1, 2)])
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         #expect(try graph.spectralClustering(clusterCount: 3, using: &generator).count == 3)
         #expect(try graph.spectralClustering(clusterCount: 1, using: &generator).community(of: 2) == 0)
         #expect(try graph.spectralClustering(clusterCount: 2, tolerance: 1e-6, maxIterations: 1_000, using: &generator).count == 2)
@@ -219,7 +220,7 @@ struct SpectralClusteringPropertyTests {
                 start += size
             }
             let graph = ReferencePseudograph(vertices: 0 ..< start, edges: edges)
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let clusters = try graph.spectralClustering(clusterCount: sizes.count, using: &generator)
             #expect(clusters.map(Array.init) == blocks, "sizes \(sizes), seed \(seed)")
         }

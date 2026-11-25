@@ -4,6 +4,7 @@
 // integers with 0 included. The oracles use only the definitions over the edge list. Each body is a
 // nested function, so no closure inside an `#expect` sits inside the property's closure.
 
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -18,7 +19,7 @@ struct EigenpairsPropertyTests {
             let edges = raw.map { UndirectedEdge($0.0 % n, $0.1 % n) }
             let weights = raw.map { $0.2 }
             var listed = Array(0 ..< n)
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             listed.shuffle(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: edges)
             let count = min(k, n)
@@ -138,7 +139,7 @@ struct EigenpairsPropertyTests {
         func check(_ raw: [(Int, Int, Int)], _ n: Int, _ seed: Int) {
             let edges = raw.map { UndirectedEdge($0.0 % n, $0.1 % n) }
             var listed = Array(0 ..< n)
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             listed.shuffle(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: edges)
             var position = [Int](repeating: 0, count: n)

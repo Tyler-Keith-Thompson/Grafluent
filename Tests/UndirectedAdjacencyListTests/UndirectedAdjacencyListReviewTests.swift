@@ -3,6 +3,7 @@
 
 import AdjacencyListModule
 import Foundation
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -111,7 +112,7 @@ struct UndirectedAdjacencyListReviewTests {
 
     @Test("UG-P02 random insertions and removals keep every law, against a set model", .tags(.randomized), arguments: 1 ... 12)
     func randomMutations(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 2_200)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 2_200))
         var graph = UndirectedAdjacencyList<Int>()
         var vertices: Set<Int> = []
         var edges: Set<UndirectedEdge<Int>> = []

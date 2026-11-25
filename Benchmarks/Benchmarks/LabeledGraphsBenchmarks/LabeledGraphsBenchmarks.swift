@@ -4,6 +4,7 @@ import Benchmark
 import BenchmarkSupport
 import CompressedSparseRowModule
 import Connectivity
+import Generators
 import GraphProtocols
 import LabeledGraphs
 import ShortestPaths
@@ -49,7 +50,7 @@ let benchmarks: @Sendable () -> Void = {
     let csr = CompressedSparseRow(vertexCount: n, edges: edges)
     let labeled = try! LabeledGraph(csr, labels: names)
     let namedEdges = edges.map { DirectedEdge(from: names[$0.source], to: names[$0.target]) }
-    var generator = SeededRandomNumberGenerator(seed: 5)
+    var generator = Xoroshiro128Plus(seed: 5)
     let weights = edges.map { _ in Int.random(in: 1 ... 1000, using: &generator) }
 
     // Matrix: 4096 vertices, 10⁶ random edges.

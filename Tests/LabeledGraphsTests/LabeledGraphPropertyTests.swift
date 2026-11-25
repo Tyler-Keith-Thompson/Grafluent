@@ -11,6 +11,7 @@
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import Foundation
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import LabeledGraphs
@@ -141,7 +142,7 @@ struct LabeledGraphPropertyTests {
     func equalityAgainstModel() async {
         let edges = zip(Gen.int(in: 0 ... 4), Gen.int(in: 0 ... 4)).array(of: 0 ... 12)
         await propertyCheck(count: 300, input: edges, edges, Gen.int(in: 0 ... 1_000)) { first, second, seed in
-            var rng = SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let lhsEdges = first.map { DirectedEdge(from: "v\($0.0)", to: "v\($0.1)") }
             let rhsEdges = second.map { DirectedEdge(from: "v\($0.0)", to: "v\($0.1)") }
             let extra = seed % 3 == 0 ? ["v9"] : []

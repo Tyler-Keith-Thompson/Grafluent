@@ -2,6 +2,7 @@
 
 import AdjacencyListModule
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -13,7 +14,7 @@ struct InfomapStressTests {
         var edges: [UndirectedEdge<Int>] = []
         for c in 0 ..< 25_000 { for i in 0 ..< 4 { for j in i + 1 ..< 4 { edges.append(UndirectedEdge(4 * c + i, 4 * c + j)) } } }
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 100_000, edges: edges)
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         let result = graph.infomapCommunities(trials: 1, using: &generator)
         #expect(result.count == 25_000)
         #expect(result.allSatisfy { $0.count == 4 && $0.first! % 4 == 0 && $0.last! == $0.first! + 3 })
@@ -27,7 +28,7 @@ struct InfomapStressTests {
             edges.append(UndirectedEdge(5 * c + 4, (5 * c + 5) % 5000))
         }
         let graph = UndirectedAdjacencyList(vertices: 0 ..< 5000, edges: edges)
-        var generator = SeededRandomNumberGenerator(seed: 2)
+        var generator = Xoroshiro128Plus(seed: 2)
         let result = graph.infomapCommunities(trials: 2, using: &generator)
         let cliques = (0 ..< 1000).map { c in Array(5 * c ..< 5 * c + 5) }
         #expect(result.map(Array.init) == cliques)

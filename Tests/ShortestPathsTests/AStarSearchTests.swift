@@ -6,6 +6,7 @@
 
 import AdjacencyListModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Multigraphs
@@ -116,7 +117,7 @@ struct AStarSearchTests {
 
     @Test("SP-204 a zero heuristic examines vertices in lazy.dijkstra's order, up to the target")
     func zeroHeuristic() {
-        var rng = SeededRandomNumberGenerator(seed: 204)
+        var rng = Xoroshiro128Plus(seed: 204)
         let edges = (0 ..< 300).map { _ in DirectedEdge(from: Int.random(in: 0 ..< 60, using: &rng), to: Int.random(in: 0 ..< 60, using: &rng)) }
         let graph = CompressedSparseRow(vertexCount: 60, edges: edges)
         let weights = (0 ..< graph.edgeCount).map { _ in Int.random(in: 0 ... 9, using: &rng) }

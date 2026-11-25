@@ -7,6 +7,7 @@
 
 import AdjacencyListModule
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -102,7 +103,7 @@ struct SearchReferenceTests {
             g.lazy.depthFirstSearch().forEach { pushed.append($0.description) }
             #expect(pushed == referenceDepthFirst(g, roots: all, limit: nil), "\(name) whole graph, pushed")
         }
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 700)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 700))
         for n in [1, 3, 8, 20] {
             var pairs: [(Int, Int)] = []
             for _ in 0 ..< Int.random(in: 0 ... 3 * n, using: &generator) {
@@ -131,7 +132,7 @@ struct SearchReferenceTests {
 
     @Test("TR-178 the topological sort, cycle and reachability answers match references on graphs without indices and with String vertices", arguments: [1, 2, 3, 4, 5, 6])
     func queries(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 800)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 800))
         for n in [1, 4, 12] {
             var edges: [DirectedEdge<String>] = []
             for _ in 0 ..< Int.random(in: 0 ... 2 * n, using: &generator) {

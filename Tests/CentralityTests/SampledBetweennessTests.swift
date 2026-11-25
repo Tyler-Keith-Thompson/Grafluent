@@ -7,6 +7,7 @@ import AdjacencyListModule
 import AdjacencyMatrixModule
 import Centrality
 import CompressedSparseRowModule
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -25,7 +26,7 @@ struct SampledBetweennessTests {
                 #expect(graph.betweennessCentrality(weight: { w[$0] }, pivots: 0 ..< 7, normalized: normalized, endpoints: endpoints).scores == graph.betweennessCentrality(weight: { w[$0] }, normalized: normalized, endpoints: endpoints).scores)
                 #expect(arcs.betweennessCentrality(pivots: 0 ..< 7, normalized: normalized, endpoints: endpoints).scores == arcs.betweennessCentrality(normalized: normalized, endpoints: endpoints).scores)
                 #expect(arcs.betweennessCentrality(weight: { w[$0] }, pivots: 0 ..< 7, normalized: normalized, endpoints: endpoints).scores == arcs.betweennessCentrality(weight: { w[$0] }, normalized: normalized, endpoints: endpoints).scores)
-                var generator = SeededRandomNumberGenerator(seed: 7)
+                var generator = Xoroshiro128Plus(seed: 7)
                 #expect(graph.betweennessCentrality(pivotCount: 7, normalized: normalized, endpoints: endpoints, using: &generator).scores == graph.betweennessCentrality(normalized: normalized, endpoints: endpoints).scores)
                 #expect(arcs.betweennessCentrality(weight: { w[$0] }, pivotCount: 7, normalized: normalized, endpoints: endpoints, using: &generator).scores == arcs.betweennessCentrality(weight: { w[$0] }, normalized: normalized, endpoints: endpoints).scores)
             }
@@ -33,7 +34,7 @@ struct SampledBetweennessTests {
             #expect(graph.edgeBetweennessCentrality(weight: { w[$0] }, pivots: 0 ..< 7, normalized: normalized).scores == graph.edgeBetweennessCentrality(weight: { w[$0] }, normalized: normalized).scores)
             #expect(arcs.edgeBetweennessCentrality(pivots: 0 ..< 7, normalized: normalized).scores == arcs.edgeBetweennessCentrality(normalized: normalized).scores)
             #expect(arcs.edgeBetweennessCentrality(weight: { w[$0] }, pivots: 0 ..< 7, normalized: normalized).scores == arcs.edgeBetweennessCentrality(weight: { w[$0] }, normalized: normalized).scores)
-            var generator = SeededRandomNumberGenerator(seed: 11)
+            var generator = Xoroshiro128Plus(seed: 11)
             #expect(graph.edgeBetweennessCentrality(pivotCount: 7, normalized: normalized, using: &generator).scores == graph.edgeBetweennessCentrality(normalized: normalized).scores)
             #expect(arcs.edgeBetweennessCentrality(weight: { w[$0] }, pivotCount: 7, normalized: normalized, using: &generator).scores == arcs.edgeBetweennessCentrality(weight: { w[$0] }, normalized: normalized).scores)
         }
@@ -47,27 +48,27 @@ struct SampledBetweennessTests {
         for seed in UInt(0) ..< 20 {
             for k in 1 ... 6 {
                 // The oracle's draw: swap position i with i + next(upperBound: n − i).
-                var oracle = SeededRandomNumberGenerator(seed: seed)
+                var oracle = Xoroshiro128Plus(seed: UInt64(seed))
                 var numbers = Array(0 ..< 6)
                 for i in 0 ..< k { numbers.swapAt(i, i + Int(oracle.next(upperBound: UInt64(6 - i)))) }
                 let pivots = Array(numbers.prefix(k))
-                var generator = SeededRandomNumberGenerator(seed: seed)
+                var generator = Xoroshiro128Plus(seed: UInt64(seed))
                 #expect(graph.betweennessCentrality(pivotCount: k, using: &generator).scores.map(\.bitPattern) == graph.betweennessCentrality(pivots: pivots).scores.map(\.bitPattern), "seed \(seed), k \(k)")
                 // The draw consumes k values: the generators stay in step.
                 #expect(generator.next() == oracle.next())
-                generator = SeededRandomNumberGenerator(seed: seed)
+                generator = Xoroshiro128Plus(seed: UInt64(seed))
                 #expect(graph.betweennessCentrality(weight: { _ in 3 }, pivotCount: k, endpoints: true, using: &generator).scores == graph.betweennessCentrality(pivots: pivots, endpoints: true).scores)
-                generator = SeededRandomNumberGenerator(seed: seed)
+                generator = Xoroshiro128Plus(seed: UInt64(seed))
                 #expect(graph.edgeBetweennessCentrality(pivotCount: k, using: &generator).scores == graph.edgeBetweennessCentrality(pivots: pivots).scores)
-                generator = SeededRandomNumberGenerator(seed: seed)
+                generator = Xoroshiro128Plus(seed: UInt64(seed))
                 #expect(graph.edgeBetweennessCentrality(weight: { _ in 1 }, pivotCount: k, normalized: false, using: &generator).scores == graph.edgeBetweennessCentrality(pivots: pivots, normalized: false).scores)
-                generator = SeededRandomNumberGenerator(seed: seed)
+                generator = Xoroshiro128Plus(seed: UInt64(seed))
                 #expect(arcs.betweennessCentrality(pivotCount: k, normalized: false, using: &generator).scores.map(\.bitPattern) == arcs.betweennessCentrality(pivots: pivots, normalized: false).scores.map(\.bitPattern))
-                generator = SeededRandomNumberGenerator(seed: seed)
+                generator = Xoroshiro128Plus(seed: UInt64(seed))
                 #expect(arcs.betweennessCentrality(weight: { _ in 1 }, pivotCount: k, using: &generator).scores.map(\.bitPattern) == arcs.betweennessCentrality(pivots: pivots).scores.map(\.bitPattern))
-                generator = SeededRandomNumberGenerator(seed: seed)
+                generator = Xoroshiro128Plus(seed: UInt64(seed))
                 #expect(arcs.edgeBetweennessCentrality(pivotCount: k, using: &generator).scores == arcs.edgeBetweennessCentrality(pivots: pivots).scores)
-                generator = SeededRandomNumberGenerator(seed: seed)
+                generator = Xoroshiro128Plus(seed: UInt64(seed))
                 #expect(arcs.edgeBetweennessCentrality(weight: { _ in 2 }, pivotCount: k, normalized: false, using: &generator).scores == arcs.edgeBetweennessCentrality(pivots: pivots, normalized: false).scores)
             }
         }
@@ -76,7 +77,7 @@ struct SampledBetweennessTests {
     @Test("Small graphs: an empty graph takes no pivots; with n ≤ 2 (n < 2 for edges and endpoints) nothing is scaled")
     func degenerate() {
         let empty = UndirectedAdjacencyList<Int>()
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         #expect(empty.betweennessCentrality(pivots: []).scores.isEmpty)
         #expect(empty.betweennessCentrality(pivotCount: 0, using: &generator).scores.isEmpty)
         #expect(empty.edgeBetweennessCentrality(pivots: []).scores.isEmpty)

@@ -3,6 +3,7 @@ import BenchmarkSupport
 import CompressedSparseRowModule
 import Connectivity
 import FunctionalGraphs
+import Generators
 import GraphProtocols
 import Traversal
 
@@ -12,7 +13,7 @@ let benchmarks: @Sendable () -> Void = {
 
     // A random mapping on 10⁶ vertices: expected cycle length √(πn/8) ≈ 627, long tails.
     let n = 1_000_000
-    var rng = SeededRandomNumberGenerator(seed: 21)
+    var rng = Xoroshiro128Plus(seed: 21)
     let successors = (0 ..< n).map { _ in Int.random(in: 0 ..< n, using: &rng) }
     let graph = FunctionalGraph(successors: successors)
     let csr = CompressedSparseRow(vertexCount: n, edges: (0 ..< n).map { DirectedEdge(from: $0, to: successors[$0]) })

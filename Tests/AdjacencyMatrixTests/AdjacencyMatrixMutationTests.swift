@@ -2,6 +2,7 @@
 // AM-Lnn) refer to the case catalog.
 
 import AdjacencyMatrixModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -110,7 +111,7 @@ struct AdjacencyMatrixMutationTests {
     @Test("AM-E04 removing an edge leaves every other edge intact", .tags(.randomized), arguments: 0 ..< 10 as Range<UInt>)
     func removeLeavesOthers(seed: UInt) {
         // 100 vertices, 0–4 random successors each.
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         var edges = Set<DirectedEdge<Int>>()
         for u in 0 ..< 100 {
             for _ in 0 ..< Int.random(in: 0 ... 4, using: &rng) {
@@ -151,7 +152,7 @@ struct AdjacencyMatrixMutationTests {
 
     @Test("AM-E07 inserting the same edges in any order gives equal matrices", .tags(.randomized), arguments: 1 ... 10 as ClosedRange<UInt>)
     func insertionOrder(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let fixture = DirectedFixture<Int>.boost24
         var a = AdjacencyMatrix(vertexCount: 24)
         for edge in fixture.edges { a.insert(edge: edge) }
@@ -227,7 +228,7 @@ struct AdjacencyMatrixGrowthTests {
         arguments: [0, 1, 3, 4, 7, 8, 31, 32, 63, 64, 65, 127, 128], [1, 2, 64]
     )
     func growthPreservesCells(start: Int, appended: Int) {
-        var rng = SeededRandomNumberGenerator(seed: UInt(start * 1000 + appended))
+        var rng = Xoroshiro128Plus(seed: UInt64(start * 1000 + appended))
         var cells = Set<DirectedEdge<Int>>()
         for i in 0 ..< start {
             for j in 0 ..< start where Int.random(in: 0 ..< 4, using: &rng) == 0 {

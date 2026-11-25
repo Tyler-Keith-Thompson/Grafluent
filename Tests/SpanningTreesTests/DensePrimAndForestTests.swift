@@ -6,6 +6,7 @@
 
 import AdjacencyListModule
 import AdjacencyMatrixModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import PropertyBased
@@ -17,7 +18,7 @@ import Trees
 struct DensePrimTests {
     @Test("ST-135 complete graphs K₉…K₁₆ with tied weights: the canonical forest, as Kruskal gives it", arguments: 9 ... 16)
     func completeGraphs(n: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(n))
+        var generator = Xoroshiro128Plus(seed: UInt64(n))
         let pairs = (0 ..< n).flatMap { u in (u + 1 ..< n).map { UndirectedEdge(u, $0) } }
         let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: pairs)
         // Weights 0...3, so most comparisons are ties broken by position.
@@ -87,7 +88,7 @@ struct DensePrimTests {
             }
         }
         let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: edges)
-        var generator = SeededRandomNumberGenerator(seed: 139)
+        var generator = Xoroshiro128Plus(seed: 139)
         // Each parallel pair equal, so only the position breaks the tie.
         var weights = [Int](repeating: 0, count: graph.edgeCount)
         var loops = Set<Int>()
@@ -130,7 +131,7 @@ struct DensePrimTests {
         var edges = (0 ..< 12).flatMap { u in (u + 1 ..< 12).map { UndirectedEdge(u, $0) } }
         edges.append(UndirectedEdge(12, 13))
         let two = UndirectedAdjacencyList(vertices: 0 ..< 14, edges: edges)
-        var generator = SeededRandomNumberGenerator(seed: 140)
+        var generator = Xoroshiro128Plus(seed: 140)
         let weights = (0 ..< two.edgeCount).map { _ in Int.random(in: -5 ... 5, using: &generator) }
         let forest = two.minimumSpanningTree { weights[$0] }
         #expect(forest == two.kruskalMinimumSpanningTree { weights[$0] })
@@ -150,7 +151,7 @@ struct DensePrimTests {
     @Test("ST-141 vertex indices without edge indices (AdjacencyMatrix.undirectedView, ReferencePseudograph): ranks are offsets in edges")
     func withoutEdgeIndices() {
         let n = 10
-        var generator = SeededRandomNumberGenerator(seed: 141)
+        var generator = Xoroshiro128Plus(seed: 141)
         let arcs = (0 ..< n).flatMap { u in (u + 1 ..< n).map { DirectedEdge(from: u, to: $0) } }
         let matrix = AdjacencyMatrix(vertexCount: n, edges: arcs).undirectedView
         let offset = Dictionary(uniqueKeysWithValues: matrix.edges.indices.enumerated().map { ($1, $0) })
@@ -170,7 +171,7 @@ struct DensePrimTests {
         let n = 9
         let pairs = (0 ..< n).flatMap { u in (u + 1 ..< n).map { UndirectedEdge(u, $0) } }
         let graph = UndirectedAdjacencyList(vertices: 0 ..< n, edges: pairs)
-        var generator = SeededRandomNumberGenerator(seed: 142)
+        var generator = Xoroshiro128Plus(seed: 142)
         // Every edge at vertex 8 is +∞, so the tree takes exactly one of them.
         let finite: [Double] = [-1.5, 0, 2.25]
         let up = graph.edges.map { $0.v == 8 ? Double.infinity : finite.randomElement(using: &generator)! }
@@ -199,7 +200,7 @@ struct DensePrimTests {
 struct HeapCanonicalPrimTests {
     @Test("ST-149 30 vertices and 150 edges (4n ≤ m < n²/4): the heap's canonical forest, with and without edge indices", arguments: 0 ..< 6)
     func betweenThresholds(seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(149 + seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(149 + seed))
         let n = 30
         let raw = (0 ..< 150).map { _ in (Int.random(in: 0 ..< n, using: &generator), Int.random(in: 0 ..< n, using: &generator), Int.random(in: 0 ... 3, using: &generator)) }
         let order = raw.indices.filter { raw[$0].0 != raw[$0].1 }.sorted { (raw[$0].2, $0) < (raw[$1].2, $1) }
@@ -230,7 +231,7 @@ struct HeapCanonicalPrimTests {
 struct BelowTheDenseThresholdTests {
     @Test("ST-150 AdjacencyMatrix.undirectedView with 4n ≤ m < n²/4: the heap's ranks are offsets in edges")
     func matrixBetweenThresholds() {
-        var generator = SeededRandomNumberGenerator(seed: 150)
+        var generator = Xoroshiro128Plus(seed: 150)
         let n = 30
         var arcs = Set<DirectedEdge<Int>>()
         while arcs.count < 160 {
@@ -342,7 +343,7 @@ struct SpanningForestConversionTests {
 
     @Test("ST-146 every algorithm's forest converts, on Int 0..<n and on String vertices")
     func everyAlgorithm() {
-        var generator = SeededRandomNumberGenerator(seed: 146)
+        var generator = Xoroshiro128Plus(seed: 146)
         let n = 12
         var pairs: [UndirectedEdge<Int>] = []
         for _ in 0 ..< 30 { pairs.append(UndirectedEdge(Int.random(in: 0 ..< n, using: &generator), Int.random(in: 0 ..< n, using: &generator))) }

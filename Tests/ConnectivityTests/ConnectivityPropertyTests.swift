@@ -9,6 +9,7 @@ import AdjacencyListModule
 import AdjacencyMatrixModule
 import CompressedSparseRowModule
 import Connectivity
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -27,7 +28,7 @@ private struct DictionaryGraph<Vertex: Hashable>: DirectedGraph {
 struct ConnectivityPropertyTests {
     @Test("CN-114 – CN-118 / CN-48 strong components partition the vertices, match mutual reachability, are reverse topological, survive reversal and agree with Kosaraju", arguments: 1 ... 10)
     func strongComponents(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         for n in [0, 1, 2, 5, 10, 40] {
             for p in [0.05, 0.2, 0.5] {
                 for _ in 0 ..< 5 {
@@ -116,7 +117,7 @@ struct ConnectivityPropertyTests {
 
     @Test("CN-119 a graph is acyclic iff every strong component is a singleton and there are no self-loops", arguments: 1 ... 10)
     func acyclicity(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 100)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 100))
         for n in [0, 1, 2, 5, 10, 40] {
             for p in [0.05, 0.2, 0.5] {
                 for _ in 0 ..< 5 {
@@ -140,7 +141,7 @@ struct ConnectivityPropertyTests {
 
     @Test("CN-120 weak components equal a union–find in the documented order, and strong components refine them", arguments: 1 ... 10)
     func weakComponents(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 200)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 200))
         for n in [0, 1, 2, 5, 10, 40] {
             for p in [0.05, 0.2, 0.5] {
                 for _ in 0 ..< 5 {
@@ -192,7 +193,7 @@ struct ConnectivityPropertyTests {
 
     @Test("CN-121 condensation and attracting-component laws", arguments: 1 ... 10)
     func condensation(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 300)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 300))
         for n in [0, 1, 2, 5, 10, 40] {
             for p in [0.05, 0.2, 0.5] {
                 for _ in 0 ..< 5 {
@@ -234,7 +235,7 @@ struct ConnectivityPropertyTests {
 
     @Test("CN-122 / CN-123 dominators equal brute force and Cooper–Harvey–Kennedy, and frontiers equal Cytron's definition", arguments: 1 ... 10)
     func dominators(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 400)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 400))
         for n in [1, 2, 5, 10, 40] {
             for p in [0.05, 0.2, 0.5] {
                 for _ in 0 ..< 5 {
@@ -362,7 +363,7 @@ struct ConnectivityPropertyTests {
 
     @Test("CN-124 relabeling maps components to components and immediate dominators to immediate dominators", arguments: 1 ... 10)
     func relabeling(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 500)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 500))
         for n in [1, 2, 5, 10, 40] {
             for p in [0.05, 0.2, 0.5] {
                 for _ in 0 ..< 5 {
@@ -394,7 +395,7 @@ struct ConnectivityPropertyTests {
 
     @Test("CN-125 representations agree: matrix and CSR exactly, the ReferenceDirectedMultigraph and the unindexed conformer in the same order, adjacency lists as partitions", arguments: 1 ... 10)
     func representationsAgree(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 600)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 600))
         for n in [0, 1, 2, 5, 10, 40] {
             for p in [0.05, 0.2, 0.5] {
                 for _ in 0 ..< 5 {
@@ -457,7 +458,7 @@ struct ConnectivityPropertyTests {
 
     @Test("CN-126 computing twice gives equal results", arguments: 1 ... 10)
     func determinism(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed) &+ 700)
+        var generator = Xoroshiro128Plus(seed: UInt64(UInt(seed) &+ 700))
         for n in [0, 1, 2, 5, 10, 40] {
             for p in [0.05, 0.2, 0.5] {
                 for _ in 0 ..< 5 {

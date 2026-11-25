@@ -7,6 +7,7 @@
 
 import CompressedSparseRowModule
 import Connectivity
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import ImplicitGraphs
@@ -83,7 +84,7 @@ struct ImplicitGraphStressTests {
             struct P: Hashable {
                 var x, y: Int
             }
-            var rng = SeededRandomNumberGenerator(seed: 21)
+            var rng = Xoroshiro128Plus(seed: 21)
             for _ in 0 ..< 200 {
                 let m = Int.random(in: 2 ... 9, using: &rng)
                 let goal = P(x: Int.random(in: -12 ... 12, using: &rng), y: Int.random(in: -12 ... 12, using: &rng))

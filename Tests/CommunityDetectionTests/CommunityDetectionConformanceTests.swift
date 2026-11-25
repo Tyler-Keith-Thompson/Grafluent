@@ -16,6 +16,7 @@
 import AdjacencyListModule
 import CommunityDetection
 import Connectivity
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -46,9 +47,9 @@ private struct PlainDigraph<Vertex: Hashable>: DirectedGraph {
 
 /// A seeded generator that counts the words drawn from it.
 private struct CountingGenerator: RandomNumberGenerator {
-    var base: SeededRandomNumberGenerator
+    var base: Xoroshiro128Plus
     var draws = 0
-    init(seed: UInt) { base = SeededRandomNumberGenerator(seed: seed) }
+    init(seed: UInt) { base = Xoroshiro128Plus(seed: UInt64(seed)) }
     mutating func next() -> UInt64 {
         draws += 1
         return base.next()
@@ -179,8 +180,8 @@ struct CommunityDetectionConformanceTests {
     @Test("CD-083, CD-115, CD-133, CD-143, CD-042, CD-069 from generic code over some Graph, and CD-108, CD-131, CD-065 over some DirectedGraph")
     func genericCode() {
         func undirected<G: Graph>(_ g: G, _ communities: [[G.Vertex]]) -> ([[[G.Vertex]]], Double, Double) {
-            var generator = SeededRandomNumberGenerator(seed: 5)
-            var again = SeededRandomNumberGenerator(seed: 5)
+            var generator = Xoroshiro128Plus(seed: 5)
+            var again = Xoroshiro128Plus(seed: 5)
             let results = [
                 g.louvainCommunities().map { Array($0) },
                 g.louvainCommunities(using: &generator).map { Array($0) },
@@ -364,8 +365,8 @@ struct CommunityDetectionConformanceTests {
         let w = (0 ..< pairs.count).map { Double($0 % 7 + 1) / 3 }
         func all<G: Graph>(_ g: G) -> [[[Int]]] where G.Vertex == Int {
             let offset = { (p: G.Edges.Index) in g.edges.distance(from: g.edges.startIndex, to: p) }
-            var generator = SeededRandomNumberGenerator(seed: 11)
-            var again = SeededRandomNumberGenerator(seed: 12)
+            var generator = Xoroshiro128Plus(seed: 11)
+            var again = Xoroshiro128Plus(seed: 12)
             return [
                 g.louvainCommunities().map { Array($0) },
                 g.louvainCommunities(weight: { w[offset($0)] }).map { Array($0) },
@@ -447,7 +448,7 @@ struct CommunityDetectionConformanceTests {
         let cliques: [[Int]] = [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]]
         var found = false
         for seed in UInt(1) ... 20 {
-            var generator = SeededRandomNumberGenerator(seed: seed)
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let result = graph.asynchronousLabelPropagationCommunities(using: &generator)
             if result.map({ Array($0) }) == cliques { found = true }
         }
@@ -466,7 +467,7 @@ struct CommunityDetectionConformanceTests {
         let karate = ReferencePseudograph(vertices: 0 ..< 34, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         var partitions = Set<[[Int]]>()
         for seed in UInt(1) ... 20 {
-            var generator = SeededRandomNumberGenerator(seed: seed)
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             partitions.insert(karate.louvainCommunities(using: &generator).map { Array($0) })
         }
         #expect(partitions.count > 1)

@@ -6,6 +6,7 @@
 
 import AdjacencyListModule
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import PropertyBased
@@ -123,7 +124,7 @@ struct OverlappingAndWalkCommunitiesTests {
         let graph = ReferencePseudograph(vertices: 0 ..< 10, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
         var cliques = 0
         for seed in 0 ..< 20 {
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             let result = graph.asynchronousFluidCommunities(count: 2, using: &generator)
             if result.map({ Array($0) }) == [Array(0 ..< 5), Array(5 ..< 10)] { cliques += 1 }
             #expect(graph.asynchronousFluidCommunities(count: 1, using: &generator).map { Array($0) } == [Array(0 ..< 10)])
@@ -133,7 +134,7 @@ struct OverlappingAndWalkCommunitiesTests {
         // Seeds in the same clique can give an uneven split; most seeds give the cliques.
         #expect(cliques >= 10)
         #expect(graph.asynchronousFluidCommunities(count: 2).reduce(0) { $0 + $1.count } == 10)
-        var generator = SeededRandomNumberGenerator(seed: 1)
+        var generator = Xoroshiro128Plus(seed: 1)
         #expect(ReferencePseudograph<Int>(vertices: [0], edges: []).asynchronousFluidCommunities(count: 1, using: &generator).map { Array($0) } == [[0]])
         // One sweep from seeds the queue never reaches leaves vertices alone: a path of 6, k = 1.
         let path = ReferencePseudograph(vertices: 0 ..< 6, edges: (0 ..< 5).map { UndirectedEdge($0, $0 + 1) })
@@ -203,7 +204,7 @@ struct OverlappingAndWalkCommunitiesTests {
                 }
             }
             if seen.count == n {
-                var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+                var generator = Xoroshiro128Plus(seed: UInt64(seed))
                 let k = 1 + seed % n
                 let fluid = graph.asynchronousFluidCommunities(count: k, using: &generator)
                 #expect(fluid.reduce(0) { $0 + $1.count } == n)

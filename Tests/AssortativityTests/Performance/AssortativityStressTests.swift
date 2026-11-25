@@ -7,6 +7,7 @@
 
 import AdjacencyListModule
 import Assortativity
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -70,7 +71,7 @@ struct AssortativityStressTests {
     func randomDigraph() async {
         await Task {
             let n = 20_000
-            var rng = SeededRandomNumberGenerator(seed: 11)
+            var rng = Xoroshiro128Plus(seed: 11)
             let arcs = (0 ..< 100_000).map { _ in DirectedEdge(from: Int.random(in: 0 ..< n, using: &rng), to: Int.random(in: 0 ..< n, using: &rng)) }
             let graph = AdjacencyList(vertices: 0 ..< n, edges: arcs)
             let census = graph.triadicCensus()

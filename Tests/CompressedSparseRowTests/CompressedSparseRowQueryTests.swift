@@ -2,6 +2,7 @@
 // CSR-Lnn, CSR-Enn, CSR-Tnn) refer to the case catalog.
 
 import CompressedSparseRowModule
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import Testing
@@ -170,7 +171,7 @@ struct CompressedSparseRowEdgeIndexTests {
 
     @Test("CSR-E05 an edge's index depends only on the edge set, not on input order or duplicates", .tags(.randomized), arguments: 0 ..< 10 as Range<UInt>)
     func stableAcrossInputOrder(seed: UInt) {
-        var rng = SeededRandomNumberGenerator(seed: seed)
+        var rng = Xoroshiro128Plus(seed: UInt64(seed))
         let edges = DirectedFixture<Int>.boostCsrUnsorted.edges
         let input = (edges + edges.prefix(3)).shuffled(using: &rng)
         let graph = CompressedSparseRow(vertexCount: 6, edges: input)

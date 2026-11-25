@@ -22,6 +22,7 @@ swift_library(
         "//Sources/AdjacencyMatrixModule",
         "//Sources/AdjacencyListModule",
         "//Tests/GrafluentTestSupport",
+        "@swiftpkg_swiftprng//:Generators",
         "@swiftpkg_swift_collections//:BitCollections",
         "@swiftpkg_swift_property_based//:PropertyBased",
     ],

@@ -6,6 +6,7 @@
 // Case IDs (DS-nn) refer to the catalog; see README.md.
 
 import DisjointSetModule
+import Generators
 import GrafluentTestSupport
 import Testing
 
@@ -13,7 +14,7 @@ import Testing
 struct CountAndSizeLawTests {
     @Test("DS-26 setCount is count minus the unions that merged, after every step", arguments: 1 ... 10)
     func setCountLaw(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         for n in [1, 10, 100] {
             var d = DisjointSet(count: n)
             var merges = 0
@@ -32,7 +33,7 @@ struct CountAndSizeLawTests {
 
     @Test("DS-27 sizes match sets(), add up to count, and add on a merge", arguments: 1 ... 10)
     func sizeLaws(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         for n in [1, 10, 100] {
             var d = DisjointSet(count: n)
             for _ in 0 ..< 3 * n {
@@ -117,7 +118,7 @@ struct SetsAndLabelsTests {
 
     @Test("DS-30 sets(), labels(), inSameSet and setSize agree, are canonical, and work on a let", .tags(.randomized), arguments: 1 ... 10)
     func consistency(_ seed: Int) {
-        var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         for n in [1, 10, 100] {
             var d = DisjointSet(count: n)
             for _ in 0 ..< 3 * n {

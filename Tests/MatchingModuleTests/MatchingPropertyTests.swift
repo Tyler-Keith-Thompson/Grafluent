@@ -12,6 +12,7 @@
 
 import AdjacencyListModule
 import BipartiteGraphs
+import Generators
 import GraphProtocols
 import GrafluentTestSupport
 import MatchingModule
@@ -24,7 +25,7 @@ struct MatchingPropertyTests {
     func maximumAgainstBruteForce() async {
         let edges = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7)).array(of: 0 ... 14)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -99,7 +100,7 @@ struct MatchingPropertyTests {
     func edmondsExact() async {
         let edges = zip(Gen.int(in: 0 ... 9), Gen.int(in: 0 ... 9)).array(of: 0 ... 22)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 10), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
             let graph = ReferencePseudograph(vertices: listed, edges: pairs.map { UndirectedEdge($0.0, $0.1) })
@@ -199,7 +200,7 @@ struct MatchingPropertyTests {
     func hopcroftKarp() async {
         let edges = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6)).array(of: 0 ... 18)
         await propertyCheck(count: 400, input: edges, Gen.int(in: 1 ... 7), Gen.int(in: 1 ... 7), Gen.int(in: 0 ... 1_000_000)) { raw, l, r, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let leftOrder = seed == 0 ? Array(0 ..< l) : Array(0 ..< l).shuffled(using: &rng)
             let rightOrder = seed == 0 ? Array(l ..< l + r) : Array(l ..< l + r).shuffled(using: &rng)
             let given = raw.map { (u: $0.0 % l, v: l + $0.1 % r) }
@@ -301,7 +302,7 @@ struct MatchingPropertyTests {
     func weightedAgainstBruteForce() async {
         let triples = zip(Gen.int(in: 0 ... 7), Gen.int(in: 0 ... 7), Gen.int(in: -4 ... 9)).array(of: 0 ... 13)
         await propertyCheck(count: 400, input: triples, Gen.int(in: 1 ... 8), Gen.int(in: 0 ... 1_000_000)) { raw, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             let weights = raw.map { $0.2 }
             let listed = seed == 0 ? Array(0 ..< n) : Array(0 ..< n).shuffled(using: &rng)
@@ -367,7 +368,7 @@ struct MatchingPropertyTests {
     @Test("linearSumAssignment against brute force over every assignment, with forbidden pairs, maximize and transposition")
     func assignmentAgainstBruteForce() async {
         await propertyCheck(count: 500, input: Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 1_000_000)) { rowCount, columnCount, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             // Tie-heavy entries in -3 ... 3, a fifth of them forbidden.
             let matrix: [[Int?]] = (0 ..< rowCount).map { _ in
                 (0 ..< columnCount).map { _ in Int.random(in: 0 ..< 5, using: &rng) == 0 ? nil : Int.random(in: -3 ... 3, using: &rng) }
@@ -426,7 +427,7 @@ struct MatchingPropertyTests {
     func fullMatchingAgainstBruteForce() async {
         let triples = zip(Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5), Gen.int(in: -3 ... 6)).array(of: 0 ... 16)
         await propertyCheck(count: 400, input: triples, Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 1_000_000)) { raw, l, r, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let leftOrder = seed == 0 ? Array(0 ..< l) : Array(0 ..< l).shuffled(using: &rng)
             let rightOrder = seed == 0 ? Array(l ..< l + r) : Array(l ..< l + r).shuffled(using: &rng)
             // Repeats of a pair are dropped by BipartiteGraph; the first one's weight is kept.
@@ -502,7 +503,7 @@ struct MatchingPropertyTests {
     @Test("stableMatching is stable, proposer-optimal and matches the agents every stable matching matches, by brute force; swapped, reviewer-optimal")
     func stableAgainstBruteForce() async {
         await propertyCheck(count: 500, input: Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 5), Gen.int(in: 0 ... 1_000_000)) { P, R, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             // Each list a random subset in random order; acceptability needs both lists.
             let proposers: [[Int]] = (0 ..< P).map { _ in Array((0 ..< R).shuffled(using: &rng).prefix(Int.random(in: 0 ... R, using: &rng))) }
             let reviewers: [[Int]] = (0 ..< R).map { _ in Array((0 ..< P).shuffled(using: &rng).prefix(Int.random(in: 0 ... P, using: &rng))) }
@@ -576,7 +577,7 @@ struct MatchingPropertyTests {
         let edges = zip(Gen.int(in: 0 ... 6), Gen.int(in: 0 ... 6)).array(of: 0 ... 12)
         let picks = Gen.int(in: 0 ... 20).array(of: 0 ... 6)
         await propertyCheck(count: 500, input: edges, picks, Gen.int(in: 1 ... 7), Gen.int(in: 0 ... 1_000_000)) { raw, rawPicks, n, seed in
-            var rng = GrafluentTestSupport.SeededRandomNumberGenerator(seed: UInt(seed))
+            var rng = Xoroshiro128Plus(seed: UInt64(seed))
             let pairs = raw.map { ($0.0 % n, $0.1 % n) }
             guard !pairs.isEmpty else { return }
             let candidate = rawPicks.map { $0 % pairs.count }

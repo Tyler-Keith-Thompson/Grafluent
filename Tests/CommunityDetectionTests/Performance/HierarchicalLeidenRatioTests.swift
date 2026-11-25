@@ -8,6 +8,7 @@
 
 import AdjacencyListModule
 import CommunityDetection
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -18,7 +19,7 @@ struct HierarchicalLeidenRatioTests {
     func ratio() async {
         await Task {
             let blocks = 100, size = 200
-            var rng = SeededRandomNumberGenerator(seed: 907)
+            var rng = Xoroshiro128Plus(seed: 907)
             var edges: [UndirectedEdge<Int>] = []
             for v in 0 ..< blocks * size {
                 let block = v / size
@@ -28,12 +29,12 @@ struct HierarchicalLeidenRatioTests {
             let graph = UndirectedAdjacencyList(vertices: 0 ..< blocks * size, edges: edges)
 
             func hierarchy() -> Int {
-                var generator = SeededRandomNumberGenerator(seed: 1)
+                var generator = Xoroshiro128Plus(seed: 1)
                 let result = graph.hierarchicalLeidenCommunities(maximumCommunitySize: blocks * size, using: &generator)
                 return result.count &+ result.levelCount
             }
             func plain() -> Int {
-                var generator = SeededRandomNumberGenerator(seed: 1)
+                var generator = Xoroshiro128Plus(seed: 1)
                 return graph.leidenCommunities(using: &generator).count &+ 1
             }
             #expect(hierarchy() == plain())

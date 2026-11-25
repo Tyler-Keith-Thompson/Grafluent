@@ -10,6 +10,7 @@
 
 import AdjacencyListModule
 import Flows
+import Generators
 import GrafluentTestSupport
 import GraphProtocols
 import Testing
@@ -20,7 +21,7 @@ struct EdmondsKarpEventsRatioTests {
     func ratio() async {
         await Task {
             let n = 3_000
-            var rng = SeededRandomNumberGenerator(seed: 906)
+            var rng = Xoroshiro128Plus(seed: 906)
             var seen = Set<DirectedEdge<Int>>()
             while seen.count < 30_000 {
                 let u = Int.random(in: 0 ..< n, using: &rng), v = Int.random(in: 0 ..< n, using: &rng)
