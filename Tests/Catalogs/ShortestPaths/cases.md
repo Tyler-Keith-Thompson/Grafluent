@@ -212,7 +212,7 @@ Witnesses after the witness rotation (ref). `bellmanFordShortestPaths` returns `
 
 ### J. Properties (seeded random graphs)
 
-`SeededRandomNumberGenerator`; n ∈ {1, 2, 5, 10, 30}, p ∈ {0.05, 0.2, 0.5}, self-loops and (MG) parallel edges allowed, weights `Int` in 0…10 (nonnegative) or −3…10, 50 graphs per cell; every oracle inside the test.
+`Xoroshiro128Plus(seed:)` (SwiftPRNG, `import Generators`); n ∈ {1, 2, 5, 10, 30}, p ∈ {0.05, 0.2, 0.5}, self-loops and (MG) parallel edges allowed, weights `Int` in 0…10 (nonnegative) or −3…10, 50 graphs per cell; every oracle inside the test.
 
 | ID | Property | Source |
 |---|---|---|

@@ -255,7 +255,7 @@ All expectations are NetworkX `bidirectional_shortest_path` on a DiGraph built w
 
 ### L. Properties (seeded random graphs and every fixture)
 
-Random graphs: `SeededRandomNumberGenerator` (`GF:Tests/GrafluentTestSupport/SeededRandomNumberGenerator.swift`), n ∈ {0, 1, 2, 5, 10, 40}, edge probability ∈ {0.05, 0.2, 0.5}, self-loops allowed, 50 graphs per cell, each built as AL, AM, CSR and Multigraph (a Boost-style sweep, bgl-Tdfs:125-135). Every oracle is written inside the test.
+Random graphs: `Xoroshiro128Plus(seed:)` (SwiftPRNG, `import Generators`), n ∈ {0, 1, 2, 5, 10, 40}, edge probability ∈ {0.05, 0.2, 0.5}, self-loops allowed, 50 graphs per cell, each built as AL, AM, CSR and Multigraph (a Boost-style sweep, bgl-Tdfs:125-135). Every oracle is written inside the test.
 
 | ID | Property | Source |
 |---|---|---|

@@ -247,7 +247,7 @@ Values (nx) and (ref), with frontiers given in `vertices` order.
 
 ### N. Properties (seeded random graphs and every fixture)
 
-Random graphs: `SeededRandomNumberGenerator`, n ∈ {0, 1, 2, 5, 10, 40}, p ∈ {0.05, 0.2, 0.5}, self-loops allowed, 50 per cell, each built as AL, AM, CSR, a Multigraph with each edge repeated at random, and a conformer without indices. Every oracle is written inside the test.
+Random graphs: `Xoroshiro128Plus(seed:)` (SwiftPRNG, `import Generators`), n ∈ {0, 1, 2, 5, 10, 40}, p ∈ {0.05, 0.2, 0.5}, self-loops allowed, 50 per cell, each built as AL, AM, CSR, a Multigraph with each edge repeated at random, and a conformer without indices. Every oracle is written inside the test.
 
 | ID | Property | Source |
 |---|---|---|

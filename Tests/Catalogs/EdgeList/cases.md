@@ -253,7 +253,7 @@ The main points:
 | EL-S06 | Sorting a list with duplicates keeps all copies adjacent | `gap4` sorted by `(source, target)`: first 27 elements are `0→0`, last is `13→13` | `elfx.py` |
 | EL-S07 | `reverse()` (in place) equals `reversed()` | — | — |
 | EL-S08 | `partition(by: \.isSelfLoop)` puts loops after the pivot; multiset unchanged | `petgraphCsr1` → 3 non-loops then 3 loops | stdlib `partition` (unstable: test only the multiset and the predicate split) |
-| EL-S09 | `shuffle(using: &SeededRandomNumberGenerator)` keeps the multiset; equal seeds give equal orders | `boost24` | `GrafluentTestSupport/SeededRandomNumberGenerator.swift` |
+| EL-S09 | `shuffle(using: &Xoroshiro128Plus)` keeps the multiset; equal seeds give equal orders | `boost24` | SwiftPRNG `Generators` |
 | EL-S10 | `sort(by:)` on a copy leaves the original untouched (CoW) | — | value semantics |
 | EL-S11 | **Grafluent decision:** no `sort()` without arguments, because `DirectedEdge` is not `Comparable`. If one is added (`where Vertex: Comparable`), it must be lexicographic `(source, target)` and agree with EL-S04 | — | `DirectedEdge` declares only `Hashable` (Sources/GraphProtocols/DirectedEdge.swift) |
 | EL-S12 | Swapping through two slices (`list[0..<2].swapAt(0, 1)` via `withSubrange`-style mutation) writes back to the base | — | `MutableCollection` slice `_modify` |
@@ -450,7 +450,7 @@ These are cases for the future `GraphFormats` edge-list reader and writer, recor
 | EL-W03 | The list owns its edges: mutating the source array after construction does not change the list | `var a = house.edges; let l = EdgeList(a); a[0] = 0→0` → `l[0] == 5→3` | Boost's `edge_list` is a **view**: mutating the vector after construction changes the graph (**verified** `after mutate e0=5->5`) |
 | EL-W04 | `LifetimeTracked` vertices are released when the edges holding them are removed, and when the list is destroyed; no leaks | — | AL suite `LifetimeTests`; `GrafluentTestSupport/LifetimeTracked.swift` |
 | EL-W05 | Copies are independent across tasks (`Sendable`) | — | — |
-| EL-W06 | Model test: seeded random sequences of every mutation applied to an `EdgeList` and to an `[DirectedEdge]` reference stay `elementsEqual` after every step, at sizes 0–200 | seeds from `SeededRandomNumberGenerator` | AL suite `ModelTests`; the reference model is trivial because an edge list *is* an array |
+| EL-W06 | Model test: seeded random sequences of every mutation applied to an `EdgeList` and to an `[DirectedEdge]` reference stay `elementsEqual` after every step, at sizes 0–200 | seeds from `Xoroshiro128Plus(seed:)` (SwiftPRNG) | AL suite `ModelTests`; the reference model is trivial because an edge list *is* an array |
 | EL-W07 | Whether a no-op mutation copies storage is a benchmark property, not tested here | — | AL README last paragraph |
 
 ---
