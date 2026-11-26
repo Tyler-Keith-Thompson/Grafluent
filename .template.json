@@ -1,5 +1,5 @@
 {
-  "commit": "ee10cfdb85b60db2a4ad9849799292cc5b4f250e",
+  "commit": "8d6522ceed4a89ec57818aa64c63298fc489d63f",
   "name": "Grafluent",
   "type": "library",
   "benchmarks": true,
@@ -9,5 +9,6 @@
   "fuzz": true,
   "differential": true,
   "wasm": true,
-  "explore": true
+  "explore": true,
+  "performance": true
 }

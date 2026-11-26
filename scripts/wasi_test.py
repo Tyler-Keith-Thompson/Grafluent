@@ -13,8 +13,8 @@ functions, so the targets run in groups of `--group-size`: GRAFLUENT_WASI_TESTS 
 Package.swift then declares only its test targets and leaves out each test file with an exit test
 (WASI cannot start a child process). Builds go to .build/wasm, logs to .build/wasm/logs.
 
-The toolchain writes one `<Target>-test-runner.wasm` per test target (Swift 6.4), or one
-`<Project>PackageTests.xctest` for the group (6.3); each runs in turn. Without wasm tail calls,
+The toolchain writes one `<Target>-test-runner.wasm` per test target, or, if older, one
+`<Project>PackageTests.xctest` for the group; each runs in turn. Without wasm tail calls,
 every await that doesn't suspend deepens both stacks, so the binaries link a 64 MB stack and run
 with a 256 MB wasm stack, enough for a 10,000-deep chain of such awaits. `--serial` runs a binary's
 tests one at a time (Swift Testing's `--no-parallel`).
@@ -76,15 +76,24 @@ LINEAR_STACK = 64 * 1024 * 1024
 WASM_STACK = 256 * 1024 * 1024
 
 
+class TestBinaries:
+    """The test binaries a group's build wrote, and the group's targets it wrote none for."""
+
+    def __init__(self, binaries, missing):
+        self.binaries = binaries
+        self.missing = missing
+
+
 def test_binaries(products, group):
-    """The test binaries a group's build wrote: one `<Target>-test-runner.wasm` per target (Swift 6.4
-    and later), else the one `<Project>PackageTests.xctest` (Swift 6.3)."""
-    runners = [os.path.join(products, f"{target}-test-runner.wasm") for target in group]
-    runners = [path for path in runners if os.path.isfile(path)]
-    if runners:
-        return runners
+    """The test binaries a group's build wrote: one `<Target>-test-runner.wasm` per target, else (an
+    older toolchain) the one `<Project>PackageTests.xctest`. Once any target has its runner, every
+    target must: one without would otherwise go untested while the group passes."""
+    runners = {target: os.path.join(products, f"{target}-test-runner.wasm") for target in group}
+    written = [target for target in group if os.path.isfile(runners[target])]
+    if written:
+        return TestBinaries([runners[target] for target in written], [t for t in group if t not in written])
     bundle = os.path.join(products, f"{modules.PROJECT}PackageTests.xctest")
-    return [bundle] if os.path.isfile(bundle) else []
+    return TestBinaries([bundle], []) if os.path.isfile(bundle) else TestBinaries([], list(group))
 
 
 def main():
@@ -100,6 +109,12 @@ def main():
     args = parser.parse_args()
     sdk = args.sdk or f"swift-{args.swift}-RELEASE_wasm"
     targets = args.targets.split(",") if args.targets else all_targets()
+    # A name Package.swift doesn't declare would build nothing and run nothing, and the run would
+    # still pass.
+    unknown = [target for target in targets if target not in all_targets()]
+    if unknown:
+        print(f"Unknown test targets: {', '.join(unknown)} (TEST_TARGETS in scripts/modules.py: {', '.join(all_targets())})")
+        return 2
     env = dict(os.environ)
     if args.xcode:
         env["DEVELOPER_DIR"] = os.path.join(args.xcode, "Contents", "Developer")
@@ -112,29 +127,32 @@ def main():
         group = targets[start:start + args.group_size]
         env[f"{modules.PROJECT.upper()}_WASI_TESTS"] = ",".join(group)
         tag = f"{args.configuration}-{start // args.group_size:02}"
+        # Debug builds are testable already; a release one must be too, for `@testable import`.
+        testable = ["-Xswiftc", "-enable-testing"] if args.configuration == "release" else []
         build = ["swiftly", "run", "swift", "build", "-c", args.configuration, "--build-tests",
-                 "--swift-sdk", sdk, "--scratch-path", SCRATCH,
+                 "--swift-sdk", sdk, "--scratch-path", SCRATCH, *testable,
                  # The linear-memory stack, which deep chains of non-suspending awaits overrun.
                  "-Xlinker", "-z", "-Xlinker", f"stack-size={LINEAR_STACK}", f"+{args.swift}"]
         if run(build, env, os.path.join(logs, tag + "-build.log"), args.timeout) != 0:
             print(f"{tag} build FAILED ({', '.join(group)}): see .build/wasm/logs/{tag}-build.log")
             failed.append(tag)
             continue
-        binaries = test_binaries(products, group)
-        if not binaries:
-            print(f"{tag} FAILED ({', '.join(group)}): the build wrote no test binary to .build/wasm/{args.configuration}")
+        found = test_binaries(products, group)
+        if found.missing:
+            print(f"{tag} FAILED: the build wrote no test binary for {', '.join(found.missing)} to .build/wasm/{args.configuration}")
             failed.append(tag)
             continue
-        for binary in binaries:
+        for binary in found.binaries:
             name = os.path.basename(binary).removesuffix(".wasm").removesuffix(".xctest")
             # In parallel by default: on WASI a time limit's timer holds the one thread until it
             # expires, so every time-limited test reports its limit as exceeded. In parallel the
             # timers overlap; one at a time (--serial), each costs its whole limit.
             # The checkout also at its own path, and the binary's real path as argv[0]: SwiftPM's
             # `Bundle.module` finds a module's resource bundle (RESOURCES in scripts/modules.py) by
-            # its absolute path in the build directory (Swift 6.3), or beside Bundle.main (6.4),
-            # which Foundation on WASI takes from argv[0]'s directory. wasmtime passes the file's
-            # name alone, and Bundle.main is then the guest's `/`.
+            # its absolute path in the build directory (with the .xctest layout), or beside
+            # Bundle.main (with -test-runner.wasm), which Foundation on WASI takes from argv[0]'s
+            # directory. wasmtime passes the file's name alone, and Bundle.main is then the guest's
+            # `/`.
             root = os.path.realpath(ROOT)
             test = ["wasmtime", "run", "-W", f"max-wasm-stack={WASM_STACK}", "--dir", ".", "--dir", f"{root}::{root}",
                     "--argv0", os.path.realpath(binary), binary,

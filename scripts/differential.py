@@ -28,7 +28,6 @@ A failing case is written to Differential/Failures/ as JSON for a regression tes
 """
 
 import argparse
-import hashlib
 from fractions import Fraction
 from collections import defaultdict
 import math
@@ -84,13 +83,18 @@ BATCH_TIMEOUT = 120
 CASE_TIMEOUT = 5
 MAX_ISOLATED = 5
 SWIFT = ["env", "-u", "TOOLCHAINS", "xcrun", "--toolchain", "default", "swift"]
-# The justfile's BAZEL_RELEASE: optimized builds keep their own output base, so switching to
-# --config=release does not discard the debug analysis cache. One per checkout, named as the
-# justfile names it (BAZEL_RELEASE_OUTPUT_BASE), so the two share it.
-BAZEL_RELEASE = ["bazel", "--output_base=" + os.path.join(
-    os.path.expanduser("~"), "Library", "Caches", "bazel", "_bazel_" + os.environ.get("USER", "root"),
-    hashlib.sha256((ROOT + ":release").encode()).hexdigest()[:32])]
 BAZEL_TARGET = "//Differential:GrafluentDifferential"
+
+
+def bazel_release():
+    """The justfile's BAZEL_RELEASE: optimized builds keep their own output base, the one
+    `just test-release` uses. Asked of the justfile rather than computed here, so the two can't
+    name different bases (a second one would get a server and a sweep of its own)."""
+    output_base = subprocess.run(["just", "--justfile", os.path.join(ROOT, "justfile"), "--working-directory", ROOT,
+                                  "--evaluate", "BAZEL_RELEASE_OUTPUT_BASE"],
+                                 capture_output=True, text=True, check=True, timeout=60).stdout.strip()
+    return ["bazel", f"--output_base={output_base}"]
+
 
 # Library module -> the section of Differential/main.swift that answers for it.
 SECTIONS = {
@@ -2686,13 +2690,14 @@ def build_library(swiftpm):
         return os.path.join(PACKAGE, ".build", "release", "GrafluentDifferential")
     # The workspace's bazel-bin and bazel-out links stay on the debug output base.
     flags = ["--config=release", "--experimental_convenience_symlinks=ignore"]
-    build = subprocess.run(BAZEL_RELEASE + ["build", *flags, BAZEL_TARGET], cwd=ROOT,
+    bazel = bazel_release()
+    build = subprocess.run(bazel + ["build", *flags, BAZEL_TARGET], cwd=ROOT,
                            capture_output=True, text=True, timeout=1800)
     if build.returncode != 0:
         sys.exit("The differential build failed:\n" + build.stderr[-6000:])
-    where = subprocess.run(BAZEL_RELEASE + ["cquery", *flags, "--output=files", BAZEL_TARGET], cwd=ROOT,
+    where = subprocess.run(bazel + ["cquery", *flags, "--output=files", BAZEL_TARGET], cwd=ROOT,
                            capture_output=True, text=True, timeout=600)
-    root = subprocess.run(BAZEL_RELEASE + ["info", *flags, "execution_root"], cwd=ROOT,
+    root = subprocess.run(bazel + ["info", *flags, "execution_root"], cwd=ROOT,
                           capture_output=True, text=True, timeout=600)
     if where.returncode != 0 or root.returncode != 0 or not where.stdout.strip():
         sys.exit("Could not find the differential executable:\n" + where.stderr[-3000:] + root.stderr[-3000:])

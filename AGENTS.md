@@ -102,6 +102,16 @@ in beside the project's own: keep one definition, holding the project's rows, an
   `Bundle.module`. Not under `Performance/`, which the target leaves out: the speed-reliant tests
   of a `PERFORMANCE_TESTS` target list theirs under `<X>PerformanceTests`, paths relative to
   `Tests/<X>/Performance`, and read them through `Bundle.module` in debug and release alike.
+- Generate a Swift source at build time (overloads for each arity, tables from a data file): the
+  generator is a Bazel executable that writes the source to standard output, or, given output
+  names, gets their paths before a `--`. List it in `GENERATED_SOURCES` under the module or test
+  target (`{"<Module>": [("<Name>", "//tools/<generator>", [<input labels>], [])]}`), create an
+  empty `Generated/<Name>.swift` in the target's directory, then `just modules` and `just sources`.
+  Bazel compiles the generator's output; SwiftPM compiles the copy under `Generated/`, which
+  `just sources` rewrites and `<Name>_test` fails on while it differs from what the generator
+  writes. Commit the copy, and run `just sources` after a change to the generator or its inputs.
+  `check()` refuses a copy that doesn't exist, and a speed-reliant, iOS or firmware target.
+  Simulated benchmarks measure the generator's output, at the copy's path.
 - Add a macro: its compiler plugin is a row in `MACROS` (name, group, description, and only
   package products as dependencies: swift-syntax's, with `swift-syntax` in `PACKAGES`), its sources
   in `Sources/<Plugin>/` (an `@main` `CompilerPlugin` listing the macro types), then `just modules`
@@ -168,6 +178,8 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 | `just mutate <Module> [--all]` | Mutation testing from `scripts/mutants/<Module>.py`: every planted bug must be caught; reports survivors |
 | `just fuzz [Target] [-t secs]` | Time-boxed libFuzzer runs (60 s per target); `just fuzz-regress` replays corpora, `just fuzz-repro <target> <file>` a crash |
 | `just diff [--module X] [--cases N] [--seed S]` | Differential tests against NetworkX, scipy, rustworkx and igraph (pinned, through `uv`) |
+| `just sources` | Rewrite the checked-in copies of generated sources (`GENERATED_SOURCES`) that SwiftPM compiles |
+| `just resolve` | Re-resolve Bazel's SwiftPM dependencies after editing `PACKAGES` |
 | `just bench [--target X]` | Benchmarks; `just bench-compare` against the `main` baseline |
 | `just bench-simulated-compare [--target X]` | Simulated counts (Callgrind in a Linux VM, from `~/workspace/BenchmarkHarness`) against the committed `simulated` baseline; `just bench-simulated [--target X]` re-records it. Both measure only targets whose code changed |
 | `just explore` | The browser explorer as release WebAssembly into `Explore/dist/`; the DocC workflow publishes it at `<pages>/explore/` |
@@ -200,15 +212,18 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 watchOS's arm64_32 and wasm32 have a 32-bit `Int`. `just wasi-test` (`scripts/wasi_test.py`)
 builds the SwiftPM test targets with `swift build --build-tests --swift-sdk
 swift-6.3.3-RELEASE_wasm` through swiftly into `.build/wasm`, then runs each test binary (one
-`<Target>-test-runner.wasm` per target from Swift 6.4, one `GrafluentPackageTests.xctest` before)
+`<Target>-test-runner.wasm` per target, or an older toolchain's one `GrafluentPackageTests.xctest`)
 with `wasmtime run --dir . --dir <checkout>::<checkout> --argv0 <binary's path> <binary>
 --testing-library swift-testing`, logs in `.build/wasm/logs`. The checkout at its own path and the
 binary's path as `argv[0]` are where SwiftPM's `Bundle.module` looks for a module's resource bundle
-(an absolute build path in 6.3, beside `Bundle.main` from 6.4, which WASI's Foundation takes from
-`argv[0]`). Needs swiftly's 6.3.3 toolchain, its WebAssembly SDK (`swift sdk list`; the install
-command is in `Explore/README.md`) and `brew install wasmtime`. If the toolchain crashes on the
-manifest against a newer Xcode's SDK, pass `--xcode /Applications/Xcode-26.2.0.app` (as
-`EXPLORE_XCODE` does for `just explore`).
+(an absolute build path with the `.xctest`, beside `Bundle.main` with the per-target runners, which
+WASI's Foundation takes from `argv[0]`). `-c release` builds with `-enable-testing`, so suites that
+`@testable import` build in release too. A `--targets` name that isn't a test target is refused
+before anything builds, and a group fails when its build wrote no runner for one of its targets.
+Needs swiftly's 6.3.3 toolchain, its WebAssembly SDK (`swift sdk list`; the install command is in
+`Explore/README.md`) and `brew install wasmtime`. If the toolchain crashes on the manifest against a
+newer Xcode's SDK, pass `--xcode /Applications/Xcode-26.2.0.app` (as `EXPLORE_XCODE` does for
+`just explore`).
 
 - One binary of every target can pass wasmtime's limit of a million functions, so targets run in
   groups (`GRAFLUENT_WASI_TESTS` makes `Package.swift` declare only those).
@@ -229,8 +244,9 @@ manifest against a newer Xcode's SDK, pass `--xcode /Applications/Xcode-26.2.0.a
   `path(forResource:ofType:inDirectory:)`, `urls(forResourcesWithExtension:subdirectory:)` and a
   name holding the directory. Look up the directory itself, then append the file:
   `Bundle.module.url(forResource: "Fixtures", withExtension: nil)?.appending(path: "sample.txt")`.
-- A dependency that doesn't build for WASI (NIOPosix and what sits on it) fails the whole build:
-  list its package in `NON_WASI_PACKAGES` (see "Module graph").
+- A dependency that doesn't build for WASI (NIOPosix and what sits on it) fails the whole build.
+  List its package in `NON_WASI_PACKAGES` (see "Module graph"), and put the code and tests that
+  use it under `#if canImport(<its module>)`.
 - A debug build traps in three groups with Swift 6.3.3's WebAssembly SDK: "indirect call type
   mismatch" in SpectralGraphTheory's Lanczos closures, and a `DirectedAcyclicGraph` insertion
   test whose `#expect` closure runs another closure's body. Neither shows natively or in a
@@ -305,10 +321,10 @@ have.
    whose instruction and malloc counts moved less than compare's 5% threshold keeps its recorded
    entry. So the file changes only where a benchmark did, and branches that change different
    benchmarks of one target merge without a conflict. Resolve a conflict by re-recording after
-   the merge, never by hand. A benchmark whose mallocs drop to zero counts as moved. Harness
-   options (`--iterations`, `--filter`) measure uncached and write the same format, keeping the
-   entries that didn't move. To rewrite every entry (a change aimed at cache misses alone), delete
-   the file first.
+   the merge, never by hand. A benchmark whose mallocs drop to zero, or that was measured over a
+   different number of iterations, counts as moved. Harness options (`--iterations`, `--filter`)
+   measure uncached and write the same format, keeping the entries that didn't move. To rewrite
+   every entry (a change aimed at cache misses alone), delete the file first.
 8. **A `graph.lazy` member**, if the algorithm has steps worth watching (see "Shapes"), with a
    replay test showing its events reproduce the plain call.
 9. **An explore page**, optional. See `Explore/README.md` for the page order, compare tables,
@@ -410,8 +426,11 @@ library with none of that can skip this section.
 
 ### Tests
 
-- Swift Testing. Each test is self-contained: no assertion or setup helpers, not DRY; a test
-  copied to another file still works. Shared fixture data in `GrafluentTestSupport` is tolerated.
+- Swift Testing (`import Testing`, `@Suite`, `@Test`, `#expect`, `#require`). Never XCTest.
+- Each test is self-contained and portable: no assertion or setup helpers, not DRY; a test
+  copied to another file still works. Shared fixture data in `GrafluentTestSupport` is tolerated;
+  shared assertions are not.
+- Test names state the rule they pin ("successors(checked:) throws VertexNotFound for a missing vertex").
 - **Sociable.** A test runs the real code under test and its real collaborators wherever they are
   fast and deterministic, and mocks only the seams that reach out (network, disk, clock) or that
   it must steer. Inside `withTestContainer { }`, `Container.x.useProduction()` resolves the real
