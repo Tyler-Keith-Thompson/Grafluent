@@ -97,15 +97,6 @@
     <span class="k">for</span> (who, whom) <span class="k">in</span> arrows { <span class="t">DirectedEdge</span>(from: who, to: whom) }
 }
 
-<span class="k">let</span> who = <span class="s">"Dee"</span>, whom = <span class="s">"Cy"</span>
-
-<span class="k">let</span> follow = <span class="t">DirectedEdge</span>(from: who, to: whom)
-<span class="k">if</span> follows.contains(edge: follow) {
-    follows.remove(edge: follow)
-} <span class="k">else</span> {
-    follows.insert(edge: follow)
-}
-
 <span class="k">let</span> anaFollows = <span class="t">Array</span>(follows.successors(of: <span class="s">"Ana"</span>))  <span class="c">// ["Ben", "Cy"]</span>
 <span class="k">let</span> deeFollowsCy = follows.contains(edge: <span class="t">DirectedEdge</span>(from: <span class="s">"Dee"</span>, to: <span class="s">"Cy"</span>))  <span class="c">// true</span>
 <span class="k">let</span> followCount = follows.edgeCount  <span class="c">// 5</span>

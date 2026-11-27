@@ -113,7 +113,6 @@
 <span class="k">let</span> routes = crosstown.shortestSimplePaths(from: start, to: goal) { driveMinutes[crosstown.edges[$<span class="n">0</span>]]! }
 <span class="k">let</span> firstFew = <span class="t">Array</span>(routes.prefix(count))  <span class="c">// 8 routes</span>
 <span class="k">let</span> minutes = firstFew.map(\.distance)  <span class="c">// [21, 22, 24, 24, 25, 25, 25, 26]</span>
-<span class="k">let</span> quickest = firstFew.first?.path.vertices ?? []  <span class="c">// ["Home", "Mill", "Square", "Park", "Stadium"]</span>
 </span></pre>
 
   <h2><small>Names you’ll meet</small>Say them with confidence</h2>
