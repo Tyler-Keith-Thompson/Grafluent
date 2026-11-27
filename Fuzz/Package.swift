@@ -1,4 +1,4 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.4
 import PackageDescription
 
 // libFuzzer targets, in their own package so the library never depends on the fuzzer runtime.

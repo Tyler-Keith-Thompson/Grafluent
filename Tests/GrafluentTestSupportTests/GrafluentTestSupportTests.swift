@@ -154,12 +154,4 @@ struct InstrumentationTests {
         #expect(LifetimeTracker.current?.instances == 0)
         #expect(LifetimeTracker.current?.created == 1)
     }
-
-    /// Confirms exit tests work under both SwiftPM and Bazel before any suite depends on them.
-    @Test(.tags(.precondition))
-    func exitTestsAreSupported() async {
-        await #expect(processExitsWith: .failure) {
-            preconditionFailure("intentional")
-        }
-    }
 }

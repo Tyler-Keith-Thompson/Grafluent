@@ -2,5 +2,5 @@
 
 # The Swift versions the files in SWIFT_SITES name: the next `just modules` replaces these there
 # when scripts/modules.py declares others.
-SWIFT = "6.3"
-SWIFT_TOOLCHAIN = "6.3.3"
+SWIFT = "6.4"
+SWIFT_TOOLCHAIN = "6.4.3"

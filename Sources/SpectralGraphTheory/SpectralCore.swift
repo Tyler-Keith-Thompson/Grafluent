@@ -186,8 +186,9 @@ extension _WeightedAdjacency {
         var products = 0
         if shift / rayleighBound(normalized: normalized) <= ratio {
             let rule = _LanczosRule(tolerance: tolerance, shift: shift, floor: 0, abandonRatio: ratio, budget: min(_SpectralLimits.shifted(n), maxIterations ?? .max))
-            // Abandoning or spending the budget here hands over to shift-invert.
-            if let (_, vector) = try? _largestEigenpair(count: n, null: null, lowerBound: 0, filters: n >= _filterMinimumSize, rule: rule, products: &products, apply: op.apply) {
+            // Abandoning or spending the budget here hands over to shift-invert. A closure rather than
+            // `op.apply`, as in `iterativeSmallestPositive` (EigenpairsCore.swift).
+            if let (_, vector) = try? _largestEigenpair(count: n, null: null, lowerBound: 0, filters: n >= _filterMinimumSize, rule: rule, products: &products, apply: { (x, y) throws(NoConvergence) in op.apply(x, y) }) {
                 return (vector, null)
             }
         }
@@ -311,8 +312,9 @@ extension _WeightedAdjacency {
         var products = 0
         let op = adjacencyOperator(negated: false)
         let rule = _LanczosRule(tolerance: tolerance, shift: 0, floor: hasNegativeEntry ? 1e-6 * bound : 0, abandonRatio: .infinity, budget: limit)
-        // Without a shift a run never abandons: it converges or throws.
-        guard let (largest, _) = try _largestEigenpair(count: n, null: nil, lowerBound: -bound, filters: n >= _filterMinimumSize, rule: rule, products: &products, apply: op.apply) else {
+        // Without a shift a run never abandons: it converges or throws. A closure rather than
+        // `op.apply`, as in `iterativeSmallestPositive` (EigenpairsCore.swift).
+        guard let (largest, _) = try _largestEigenpair(count: n, null: nil, lowerBound: -bound, filters: n >= _filterMinimumSize, rule: rule, products: &products, apply: { (x, y) throws(NoConvergence) in op.apply(x, y) }) else {
             preconditionFailure("Lanczos on A abandoned")
         }
         guard hasNegativeEntry else { return max(largest, 0) }

@@ -1,6 +1,6 @@
 # Grafluent: notes for coding agents
 
-Grafluent is a generic graph library for Swift 6.3 (minimum). Performance comes first: generic
+Grafluent is a generic graph library for Swift 6.4 (minimum). Performance comes first: generic
 code must run at the speed of a hand-written loop over arrays. Bazel is the development build;
 SwiftPM is the published package. `README.md` is the user-facing overview.
 
@@ -211,7 +211,7 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 
 watchOS's arm64_32 and wasm32 have a 32-bit `Int`. `just wasi-test` (`scripts/wasi_test.py`)
 builds the SwiftPM test targets with `swift build --build-tests --swift-sdk
-swift-6.3.3-RELEASE_wasm` through swiftly into `.build/wasm`, then runs each test binary (one
+swift-6.4.3-RELEASE_wasm` through swiftly into `.build/wasm`, then runs each test binary (one
 `<Target>-test-runner.wasm` per target, or an older toolchain's one `GrafluentPackageTests.xctest`)
 with `wasmtime run --dir . --dir <checkout>::<checkout> --argv0 <binary's path> <binary>
 --testing-library swift-testing`, logs in `.build/wasm/logs`. The checkout at its own path and the
@@ -220,7 +220,7 @@ binary's path as `argv[0]` are where SwiftPM's `Bundle.module` looks for a modul
 WASI's Foundation takes from `argv[0]`). `-c release` builds with `-enable-testing`, so suites that
 `@testable import` build in release too. A `--targets` name that isn't a test target is refused
 before anything builds, and a group fails when its build wrote no runner for one of its targets.
-Needs swiftly's 6.3.3 toolchain, its WebAssembly SDK (`swift sdk list`; the install command is in
+Needs swiftly's 6.4.3 toolchain, its WebAssembly SDK (`swift sdk list`; the install command is in
 `Explore/README.md`) and `brew install wasmtime`. If the toolchain crashes on the manifest against a
 newer Xcode's SDK, pass `--xcode /Applications/Xcode-26.2.0.app` (as `EXPLORE_XCODE` does for
 `just explore`).
@@ -247,10 +247,10 @@ newer Xcode's SDK, pass `--xcode /Applications/Xcode-26.2.0.app` (as `EXPLORE_XC
 - A dependency that doesn't build for WASI (NIOPosix and what sits on it) fails the whole build.
   List its package in `NON_WASI_PACKAGES` (see "Module graph"), and put the code and tests that
   use it under `#if canImport(<its module>)`.
-- A debug build traps in three groups with Swift 6.3.3's WebAssembly SDK: "indirect call type
-  mismatch" in SpectralGraphTheory's Lanczos closures, and a `DirectedAcyclicGraph` insertion
-  test whose `#expect` closure runs another closure's body. Neither shows natively or in a
-  release build; it is a toolchain fault, so judge 32-bit behaviour by `-c release`.
+- Swift 6.4.3 for WebAssembly passes a non-throwing method reference (`apply: op.apply`) as a
+  `throws(E)` closure argument without converting it, and the call traps with "indirect call
+  type mismatch" in debug and release alike; natively nothing shows. Pass a closure literal,
+  `{ (x, y) throws(E) in op.apply(x, y) }`, as SpectralGraphTheory's Lanczos callers do.
 - A test whose literals need a 64-bit `Int` sits inside `#if _pointerBitWidth(_64)`; the catalog
   generators add that guard themselves.
 - Write width-dependent bounds as comparisons on `Int64` or `Int.max`, never `1 << 32` on an
@@ -266,7 +266,7 @@ newer Xcode's SDK, pass `--xcode /Applications/Xcode-26.2.0.app` (as `EXPLORE_XC
   empty directory of its own, so a mutant that turns an absolute path relative writes nowhere in
   the checkout.
 - Each module has a fuzz target in `Fuzz/`, a SwiftPM package Bazel ignores, built with the
-  swift.org toolchain through swiftly (`swiftly install 6.3.3`; `Fuzz/README.md`). A crash becomes
+  swift.org toolchain through swiftly (`swiftly install 6.4.3`; `Fuzz/README.md`). A crash becomes
   a regression test, then its file is deleted.
 - `just diff` compares only answers that ties cannot change and validates returned paths and
   witnesses.

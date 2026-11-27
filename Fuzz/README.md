@@ -66,8 +66,8 @@ deleted.
 ## Toolchain
 
 Xcode's toolchain does not include the libFuzzer runtime (`libclang_rt.fuzzer_osx.a`); the
-swift.org toolchains do. The scripts build with `swiftly run swift build +6.3.3` (override with
-`GRAFLUENT_FUZZ_SWIFT`), so install it once with `swiftly install 6.3.3`. The build prints
+swift.org toolchains do. The scripts build with `swiftly run swift build +6.4.3` (override with
+`GRAFLUENT_FUZZ_SWIFT`), so install it once with `swiftly install 6.4.3`. The build prints
 `unknown argument: '-target-arch-variant'` while reading the newer SDK's interfaces, then falls
 back and succeeds; the scripts hide it.
 

@@ -11,6 +11,8 @@ import Testing
 
 @Suite("GraphFormats GEXF interop")
 struct GraphFormatsGEXFInteropTests {
+    // The `long` value 5000000000 needs a 64-bit Int; past Int it is numberOutOfRange.
+    #if _pointerBitWidth(_64)
     @Test("A file as NetworkX writes it: labels on every node, ids and keys on every edge, a default, a long")
     func networkx() throws {
         let text = """
@@ -83,6 +85,7 @@ struct GraphFormatsGEXFInteropTests {
         let simple = try AdjacencyList<String>(gexf: Array(text.utf8))
         #expect(simple.edgeCount == 2)
     }
+    #endif
 
     @Test("Write, then read back: labels, weights, parallel edges, a loop, escaping; the undirected form")
     func roundTrip() throws {

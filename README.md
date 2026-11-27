@@ -32,7 +32,7 @@ lets you step through it on a small example you can edit, beside the Swift code 
 
 ## Installation
 
-Grafluent requires Swift 6.3 and supports macOS 15, iOS 18, tvOS 18, watchOS 11 and visionOS 2
+Grafluent requires Swift 6.4 and supports macOS 15, iOS 18, tvOS 18, watchOS 11 and visionOS 2
 or later.
 
 Add the package to `Package.swift`:

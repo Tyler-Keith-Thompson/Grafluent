@@ -81,21 +81,21 @@ contents and the menu without a link.
 
 ## Requirements
 
-- [swiftly](https://www.swift.org/install/) with the Swift 6.3.3 toolchain:
-  `swiftly install 6.3.3`.
+- [swiftly](https://www.swift.org/install/) with the Swift 6.4.3 toolchain:
+  `swiftly install 6.4.3`.
 - The matching Swift SDK for WebAssembly from swift.org:
 
   ```sh
   swiftly run swift sdk install \
-      https://download.swift.org/swift-6.3.3-release/wasm-sdk/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE_wasm.artifactbundle.tar.gz \
-      --checksum cabfa08b73bb8ac783927ecd15fa386e99d0c139c5f232445067bcf58379cae7 +6.3.3
+      https://download.swift.org/swift-6.4.3-release/wasm-sdk/swift-6.4.3-RELEASE/swift-6.4.3-RELEASE_wasm.artifactbundle.tar.gz \
+      --checksum 5f24408dc9737ce4cb23b7e3ed4306cabfa02cc02f22ab260b14579b955d4b12 +6.4.3
   ```
 
 - `wasm-opt` from binaryen (`brew install binaryen`) to optimize the binary. The build still
   works without it, with a larger `.wasm`.
 
-Without swiftly, `build.sh` uses the `swift` on `PATH`, which must be 6.3.3 (CI does this in the
-`swift:6.3.3` container).
+Without swiftly, `build.sh` uses the `swift` on `PATH`, which must be 6.4.3 (CI does this in the
+`swift:6.4.3` container).
 
 ## Build
 
@@ -259,8 +259,7 @@ in both themes.
 
 ## Versions
 
-- ElementaryUI 0.7.0 (with Elementary 0.8.2), the newest release that builds with Swift 6.3;
-  0.8.0 needs Swift 6.4.
+- ElementaryUI 0.7.0 (with Elementary 0.8.2).
 - JavaScriptKit 0.58.0, the version ElementaryUI 0.7.0 allows.
 - swift-collections 1.6, which ElementaryUI 0.7.0 was written against.
 - `@bjorn3/browser_wasi_shim` 0.3.0, the version JavaScriptKit's packager targets.

@@ -21,12 +21,12 @@ permissions:
 jobs:
   bazel:
     name: Bazel tests
-    # arm64, like the local swift:6.3 container that fills the remote cache before a push.
+    # arm64, like the local swift:6.4 container that fills the remote cache before a push.
     runs-on: ubuntu-26.04-arm
     # Swift with Bazel already in it (ci-image/ in the project template): rules_swift's Linux
     # toolchain is whatever swiftc is on the PATH, and Bazelisk runs the Bazel in .bazelversion.
     container:
-      image: ghcr.io/tyler-keith-thompson/swift-bazel:6.3-9.3.1
+      image: ghcr.io/tyler-keith-thompson/swift-bazel:6.4-9.3.1
       # The image is a private package that grants this repository access (Actions access in
       # the package's settings); the job's token pulls it.
       credentials:

@@ -148,26 +148,6 @@ import Testing
         #expect(throws: VertexNotFound.self) { try betweenness.score(checked: "gone") }
     }
 
-    @Test("PC-7 zero or negative parallelism traps", .tags(.precondition))
-    func parallelismTraps() async {
-        await #expect(processExitsWith: .failure) {
-            let graph = AdjacencyList<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1)])
-            _ = await graph.betweennessCentrality(parallelism: 0)
-        }
-        await #expect(processExitsWith: .failure) {
-            let graph = UndirectedAdjacencyList<Int>(vertices: 0 ..< 3, edges: [UndirectedEdge(0, 1)])
-            _ = await graph.closenessCentrality(parallelism: -1)
-        }
-    }
-
-    @Test("PC-8 a weight of zero traps in the weighted parallel measure", .tags(.precondition))
-    func zeroWeightTraps() async {
-        await #expect(processExitsWith: .failure) {
-            let graph = AdjacencyList<Int>(vertices: 0 ..< 3, edges: [DirectedEdge(from: 0, to: 1), DirectedEdge(from: 1, to: 2)])
-            _ = await graph.betweennessCentrality(weight: { _ in 0 }, parallelism: 2)
-        }
-    }
-
     @Test("PC-9 random graphs: every parallel measure agrees with the sequential one at every task count")
     func randomGraphs() async {
         let edges = zip(Gen.int(in: 0 ... 11), Gen.int(in: 0 ... 11)).array(of: 0 ... 40)

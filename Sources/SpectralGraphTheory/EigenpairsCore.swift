@@ -71,8 +71,9 @@ extension _WeightedAdjacency {
             let op = largest ? matrix : matrix.shifted(by: sigma)
             let rule = _LanczosRule(tolerance: tolerance, shift: largest ? 0 : sigma, floor: 1e-3 * bound, abandonRatio: .infinity, budget: maxIterations ?? _SpectralLimits.radius(n))
             var products = 0
-            // Without abandoning a run converges or throws.
-            guard let found = try _extremeEigenpairs(count: n, wanted: k, deflation: [], rule: rule, products: &products, apply: op.apply) else {
+            // Without abandoning a run converges or throws. A closure rather than `op.apply`, as in
+            // `iterativeSmallestPositive`.
+            guard let found = try _extremeEigenpairs(count: n, wanted: k, deflation: [], rule: rule, products: &products, apply: { (x, y) throws(NoConvergence) in op.apply(x, y) }) else {
                 preconditionFailure("Lanczos abandoned")
             }
             vectors = found.vectors
@@ -174,8 +175,10 @@ extension _WeightedAdjacency {
         if shift / rayleighBound(normalized: normalized) <= ratio {
             let rule = _LanczosRule(tolerance: tolerance, shift: shift, floor: 0, abandonRatio: ratio, budget: min(_SpectralLimits.shifted(n), maxIterations ?? .max))
             var products = 0
-            // Abandoning or spending the budget hands over to shift-invert.
-            if let found = try? _extremeEigenpairs(count: n, wanted: k, deflation: null, rule: rule, products: &products, apply: op.apply) {
+            // Abandoning or spending the budget hands over to shift-invert. A closure rather than
+            // `op.apply`: Swift 6.4.3's release builds for WebAssembly pass the non-throwing method
+            // where the typed-throws parameter is expected, and the indirect call traps.
+            if let found = try? _extremeEigenpairs(count: n, wanted: k, deflation: null, rule: rule, products: &products, apply: { (x, y) throws(NoConvergence) in op.apply(x, y) }) {
                 return found.vectors
             }
         }

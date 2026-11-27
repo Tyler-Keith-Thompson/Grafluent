@@ -3,7 +3,7 @@
 
 The targets live in Fuzz/ (one per component, each checking against a simple model). Xcode's
 toolchain has no libFuzzer runtime, so they are built with a swift.org toolchain through swiftly
-(<PROJECT>_FUZZ_SWIFT, the project's name in capitals, default 6.3.3; `swiftly install 6.3.3`
+(<PROJECT>_FUZZ_SWIFT, the project's name in capitals, default 6.4.3; `swiftly install 6.4.3`
 once).
 
     python3 scripts/fuzz.py run                         # every target, 60 s each, all at once
@@ -36,7 +36,7 @@ FUZZ = os.path.join(ROOT, "Fuzz")
 BIN = os.path.join(FUZZ, ".build", "release")
 # The project's name, from the module graph (scripts/modules.py).
 PROJECT = runpy.run_path(os.path.join(ROOT, "scripts", "modules.py"))["PROJECT"]
-VERSION = os.environ.get(f"{PROJECT.upper()}_FUZZ_SWIFT", "6.3.3")
+VERSION = os.environ.get(f"{PROJECT.upper()}_FUZZ_SWIFT", "6.4.3")
 
 # Common to every libFuzzer invocation. Inputs decode into choices (FuzzInput), so a few hundred
 # bytes is already a long sequence of operations; longer inputs only slow each run. The default 2 GB memory

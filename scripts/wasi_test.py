@@ -6,7 +6,7 @@
     python3 scripts/wasi_test.py -c release          # every test target, release
     python3 scripts/wasi_test.py --targets SemiringsTests,FlowsTests
 
-Needs swiftly with the Swift toolchain `--swift` (default 6.3.3), its Swift SDK for WebAssembly
+Needs swiftly with the Swift toolchain `--swift` (default 6.4.3), its Swift SDK for WebAssembly
 `--sdk` (`swift sdk list`; see Explore/README.md for the install command), and wasmtime
 (`brew install wasmtime`). One binary of every test target can pass wasmtime's limit of a million
 functions, so the targets run in groups of `--group-size`: GRAFLUENT_WASI_TESTS names a group, and
@@ -101,7 +101,7 @@ def main():
     parser.add_argument("-c", "--configuration", default="debug", choices=["debug", "release"])
     parser.add_argument("--targets", help="comma-separated test targets (default: all)")
     parser.add_argument("--group-size", type=int, default=8)
-    parser.add_argument("--swift", default="6.3.3")
+    parser.add_argument("--swift", default="6.4.3")
     parser.add_argument("--sdk", default=None, help="default: swift-<swift>-RELEASE_wasm")
     parser.add_argument("--xcode", default=os.environ.get(f"{modules.PROJECT.upper()}_WASI_XCODE", os.environ.get("EXPLORE_XCODE")))
     parser.add_argument("--timeout", type=int, default=3600, help="seconds per build and per run")

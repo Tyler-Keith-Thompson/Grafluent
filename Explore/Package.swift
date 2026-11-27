@@ -1,4 +1,4 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.4
 // The browser explorer: Grafluent compiled to WebAssembly, with an ElementaryUI interface, one
 // .wasm for every page of the site. Built by `just explore` (see README.md); Bazel ignores this
 // package.

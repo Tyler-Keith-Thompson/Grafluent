@@ -4,7 +4,8 @@
 //
 //  `EliasFanoGraph` against `CompressedSparseRow`: the same vertices, edges and edge positions,
 //  every query, the coding of a hand-worked row, the degenerate graphs, the collections, equality,
-//  Codable, the checked spellings and traps, attached maps, and algorithms run on it.
+//  Codable, the checked spellings, attached maps, and algorithms run on it. The traps are in
+//  EliasFanoGraphPreconditionTests.
 //
 
 import AdjacencyListModule
@@ -146,25 +147,6 @@ import Traversal
         #expect(throws: VertexNotFound.self) { try graph.vertexIndex(checked: 3) }
         #expect(throws: EdgeNotFound.self) { try graph.source(checkedEdgeAt: 2) }
         #expect(throws: EdgeNotFound.self) { try graph.target(checkedEdgeAt: -1) }
-    }
-
-    @Test("EF-6 the plain spellings trap out of range", .tags(.precondition))
-    func traps() async {
-        await #expect(processExitsWith: .failure) {
-            let graph = EliasFanoGraph(vertexCount: 3, edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.successors(of: 3)
-        }
-        await #expect(processExitsWith: .failure) {
-            let graph = EliasFanoGraph(vertexCount: 3, edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.target(ofEdgeAt: 1)
-        }
-        await #expect(processExitsWith: .failure) {
-            _ = EliasFanoGraph(vertexCount: 2, edges: [DirectedEdge(from: 0, to: 2)])
-        }
-        await #expect(processExitsWith: .failure) {
-            let graph = EliasFanoGraph(vertexCount: 3, edges: [DirectedEdge(from: 0, to: 1)])
-            _ = graph.edges[1]
-        }
     }
 
     @Test("EF-7 attached maps by position, carried by copies and bundled")
