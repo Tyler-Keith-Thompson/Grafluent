@@ -184,10 +184,7 @@ struct GirvanNewmanCodePanel {
         let model = girvanNewmanModel
         let k = model.playback.k
         let state = model.states[k]
-        func groupsText(_ groups: [[String]]) -> String {
-            "[" + groups.map { "[" + $0.map { "\"\($0)\"" }.joined(separator: ", ") + "]" }.joined(separator: ", ") + "]"
-        }
-        return CodePanel(
+        CodePanel(
             snippets: [
                 .girvannewmanImports, .girvannewmanCrowd, .girvannewmanPartitions, .girvannewmanRemove,
                 Snippet(lines: ["let gone = removed.prefix(\(k))"]),
@@ -199,6 +196,11 @@ struct GirvanNewmanCodePanel {
                 groupsText(state.groups),
             ])
     }
+}
+
+/// `groups` as a Swift array literal of string arrays.
+fileprivate func groupsText(_ groups: [[String]]) -> String {
+    "[" + groups.map { "[" + $0.map { "\"\($0)\"" }.joined(separator: ", ") + "]" }.joined(separator: ", ") + "]"
 }
 
 enum GirvanNewmanPage {

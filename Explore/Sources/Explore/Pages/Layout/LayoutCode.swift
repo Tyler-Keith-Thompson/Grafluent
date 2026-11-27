@@ -19,18 +19,19 @@ let families: [(name: String, graph: UndirectedAdjacencyList<Int>)] = [
 ]
 // snippet end
 
-/// A new layout of family `choice`, from random positions drawn from `seed`.
-func startLayout(_ choice: Int, seed: UInt64) -> FruchtermanReingoldLayout<LayoutGraph> {
+/// Every drawing a new layout of family `choice` passes through, from random positions drawn from
+/// `seed`, with the temperature after each step.
+func startTrajectory(_ choice: Int, seed: UInt64) -> [(drawing: Drawing<Int>, temperature: Double)] {
     // snippet: layout-start
     var generator = Xoshiro256StarStar(seed: seed)
     var layout = FruchtermanReingoldLayout(families[choice].graph, iterations: 200, using: &generator)
     // snippet end
-    return layout
+    return trajectory(of: &layout)
 }
 
-/// Every drawing `layout` passes through, with the temperature after each step.
-func trajectory(of start: FruchtermanReingoldLayout<LayoutGraph>) -> [(drawing: Drawing<Int>, temperature: Double)] {
-    var layout = start
+/// Every drawing `layout` passes through as it runs to the end, with the temperature after each
+/// step.
+func trajectory(of layout: inout FruchtermanReingoldLayout<LayoutGraph>) -> [(drawing: Drawing<Int>, temperature: Double)] {
     // snippet: layout-step
     var frames = [(drawing: layout.drawing, temperature: layout.temperature)]
     while !layout.isFinished {

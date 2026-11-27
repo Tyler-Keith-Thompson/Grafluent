@@ -226,19 +226,21 @@ struct IsomorphismCodePanel {
         let model = isomorphismModel
         let pair = model.current
         let mapping = model.mapping.map { m in pair.first.map { "\($0.name) ↦ \(m[$0.name]!)" }.joined(separator: ", ") }
-        func list(_ name: String, _ edges: [UndirectedEdge<String>]) -> [String] {
-            ["let \(name) = ["] + stride(from: 0, to: edges.count, by: 4).map { i in
-                "    " + edges[i ..< min(i + 4, edges.count)].map { "UndirectedEdge(\"\($0.u)\", \"\($0.v)\")," }.joined(separator: " ")
-            } + ["]"]
-        }
-        return CodePanel(
+        CodePanel(
             snippets: [
                 .isomorphismImports,
-                Snippet(lines: list("firstEdges", pair.firstEdges) + list("secondEdges", pair.secondEdges)),
+                Snippet(lines: edgeListLines("firstEdges", pair.firstEdges) + edgeListLines("secondEdges", pair.secondEdges)),
                 .isomorphismCompare,
             ],
             results: ["\(model.sameHash)", mapping.map { "Isomorphism(\($0))" } ?? "nil"])
     }
+}
+
+/// `let name = [...]` over `edges`, four to a line.
+fileprivate func edgeListLines(_ name: String, _ edges: [UndirectedEdge<String>]) -> [String] {
+    ["let \(name) = ["] + stride(from: 0, to: edges.count, by: 4).map { i in
+        "    " + edges[i ..< min(i + 4, edges.count)].map { "UndirectedEdge(\"\($0.u)\", \"\($0.v)\")," }.joined(separator: " ")
+    } + ["]"]
 }
 
 enum IsomorphismPage {

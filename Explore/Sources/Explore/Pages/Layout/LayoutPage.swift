@@ -56,7 +56,7 @@ final class LayoutModel {
 
     /// A new run from the random start that `seed` gives, played from the start.
     func restart() {
-        frames = trajectory(of: startLayout(choice, seed: seed))
+        frames = startTrajectory(choice, seed: seed)
         viewFrame = LayoutFrame(fitting: frames.map(\.drawing))
         playback.reset(count: frames.count - 1)
         playback.play()
@@ -90,7 +90,8 @@ final class LayoutModel {
     /// Runs the layout on from the drawing the drag left.
     func release(_ vertex: Int) {
         let point = drawing.positions[drawing.vertices.firstIndex(of: vertex)!]
-        frames = trajectory(of: Explore.drag(drawing, choice: choice, vertex: vertex, to: point))
+        var restarted = Explore.drag(drawing, choice: choice, vertex: vertex, to: point)
+        frames = trajectory(of: &restarted)
         viewFrame = LayoutFrame(fitting: frames.map(\.drawing), including: viewFrame)
         playback.reset(count: frames.count - 1)
         playback.play()

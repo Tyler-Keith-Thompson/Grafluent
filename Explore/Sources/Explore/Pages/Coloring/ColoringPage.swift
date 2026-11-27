@@ -1,3 +1,4 @@
+import AdjacencyListModule
 import ColoringModule
 import ElementaryUI
 import Reactivity

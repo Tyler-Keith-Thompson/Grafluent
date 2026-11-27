@@ -38,8 +38,6 @@ func alternativeRoutes(from start: String, to goal: String, count: Int) -> [(sto
     let routes = crosstown.shortestSimplePaths(from: start, to: goal) { driveMinutes[crosstown.edges[$0]]! }
     let firstFew = Array(routes.prefix(count))             // →
     let minutes = firstFew.map(\.distance)                 // →
-    let quickest = firstFew.first?.path.vertices ?? []     // →
     // snippet end
-    _ = quickest
-    return firstFew.map { ($0.path.vertices, $0.path.edges.map(\.position), $0.distance) }
+    return zip(firstFew, minutes).map { ($0.path.vertices, $0.path.edges.map(\.position), $1) }
 }

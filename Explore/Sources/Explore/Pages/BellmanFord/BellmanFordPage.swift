@@ -53,7 +53,7 @@ final class BellmanFordModel {
     var generous = false
     var market = AdjacencyList<String>()
     var events: [MarketEvent] = []
-    var cycle: [String]?
+    var cycle: [String] = []
     var states: [MarketState] = []
     @ReactiveIgnored let playback = Playback(millisecondsPerStep: 600, scrubID: "scrub-bellmanford")
 
@@ -179,7 +179,7 @@ struct BellmanFordLab {
                                 model.generous
                                     ? "The same market, but francs now buy 1.16 dollars each. Press Step and watch the dollars."
                                     : "You start with 1 dollar. How much of each other currency can it buy? Press Step."
-                            } else if finished && model.cycle == nil {
+                            } else if finished && model.cycle.isEmpty {
                                 "Nothing improved in round \(state.round), so these are the best rates. The blue arrows show the best way to each currency."
                             } else {
                                 describeMarketEvent(last!, model, after: state)
@@ -247,7 +247,7 @@ struct BellmanFordCodePanel {
                     + model.quotes.map { "    (DirectedEdge(from: \"\($0.trade.source)\", to: \"\($0.trade.target)\"), \(rateText($0.rate)), \($0.cost))," } + ["]"]),
                 .bellmanfordMarket, .bellmanfordRun,
             ],
-            results: ["\(model.events.count) events", "[" + (model.cycle ?? []).map { "\"\($0)\"" }.joined(separator: ", ") + "]"])
+            results: ["\(model.events.count) events", "[" + model.cycle.map { "\"\($0)\"" }.joined(separator: ", ") + "]"])
     }
 }
 

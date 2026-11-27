@@ -4,17 +4,20 @@ import PackedCompressedSparseRowModule
 // snippet end
 
 /// Who follows whom, built in one go: the rows come out packed end to end, with no spare cells.
-func packedFollows(people: [String], arrows: [(String, String)]) -> PackedCompressedSparseRow<String> {
+/// Then `change`, if given, is added, or removed when it is there: the code panel's program.
+func packedFollows(people: [String], arrows: [(String, String)], toggling change: (who: String, whom: String)? = nil) -> PackedCompressedSparseRow<String> {
     // snippet: packedrows-build
     var follows = PackedCompressedSparseRow<String> {
         for name in people { name }
         for (who, whom) in arrows { DirectedEdge(from: who, to: whom) }
     }
     // snippet end
+    if let change { toggleFollow(&follows, change.who, change.whom) }
     return follows
 }
 
 /// Adds the follow, or removes it when it is there. Returns whether it is there afterwards.
+@discardableResult
 func toggleFollow(_ follows: inout PackedCompressedSparseRow<String>, _ who: String, _ whom: String) -> Bool {
     // snippet: packedrows-change
     let follow = DirectedEdge(from: who, to: whom)

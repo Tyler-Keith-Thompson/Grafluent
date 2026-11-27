@@ -9,9 +9,10 @@ import ShortestPaths
 
 typealias MarketEvent = BellmanFordEvent<String, AdjacencyList<String>.Edges.Index, Int>
 
-/// The market of `quotes`, and every event of Bellman–Ford from dollars over the trades' costs.
+/// The market of `quotes`, every event of Bellman–Ford from dollars over the trades' costs, and the
+/// negative cycle it found (empty when there is none).
 func marketSearch(_ quotes: [(trade: DirectedEdge<String>, rate: Double, cost: Int)])
-    -> (market: AdjacencyList<String>, events: [MarketEvent], cycle: [String]?) {
+    -> (market: AdjacencyList<String>, events: [MarketEvent], cycle: [String]) {
     // snippet: bellmanford-market
     let market = AdjacencyList<String> {
         for quote in quotes { quote.trade }
@@ -26,5 +27,5 @@ func marketSearch(_ quotes: [(trade: DirectedEdge<String>, rate: Double, cost: I
     }
     let tradeRound = cycle ?? []                                                           // →
     // snippet end
-    return (market, events, cycle)
+    return (market, events, tradeRound)
 }

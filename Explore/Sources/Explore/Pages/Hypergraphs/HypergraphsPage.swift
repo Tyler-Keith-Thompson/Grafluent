@@ -84,7 +84,6 @@ struct HypergraphsLab {
         let playback = model.playback
         let k = playback.k
         let expansion = model.mode == 1
-        let people = councilSpots.count
         let shownCommittees = Array(0 ..< k)
         let inShown = Set(shownCommittees.flatMap { committees[$0] })
         let current = k > 0 ? k - 1 : nil

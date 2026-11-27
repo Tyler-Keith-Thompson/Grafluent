@@ -210,7 +210,6 @@ struct KPathsCodePanel {
             results: [
                 "\(routes.count) routes",
                 "[" + routes.map { "\($0.minutes)" }.joined(separator: ", ") + "]",
-                "[" + (routes.first?.stops ?? []).map { "\"\($0)\"" }.joined(separator: ", ") + "]",
             ])
     }
 }

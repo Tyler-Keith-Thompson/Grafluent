@@ -16,12 +16,18 @@ final class PackedRowsModel {
     var selected: Int? = 0
     /// What the last change did to the storage.
     var story = packedStartStory
-    /// The follows in the order they were added, for the code panel.
+    /// The follows in the order they were added.
     var arrows = startingFollows6
+    /// The code panel's program: the follows before the last change, built in one go, then that
+    /// change (none before the first).
+    var arrowsBeforeChange = startingFollows6
+    var lastChange: (who: String, whom: String)?
 
     func toggle(_ a: Int, _ b: Int) {
         guard a != b else { return }
         let (who, whom) = (packedNames[a], packedNames[b])
+        arrowsBeforeChange = arrows
+        lastChange = (who, whom)
         let before = cells(of: follows)
         let added = toggleFollow(&follows, who, whom)
         let after = cells(of: follows)
@@ -38,7 +44,9 @@ final class PackedRowsModel {
         for a in 0 ..< packedNames.count {
             for b in 0 ..< packedNames.count where a != b && !follows.contains(edge: DirectedEdge(from: packedNames[a], to: packedNames[b])) {
                 let before = cells(of: follows)
-                _ = toggleFollow(&follows, packedNames[a], packedNames[b])
+                arrowsBeforeChange = arrows
+                lastChange = (packedNames[a], packedNames[b])
+                toggleFollow(&follows, packedNames[a], packedNames[b])
                 arrows.append((packedNames[a], packedNames[b]))
                 let after = cells(of: follows)
                 if after.capacity != before.capacity { stories.append(describe(before: before, after: after, row: a, added: true, whom: packedNames[b])) }
@@ -50,6 +58,8 @@ final class PackedRowsModel {
     func reset() {
         follows = packedFollows(people: packedNames, arrows: startingFollows6)
         arrows = startingFollows6
+        arrowsBeforeChange = startingFollows6
+        lastChange = nil
         story = packedStartStory
     }
 
@@ -195,16 +205,17 @@ struct PackedRowsLab {
 struct PackedRowsCodePanel {
     var body: some View {
         let model = packedRows
+        let setup: [Snippet] = [
+            .packedrowsImports,
+            Snippet(lines: ["let people = [" + packedNames.map { "\"\($0)\"" }.joined(separator: ", ") + "]", "let arrows = ["]
+                + model.arrowsBeforeChange.map { "    (\"\($0.0)\", \"\($0.1)\")," } + ["]"]),
+            .packedrowsBuild,
+        ]
+        let change: [Snippet] = model.lastChange.map { [Snippet(lines: ["let who = \"\($0.who)\", whom = \"\($0.whom)\""]), .packedrowsChange] } ?? []
+        // The results are the program's own: the follows rebuilt, then the last change made.
         CodePanel(
-            snippets: [
-                .packedrowsImports,
-                Snippet(lines: ["let people = [" + packedNames.map { "\"\($0)\"" }.joined(separator: ", ") + "]", "let arrows = ["]
-                    + startingFollows6.map { "    (\"\($0.0)\", \"\($0.1)\")," } + ["]"]),
-                .packedrowsBuild,
-                Snippet(lines: ["let who = \"\(model.arrows.last?.0 ?? "Ana")\", whom = \"\(model.arrows.last?.1 ?? "Ben")\""]),
-                .packedrowsChange, .packedrowsRead,
-            ],
-            results: readBack(model.follows))
+            snippets: setup + change + [.packedrowsRead],
+            results: readBack(packedFollows(people: packedNames, arrows: model.arrowsBeforeChange, toggling: model.lastChange)))
     }
 }
 
