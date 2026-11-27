@@ -1,5 +1,5 @@
 {
-  "originHash" : "aa01118c0c7531830689907742149ed9e1570d8ed87dcbaee2f27b09a438de21",
+  "originHash" : "2f1915f45790fa33832bc67a621272329e2c1260315540682f8452b6026164d1",
   "pins" : [
     {
       "identity" : "elementary",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/elementary-swift/elementary-ui",
       "state" : {
-        "revision" : "ca42becc16dddb9d90b1eeba4a4f6eacefc16dfa",
-        "version" : "0.7.0"
+        "revision" : "f4f4d96cda9b76017baa457f77d07d52f9cf628d",
+        "version" : "0.8.0"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swiftwasm/JavaScriptKit",
       "state" : {
-        "revision" : "cadafdcf9a1946ed60dfd22407e7e8dd189920e8",
-        "version" : "0.58.0"
+        "revision" : "991755e698a7516eac571e6f6a65c04c907ce5ed",
+        "version" : "0.59.0"
       }
     },
     {

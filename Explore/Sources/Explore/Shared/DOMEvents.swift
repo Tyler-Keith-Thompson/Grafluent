@@ -1,9 +1,9 @@
 import ElementaryUI
 import JavaScriptKit
 
-// ElementaryUI attaches event handlers to HTML views and to an `svg` element, not to the shapes
-// inside one. The map and the timeline therefore listen on their `svg` and find the place or
-// marble from the event's target, which carries a `data-place` or `data-step` attribute.
+// The canvases listen on their `svg` alone, one handler for every shape, and find the vertex, edge
+// or marble from the event's target, which carries a `data-node`, `data-edge` or `data-step`
+// attribute.
 
 /// A DOM event as its JavaScript object.
 struct DOMEventObject: _TypedDOMEvent {
@@ -73,3 +73,19 @@ extension DOMEventObject {
         _ = svg.setPointerCapture?(id)
     }
 }
+
+#if arch(wasm32)
+// An `svg` element is both an HTML `View` and an `SVGView`, and each declares this `_onEvent`, so
+// a call on one is ambiguous. This member of the element type is the more specific and takes
+// `View`'s, so the element stays a `View` in the HTML around it. (FirstFrames.swift stands in for
+// it off WebAssembly.)
+extension SVGElement where Tag == SVGTag.svg, Content: _Mountable {
+    consuming func _onEvent<Config: _DOMEventHandlerConfig>(_ type: Config.Type, handler: @escaping (Config.Event) -> Void) -> some View<Tag> {
+        viewEvent(self, type, handler)
+    }
+}
+
+private func viewEvent<Element: View, Config: _DOMEventHandlerConfig>(_ element: consuming Element, _ type: Config.Type, _ handler: @escaping (Config.Event) -> Void) -> some View<Element.Tag> {
+    element._onEvent(type, handler: handler)
+}
+#endif

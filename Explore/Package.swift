@@ -12,11 +12,8 @@ let package = Package(
     platforms: [.macOS(.v15)],
     dependencies: [
         .package(path: ".."),
-        .package(url: "https://github.com/elementary-swift/elementary-ui", exact: "0.7.0"),
-        .package(url: "https://github.com/swiftwasm/JavaScriptKit", exact: "0.58.0"),
-        // ElementaryUI 0.7.0 was built against swift-collections 1.6, whose container previews
-        // (InputSpan, MutableRef) 1.7 moved.
-        .package(url: "https://github.com/apple/swift-collections", "1.6.0" ..< "1.7.0"),
+        .package(url: "https://github.com/elementary-swift/elementary-ui", exact: "0.8.0"),
+        .package(url: "https://github.com/swiftwasm/JavaScriptKit", exact: "0.59.0"),
     ],
     targets: [
         .executableTarget(

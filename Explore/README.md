@@ -259,9 +259,9 @@ in both themes.
 
 ## Versions
 
-- ElementaryUI 0.7.0 (with Elementary 0.8.2).
-- JavaScriptKit 0.58.0, the version ElementaryUI 0.7.0 allows.
-- swift-collections 1.6, which ElementaryUI 0.7.0 was written against.
+- ElementaryUI 0.8.0 (with Elementary 0.8.2).
+- JavaScriptKit 0.59.0, the version ElementaryUI 0.8.0 allows.
+- swift-collections 1.6, the minor release ElementaryUI 0.8.0 allows.
 - `@bjorn3/browser_wasi_shim` 0.3.0, the version JavaScriptKit's packager targets.
 - binaryen `version_133` in CI.
 
